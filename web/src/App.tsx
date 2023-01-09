@@ -47,6 +47,9 @@ function App() {
   useEffect(() => {
     getNostrProfile(getPublicKey(private_key))
       .then((profile) => {
+        if (typeof profile === "undefined") {
+          setProfileError("Profile not found");
+        }
         setProfile(profile);
       })
       .catch((error) => {

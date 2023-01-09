@@ -56,6 +56,9 @@ export const getNostrProfile = (publicKey: string) => {
     kinds: [0],
     authors: [publicKey],
   }).then((events) => {
+    if (events.length === 0) {
+      return undefined;
+    }
     const [event] = events;
     const profile = globalThis.JSON.parse(event.content);
     return profile;

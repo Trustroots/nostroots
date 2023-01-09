@@ -69,7 +69,7 @@ export const getOffers = () => {
   }).then((events) => {
     const offers = events.map((event) => {
       const content = globalThis.JSON.parse(event.content);
-      const [, location] = event.tags.find((tag) => tag[0] === "l");
+      const [, location] = event.tags.find((tag) => tag[0] === "l") || [];
       return { ...content, location };
     });
     return offers;

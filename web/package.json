@@ -8,8 +8,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "deploy:build": "tsc && vite build --base=/tr-nostr/",
-    "deploy:publish": "gh-pages -d dist",
-    "deploy": "yarn deploy:build && yarn deploy:publish"
+    "deploy:nojekyll": "touch dist/.nojekyll",
+    "deploy:publish": "gh-pages -d dist -t",
+    "deploy": "yarn deploy:build && yarn deploy:nojekyll && yarn deploy:publish"
   },
   "dependencies": {
     "@emotion/react": "^11.10.5",

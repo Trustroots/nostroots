@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "deploy": "gh-pages -d dist"
+    "deploy:build": "tsc && vite build --base=/tr-nostr/",
+    "deploy:publish": "gh-pages -d dist",
+    "deploy": "yarn deploy:build && yarn deploy:publish"
   },
   "dependencies": {
     "@emotion/react": "^11.10.5",

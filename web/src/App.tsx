@@ -1,11 +1,13 @@
+import { Typography } from "@mui/material";
+import { Container } from "@mui/system";
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import "./App.css";
 
 function App() {
   return (
     <div className="App">
-      <p>An app in the making</p>
+      <Container maxWidth="lg">
+        <Typography>An app in the making</Typography>
+      </Container>
     </div>
   );
 }

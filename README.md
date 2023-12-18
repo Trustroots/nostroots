@@ -5,12 +5,17 @@ How to dissolve trustroots into nostr:
 1. a nostr app
 2. a relay server
 
+
 ## nostroots app 
+
+- basic hospitality app
+- fork off [existing app](https://www.nostr.net/)?
+- how to do profiles?
 
 
 ## nostroots relay
 
-Access to the nostroots relay is limited.
+Limited access to the nostroots relay
 
 - you can only post if you have credentials
 - you can only read if you have credentials
@@ -22,10 +27,12 @@ There’s also already authenticated relays. So only authenticated users can pos
 
 ## Goals
 
-- can run their own relay server and promote it
-- can fork the nostr app and do whatever they want with it
+sufficient decentralization:
+- anyone can run and fork the relay server
+- anyone can fork app
 
-## ideas
+
+### ideas
 
 We could even cut off signups for the relay and let other folks take over. Force decentralisation politically, but might not be necessary.
 

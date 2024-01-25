@@ -40,11 +40,16 @@ We could even cut off signups for the relay and let other folks take over. Force
 
 ## Background
 
-Hospitality Club was the biggest hospex network in 2004, depended on one person, website down in 2024. CouchSurfing(tm) sold out to venture capital. Several other networks are based on proprietary software and/or charge money to be a member.   We think it is worth our time and energy to work towards gift economy social networks that do not rely on any specific person or organization, so effectively we want to make ourselves redundant.
+Hospitality Club was the biggest hospex network in 2004, depended on one person, website down in 2024. CouchSurfing(tm) sold out to venture capital. Several other networks are based on proprietary software and/or charge money to be a member.   As networks grow there is a tendency to grow bureaucracies and budgets, which eventually lead to negative side effects such as usage fees, monetization of user data or too much reliance on donations.
+
+We think it is worth our time and energy to work towards gift economy social networks that do not rely on any specific person or organization, so effectively we want to make ourselves redundant. 
 
 The Nostr protocol is a decentralized, open network for social networking and messaging, using cryptographic keys for identity verification.
 
-It is good there are now hospex networks running on open source free software that are free to use, apart from Trustroots there are also [BeWelcome](https://www.bewelcome.org/) and [Couchers.org](https://www.couchers.org/).
+It is great there are now hospex networks running on open source free software that are free to use, apart from Trustroots there are also [BeWelcome](https://www.bewelcome.org/) and [Couchers.org](https://www.couchers.org/).
+
+What is missing is more space for innovation and taking the gift economy into new direcitons.  Think bicycle sharing, access to awesome parties, ride shares.  Enabling Nostr on Trustroots will make it way easier for people with ideas to start off with a kickstart, just like Trustroots was kickstarted off Hitchwiki, but in a much smoother way.  The user's data *and* their connections become portable, so that projects like [Trip Hopping](https://www.triphopping.com/) can immediately be useful, even if you are the only user.
+
 
 ### How is Nostr different?
 

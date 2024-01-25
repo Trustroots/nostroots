@@ -6,6 +6,9 @@ How to dissolve trustroots into nostr:
 2. a relay server
 
 
+By moving onto Nostr development will become distributed and not centralized like it is now, so everyone can volunteer in their own autonomous way and with whomever they please.
+
+
 ## nostroots app 
 
 - basic hospitality app

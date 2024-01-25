@@ -40,8 +40,19 @@ We could even cut off signups for the relay and let other folks take over. Force
 
 ## Background
 
-Hospitality Club was the biggest hospex in 2004, depended on one person, website down in 2024. CouchSurfing(tm) sold out to venture capital. Other networks are based on proprietary software and/or charge money to be a member.    We also  think it is worth our time and energy to work towards gift economy social networks that do not rely on any specific person or organization (so effectively we want to make ourselves redundant).
+Hospitality Club was the biggest hospex network in 2004, depended on one person, website down in 2024. CouchSurfing(tm) sold out to venture capital. Several other networks are based on proprietary software and/or charge money to be a member.   We think it is worth our time and energy to work towards gift economy social networks that do not rely on any specific person or organization, so effectively we want to make ourselves redundant.
 
-(It is good there are now hospex networks running on open source free software that are free to use, including BeWelcome and Couchers.org.)
+The Nostr protocol is a decentralized, open network for social networking and messaging, using cryptographic keys for identity verification.
+
+It is good there are now hospex networks running on open source free software that are free to use, apart from Trustroots there are also [BeWelcome](https://www.bewelcome.org/) and [Couchers.org](https://www.couchers.org/).
+
+### How is Nostr different?
+
+**Data Ownership:** In Nostr, users own their data. They can choose where to store it and which Nostr clients to use for interaction. This is in stark contrast to e.g. CouchSurfing(tm), where the company owns and controls user data, including its usage and monetization.
+
+**Decentralization:** Unlike all existing hospitality networks, which are controlled by a single company or organization, Nostr is decentralized. It doesn't rely on a central server or entity. Instead, it operates through a network of independent servers, allowing for greater resistance to censorship and central control.
+
+Identity Verification: Nostr uses cryptographic keys for identity verification. Each user has a unique pair of keys (public and private) for identity and authentication, contrasting with Facebook's reliance on user-provided information like email or phone number.
+
 
 

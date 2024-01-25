@@ -40,7 +40,8 @@ We could even cut off signups for the relay and let other folks take over. Force
 
 ## Background
 
-Hospitality Club was the biggest hospex in 2004, depended on one person, website down in 2024. CouchSurfing(tm) sold out to venture capital. Other networks are based on proprietary software and/or charge money to be a member.   We think it is worth our time and energy to work towards gift economy social networks that do not rely on any specific person or organization (so we want to make ourselves redundant).
+Hospitality Club was the biggest hospex in 2004, depended on one person, website down in 2024. CouchSurfing(tm) sold out to venture capital. Other networks are based on proprietary software and/or charge money to be a member.    We also  think it is worth our time and energy to work towards gift economy social networks that do not rely on any specific person or organization (so effectively we want to make ourselves redundant).
 
+(It is good there are now hospex networks running on open source free software that are free to use, including BeWelcome and Couchers.org.)
 
 

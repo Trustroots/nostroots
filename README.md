@@ -48,7 +48,7 @@ The Nostr protocol is a decentralized, open network for social networking and me
 
 It is great there are now hospex networks running on open source free software that are free to use, apart from Trustroots there are also [BeWelcome](https://www.bewelcome.org/) and [Couchers.org](https://www.couchers.org/).
 
-What is missing is more space for innovation and taking the gift economy into new direcitons.  Think bicycle sharing, access to awesome parties, ride shares.  Enabling Nostr on Trustroots will make it way easier for people with ideas to start off with a kickstart, just like Trustroots was kickstarted off Hitchwiki, but in a much smoother way.  The user's data *and* their connections become portable, so that projects like [Trip Hopping](https://www.triphopping.com/) can immediately be useful, even if you are the only user.
+What is missing is more space for innovation and taking the gift economy into new directions.  Think bicycle sharing, access to awesome parties, ride shares.  Enabling Nostr on Trustroots will make it way easier for people with ideas to start off with a kickstart, just like Trustroots was kickstarted off Hitchwiki, but in a much smoother way.  The user's data *and* their connections become portable, so that projects like [Trip Hopping](https://www.triphopping.com/) can immediately be useful, even if you are the only user.
 
 
 ### How is Nostr different?

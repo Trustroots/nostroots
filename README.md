@@ -1,6 +1,8 @@
-# tr-nostr: nostroots
+# nostroots: nostrifying trustroots
 
-How to dissolve trustroots into nostr:
+Trustroots is a social network of travelers and hosts that offer couches. 100k+ members.
+
+We're working on moving this onto [https://nostr.net/](nostr).
 
 1. a nostr app
 2. a relay server

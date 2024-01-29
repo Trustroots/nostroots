@@ -12,6 +12,12 @@ nostroots is an initiative to seamlessly transition Trustroots, the platform for
 By moving onto Nostr development will become distributed and not centralized like it is now, so everyone can volunteer in their own autonomous way and with whomever they please.
 
 
+## current status
+
+Just some experiments and ideas.
+Collective coming near Berlin, May 2024.
+
+
 ## nostroots app 
 
 - basic hospitality app

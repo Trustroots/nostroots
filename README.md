@@ -21,7 +21,7 @@ By moving onto Nostr development will become distributed and not centralized lik
 ## nostroots app 
 
 - basic hospitality app
-- fork off [existing app](https://www.nostr.net/)?
+- fork off [an existing nostr app](https://www.nostr.net/)?
 - how to do profiles?
 
 

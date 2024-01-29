@@ -14,9 +14,9 @@ By moving onto Nostr development will become distributed and not centralized lik
 
 ## current status
 
-Just some experiments and ideas.
-Collective coming near Berlin, May 2024.
-
+- experiments and ideas
+- collective coming near Berlin, May 2024
+- possibility to make it a bit more real thru NIP-05 support on trustroots.org https://github.com/Trustroots/nostroots/issues/4
 
 ## nostroots app 
 

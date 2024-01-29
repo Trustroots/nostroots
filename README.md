@@ -1,6 +1,6 @@
 # nostroots: nostrifying trustroots
 
-Trustroots is a social network of travelers and hosts that offer couches. 100k+ members.
+Trustroots is a social network of travelers and hosts that offer couches. Founded in 2014, 100k+ members now.
 
 We're working on moving this onto [https://nostr.net/](nostr).
 

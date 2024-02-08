@@ -73,3 +73,27 @@ What is missing is more space for innovation and taking the gift economy into ne
 
 
 
+## FAQ
+
+(please edit, or add suggested questions/answers/edits in the comments here)
+
+: Are you sure adopting new web technologies is a good idea for user experience? I've seen the sleepy.bike prototype from [OpenHospitalityNetwork](https://github.com/OpenHospitalityNetwork)  using Solid and I really think it's too much to expect from users to use decentralized web for now. I know even I would be reluctant on creating some "new tech account" just to use some hospitality website.
+
+
+Generally we want to see an explosion of gift economy ideas… and all kinds of remixes of ideas around geo data, meeting people and organizing events.  Trustroots is good at hospitality, so for the foreseeable future we will keep this working as is. But the meet functionality is hardly used by anyone, and there is a lot of untapped potential around circles, and connecting this to for example Hitchwiki and maps.  We want to try to add Nostr functionality in this direction, without breaking the hospitality part, and in a way that it's easy for anyone to try to use or even build new things if they choose to.
+
+
+
+: ActivityPub, Solid vs Nostr
+
+ActivityPub heavily relies on specific domains and sysadmins running servers. Solid is similar, but the protocol is kinda W3C-bloat.  And there's no good profile portability.  So if your favorite ActivityPub/Solid hospex network goes rogue and you want to move elsewhere you are out of luck.
+
+Note that https://gitlab.com/soapbox-pub/mostr is a project to bridge ActivityPub and Nostr.
+
+
+: BeWelcome, couchers.org?
+
+It would be great to at some point connect with BW and Couchers over Nostr, but it seems unlikely this could happen anytime soon. 
+
+
+

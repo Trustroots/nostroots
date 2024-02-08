@@ -75,7 +75,7 @@ What is missing is more space for innovation and taking the gift economy into ne
 
 ## FAQ
 
-(please edit, or add suggested questions/answers/edits in the comments here)
+(edit this: improve, add questions, answers)
 
 : Are you sure adopting new web technologies is a good idea for user experience? I've seen the sleepy.bike prototype from [OpenHospitalityNetwork](https://github.com/OpenHospitalityNetwork)  using Solid and I really think it's too much to expect from users to use decentralized web for now. I know even I would be reluctant on creating some "new tech account" just to use some hospitality website.
 

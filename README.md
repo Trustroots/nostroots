@@ -95,5 +95,8 @@ Note that https://gitlab.com/soapbox-pub/mostr is a project to bridge ActivityPu
 
 It would be great to at some point connect with BW and Couchers over Nostr, but it seems unlikely this could happen anytime soon. 
 
+### tokens, dao, blockchain, other scams?
+
+If you see "nostr token", run away, it is a scam. There's no nostr token. There was no nostr ICO, nostr is not a DAO, there is no blockchain. Nostr makes it easy to integrate bitcoin lightning, which may at some point be helpful to for example keep out spammers. But this is not something we are interested in for the foreseeing future.
 
 

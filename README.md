@@ -1,13 +1,13 @@
 # nostroots: nostrifying trustroots
 
-Trustroots is a social network of travelers and hosts that offer couches. Founded in 2014, 100k+ members now.  We're working on moving this onto [https://nostr.net/](nostr).
+Trustroots is a social network of travelers and hosts that offer couches. Founded in 2014, 100k+ members now.  We're working on moving this onto nostr, see e.g. [https://nostr.net/](nostr.net).
 
 nostroots is an initiative to seamlessly transition Trustroots, the platform for sharing, hosting, and community building, onto the nostr network. By leveraging the unique decentralized and open-source nature of nostr, nostroots aims to enhance Trustroots' community-focused ethos with greater privacy, security, and user autonomy.
 
+So we need to get to a point where we have:
 
-1. a nostr app
-2. a relay server
-
+1. a nostr app for hospitality exchange
+2. a relay server that offers the features we want, e.g. NIP-42
 
 By moving onto Nostr development will become distributed and not centralized like it is now, so everyone can volunteer in their own autonomous way and with whomever they please.
 
@@ -15,8 +15,8 @@ By moving onto Nostr development will become distributed and not centralized lik
 ## current status
 
 - experiments and ideas
-- collective coming near Berlin, May 2024
-- possibility to make it a bit more real thru NIP-05 support on trustroots.org https://github.com/Trustroots/nostroots/issues/4
+- collective coming near Berlin, May 2024 [#11](https://github.com/Trustroots/nostroots/issues/11)
+- possibility to make it a bit more real thru NIP-05 support on trustroots.org [#4](https://github.com/Trustroots/nostroots/issues/4)
 
 ## nostroots app 
 
@@ -30,11 +30,11 @@ By moving onto Nostr development will become distributed and not centralized lik
 Limited access to the nostroots relay
 
 - you can only post if you have credentials
-- you can only read if you have credentials
+- you can only read if you have credentials, [NIP-42](https://github.com/Trustroots/nostroots/issues/9)
 - users can additionally choose to connect to other relay servers
 
 
-There’s also already authenticated relays. So only authenticated users can post.
+There’s already authenticated relays. So only authenticated users can post.
 
 
 ## Goals
@@ -97,6 +97,6 @@ It would be great to at some point connect with BW and Couchers over Nostr, but 
 
 ### tokens, dao, blockchain, other scams?
 
-If you see "nostr token", run away, it is a scam. There's no nostr token. There was no nostr ICO, nostr is not a DAO, there is no blockchain. Nostr makes it easy to integrate bitcoin lightning, which may at some point be helpful to for example keep out spammers. But this is not something we are interested in for the foreseeing future.
+If you see "nostr token", run away, it is a scam. There's no nostr token. There was no nostr ICO, nostr is not a DAO, there is no blockchain. Nostr makes it easy to integrate bitcoin lightning, which may at some point be helpful to for example keep out spammers. But this is not something we are interested in for the foreseeable future.
 
 

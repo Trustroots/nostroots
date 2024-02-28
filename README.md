@@ -1,6 +1,6 @@
 # nostroots: nostrifying trustroots
 
-Trustroots is a social network of travelers and hosts that offer couches. Founded in 2014, 100k+ members now.  We're working on moving this onto nostr, see e.g. [https://nostr.net/](nostr.net).
+Trustroots is a social network of travelers and hosts that offer couches. Founded in 2014, 100k+ members now.  We're working on moving this onto nostr, see e.g. https://nostr.net/
 
 nostroots is an initiative to seamlessly transition Trustroots, the platform for sharing, hosting, and community building, onto the nostr network. By leveraging the unique decentralized and open-source nature of nostr, nostroots aims to enhance Trustroots' community-focused ethos with greater privacy, security, and user autonomy.
 

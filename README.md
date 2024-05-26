@@ -1,6 +1,6 @@
 # nostroots: nostrifying trustroots
 
-Trustroots is a social network of travelers and hosts that offer couches. Founded in 2014, 105k+ members now.  We're working on moving this onto nostr, see e.g. https://nostr.net/
+Trustroots is a social network of travelers and hosts that offer couches. Founded in 2014, 108k+ members now.  We're working on moving this onto nostr, see e.g. https://nostr.net/
 
 nostroots is an initiative to seamlessly transition Trustroots, the platform for sharing, hosting, and community building, onto the nostr network. By leveraging the unique decentralized and open-source nature of nostr, nostroots aims to enhance Trustroots' community-focused ethos with greater privacy, security, and user autonomy.
 
@@ -14,14 +14,13 @@ By moving onto Nostr development will become distributed and not centralized lik
 
 ## current status
 
-- experiments and ideas
-- collective coming near Berlin, May 2024 [#11](https://github.com/Trustroots/nostroots/issues/11)
-- possibility to make it a bit more real thru NIP-05 support on trustroots.org [#4](https://github.com/Trustroots/nostroots/issues/4)
+First collective coming near Berlin, May 2024 [#11](https://github.com/Trustroots/nostroots/issues/11), we built:
+- https://notes.trustroots.org/ is notes-on-a-map app (code at https://github.com/Trustroots/nostr-map)
+- npub profile fields, [NIP05 work in progress](https://github.com/Trustroots/trustroots/issues/2692)
 
-## nostroots app 
 
+future 
 - basic hospitality app
-- fork off [an existing nostr app](https://www.nostr.net/)?
 - how to do profiles?
 
 

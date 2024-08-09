@@ -118,6 +118,8 @@ function App() {
         <Button variant="contained" onClick={addOfferFactory(private_key)}>
           Add hospex offer
         </Button>
+        <Typography variant="h2">Note</Typography>
+        <Typography>This was just an experiment. You can find more useful information at https://github.com/Trustroots/nostroots and the current experiment lives at https://github.com/Trustroots/nostr-map</Typography>
       </Container>
     </div>
   );

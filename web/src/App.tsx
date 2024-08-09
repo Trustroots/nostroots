@@ -119,7 +119,7 @@ function App() {
           Add hospex offer
         </Button>
         <Typography variant="h2">Note</Typography>
-        <Typography>This was just an experiment. You can find more useful information at https://github.com/Trustroots/nostroots and the current experiment lives at https://github.com/Trustroots/nostr-map</Typography>
+        <Typography>This was just an experiment. You can find more useful information <a href="https://github.com/Trustroots/nostroots">here</a> and the current experiment lives at <a href="https://github.com/Trustroots/nostr-map">trustroots/nostr-map</a></Typography>
       </Container>
     </div>
   );

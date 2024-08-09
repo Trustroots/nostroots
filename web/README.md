@@ -1,0 +1,6 @@
+
+
+
+yarn install
+
+yarn deploy

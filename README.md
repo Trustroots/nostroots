@@ -1,5 +1,6 @@
 # nostroots: nostrifying trustroots
 
+> [!WARNING]
 > This is not the active repo, we are actively working on [nostr-map](https://github.com/Trustroots/nostr-map) and that repo is automatically deployed to notes.trustroots.org.
 
 Trustroots is a social network of travelers and hosts that offer couches. Founded in 2014, 108k+ members now.  We're working on moving this onto nostr, see e.g. https://nostr.net/

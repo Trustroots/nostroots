@@ -17,9 +17,8 @@ By moving onto Nostr development will become distributed and not centralized lik
 
 ## current status
 
-First collective coming near Berlin, May 2024 [#11](https://github.com/Trustroots/nostroots/issues/11), we built:
 - https://notes.trustroots.org/ is notes-on-a-map app (code at https://github.com/Trustroots/nostr-map)
-- npub profile fields, [NIP05 work in progress](https://github.com/Trustroots/trustroots/issues/2692)
+- npub profile fields, [NIP-05 on trustroost.org](https://github.com/Trustroots/trustroots/issues/2692)
 
 
 future 
@@ -27,9 +26,9 @@ future
 - how to do profiles?
 
 
-## nostroots relay
+## nostroots relay?
 
-Limited access to the nostroots relay
+Limited access to the nostroots relay?
 
 - you can only post if you have credentials
 - you can only read if you have credentials, [NIP-42](https://github.com/Trustroots/nostroots/issues/9)
@@ -95,7 +94,8 @@ Note that https://gitlab.com/soapbox-pub/mostr is a project to bridge ActivityPu
 
 ### BeWelcome, couchers.org?
 
-It would be great to at some point connect with BW and Couchers over Nostr, but it seems unlikely this could happen anytime soon. 
+It would be great to at some point connect with BW and Couchers over Nostr.
+
 
 ### tokens, dao, blockchain, other scams?
 

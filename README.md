@@ -18,7 +18,7 @@ By moving onto Nostr development will become distributed and not centralized lik
 ## current status
 
 - https://notes.trustroots.org/ is notes-on-a-map app (code at https://github.com/Trustroots/nostr-map)
-- npub profile fields, [NIP-05 on trustroost.org](https://github.com/Trustroots/trustroots/issues/2692)
+- npub profile fields, [NIP-05 on trustroots.org](https://github.com/Trustroots/trustroots/issues/2692)
 
 
 future 

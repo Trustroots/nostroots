@@ -1,6 +1,0 @@
-
-
-
-yarn install
-
-yarn deploy

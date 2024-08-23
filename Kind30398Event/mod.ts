@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 import { version as PACKAGE_VERSION } from "./deno.json" with { type: "json" };
+export const CONTENT_MINIMUM_LENGTH = 3;
+export const CONTENT_MAXIMUM_LENGTH = 300;
 
 function isHex(s: string) {
   return s.split("").every((c) => "0123456789abcdef".split("").includes(c));
@@ -10,23 +12,6 @@ function isPlusCode(code: string) {
   const re =
     /(^|\s)([23456789C][23456789CFGHJMPQRV][23456789CFGHJMPQRVWX]{6}\+[23456789CFGHJMPQRVWX]{2,7})(\s|$)/i;
   return re.test(code);
-}
-
-export interface NostrEvent {
-  /** 32-bytes lowercase hex-encoded sha256 of the serialized event data. */
-  id: string;
-  /** 32-bytes lowercase hex-encoded public key of the event creator */
-  pubkey: string;
-  /** Unix timestamp in seconds. */
-  created_at: number;
-  /** Integer between 0 and 65535. */
-  kind: number;
-  /** Matrix of arbitrary strings. */
-  tags: string[][];
-  /** Arbitrary string. */
-  content: string;
-  /** 64-bytes lowercase hex of the signature of the sha256 hash of the serialized event data, which is the same as the `id` field. */
-  sig: string;
 }
 
 export const eventSchema = z
@@ -82,6 +67,7 @@ export const kind30398EventSchema = eventSchema.extend({
     .array()
     .refine(hasOLC, { message: "no valid open-location-code label" })
     .refine(hasVersion, { message: "no valid kind30398_version" }),
+  content: z.string().max(CONTENT_MAXIMUM_LENGTH, `content is above max length of ${CONTENT_MAXIMUM_LENGTH}`).min(CONTENT_MINIMUM_LENGTH, `content is below min length of ${CONTENT_MINIMUM_LENGTH}`)
 });
 
 export type Kind30398Event = z.infer<typeof kind30398EventSchema>;

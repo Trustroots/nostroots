@@ -1,0 +1,6 @@
+{
+  "name": "@shuesken/nostroots-kind30398event",
+  "version": "0.0.0",
+  "exports": "./mod.ts",
+  "imports": { "zod": "npm:zod@^3.23.8" }
+}

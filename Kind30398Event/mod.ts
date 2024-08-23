@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { version as PACKAGE_VERSION } from "./deno.json" with { type: "json" };
+
 function isHex(s: string) {
   return s.split("").every((c) => "0123456789abcdef".split("").includes(c));
 }
@@ -68,8 +70,8 @@ function hasVersion(tags: string[][]): boolean {
   const versionTag = versionTags[0];
   if (versionTag.length !== 2) return false;
   const version = versionTag[1];
-  if (version.length < 3) return false;
-  return true;
+  if (version !== PACKAGE_VERSION) return false
+  return true
 }
 
 export const kind30398EventSchema = eventSchema.extend({

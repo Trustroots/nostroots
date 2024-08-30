@@ -33,45 +33,9 @@ The key features the app requires are:
   - If somebody replies to what you posted, you should be told
   - It should be possible to signup to be notified about anything that's posted in a given area
 
----
+----
 
-> [!WARNING]
-> The rest of this doc might be out of date.
-
-## current status
-
-- https://notes.trustroots.org/ is notes-on-a-map app (code at https://github.com/Trustroots/nostr-map)
-- npub profile fields, [NIP-05 on trustroots.org](https://github.com/Trustroots/trustroots/issues/2692)
-
-
-future 
-- basic hospitality app
-- how to do profiles?
-
-
-## nostroots relay?
-
-Limited access to the nostroots relay?
-
-- you can only post if you have credentials
-- you can only read if you have credentials, [NIP-42](https://github.com/Trustroots/nostroots/issues/9)
-- users can additionally choose to connect to other relay servers
-
-
-There’s already authenticated relays. So only authenticated users can post.
-
-
-## Goals
-
-sufficient decentralization:
-- anyone can run and fork the relay server
-- anyone can fork app
-
-
-### ideas
-
-We could even cut off signups for the relay and let other folks take over. Force decentralisation politically, but might not be necessary.
-
+Deprecated: https://notes.trustroots.org/ is notes-on-a-map app (code at https://github.com/Trustroots/nostr-map)
 
 
 ## Background

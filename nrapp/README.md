@@ -31,7 +31,7 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 5. Start the app
 
    ```bash
-   pnpx expo start
+   pnpm start
    ```
 
 (If you get a `too many open files` error, `rm -rf node_modules; npm install` will [fix](https://github.com/Trustroots/nostroots/issues/30) this, funny enough.)

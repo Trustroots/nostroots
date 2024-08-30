@@ -4,20 +4,37 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 ## Get started
 
-1. Install dependencies
+1. Install watchman (or equivalent on *nix)
 
    ```bash
-   npm install
+   brew install watchman
    ```
 
-2. Start the app
+2. Use nvm to set the correct node version
 
    ```bash
-    npx expo start
+   nvm use
+   ```
+
+3. Enable pnpm
+
+   ```bash
+   corepack enable pnpm
+   ```
+
+4. Install dependencies
+
+   ```bash
+   pnpm install
+   ```
+
+5. Start the app
+
+   ```bash
+   pnpx expo start
    ```
 
 (If you get a `too many open files` error, `rm -rf node_modules; npm install` will [fix](https://github.com/Trustroots/nostroots/issues/30) this, funny enough.)
-
 
 In the output, you'll find options to open the app in a
 

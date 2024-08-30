@@ -1,19 +1,42 @@
 # nostroots: nostrifying trustroots
 
-> [!WARNING]
-> This is not the active repo, we are actively working on [nostr-map](https://github.com/Trustroots/nostr-map) and that repo is automatically deployed to notes.trustroots.org.
-
-Trustroots is a social network of travelers and hosts that offer couches. Founded in 2014, 108k+ members now.  We're working on moving this onto nostr, see e.g. https://nostr.net/
+Trustroots is a social network of travelers and hosts that offer couches. Founded in 2014, 112k+ members now.  We're working on moving this onto nostr, see e.g. https://nostr.net/
 
 nostroots is an initiative to seamlessly transition Trustroots, the platform for sharing, hosting, and community building, onto the nostr network. By leveraging the unique decentralized and open-source nature of nostr, nostroots aims to enhance Trustroots' community-focused ethos with greater privacy, security, and user autonomy.
 
-So we need to get to a point where we have:
+## Goals
 
-1. a nostr app for hospitality exchange
-2. a relay server that offers the features we want, e.g. NIP-42
+The principal goal is to facilitate real world interactions.
 
-By moving onto Nostr development will become distributed and not centralized like it is now, so everyone can volunteer in their own autonomous way and with whomever they please.
+The sub goal could be summarised as exit-to-ecosystem. That means, moving trustroots from a walled garden to part of a larger ecosystem of interconnected sites. People should be able to log into any of a few sites or projects and have their same contacts, same messages, and (most) of the same trust or reputation as they do on trustroots.
 
+One side benefit, and a secondary sub goal, is to enable innovation. When somebody wants to start a project like couchers, ideally they can leverage the trustroots community to get started. Or a female only hospitality network. Or a private dumpster diver map.
+
+One measure of success is that 70% of active trustroots users have used their nostr identity to login on at least one other site. This is important because we're ultimately trying to protect against administrator mismanagement. For that to be true, users not only need to have the theoretical opportunity to use their profile on another site, they must also know that this option exists. The best test of that is that they have actually done it. At the same time, we want to remain accessible to non technical users.
+
+## Next steps
+
+Given the goals above, and our experiment with [notes.trustroots.org](https://notes.trustroots.org), the next step is to build a better map that uses nostr to move data around. This will take the form of a mobile application. The reasoning for a mobile application is to be able to provide the best possible use case on mobile. We reason that people will use the map primarily on mobile devices, and the experience is significantly better in a native app compared to a progressive web app.
+
+The app should be on similar level of quality and polish as the trustroots site. The app should always be an optional addition to the core trustroots experience, but not mandatory. Users should be able to find hosts without installing an app.
+
+The key features the app requires are:
+
+- Ability to post notes on an area of the map
+  - Posted to an area, rather than a point
+  - Could be seen as a forum post, an event invitation, or otherwise
+  - The word note in this context means the nostr definition of a note
+- Interactions between users
+  - Potentially replies that are also public
+  - At least for the foreseeable future, the map should support interactions over several months, so a person might post and then three months later another person might reply
+- Notifications
+  - If somebody replies to what you posted, you should be told
+  - It should be possible to signup to be notified about anything that's posted in a given area
+
+---
+
+> [!WARNING]
+> The rest of this doc might be out of date.
 
 ## current status
 

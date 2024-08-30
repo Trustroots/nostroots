@@ -16,7 +16,7 @@ One measure of success is that 70% of active trustroots users have used their no
 
 ## Next steps
 
-Given the goals above, and our experiment with [notes.trustroots.org](https://notes.trustroots.org), the next step is to build a better map that uses nostr to move data around. This will take the form of a mobile application. The reasoning for a mobile application is to be able to provide the best possible use case on mobile. We reason that people will use the map primarily on mobile devices, and the experience is significantly better in a native app compared to a progressive web app.
+Given the goals above, and our (deprecated) experiment with [notes.trustroots.org](https://notes.trustroots.org), the next step is to build a better map that uses nostr to move data around. This will take the form of a mobile application. The reasoning for a mobile application is to be able to provide the best possible use case on mobile. We reason that people will use the map primarily on mobile devices, and the experience is significantly better in a native app compared to a progressive web app.
 
 The app should be on similar level of quality and polish as the trustroots site. The app should always be an optional addition to the core trustroots experience, but not mandatory. Users should be able to find hosts without installing an app.
 
@@ -34,8 +34,6 @@ The key features the app requires are:
   - It should be possible to signup to be notified about anything that's posted in a given area
 
 ----
-
-Deprecated: https://notes.trustroots.org/ is notes-on-a-map app (code at https://github.com/Trustroots/nostr-map)
 
 
 ## Background

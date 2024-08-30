@@ -16,6 +16,9 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
     npx expo start
    ```
 
+(If you get a `too many open files` error, `rm -rf node_modules; npm install` will [fix](https://github.com/Trustroots/nostroots/issues/30) this, funny enough.)
+
+
 In the output, you'll find options to open the app in a
 
 - [development build](https://docs.expo.dev/develop/development-builds/introduction/)

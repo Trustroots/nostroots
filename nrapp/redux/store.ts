@@ -1,13 +1,13 @@
 import { configureStore } from "@reduxjs/toolkit";
 
 import {
-  default as profilesReducer,
-  SLICE_NAME as profilesName,
-} from "./profilesSlice";
+  SLICE_NAME as eventsName,
+  default as eventsReducer,
+} from "./eventsSlice";
 
 export const store = configureStore({
   reducer: {
-    [profilesName]: profilesReducer,
+    [eventsName]: eventsReducer,
   },
 });
 

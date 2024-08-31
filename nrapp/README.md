@@ -36,24 +36,13 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 
 (If you get a `too many open files` error, `rm -rf node_modules; npm install` will [fix](https://github.com/Trustroots/nostroots/issues/30) this, funny enough.)
 
-In the output, you'll find options to open the app in a
+### View the app
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+You cannot (currently) view the app in the web. The maps package is not supported on web. The easiest option is to install an app called Expo Go into your phone. Then you can scan the QR code that was output in the terminal from the `pnpm start` command and the app will load onto your phone.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+This requires that your phone and computer are on the same network, and that your phone can load the app from your computer.
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+You can also install Android Studio or XCode and then load the app in a simulator. That is beyond the scope of this readme, but [the expo docs](https://docs.expo.dev/get-started/set-up-your-environment/) are a good place to start.
 
 ## Learn more
 

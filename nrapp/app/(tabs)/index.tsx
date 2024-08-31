@@ -1,26 +1,15 @@
-import { Image, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
-import ParallaxScrollView from "@/components/ParallaxScrollView";
 import { ThemedView } from "@/components/ThemedView";
 import MapView from "react-native-maps";
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
-      headerImage={
-        <Image
-          source={require("@/assets/images/partial-react-logo.png")}
-          style={styles.reactLogo}
-        />
-      }
-    >
-      <ThemedView style={styles.titleContainer}>
-        <View style={styles.mapContainer}>
-          <MapView style={styles.map} />
-        </View>
-      </ThemedView>
-    </ParallaxScrollView>
+    <ThemedView style={styles.titleContainer}>
+      <View style={styles.mapContainer}>
+        <MapView style={styles.map} />
+      </View>
+    </ThemedView>
   );
 }
 
@@ -46,6 +35,6 @@ const styles = StyleSheet.create({
   },
   map: {
     width: "100%",
-    height: 400,
+    height: "100%",
   },
 });

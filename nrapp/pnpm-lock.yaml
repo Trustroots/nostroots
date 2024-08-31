@@ -72,6 +72,12 @@ importers:
       '@babel/core':
         specifier: ^7.20.0
         version: 7.25.2
+      '@babel/runtime':
+        specifier: ^7.25.6
+        version: 7.25.6
+      '@react-native/assets-registry':
+        specifier: ^0.75.2
+        version: 0.75.2
       '@types/jest':
         specifier: ^29.5.12
         version: 29.5.12
@@ -1201,6 +1207,10 @@ packages:
 
   '@react-native/assets-registry@0.74.87':
     resolution: {integrity: sha512-1XmRhqQchN+pXPKEKYdpJlwESxVomJOxtEnIkbo7GAlaN2sym84fHEGDXAjLilih5GVPpcpSmFzTy8jx3LtaFg==}
+    engines: {node: '>=18'}
+
+  '@react-native/assets-registry@0.75.2':
+    resolution: {integrity: sha512-P1dLHjpUeC0AIkDHRYcx0qLMr+p92IPWL3pmczzo6T76Qa9XzruQOYy0jittxyBK91Csn6HHQ/eit8TeXW8MVw==}
     engines: {node: '>=18'}
 
   '@react-native/babel-plugin-codegen@0.74.87':
@@ -7063,6 +7073,8 @@ snapshots:
       - utf-8-validate
 
   '@react-native/assets-registry@0.74.87': {}
+
+  '@react-native/assets-registry@0.75.2': {}
 
   '@react-native/babel-plugin-codegen@0.74.87(@babel/preset-env@7.25.4(@babel/core@7.25.2))':
     dependencies:

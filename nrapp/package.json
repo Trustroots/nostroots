@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "lint": "expo lint",
-    "lint-and-fix": "eslint --fix",
+    "lint-fix": "eslint --fix",
     "prepare": "cd .. && husky nrapp/.husky"
   },
   "jest": {

@@ -31,7 +31,10 @@ export default function TabTwoScreen() {
           onPress={async () => {
             const { mnemonic } = generateSeedWords();
             const account = accountFromSeedWords({ mnemonic });
-            console.log("#0GAjcE Generated seed and private key", account);
+            console.log("#0GAjcE Generated seed and private key", {
+              mnemonic,
+              account,
+            });
             const relay = new Relay("wss://nos.lol");
             await relay.connect();
             const sub = relay.subscribe([{ kinds: [0], limit: 10 }], {

@@ -1,8 +1,4 @@
-import {
-  createSlice,
-  PayloadAction,
-  PayloadActionCreator,
-} from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Filter } from "nostr-tools";
 
 export const SLICE_NAME = "relays" as const;

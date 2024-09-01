@@ -1,18 +1,5 @@
-import Ionicons from "@expo/vector-icons/Ionicons";
-import {
-  StyleSheet,
-  Image,
-  Platform,
-  SafeAreaView,
-  View,
-  Text,
-} from "react-native";
+import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 
-import { Collapsible } from "@/components/Collapsible";
-import { ExternalLink } from "@/components/ExternalLink";
-import ParallaxScrollView from "@/components/ParallaxScrollView";
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
 import { SplitPane } from "expo-split-pane";
 //import SplitPane from "expo-split-pane";
 
@@ -23,9 +10,7 @@ export default function TabThreeScreen() {
         style={{ flex: 0.3 }}
         orientation="vertical"
         pane1={
-          <View
-            style={{ flex: 1, flexGrow: 1, backgroundColor: "deepskyblue" }}
-          >
+          <View style={styles.pane1}>
             <Text>top1</Text>
           </View>
         }
@@ -70,14 +55,5 @@ export default function TabThreeScreen() {
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: "#808080",
-    bottom: -90,
-    left: -35,
-    position: "absolute",
-  },
-  titleContainer: {
-    flexDirection: "row",
-    gap: 8,
-  },
+  pane1: { flex: 1, flexGrow: 1, backgroundColor: "deepskyblue" },
 });

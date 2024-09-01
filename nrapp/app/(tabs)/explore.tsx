@@ -1,13 +1,13 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Button, StyleSheet, Text, View } from "react-native";
-import ParallaxScrollView from "@/components/ParallaxScrollView";
 
+import ParallaxScrollView from "@/components/ParallaxScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { addEvent, eventsSelectors } from "@/redux/eventsSlice";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+
 import { Relay } from "nostr-tools";
-// import { eventsSelectors } from "@/redux/eventsSelectors";
 
 export default function TabTwoScreen() {
   const events = useAppSelector(eventsSelectors.selectAll);

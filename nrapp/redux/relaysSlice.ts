@@ -50,12 +50,12 @@ const profileSlice = createSlice({
     },
     setRelayConnected: (state, action: PayloadAction<string>) => {
       const relayUrl = action.payload;
-      // TODO Handle missing relays more elegantly
+      // TODO Handle missing values more elegantly
       state.relays[relayUrl].connected = true;
     },
     setRelayDisconnected: (state, action: PayloadAction<string>) => {
       const relayUrl = action.payload;
-      // TODO Handle missing relays more elegantly
+      // TODO Handle missing values more elegantly
       state.relays[relayUrl].connected = false;
     },
     addRelayNotice: (
@@ -81,7 +81,7 @@ const profileSlice = createSlice({
       }>,
     ) => {
       const { subscriptionId, relayUrl, message } = action.payload;
-      // TODO Handle missing relays more elegantly
+      // TODO Handle missing values more elegantly
       const relayStatus =
         state.subscriptions[subscriptionId].relaysStatus[relayUrl];
       relayStatus.serverCloseMessage = message;

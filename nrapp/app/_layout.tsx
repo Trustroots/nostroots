@@ -1,4 +1,3 @@
-import { store } from "@/redux/store";
 import {
   DarkTheme,
   DefaultTheme,
@@ -11,6 +10,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import { Provider } from "react-redux";
 
+import { store } from "@/redux/store";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.

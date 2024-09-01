@@ -1,3 +1,4 @@
+/* eslint-disable import/first */
 // import "polyfill"
 import { getRandomValues } from "expo-crypto";
 

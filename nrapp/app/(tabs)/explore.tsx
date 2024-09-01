@@ -8,6 +8,7 @@ import { addEvent, eventsSelectors } from "@/redux/eventsSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { Relay } from "nostr-tools";
+import { generateSeedWords, accountFromSeedWords } from "nip06";
 
 export default function TabTwoScreen() {
   const events = useAppSelector(eventsSelectors.selectAll);
@@ -28,6 +29,9 @@ export default function TabTwoScreen() {
         <Button
           title="Load 10 events"
           onPress={async () => {
+            const { mnemonic } = generateSeedWords();
+            const account = accountFromSeedWords({ mnemonic });
+            console.log("#0GAjcE Generated seed and private key", account);
             const relay = new Relay("wss://nos.lol");
             await relay.connect();
             const sub = relay.subscribe([{ kinds: [0], limit: 10 }], {

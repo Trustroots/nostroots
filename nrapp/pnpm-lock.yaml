@@ -4,6 +4,11 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  nostr-tools@2.7.2:
+    hash: u7tl2uexm4pbtmy45glbfx6kw4
+    path: patches/nostr-tools@2.7.2.patch
+
 importers:
 
   .:
@@ -52,7 +57,7 @@ importers:
         version: 13.0.3(expo@51.0.31(@babel/core@7.25.2)(@babel/preset-env@7.25.4(@babel/core@7.25.2)))
       nostr-tools:
         specifier: ^2.7.2
-        version: 2.7.2(patch_hash=i4mkwtcrnnmambdi2vnsl54vmq)(typescript@5.3.3)
+        version: 2.7.2(patch_hash=u7tl2uexm4pbtmy45glbfx6kw4)(typescript@5.3.3)
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -10731,7 +10736,7 @@ snapshots:
 
   normalize-path@3.0.0: {}
 
-  nostr-tools@2.7.2(typescript@5.3.3):
+  nostr-tools@2.7.2(patch_hash=u7tl2uexm4pbtmy45glbfx6kw4)(typescript@5.3.3):
     dependencies:
       '@noble/ciphers': 0.5.3
       '@noble/curves': 1.2.0

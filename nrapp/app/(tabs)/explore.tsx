@@ -7,7 +7,8 @@ import { ThemedView } from "@/components/ThemedView";
 import { addEvent, eventsSelectors } from "@/redux/eventsSlice";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
-import { Relay } from "nostr-tools";
+import { Relay, finalizeEvent, verifyEvent } from "nostr-tools";
+import { hexToBytes } from "@noble/hashes/utils";
 import { generateSeedWords, accountFromSeedWords } from "nip06";
 
 export default function TabTwoScreen() {
@@ -35,6 +36,20 @@ export default function TabTwoScreen() {
               mnemonic,
               account,
             });
+            const eventTemplate = {
+              kind: 0,
+              created_at: Math.round(Date.now() / 1e3),
+              content: JSON.stringify({ name: "Aarhus" }),
+              tags: [],
+            };
+            const event = finalizeEvent(
+              eventTemplate,
+              hexToBytes(account.privateKey.hex),
+            );
+            console.log("#cBiwGN Signed event", event);
+            const verifiactionResult = verifyEvent(event);
+            console.log("#QPwp7w Verification result", verifiactionResult);
+
             const relay = new Relay("wss://nos.lol");
             await relay.connect();
             const sub = relay.subscribe([{ kinds: [0], limit: 10 }], {

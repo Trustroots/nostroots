@@ -2,3 +2,4 @@
 node_modules
 package.json
 pnpm-lock.yaml
+expo-env.d.ts

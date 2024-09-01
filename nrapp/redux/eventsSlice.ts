@@ -5,6 +5,7 @@ import {
   createSlice,
   PayloadAction,
 } from "@reduxjs/toolkit";
+import { RootState } from "./store";
 
 export const SLICE_NAME = "events" as const;
 
@@ -29,12 +30,13 @@ function getStorageId(profileEvent: Event) {
   return id;
 }
 
-const eventsAdapter = createEntityAdapter<Event, string>({
+export const eventsAdapter = createEntityAdapter<Event, string>({
   selectId: getStorageId,
 });
+
 const localSelectors = eventsAdapter.getSelectors();
 
-const eventsSlice = createSlice({
+export const eventsSlice = createSlice({
   name: SLICE_NAME,
   initialState: eventsAdapter.getInitialState(),
   reducers: {
@@ -62,3 +64,9 @@ const eventsSlice = createSlice({
 });
 
 export default eventsSlice.reducer;
+
+export const { addEvent, setAllEvents } = eventsSlice.actions;
+
+export const eventsSelectors = eventsAdapter.getSelectors(
+  (state: RootState) => state[SLICE_NAME],
+);

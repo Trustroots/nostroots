@@ -1,0 +1,8 @@
+{
+    "name": "@trustroots/nrcommon",
+    "version": "0.0.1",
+    "exports": "./mod.ts",
+    "imports": {
+        "zod": "npm:zod@^3.23.8"
+    }
+}

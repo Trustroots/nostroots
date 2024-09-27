@@ -1,5 +1,5 @@
 import { ID_SEPARATOR } from "@/constants";
-import { Event } from "@/typesTEMPORARY";
+import { Event } from "@/../nrcommon/mod";
 import {
   createEntityAdapter,
   createSlice,

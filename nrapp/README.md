@@ -2,7 +2,19 @@
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
-## Get started
+## Setup
+
+### Alternative 1: pkgx - per session
+
+Here's a quick way to set up each session:
+
+```
+sh <(curl https://pkgx.sh) +pnpm.io +watchman sh
+```
+
+(We recommend installing pkgx from [pkgx.dev](https://pkgx.sh/) for extra speed & goodies, but it's optional.)
+
+### Alternative 2: manual - global & permanent
 
 1. Install watchman (or equivalent on *nix)
 
@@ -28,11 +40,11 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
    pnpm install
    ```
 
-5. Start the app
+## Start
 
-   ```bash
-   pnpm start
-   ```
+```bash
+pnpm start
+```
 
 (If you get a `too many open files` error, `rm -rf node_modules; npm install` will [fix](https://github.com/Trustroots/nostroots/issues/30) this, funny enough.)
 

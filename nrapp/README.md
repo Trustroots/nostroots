@@ -13,7 +13,7 @@ This is an [Expo](https://expo.dev) project created with [`create-expo-app`](htt
 2. Use nvm to set the correct node version. Make sure you have the appropriate version of node installed (`nvm i`).
 
    ```bash
-   nvm use
+   nvm use 22
    ```
 
 3. Enable pnpm

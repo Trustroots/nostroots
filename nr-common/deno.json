@@ -1,5 +1,5 @@
 {
-    "name": "@trustroots/nrcommon",
+    "name": "@trustroots/nr-common",
     "version": "0.0.1",
     "exports": "./mod.ts",
     "imports": {

@@ -1,1 +1,0 @@
-cd nrapp && pnpm lint-fix && pnpm lint

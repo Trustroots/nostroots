@@ -1,0 +1,14 @@
+{
+    "tasks": {
+        "pull": "docker pull scsibug/nostr-rs-relay:latest",
+
+        // run the server without any content on port 7000
+        "run": "deno task pull; docker run -it -p 7000:8080 --name my-relay scsibug/nostr-rs-relay:latest",
+
+        // run the server with seed data on port 7000
+        "run-with-seed": "deno task pull; cp -r ./seed-data/seed-db ./seed-data/db; docker run -it -p 7000:8080 --mount src=$(pwd)/config.toml,target=/usr/src/app/config.toml,type=bind --mount src=$(pwd)/seed-data/db,target=/usr/src/app/db,type=bind --name my-relay scsibug/nostr-rs-relay:latest",
+
+        // generates a new seed db from the events writte in seed-data.ts.
+        "build-seed-from-event-list": "deno task run; deno run --allow-net send-seed-data-to-relay.ts; sleep 3; docker cp my-relay:/usr/src/app/db/nostr.db $(pwd)/seed-data/seed-db/nostr.db"
+    }
+}

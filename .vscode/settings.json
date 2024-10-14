@@ -4,6 +4,5 @@
       "mode": "auto"
     }
   ],
-  "deno.enable": true,
   "deno.enablePaths": ["./nr-common", "./nr-server"]
 }

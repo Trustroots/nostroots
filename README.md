@@ -33,8 +33,17 @@ The key features the app requires are:
   - If somebody replies to what you posted, you should be told
   - It should be possible to signup to be notified about anything that's posted in a given area
 
-----
+## Getting started
 
+There are 3 parts to this code.
+
+- `nr-common` - A module that is shared between the rest of the projects
+- `nr-app` - An expo app
+- `nr-server` - A deno application that is hosted by Trustroots
+
+Before starting development of either `nr-app` or `nr-server`, first setup the `nr-common` code as per `nr-common/README.md`.
+
+----
 
 ## Background
 
@@ -48,7 +57,6 @@ It is great there are now hospex networks running on open source free software t
 
 What is missing is more space for innovation and taking the gift economy into new directions.  Think bicycle sharing, access to awesome parties, ride shares.  Enabling Nostr on Trustroots will make it way easier for people with ideas to start off with a kickstart, just like Trustroots was kickstarted off Hitchwiki, but in a much smoother way.  The user's data *and* their connections become portable, so that projects like [Trip Hopping](https://www.triphopping.com/) can immediately be useful, even if you are the only user.
 
-
 ### How is Nostr different?
 
 **Data Ownership:** In Nostr, users own their data. They can choose where to store it and which Nostr clients to use for interaction. This is in stark contrast to e.g. CouchSurfing(tm), where the company owns and controls user data, including its usage and monetization.
@@ -56,8 +64,6 @@ What is missing is more space for innovation and taking the gift economy into ne
 **Decentralization:** Unlike all existing hospitality networks, which are controlled by a single company or organization, Nostr is decentralized. It doesn't rely on a central server or entity. Instead, it operates through a network of independent servers, allowing for greater resistance to censorship and central control.
 
 **Identity Verification:** Nostr uses cryptographic keys for identity verification. Each user has a unique pair of keys (public and private) for identity and authentication, contrasting with reliance on user-provided information like email or phone number that is used on almost all existing networks.
-
-
 
 ## FAQ
 
@@ -69,21 +75,16 @@ What is missing is more space for innovation and taking the gift economy into ne
 
 Generally we want to see an explosion of gift economy ideas… and all kinds of remixes of ideas around geo data, meeting people and organizing events.  Trustroots is good at hospitality, so for the foreseeable future we will keep this working as is. But the meet functionality is hardly used by anyone, and there is a lot of untapped potential around circles, and connecting this to for example Hitchwiki and maps.  We want to try to add Nostr functionality in this direction, without breaking the hospitality part, and in a way that it's easy for anyone to try to use or even build new things if they choose to.
 
-
 ### ActivityPub, Solid vs Nostr
 
 ActivityPub heavily relies on specific domains and sysadmins running servers. Solid is similar, but the protocol is kinda W3C-bloat.  And there's no good profile portability.  So if your favorite ActivityPub/Solid hospex network goes rogue and you want to move elsewhere you are out of luck.
 
 Note that https://gitlab.com/soapbox-pub/mostr is a project to bridge ActivityPub and Nostr.
 
-
 ### BeWelcome, couchers.org?
 
 It would be great to at some point connect with BW and Couchers over Nostr.
 
-
 ### tokens, dao, blockchain, other scams?
 
 If you see "nostr token", run away, it is a scam. There's no nostr token. There was no nostr ICO, nostr is not a DAO, there is no blockchain. Nostr makes it easy to integrate bitcoin lightning, which may at some point be helpful to for example keep out spammers. But this is not something we are interested in for the foreseeable future.
-
-

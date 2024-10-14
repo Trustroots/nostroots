@@ -87,3 +87,38 @@ It would be great to at some point connect with BW and Couchers over Nostr.
 If you see "nostr token", run away, it is a scam. There's no nostr token. There was no nostr ICO, nostr is not a DAO, there is no blockchain. Nostr makes it easy to integrate bitcoin lightning, which may at some point be helpful to for example keep out spammers. But this is not something we are interested in for the foreseeable future.
 
 
+
+## Roadmap
+
+Goal: 70% of active Trustroots users are on Nostroots by middle of 2026
+- active trustroots users: around 5K active within last month, 70% is around 3.5K ([Trustroots statistics](https://www.trustroots.org/statistics))
+- "are on Nostroots": Have had a Nostroots experience means have some feature use that went well and is associated with Nostroots. The users don't need to recognize Nostr as the protocol, just that something is possible that wasn't before. This could be logging into a different site, transporting some of their network, or interacting with content from a different platform.
+
+First step: Trial this in Berlin. Largest userbase, close to some of the developers.
+
+200 users in Berlin, likely around 30 active within the last 6 months. Probably around 5 people requesting hosting every week.
+
+
+The technical side of things are manageable as long as we just care about Trustroots functionality. There are two big challenges for migrating our users.
+- telling the story
+- finding partners in the ecosystem.
+
+### Telling the story
+Trustroots users skew hippie, alternative, vanguard, experimental, left, gifting. The Nostr userbase is generally cryptocurrency and privacy focused.
+
+As far as our users are concerned, Trustroots is fine and nothing is broken. So a degradation of their experience will likely only lead to frustration. At best, we can justify inconvenience through appealing to the values of the community. The community also won't care that much about the admins' wish to make Trustroots more maintainable.
+
+Trustroots users interact with the app when they're looking for something in a new city. That is the moment they're engaged and ready to be excited and we should find a story that works for them.
+
+Story:
+- Trustroots was never meant to be just for hosting. It's meant to enable gifting and sharing based on trust and shared values.
+- In a world of companies owning your identity online, Trustroots wants to empower you to own your own identity.
+- There's more cool stuff like Trustroots in the world.
+
+
+### Partners in the ecosystem
+There are no good partner organisations in the ecosystem.
+
+"Log in with trustroots" – forward.
+
+What's the simplest login-with functionality we can implement?

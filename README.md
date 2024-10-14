@@ -1,6 +1,6 @@
 # nostroots: nostrifying trustroots
 
-Trustroots is a social network of travelers and hosts that offer couches. Founded in 2014, 112k+ members now.  We're working on moving this onto nostr, see e.g. https://nostr.net/. You can follow our progress on the trustroots blog: https://ideas.trustroots.org/category/nostr/
+Trustroots is a social network of travelers and hosts that offer couches. Founded in 2014, 112k+ members now. We're working on moving this onto nostr, see e.g. https://nostr.net/. You can follow our progress on the trustroots blog: https://ideas.trustroots.org/category/nostr/
 
 nostroots is an initiative to seamlessly transition Trustroots, the platform for sharing, hosting, and community building, onto the nostr network. By leveraging the unique decentralized and open-source nature of nostr, nostroots aims to enhance Trustroots' community-focused ethos with greater privacy, security, and user autonomy.
 
@@ -43,19 +43,19 @@ There are 3 parts to this code.
 
 Before starting development of either `nr-app` or `nr-server`, first setup the `nr-common` code as per `nr-common/README.md`.
 
-----
+---
 
 ## Background
 
-Hospitality Club was the biggest hospex network in 2004, depended on one person, website down for large parts of 2023. CouchSurfing(tm) sold out to venture capital. Several other networks are based on proprietary software and/or charge money to be a member.   As networks grow there is a tendency to grow bureaucracies and budgets, which eventually lead to negative side effects such as usage fees, monetization of user data or too much reliance on donations.
+Hospitality Club was the biggest hospex network in 2004, depended on one person, website down for large parts of 2023. CouchSurfing(tm) sold out to venture capital. Several other networks are based on proprietary software and/or charge money to be a member. As networks grow there is a tendency to grow bureaucracies and budgets, which eventually lead to negative side effects such as usage fees, monetization of user data or too much reliance on donations.
 
-We think it is worth our time and energy to work towards gift economy social networks that do not rely on any specific person or organization, so effectively we want to make ourselves redundant. 
+We think it is worth our time and energy to work towards gift economy social networks that do not rely on any specific person or organization, so effectively we want to make ourselves redundant.
 
 The Nostr protocol is a decentralized, open network for social networking and messaging, using cryptographic keys for identity verification.
 
 It is great there are now hospex networks running on open source free software that are free to use, apart from Trustroots there are also [BeWelcome](https://www.bewelcome.org/) and [Couchers.org](https://www.couchers.org/).
 
-What is missing is more space for innovation and taking the gift economy into new directions.  Think bicycle sharing, access to awesome parties, ride shares.  Enabling Nostr on Trustroots will make it way easier for people with ideas to start off with a kickstart, just like Trustroots was kickstarted off Hitchwiki, but in a much smoother way.  The user's data *and* their connections become portable, so that projects like [Trip Hopping](https://www.triphopping.com/) can immediately be useful, even if you are the only user.
+What is missing is more space for innovation and taking the gift economy into new directions. Think bicycle sharing, access to awesome parties, ride shares. Enabling Nostr on Trustroots will make it way easier for people with ideas to start off with a kickstart, just like Trustroots was kickstarted off Hitchwiki, but in a much smoother way. The user's data _and_ their connections become portable, so that projects like [Trip Hopping](https://www.triphopping.com/) can immediately be useful, even if you are the only user.
 
 ### How is Nostr different?
 
@@ -71,13 +71,13 @@ What is missing is more space for innovation and taking the gift economy into ne
 
 ### Are you sure adopting new web technologies is a good idea for user experience?
 
-"I've seen the sleepy.bike prototype from [OpenHospitalityNetwork](https://github.com/OpenHospitalityNetwork)  using Solid and I really think it's too much to expect from users to use decentralized web for now. I know even I would be reluctant on creating some "new tech account" just to use some hospitality website."
+"I've seen the sleepy.bike prototype from [OpenHospitalityNetwork](https://github.com/OpenHospitalityNetwork) using Solid and I really think it's too much to expect from users to use decentralized web for now. I know even I would be reluctant on creating some "new tech account" just to use some hospitality website."
 
-Generally we want to see an explosion of gift economy ideas… and all kinds of remixes of ideas around geo data, meeting people and organizing events.  Trustroots is good at hospitality, so for the foreseeable future we will keep this working as is. But the meet functionality is hardly used by anyone, and there is a lot of untapped potential around circles, and connecting this to for example Hitchwiki and maps.  We want to try to add Nostr functionality in this direction, without breaking the hospitality part, and in a way that it's easy for anyone to try to use or even build new things if they choose to.
+Generally we want to see an explosion of gift economy ideas… and all kinds of remixes of ideas around geo data, meeting people and organizing events. Trustroots is good at hospitality, so for the foreseeable future we will keep this working as is. But the meet functionality is hardly used by anyone, and there is a lot of untapped potential around circles, and connecting this to for example Hitchwiki and maps. We want to try to add Nostr functionality in this direction, without breaking the hospitality part, and in a way that it's easy for anyone to try to use or even build new things if they choose to.
 
 ### ActivityPub, Solid vs Nostr
 
-ActivityPub heavily relies on specific domains and sysadmins running servers. Solid is similar, but the protocol is kinda W3C-bloat.  And there's no good profile portability.  So if your favorite ActivityPub/Solid hospex network goes rogue and you want to move elsewhere you are out of luck.
+ActivityPub heavily relies on specific domains and sysadmins running servers. Solid is similar, but the protocol is kinda W3C-bloat. And there's no good profile portability. So if your favorite ActivityPub/Solid hospex network goes rogue and you want to move elsewhere you are out of luck.
 
 Note that https://gitlab.com/soapbox-pub/mostr is a project to bridge ActivityPub and Nostr.
 

@@ -133,13 +133,13 @@ Possible groups and communities:
 - Build out Trustroots app
   - full notes functionality
   - ["login-with-trustroots" functionality](https://nips.nostr.com/46)
-  - putting more profile data onto Nostr with opt-in
+  - putting more profile data onto Nostr with opt-in, starting with Circles
 
 **Q1 2025:**
 - Add login-with functionality to most promising one partner org
 - Add more recommended orgs
 - Solicit for some Berlin community management role?
-- feed more data into the map
+- feed more data into the map and filter by Circles
 
 **Q2 2025:**
 - add nip-46 login to Trustroots app and begin encouraging users to store their nsec outside of the Trustroots app
@@ -155,7 +155,7 @@ Possible groups and communities:
 - They're onboarded onto Nostr
   - private key generated and saved
   - public key NIP-5 verified
-  - profile information published on the Nostr ecosystem (do we need extra consent here?)
+  - profile information published on the Nostr ecosystem (do we need extra consent here?).
 - In the app, they can click on a link to an app and get taken straight to the service onto the "edit account" page to fill in missing information.
 
 #### Technical Flow:

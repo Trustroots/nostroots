@@ -96,7 +96,7 @@ Goal: 70% of active Trustroots users are on Nostroots by middle of 2026
 
 First step: Trial this in Berlin. Largest userbase, close to some of the developers.
 
-200 users in Berlin, likely around 30 active within the last 6 months. Probably around 5 people requesting hosting every week.
+200 hosts/maybe hosts in Berlin. Probably around 5 people requesting hosting every week.
 
 
 The technical side of things are manageable as long as we just care about Trustroots functionality. There are two big challenges for migrating our users.
@@ -116,8 +116,18 @@ Story:
 - There's more cool stuff like Trustroots in the world.
 
 
-### Partners in the ecosystem
-There are no good partner organisations in the ecosystem.
+### Partners in the ecosystem 
+We need space-focused organisations in Berlin we can work with:
+- Bike Surf Berlin
+- Geocaching?
+- Party groups?
+
+There are no good partner organisations in the current Nostr ecosystem. Our best bet will be supportive interested other groups that we build the tech for. So we need to build a good DX for adding logging in.
+
+
+Who will the first 5 users be?
+
+Log
 
 "Log in with trustroots" – forward.
 

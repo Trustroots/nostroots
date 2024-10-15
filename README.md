@@ -132,15 +132,18 @@ Possible groups and communities:
   - solicit experience reports and recs for other groups to display
 - Build out Trustroots app
   - full notes functionality
-  - "login-with-trustroots" functionality
+  - ["login-with-trustroots" functionality](https://nips.nostr.com/46)
+  - putting more profile data onto Nostr with opt-in
 
 **Q1 2025:**
 - Add login-with functionality to most promising one partner org
 - Add more recommended orgs
 - Solicit for some Berlin community management role?
+- feed more data into the map
 
-
-
+**Q2 2025:**
+- add nip-46 login to Trustroots app and begin encouraging users to store their nsec outside of the Trustroots app
+- add login-with functionality to another partner org
 
 
 ### Log in with Nostr/Trustroots
@@ -156,8 +159,9 @@ Possible groups and communities:
 - In the app, they can click on a link to an app and get taken straight to the service onto the "edit account" page to fill in missing information.
 
 #### Technical Flow:
-- user clicks a "login with trustroots" button
-- it redirects to a trustroots-controlled domain with the redirect url as query param that gets handled by the trustroots app
-- client-side, we find the relevant profile event, the NIP-5 verification URL, and any other events we might need for vouching
-- all are sent together to a mynewservice.org/nostr-callback URL with the stringified events as request params or data body
-- service verfies the events are appropriately signed and that trustroots verified the user, checks if the corresponding public key is already associated with an account, and then signs up/logs in the user.
+- partner site embeds javascript we provide on their website
+- partner site adds `login-with-nostr` endpoint to their API
+- user clicks a "login with trustroots" button on 
+- nip-46 flow is initiated
+- browser sends a signed-by-user event with all user data to `login-with-nostr` api endpoint
+- endpoint verifies event is properly signed and logs in the user and updates their user fields, creating their account first if necessary

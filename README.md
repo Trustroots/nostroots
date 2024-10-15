@@ -96,7 +96,7 @@ Goal: 70% of active Trustroots users are on Nostroots by middle of 2026
 
 First step: Trial this in Berlin. Largest userbase, close to some of the developers.
 
-200 hosts/maybe hosts in Berlin. Probably around 5 people requesting hosting every week.
+200 yes/maybe hosts in Berlin. Around 1000 users. Estimate 5-10 people requesting hosting every week.
 
 
 The technical side of things are manageable as long as we just care about Trustroots functionality. There are two big challenges for migrating our users.
@@ -108,27 +108,56 @@ Trustroots users skew hippie, alternative, vanguard, experimental, left, gifting
 
 As far as our users are concerned, Trustroots is fine and nothing is broken. So a degradation of their experience will likely only lead to frustration. At best, we can justify inconvenience through appealing to the values of the community. The community also won't care that much about the admins' wish to make Trustroots more maintainable.
 
-Trustroots users interact with the app when they're looking for something in a new city. That is the moment they're engaged and ready to be excited and we should find a story that works for them.
-
-Story:
+Trustroots users interact with the app when they're looking for something in a new city. That is the moment they're engaged and ready to be excited and we should find a story that works for them.  The core elements of this story should be:
 - Trustroots was never meant to be just for hosting. It's meant to enable gifting and sharing based on trust and shared values.
 - In a world of companies owning your identity online, Trustroots wants to empower you to own your own identity.
 - There's more cool stuff like Trustroots in the world.
 
 
 ### Partners in the ecosystem 
-We need space-focused organisations in Berlin we can work with:
-- Bike Surf Berlin
+We need platforms and communities that work in Berlin, are not money-focused, are valuable to travellers, and encourage personal connection and sharing. There are no good partner organisations in the current Nostr ecosystem. Our best bet will be supportive interested other groups that we build the tech for. So we need to build a good DX for adding logging in.
+
+Possible groups and communities:
+- [Bike Surf Berlin](bikesurf.org)
 - Geocaching?
-- Party groups?
+- Semi-legal rave groups
+- [Couchers](couchers.org) and other hospex platforms
 
-There are no good partner organisations in the current Nostr ecosystem. Our best bet will be supportive interested other groups that we build the tech for. So we need to build a good DX for adding logging in.
+### Timeline
+**Q4 2024:**
+- Add functionality on main trustroots site to display and link recommended organisations in Berlin
+  - at most 3, possibly rotating
+  - maybe also based on Circles?
+  - track what gets clicked on
+  - solicit experience reports and recs for other groups to display
+- Build out Trustroots app
+  - full notes functionality
+  - "login-with-trustroots" functionality
+
+**Q1 2025:**
+- Add login-with functionality to most promising one partner org
+- Add more recommended orgs
+- Solicit for some Berlin community management role?
 
 
-Who will the first 5 users be?
 
-Log
 
-"Log in with trustroots" – forward.
 
-What's the simplest login-with functionality we can implement?
+### Log in with Nostr/Trustroots
+#### User flow
+- People search for something in Berlin
+- A little sidebar informs them of other services in Berlin they might be interested in
+  - it includes a mention of the app and ease of using them via the app.
+- User downloads app.
+- They're onboarded onto Nostr
+  - private key generated and saved
+  - public key NIP-5 verified
+  - profile information published on the Nostr ecosystem (do we need extra consent here?)
+- In the app, they can click on a link to an app and get taken straight to the service onto the "edit account" page to fill in missing information.
+
+#### Technical Flow:
+- user clicks a "login with trustroots" button
+- it redirects to a trustroots-controlled domain with the redirect url as query param that gets handled by the trustroots app
+- client-side, we find the relevant profile event, the NIP-5 verification URL, and any other events we might need for vouching
+- all are sent together to a mynewservice.org/nostr-callback URL with the stringified events as request params or data body
+- service verfies the events are appropriately signed and that trustroots verified the user, checks if the corresponding public key is already associated with an account, and then signs up/logs in the user.

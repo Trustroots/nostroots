@@ -9,11 +9,12 @@ import { RootState } from "./store";
 
 export const SLICE_NAME = "events" as const;
 
-type NostrEventWithMetadata = {
+type EventMetadata = {
+  seenOnRelays: string[];
+};
+type EventWithMetadata = {
   event: Event;
-  metadata: {
-    seenOnRelays: string[];
-  };
+  metadata: EventMetadata;
 };
 
 function getStorageId(nostrEvent: Event) {
@@ -37,76 +38,86 @@ function getStorageId(nostrEvent: Event) {
   return id;
 }
 
-export const eventsAdapter = createEntityAdapter<
-  NostrEventWithMetadata,
-  string
->({
+export const eventsAdapter = createEntityAdapter<EventWithMetadata, string>({
   selectId: (model) => getStorageId(model.event),
 });
 
 const localSelectors = eventsAdapter.getSelectors();
 
+export const _hasEventBeenSeenOnRelay = (
+  eventWithMetadata: EventWithMetadata,
+  relayUrl: string,
+): boolean => {
+  return eventWithMetadata.metadata.seenOnRelays.includes(relayUrl);
+};
+
+export const _addSeenOnRelayToMetadata = (
+  metadata: EventMetadata,
+  seenOnRelay: string,
+): EventMetadata => {
+  if (metadata.seenOnRelays.includes(seenOnRelay)) {
+    return metadata;
+  }
+  const updatedSeenOnRelays = metadata.seenOnRelays.concat(seenOnRelay);
+  const updatedMetadata = { ...metadata, seenOnRelay: updatedSeenOnRelays };
+  return updatedMetadata;
+};
+
 export const eventsSlice = createSlice({
   name: SLICE_NAME,
   initialState: eventsAdapter.getInitialState(),
   reducers: {
-    setAllEvents: (state, action: PayloadAction<Event[]>) => {
-      const eventsWithMetadata = action.payload.map(
-        (event): NostrEventWithMetadata => ({
-          event,
-          metadata: { seenOnRelays: [] },
-        }),
-      );
-      eventsAdapter.setAll(state, eventsWithMetadata);
+    setAllEventsWithMetadata: (
+      state,
+      action: PayloadAction<EventWithMetadata[]>,
+    ) => {
+      eventsAdapter.setAll(state, action.payload);
     },
     addEvent: (
       state,
       action: PayloadAction<{ event: Event; fromRelay: string }>,
     ) => {
-      const { event, fromRelay } = action.payload;
-      const id = getStorageId(event);
+      const { event, fromRelay: seenOnRelay } = action.payload;
+      const storageId = getStorageId(event);
 
-      const isExistingEvent = state.ids.includes(id);
+      const eventWithMetadata = {
+        event,
+        metadata: {
+          seenOnRelays: [seenOnRelay],
+        },
+      };
+
+      const isExistingEvent = state.ids.includes(storageId);
 
       if (!isExistingEvent) {
-        const eventWithMetadata = {
-          event,
-          metadata: {
-            seenOnRelays: [fromRelay],
-          },
-        };
         eventsAdapter.setOne(state, eventWithMetadata);
         return;
       }
 
-      const existingEvent = localSelectors.selectById(state, id);
+      const existingEvent = localSelectors.selectById(state, storageId);
 
       if (existingEvent.event.id === event.id) {
-        if (existingEvent.metadata.seenOnRelays.includes(fromRelay)) {
+        if (_hasEventBeenSeenOnRelay(existingEvent, seenOnRelay)) {
           return;
         }
-        const metadata = {
-          ...existingEvent.metadata,
-          seenOnRelays: existingEvent.metadata.seenOnRelays.includes(fromRelay)
-            ? existingEvent.metadata.seenOnRelays
-            : existingEvent.metadata.seenOnRelays.concat(fromRelay),
-        };
+
+        const updatedMetadata = _addSeenOnRelayToMetadata(
+          existingEvent.metadata,
+          seenOnRelay,
+        );
         eventsAdapter.updateOne(state, {
-          id,
+          id: storageId,
           changes: {
-            metadata,
+            metadata: updatedMetadata,
           },
         });
         return;
       }
 
-      if (event.created_at > existingEvent.event.created_at) {
-        const eventWithMetadata = {
-          event,
-          metadata: {
-            seenOnRelays: [fromRelay],
-          },
-        };
+      const isUpdatedVersionOfEvent =
+        event.created_at > existingEvent.event.created_at;
+
+      if (isUpdatedVersionOfEvent) {
         eventsAdapter.setOne(state, eventWithMetadata);
         return;
       }

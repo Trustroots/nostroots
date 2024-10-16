@@ -53,7 +53,13 @@ export default function TabTwoScreen() {
             const relay = new Relay("wss://nos.lol");
             await relay.connect();
             const sub = relay.subscribe([{ kinds: [0], limit: 10 }], {
-              onevent: (event) => void dispatch(addEvent(event)),
+              onevent: (event) =>
+                void dispatch(
+                  addEvent({
+                    event,
+                    fromRelay: "wss://nos.lol",
+                  }),
+                ),
               oneose: () => {
                 sub.close();
               },
@@ -64,8 +70,8 @@ export default function TabTwoScreen() {
       <View>
         <Text>We have a total of {events.length} events.</Text>
         {events.map((event) => (
-          <View key={event.id}>
-            <Text>{event.id}</Text>
+          <View key={event.event.id}>
+            <Text>{event.event.id}</Text>
             <Text>{JSON.stringify(event)}</Text>
           </View>
         ))}

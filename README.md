@@ -82,6 +82,7 @@ Possible groups and communities:
 - [Couchers](couchers.org) and other hospex platforms
 - related to [circles](https://www.trustroots.org/circles):
    - Semi-legal rave groups [circle](https://www.trustroots.org/circles/ravers)
+   - [burners circle](https://www.trustroots.org/circles/burners)
    - foodsharing.de, [circle](https://www.trustroots.org/circles/foodsharing)
    - [acroyoga circle](https://www.trustroots.org/circles/acroyoga)
    - [lindyhop circle](https://www.trustroots.org/circles/lindyhoppers)

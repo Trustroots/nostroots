@@ -5,7 +5,7 @@ import {
   createSlice,
   PayloadAction,
 } from "@reduxjs/toolkit";
-import { RootState } from "./store";
+import { RootState } from "../store";
 
 export const SLICE_NAME = "events" as const;
 

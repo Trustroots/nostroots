@@ -4,8 +4,11 @@ import createSagaMiddleware from "redux-saga";
 import {
   SLICE_NAME as eventsName,
   default as eventsReducer,
-} from "./eventsSlice";
-import { SLICE_NAME as mapName, default as mapReducer } from "./mapSlice";
+} from "./slices/events.slice";
+import {
+  SLICE_NAME as mapName,
+  default as mapReducer,
+} from "./slices/map.slice";
 import rootSaga from "./sagas/root.saga";
 
 const sagaMiddleware = createSagaMiddleware();

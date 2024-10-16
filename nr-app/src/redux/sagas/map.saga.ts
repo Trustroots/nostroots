@@ -1,5 +1,9 @@
 import { PayloadAction } from "@reduxjs/toolkit";
 import { put, takeEvery } from "redux-saga/effects";
+import {
+  setMapSubscriptionIsUpdating,
+  setVisiblePlusCodes,
+} from "../slices/map.slice";
 
 function* updateDataForMap(action: PayloadAction<string[]>) {
   try {
@@ -7,7 +11,8 @@ function* updateDataForMap(action: PayloadAction<string[]>) {
     const visiblePlusCodes = action.payload;
     console.log("#tJ7hyp Got visible plus codes", visiblePlusCodes);
     // Write the state to redux
-    put({ type: "success" });
+    put(setMapSubscriptionIsUpdating(true));
+    // Call a subscription
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     yield put({ type: "fail", action: message });
@@ -15,7 +20,7 @@ function* updateDataForMap(action: PayloadAction<string[]>) {
 }
 
 export function* mapSaga() {
-  yield takeEvery("some_action", updateDataForMap);
+  yield takeEvery(setVisiblePlusCodes, updateDataForMap);
 }
 
 /**

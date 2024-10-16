@@ -62,6 +62,9 @@ importers:
       nostr-tools:
         specifier: ^2.7.2
         version: 2.7.2(typescript@5.3.3)
+      open-location-code-typescript:
+        specifier: ^1.5.0
+        version: 1.5.0
       react:
         specifier: 18.2.0
         version: 18.2.0
@@ -4131,6 +4134,9 @@ packages:
   onetime@5.1.2:
     resolution: {integrity: sha512-kbpaSSGJTWdAY5KPVeMOKXSrPtr8C8C7wodJbcsd51jRnmD+GZu8Y0VoU6Dm5Z4vWr0Ig/1NKuWRKf7j5aaYSg==}
     engines: {node: '>=6'}
+
+  open-location-code-typescript@1.5.0:
+    resolution: {integrity: sha512-nGlOwLrmexCqCxEx7Vy6hsHGA9NmrUf/1bZNj0XzP5WrXYj+Oz1MJwUWFv3N012P/Y15bwC+ViVuCV6inoI1KQ==}
 
   open@6.4.0:
     resolution: {integrity: sha512-IFenVPgF70fSm1keSd2iDBIDIBZkroLeuffXq+wKTzTJlBpesFWojV9lb8mzOfaAzM1sr7HQHuO0vtV0zYekGg==}
@@ -10960,6 +10966,8 @@ snapshots:
   onetime@5.1.2:
     dependencies:
       mimic-fn: 2.1.0
+
+  open-location-code-typescript@1.5.0: {}
 
   open@6.4.0:
     dependencies:

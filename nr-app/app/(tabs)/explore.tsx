@@ -47,8 +47,8 @@ export default function TabTwoScreen() {
               hexToBytes(account.privateKey.hex),
             );
             console.log("#cBiwGN Signed event", event);
-            const verifiactionResult = verifyEvent(event);
-            console.log("#QPwp7w Verification result", verifiactionResult);
+            const verificationResult = verifyEvent(event);
+            console.log("#QPwp7w Verification result", verificationResult);
 
             const relay = new Relay("wss://nos.lol");
             await relay.connect();

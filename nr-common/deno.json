@@ -1,9 +1,12 @@
 {
-    "name": "@trustroots/nr-common",
-    "version": "0.0.1",
-    "exports": "./mod.ts",
-    "imports": {
-        "zod": "npm:zod@^3.23.8"
-    },
-    "license": "AGPL-3.0-or-later"
+  "name": "@trustroots/nr-common",
+  "version": "0.0.1",
+  "exports": "./mod.ts",
+  "imports": {
+    "zod": "npm:zod@^3.23.8"
+  },
+  "tasks": {
+    "cache": "deno cache --node-modules-dir deps.ts"
+  },
+  "license": "AGPL-3.0-or-later"
 }

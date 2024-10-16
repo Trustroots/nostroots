@@ -61,7 +61,7 @@ The technical side of things are manageable as long as we just care about Trustr
 - finding partners in the ecosystem.
 
 ### Telling the story
-Trustroots users skew hippie, alternative, vanguard, experimental, left, gifting. The Nostr userbase is generally cryptocurrency and privacy focused.
+Trustroots [circles](https://www.trustroots.org/circles) around hippie, alternative, vanguard, experimental, left, gifting. The 2024 Nostr userbase is generally cryptocurrency and privacy focused.
 
 As far as our users are concerned, Trustroots is fine and nothing is broken. So a degradation of their experience will likely only lead to frustration. At best, we can justify inconvenience through appealing to the values of the community. The community also won't care that much about the admins' wish to make Trustroots more maintainable.
 
@@ -70,6 +70,8 @@ Trustroots users interact with the app when they're looking for something in a n
 - In a world of companies owning your identity online, Trustroots wants to empower you to own your own identity.
 - There's more cool stuff like Trustroots in the world.
 
+A lot of coordination around events and groups occurs on telegram, whatsapp and facebook, we think a nostr geo tool can do better.
+
 
 ### Partners in the ecosystem 
 We need platforms and communities that work in Berlin, are not money-focused, are valuable to travellers, and encourage personal connection and sharing. There are no good partner organisations in the current Nostr ecosystem. Our best bet will be supportive interested other groups that we build the tech for. So we need to build a good DX for adding logging in.
@@ -77,8 +79,13 @@ We need platforms and communities that work in Berlin, are not money-focused, ar
 Possible groups and communities:
 - [Bike Surf Berlin](bikesurf.org)
 - Geocaching?
-- Semi-legal rave groups
 - [Couchers](couchers.org) and other hospex platforms
+- related to [circles](https://www.trustroots.org/circles):
+   - Semi-legal rave groups [circle](https://www.trustroots.org/circles/ravers)
+   - foodsharing.de, [circle](https://www.trustroots.org/circles/foodsharing)
+   - [acroyoga circle](https://www.trustroots.org/circles/acroyoga)
+   - [lindyhop circle](https://www.trustroots.org/circles/lindyhoppers)
+
 
 ### Timeline
 **Q4 2024:**

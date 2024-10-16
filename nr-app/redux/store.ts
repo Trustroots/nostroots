@@ -6,7 +6,7 @@ import {
   default as eventsReducer,
 } from "./eventsSlice";
 import { SLICE_NAME as mapName, default as mapReducer } from "./mapSlice";
-import rootSaga from "./sagas";
+import rootSaga from "./sagas/root.saga";
 
 const sagaMiddleware = createSagaMiddleware();
 

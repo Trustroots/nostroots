@@ -52,7 +52,7 @@ export default function TabTwoScreen() {
 
             const relay = new Relay("wss://nos.lol");
             await relay.connect();
-            const sub = relay.subscribe([{ kinds: [0], limit: 10 }], {
+            const sub = relay.subscribe([{ kinds: [397], limit: 10 }], {
               onevent: (event) =>
                 void dispatch(
                   addEvent({
@@ -71,8 +71,8 @@ export default function TabTwoScreen() {
         <Text>We have a total of {events.length} events.</Text>
         {events.map((event) => (
           <View key={event.event.id}>
-            <Text>{event.event.id}</Text>
-            <Text>{JSON.stringify(event)}</Text>
+            <Text style={{ color: "#008800" }}>{event.event.id}</Text>
+            <Text style={{ color: "#008800" }}>{JSON.stringify(event)}</Text>
           </View>
         ))}
       </View>

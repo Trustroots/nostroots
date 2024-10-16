@@ -5,7 +5,12 @@ import MapView, { Marker } from "react-native-maps";
 export default function Map() {
   return (
     <View style={styles.mapContainer}>
-      <MapView style={styles.map}>
+      <MapView
+        style={styles.map}
+        onRegionChangeComplete={(region, details) => {
+          console.log("#rIMmxg Map move completed", region, details);
+        }}
+      >
         <Marker coordinate={{ latitude: 52, longitude: 13 }} title="A marker" />
       </MapView>
     </View>

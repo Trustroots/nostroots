@@ -1,6 +1,6 @@
 {
   "name": "nr-app",
-  "main": "index.ts",
+  "main": "src/index.ts",
   "version": "1.0.0",
   "scripts": {
     "start": "expo start",

@@ -20,10 +20,7 @@ export default function TabLayout() {
         options={{
           title: "Map",
           tabBarIcon: ({ color, focused }) => (
-            <TabBarIcon
-              name={focused ? "home" : "home-outline"}
-              color={color}
-            />
+            <TabBarIcon name={focused ? "map" : "map-outline"} color={color} />
           ),
         }}
       />
@@ -33,7 +30,7 @@ export default function TabLayout() {
           title: "List",
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
-              name={focused ? "code-slash" : "code-slash-outline"}
+              name={focused ? "list" : "list-outline"}
               color={color}
             />
           ),
@@ -45,7 +42,7 @@ export default function TabLayout() {
           title: "Settings",
           tabBarIcon: ({ color, focused }) => (
             <TabBarIcon
-              name={focused ? "code-slash" : "code-slash-outline"}
+              name={focused ? "settings" : "settings-outline"}
               color={color}
             />
           ),

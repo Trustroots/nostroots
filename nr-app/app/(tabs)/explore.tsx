@@ -23,12 +23,11 @@ export default function TabTwoScreen() {
       }
     >
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Testing</ThemedText>
+        <ThemedText type="title">Stream of notes</ThemedText>
       </ThemedView>
-      <ThemedText>This is a test screen to load some nostr events</ThemedText>
       <View>
         <Button
-          title="Load 10 events"
+          title="Load 10 notes"
           onPress={async () => {
             const { mnemonic } = generateSeedWords();
             const account = accountFromSeedWords({ mnemonic });
@@ -68,7 +67,7 @@ export default function TabTwoScreen() {
         />
       </View>
       <View>
-        <Text>We have a total of {events.length} events.</Text>
+        <Text>We have a total of {events.length} notes.</Text>
         {events.map((event) => (
           <View key={event.event.id}>
             <Text style={{ color: "#008800" }}>{event.event.id}</Text>

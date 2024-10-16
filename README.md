@@ -43,6 +43,87 @@ There are 3 parts to this code.
 
 Before starting development of either `nr-app` or `nr-server`, first setup the `nr-common` code as per `nr-common/README.md`.
 
+
+
+## Roadmap
+
+Goal: 70% of active Trustroots users are on Nostroots by middle of 2026
+- active trustroots users: around 5K active within last month, 70% is around 3.5K ([Trustroots statistics](https://www.trustroots.org/statistics))
+- "are on Nostroots": Have had a Nostroots experience means have some feature use that went well and is associated with Nostroots. The users don't need to recognize Nostr as the protocol, just that something is possible that wasn't before. This could be logging into a different site, transporting some of their network, or interacting with content from a different platform.
+
+First step: Trial this in Berlin. Largest userbase, close to some of the developers.
+
+200 yes/maybe hosts in Berlin. Around 1000 users. Estimate 5-10 people requesting hosting every week.
+
+
+The technical side of things are manageable as long as we just care about Trustroots functionality. There are two big challenges for migrating our users.
+- telling the story
+- finding partners in the ecosystem.
+
+### Telling the story
+Trustroots users skew hippie, alternative, vanguard, experimental, left, gifting. The Nostr userbase is generally cryptocurrency and privacy focused.
+
+As far as our users are concerned, Trustroots is fine and nothing is broken. So a degradation of their experience will likely only lead to frustration. At best, we can justify inconvenience through appealing to the values of the community. The community also won't care that much about the admins' wish to make Trustroots more maintainable.
+
+Trustroots users interact with the app when they're looking for something in a new city. That is the moment they're engaged and ready to be excited and we should find a story that works for them.  The core elements of this story should be:
+- Trustroots was never meant to be just for hosting. It's meant to enable gifting and sharing based on trust and shared values.
+- In a world of companies owning your identity online, Trustroots wants to empower you to own your own identity.
+- There's more cool stuff like Trustroots in the world.
+
+
+### Partners in the ecosystem 
+We need platforms and communities that work in Berlin, are not money-focused, are valuable to travellers, and encourage personal connection and sharing. There are no good partner organisations in the current Nostr ecosystem. Our best bet will be supportive interested other groups that we build the tech for. So we need to build a good DX for adding logging in.
+
+Possible groups and communities:
+- [Bike Surf Berlin](bikesurf.org)
+- Geocaching?
+- Semi-legal rave groups
+- [Couchers](couchers.org) and other hospex platforms
+
+### Timeline
+**Q4 2024:**
+- Add functionality on main trustroots site to display and link recommended organisations in Berlin
+  - at most 3, possibly rotating
+  - maybe also based on Circles?
+  - track what gets clicked on
+  - solicit experience reports and recs for other groups to display
+- Build out Trustroots app
+  - full notes functionality
+  - ["login-with-trustroots" functionality](https://nips.nostr.com/46)
+  - putting more profile data onto Nostr with opt-in, starting with Circles
+
+**Q1 2025:**
+- Add login-with functionality to most promising one partner org
+- Add more recommended orgs
+- Solicit for some Berlin community management role?
+- feed more data into the map and filter by Circles
+
+**Q2 2025:**
+- add nip-46 login to Trustroots app and begin encouraging users to store their nsec outside of the Trustroots app
+- add login-with functionality to another partner org
+
+
+### Log in with Nostr/Trustroots
+#### User flow
+- People search for something in Berlin
+- A little sidebar informs them of other services in Berlin they might be interested in
+  - it includes a mention of the app and ease of using them via the app.
+- User downloads app.
+- They're onboarded onto Nostr
+  - private key generated and saved
+  - public key NIP-5 verified
+  - profile information published on the Nostr ecosystem (do we need extra consent here?).
+- In the app, they can click on a link to an app and get taken straight to the service onto the "edit account" page to fill in missing information.
+
+#### Technical Flow:
+- partner site embeds javascript we provide on their website
+- partner site adds `login-with-nostr` endpoint to their API
+- user clicks a "login with trustroots" button on 
+- nip-46 flow is initiated
+- browser sends a signed-by-user event with all user data to `login-with-nostr` api endpoint
+- endpoint verifies event is properly signed and logs in the user and updates their user fields, creating their account first if necessary
+
+
 ---
 
 ## Background
@@ -88,3 +169,5 @@ It would be great to at some point connect with BW and Couchers over Nostr.
 ### tokens, dao, blockchain, other scams?
 
 If you see "nostr token", run away, it is a scam. There's no nostr token. There was no nostr ICO, nostr is not a DAO, there is no blockchain. Nostr makes it easy to integrate bitcoin lightning, which may at some point be helpful to for example keep out spammers. But this is not something we are interested in for the foreseeable future.
+
+

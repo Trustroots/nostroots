@@ -16,19 +16,17 @@ const NoteMarker = ({ event }) => {
       <Marker coordinate={coordinates}>
         <Callout>
           <View style={{ width: 200 }}>
-              <Text>
-                  {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content}`}
-              </Text>
+            <Text>
+              {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content}`}
+            </Text>
           </View>
         </Callout>
       </Marker>
-      );
-  }
-  else {
+    );
+  } else {
     return null;
   }
 };
-
 
 export default function Map() {
   const events = useAppSelector(eventsSelectors.selectAll);
@@ -61,7 +59,7 @@ export default function Map() {
         <Marker coordinate={{ latitude: 52, longitude: 13 }} title="A marker" />
 
         {events.map((event) => (
-           <NoteMarker event={event} />
+          <NoteMarker event={event} />
         ))}
       </MapView>
     </View>

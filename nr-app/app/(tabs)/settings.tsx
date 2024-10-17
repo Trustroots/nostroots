@@ -6,25 +6,13 @@ export default function TabThreeScreen() {
       <View>
         <Text style={styles.header}>Keys</Text>
         <Text>npub</Text>
-        <TextInput
-                style={styles.input}
-                value='npub'
-            />
+        <TextInput style={styles.input} value="npub" />
         <Text>nsec</Text>
-        <TextInput
-                style={styles.input}
-                value='nsec'
-            />
+        <TextInput style={styles.input} value="nsec" />
         <Text>seed</Text>
-        <TextInput
-                style={styles.input}
-                value='seed'
-            />
+        <TextInput style={styles.input} value="seed" />
         <Text style={styles.header}>Relays</Text>
-        <TextInput
-                style={styles.input}
-                value="['relay1', 'relay2']"
-            />
+        <TextInput style={styles.input} value="['relay1', 'relay2']" />
         <Text style={styles.header}>Help</Text>
         <Text style={{ color: "#880088" }}>
           Copy and adapt some text from notes.trustroots.org
@@ -44,9 +32,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1, // Optional: add a bottom border
     borderBottomColor: "#ddd", // Optional: color of the bottom border
   },
-  input:  {
+  input: {
     height: 40,
-    borderColor: 'gray',
+    borderColor: "gray",
     borderWidth: 1,
     marginBottom: 20,
     paddingHorizontal: 10,

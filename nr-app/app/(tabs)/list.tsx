@@ -68,6 +68,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   note: {
-    color: "#008800"
-  }
+    color: "#008800",
+  },
 });

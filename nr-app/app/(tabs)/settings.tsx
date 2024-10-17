@@ -1,11 +1,30 @@
-import { SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
 
 export default function TabThreeScreen() {
   return (
     <SafeAreaView style={{ flex: 1 }}>
       <View>
         <Text style={styles.header}>Keys</Text>
+        <Text>npub</Text>
+        <TextInput
+                style={styles.input}
+                value='npub'
+            />
+        <Text>nsec</Text>
+        <TextInput
+                style={styles.input}
+                value='nsec'
+            />
+        <Text>seed</Text>
+        <TextInput
+                style={styles.input}
+                value='seed'
+            />
         <Text style={styles.header}>Relays</Text>
+        <TextInput
+                style={styles.input}
+                value="['relay1', 'relay2']"
+            />
         <Text style={styles.header}>Help</Text>
         <Text style={{ color: "#880088" }}>
           Copy and adapt some text from notes.trustroots.org
@@ -24,5 +43,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#f8f8f8", // Background color for the header
     borderBottomWidth: 1, // Optional: add a bottom border
     borderBottomColor: "#ddd", // Optional: color of the bottom border
+  },
+  input:  {
+    height: 40,
+    borderColor: 'gray',
+    borderWidth: 1,
+    marginBottom: 20,
+    paddingHorizontal: 10,
   },
 });

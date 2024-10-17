@@ -38,22 +38,22 @@ export default function TabTwoScreen() {
           />
         </View>
         <View>
-          <Text style={{ color: "#880088" }}>
+          <Text style={styles.note}>
             We have a total of {events.length} notes.
           </Text>
           {events.map((event) => (
             <View key={event.event.id}>
-              <Text style={{ color: "#008800" }}>{event.event.content}</Text>
-              <Text style={{ color: "#008800" }}>
+              <Text style={styles.note}>{event.event.content}</Text>
+              <Text style={styles.note}>
                 {new Date(event.event.created_at * 1000).toLocaleString()}
               </Text>
-              <Text style={{ color: "#008800" }}>{event.event.pubkey}</Text>
-              <Text style={{ color: "#008800" }}>
+              <Text style={styles.note}>{event.event.pubkey}</Text>
+              <Text style={styles.note}>
                 {Array.isArray(event.event.tags[1]) && event.event.tags[1][1]
                   ? event.event.tags[1][1]
                   : null}
               </Text>
-              <Text style={{ color: "#008800" }}>----------------------</Text>
+              <Text style={styles.note}>----------------------</Text>
             </View>
           ))}
         </View>
@@ -67,4 +67,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
+  note: {
+    color: "#008800"
+  }
 });

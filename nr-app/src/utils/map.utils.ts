@@ -57,7 +57,6 @@ export function plusCodeToCoordinates(plusCode: string): {
 } {
   const decoded = OpenLocationCode.decode(plusCode);
 
-  console.log("as343JKC", decoded);
   if (decoded) {
     return {
       latitude: decoded.latitudeHi,

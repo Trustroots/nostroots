@@ -20,7 +20,7 @@ export type Subscription = {
   query: Filter[];
   relaysStatus: {
     [relayUrl: string]: {
-      haveSeenEOSE: boolean;
+      hasSeenEOSE: boolean;
       isOpen: boolean;
       serverCloseMessage?: string;
     };
@@ -41,7 +41,7 @@ const initialState: RelaysState = {
   subscriptions: {},
 };
 
-const profileSlice = createSlice({
+const relaysSlice = createSlice({
   name: SLICE_NAME,
   initialState,
   reducers: {
@@ -72,6 +72,25 @@ const profileSlice = createSlice({
       const subscription = action.payload;
       state.subscriptions[subscription.id] = subscription;
     },
+    setSubscriptionHasSeenEOSE: (
+      state,
+      action: PayloadAction<{ id: string; relayUrl: string }>,
+    ) => {
+      const { id, relayUrl } = action.payload;
+      const subscription = state.subscriptions[id];
+      if (typeof subscription === "undefined") {
+        throw new Error(
+          "Unable to set hasSeenEOSE on invalid subscription ID #AQ4WZB",
+        );
+      }
+      const relayStatus = subscription.relaysStatus[relayUrl];
+      if (typeof relayStatus === "undefined") {
+        throw new Error(
+          "Unable to set hasSeenEOSE on invalid relay URL #WFAGJN",
+        );
+      }
+      relayStatus.hasSeenEOSE = true;
+    },
     setServerClosedMessage: (
       state,
       action: PayloadAction<{
@@ -90,4 +109,13 @@ const profileSlice = createSlice({
   },
 });
 
-export default profileSlice.reducer;
+export default relaysSlice.reducer;
+
+export const {
+  setRelays,
+  setRelayConnected,
+  addRelayNotice,
+  setSubscription,
+  setSubscriptionHasSeenEOSE,
+  setServerClosedMessage,
+} = relaysSlice.actions;

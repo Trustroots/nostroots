@@ -1,11 +1,11 @@
 import { PayloadAction } from "@reduxjs/toolkit";
-import { put, takeEvery } from "redux-saga/effects";
+import { all, put, takeEvery } from "redux-saga/effects";
 import {
   setMapSubscriptionIsUpdating,
   setVisiblePlusCodes,
 } from "../slices/map.slice";
 
-function* updateDataForMap(action: PayloadAction<string[]>) {
+function* updateDataForMapSagaEffect(action: PayloadAction<string[]>) {
   try {
     // Setup a subscription
     const visiblePlusCodes = action.payload;
@@ -19,8 +19,12 @@ function* updateDataForMap(action: PayloadAction<string[]>) {
   }
 }
 
-export function* mapSaga() {
-  yield takeEvery(setVisiblePlusCodes, updateDataForMap);
+export function* updateDataForMapSaga() {
+  yield takeEvery(setVisiblePlusCodes, updateDataForMapSagaEffect);
+}
+
+export default function* mapSaga() {
+  yield all([updateDataForMapSaga()]);
 }
 
 /**

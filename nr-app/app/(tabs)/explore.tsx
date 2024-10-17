@@ -48,14 +48,15 @@ export default function TabTwoScreen() {
             const verificationResult = verifyEvent(event);
             console.log("#QPwp7w Verification result", verificationResult);
 
-            const relay = new Relay("wss://relay.damus.io");
+            const relay_uri = "wss://relay.damus.io";
+            const relay = new Relay(relay_uri);
             await relay.connect();
             const sub = relay.subscribe([{ kinds: [397], limit: 10 }], {
               onevent: (event) =>
                 void dispatch(
                   addEvent({
                     event,
-                    fromRelay: "wss://nos.lol",
+                    fromRelay: relay_uri,
                   }),
                 ),
               oneose: () => {

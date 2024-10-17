@@ -26,7 +26,7 @@ export default function TabTwoScreen() {
         </ThemedView>
         <View>
           <Button
-            title="Load 10 notes"
+            title="LOAD 10 NOTES (this button should disappear and notes on this pane should be the notes you see on the map pane)"
             onPress={async () => {
               dispatch(
                 startSubscription({

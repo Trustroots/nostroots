@@ -51,6 +51,23 @@ export function plusCodeToArrayPairs(plusCode: string): [string, string][] {
   return pairs;
 }
 
+export function plusCodeToCoordinates(plusCode: string): {
+  latitude: number;
+  longitude: number;
+} {
+  const decoded = OpenLocationCode.decode(plusCode);
+
+  if (decoded) {
+    return {
+      latitude: decoded.latitudeHi,
+      longitude: decoded.longitudeHi,
+    };
+  } else {
+    console.error("Invalid Plus Code");
+    return null;
+  }
+}
+
 export function allPlusCodesForRegion({
   latitude,
   latitudeDelta,

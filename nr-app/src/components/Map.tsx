@@ -1,12 +1,36 @@
 import {
   allPlusCodesForRegion,
   coordinatesToPlusCode,
+  plusCodeToCoordinates,
 } from "@/utils/map.utils";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, Text } from "react-native";
 
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, Callout } from "react-native-maps";
+import { eventsSelectors } from "@/redux/slices/events.slice";
+import { useAppSelector } from "@/redux/hooks";
+
+const NoteMarker = ({ event }) => {
+  if (Array.isArray(event.event.tags[1]) && event.event.tags[1][1]) {
+    const coordinates = plusCodeToCoordinates(event.event.tags[1][1]);
+    return (
+      <Marker coordinate={coordinates}>
+        <Callout>
+          <View style={{ width: 200 }}>
+            <Text>
+              {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content}`}
+            </Text>
+          </View>
+        </Callout>
+      </Marker>
+    );
+  } else {
+    return null;
+  }
+};
 
 export default function Map() {
+  const events = useAppSelector(eventsSelectors.selectAll);
+
   return (
     <View style={styles.mapContainer}>
       <MapView
@@ -33,6 +57,10 @@ export default function Map() {
         }}
       >
         <Marker coordinate={{ latitude: 52, longitude: 13 }} title="A marker" />
+
+        {events.map((event) => (
+          <NoteMarker event={event} />
+        ))}
       </MapView>
     </View>
   );

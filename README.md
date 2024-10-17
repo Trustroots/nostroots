@@ -55,13 +55,12 @@ First step: Trial this in Berlin. Largest userbase, close to some of the develop
 
 200 yes/maybe hosts in Berlin. Around 1000 users. Estimate 5-10 people requesting hosting every week.
 
-
 The technical side of things are manageable as long as we just care about Trustroots functionality. There are two big challenges for migrating our users.
 - telling the story
 - finding partners in the ecosystem.
 
 ### Telling the story
-Trustroots [circles](https://www.trustroots.org/circles) around hippie, alternative, vanguard, experimental, left, gifting. The 2024 Nostr userbase is generally cryptocurrency and privacy focused.
+Trustroots [circles](https://www.trustroots.org/circles) around hippie, alternative, vanguard, experimental, left, gifting crowds. The 2024 Nostr userbase is generally cryptocurrency and privacy focused.
 
 As far as our users are concerned, Trustroots is fine and nothing is broken. So a degradation of their experience will likely only lead to frustration. At best, we can justify inconvenience through appealing to the values of the community. The community also won't care that much about the admins' wish to make Trustroots more maintainable.
 
@@ -91,14 +90,15 @@ Possible groups and communities:
 ### Timeline
 **Q4 2024:**
 - Add functionality on main trustroots site to display and link recommended organisations in Berlin
-  - at most 3, possibly rotating
-  - maybe also based on Circles?
+  - possibly based on circles
   - track what gets clicked on
   - solicit experience reports and recs for other groups to display
+  - minimally-invasive w/r/t to the existing messy codebase
 - Build out Trustroots app
   - full notes functionality
   - ["login-with-trustroots" functionality](https://nips.nostr.com/46)
   - putting more profile data onto Nostr with opt-in, starting with Circles
+  - experiment with nip-46 login with nip-05 flow
 
 **Q1 2025:**
 - Add login-with functionality to most promising one partner org
@@ -119,17 +119,16 @@ Possible groups and communities:
 - User downloads app.
 - They're onboarded onto Nostr
   - private key generated and saved
-  - public key NIP-5 verified
-  - profile information published on the Nostr ecosystem (do we need extra consent here?).
-- In the app, they can click on a link to an app and get taken straight to the service onto the "edit account" page to fill in missing information.
+  - public key nip-05 verified
+  - (some) profile information published on the Nostr ecosystem (do we need extra consent here?).
+- In the app, they can click on a link to an app [and get taken straight to the service](https://nips.nostr.com/46#direct-connection-initiated-by-remote-signer) onto the "edit account" page to fill in missing information.
 
 #### Technical Flow:
 - partner site embeds javascript we provide on their website
 - partner site adds `login-with-nostr` endpoint to their API
 - user clicks a "login with trustroots" button on 
 - nip-46 flow is initiated
-- browser sends a signed-by-user event with all user data to `login-with-nostr` api endpoint
-- endpoint verifies event is properly signed and logs in the user and updates their user fields, creating their account first if necessary
+- server-side, sign-in gets verified and trustroots information parsed with a library we provide
 
 
 ---

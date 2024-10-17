@@ -48,7 +48,7 @@ export default function TabTwoScreen() {
             const verificationResult = verifyEvent(event);
             console.log("#QPwp7w Verification result", verificationResult);
 
-            const relay = new Relay("wss://nos.lol");
+            const relay = new Relay("wss://relay.damus.io");
             await relay.connect();
             const sub = relay.subscribe([{ kinds: [397], limit: 10 }], {
               onevent: (event) =>
@@ -78,7 +78,7 @@ export default function TabTwoScreen() {
             <Text style={{ color: "#008800" }}>{event.event.pubkey}</Text>
             <Text style={{ color: "#008800" }}>
               {Array.isArray(event.event.tags[1]) && event.event.tags[1][1]
-                ? JSON.stringify(event.event.tags[1][1])
+                ? event.event.tags[1][1]
                 : null}
             </Text>
             <Text style={{ color: "#008800" }}>----------------------</Text>

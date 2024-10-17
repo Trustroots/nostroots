@@ -1,9 +1,8 @@
-import { Event, Filter } from "nostr-tools";
-import { getRelay } from "./relays.nostr";
-import { Subscription } from "nostr-tools/lib/types/abstract-relay";
-import { store } from "@/redux/store";
 import { addEvent } from "@/redux/slices/events.slice";
 import { setSubscriptionHasSeenEOSE } from "@/redux/slices/relays.slice";
+import { Event, Filter } from "nostr-tools";
+import { Subscription } from "nostr-tools/lib/types/abstract-relay";
+import { getRelay } from "./relays.nostr";
 
 const subscriptions = new Map<string, Subscription>();
 

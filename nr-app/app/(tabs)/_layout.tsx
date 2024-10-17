@@ -25,7 +25,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="list"
         options={{
           title: "List",
           tabBarIcon: ({ color, focused }) => (
@@ -37,7 +37,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="testing"
+        name="settings"
         options={{
           title: "Settings",
           tabBarIcon: ({ color, focused }) => (

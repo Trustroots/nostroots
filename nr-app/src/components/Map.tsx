@@ -1,12 +1,17 @@
 import {
   allPlusCodesForRegion,
   coordinatesToPlusCode,
+  plusCodeToCoordinates,
 } from "@/utils/map.utils";
 import { StyleSheet, View } from "react-native";
 
 import MapView, { Marker } from "react-native-maps";
+import { eventsSelectors } from "@/redux/slices/events.slice";
+import { useAppSelector } from "@/redux/hooks";
 
 export default function Map() {
+  const events = useAppSelector(eventsSelectors.selectAll);
+
   return (
     <View style={styles.mapContainer}>
       <MapView
@@ -33,6 +38,17 @@ export default function Map() {
         }}
       >
         <Marker coordinate={{ latitude: 52, longitude: 13 }} title="A marker" />
+
+        {events.map((event) => (
+          <Marker
+            coordinate={
+              Array.isArray(event.event.tags[1]) && event.event.tags[1][1]
+                ? plusCodeToCoordinates(event.event.tags[1][1])
+                : null
+            }
+            title={`${new Date(event.event.created_at * 1000).toLocaleString()}: ${event.event.content}`}
+          />
+        ))}
       </MapView>
     </View>
   );

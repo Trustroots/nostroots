@@ -67,13 +67,17 @@ export default function TabTwoScreen() {
         />
       </View>
       <View>
-        <Text>We have a total of {events.length} notes.</Text>
+        <Text style={{ color: "#880088" }}>We have a total of {events.length} notes.</Text>
         {events.map((event) => (
           <View key={event.event.id}>
             <Text style={{ color: "#008800" }}>{event.event.content}</Text>
-            <Text style={{ color: "#008800" }}>{new Date(event.event.created_at * 1000).toLocaleString()}</Text>
+            <Text style={{ color: "#008800" }}>
+              {new Date(event.event.created_at * 1000).toLocaleString()}
+            </Text>
             <Text style={{ color: "#008800" }}>{event.event.pubkey}</Text>
-            <Text style={{ color: "#008800" }}>{JSON.stringify(event.event.tags[1])}</Text>
+            <Text style={{ color: "#008800" }}>
+              {Array.isArray(event.event.tags[1]) && event.event.tags[1][1] ? JSON.stringify(event.event.tags[1][1]) : null}
+            </Text>
             <Text style={{ color: "#008800" }}>----------------------</Text>
           </View>
         ))}

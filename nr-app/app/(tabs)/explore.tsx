@@ -1,7 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { Button, StyleSheet, Text, ScrollView, View } from "react-native";
 
-import ParallaxScrollView from "@/components/ParallaxScrollView";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { addEvent, eventsSelectors } from "@/redux/slices/events.slice";
@@ -16,7 +15,7 @@ export default function TabTwoScreen() {
   const dispatch = useAppDispatch();
 
   return (
-    <ParallaxScrollView
+    <ScrollView
       headerBackgroundColor={{ light: "#D0D0D0", dark: "#353636" }}
       headerImage={
         <Ionicons size={310} name="code-slash" style={styles.headerImage} />
@@ -67,7 +66,9 @@ export default function TabTwoScreen() {
         />
       </View>
       <View>
-        <Text style={{ color: "#880088" }}>We have a total of {events.length} notes.</Text>
+        <Text style={{ color: "#880088" }}>
+          We have a total of {events.length} notes.
+        </Text>
         {events.map((event) => (
           <View key={event.event.id}>
             <Text style={{ color: "#008800" }}>{event.event.content}</Text>
@@ -76,23 +77,19 @@ export default function TabTwoScreen() {
             </Text>
             <Text style={{ color: "#008800" }}>{event.event.pubkey}</Text>
             <Text style={{ color: "#008800" }}>
-              {Array.isArray(event.event.tags[1]) && event.event.tags[1][1] ? JSON.stringify(event.event.tags[1][1]) : null}
+              {Array.isArray(event.event.tags[1]) && event.event.tags[1][1]
+                ? JSON.stringify(event.event.tags[1][1])
+                : null}
             </Text>
             <Text style={{ color: "#008800" }}>----------------------</Text>
           </View>
         ))}
       </View>
-    </ParallaxScrollView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: "#808080",
-    bottom: -90,
-    left: -35,
-    position: "absolute",
-  },
   titleContainer: {
     flexDirection: "row",
     gap: 8,

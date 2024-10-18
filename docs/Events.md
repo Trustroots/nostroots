@@ -73,7 +73,7 @@ Third party derived content notes can take this format:
     ["l", "8GM80000+", "open-location-code-prefix"],
     ["L", "open-location-code-prefix"],
     ["l", "8G000000+", "open-location-code-prefix"],
-    // OPTIONAL - The event can optionally include `t` tags to identify which hashtags are linked to this event
+    // OPTIONAL - The event can optionally include which trustroots circles this event relates to
     ["L", "trustroots-circle"],
     ["l", "hitchhikers"],
     // OPTIONAL - The text that will appear in the link when this event is displayed

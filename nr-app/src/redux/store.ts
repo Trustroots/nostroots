@@ -20,7 +20,6 @@ import { Platform } from "react-native";
 const sagaMiddleware = createSagaMiddleware();
 
 const isOnDevice = Platform.OS !== "web";
-console.log("#lPyvNz isOnDevice", isOnDevice);
 const devToolsEnhancerOrNot: StoreEnhancer[] = isOnDevice
   ? [devtoolsEnhancer()]
   : [];

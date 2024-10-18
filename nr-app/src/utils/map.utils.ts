@@ -122,11 +122,6 @@ export function allPlusCodesForRegion({
   );
 
   const outputCodeLength = (firstIndexWithDifference + 1) * 2;
-  console.log(
-    "#x6E7CR Got output code length",
-    firstIndexWithDifference,
-    outputCodeLength,
-  );
 
   const bottomLeftLastPair = bottomLeftPairs.at(firstIndexWithDifference)!;
   const topRightLastPair = topRightPairs.at(firstIndexWithDifference)!;

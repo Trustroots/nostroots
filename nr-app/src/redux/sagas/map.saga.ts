@@ -5,7 +5,6 @@ import { setVisiblePlusCodes } from "../actions/map.actions";
 import { startSubscription } from "../actions/subscription.actions";
 
 function* updateDataForMapSagaEffect(action: PayloadAction<string[]>) {
-  console.log("#jjY6At updateDataForMapSagaEffect");
   try {
     // Setup a subscription
     const visiblePlusCodes = action.payload;

@@ -37,7 +37,16 @@ export default function Map() {
 
   const handleAddNote = () => {
     // Logic to add the note to the event or state
-    console.log("Note added:", note, "at", selectedCoordinate);
+    const plusCode = coordinatesToPlusCode(selectedCoordinate);
+    console.log(
+      "#a9vi49v Note added:",
+      note,
+      "at",
+      selectedCoordinate,
+      plusCode,
+      "plusCode not very precise",
+    );
+
     setModalVisible(false);
     setNote("");
   };
@@ -100,6 +109,11 @@ export default function Map() {
       >
         <View style={styles.modalContainer}>
           <TextInput
+            ref={(input) => {
+              if (input) {
+                input.focus();
+              }
+            }}
             style={styles.input}
             placeholder="Enter your note"
             value={note}

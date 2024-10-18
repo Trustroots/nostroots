@@ -1,9 +1,9 @@
-import { SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ScrollView, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
 
 export default function TabThreeScreen() {
   return (
     <SafeAreaView style={styles.settings}>
-      <View>
+      <ScrollView>
         <Text style={styles.header}>Keys</Text>
         <Text style={styles.settings}>npub</Text>
         <TextInput style={styles.input} value="npub" />
@@ -17,7 +17,7 @@ export default function TabThreeScreen() {
         <Text style={{ color: "#880088" }}>
           Copy and adapt some text from notes.trustroots.org
         </Text>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -59,7 +59,10 @@ export function plusCodeToCoordinates(plusCode: string): {
   try {
     decoded = OpenLocationCode.decode(plusCode);
   } catch (error) {
-    console.error("#ewW2XQ Error decoding Plus Code:", error.message);
+    if (error instanceof Error) {
+      console.error("#ewW2XQ Error decoding Plus Code:", error.message);
+    }
+    throw error;
   }
 
   if (decoded) {
@@ -68,8 +71,7 @@ export function plusCodeToCoordinates(plusCode: string): {
       longitude: decoded.longitudeHi,
     };
   } else {
-    console.error("Invalid Plus Code");
-    return null;
+    throw new Error("Invalid Plus Code #YNP4B1");
   }
 }
 

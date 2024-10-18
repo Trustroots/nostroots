@@ -55,11 +55,11 @@ Third party derived content notes can take this format:
   "pubkey": "...",
   "sig": "...",
   "tags": [
-    // An `e` tag makes sense if this event references another nsotr event
+    // OPTIONAL - An `e` tag makes sense if this event references another nsotr event
     ["e", "..."],
-    // Likewise for the `p` tag if this event relates to a different nostr pubkey
+    // OPTIONAL - Likewise for the `p` tag if this event relates to a different nostr pubkey
     ["p", "..."],
-    // If the note has an upstream `created_at` field, then the `original_created_at` tag should be set
+    // OPTIONAL - If the note has an upstream `created_at` field, then the `original_created_at` tag should be set
     ["original_created_at", "1729161787"],
     // The `d` tag can be constructed according to the author's specification
     ["d", ""],
@@ -73,13 +73,13 @@ Third party derived content notes can take this format:
     ["l", "8GM80000+", "open-location-code-prefix"],
     ["L", "open-location-code-prefix"],
     ["l", "8G000000+", "open-location-code-prefix"],
-    // The event can optionally include `t` tags to identify which hashtags are linked to this event
-    ["t", "hitchmap"],
-    ["t", "map-notes"],
-    // The text that will appear in the link when this event is displayed
-    ["sourceLinkLabel", "posted by @jdoe"],
-    // The URL path to construct the link, the hostname is known according to the pubkey that published this event
-    ["sourceLinkPath", "/point/123"]
+    // OPTIONAL - The event can optionally include `t` tags to identify which hashtags are linked to this event
+    ["L", "trustroots-circle"],
+    ["l", "hitchhikers"],
+    // OPTIONAL - The text that will appear in the link when this event is displayed
+    ["linkLabel", "posted by @jdoe"],
+    // OPTIONAL - The URL path to construct the link, the hostname is known according to the pubkey that published this event
+    ["linkPath", "/point/123"]
   ]
 }
 ```

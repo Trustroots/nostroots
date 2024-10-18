@@ -1,22 +1,13 @@
 // import Ionicons from "@expo/vector-icons/Ionicons";
-import {
-  Button,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
-import { startSubscription } from "@/redux/actions/subscription.actions";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { useAppSelector } from "@/redux/hooks";
 import { eventsSelectors } from "@/redux/slices/events.slice";
 
 export default function TabTwoScreen() {
   const events = useAppSelector(eventsSelectors.selectAll);
-  const dispatch = useAppDispatch();
 
   return (
     <SafeAreaView>
@@ -24,19 +15,6 @@ export default function TabTwoScreen() {
         <ThemedView style={styles.titleContainer}>
           <ThemedText type="title">Stream of notes</ThemedText>
         </ThemedView>
-        <View>
-          <Button
-            title="LOAD 10 NOTES (this button should disappear and notes on this pane should be the notes you see on the map pane)"
-            onPress={async () => {
-              dispatch(
-                startSubscription({
-                  filter: { kinds: [397], limit: 10 },
-                  relayUrls: ["wss://relay.damus.io"],
-                }),
-              );
-            }}
-          />
-        </View>
         <View>
           <Text style={styles.note}>
             We have a total of {events.length} notes.

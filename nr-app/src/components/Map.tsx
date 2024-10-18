@@ -7,7 +7,8 @@ import { StyleSheet, View, Text } from "react-native";
 
 import MapView, { Marker, Callout } from "react-native-maps";
 import { eventsSelectors } from "@/redux/slices/events.slice";
-import { useAppSelector } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { startSubscription } from "@/redux/actions/subscription.actions";
 
 import React, { useState } from "react";
 import { Modal, TextInput, Button } from "react-native";
@@ -48,6 +49,7 @@ export default function Map() {
     setSelectedCoordinate(event.nativeEvent.coordinate);
     setModalVisible(true);
   };
+  const dispatch = useAppDispatch();
 
   return (
     <View style={styles.mapContainer}>
@@ -58,6 +60,14 @@ export default function Map() {
         onLongPress={handleLongPress}
         onRegionChangeComplete={(region, details) => {
           console.log("#rIMmxg Map move completed", region, details);
+
+          dispatch(
+            startSubscription({
+              filter: { kinds: [397], limit: 10 },
+              relayUrls: ["wss://relay.damus.io"],
+            }),
+          );
+
           const topRightCoordinates = {
             latitude: region.latitude + region.latitudeDelta,
             longitude: region.longitude + region.longitudeDelta,
@@ -78,7 +88,7 @@ export default function Map() {
         <Marker coordinate={{ latitude: 52, longitude: 13 }} title="A marker" />
 
         {events.map((event) => (
-          <NoteMarker event={event} />
+          <NoteMarker event={event} key={event.event.sig} />
         ))}
       </MapView>
 

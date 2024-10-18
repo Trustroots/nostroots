@@ -5,18 +5,26 @@ import {
   Text,
   TextInput,
 } from "react-native";
+import { generateSeedWords, accountFromSeedWords } from "nip06";
 
 export default function TabThreeScreen() {
+  const { mnemonic } = generateSeedWords();
+  const account = accountFromSeedWords({ mnemonic });
+  console.log("#0GAjcE Generated seed and private key", {
+    mnemonic,
+    account,
+  });
+
   return (
     <SafeAreaView style={styles.settings}>
       <ScrollView>
         <Text style={styles.header}>Keys</Text>
         <Text style={styles.settings}>npub</Text>
-        <TextInput style={styles.input} value="npub" />
+        <TextInput style={styles.input} value={account.publicKey.bech32} />
         <Text style={styles.settings}>nsec</Text>
-        <TextInput style={styles.input} value="nsec" />
+        <TextInput style={styles.input} value={account.privateKey.bech32} />
         <Text style={styles.settings}>seed</Text>
-        <TextInput style={styles.input} value="seed" />
+        <TextInput style={styles.input} value={mnemonic} />
         <Text style={styles.header}>Relays</Text>
         <TextInput style={styles.input} value="['relay1', 'relay2']" />
         <Text style={styles.header}>Help</Text>

@@ -32,34 +32,39 @@ export default function TabThreeScreen() {
         <Text style={styles.header}>Relays</Text>
         <TextInput style={styles.input} value="['relay1', 'relay2']" />
         <Text style={styles.header}>Help</Text>
-        <Text style={styles.h3}>How does this work?</Text>
+        <Text style={styles.q}>How does this work?</Text>
 
-        <Text>
+        <Text style={styles.a}>
           Scroll around on the map. Long press (or right click) to add a note to
           the map.
         </Text>
 
-        <Text style={styles.h3}>Where can I get help?</Text>
+        <Text style={styles.q}>Where can I get help?</Text>
 
-        <Text>
+        <Text style={styles.a}>
           If you encounter issues with this app, or want to share feedback, you
           can reach the team behind this on telegram or reddit, satellite.earth
           (a reddit-style nostr application) or simply leave a note here in the
           Antarctica area.
         </Text>
 
-        <Text style={styles.h3}>How does this improve Trustroots?</Text>
+        <Text style={styles.q}>How does this improve Trustroots?</Text>
 
-        <Text>
+        <Text styles={styles.a}>
           Thanks for asking. Soon(tm): We hope we can quickly build something
           like a geochat app which is better and more used than what the old
           meet functionality had to offer, and which adds some interactivity to
-          circles. Mid-term: We want this app and Trustroots users to be able to
-          interact with other applications, such as e.g. hitchmap.com build new
+          circles.
+        </Text>
+        <Text styles={styles.a}>
+          Mid-term: We want this app and Trustroots users to be able to interact
+          with other applications, such as e.g. hitchmap.com build new
           applications e.g. for ridesharing or finding out where the cool events
-          and parties are. Long-term: We strive to make the centralized
-          Trustroots server and database and thus the official organization
-          irrelevant.
+          and parties are.
+        </Text>
+        <Text styles={styles.a}>
+          Long-term: We strive to make the centralized Trustroots server and
+          database and thus the official organization irrelevant.
         </Text>
 
         <Button
@@ -84,11 +89,15 @@ export default function TabThreeScreen() {
 }
 const styles = StyleSheet.create({
   settings: { backgroundColor: "#ffffff" },
-  h3: {
+  q: {
     fontSize: 15,
     fontWeight: "bold",
     marginTop: 10,
     marginBottom: 10,
+  },
+  a: {
+    marginBottom: 10,
+    marginTop: 10,
   },
   header: {
     backgroundColor: "#f8f8f8",

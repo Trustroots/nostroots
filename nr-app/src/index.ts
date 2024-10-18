@@ -14,7 +14,7 @@ globalThis.crypto = {
 } as any;
 
 import { store } from "@/redux/store";
-import { injectStore } from "./redux/sagas/subscriptions.saga";
+import { injectStore } from "@/nostr/subscriptions.nostr";
 injectStore(store);
 
 import "expo-router/entry";

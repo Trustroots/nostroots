@@ -3,6 +3,13 @@ import { setSubscriptionHasSeenEOSE } from "@/redux/slices/relays.slice";
 import { Event, Filter } from "nostr-tools";
 import { Subscription } from "nostr-tools/lib/types/abstract-relay";
 import { getRelay } from "./relays.nostr";
+import { AppStore } from "@/redux/store";
+
+// NOTE: This pattern is required to avoid a circular import dependency
+let store: AppStore;
+export function injectStore(_store: AppStore) {
+  store = _store;
+}
 
 const subscriptions = new Map<string, Subscription>();
 
@@ -21,12 +28,10 @@ export async function subscribeToFilter({
   filter,
   relayUrl,
   subscriptionId,
-  store,
 }: {
   filter: Filter;
   relayUrl: string;
   subscriptionId?: string;
-  store: any;
 }) {
   const relay = await getRelay(relayUrl);
 
@@ -43,14 +48,6 @@ export async function subscribeToFilter({
     oneose: () => {
       store.dispatch(setSubscriptionHasSeenEOSE({ id, relayUrl }));
     },
-    // onevent,
-    // oneose,
-    // onevent: (event: Event) => {
-    //   store.dispatch(addEvent({ event, fromRelay: relayUrl }));
-    // },
-    // oneose: () => {
-    //   store.dispatch(setSubscriptionHasSeenEOSE({ id, relayUrl }));
-    // },
     // NOTE: Type casting here because `id` is not available on `.subscribe()`
     // https://github.com/nbd-wtf/nostr-tools/issues/439
   } as {});

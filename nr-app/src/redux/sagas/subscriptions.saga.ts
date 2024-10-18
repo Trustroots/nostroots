@@ -8,13 +8,6 @@ import {
   startSubscription,
   stopSubscription,
 } from "../actions/subscription.actions";
-import { AppStore } from "../store";
-
-// NOTE: This pattern is required to avoid a circular import dependency
-let store: AppStore;
-export function injectStore(_store: AppStore) {
-  store = _store;
-}
 
 function getRelayUrlsOrDefaults(relayUrls?: string[]) {
   if (typeof relayUrls === "undefined" || relayUrls.length === 0) {
@@ -38,7 +31,6 @@ function* startSubscriptionSagaEffect(
       filter,
       relayUrl,
       subscriptionId: id,
-      store,
     });
   }
 }

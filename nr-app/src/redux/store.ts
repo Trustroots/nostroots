@@ -1,4 +1,4 @@
-import { configureStore } from "@reduxjs/toolkit";
+import { configureStore, StoreEnhancer } from "@reduxjs/toolkit";
 import createSagaMiddleware from "redux-saga";
 
 import rootSaga from "./sagas/root.saga";
@@ -14,8 +14,16 @@ import {
   SLICE_NAME as relayName,
   default as relayReducer,
 } from "./slices/relays.slice";
+import devtoolsEnhancer from "redux-devtools-expo-dev-plugin";
+import { Platform } from "react-native";
 
 const sagaMiddleware = createSagaMiddleware();
+
+const isOnDevice = Platform.OS !== "web";
+console.log("#lPyvNz isOnDevice", isOnDevice);
+const devToolsEnhancerOrNot: StoreEnhancer[] = isOnDevice
+  ? [devtoolsEnhancer()]
+  : [];
 
 export const store = configureStore({
   reducer: {
@@ -25,6 +33,9 @@ export const store = configureStore({
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(sagaMiddleware),
+  devTools: !isOnDevice,
+  enhancers: (getDefaultEnhancers) =>
+    getDefaultEnhancers().concat(devToolsEnhancerOrNot),
 });
 
 export type AppStore = typeof store;

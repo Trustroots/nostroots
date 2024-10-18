@@ -63,7 +63,7 @@ export default function Map() {
 
           dispatch(
             startSubscription({
-              filter: { kinds: [397], limit: 10 },
+              filter: { kinds: [397], limit: 30 },
               relayUrls: ["wss://relay.damus.io"],
             }),
           );

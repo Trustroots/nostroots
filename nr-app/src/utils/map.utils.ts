@@ -55,7 +55,12 @@ export function plusCodeToCoordinates(plusCode: string): {
   latitude: number;
   longitude: number;
 } {
-  const decoded = OpenLocationCode.decode(plusCode);
+  let decoded;
+  try {
+    decoded = OpenLocationCode.decode(plusCode);
+  } catch (error) {
+    console.error("#ewW2XQ Error decoding Plus Code:", error.message);
+  }
 
   if (decoded) {
     return {

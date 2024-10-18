@@ -75,7 +75,7 @@ Third party derived content notes can take this format:
     ["l", "8G000000+", "open-location-code-prefix"],
     // OPTIONAL - The event can optionally include which trustroots circles this event relates to
     ["L", "trustroots-circle"],
-    ["l", "hitchhikers"],
+    ["l", "hitchhikers", "trustroots-circle"],
     // OPTIONAL - The text that will appear in the link when this event is displayed
     ["linkLabel", "posted by @jdoe"],
     // OPTIONAL - The URL path to construct the link, the hostname is known according to the pubkey that published this event

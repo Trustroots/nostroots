@@ -2,14 +2,14 @@ import { SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
 
 export default function TabThreeScreen() {
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={styles.settings}>
       <View>
         <Text style={styles.header}>Keys</Text>
-        <Text>npub</Text>
+        <Text style={styles.settings}>npub</Text>
         <TextInput style={styles.input} value="npub" />
-        <Text>nsec</Text>
+        <Text style={styles.settings}>nsec</Text>
         <TextInput style={styles.input} value="nsec" />
-        <Text>seed</Text>
+        <Text style={styles.settings}>seed</Text>
         <TextInput style={styles.input} value="seed" />
         <Text style={styles.header}>Relays</Text>
         <TextInput style={styles.input} value="['relay1', 'relay2']" />
@@ -21,16 +21,15 @@ export default function TabThreeScreen() {
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
-  pane1: { flex: 1, flexGrow: 1, backgroundColor: "deepskyblue" },
+  settings: { backgroundColor: "#ffffff" },
   header: {
-    fontSize: 24, // Font size for the header text
-    fontWeight: "bold", // Bold text
-    padding: 4, // Padding around the text
-    backgroundColor: "#f8f8f8", // Background color for the header
-    borderBottomWidth: 1, // Optional: add a bottom border
-    borderBottomColor: "#ddd", // Optional: color of the bottom border
+    backgroundColor: "#f8f8f8",
+    fontSize: 24,
+    fontWeight: "bold",
+    padding: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
   },
   input: {
     height: 40,
@@ -38,5 +37,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 20,
     paddingHorizontal: 10,
+    backgroundColor: "#ffffff",
   },
 });

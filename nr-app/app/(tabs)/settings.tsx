@@ -4,10 +4,14 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  Button,
 } from "react-native";
 import { generateSeedWords, accountFromSeedWords } from "nip06";
+import { useAppDispatch } from "@/redux/hooks";
+import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 
 export default function TabThreeScreen() {
+  const dispatch = useAppDispatch();
   const { mnemonic } = generateSeedWords();
   const account = accountFromSeedWords({ mnemonic });
   console.log("#0GAjcE Generated seed and private key", {
@@ -57,6 +61,23 @@ export default function TabThreeScreen() {
           Trustroots server and database and thus the official organization
           irrelevant.
         </Text>
+
+        <Button
+          title="Set visible plus codes"
+          onPress={() => {
+            console.log("#bLtiOc pressed");
+            dispatch(
+              setVisiblePlusCodes([
+                "8C000000+",
+                "8F000000+",
+                "8G000000+",
+                "9C000000+",
+                "9F000000+",
+                "9G000000+",
+              ]),
+            );
+          }}
+        />
       </ScrollView>
     </SafeAreaView>
   );

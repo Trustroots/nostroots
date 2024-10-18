@@ -2,17 +2,30 @@ import { PayloadAction } from "@reduxjs/toolkit";
 import { all, put, takeEvery } from "redux-saga/effects";
 import { setMapSubscriptionIsUpdating } from "../slices/map.slice";
 import { setVisiblePlusCodes } from "../actions/map.actions";
+import { startSubscription } from "../actions/subscription.actions";
 
 function* updateDataForMapSagaEffect(action: PayloadAction<string[]>) {
+  console.log("#jjY6At updateDataForMapSagaEffect");
   try {
     // Setup a subscription
     const visiblePlusCodes = action.payload;
-    console.log("#tJ7hyp Got visible plus codes", visiblePlusCodes);
     // Write the state to redux
-    put(setMapSubscriptionIsUpdating(true));
+    yield put(setMapSubscriptionIsUpdating(true));
     // Call a subscription
+    yield put(
+      startSubscription({
+        // TODO Write helper to create filter
+        filter: {
+          kinds: [30398],
+          // TODO Add authors field to filter
+          "#L": ["open-location-code"],
+          "#l": visiblePlusCodes,
+        },
+        id: "mapVisiblePlusCodesSubscription",
+      }),
+    );
   } catch (error) {
-    const message = error instanceof Error ? error.message : "";
+    const message = error instanceof Error ? error.message : "unknown-4HHVVD";
     yield put({ type: "fail", action: message });
   }
 }

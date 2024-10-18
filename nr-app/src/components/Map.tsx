@@ -15,9 +15,23 @@ import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import React, { useState } from "react";
 import { Button, Modal, TextInput } from "react-native";
 
+// todo: make it more typescriptsy
+function extractLocationCode(data) {
+  for (const entry of data) {
+    if (Array.isArray(entry) && entry.length >= 3) {
+      if (entry[0] === "l" && entry[2] === "open-location-code") {
+        return entry[1];
+      }
+    }
+  }
+  return null;
+}
+
 const NoteMarker = ({ event }: { event: EventWithMetadata }) => {
   if (Array.isArray(event.event.tags[1]) && event.event.tags[1][1]) {
-    const coordinates = plusCodeToCoordinates(event.event.tags[1][1]);
+    const coordinates = plusCodeToCoordinates(
+      extractLocationCode(event.event.tags),
+    );
     return (
       <Marker coordinate={coordinates}>
         <Callout>

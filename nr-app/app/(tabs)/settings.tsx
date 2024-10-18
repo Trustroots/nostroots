@@ -1,4 +1,10 @@
-import { ScrollView, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ScrollView,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TextInput,
+} from "react-native";
 
 export default function TabThreeScreen() {
   return (

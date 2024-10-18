@@ -1,9 +1,7 @@
 import { PayloadAction } from "@reduxjs/toolkit";
 import { all, put, takeEvery } from "redux-saga/effects";
-import {
-  setMapSubscriptionIsUpdating,
-  setVisiblePlusCodes,
-} from "../slices/map.slice";
+import { setMapSubscriptionIsUpdating } from "../slices/map.slice";
+import { setVisiblePlusCodes } from "../actions/map.actions";
 
 function* updateDataForMapSagaEffect(action: PayloadAction<string[]>) {
   try {

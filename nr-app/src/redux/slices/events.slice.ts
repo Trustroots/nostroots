@@ -12,7 +12,7 @@ export const SLICE_NAME = "events" as const;
 type EventMetadata = {
   seenOnRelays: string[];
 };
-type EventWithMetadata = {
+export type EventWithMetadata = {
   event: Event;
   metadata: EventMetadata;
 };

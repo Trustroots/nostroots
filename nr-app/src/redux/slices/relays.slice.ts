@@ -79,17 +79,16 @@ const relaysSlice = createSlice({
       const { id, relayUrl } = action.payload;
       const subscription = state.subscriptions[id];
       if (typeof subscription === "undefined") {
-        throw new Error(
+        console.log(
           "Unable to set hasSeenEOSE on invalid subscription ID #AQ4WZB",
         );
+      } else {
+        const relayStatus = subscription.relaysStatus[relayUrl];
+        if (typeof relayStatus === "undefined") {
+          console.log("Unable to set hasSeenEOSE on invalid relay URL #WFAGJN");
+        }
+        relayStatus.hasSeenEOSE = true;
       }
-      const relayStatus = subscription.relaysStatus[relayUrl];
-      if (typeof relayStatus === "undefined") {
-        throw new Error(
-          "Unable to set hasSeenEOSE on invalid relay URL #WFAGJN",
-        );
-      }
-      relayStatus.hasSeenEOSE = true;
     },
     setServerClosedMessage: (
       state,

@@ -55,7 +55,7 @@ export default function Map() {
 
   const handleAddNote = () => {
     if (selectedCoordinate === undefined) {
-      console.warn("Trying to add note without selectedCoordinate.'=")
+      console.warn("Trying to add note without selectedCoordinate.'=");
       return;
     }
     // Logic to add the note to the event or state

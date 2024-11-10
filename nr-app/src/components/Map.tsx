@@ -1,5 +1,6 @@
 import {
   allPlusCodesForRegion,
+  coordinatesToPlusCode,
   plusCodeToCoordinates,
 } from "@/utils/map.utils";
 import { StyleSheet, Text, View } from "react-native";
@@ -53,6 +54,10 @@ export default function Map() {
   const dispatch = useAppDispatch();
 
   const handleAddNote = () => {
+    if (selectedCoordinate === undefined) {
+      console.warn("Trying to add note without selectedCoordinate.'=")
+      return;
+    }
     // Logic to add the note to the event or state
     const plusCode = coordinatesToPlusCode(selectedCoordinate);
     console.log(

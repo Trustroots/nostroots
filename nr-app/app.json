@@ -44,6 +44,7 @@
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
+    "newArchEnabled": true,
     "updates": {
       "url": "https://u.expo.dev/0147b304-d2cd-4e24-a237-da8bd5f3e4f3"
     }

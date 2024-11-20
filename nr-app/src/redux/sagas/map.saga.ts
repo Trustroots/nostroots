@@ -1,8 +1,8 @@
 import { PayloadAction } from "@reduxjs/toolkit";
-import { all, put, takeEvery } from "redux-saga/effects";
-import { setMapSubscriptionIsUpdating } from "../slices/map.slice";
+import { all, put, throttle } from "redux-saga/effects";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { startSubscription } from "../actions/subscription.actions";
+import { setMapSubscriptionIsUpdating } from "../slices/map.slice";
 
 function* updateDataForMapSagaEffect(action: PayloadAction<string[]>) {
   try {
@@ -32,7 +32,7 @@ function* updateDataForMapSagaEffect(action: PayloadAction<string[]>) {
 }
 
 export function* updateDataForMapSaga() {
-  yield takeEvery(setVisiblePlusCodes, updateDataForMapSagaEffect);
+  yield throttle(1000, setVisiblePlusCodes, updateDataForMapSagaEffect);
 }
 
 export default function* mapSaga() {

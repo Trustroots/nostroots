@@ -50,7 +50,7 @@ export async function subscribeToFilter({
     },
     // NOTE: Type casting here because `id` is not available on `.subscribe()`
     // https://github.com/nbd-wtf/nostr-tools/issues/439
-  } as {});
+  } as object);
 
   subscriptions.set(id, subscription);
 

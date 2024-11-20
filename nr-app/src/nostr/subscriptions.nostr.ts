@@ -13,10 +13,6 @@ export function injectStore(_store: AppStore) {
 
 const subscriptions = new Map<string, Subscription>();
 
-function generateId() {
-  return Math.random().toString().slice(2);
-}
-
 /**
  * - The relays are not linked to redux currently
  * - We should set it up to log relay state into redux
@@ -31,30 +27,27 @@ export async function subscribeToFilter({
 }: {
   filter: Filter;
   relayUrl: string;
-  subscriptionId?: string;
+  subscriptionId: string;
 }) {
   const relay = await getRelay(relayUrl);
 
-  const id =
-    typeof subscriptionId === "string" && subscriptionId.length > 3
-      ? subscriptionId
-      : generateId();
-
   const subscription = relay.subscribe([filter], {
-    id,
+    subscriptionId,
     onevent: (event: Event) => {
       store.dispatch(addEvent({ event, fromRelay: relayUrl }));
     },
     oneose: () => {
-      store.dispatch(setSubscriptionHasSeenEOSE({ id, relayUrl }));
+      store.dispatch(
+        setSubscriptionHasSeenEOSE({ id: subscriptionId, relayUrl }),
+      );
     },
     // NOTE: Type casting here because `id` is not available on `.subscribe()`
     // https://github.com/nbd-wtf/nostr-tools/issues/439
   } as object);
 
-  subscriptions.set(id, subscription);
+  subscriptions.set(subscriptionId, subscription);
 
-  return id;
+  return subscriptionId;
 }
 
 export function getSubscription(id: string) {

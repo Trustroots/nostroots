@@ -3,11 +3,23 @@ import {
   subscribeToFilter,
 } from "@/nostr/subscriptions.nostr";
 import { Subscription } from "nostr-tools/lib/types/abstract-relay";
-import { all, call, fork, StrictEffect, takeEvery } from "redux-saga/effects";
+import {
+  all,
+  call,
+  fork,
+  put,
+  StrictEffect,
+  takeEvery,
+} from "redux-saga/effects";
 import {
   startSubscription,
   stopSubscription,
 } from "../actions/subscription.actions";
+import { setSubscription } from "../slices/relays.slice";
+
+function generateId() {
+  return Math.random().toString().slice(2);
+}
 
 function getRelayUrlsOrDefaults(relayUrls?: string[]) {
   if (typeof relayUrls === "undefined" || relayUrls.length === 0) {
@@ -26,11 +38,30 @@ function* startSubscriptionSagaEffect(
 
   const actualRelayUrls = getRelayUrlsOrDefaults(relayUrls);
 
+  const subscriptionId =
+    typeof id === "string" && id.length > 3 ? id : generateId();
+
+  yield put(
+    setSubscription({
+      subscriptionId,
+      query: [filter],
+      relaysStatus: Object.fromEntries(
+        actualRelayUrls.map((url) => [
+          url,
+          {
+            hasSeenEOSE: false,
+            isOpen: false,
+          },
+        ]),
+      ),
+    }),
+  );
+
   for (const relayUrl of actualRelayUrls) {
     yield fork(subscribeToFilter, {
       filter,
       relayUrl,
-      subscriptionId: id,
+      subscriptionId,
     });
   }
 }

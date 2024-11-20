@@ -16,7 +16,7 @@ type Relay = {
 };
 
 export type Subscription = {
-  id: string;
+  subscriptionId: string;
   query: Filter[];
   relaysStatus: {
     [relayUrl: string]: {
@@ -70,7 +70,7 @@ const relaysSlice = createSlice({
     },
     setSubscription: (state, action: PayloadAction<Subscription>) => {
       const subscription = action.payload;
-      state.subscriptions[subscription.id] = subscription;
+      state.subscriptions[subscription.subscriptionId] = subscription;
     },
     setSubscriptionHasSeenEOSE: (
       state,

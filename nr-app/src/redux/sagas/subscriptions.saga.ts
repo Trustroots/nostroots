@@ -38,8 +38,13 @@ function* startSubscriptionSagaEffect(
 
   const actualRelayUrls = getRelayUrlsOrDefaults(relayUrls);
 
-  const subscriptionId =
-    typeof id === "string" && id.length > 3 ? id : generateId();
+  const isNewSubscription = typeof id === "undefined";
+
+  const subscriptionId = isNewSubscription ? generateId() : id;
+
+  if (!isNewSubscription) {
+    yield call(stopSubscription, subscriptionId);
+  }
 
   yield put(
     setSubscription({

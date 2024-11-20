@@ -57,3 +57,13 @@ export function getSubscription(id: string) {
   }
   return subscription;
 }
+
+export function stopSubscription(id: string) {
+  if (!subscriptions.has(id)) {
+    return;
+  }
+  const subscription = getSubscription(id);
+  subscription.close();
+  // What are the implications of deleting a subscription after stopping it?
+  subscriptions.delete(id);
+}

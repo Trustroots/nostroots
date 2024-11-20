@@ -39,8 +39,9 @@ function* startSubscriptionSagaEffect(
   const actualRelayUrls = getRelayUrlsOrDefaults(relayUrls);
 
   const isNewSubscription = typeof id === "undefined";
-
   const subscriptionId = isNewSubscription ? generateId() : id;
+
+  // TODO Stop here if the subscription is not new and hasn't changed
 
   if (!isNewSubscription) {
     yield call(stopSubscription, subscriptionId);

@@ -6,6 +6,8 @@ import { startSubscription } from "../actions/subscription.actions";
 
 function* updateDataForMapSagaEffect(action: PayloadAction<string[]>) {
   try {
+    // TODO Debounce map updates
+
     // Setup a subscription
     const visiblePlusCodes = action.payload;
     // Write the state to redux

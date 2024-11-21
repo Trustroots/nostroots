@@ -92,7 +92,7 @@ export default function Map() {
           <NoteMarker event={event} key={event.event.sig} />
         ))}
       </MapView>
-      <View style={{ position: "absolute", top: 10, left: 10, zIndex: 1 }}>
+      <View style={styles.toggleWrapper}>
         <FlatList
           data={Object.entries(MAP_LAYERS) as [MAP_LAYER_KEY, MapLayer][]}
           keyExtractor={([key]) => key}
@@ -138,6 +138,7 @@ const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
   },
+  toggleWrapper: { position: "absolute", top: 40, left: 10, zIndex: 1 },
   toggleContainer: {
     flexDirection: "row",
     alignItems: "center",

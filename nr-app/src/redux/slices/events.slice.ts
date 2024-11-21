@@ -125,8 +125,6 @@ export const eventsSlice = createSlice({
   },
 });
 
-export default eventsSlice.reducer;
-
 export const { addEvent, setAllEventsWithMetadata } = eventsSlice.actions;
 
 export const eventsSelectors = eventsAdapter.getSelectors(

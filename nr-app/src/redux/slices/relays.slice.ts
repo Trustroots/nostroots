@@ -41,7 +41,7 @@ const initialState: RelaysState = {
   subscriptions: {},
 };
 
-const relaysSlice = createSlice({
+export const relaysSlice = createSlice({
   name: SLICE_NAME,
   initialState,
   reducers: {
@@ -107,8 +107,6 @@ const relaysSlice = createSlice({
     },
   },
 });
-
-export default relaysSlice.reducer;
 
 export const {
   setRelays,

@@ -1,21 +1,12 @@
-import { configureStore, StoreEnhancer } from "@reduxjs/toolkit";
+import { combineSlices, configureStore, StoreEnhancer } from "@reduxjs/toolkit";
 import createSagaMiddleware from "redux-saga";
 
-import rootSaga from "./sagas/root.saga";
-import {
-  SLICE_NAME as eventsName,
-  default as eventsReducer,
-} from "./slices/events.slice";
-import {
-  SLICE_NAME as mapName,
-  default as mapReducer,
-} from "./slices/map.slice";
-import {
-  SLICE_NAME as relayName,
-  default as relayReducer,
-} from "./slices/relays.slice";
-import devtoolsEnhancer from "redux-devtools-expo-dev-plugin";
 import { Platform } from "react-native";
+import devtoolsEnhancer from "redux-devtools-expo-dev-plugin";
+import rootSaga from "./sagas/root.saga";
+import { eventsSlice } from "./slices/events.slice";
+import { mapSlice } from "./slices/map.slice";
+import { relaysSlice } from "./slices/relays.slice";
 
 const sagaMiddleware = createSagaMiddleware();
 
@@ -24,12 +15,10 @@ const devToolsEnhancerOrNot: StoreEnhancer[] = isOnDevice
   ? [devtoolsEnhancer()]
   : [];
 
+const reducer = combineSlices(eventsSlice, mapSlice, relaysSlice);
+
 export const store = configureStore({
-  reducer: {
-    [eventsName]: eventsReducer,
-    [mapName]: mapReducer,
-    [relayName]: relayReducer,
-  },
+  reducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware().concat(sagaMiddleware),
   devTools: !isOnDevice,

@@ -23,7 +23,7 @@ const initialState: MapState = {
   },
 };
 
-const mapSlice = createSlice({
+export const mapSlice = createSlice({
   name: SLICE_NAME,
   initialState,
   reducers: {
@@ -60,8 +60,6 @@ const mapSlice = createSlice({
     selectEnabledLayers: (state) => state.enabledLayers,
   },
 });
-
-export default mapSlice.reducer;
 
 export const {
   setMapSubscriptionIsUpdating,

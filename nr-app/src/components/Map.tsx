@@ -16,7 +16,8 @@ import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import React, { useState } from "react";
 import { Button, Modal, TextInput } from "react-native";
 import { getFirstTagValueFromEvent } from "@/common/utils";
-import { toggleLayer } from "@/redux/slices/map.slice";
+import { mapSelectors, toggleLayer } from "@/redux/slices/map.slice";
+import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@/common/constants";
 
 const NoteMarker = ({ event }: { event: EventWithMetadata }) => {
   const plusCode = getFirstTagValueFromEvent(event.event, "open-location-code");
@@ -42,6 +43,7 @@ const NoteMarker = ({ event }: { event: EventWithMetadata }) => {
 
 export default function Map() {
   const events = useAppSelector(eventsSelectors.selectAll);
+  const enabledLayers = useAppSelector(mapSelectors.selectEnabledLayers);
   const dispatch = useAppDispatch();
 
   const handleAddNote = () => {
@@ -91,27 +93,17 @@ export default function Map() {
         ))}
       </MapView>
       <View>
-        <View style={styles.toggleContainer}>
-          <Text>Hitchmap</Text>
-          <Switch
-            value={true}
-            onValueChange={() => void dispatch(toggleLayer("hitchmap"))}
-          />
-        </View>
-        <View style={styles.toggleContainer}>
-          <Text>TimeSafari</Text>
-          <Switch
-            value={true}
-            onValueChange={() => void dispatch(toggleLayer("timesafari"))}
-          />
-        </View>
-        <View style={styles.toggleContainer}>
-          <Text>TripHopping</Text>
-          <Switch
-            value={true}
-            onValueChange={() => void dispatch(toggleLayer("triphopping"))}
-          />
-        </View>
+        {(Object.entries(MAP_LAYERS) as [MAP_LAYER_KEY, MapLayer][]).map(
+          ([key, config]) => (
+            <View key={key} style={styles.toggleContainer}>
+              <Text>{config.title}</Text>
+              <Switch
+                value={enabledLayers[key]}
+                onValueChange={() => void dispatch(toggleLayer(key))}
+              />
+            </View>
+          ),
+        )}
       </View>
 
       <Modal

@@ -1,7 +1,7 @@
-import { MAP_LAYER_KEY } from "@/utils/map.utils";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { RootState } from "../store";
+import { MAP_LAYER_KEY } from "@/common/constants";
 
 export const SLICE_NAME = "map";
 
@@ -57,6 +57,7 @@ const mapSlice = createSlice({
       const enabledKeys = keys.filter((key) => state.enabledLayers[key]);
       return enabledKeys;
     },
+    selectEnabledLayers: (state) => state.enabledLayers,
   },
 });
 

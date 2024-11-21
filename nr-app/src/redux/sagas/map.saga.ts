@@ -1,5 +1,4 @@
-import { DEV_PUBKEY } from "@/common/constants";
-import { MAP_LAYER_KEY, MAP_LAYERS } from "@/utils/map.utils";
+import { DEV_PUBKEY, MAP_LAYER_KEY, MAP_LAYERS } from "@/common/constants";
 import { PayloadAction } from "@reduxjs/toolkit";
 import { Filter } from "nostr-tools";
 import { all, Effect, put, select, throttle } from "redux-saga/effects";

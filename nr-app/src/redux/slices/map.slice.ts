@@ -62,7 +62,12 @@ const mapSlice = createSlice({
 
 export default mapSlice.reducer;
 
-export const { setMapSubscriptionIsUpdating } = mapSlice.actions;
+export const {
+  setMapSubscriptionIsUpdating,
+  enableLayer,
+  disableLayer,
+  toggleLayer,
+} = mapSlice.actions;
 
 export const mapSelectors = mapSlice.getSelectors(
   (state: RootState) => state[SLICE_NAME],

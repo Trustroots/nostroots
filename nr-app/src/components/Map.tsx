@@ -17,18 +17,6 @@ import React, { useState } from "react";
 import { Button, Modal, TextInput } from "react-native";
 import { getFirstTagValueFromEvent } from "@/common/utils";
 
-// todo: make it more typescriptsy
-function extractLocationCode(data: any) {
-  for (const entry of data) {
-    if (Array.isArray(entry) && entry.length >= 3) {
-      if (entry[0] === "l" && entry[2] === "open-location-code") {
-        return entry[1];
-      }
-    }
-  }
-  return null;
-}
-
 const NoteMarker = ({ event }: { event: EventWithMetadata }) => {
   const plusCode = getFirstTagValueFromEvent(event.event, "open-location-code");
 

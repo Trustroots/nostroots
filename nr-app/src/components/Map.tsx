@@ -3,7 +3,7 @@ import {
   coordinatesToPlusCode,
   plusCodeToCoordinates,
 } from "@/utils/map.utils";
-import { StyleSheet, Text, View, Switch, FlatList } from "react-native";
+import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
 
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
@@ -12,15 +12,18 @@ import {
 } from "@/redux/slices/events.slice";
 import MapView, { Callout, LatLng, Marker } from "react-native-maps";
 
+import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@/common/constants";
+import { getFirstLabelValueFromEvent } from "@/common/utils";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
+import { mapSelectors, toggleLayer } from "@/redux/slices/map.slice";
 import React, { useState } from "react";
 import { Button, Modal, TextInput } from "react-native";
-import { getFirstTagValueFromEvent } from "@/common/utils";
-import { mapSelectors, toggleLayer } from "@/redux/slices/map.slice";
-import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@/common/constants";
 
 const NoteMarker = ({ event }: { event: EventWithMetadata }) => {
-  const plusCode = getFirstTagValueFromEvent(event.event, "open-location-code");
+  const plusCode = getFirstLabelValueFromEvent(
+    event.event,
+    "open-location-code",
+  );
 
   if (typeof plusCode === "undefined") {
     return null;

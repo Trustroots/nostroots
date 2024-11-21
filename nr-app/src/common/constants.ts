@@ -4,6 +4,9 @@ export const DEV_PUBKEY =
 export const HITCHMAPS_AUTHOR_PUBLIC_KEY =
   "53055ee011e96a00a705b38253b9cbc6614ccbd37df4dad42ec69bbe608c4209" as const;
 
+export const TIMESAFARI_AUTHOR_PUBLIC_KEY =
+  "76e88d2e653fc3655f8e0b97f6bc85f5468eaffc5d64522b584ce13eedbd8af7" as const;
+
 export type MapLayer = {
   title: string;
   rootUrl: string;
@@ -17,18 +20,18 @@ export const MAP_LAYERS: { [key in MAP_LAYER_KEY]: MapLayer } = {
     title: "Hitchmap",
     rootUrl: "https://www.hitchmap.com",
     kind: 30399,
-    pubKey: "abcd",
+    pubKey: HITCHMAPS_AUTHOR_PUBLIC_KEY,
   },
   timesafari: {
     title: "Time Safari",
     rootUrl: "https://www.timesafari.app",
     kind: 30399,
-    pubKey: "abc",
+    pubKey: TIMESAFARI_AUTHOR_PUBLIC_KEY,
   },
   triphopping: {
     title: "Trip Hopping",
     rootUrl: "https://www.triphopping.com",
     kind: 30398,
-    pubKey: "abc",
+    pubKey: DEV_PUBKEY,
   },
 } as const;

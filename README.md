@@ -85,6 +85,7 @@ Possible groups and communities:
    - foodsharing.de, [circle](https://www.trustroots.org/circles/foodsharing)
    - [acroyoga circle](https://www.trustroots.org/circles/acroyoga)
    - [lindyhop circle](https://www.trustroots.org/circles/lindyhoppers)
+- [1NITE TENT](https://1nitetent.com/)
 
 
 ### Timeline

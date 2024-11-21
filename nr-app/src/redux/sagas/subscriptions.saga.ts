@@ -31,10 +31,11 @@ function getRelayUrlsOrDefaults(relayUrls?: string[]) {
   return relayUrls;
 }
 
+// TODO: Handle network failures here, they will throw
 function* startSubscriptionSagaEffect(
   action: ReturnType<typeof startSubscription>,
 ) {
-  const { filter, id, relayUrls } = action.payload;
+  const { filters, id, relayUrls } = action.payload;
 
   const actualRelayUrls = getRelayUrlsOrDefaults(relayUrls);
 
@@ -50,7 +51,7 @@ function* startSubscriptionSagaEffect(
   yield put(
     setSubscription({
       subscriptionId,
-      query: [filter],
+      query: filters,
       relaysStatus: Object.fromEntries(
         actualRelayUrls.map((url) => [
           url,
@@ -65,7 +66,7 @@ function* startSubscriptionSagaEffect(
 
   for (const relayUrl of actualRelayUrls) {
     yield fork(subscribeToFilter, {
-      filter,
+      filters,
       relayUrl,
       subscriptionId,
     });

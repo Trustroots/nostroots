@@ -1,27 +1,65 @@
+import { DEV_PUBKEY } from "@/common/constants";
+import { MAP_LAYER_KEY, MAP_LAYERS } from "@/utils/map.utils";
 import { PayloadAction } from "@reduxjs/toolkit";
-import { all, put, throttle } from "redux-saga/effects";
+import { Filter } from "nostr-tools";
+import { all, Effect, put, select, throttle } from "redux-saga/effects";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { startSubscription } from "../actions/subscription.actions";
-import { setMapSubscriptionIsUpdating } from "../slices/map.slice";
+import {
+  mapSelectors,
+  setMapSubscriptionIsUpdating,
+} from "../slices/map.slice";
 
-function* updateDataForMapSagaEffect(action: PayloadAction<string[]>) {
+function createMapFilters(
+  visiblePlusCodes: string[],
+  enabledLayerKeys: MAP_LAYER_KEY[],
+): Filter[] {
+  const baseFilter = {
+    kinds: [30398],
+    authors: [DEV_PUBKEY],
+    "#L": ["open-location-code-prefix"],
+    "#l": visiblePlusCodes,
+  };
+
+  const layerFilters = enabledLayerKeys.map((layer) => {
+    const layerConfig = MAP_LAYERS[layer];
+    return {
+      kinds: [layerConfig.kind],
+      authors: [layerConfig.pubKey],
+      "#L": ["open-location-code-prefix"],
+      "#l": visiblePlusCodes,
+    };
+  });
+
+  const filters = [baseFilter, ...layerFilters];
+
+  return filters;
+}
+
+function* updateDataForMapSagaEffect(
+  action: PayloadAction<string[]>,
+): Generator<
+  Effect,
+  void,
+  ReturnType<typeof mapSelectors.selectEnabledLayerKeys>
+> {
   try {
     // TODO Debounce map updates
 
     // Setup a subscription
     const visiblePlusCodes = action.payload;
+
+    const enabledLayers = yield select(mapSelectors.selectEnabledLayerKeys);
+
+    const filters = createMapFilters(visiblePlusCodes, enabledLayers);
+
     // Write the state to redux
     yield put(setMapSubscriptionIsUpdating(true));
     // Call a subscription
     yield put(
       startSubscription({
         // TODO Write helper to create filter
-        filter: {
-          kinds: [30398],
-          // TODO Add authors field to filter
-          "#L": ["open-location-code"],
-          "#l": visiblePlusCodes,
-        },
+        filters,
         id: "mapVisiblePlusCodesSubscription",
       }),
     );

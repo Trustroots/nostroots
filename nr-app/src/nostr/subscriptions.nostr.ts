@@ -21,17 +21,17 @@ const subscriptions = new Map<string, Subscription>();
  */
 
 export async function subscribeToFilter({
-  filter,
+  filters,
   relayUrl,
   subscriptionId,
 }: {
-  filter: Filter;
+  filters: Filter[];
   relayUrl: string;
   subscriptionId: string;
 }) {
   const relay = await getRelay(relayUrl);
 
-  const subscription = relay.subscribe([filter], {
+  const subscription = relay.subscribe(filters, {
     subscriptionId,
     onevent: (event: Event) => {
       store.dispatch(addEvent({ event, fromRelay: relayUrl }));

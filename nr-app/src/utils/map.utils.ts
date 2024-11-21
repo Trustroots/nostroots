@@ -4,6 +4,30 @@ import {
 } from "@/constants";
 import OpenLocationCode from "open-location-code-typescript";
 
+export type MapLayer = {
+  rootUrl: string;
+  kind: 30399 | 30398;
+  pubKey: string;
+};
+export type MAP_LAYER_KEY = "hitchmap" | "timesafari" | "triphopping";
+export const MAP_LAYERS: { [key in MAP_LAYER_KEY]: MapLayer } = {
+  hitchmap: {
+    rootUrl: "https://www.hitchmap.com",
+    kind: 30399,
+    pubKey: "abcd",
+  },
+  timesafari: {
+    rootUrl: "https://www.timesafari.app",
+    kind: 30399,
+    pubKey: "abc",
+  },
+  triphopping: {
+    rootUrl: "https://www.triphopping.com",
+    kind: 30398,
+    pubKey: "abc",
+  },
+} as const;
+
 type PlusCodeShortLength = 2 | 4 | 6 | 8;
 
 const plusCodeCharacters = "23456789CFGHJMPQRVWX" as const;

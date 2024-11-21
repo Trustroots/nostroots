@@ -1,8 +1,6 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Filter } from "nostr-tools";
 
-export const SLICE_NAME = "relays" as const;
-
 type RelayNotice = {
   message: string;
   receivedAt: number;
@@ -42,7 +40,7 @@ const initialState: RelaysState = {
 };
 
 export const relaysSlice = createSlice({
-  name: SLICE_NAME,
+  name: "relays",
   initialState,
   reducers: {
     setRelays: (state, action: PayloadAction<{ [id: string]: Relay }>) => {

@@ -3,8 +3,6 @@ import { setVisiblePlusCodes } from "../actions/map.actions";
 import { RootState } from "../store";
 import { MAP_LAYER_KEY } from "@/common/constants";
 
-export const SLICE_NAME = "map";
-
 interface MapState {
   mapSubscriptionIsUpdating: boolean;
   visiblePlusCodes: string[];
@@ -24,7 +22,7 @@ const initialState: MapState = {
 };
 
 export const mapSlice = createSlice({
-  name: SLICE_NAME,
+  name: "map",
   initialState,
   reducers: {
     setMapSubscriptionIsUpdating: (state, action: PayloadAction<boolean>) => {
@@ -68,6 +66,4 @@ export const {
   toggleLayer,
 } = mapSlice.actions;
 
-export const mapSelectors = mapSlice.getSelectors(
-  (state: RootState) => state[SLICE_NAME],
-);
+export const mapSelectors = mapSlice.selectors;

@@ -5,9 +5,6 @@ import {
   createSlice,
   PayloadAction,
 } from "@reduxjs/toolkit";
-import { RootState } from "../store";
-
-export const SLICE_NAME = "events" as const;
 
 type EventMetadata = {
   seenOnRelays: string[];
@@ -64,7 +61,7 @@ export const _addSeenOnRelayToMetadata = (
 };
 
 export const eventsSlice = createSlice({
-  name: SLICE_NAME,
+  name: "events",
   initialState: eventsAdapter.getInitialState(),
   reducers: {
     setAllEventsWithMetadata: (
@@ -128,5 +125,5 @@ export const eventsSlice = createSlice({
 export const { addEvent, setAllEventsWithMetadata } = eventsSlice.actions;
 
 export const eventsSelectors = eventsAdapter.getSelectors(
-  (state: RootState) => state[SLICE_NAME],
+  eventsSlice.selectSlice,
 );

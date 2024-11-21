@@ -3,7 +3,7 @@ import {
   coordinatesToPlusCode,
   plusCodeToCoordinates,
 } from "@/utils/map.utils";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, Switch } from "react-native";
 
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
@@ -15,7 +15,22 @@ import MapView, { Callout, LatLng, Marker } from "react-native-maps";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import React, { useState } from "react";
 import { Button, Modal, TextInput } from "react-native";
+<<<<<<< HEAD
 import { getFirstTagValueFromEvent } from "@/common/utils";
+=======
+
+// todo: make it more typescriptsy
+function extractLocationCode(data: any) {
+  for (const entry of data) {
+    if (Array.isArray(entry) && entry.length >= 3) {
+      if (entry[0] === "l" && entry[2] === "open-location-code") {
+        return entry[1];
+      }
+    }
+  }
+  return null;
+}
+>>>>>>> 2b75bee (adding hitchmap switch to ux, not functional yet)
 
 const NoteMarker = ({ event }: { event: EventWithMetadata }) => {
   const plusCode = getFirstTagValueFromEvent(event.event, "open-location-code");
@@ -66,6 +81,7 @@ export default function Map() {
   const [modalVisible, setModalVisible] = useState(false);
   const [note, setNote] = useState("");
   const [selectedCoordinate, setSelectedCoordinate] = useState<LatLng>();
+  const [isHitchmapEnabled, setIsHitchmapEnabled] = useState(true);
 
   return (
     <View style={styles.mapContainer}>
@@ -89,6 +105,13 @@ export default function Map() {
           <NoteMarker event={event} key={event.event.sig} />
         ))}
       </MapView>
+      <View style={styles.toggleContainer}>
+        <Text>Hitchmap</Text>
+        <Switch
+          value={isHitchmapEnabled}
+          onValueChange={setIsHitchmapEnabled}
+        />
+      </View>
 
       <Modal
         visible={modalVisible}
@@ -119,6 +142,16 @@ export default function Map() {
 const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
+  },
+  toggleContainer: {
+    position: "absolute",
+    top: 10,
+    left: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 10,
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    zIndex: 1, // Ensure toggle is above the map
   },
   map: {
     width: "100%",

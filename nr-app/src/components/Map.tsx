@@ -16,6 +16,7 @@ import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import React, { useState } from "react";
 import { Button, Modal, TextInput } from "react-native";
 import { getFirstTagValueFromEvent } from "@/common/utils";
+import { toggleLayer } from "@/redux/slices/map.slice";
 
 const NoteMarker = ({ event }: { event: EventWithMetadata }) => {
   const plusCode = getFirstTagValueFromEvent(event.event, "open-location-code");
@@ -66,7 +67,6 @@ export default function Map() {
   const [modalVisible, setModalVisible] = useState(false);
   const [note, setNote] = useState("");
   const [selectedCoordinate, setSelectedCoordinate] = useState<LatLng>();
-  const [isHitchmapEnabled, setIsHitchmapEnabled] = useState(true);
 
   return (
     <View style={styles.mapContainer}>
@@ -90,12 +90,28 @@ export default function Map() {
           <NoteMarker event={event} key={event.event.sig} />
         ))}
       </MapView>
-      <View style={styles.toggleContainer}>
-        <Text>Hitchmap</Text>
-        <Switch
-          value={isHitchmapEnabled}
-          onValueChange={setIsHitchmapEnabled}
-        />
+      <View>
+        <View style={styles.toggleContainer}>
+          <Text>Hitchmap</Text>
+          <Switch
+            value={true}
+            onValueChange={() => void dispatch(toggleLayer("hitchmap"))}
+          />
+        </View>
+        <View style={styles.toggleContainer}>
+          <Text>TimeSafari</Text>
+          <Switch
+            value={true}
+            onValueChange={() => void dispatch(toggleLayer("timesafari"))}
+          />
+        </View>
+        <View style={styles.toggleContainer}>
+          <Text>TripHopping</Text>
+          <Switch
+            value={true}
+            onValueChange={() => void dispatch(toggleLayer("triphopping"))}
+          />
+        </View>
       </View>
 
       <Modal

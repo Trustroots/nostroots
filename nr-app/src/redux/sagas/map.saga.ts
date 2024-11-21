@@ -1,4 +1,8 @@
-import { DEV_PUBKEY, MAP_LAYER_KEY, MAP_LAYERS } from "@/common/constants";
+import {
+  MAP_LAYER_KEY,
+  MAP_LAYERS,
+  NOSTROOTS_VALIDATION_PUBKEY,
+} from "@/common/constants";
 import { PayloadAction } from "@reduxjs/toolkit";
 import { Filter } from "nostr-tools";
 import { all, Effect, put, select, throttle } from "redux-saga/effects";
@@ -15,7 +19,7 @@ function createMapFilters(
 ): Filter[] {
   const baseFilter = {
     kinds: [30398],
-    authors: [DEV_PUBKEY],
+    authors: [NOSTROOTS_VALIDATION_PUBKEY],
     "#L": ["open-location-code-prefix"],
     "#l": visiblePlusCodes,
   };

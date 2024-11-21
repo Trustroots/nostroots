@@ -15,9 +15,7 @@ import MapView, { Callout, LatLng, Marker } from "react-native-maps";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import React, { useState } from "react";
 import { Button, Modal, TextInput } from "react-native";
-<<<<<<< HEAD
 import { getFirstTagValueFromEvent } from "@/common/utils";
-=======
 
 // todo: make it more typescriptsy
 function extractLocationCode(data: any) {
@@ -30,7 +28,6 @@ function extractLocationCode(data: any) {
   }
   return null;
 }
->>>>>>> 2b75bee (adding hitchmap switch to ux, not functional yet)
 
 const NoteMarker = ({ event }: { event: EventWithMetadata }) => {
   const plusCode = getFirstTagValueFromEvent(event.event, "open-location-code");

@@ -92,7 +92,7 @@ export default function Map() {
           <NoteMarker event={event} key={event.event.sig} />
         ))}
       </MapView>
-      <View style={{ position: 'absolute', top: 10, left: 10, zIndex: 1 }}>
+      <View style={{ position: "absolute", top: 10, left: 10, zIndex: 1 }}>
         <FlatList
           data={Object.entries(MAP_LAYERS) as [MAP_LAYER_KEY, MapLayer][]}
           keyExtractor={([key]) => key}

@@ -3,7 +3,7 @@ import {
   coordinatesToPlusCode,
   plusCodeToCoordinates,
 } from "@/utils/map.utils";
-import { StyleSheet, Text, View, Switch } from "react-native";
+import { StyleSheet, Text, View, Switch, FlatList } from "react-native";
 
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
@@ -92,18 +92,20 @@ export default function Map() {
           <NoteMarker event={event} key={event.event.sig} />
         ))}
       </MapView>
-      <View>
-        {(Object.entries(MAP_LAYERS) as [MAP_LAYER_KEY, MapLayer][]).map(
-          ([key, config]) => (
-            <View key={key} style={styles.toggleContainer}>
+      <View style={{ position: 'absolute', top: 10, left: 10, zIndex: 1 }}>
+        <FlatList
+          data={Object.entries(MAP_LAYERS) as [MAP_LAYER_KEY, MapLayer][]}
+          keyExtractor={([key]) => key}
+          renderItem={({ item: [key, config] }) => (
+            <View style={styles.toggleContainer}>
               <Text>{config.title}</Text>
               <Switch
                 value={enabledLayers[key]}
                 onValueChange={() => void dispatch(toggleLayer(key))}
               />
             </View>
-          ),
-        )}
+          )}
+        />
       </View>
 
       <Modal
@@ -137,14 +139,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   toggleContainer: {
-    position: "absolute",
-    top: 10,
-    left: 10,
     flexDirection: "row",
     alignItems: "center",
     padding: 10,
     backgroundColor: "rgba(0, 0, 0, 0.3)",
-    zIndex: 1, // Ensure toggle is above the map
   },
   map: {
     width: "100%",

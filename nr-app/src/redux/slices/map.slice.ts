@@ -1,7 +1,6 @@
+import { MAP_LAYER_KEY } from "@/common/constants";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { setVisiblePlusCodes } from "../actions/map.actions";
-import { RootState } from "../store";
-import { MAP_LAYER_KEY } from "@/common/constants";
 
 interface MapState {
   mapSubscriptionIsUpdating: boolean;

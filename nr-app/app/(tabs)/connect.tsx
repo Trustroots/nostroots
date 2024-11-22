@@ -1,15 +1,14 @@
-import "react-native-get-random-values";
+import { sendConnectResponse } from "@/nostr/nip-46.nostr";
+import { useState } from "react";
 import {
-  ScrollView,
+  Button,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  Button,
 } from "react-native";
-import { useAppDispatch } from "@/redux/hooks";
-import { useState } from "react";
-import { sendConnectResponse } from "@/nostr/nip-46.nostr";
+import "react-native-get-random-values";
 
 export default function TabFourScreen() {
   const [connectURI, setConnectURI] = useState("");

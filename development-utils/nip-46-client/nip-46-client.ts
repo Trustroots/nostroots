@@ -26,7 +26,7 @@ function getFirstTagValueFromEvent(
   return firstValue;
 }
 
-const RELAY: string = "wss://nos.lol";
+const RELAY: string = "wss://relay.trustroots.org";
 const RESPONSE_EVENT_KIND = 24133;
 
 const PUBLIC_KEY =

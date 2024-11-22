@@ -170,6 +170,16 @@ ActivityPub heavily relies on specific domains and sysadmins running servers. So
 
 Note that https://gitlab.com/soapbox-pub/mostr is a project to bridge ActivityPub and Nostr.
 
+### Bluesky vs Nostr
+
+We didn't dive into Bluesky but Cory Doctorow [wrote this](https://pluralistic.net/2024/11/02/ulysses-pact/#tie-yourself-to-a-federated-mast) about it:
+
+> Bluesky lacks the one federated feature that is absolutely necessary for me to trust it: the ability to leave Bluesky and go to another host and continue to talk to the people I've entered into community with there. While there are many independently maintained servers that provide services to Bluesky and its users, there is only one Bluesky server. A federation of multiple servers, each a peer to the other, has been on Bluesky's roadmap for as long as I've been following it, but they haven't (yet) delivered it.
+
+We also spoke to [Rabble](https://primal.net/rabble) in person and he brought up that the protocol itself is decided upon by Bluesky
+in a very centralized way, focused on cloning X/Twitter, whereas Nostr NIPs are created by a wide range
+of people building various different applications. 
+
 ### BeWelcome, couchers.org?
 
 It would be great to at some point connect with BW and Couchers over Nostr. We're working on building these connections.

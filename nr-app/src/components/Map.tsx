@@ -3,7 +3,14 @@ import {
   coordinatesToPlusCode,
   plusCodeToCoordinates,
 } from "@/utils/map.utils";
-import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
+import {
+  FlatList,
+  StyleSheet,
+  Switch,
+  Text,
+  Linking,
+  View,
+} from "react-native";
 
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
@@ -67,6 +74,15 @@ const NoteMarker = ({
   }
 
   const coordinates = plusCodeToCoordinates(plusCode);
+  const urlFromTags = (tags, layerKey) => {
+    for (const tag of tags) {
+      if (tag[0] === "linkPath") {
+        // todo use layerKey to get the correct domain
+        return "https://hitchwiki.org" + tag[1];
+      }
+    }
+    return null;
+  };
 
   const pinColor =
     typeof layerKey !== "undefined" && layerKey in MAP_LAYERS
@@ -78,7 +94,15 @@ const NoteMarker = ({
       <Callout>
         <View style={styles.marker}>
           <Text>
-            {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content}`}
+            {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content} `}
+            <Text
+              style={{ color: "blue" }}
+              onPress={() =>
+                Linking.openURL(urlFromTags(event.event.tags, layerKey))
+              }
+            >
+              {urlFromTags(event.event.tags, layerKey)}
+            </Text>
           </Text>
         </View>
       </Callout>

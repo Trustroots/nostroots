@@ -1,6 +1,8 @@
 /* eslint-disable import/first */
 // import "polyfill"
-import { getRandomValues } from "expo-crypto";
+// import { getRandomValues } from "expo-crypto";
+import "react-native-get-random-values";
+
 import "fast-text-encoding";
 import "./MessageChannel.js";
 
@@ -9,9 +11,9 @@ import "./MessageChannel.js";
 // `@noble/hashes/crypto` which in turn checks for
 // `globalThis.crypto.getRandomBytes()` or `globalThis.crypto.getRandomValues()`
 // and throws if neither exist.
-globalThis.crypto = {
-  getRandomValues,
-} as any;
+// globalThis.crypto = {
+//   getRandomValues,
+// } as any;
 
 import { store } from "@/redux/store";
 import { injectStore } from "@/nostr/subscriptions.nostr";

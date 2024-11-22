@@ -4,5 +4,9 @@
       "mode": "auto"
     }
   ],
-  "deno.enablePaths": ["./nr-common", "./nr-server"]
+  "deno.enablePaths": [
+    "./nr-common",
+    "./nr-server",
+    "./development-utils/nip-46-client"
+  ]
 }

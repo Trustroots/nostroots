@@ -48,6 +48,18 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="connect"
+        options={{
+          title: "Connect",
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon
+              name={focused ? "log-in" : "log-in-outline"}
+              color={color}
+            />
+          ),
+        }}
+      />
     </Tabs>
   );
 }

@@ -91,15 +91,16 @@ const NoteMarker = ({
 
   return (
     <Marker coordinate={coordinates} pinColor={pinColor}>
-      <Callout>
+      <Callout onPress={() =>
+                Linking.openURL(urlFromTags(event.event.tags, layerKey))
+      }>
+      
         <View style={styles.marker}>
           <Text>
             {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content} `}
             <Text
               style={{ color: "blue" }}
-              onPress={() =>
-                Linking.openURL(urlFromTags(event.event.tags, layerKey))
-              }
+
             >
               {urlFromTags(event.event.tags, layerKey)}
             </Text>

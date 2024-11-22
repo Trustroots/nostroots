@@ -1,8 +1,8 @@
+import { MAP_LAYER_KEY, MAP_LAYERS } from "@/common/constants";
 import {
-  MAP_LAYER_KEY,
-  MAP_LAYERS,
-  NOSTROOTS_VALIDATION_PUBKEY,
-} from "@/common/constants";
+  filterForMapLayerConfig,
+  trustrootsMapFilterForPlusCodePrefixes,
+} from "@/common/utils";
 import { PayloadAction } from "@reduxjs/toolkit";
 import { Filter } from "nostr-tools";
 import { all, Effect, put, select, throttle } from "redux-saga/effects";
@@ -17,21 +17,12 @@ function createMapFilters(
   visiblePlusCodes: string[],
   enabledLayerKeys: MAP_LAYER_KEY[],
 ): Filter[] {
-  const baseFilter = {
-    kinds: [30398],
-    authors: [NOSTROOTS_VALIDATION_PUBKEY],
-    "#L": ["open-location-code-prefix"],
-    "#l": visiblePlusCodes,
-  };
+  const baseFilter = trustrootsMapFilterForPlusCodePrefixes(visiblePlusCodes);
 
   const layerFilters = enabledLayerKeys.map((layer) => {
     const layerConfig = MAP_LAYERS[layer];
-    return {
-      kinds: [layerConfig.kind],
-      authors: [layerConfig.pubKey],
-      "#L": ["open-location-code-prefix"],
-      "#l": visiblePlusCodes,
-    };
+    const filter = filterForMapLayerConfig(layerConfig);
+    return filter;
   });
 
   const filters = [baseFilter, ...layerFilters];

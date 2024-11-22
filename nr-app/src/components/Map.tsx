@@ -13,11 +13,42 @@ import {
 import MapView, { Callout, LatLng, Marker } from "react-native-maps";
 
 import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@/common/constants";
-import { getFirstLabelValueFromEvent } from "@/common/utils";
+import {
+  filterForMapLayerConfig,
+  getFirstLabelValueFromEvent,
+  trustrootsMapFilter,
+} from "@/common/utils";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { mapSelectors, toggleLayer } from "@/redux/slices/map.slice";
+import { createSelector } from "@reduxjs/toolkit";
+import { matchFilter } from "nostr-tools";
 import React, { useState } from "react";
 import { Button, Modal, TextInput } from "react-native";
+
+const selectEventsForLayers = createSelector(
+  [eventsSelectors.selectAll, mapSelectors.selectEnabledLayerKeys],
+  (allEvents, activeLayers) => {
+    const trustrootsEvents = allEvents.filter((event) =>
+      matchFilter(trustrootsMapFilter(), event.event),
+    );
+    const layerEvents = activeLayers.map(
+      (layerKey): [MAP_LAYER_KEY, EventWithMetadata[]] => {
+        const layerConfig = MAP_LAYERS[layerKey];
+        const filter = filterForMapLayerConfig(layerConfig);
+        const events = allEvents.filter((event) =>
+          matchFilter(filter, event.event),
+        );
+        return [layerKey, events];
+      },
+    );
+    const entries: [string, EventWithMetadata[]][] = [
+      ["trustroots", trustrootsEvents],
+      ...layerEvents,
+    ];
+    const output = Object.fromEntries(entries);
+    return output;
+  },
+);
 
 const NoteMarker = ({ event }: { event: EventWithMetadata }) => {
   const plusCode = getFirstLabelValueFromEvent(
@@ -45,8 +76,8 @@ const NoteMarker = ({ event }: { event: EventWithMetadata }) => {
 };
 
 export default function Map() {
-  const events = useAppSelector(eventsSelectors.selectAll);
   const enabledLayers = useAppSelector(mapSelectors.selectEnabledLayers);
+  const eventsForLayers = useAppSelector(selectEventsForLayers);
   const dispatch = useAppDispatch();
 
   const handleAddNote = () => {
@@ -91,9 +122,18 @@ export default function Map() {
       >
         <Marker coordinate={{ latitude: 52, longitude: 13 }} title="A marker" />
 
-        {events.map((event) => (
+        {eventsForLayers.trustroots.map((event) => (
           <NoteMarker event={event} key={event.event.sig} />
         ))}
+        {Object.entries(eventsForLayers)
+          .filter(([key]) => key !== "trustroots")
+          .map(([key, events]) => (
+            <View key={key}>
+              {events.map((event) => (
+                <NoteMarker event={event} key={event.event.sig} />
+              ))}
+            </View>
+          ))}
       </MapView>
       <View style={styles.toggleWrapper}>
         <FlatList

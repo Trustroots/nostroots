@@ -1,5 +1,5 @@
 import { MAP_LAYER_KEY } from "@/common/constants";
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 
 interface MapState {
@@ -46,14 +46,6 @@ export const mapSlice = createSlice({
     });
   },
   selectors: {
-    selectEnabledLayerKeys: (state) => {
-      // NOTE: The return type of `Object.keys()` is `string[]` and I don't know
-      // how to tell TypeScript that it should be `keyof typeof
-      // state.enabledLayers` so I cast it here instead.
-      const keys = Object.keys(state.enabledLayers) as MAP_LAYER_KEY[];
-      const enabledKeys = keys.filter((key) => state.enabledLayers[key]);
-      return enabledKeys;
-    },
     selectEnabledLayers: (state) => state.enabledLayers,
   },
 });
@@ -65,4 +57,16 @@ export const {
   toggleLayer,
 } = mapSlice.actions;
 
-export const mapSelectors = mapSlice.selectors;
+const selectEnabledLayerKeys = createSelector(
+  [mapSlice.selectors.selectEnabledLayers],
+  (enabledLayers) => {
+    // NOTE: The return type of `Object.keys()` is `string[]` and I don't know
+    // how to tell TypeScript that it should be `keyof typeof
+    // state.enabledLayers` so I cast it here instead.
+    const keys = Object.keys(enabledLayers) as MAP_LAYER_KEY[];
+    const enabledKeys = keys.filter((key) => enabledLayers[key]);
+    return enabledKeys;
+  },
+);
+
+export const mapSelectors = { ...mapSlice.selectors, selectEnabledLayerKeys };

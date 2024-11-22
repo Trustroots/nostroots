@@ -24,7 +24,7 @@ function generateId() {
 function getRelayUrlsOrDefaults(relayUrls?: string[]) {
   if (typeof relayUrls === "undefined" || relayUrls.length === 0) {
     // TODO: Get defaults from redux
-    const defaultRelayUrls = ["wss://nos.lol"];
+    const defaultRelayUrls = ["wss://relay.trustroots.org"];
     return defaultRelayUrls;
   }
 

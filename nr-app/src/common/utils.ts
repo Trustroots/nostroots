@@ -1,5 +1,5 @@
 import { Event } from "@common/mod";
-import * as R from "ramda";
+import { A } from "@mobily/ts-belt";
 
 export function getFirstTagValueFromEvent(
   nostrEvent: Event,
@@ -22,7 +22,7 @@ export function getFirstLabelValueFromEvent(
 ): string | undefined {
   const { tags } = nostrEvent;
   const matchingTag = tags.find(
-    (tag) => tag[0] === "l" && R.last(tag) === labelName,
+    (tag) => tag[0] === "l" && A.last(tag) === labelName,
   );
   if (typeof matchingTag === "undefined") {
     return;

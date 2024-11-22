@@ -1,3 +1,5 @@
+export const DEFAULT_RELAY = "wss://relay.trustroots.org";
+
 export const DEV_PUBKEY =
   "80789235a71a388074abfa5c482e270456d2357425266270f82071cf2b1de74a" as const;
 

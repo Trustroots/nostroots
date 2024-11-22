@@ -50,7 +50,13 @@ const selectEventsForLayers = createSelector(
   },
 );
 
-const NoteMarker = ({ event }: { event: EventWithMetadata }) => {
+const NoteMarker = ({
+  event,
+  layerKey,
+}: {
+  event: EventWithMetadata;
+  layerKey?: MAP_LAYER_KEY;
+}) => {
   const plusCode = getFirstLabelValueFromEvent(
     event.event,
     "open-location-code",
@@ -62,10 +68,15 @@ const NoteMarker = ({ event }: { event: EventWithMetadata }) => {
 
   const coordinates = plusCodeToCoordinates(plusCode);
 
+  const pinColor =
+    typeof layerKey !== "undefined" && layerKey in MAP_LAYERS
+      ? MAP_LAYERS[layerKey].markerColor
+      : "red";
+
   return (
-    <Marker coordinate={coordinates}>
+    <Marker coordinate={coordinates} pinColor={pinColor}>
       <Callout>
-        <View style={{ width: 200 }}>
+        <View style={styles.marker}>
           <Text>
             {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content}`}
           </Text>
@@ -120,7 +131,11 @@ export default function Map() {
           dispatch(setVisiblePlusCodes(visiblePlusCodes));
         }}
       >
-        <Marker coordinate={{ latitude: 52, longitude: 13 }} title="A marker" />
+        <Marker
+          coordinate={{ latitude: 52, longitude: 13 }}
+          title="A marker"
+          pinColor="indigo"
+        />
 
         {eventsForLayers.trustroots.map((event) => (
           <NoteMarker event={event} key={event.event.sig} />
@@ -203,5 +218,8 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: "white",
     marginBottom: 10,
+  },
+  marker: {
+    width: 200,
   },
 });

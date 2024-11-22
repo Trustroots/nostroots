@@ -17,6 +17,7 @@ export type MapLayer = {
   rootUrl: string;
   kind: 30399 | 30398;
   pubkey: string;
+  markerColor: string;
 };
 
 export type MAP_LAYER_KEY = "hitchmap" | "timesafari" | "triphopping";
@@ -26,17 +27,20 @@ export const MAP_LAYERS: { [key in MAP_LAYER_KEY]: MapLayer } = {
     rootUrl: "https://www.hitchmap.com",
     kind: 30399,
     pubkey: HITCHMAPS_AUTHOR_PUBLIC_KEY,
+    markerColor: "gold",
   },
   timesafari: {
     title: "Time Safari",
     rootUrl: "https://www.timesafari.app",
     kind: 30399,
     pubkey: TIMESAFARI_AUTHOR_PUBLIC_KEY,
+    markerColor: "green",
   },
   triphopping: {
     title: "Trip Hopping",
     rootUrl: "https://www.triphopping.com",
     kind: 30398,
     pubkey: DEV_PUBKEY,
+    markerColor: "blue",
   },
 } as const;

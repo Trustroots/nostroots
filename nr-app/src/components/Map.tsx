@@ -137,18 +137,13 @@ export default function Map() {
           pinColor="indigo"
         />
 
-        {eventsForLayers.trustroots.map((event) => (
-          <NoteMarker event={event} key={event.event.sig} />
+        {Object.entries(eventsForLayers).map(([key, events]) => (
+          <View key={key}>
+            {events.map((event) => (
+              <NoteMarker event={event} key={event.event.sig} />
+            ))}
+          </View>
         ))}
-        {Object.entries(eventsForLayers)
-          .filter(([key]) => key !== "trustroots")
-          .map(([key, events]) => (
-            <View key={key}>
-              {events.map((event) => (
-                <NoteMarker event={event} key={event.event.sig} />
-              ))}
-            </View>
-          ))}
       </MapView>
       <View style={styles.toggleWrapper}>
         <FlatList

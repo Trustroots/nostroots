@@ -3,14 +3,24 @@ import {
   filterForMapLayerConfig,
   trustrootsMapFilterForPlusCodePrefixes,
 } from "@/common/utils";
-import { PayloadAction } from "@reduxjs/toolkit";
+import { createSelector } from "@reduxjs/toolkit";
 import { Filter } from "nostr-tools";
-import { all, Effect, put, select, throttle } from "redux-saga/effects";
+import { AnyAction } from "redux-saga";
+import {
+  all,
+  Effect,
+  put,
+  select,
+  takeEvery,
+  throttle,
+} from "redux-saga/effects";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { startSubscription } from "../actions/subscription.actions";
 import {
+  MAP_SUBSCRIPTION_ID,
   mapSelectors,
   setMapSubscriptionIsUpdating,
+  toggleLayer,
 } from "../slices/map.slice";
 
 function createMapFilters(
@@ -30,22 +40,25 @@ function createMapFilters(
   return filters;
 }
 
+const mapSagaSelector = createSelector(
+  [mapSelectors.selectVisiblePlusCodes, mapSelectors.selectEnabledLayerKeys],
+  (visiblePlusCodes, enabledLayerKeys) => ({
+    visiblePlusCodes,
+    enabledLayerKeys,
+  }),
+);
+
 function* updateDataForMapSagaEffect(
-  action: PayloadAction<string[]>,
-): Generator<
-  Effect,
-  void,
-  ReturnType<typeof mapSelectors.selectEnabledLayerKeys>
-> {
+  action: AnyAction,
+): Generator<Effect, void, ReturnType<typeof mapSagaSelector>> {
   try {
     // TODO Debounce map updates
 
     // Setup a subscription
-    const visiblePlusCodes = action.payload;
+    const { visiblePlusCodes, enabledLayerKeys } =
+      yield select(mapSagaSelector);
 
-    const enabledLayers = yield select(mapSelectors.selectEnabledLayerKeys);
-
-    const filters = createMapFilters(visiblePlusCodes, enabledLayers);
+    const filters = createMapFilters(visiblePlusCodes, enabledLayerKeys);
 
     // Write the state to redux
     yield put(setMapSubscriptionIsUpdating(true));
@@ -54,7 +67,7 @@ function* updateDataForMapSagaEffect(
       startSubscription({
         // TODO Write helper to create filter
         filters,
-        id: "mapVisiblePlusCodesSubscription",
+        id: MAP_SUBSCRIPTION_ID,
       }),
     );
   } catch (error) {
@@ -67,8 +80,12 @@ export function* updateDataForMapSaga() {
   yield throttle(1000, setVisiblePlusCodes, updateDataForMapSagaEffect);
 }
 
+export function* updateDataForMapFromLayerToggleSaga() {
+  yield takeEvery(toggleLayer, updateDataForMapSagaEffect);
+}
+
 export default function* mapSaga() {
-  yield all([updateDataForMapSaga()]);
+  yield all([updateDataForMapSaga(), updateDataForMapFromLayerToggleSaga()]);
 }
 
 /**

@@ -1,6 +1,9 @@
 import { MAP_LAYER_KEY } from "@/common/constants";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { setVisiblePlusCodes } from "../actions/map.actions";
+import { setSubscriptionHasSeenEOSE } from "./relays.slice";
+
+export const MAP_SUBSCRIPTION_ID = "mapVisiblePlusCodesSubscription";
 
 interface MapState {
   mapSubscriptionIsUpdating: boolean;
@@ -44,9 +47,19 @@ export const mapSlice = createSlice({
     builder.addCase(setVisiblePlusCodes, (state, action) => {
       state.visiblePlusCodes = action.payload;
     });
+    builder.addCase(setSubscriptionHasSeenEOSE, (state, action) => {
+      if (action.payload.id === MAP_SUBSCRIPTION_ID) {
+        state.mapSubscriptionIsUpdating = false;
+      }
+    });
   },
   selectors: {
+    selectVisiblePlusCodes: (state) => state.visiblePlusCodes,
     selectEnabledLayers: (state) => state.enabledLayers,
+    selectEnabledLayersAndVisiblePlusCodes: (state) => ({
+      enabledLayers: state.enabledLayers,
+      visiblePlusCodes: state.visiblePlusCodes,
+    }),
   },
 });
 

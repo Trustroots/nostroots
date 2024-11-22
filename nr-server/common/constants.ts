@@ -10,6 +10,7 @@ export const DEFAULT_RELAYS = [
   "wss://relay.primal.net",
   "wss://nostr.manasiwibi.com",
   "wss://nos.lol",
+  "wss://relay.trustroots.org",
 ];
 export const DEV_RELAYS = DEFAULT_RELAYS;
 export const PANEL_CONTAINER_ID = "panelID";

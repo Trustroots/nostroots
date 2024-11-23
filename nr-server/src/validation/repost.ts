@@ -1,29 +1,21 @@
 import {
   DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH,
-  MAP_NOTE_KIND,
   MAP_NOTE_REPOST_KIND,
   OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
   OPEN_LOCATION_CODE_TAG_NAME,
 } from "../../../nr-common/constants.ts";
 import {
+  createLabelTags,
   getAllPlusCodePrefixes,
   getFirstLabelValueFromEvent,
   getFirstTagValueFromEvent,
-  createLabelTags,
 } from "../../../nr-common/utils.ts";
-import {
-  DEFAULT_RELAYS,
-  DELAY_AFTER_PROCESSING_EVENT_MS,
-  DEV_PUBKEY,
-  DEV_RELAYS,
-  SUBSCRIPTIONS_MAX_AGE_IN_MINUTES,
-} from "../common/constants.ts";
-import { async, newQueue, nostrify } from "../../deps.ts";
+import { async, nostrify } from "../../deps.ts";
+import { DELAY_AFTER_PROCESSING_EVENT_MS } from "../common/constants.ts";
 import { log } from "../log.ts";
 import { validateEvent } from "./validate.ts";
-import { getRelayPool } from "../subscribe.ts";
 
-const { NPool, NRelay1, NSecSigner } = nostrify;
+const { NSecSigner } = nostrify;
 type Tags = string[][];
 
 async function publishEvent(
@@ -100,19 +92,17 @@ export function processEventFactoryFactory(
   relayPool: nostrify.NPool,
   privateKey: Uint8Array
 ) {
-  return function processEventFactory(event: nostrify.NostrEvent) {
-    return async function () {
-      log.debug(`#C1NJbQ Got event`, event);
+  return async function processEventFactory(event: nostrify.NostrEvent) {
+    log.debug(`#C1NJbQ Got event`, event);
 
-      const isEventValid = await validateEvent(relayPool, event);
-      if (!isEventValid) {
-        log.info(`#u0Prc5 Discarding invalid event ${event.id}`);
-        return;
-      }
-      const repostedEvent = await generateRepostedEvent(event, privateKey);
-      publishEvent(relayPool, repostedEvent);
+    const isEventValid = await validateEvent(relayPool, event);
+    if (!isEventValid) {
+      log.info(`#u0Prc5 Discarding invalid event ${event.id}`);
+      return;
+    }
+    const repostedEvent = await generateRepostedEvent(event, privateKey);
+    publishEvent(relayPool, repostedEvent);
 
-      await async.delay(DELAY_AFTER_PROCESSING_EVENT_MS);
-    };
+    await async.delay(DELAY_AFTER_PROCESSING_EVENT_MS);
   };
 }

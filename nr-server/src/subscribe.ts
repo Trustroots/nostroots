@@ -1,40 +1,12 @@
 import { MAP_NOTE_KIND } from "../../nr-common/constants.ts";
 import { newQueue, nostrify } from "../deps.ts";
 import {
-  DEFAULT_RELAYS,
   DEV_PUBKEY,
-  DEV_RELAYS,
   SUBSCRIPTIONS_MAX_AGE_IN_MINUTES,
 } from "./common/constants.ts";
 import { log } from "./log.ts";
+import { getRelayPool } from "./relays.ts";
 import { processEventFactoryFactory } from "./validation/repost.ts";
-const { NPool, NRelay1, NSecSigner } = nostrify;
-
-export async function getRelayPool(isDev: true | undefined) {
-  // NOTE: We set `DEFAULT_RELAYS` as ready only which causes type problems
-  // later, so here we cast it back to `string[]`
-  const relays = isDev ? DEV_RELAYS : (DEFAULT_RELAYS as unknown as string[]);
-
-  // should be chosen according to outbox model
-  // https://nostrify.dev/relay/outbox
-  const pool = new NPool({
-    open(url) {
-      return new NRelay1(url);
-    },
-    async reqRouter(filter: nostrify.NostrFilter[]) {
-      const map = new Map();
-      relays.map((relay) => {
-        map.set(relay, filter);
-      });
-      return map;
-    },
-    async eventRouter(_event) {
-      return relays;
-    },
-  });
-
-  return pool;
-}
 
 /**
  * Create the filters to listen for events that we want to repost
@@ -101,7 +73,7 @@ export async function subscribeAndRepost(
         if (msg[0] === "EVENT") {
           const event = msg[2];
           lastReceivedMessageTimestamp = event.created_at;
-          queue.add(processEventFactory(event));
+          queue.add(async () => await processEventFactory(event));
         } else if (msg[0] === "EOSE") {
           if (isDev) {
             globalThis.setTimeout(() => {

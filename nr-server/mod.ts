@@ -1,6 +1,6 @@
 import { cliffy, nostrTools } from "./deps.ts";
 import { log } from "./src/log.ts";
-import { repost } from "./src/validation/repost.ts";
+import { subscribeAndRepost } from "./src/subscribe.ts";
 
 function getOrCreatePrivateKey(maybePrivateKeyNsec?: string) {
   if (typeof maybePrivateKeyNsec === "string") {
@@ -34,6 +34,6 @@ await new cliffy.Command()
 
     log.debug(`#PnFUPS Startup isDev ${isDev}`);
 
-    repost(privateKey, isDev, maxAgeMinutes);
+    subscribeAndRepost(privateKey, isDev, maxAgeMinutes);
   })
   .parse(Deno.args);

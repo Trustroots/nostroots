@@ -62,7 +62,7 @@ Third party derived content notes can take this format:
     // OPTIONAL - If the note has an upstream `created_at` field, then the `original_created_at` tag should be set
     ["original_created_at", "1729161787"],
     // The `d` tag can be constructed according to the author's specification, if you are unfamiliar with what a d tag does, see nip1: https://github.com/nostr-protocol/nips/blob/master/01.md
-    ["d", ""],
+    ["d", "unique_identifier_for_this_event"],
     // This `open-location-code` label identifies the area where this marker should be shown on the map
     ["L", "open-location-code"],
     ["l", "8GM87XXC+47", "open-location-code"],

@@ -117,7 +117,11 @@ export function createLabelTags(
 ) {
   const tags = [
     ["L", labelName],
-    ["l", ...labelValue, labelName],
+    [
+      "l",
+      ...(Array.isArray(labelValue) ? labelValue : [labelValue]),
+      labelName,
+    ],
   ];
   return tags;
 }

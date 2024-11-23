@@ -32,6 +32,10 @@ await new cliffy.Command()
     "SUBSCRIBE=<subscribe:boolean>",
     "Subscribe to relays to fetch events instead of using AMQP."
   )
+  .env(
+    "AMQP_URL=<amqpUrl:string>",
+    "The URL to connect to AMQP, like amqp://insecure:insecure@localhost:5672"
+  )
   .action((options) => {
     const { isDev } = options;
     const privateKey = getOrCreatePrivateKey(options.privateKeyNsec);
@@ -42,7 +46,7 @@ await new cliffy.Command()
     if (options.subscribe) {
       subscribeAndRepost(privateKey, isDev, maxAgeMinutes);
     } else {
-      consume(privateKey, isDev);
+      consume(privateKey, isDev, options.amqpUrl);
     }
   })
   .parse(Deno.args);

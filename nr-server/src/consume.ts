@@ -6,13 +6,20 @@ import { processEventFactoryFactory } from "./validation/repost.ts";
 const exchangeName = "nostrEvents";
 const queueName = "repost";
 
-export async function consume(privateKey: Uint8Array, isDev: true | undefined) {
+export async function consume(
+  privateKey: Uint8Array,
+  isDev: true | undefined,
+  amqpUrl?: string
+) {
   const relayPool = await getRelayPool(isDev);
   const processEventFactory = processEventFactoryFactory(relayPool, privateKey);
 
-  const connection = await amqp.connect(
-    "amqp://insecure:insecure@localhost:5672"
-  );
+  const amqpUrlActual =
+    typeof amqpUrl === "string" && amqpUrl.length > 0
+      ? amqpUrl
+      : "amqp://insecure:insecure@localhost:5672";
+
+  const connection = await amqp.connect(amqpUrlActual);
   const channel = await connection.openChannel();
   await channel.declareExchange({
     exchange: exchangeName,

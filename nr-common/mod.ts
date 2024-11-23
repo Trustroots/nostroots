@@ -1,4 +1,5 @@
-import { z } from "./deps.ts"
+import { OPEN_LOCATION_CODE_TAG_NAME } from "./constants.ts";
+import { z } from "./deps.ts";
 
 // import { version as PACKAGE_VERSION } from "./deno.json" with { type: "json" };
 export const CONTENT_MINIMUM_LENGTH = 3;
@@ -35,11 +36,14 @@ function hasOpenLocationCode(tags: string[][]): boolean {
     .filter((tag) => tag[0] === "L")
     .map((tag) => tag.slice(1))
     .flat();
-  const hasOpenLocationCodeNamespace = namespaces.includes("open-location-code");
+  const hasOpenLocationCodeNamespace = namespaces.includes(
+    OPEN_LOCATION_CODE_TAG_NAME
+  );
   if (!hasOpenLocationCodeNamespace) return false;
 
   const plusCodeTags = tags.filter(
-    (tag) => tag.length > 3 && tag[0] === "l" && tag[2] === "open-location-code"
+    (tag) =>
+      tag.length > 3 && tag[0] === "l" && tag[2] === OPEN_LOCATION_CODE_TAG_NAME
   );
   if (plusCodeTags.length === 0) return false;
 
@@ -57,8 +61,8 @@ function hasVersion(tags: string[][]): boolean {
   const versionTag = versionTags[0];
   if (versionTag.length !== 2) return false;
   const version = versionTag[1];
-  if (version !== PACKAGE_VERSION) return false
-  return true
+  if (version !== PACKAGE_VERSION) return false;
+  return true;
 }
 
 export const kind30398EventSchema = eventSchema.extend({
@@ -67,9 +71,20 @@ export const kind30398EventSchema = eventSchema.extend({
     .string()
     .array()
     .array()
-    .refine(hasOpenLocationCode, { message: "no valid open-location-code label" })
+    .refine(hasOpenLocationCode, {
+      message: "no valid open-location-code label",
+    })
     .refine(hasVersion, { message: "no valid kind30398_version" }),
-  content: z.string().max(CONTENT_MAXIMUM_LENGTH, `content is above max length of ${CONTENT_MAXIMUM_LENGTH}`).min(CONTENT_MINIMUM_LENGTH, `content is below min length of ${CONTENT_MINIMUM_LENGTH}`)
+  content: z
+    .string()
+    .max(
+      CONTENT_MAXIMUM_LENGTH,
+      `content is above max length of ${CONTENT_MAXIMUM_LENGTH}`
+    )
+    .min(
+      CONTENT_MINIMUM_LENGTH,
+      `content is below min length of ${CONTENT_MINIMUM_LENGTH}`
+    ),
 });
 
 export type Kind30398Event = z.infer<typeof kind30398EventSchema>;

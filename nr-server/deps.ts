@@ -9,4 +9,5 @@ export const newQueue = newQueueImport;
 export * as logPackage from "jsr:@std/log@0.224.5";
 export * as async from "jsr:@std/async@1.0.3";
 export * as amqp from "https://deno.land/x/amqp@v0.24.0/mod.ts";
-export * as z from "zod";
+import { z } from "zod";
+export { z };

@@ -1,10 +1,11 @@
 import {
+  getHasPrivateKeyInSecureStorage,
   getPrivateKeyHex,
   getPrivateKeyMnemonic,
 } from "@/nostr/keystore.nostr";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
+import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { generateSeedWords, getBech32PrivateKey } from "nip06";
 import { useEffect, useState } from "react";
@@ -16,6 +17,7 @@ import {
   Text,
   TextInput,
 } from "react-native";
+import Toast from "react-native-root-toast";
 
 export default function TabThreeScreen() {
   const [nsec, setNsec] = useState("");
@@ -28,10 +30,13 @@ export default function TabThreeScreen() {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    if (!hasPrivateKey) {
-      const { mnemonic } = generateSeedWords();
-      dispatch(setPrivateKeyPromiseAction.request(mnemonic));
-    }
+    void (async function asyncInner() {
+      const hasKey = await getHasPrivateKeyInSecureStorage();
+      if (!hasPrivateKey && hasKey) {
+        const { mnemonic } = generateSeedWords();
+        dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonic));
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -62,7 +67,27 @@ export default function TabThreeScreen() {
         />
         <TextInput style={styles.input} value={nsec} />
         <Text style={styles.settings}>seed</Text>
-        <TextInput style={styles.input} value={mnemonic} />
+        <TextInput
+          style={styles.input}
+          value={mnemonic}
+          onChangeText={setMnemonic}
+        />
+        <Button
+          title="Save mnemonic"
+          onPress={async () => {
+            dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonic)).then(
+              Toast.show("Saved", {
+                position: Toast.positions.TOP,
+                duration: Toast.durations.LONG,
+              }).catch((error: Error) => {
+                Toast.show(`#EgV9ut Error ${error}`, {
+                  position: Toast.positions.TOP,
+                  duration: Toast.durations.LONG,
+                });
+              }),
+            );
+          }}
+        />
         <Text style={styles.header}>Relays</Text>
         <TextInput style={styles.input} value="['relay1', 'relay2']" />
         <Text style={styles.header}>Help</Text>

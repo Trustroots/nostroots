@@ -37,6 +37,14 @@ export async function getPrivateKeyMnemonic(): Promise<string> {
   return mnemonic;
 }
 
+export async function getHasPrivateKeyInSecureStorage(): Promise<boolean> {
+  const mnemonic = await SecureStore.getItemAsync(
+    SECURE_STORE_PRIVATE_KEY_HEX_NMEONIC,
+  );
+  const hasKey = typeof mnemonic === "string" && mnemonic.length > 0;
+  return hasKey;
+}
+
 export async function setPrivateKeyMnemonic(keyMnemonic: string) {
   const account = accountFromSeedWords({ mnemonic: keyMnemonic });
   await SecureStore.setItemAsync(

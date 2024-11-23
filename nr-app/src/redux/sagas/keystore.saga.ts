@@ -10,7 +10,7 @@ export function* setPrivateKeySagaEffect(
   yield call(setPrivateKeyMnemonic, action.payload);
 }
 
-export const [setPrivateKeyPromiseAction, setPrivateKeySaga] =
+export const [setPrivateKeyMnemonicPromiseAction, setPrivateKeySaga] =
   createPromiseActionSaga<string, void>({
     actionTypePrefix: "keystore/setPrivateKey",
     *effect(action) {

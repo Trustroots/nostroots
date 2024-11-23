@@ -1,6 +1,6 @@
 import { cliffy, nostrTools } from "./deps.ts";
-import { log } from "./log.ts";
-import { repost } from "./validation/repost.ts";
+import { log } from "./src/log.ts";
+import { repost } from "./src/validation/repost.ts";
 
 function getOrCreatePrivateKey(maybePrivateKeyNsec?: string) {
   if (typeof maybePrivateKeyNsec === "string") {

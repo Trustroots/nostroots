@@ -1,4 +1,4 @@
-import { logPackage } from "./deps.ts";
+import { logPackage } from "../deps.ts";
 
 logPackage.setup({
   handlers: {

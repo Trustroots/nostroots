@@ -4,13 +4,13 @@ import {
   MAP_NOTE_REPOST_KIND,
   OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
   OPEN_LOCATION_CODE_TAG_NAME,
-} from "../../nr-common/constants.ts";
+} from "../../../nr-common/constants.ts";
 import {
   getAllPlusCodePrefixes,
   getFirstLabelValueFromEvent,
   getFirstTagValueFromEvent,
   createLabelTags,
-} from "../../nr-common/utils.ts";
+} from "../../../nr-common/utils.ts";
 import {
   DEFAULT_RELAYS,
   DELAY_AFTER_PROCESSING_EVENT_MS,
@@ -18,7 +18,7 @@ import {
   DEV_RELAYS,
   SUBSCRIPTIONS_MAX_AGE_IN_MINUTES,
 } from "../common/constants.ts";
-import { async, newQueue, nostrify } from "../deps.ts";
+import { async, newQueue, nostrify } from "../../deps.ts";
 import { log } from "../log.ts";
 import { validateEvent } from "./validate.ts";
 
@@ -26,7 +26,9 @@ const { NPool, NRelay1, NSecSigner } = nostrify;
 type Tags = string[][];
 
 async function getRelayPool(isDev: true | undefined) {
-  const relays = isDev ? DEV_RELAYS : DEFAULT_RELAYS;
+  // NOTE: We set `DEFAULT_RELAYS` as ready only which causes type problems
+  // later, so here we cast it back to `string[]`
+  const relays = isDev ? DEV_RELAYS : (DEFAULT_RELAYS as unknown as string[]);
 
   // should be chosen according to outbox model
   // https://nostrify.dev/relay/outbox
@@ -215,9 +217,7 @@ export async function repost(
         }
       }
     } catch (e) {
-      console.log("got error");
-      console.log(e.reason);
-      console.log(e, typeof e);
+      console.log("#YPKaR3 got error", typeof e, e);
     }
   }
 

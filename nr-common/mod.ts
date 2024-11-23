@@ -18,8 +18,8 @@ function isPlusCode(code: string) {
 
 export const eventSchema = z
   .object({
-    id: z.string().length(32),
-    pubkey: z.string().length(32),
+    id: z.string().length(64),
+    pubkey: z.string().length(64),
     kind: z.number(),
     created_at: z.number(),
     tags: z.string().array().array(),

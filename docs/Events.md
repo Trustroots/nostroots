@@ -68,11 +68,7 @@ Third party derived content notes can take this format:
     ["l", "8GM87XXC+47", "open-location-code"],
     // The `open-location-code-prefix` labels allow this event to be filtered, they serve as an index
     ["L", "open-location-code-prefix"],
-    ["l", "8GM87X00+", "open-location-code-prefix"],
-    ["L", "open-location-code-prefix"],
-    ["l", "8GM80000+", "open-location-code-prefix"],
-    ["L", "open-location-code-prefix"],
-    ["l", "8G000000+", "open-location-code-prefix"],
+    ["l", "8GM87X00+", "8GM80000+", "8G000000+", "open-location-code-prefix"],
     // OPTIONAL - The event can optionally include which trustroots circles this event relates to
     ["L", "trustroots-circle"],
     ["l", "hitchhikers", "trustroots-circle"],

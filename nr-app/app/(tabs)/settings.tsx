@@ -17,6 +17,7 @@ export default function TabThreeScreen() {
   const hasPrivateKey = useAppSelector(
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
   );
+  const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export default function TabThreeScreen() {
       <ScrollView>
         <Text style={styles.header}>Keys</Text>
         <Text style={styles.settings}>npub</Text>
-        {/* <TextInput style={styles.input} value={account.publicKey.bech32} /> */}
+        <TextInput style={styles.input} value={npub} />
         <Text style={styles.settings}>nsec</Text>
         {/* <TextInput style={styles.input} value={account.privateKey.bech32} /> */}
         <Text style={styles.settings}>seed</Text>

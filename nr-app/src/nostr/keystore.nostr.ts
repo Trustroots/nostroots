@@ -43,6 +43,7 @@ export async function setPrivateKeyMnemonic(keyMnemonic: string) {
       keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
     },
   );
+  return account;
 }
 
 export async function signEventTemplate(

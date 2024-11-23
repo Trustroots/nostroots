@@ -1,4 +1,4 @@
-import { MAP_NOTE_KIND } from "../../nr-common/constants.ts";
+import { MAP_NOTE_KIND } from "./nr-common/constants.ts";
 import { newQueue, nostrify } from "../deps.ts";
 import {
   DEV_PUBKEY,

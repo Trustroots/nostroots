@@ -1,4 +1,4 @@
-import { MAP_NOTE_KIND } from "../../../nr-common/constants.ts";
+import { MAP_NOTE_KIND } from "../nr-common/constants.ts";
 import {
   HITCHMAPS_AUTHOR_PUBLIC_KEY,
   MINIMUM_TRUSTROOTS_USERNAME_LENGTH,

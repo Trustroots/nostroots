@@ -3,13 +3,13 @@ import {
   MAP_NOTE_REPOST_KIND,
   OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
   OPEN_LOCATION_CODE_TAG_NAME,
-} from "../../../nr-common/constants.ts";
+} from "../nr-common/constants.ts";
 import {
   createLabelTags,
   getAllPlusCodePrefixes,
   getFirstLabelValueFromEvent,
   getFirstTagValueFromEvent,
-} from "../../../nr-common/utils.ts";
+} from "../nr-common/utils.ts";
 import { async, nostrify } from "../../deps.ts";
 import { DELAY_AFTER_PROCESSING_EVENT_MS } from "../common/constants.ts";
 import { log } from "../log.ts";

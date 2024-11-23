@@ -50,19 +50,19 @@ export default function TabThreeScreen() {
 
         <Text style={styles.q}>How does this improve Trustroots?</Text>
 
-        <Text styles={styles.a}>
+        <Text style={styles.a}>
           Thanks for asking. Soon(tm): We hope we can quickly build something
           like a geochat app which is better and more used than what the old
           meet functionality had to offer, and which adds some interactivity to
           circles.
         </Text>
-        <Text styles={styles.a}>
+        <Text style={styles.a}>
           Mid-term: We want this app and Trustroots users to be able to interact
           with other applications, such as e.g. hitchmap.com build new
           applications e.g. for ridesharing or finding out where the cool events
           and parties are.
         </Text>
-        <Text styles={styles.a}>
+        <Text style={styles.a}>
           Long-term: We strive to make the centralized Trustroots server and
           database and thus the official organization irrelevant.
         </Text>

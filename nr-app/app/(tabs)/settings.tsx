@@ -1,9 +1,10 @@
+import { getPrivateKeyHex } from "@/nostr/keystore.nostr";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
-import { generateSeedWords } from "nip06";
-import { useEffect } from "react";
+import { generateSeedWords, getBech32PrivateKey } from "nip06";
+import { useEffect, useState } from "react";
 import {
   Button,
   SafeAreaView,
@@ -14,10 +15,12 @@ import {
 } from "react-native";
 
 export default function TabThreeScreen() {
+  const [nsec, setNsec] = useState("");
   const hasPrivateKey = useAppSelector(
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
   );
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
+  const pubHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
   const dispatch = useAppDispatch();
 
   useEffect(() => {
@@ -34,6 +37,8 @@ export default function TabThreeScreen() {
         <Text style={styles.header}>Keys</Text>
         <Text style={styles.settings}>npub</Text>
         <TextInput style={styles.input} value={npub} />
+        <Text style={styles.settings}>pub key hex</Text>
+        <TextInput style={styles.input} value={pubHex} />
         <Text style={styles.settings}>nsec</Text>
         {/* <TextInput style={styles.input} value={account.privateKey.bech32} /> */}
         <Text style={styles.settings}>seed</Text>
@@ -42,6 +47,21 @@ export default function TabThreeScreen() {
         <TextInput style={styles.input} value="['relay1', 'relay2']" />
         <Text style={styles.header}>Help</Text>
         <Text style={styles.q}>How does this work?</Text>
+
+        <Button
+          title="Get nsec"
+          onPress={async () => {
+            const keyHex = await getPrivateKeyHex();
+            const { bech32PrivateKey } = getBech32PrivateKey({
+              privateKey: keyHex,
+            });
+            setNsec(bech32PrivateKey);
+            setTimeout(() => {
+              setNsec("");
+            }, 3e3);
+          }}
+        />
+        <TextInput style={styles.input} value={nsec} />
 
         <Text style={styles.a}>
           Scroll around on the map. Long press (or right click) to add a note to

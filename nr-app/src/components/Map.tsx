@@ -2,6 +2,7 @@ import {
   allPlusCodesForRegion,
   coordinatesToPlusCode,
   plusCodeToCoordinates,
+  plusCodeToRectangle,
 } from "@/utils/map.utils";
 import {
   FlatList,
@@ -17,7 +18,7 @@ import {
   eventsSelectors,
   EventWithMetadata,
 } from "@/redux/slices/events.slice";
-import MapView, { Callout, LatLng, Marker } from "react-native-maps";
+import MapView, { Callout, LatLng, Marker, Polygon } from "react-native-maps";
 import Toast from "react-native-root-toast";
 
 import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@/common/constants";
@@ -76,6 +77,7 @@ const NoteMarker = ({
   }
 
   const coordinates = plusCodeToCoordinates(plusCode);
+  const rectangleCoordinates = plusCodeToRectangle(plusCode);
   const urlFromTags = (tags, layerKey) => {
     for (const tag of tags) {
       if (tag[0] === "linkPath") {
@@ -87,6 +89,15 @@ const NoteMarker = ({
     }
     return null;
   };
+  const olcFromTags = (tags) => {
+    for (const tag of tags) {
+      if (tag[2] === "open-location-code") {
+        const olc = tag[1];
+        return olc;
+      }
+    }
+    return null;
+  };
 
   const pinColor =
     typeof layerKey !== "undefined" && layerKey in MAP_LAYERS
@@ -94,20 +105,31 @@ const NoteMarker = ({
       : "red";
 
   return (
-    <Marker coordinate={coordinates} pinColor={pinColor}>
-      <Callout
-        onPress={() => Linking.openURL(urlFromTags(event.event.tags, layerKey))}
-      >
-        <View style={styles.marker}>
-          <Text>
-            {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content} `}
-            <Text style={{ color: "blue" }}>
-              {urlFromTags(event.event.tags, layerKey)}
+    <View>
+      <Marker coordinate={coordinates} pinColor={pinColor}>
+        <Callout
+          onPress={() =>
+            Linking.openURL(urlFromTags(event.event.tags, layerKey))
+          }
+        >
+          <View style={styles.marker}>
+            <Text>
+              {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content} `}
+              <Text style={{ color: "blue" }}>
+                {urlFromTags(event.event.tags, layerKey)}
+              </Text>
+              <Text>{olcFromTags(event.event.tags)}</Text>
             </Text>
-          </Text>
-        </View>
-      </Callout>
-    </Marker>
+          </View>
+        </Callout>
+      </Marker>
+      <Polygon
+        coordinates={rectangleCoordinates}
+        fillColor="rgba(0, 200, 0, 0.5)" // Semi-transparent green
+        strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
+        strokeWidth={2}
+      />
+    </View>
   );
 };
 

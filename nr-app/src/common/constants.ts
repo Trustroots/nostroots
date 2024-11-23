@@ -36,7 +36,7 @@ export type MAP_LAYER_KEY = "hitchmap" | "timesafari" | "triphopping";
 export const MAP_LAYERS: { [key in MAP_LAYER_KEY]: MapLayer } = {
   hitchmap: {
     title: "Hitchmap",
-    rootUrl: "https://www.hitchmap.com",
+    rootUrl: "https://hitchmap.com",
     kind: 30399,
     pubkey: HITCHMAPS_AUTHOR_PUBLIC_KEY,
     markerColor: "gold",

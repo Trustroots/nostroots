@@ -1,21 +1,29 @@
-import { nostrify } from "../deps.ts";
-const { NPool, NRelay1, NSecSigner } = nostrify;
-type Tags = string[][];
-
 import {
-  DEFAULT_RELAYS,
-  DEV_RELAYS,
+  DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH,
   MAP_NOTE_KIND,
   MAP_NOTE_REPOST_KIND,
+  OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
+  OPEN_LOCATION_CODE_TAG_NAME,
+} from "../../nr-common/constants.ts";
+import {
+  getAllPlusCodePrefixes,
+  getFirstLabelValueFromEvent,
+  getFirstTagValueFromEvent,
+  makeLabelTags,
+} from "../../nr-common/utils.ts";
+import {
+  DEFAULT_RELAYS,
+  DELAY_AFTER_PROCESSING_EVENT_MS,
+  DEV_PUBKEY,
+  DEV_RELAYS,
   SUBSCRIPTIONS_MAX_AGE_IN_MINUTES,
 } from "../common/constants.ts";
-import { DEV_PUBKEY } from "../common/constants.ts";
-import { validateEvent } from "./validate.ts";
-import { newQueue } from "../deps.ts";
-import { nostrTools } from "../deps.ts";
+import { async, newQueue, nostrify } from "../deps.ts";
 import { log } from "../log.ts";
-import { async } from "../deps.ts";
-import { DELAY_AFTER_PROCESSING_EVENT_MS } from "../common/constants.ts";
+import { validateEvent } from "./validate.ts";
+
+const { NPool, NRelay1, NSecSigner } = nostrify;
+type Tags = string[][];
 
 async function getRelayPool(isDev: true | undefined) {
   const relays = isDev ? DEV_RELAYS : DEFAULT_RELAYS;
@@ -59,7 +67,11 @@ async function generateRepostedEvent(
 ) {
   const derivedTags = deriveTags(originalEvent);
   const derivedContent = deriveContent(originalEvent);
-  const dTag = ["d", `${originalEvent.pubkey}:${originalEvent.id}`];
+  const originalEventDTagValue = getFirstTagValueFromEvent(originalEvent, "d");
+  const dTag = [
+    "d",
+    `${originalEvent.pubkey}:${originalEvent.kind}:${originalEventDTagValue}`,
+  ];
   const eTag = ["e", originalEvent.id];
   const pTag = ["p", originalEvent.pubkey];
   const originalCreatedAtTag = [
@@ -78,8 +90,29 @@ async function generateRepostedEvent(
   return signedEvent;
 }
 
+function deriveOpenLocationTags(event: nostrify.NostrEvent): Tags {
+  const plusCode = getFirstLabelValueFromEvent(
+    event,
+    OPEN_LOCATION_CODE_TAG_NAME
+  );
+  if (typeof plusCode === "undefined") {
+    return [];
+  }
+  const plusCodePrefixes = getAllPlusCodePrefixes(
+    plusCode,
+    DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH
+  );
+  const plusCodePrefixTags = makeLabelTags(
+    OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
+    plusCodePrefixes
+  );
+  return plusCodePrefixTags;
+}
+
 function deriveTags(event: nostrify.NostrEvent): Tags {
-  return event.tags;
+  const plusCodePrefixTags = deriveOpenLocationTags(event);
+  const derivedTags = [...event.tags, ...plusCodePrefixTags];
+  return derivedTags;
 }
 
 function deriveContent(event: nostrify.NostrEvent): string {

@@ -1,9 +1,9 @@
+import { MAP_NOTE_KIND } from "../../nr-common/constants.ts";
 import {
   HITCHMAPS_AUTHOR_PUBLIC_KEY,
+  MINIMUM_TRUSTROOTS_USERNAME_LENGTH,
   WAIT_FOR_KIND_ZERO_TIMEOUT_SECONDS,
 } from "../common/constants.ts";
-import { MINIMUM_TRUSTROOTS_USERNAME_LENGTH } from "../common/constants.ts";
-import { MAP_NOTE_KIND } from "../common/constants.ts";
 import { nostrify, nostrTools } from "../deps.ts";
 import { log } from "../log.ts";
 import { Profile } from "../types.ts";

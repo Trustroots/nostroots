@@ -1,8 +1,10 @@
 import { z } from "./deps.ts"
 
-import { version as PACKAGE_VERSION } from "./deno.json" with { type: "json" };
+// import { version as PACKAGE_VERSION } from "./deno.json" with { type: "json" };
 export const CONTENT_MINIMUM_LENGTH = 3;
 export const CONTENT_MAXIMUM_LENGTH = 300;
+
+const PACKAGE_VERSION = "0.0.1";
 
 function isHex(s: string) {
   return s.split("").every((c) => "0123456789abcdef".split("").includes(c));

@@ -78,7 +78,9 @@ const NoteMarker = ({
     for (const tag of tags) {
       if (tag[0] === "linkPath") {
         // todo use layerKey to get the correct domain
-        return "https://hitchwiki.org" + tag[1];
+        const path = tag[1];
+        const formattedPath = path.startsWith("/") ? path : "/" + path;
+        return "https://hitchwiki.org" + formattedPath;
       }
     }
     return null;
@@ -91,17 +93,13 @@ const NoteMarker = ({
 
   return (
     <Marker coordinate={coordinates} pinColor={pinColor}>
-      <Callout onPress={() =>
-                Linking.openURL(urlFromTags(event.event.tags, layerKey))
-      }>
-      
+      <Callout
+        onPress={() => Linking.openURL(urlFromTags(event.event.tags, layerKey))}
+      >
         <View style={styles.marker}>
           <Text>
             {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content} `}
-            <Text
-              style={{ color: "blue" }}
-
-            >
+            <Text style={{ color: "blue" }}>
               {urlFromTags(event.event.tags, layerKey)}
             </Text>
           </Text>

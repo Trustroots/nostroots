@@ -35,53 +35,58 @@ type Event struct {
 }
 
 func main() {
-	//connStr := os.Getenv("RABBITMQ_URL")
-	connStr, err := GetEnvFromProc1("RABBITMQ_URL")
+	exchangeName := "nostrEvents"
 
-	if err != nil {
-		log.Fatalf("failed to read RABBITMQ_URL from /proc/1/environ\n")
-	}
+	connStr := os.Getenv("RABBITMQ_URL")
+	// connStr, err := GetEnvFromProc1("RABBITMQ_URL")
+
+	log.Printf("Got RABBITMQ_URL %s", connStr)
+	// if err != nil {
+	// 	// log.Fatalf("failed to read RABBITMQ_URL\n")
+	// 	log.Fatalf("failed to read RABBITMQ_URL from /proc/1/environ\n")
+	// }
 
 	conn, err := amqp091.Dial(connStr)
 	if err != nil {
-		log.Fatalf("Failed to connect to RabbitMQ: %s\n", err)
+		log.Fatalf("#3QAeLV Failed to connect to RabbitMQ: %s\n", err)
 	}
 	defer conn.Close()
 
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Fatalf("Failed to open a channel: %s\n", err)
+		log.Fatalf("#wK3G9b Failed to open a channel: %s\n", err)
 	}
 	defer ch.Close()
 
-	q, err := ch.QueueDeclare(
-		"myQueue", // Name of the queue
-		false,     // Durable (false = not durable, i.e., will not survive server restarts)
-		false,     // AutoDelete (false = queue will not be deleted automatically)
-		false,     // Exclusive (false = other connections can access it)
-		false,     // NoWait (false = the server will confirm the declaration)
-		nil,       // Arguments (empty map here)
+	err = ch.ExchangeDeclare(
+		exchangeName, // Name of the exchange
+		"fanout",
+		true, // durable
+		false,
+		false,
+		false,
+		nil,
 	)
 	if err != nil {
-		log.Fatalf("Failed to declare a queue: %s\n", err)
+		log.Fatalf("#jC8MJM Failed to declare a queue: %s\n", err)
 	}
 
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		line := scanner.Text()
-		fmt.Fprintf(os.Stderr, "Received input: %s\n", line)
+		fmt.Fprintf(os.Stderr, "#auySoU Received input: %s\n", line)
 
 		var event Event
 		err := json.Unmarshal([]byte(line), &event)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error parsing JSON: %s\n", err)
+			fmt.Fprintf(os.Stderr, "#vzT1ys Error parsing JSON: %s\n", err)
 			continue
 		}
-		fmt.Fprintf(os.Stderr, "Parsed Event ID: '%s'\n", event.Event.ID)
+		fmt.Fprintf(os.Stderr, "#SywPmd Parsed Event ID: '%s'\n", event.Event.ID)
 
 		err = ch.Publish(
+			exchangeName,
 			"",
-			q.Name,
 			false,
 			false,
 			amqp091.Publishing{
@@ -90,10 +95,10 @@ func main() {
 			},
 		)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Failed to publish a message: %s\n", err)
+			fmt.Fprintf(os.Stderr, "#HodP6f Failed to publish a message: %s\n", err)
 			continue
 		}
-		fmt.Fprintf(os.Stderr, "Published to RabbitMQ: %s\n", line)
+		fmt.Fprintf(os.Stderr, "#qRVjtM Published to RabbitMQ: %s\n", line)
 
 		response := map[string]string{
 			"action": "accept",
@@ -101,15 +106,15 @@ func main() {
 		}
 		responseJSON, err := json.Marshal(response)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error marshaling response JSON: %s\n", err)
+			fmt.Fprintf(os.Stderr, "#SjHWkv Error marshaling response JSON: %s\n", err)
 			continue
 		}
 
 		fmt.Println(string(responseJSON))
-		fmt.Fprintf(os.Stderr, "Wrote to stdout: %s\n", string(responseJSON))
+		fmt.Fprintf(os.Stderr, "#NDC3n1 Wrote to stdout: %s\n", string(responseJSON))
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Printf("Error reading from stdin: %s\n", err)
+		log.Printf("#H8Fdzb Error reading from stdin: %s\n", err)
 	}
 }

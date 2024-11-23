@@ -1,34 +1,42 @@
+import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
+import { keystoreSelectors } from "@/redux/slices/keystore.slice";
+import { generateSeedWords } from "nip06";
+import { useEffect } from "react";
 import {
-  ScrollView,
+  Button,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  Button,
 } from "react-native";
-import { generateSeedWords, accountFromSeedWords } from "nip06";
-import { useAppDispatch } from "@/redux/hooks";
-import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 
 export default function TabThreeScreen() {
+  const hasPrivateKey = useAppSelector(
+    keystoreSelectors.selectHasPrivateKeyInSecureStorage,
+  );
   const dispatch = useAppDispatch();
-  const { mnemonic } = generateSeedWords();
-  const account = accountFromSeedWords({ mnemonic });
-  console.log("#0GAjcE Generated seed and private key", {
-    mnemonic,
-    account,
-  });
+
+  useEffect(() => {
+    if (!hasPrivateKey) {
+      const { mnemonic } = generateSeedWords();
+      dispatch(setPrivateKeyPromiseAction.request(mnemonic));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <SafeAreaView style={styles.settings}>
       <ScrollView>
         <Text style={styles.header}>Keys</Text>
         <Text style={styles.settings}>npub</Text>
-        <TextInput style={styles.input} value={account.publicKey.bech32} />
+        {/* <TextInput style={styles.input} value={account.publicKey.bech32} /> */}
         <Text style={styles.settings}>nsec</Text>
-        <TextInput style={styles.input} value={account.privateKey.bech32} />
+        {/* <TextInput style={styles.input} value={account.privateKey.bech32} /> */}
         <Text style={styles.settings}>seed</Text>
-        <TextInput style={styles.input} value={mnemonic} />
+        {/* <TextInput style={styles.input} value={mnemonic} /> */}
         <Text style={styles.header}>Relays</Text>
         <TextInput style={styles.input} value="['relay1', 'relay2']" />
         <Text style={styles.header}>Help</Text>

@@ -11,6 +11,7 @@ import {
   EventWithMetadata,
 } from "@/redux/slices/events.slice";
 import MapView, { Callout, LatLng, Marker } from "react-native-maps";
+import Toast from "react-native-root-toast";
 
 import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@/common/constants";
 import {
@@ -19,6 +20,7 @@ import {
   trustrootsMapFilter,
 } from "@/common/utils";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
+import { publishNotePromiseAction } from "@/redux/actions/publish.actions";
 import { mapSelectors, toggleLayer } from "@/redux/slices/map.slice";
 import { createSelector } from "@reduxjs/toolkit";
 import { matchFilter } from "nostr-tools";
@@ -91,7 +93,7 @@ export default function Map() {
   const eventsForLayers = useAppSelector(selectEventsForLayers);
   const dispatch = useAppDispatch();
 
-  const handleAddNote = () => {
+  const handleAddNote = async () => {
     if (selectedCoordinate === undefined) {
       console.warn("Trying to add note without selectedCoordinate.'=");
       return;
@@ -106,6 +108,18 @@ export default function Map() {
       plusCode,
       "plusCode not very precise",
     );
+
+    try {
+      await dispatch(publishNotePromiseAction(note, plusCode));
+    } catch (error) {
+      Toast.show(
+        `Error: #dxmsa3 ${error instanceof Error ? error.message : "unknown"}`,
+        {
+          duration: Toast.durations.LONG,
+          position: Toast.positions.TOP,
+        },
+      );
+    }
 
     setModalVisible(false);
     setNote("");

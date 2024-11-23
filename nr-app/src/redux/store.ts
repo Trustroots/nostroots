@@ -1,5 +1,6 @@
-import { combineSlices, configureStore, StoreEnhancer } from "@reduxjs/toolkit";
+import { combineSlices, configureStore } from "@reduxjs/toolkit";
 import createSagaMiddleware from "redux-saga";
+import { promiseMiddleware } from "redux-saga-promise-actions";
 
 import { Platform } from "react-native";
 import devtoolsEnhancer from "redux-devtools-expo-dev-plugin";
@@ -7,23 +8,35 @@ import rootSaga from "./sagas/root.saga";
 import { eventsSlice } from "./slices/events.slice";
 import { mapSlice } from "./slices/map.slice";
 import { relaysSlice } from "./slices/relays.slice";
+import { keystoreSlice } from "./slices/keystore.slice";
+
+const isOnDevice = Platform.OS !== "web";
 
 const sagaMiddleware = createSagaMiddleware();
 
-const isOnDevice = Platform.OS !== "web";
-const devToolsEnhancerOrNot: StoreEnhancer[] = isOnDevice
-  ? [devtoolsEnhancer()]
-  : [];
+const maybeDevToolsEnhancer = isOnDevice ? [devtoolsEnhancer()] : [];
 
-const reducer = combineSlices(eventsSlice, mapSlice, relaysSlice);
+const reducer = combineSlices(
+  eventsSlice,
+  keystoreSlice,
+  mapSlice,
+  relaysSlice,
+);
 
 export const store = configureStore({
   reducer,
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(sagaMiddleware),
+    getDefaultMiddleware({
+      thunk: false,
+      serializableCheck: {
+        ignoredActionPaths: ["meta.promise"],
+      },
+    })
+      .prepend(promiseMiddleware)
+      .concat(sagaMiddleware),
   devTools: !isOnDevice,
   enhancers: (getDefaultEnhancers) =>
-    getDefaultEnhancers().concat(devToolsEnhancerOrNot),
+    getDefaultEnhancers().concat(maybeDevToolsEnhancer),
 });
 
 export type AppStore = typeof store;

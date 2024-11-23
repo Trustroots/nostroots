@@ -16,7 +16,7 @@ import {
   stopSubscription,
 } from "../actions/subscription.actions";
 import { setSubscription } from "../slices/relays.slice";
-import { DEFAULT_RELAY } from "@/common/constants";
+import { DEFAULT_RELAY_URL } from "@/common/constants";
 
 function generateId() {
   return Math.random().toString().slice(2);
@@ -25,7 +25,7 @@ function generateId() {
 function getRelayUrlsOrDefaults(relayUrls?: string[]) {
   if (typeof relayUrls === "undefined" || relayUrls.length === 0) {
     // TODO: Get defaults from redux
-    const defaultRelayUrls = [DEFAULT_RELAY];
+    const defaultRelayUrls = [DEFAULT_RELAY_URL];
     return defaultRelayUrls;
   }
 

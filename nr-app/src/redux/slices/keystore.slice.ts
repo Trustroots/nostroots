@@ -11,7 +11,7 @@ const initialState: KeystoreState = {
   hasPrivateKeyInSecureStorage: false,
 };
 
-const keystoreSlice = createSlice({
+export const keystoreSlice = createSlice({
   name: "keystore",
   initialState,
   reducers: {
@@ -21,6 +21,12 @@ const keystoreSlice = createSlice({
       state.publicKeyNpub = nip19.npubEncode(action.payload);
     },
   },
+  selectors: {
+    selectHasPrivateKeyInSecureStorage: (state) =>
+      state.hasPrivateKeyInSecureStorage,
+  },
 });
 
 export const { setPublicKeyHex } = keystoreSlice.actions;
+
+export const keystoreSelectors = keystoreSlice.selectors;

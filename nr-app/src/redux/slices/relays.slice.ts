@@ -1,3 +1,4 @@
+import { DEFAULT_RELAY_URL } from "@/common/constants";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Filter } from "nostr-tools";
 
@@ -8,7 +9,9 @@ type RelayNotice = {
 
 type Relay = {
   url: string;
-  connected: boolean;
+  // Is this relay one we want to use
+  isActive: boolean;
+  isConnected: boolean;
   notices: RelayNotice[];
   // TODO: Add relay authentication logic
 };
@@ -35,7 +38,14 @@ export interface RelaysState {
 }
 
 const initialState: RelaysState = {
-  relays: {},
+  relays: {
+    [DEFAULT_RELAY_URL]: {
+      url: DEFAULT_RELAY_URL,
+      isActive: true,
+      isConnected: false,
+      notices: [],
+    },
+  },
   subscriptions: {},
 };
 
@@ -49,12 +59,12 @@ export const relaysSlice = createSlice({
     setRelayConnected: (state, action: PayloadAction<string>) => {
       const relayUrl = action.payload;
       // TODO Handle missing values more elegantly
-      state.relays[relayUrl].connected = true;
+      state.relays[relayUrl].isConnected = true;
     },
     setRelayDisconnected: (state, action: PayloadAction<string>) => {
       const relayUrl = action.payload;
       // TODO Handle missing values more elegantly
-      state.relays[relayUrl].connected = false;
+      state.relays[relayUrl].isConnected = false;
     },
     addRelayNotice: (
       state,
@@ -104,6 +114,12 @@ export const relaysSlice = createSlice({
       relayStatus.isOpen = false;
     },
   },
+  selectors: {
+    getActiveRelayUrls: (state) =>
+      Object.keys(state.relays).filter(
+        (relayUrl) => state.relays[relayUrl].isActive,
+      ),
+  },
 });
 
 export const {
@@ -114,3 +130,5 @@ export const {
   setSubscriptionHasSeenEOSE,
   setServerClosedMessage,
 } = relaysSlice.actions;
+
+export const relaySelectors = relaysSlice.selectors;

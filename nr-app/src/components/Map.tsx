@@ -237,6 +237,7 @@ export default function Map() {
             placeholder="Enter your note"
             value={note}
             onChangeText={setNote}
+            onSubmitEditing={handleAddNote}
           />
           <Button title="Add Note" onPress={handleAddNote} />
           <Button title="Cancel" onPress={() => setModalVisible(false)} />

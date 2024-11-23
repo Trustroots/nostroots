@@ -3,15 +3,10 @@ import {
   SECURE_STORE_PRIVATE_KEY_HEX_KEY,
   SECURE_STORE_PRIVATE_KEY_HEX_NMEONIC,
 } from "@/constants";
-import * as SecureStore from "expo-secure-store";
-import {
-  Event,
-  EventTemplate,
-  finalizeEvent,
-  VerifiedEvent,
-} from "nostr-tools";
 import { hexToBytes } from "@noble/hashes/utils";
+import * as SecureStore from "expo-secure-store";
 import { accountFromSeedWords } from "nip06";
+import { EventTemplate, finalizeEvent, VerifiedEvent } from "nostr-tools";
 
 export async function getPrivateKeyHex(): Promise<string> {
   const result = await SecureStore.getItemAsync(

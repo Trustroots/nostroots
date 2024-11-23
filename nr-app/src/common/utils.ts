@@ -111,7 +111,7 @@ export function filterForMapLayerConfigForPlusCodePrefixes(
   return filter;
 }
 
-export function makeLabelTags(
+export function createLabelTags(
   labelName: string,
   labelValue: string | string[],
 ) {

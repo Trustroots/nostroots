@@ -2,7 +2,7 @@ BINARY_NAME=pushToRabbitmq
 GO_MOD_PATH=$(shell go list -m)
 
 build:
-	go build -o $(BINARY_NAME) main.go
+	CC=musl-gcc CGO_ENABLED=0 go build -o $(BINARY_NAME) main.go
 
 run: build
 	export RABBITMQ_URL="amqp://user:password@localhost:5672";\

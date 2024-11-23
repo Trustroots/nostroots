@@ -53,7 +53,7 @@ export function getAllPlusCodePrefixes(
   return plusCodes;
 }
 
-export function makeLabelTags(
+export function createLabelTags(
   labelName: string,
   labelValue: string | string[]
 ) {

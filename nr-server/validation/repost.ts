@@ -9,7 +9,7 @@ import {
   getAllPlusCodePrefixes,
   getFirstLabelValueFromEvent,
   getFirstTagValueFromEvent,
-  makeLabelTags,
+  createLabelTags,
 } from "../../nr-common/utils.ts";
 import {
   DEFAULT_RELAYS,
@@ -102,7 +102,7 @@ function deriveOpenLocationTags(event: nostrify.NostrEvent): Tags {
     plusCode,
     DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH
   );
-  const plusCodePrefixTags = makeLabelTags(
+  const plusCodePrefixTags = createLabelTags(
     OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
     plusCodePrefixes
   );

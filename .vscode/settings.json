@@ -8,5 +8,6 @@
     "./nr-common",
     "./nr-server",
     "./development-utils/nip-46-client"
-  ]
+  ],
+  "deno.enable": true
 }

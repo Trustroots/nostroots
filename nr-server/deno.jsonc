@@ -2,5 +2,8 @@
   "tasks": {
     "run": "deno run --allow-net --allow-env mod.ts",
     "cache": "deno cache --lock deno.lock deps.ts"
+  },
+  "imports": {
+    "zod": "npm:zod@^3.23.8"
   }
 }

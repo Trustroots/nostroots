@@ -1,4 +1,7 @@
-import { getPrivateKeyHex } from "@/nostr/keystore.nostr";
+import {
+  getPrivateKeyHex,
+  getPrivateKeyMnemonic,
+} from "@/nostr/keystore.nostr";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
@@ -16,6 +19,7 @@ import {
 
 export default function TabThreeScreen() {
   const [nsec, setNsec] = useState("");
+  const [mnemonic, setMnemonic] = useState("");
   const hasPrivateKey = useAppSelector(
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
   );
@@ -40,28 +44,29 @@ export default function TabThreeScreen() {
         <Text style={styles.settings}>pub key hex</Text>
         <TextInput style={styles.input} value={pubHex} />
         <Text style={styles.settings}>nsec</Text>
-        {/* <TextInput style={styles.input} value={account.privateKey.bech32} /> */}
-        <Text style={styles.settings}>seed</Text>
-        {/* <TextInput style={styles.input} value={mnemonic} /> */}
-        <Text style={styles.header}>Relays</Text>
-        <TextInput style={styles.input} value="['relay1', 'relay2']" />
-        <Text style={styles.header}>Help</Text>
-        <Text style={styles.q}>How does this work?</Text>
-
         <Button
-          title="Get nsec"
+          title="Get nsec and mnemonic"
           onPress={async () => {
             const keyHex = await getPrivateKeyHex();
+            const mnemonic = await getPrivateKeyMnemonic();
             const { bech32PrivateKey } = getBech32PrivateKey({
               privateKey: keyHex,
             });
             setNsec(bech32PrivateKey);
+            setMnemonic(mnemonic);
             setTimeout(() => {
               setNsec("");
+              setMnemonic("");
             }, 3e3);
           }}
         />
         <TextInput style={styles.input} value={nsec} />
+        <Text style={styles.settings}>seed</Text>
+        <TextInput style={styles.input} value={mnemonic} />
+        <Text style={styles.header}>Relays</Text>
+        <TextInput style={styles.input} value="['relay1', 'relay2']" />
+        <Text style={styles.header}>Help</Text>
+        <Text style={styles.q}>How does this work?</Text>
 
         <Text style={styles.a}>
           Scroll around on the map. Long press (or right click) to add a note to

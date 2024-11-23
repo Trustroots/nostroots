@@ -27,6 +27,16 @@ export async function getPrivateKeyBytes(): Promise<Uint8Array> {
   return keyBytes;
 }
 
+export async function getPrivateKeyMnemonic(): Promise<string> {
+  const mnemonic = await SecureStore.getItemAsync(
+    SECURE_STORE_PRIVATE_KEY_HEX_NMEONIC,
+  );
+  if (mnemonic === null) {
+    throw new Error("#ATaXag-failed-to-get-mnemonic");
+  }
+  return mnemonic;
+}
+
 export async function setPrivateKeyMnemonic(keyMnemonic: string) {
   const account = accountFromSeedWords({ mnemonic: keyMnemonic });
   await SecureStore.setItemAsync(

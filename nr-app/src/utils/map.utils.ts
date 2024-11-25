@@ -1,5 +1,9 @@
 import { NOSTR_EVENT_INDEX_MAXIMUM_PLUS_CODE_LENGTH } from "@/constants";
+import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@common/constants";
+import { getFirstTagValueFromEvent } from "@common/utils";
+import { NostrEvent } from "nostr-tools";
 import OpenLocationCode from "open-location-code-typescript";
+import urlJoin from "url-join";
 
 type PlusCodeShortLength = 2 | 4 | 6 | 8;
 
@@ -193,4 +197,24 @@ export function allPlusCodesForRegion({
     return code;
   });
   return codes;
+}
+
+export function getMapLayer(layerKey?: string) {
+  if (typeof layerKey === "undefined" || !(layerKey in MAP_LAYERS)) {
+    return;
+  }
+  return MAP_LAYERS[layerKey as MAP_LAYER_KEY];
+}
+
+export function getEventLinkUrl(event: NostrEvent, layerConfig?: MapLayer) {
+  if (typeof layerConfig === "undefined") {
+    return;
+  }
+  const linkPath = getFirstTagValueFromEvent(event, "linkPath");
+  if (typeof linkPath === "undefined") {
+    return;
+  }
+  const linkBaseUrl = layerConfig.rootUrl;
+  const url = urlJoin(linkBaseUrl, linkPath);
+  return url;
 }

@@ -18,9 +18,8 @@ import { setVisiblePlusCodes } from "../actions/map.actions";
 import { startSubscription } from "../actions/subscription.actions";
 import {
   MAP_SUBSCRIPTION_ID,
+  mapActions,
   mapSelectors,
-  setMapSubscriptionIsUpdating,
-  toggleLayer,
 } from "../slices/map.slice";
 
 function createMapFilters(
@@ -61,7 +60,7 @@ function* updateDataForMapSagaEffect(
     const filters = createMapFilters(visiblePlusCodes, enabledLayerKeys);
 
     // Write the state to redux
-    yield put(setMapSubscriptionIsUpdating(true));
+    yield put(mapActions.setMapSubscriptionIsUpdating(true));
     // Call a subscription
     yield put(
       startSubscription({
@@ -81,7 +80,7 @@ export function* updateDataForMapSaga() {
 }
 
 export function* updateDataForMapFromLayerToggleSaga() {
-  yield takeEvery(toggleLayer, updateDataForMapSagaEffect);
+  yield takeEvery(mapActions.toggleLayer, updateDataForMapSagaEffect);
 }
 
 export default function* mapSaga() {

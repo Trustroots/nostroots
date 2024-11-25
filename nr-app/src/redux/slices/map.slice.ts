@@ -1,5 +1,6 @@
 import { MAP_LAYER_KEY } from "@common/constants";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { LatLng } from "react-native-maps";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { setSubscriptionHasSeenEOSE } from "./relays.slice";
 
@@ -8,6 +9,8 @@ export const MAP_SUBSCRIPTION_ID = "mapVisiblePlusCodesSubscription";
 interface MapState {
   mapSubscriptionIsUpdating: boolean;
   visiblePlusCodes: string[];
+  isAddNoteModalOpen: boolean;
+  selectedLatLng?: LatLng;
   enabledLayers: {
     [key in MAP_LAYER_KEY]: boolean;
   };
@@ -16,6 +19,7 @@ interface MapState {
 const initialState: MapState = {
   mapSubscriptionIsUpdating: false,
   visiblePlusCodes: [],
+  isAddNoteModalOpen: false,
   enabledLayers: {
     hitchmap: false,
     hitchwiki: false,
@@ -44,6 +48,15 @@ export const mapSlice = createSlice({
       state.enabledLayers[action.payload] =
         !state.enabledLayers[action.payload];
     },
+    openAddNoteModal: (state) => {
+      state.isAddNoteModalOpen = true;
+    },
+    closeAddNoteModal: (state) => {
+      state.isAddNoteModalOpen = false;
+    },
+    setSelectedLatLng: (state, action: PayloadAction<LatLng>) => {
+      state.selectedLatLng = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(setVisiblePlusCodes, (state, action) => {
@@ -62,15 +75,12 @@ export const mapSlice = createSlice({
       enabledLayers: state.enabledLayers,
       visiblePlusCodes: state.visiblePlusCodes,
     }),
+    selectSelectedLatLng: (state) => state.selectedLatLng,
+    selectIsAddNoteModalOpen: (state) => state.isAddNoteModalOpen,
   },
 });
 
-export const {
-  setMapSubscriptionIsUpdating,
-  enableLayer,
-  disableLayer,
-  toggleLayer,
-} = mapSlice.actions;
+export const mapActions = mapSlice.actions;
 
 const selectEnabledLayerKeys = createSelector(
   [mapSlice.selectors.selectEnabledLayers],

@@ -32,34 +32,34 @@ export type MapLayer = {
   markerColor: string;
 };
 
-export type MAP_LAYER_KEY = "hitchmap" | "timesafari" | "triphopping";
-export const MAP_LAYERS: { [key in MAP_LAYER_KEY]: MapLayer } = {
+export const MAP_LAYERS = {
   hitchmap: {
     title: "Hitchmap",
     rootUrl: "https://hitchmap.com",
     kind: 30399,
     pubkey: HITCHMAPS_AUTHOR_PUBLIC_KEY,
     markerColor: "gold",
-  },
+  } as MapLayer,
   hitchwiki: {
     title: "Hitchwiki",
     rootUrl: "https://hitchwiki.org",
     kind: 30399,
     pubkey: HITCHWIKI_AUTHOR_PUBLIC_KEY,
     markerColor: "yellow",
-  },
+  } as MapLayer,
   timesafari: {
     title: "Time Safari",
     rootUrl: "https://www.timesafari.app",
     kind: 30399,
     pubkey: TIMESAFARI_AUTHOR_PUBLIC_KEY,
     markerColor: "green",
-  },
+  } as MapLayer,
   triphopping: {
     title: "Trip Hopping",
     rootUrl: "https://www.triphopping.com",
     kind: 30398,
     pubkey: DEV_PUBKEY,
     markerColor: "blue",
-  },
+  } as MapLayer,
 } as const;
+export type MAP_LAYER_KEY = keyof typeof MAP_LAYERS;

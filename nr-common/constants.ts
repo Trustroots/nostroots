@@ -27,7 +27,7 @@ export const TIMESAFARI_AUTHOR_PUBLIC_KEY =
 export type MapLayer = {
   title: string;
   rootUrl: string;
-  kind: 30399 | 30398;
+  kind: 30399 | 30398 | 30397;
   pubkey: string;
   markerColor: string;
 };
@@ -52,14 +52,21 @@ export const MAP_LAYERS = {
     rootUrl: "https://www.timesafari.app",
     kind: 30399,
     pubkey: TIMESAFARI_AUTHOR_PUBLIC_KEY,
-    markerColor: "green",
+    markerColor: "blue",
   } as MapLayer,
   triphopping: {
     title: "Trip Hopping",
     rootUrl: "https://www.triphopping.com",
     kind: 30398,
     pubkey: DEV_PUBKEY,
-    markerColor: "blue",
+    markerColor: "brown",
+  } as MapLayer,
+  unverified: {
+    title: "Unverified",
+    rootUrl: "https://notes.trustroots.org",
+    kind: 30397,
+    pubkey: '*',
+    markerColor: "red",
   } as MapLayer,
 } as const;
 export type MAP_LAYER_KEY = keyof typeof MAP_LAYERS;

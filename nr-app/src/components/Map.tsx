@@ -100,10 +100,8 @@ const NoteMarker = ({
   if (typeof plusCode === "undefined" || !isValidPlusCode(plusCode)) {
     console.log(
       "#9k8qKM skipping event with missing / invalid plusCode",
-      event,
+      JSON.stringify({ plusCode, event }),
     );
-    console.log(plusCode);
-    console.log("Event tags:", event.event.tags);
     return null;
   }
 

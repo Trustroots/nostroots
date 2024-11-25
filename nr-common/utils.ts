@@ -10,6 +10,13 @@ function last<T>(items: T[]): T {
   return items[lastIndex];
 }
 
+function unique<T>(items: T[]): T[] {
+  const dedupedItems = items.filter(
+    (item, index) => items.indexOf(item) === index
+  );
+  return dedupedItems;
+}
+
 export function isHex(s: string): boolean {
   return s.split("").every((c) => "0123456789abcdef".split("").includes(c));
 }
@@ -124,7 +131,8 @@ export function getAllPlusCodePrefixes(
   const plusCodes = Array.from({ length: numberOfCodes }, (_value, index) =>
     getPlusCodePrefix(plusCode, minimumLength + index * 2)
   );
-  return plusCodes;
+  const uniquePlusCodePrefixes = unique(plusCodes);
+  return uniquePlusCodePrefixes;
 }
 
 export function getPlusCodeAndPlusCodePrefixTags(plusCode: string) {

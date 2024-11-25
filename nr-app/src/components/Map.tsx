@@ -22,16 +22,15 @@ import {
 import MapView, { Callout, LatLng, Marker, Polygon } from "react-native-maps";
 import Toast from "react-native-root-toast";
 
-import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@/common/constants";
-import {
-  filterForMapLayerConfig,
-  getFirstLabelValueFromEvent,
-  getFirstTagValueFromEvent,
-  trustrootsMapFilter,
-} from "@/common/utils";
+import { filterForMapLayerConfig, trustrootsMapFilter } from "@/common/utils";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { publishNotePromiseAction } from "@/redux/actions/publish.actions";
 import { mapSelectors, toggleLayer } from "@/redux/slices/map.slice";
+import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@common/constants";
+import {
+  getFirstLabelValueFromEvent,
+  getFirstTagValueFromEvent,
+} from "@common/utils";
 import { createSelector } from "@reduxjs/toolkit";
 import { matchFilter, NostrEvent } from "nostr-tools";
 import React, { useState } from "react";

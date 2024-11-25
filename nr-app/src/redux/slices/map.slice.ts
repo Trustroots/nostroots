@@ -1,4 +1,4 @@
-import { MAP_LAYER_KEY } from "@/common/constants";
+import { MAP_LAYER_KEY } from "@common/constants";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { setSubscriptionHasSeenEOSE } from "./relays.slice";
@@ -18,6 +18,7 @@ const initialState: MapState = {
   visiblePlusCodes: [],
   enabledLayers: {
     hitchmap: false,
+    hitchwiki: false,
     timesafari: false,
     triphopping: false,
   },

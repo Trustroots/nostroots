@@ -1,8 +1,31 @@
+import {
+  DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH,
+  OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
+  OPEN_LOCATION_CODE_TAG_NAME,
+} from "./constants.ts";
 import type { Event } from "./mod.ts";
 
 function last<T>(items: T[]): T {
   const lastIndex = Math.max(items.length - 1, 0);
   return items[lastIndex];
+}
+
+export function isHex(s: string): boolean {
+  return s.split("").every((c) => "0123456789abcdef".split("").includes(c));
+}
+
+export function isHexKey(key: string): boolean {
+  if (!isHex(key)) {
+    return false;
+  }
+  if (key.length !== 64) {
+    return false;
+  }
+  return true;
+}
+
+export function getCurrentTimestamp() {
+  return Math.round(Date.now() / 1e3);
 }
 
 export function getFirstTagValueFromEvent(
@@ -35,6 +58,17 @@ export function getFirstLabelValueFromEvent(
   return labelValue;
 }
 
+export function createLabelTags(
+  labelName: string,
+  labelValue: string | string[]
+) {
+  const tags = [
+    ["L", labelName],
+    ["l", ...labelValue, labelName],
+  ];
+  return tags;
+}
+
 export function getPlusCodePrefix(plusCode: string, length: number): string {
   const prefix = plusCode.substring(0, length);
   const paddedPrefix = prefix.padEnd(8, "0");
@@ -53,13 +87,16 @@ export function getAllPlusCodePrefixes(
   return plusCodes;
 }
 
-export function createLabelTags(
-  labelName: string,
-  labelValue: string | string[]
-) {
-  const tags = [
-    ["L", labelName],
-    ["l", ...labelValue, labelName],
-  ];
+export function getPlusCodeAndPlusCodePrefixTags(plusCode: string) {
+  const plusCodeTags = createLabelTags(OPEN_LOCATION_CODE_TAG_NAME, plusCode);
+  const plusCodePrefixes = getAllPlusCodePrefixes(
+    plusCode,
+    DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH
+  );
+  const plusCodePrefixTags = createLabelTags(
+    OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
+    plusCodePrefixes
+  );
+  const tags = [...plusCodeTags, ...plusCodePrefixTags];
   return tags;
 }

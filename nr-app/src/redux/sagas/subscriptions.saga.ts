@@ -2,6 +2,7 @@ import {
   getSubscription,
   subscribeToFilter,
 } from "@/nostr/subscriptions.nostr";
+import { DEFAULT_RELAY_URL } from "@common/constants";
 import { Subscription } from "nostr-tools/lib/types/abstract-relay";
 import {
   all,
@@ -16,7 +17,6 @@ import {
   stopSubscription,
 } from "../actions/subscription.actions";
 import { setSubscription } from "../slices/relays.slice";
-import { DEFAULT_RELAY_URL } from "@/common/constants";
 
 function generateId() {
   return Math.random().toString().slice(2);

@@ -1,7 +1,4 @@
-import {
-  DEFAULT_PLUS_CODE_LENGTH,
-  NOSTR_EVENT_INDEX_MAXIMUM_PLUS_CODE_LENGTH,
-} from "@/constants";
+import { NOSTR_EVENT_INDEX_MAXIMUM_PLUS_CODE_LENGTH } from "@/constants";
 import OpenLocationCode from "open-location-code-typescript";
 
 type PlusCodeShortLength = 2 | 4 | 6 | 8;
@@ -11,13 +8,13 @@ const plusCodeCharacters = "23456789CFGHJMPQRVWX" as const;
 export function coordinatesToPlusCode({
   latitude,
   longitude,
-  length: codeLength = DEFAULT_PLUS_CODE_LENGTH,
+  length,
 }: {
   latitude: number;
   longitude: number;
   length?: PlusCodeShortLength;
 }): string {
-  const plusCode = OpenLocationCode.encode(latitude, longitude, codeLength);
+  const plusCode = OpenLocationCode.encode(latitude, longitude, length);
   return plusCode;
 }
 
@@ -101,7 +98,7 @@ export function plusCodeToRectangle(
       { latitude: decoded.latitudeLo, longitude: decoded.longitudeHi },
     ];
   } else {
-    throw new Error("Invalid Plus Code #QWEIOKJQWEOK");
+    throw new Error("Invalid Plus Code #QWEIOK");
   }
 }
 

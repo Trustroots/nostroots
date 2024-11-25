@@ -30,7 +30,7 @@ export default function TabThreeScreen() {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    void (async function asyncInner() {
+    (async function asyncInner() {
       const hasKey = await getHasPrivateKeyInSecureStorage();
       if (!hasPrivateKey && hasKey) {
         const { mnemonic } = generateSeedWords();
@@ -56,6 +56,10 @@ export default function TabThreeScreen() {
             const mnemonic = await getPrivateKeyMnemonic();
             const { bech32PrivateKey } = getBech32PrivateKey({
               privateKey: keyHex,
+            });
+            console.log("#GHL6ei Got hexKey and mnemonic", {
+              keyHex,
+              mnemonic,
             });
             setNsec(bech32PrivateKey);
             setMnemonic(mnemonic);

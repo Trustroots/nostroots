@@ -19,4 +19,8 @@ import { store } from "@/redux/store";
 import { injectStore } from "@/nostr/subscriptions.nostr";
 injectStore(store);
 
+if (__DEV__) {
+  require("./reactotron.config");
+}
+
 import "expo-router/entry";

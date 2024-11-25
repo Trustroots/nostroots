@@ -5,12 +5,13 @@ import {
 } from "@/utils/map.utils";
 import {
   FlatList,
+  Linking,
   StyleSheet,
   Switch,
   Text,
-  Linking,
   View,
 } from "react-native";
+import urlJoin from "url-join";
 
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
@@ -24,13 +25,14 @@ import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@/common/constants";
 import {
   filterForMapLayerConfig,
   getFirstLabelValueFromEvent,
+  getFirstTagValueFromEvent,
   trustrootsMapFilter,
 } from "@/common/utils";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { publishNotePromiseAction } from "@/redux/actions/publish.actions";
 import { mapSelectors, toggleLayer } from "@/redux/slices/map.slice";
 import { createSelector } from "@reduxjs/toolkit";
-import { matchFilter } from "nostr-tools";
+import { matchFilter, NostrEvent } from "nostr-tools";
 import React, { useState } from "react";
 import { Button, Modal, TextInput } from "react-native";
 
@@ -59,12 +61,32 @@ const selectEventsForLayers = createSelector(
   },
 );
 
+function getMapLayer(layerKey?: string) {
+  if (typeof layerKey === "undefined" || !(layerKey in MAP_LAYERS)) {
+    return;
+  }
+  return MAP_LAYERS[layerKey as MAP_LAYER_KEY];
+}
+
+function getEventLinkUrl(event: NostrEvent, layerConfig?: MapLayer) {
+  if (typeof layerConfig === "undefined") {
+    return;
+  }
+  const linkPath = getFirstTagValueFromEvent(event, "linkPath");
+  if (typeof linkPath === "undefined") {
+    return;
+  }
+  const linkBaseUrl = layerConfig.rootUrl;
+  const url = urlJoin(linkBaseUrl, linkPath);
+  return url;
+}
+
 const NoteMarker = ({
   event,
   layerKey,
 }: {
   event: EventWithMetadata;
-  layerKey?: MAP_LAYER_KEY;
+  layerKey?: string;
 }) => {
   const plusCode = getFirstLabelValueFromEvent(
     event.event,
@@ -75,35 +97,27 @@ const NoteMarker = ({
     return null;
   }
 
-  const coordinates = plusCodeToCoordinates(plusCode);
-  const urlFromTags = (tags, layerKey) => {
-    for (const tag of tags) {
-      if (tag[0] === "linkPath") {
-        // todo use layerKey to get the correct domain
-        const path = tag[1];
-        const formattedPath = path.startsWith("/") ? path : "/" + path;
-        return "https://hitchwiki.org" + formattedPath;
-      }
-    }
-    return null;
-  };
+  const layerConfig = getMapLayer(layerKey);
 
-  const pinColor =
-    typeof layerKey !== "undefined" && layerKey in MAP_LAYERS
-      ? MAP_LAYERS[layerKey].markerColor
-      : "red";
+  const coordinates = plusCodeToCoordinates(plusCode);
+
+  const url = getEventLinkUrl(event.event, layerConfig);
+
+  const pinColor = layerConfig?.markerColor || "red";
 
   return (
     <Marker coordinate={coordinates} pinColor={pinColor}>
       <Callout
-        onPress={() => Linking.openURL(urlFromTags(event.event.tags, layerKey))}
+        onPress={() => {
+          if (typeof url !== "undefined") {
+            Linking.openURL(url);
+          }
+        }}
       >
         <View style={styles.marker}>
           <Text>
             {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content} `}
-            <Text style={{ color: "blue" }}>
-              {urlFromTags(event.event.tags, layerKey)}
-            </Text>
+            <Text style={{ color: "blue" }}>{url}</Text>
           </Text>
         </View>
       </Callout>
@@ -174,10 +188,14 @@ export default function Map() {
           pinColor="indigo"
         />
 
-        {Object.entries(eventsForLayers).map(([key, events]) => (
-          <View key={key}>
+        {Object.entries(eventsForLayers).map(([layerKey, events]) => (
+          <View key={layerKey}>
             {events.map((event) => (
-              <NoteMarker event={event} key={event.event.sig} />
+              <NoteMarker
+                event={event}
+                key={event.event.id}
+                layerKey={layerKey}
+              />
             ))}
           </View>
         ))}

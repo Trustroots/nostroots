@@ -11,7 +11,7 @@
     "test": "jest --watchAll",
     "lint": "expo lint",
     "lint-fix": "eslint --fix",
-    "lint-tsc": "tsc --noEmit",
+    "lint-ts": "tsc --noEmit",
     "prepare": "cd .. && husky nr-app/.husky"
   },
   "pkgx": "+facebook.com/watchman",

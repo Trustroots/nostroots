@@ -120,6 +120,7 @@ export function getPlusCodePrefix(plusCode: string, length: number): string {
   return prefixPlusCode;
 }
 
+// TODO This should accept a maximumLength as well
 export function getAllPlusCodePrefixes(
   plusCode: string,
   minimumLength: number

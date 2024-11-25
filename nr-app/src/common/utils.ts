@@ -1,5 +1,6 @@
 import { Filter } from "nostr-tools";
 import { MapLayer, NOSTROOTS_VALIDATION_PUBKEY } from "@common/constants";
+import { isHexKey } from "@common/utils";
 
 // TODO - Move these into `nr-common` (they depend on nostr-tools)
 
@@ -43,9 +44,18 @@ export function trustrootsMapFilterForPlusCodePrefixes(
   return filter;
 }
 
+function getAuthorFilter(layerConfig: MapLayer) {
+  const { pubkey } = layerConfig;
+  if (typeof pubkey === "string" && isHexKey(pubkey)) {
+    return { authors: [pubkey] };
+  }
+  return {};
+}
+
 export function filterForMapLayerConfig(layerConfig: MapLayer): Filter {
+  const authorFilter = getAuthorFilter(layerConfig);
   const filter: Filter = {
-    ...(layerConfig.pubkey ? { authors: [layerConfig.pubkey] } : {}),
+    ...authorFilter,
     kinds: [layerConfig.kind],
   };
   return filter;

@@ -17,10 +17,7 @@ import {
   stopSubscription,
 } from "../actions/subscription.actions";
 import { setSubscription } from "../slices/relays.slice";
-
-function generateId() {
-  return Math.random().toString().slice(2);
-}
+import { nanoid } from "@reduxjs/toolkit";
 
 function getRelayUrlsOrDefaults(relayUrls?: string[]) {
   if (typeof relayUrls === "undefined" || relayUrls.length === 0) {
@@ -41,7 +38,7 @@ function* startSubscriptionSagaEffect(
   const actualRelayUrls = getRelayUrlsOrDefaults(relayUrls);
 
   const isNewSubscription = typeof id === "undefined";
-  const subscriptionId = isNewSubscription ? generateId() : id;
+  const subscriptionId = isNewSubscription ? nanoid() : id;
 
   // TODO Stop here if the subscription is not new and hasn't changed
 

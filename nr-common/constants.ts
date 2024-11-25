@@ -33,47 +33,52 @@ export type MapLayer = {
   rectangleColor: string;
 };
 
+const hitchmap: MapLayer = {
+  title: "Hitchmap",
+  rootUrl: "https://hitchmap.com",
+  kind: 30399,
+  pubkey: HITCHMAPS_AUTHOR_PUBLIC_KEY,
+  markerColor: "yellow",
+  rectangleColor: "rgba(255, 255, 0, 0.5)",
+};
+const hitchwiki: MapLayer = {
+  title: "Hitchwiki",
+  rootUrl: "https://hitchwiki.org",
+  kind: 30399,
+  pubkey: HITCHWIKI_AUTHOR_PUBLIC_KEY,
+  markerColor: "gold",
+  rectangleColor: "rgba(255, 215, 0, 0.5)",
+};
+const timesafari: MapLayer = {
+  title: "Time Safari",
+  rootUrl: "https://www.timesafari.app",
+  kind: 30399,
+  pubkey: TIMESAFARI_AUTHOR_PUBLIC_KEY,
+  markerColor: "blue",
+  rectangleColor: "rgba(0, 0, 255, 0.5)",
+};
+const triphopping: MapLayer = {
+  title: "Trip Hopping",
+  rootUrl: "https://www.triphopping.com",
+  kind: 30398,
+  pubkey: DEV_PUBKEY,
+  markerColor: "brown",
+  rectangleColor: "rgba(0, 0, 255, 0.5)",
+};
+const unverified: MapLayer = {
+  title: "Unverified",
+  rootUrl: "https://notes.trustroots.org",
+  kind: 30397,
+  pubkey: "",
+  markerColor: "red",
+  rectangleColor: "rgba(255, 0, 0, 0.5)",
+};
+
 export const MAP_LAYERS = {
-  hitchmap: {
-    title: "Hitchmap",
-    rootUrl: "https://hitchmap.com",
-    kind: 30399,
-    pubkey: HITCHMAPS_AUTHOR_PUBLIC_KEY,
-    markerColor: "yellow",
-    rectangleColor: "rgba(255, 255, 0, 0.5)",
-  } as MapLayer,
-  hitchwiki: {
-    title: "Hitchwiki",
-    rootUrl: "https://hitchwiki.org",
-    kind: 30399,
-    pubkey: HITCHWIKI_AUTHOR_PUBLIC_KEY,
-    markerColor: "gold",
-    rectangleColor: "rgba(255, 215, 0, 0.5)",
-  } as MapLayer,
-  timesafari: {
-    title: "Time Safari",
-    rootUrl: "https://www.timesafari.app",
-    kind: 30399,
-    pubkey: TIMESAFARI_AUTHOR_PUBLIC_KEY,
-    markerColor: "blue",
-    rectangleColor: "rgba(0, 0, 255, 0.5)",
-  } as MapLayer,
-  triphopping: {
-    title: "Trip Hopping",
-    rootUrl: "https://www.triphopping.com",
-    kind: 30398,
-    pubkey: DEV_PUBKEY,
-    markerColor: "brown",
-  } as MapLayer,
-  unverified: {
-    title: "Unverified",
-    rootUrl: "https://notes.trustroots.org",
-    kind: 30397,
-    markerColor: "red",
-    rectangleColor: "rgba(255, 0, 0, 0.5)",
-  } as MapLayer,
+  hitchmap,
+  hitchwiki,
+  timesafari,
+  triphopping,
+  unverified,
 } as const;
 export type MAP_LAYER_KEY = keyof typeof MAP_LAYERS;
-
-let f: MAP_LAYER_KEY = "hitchwiki";
-let b = MAP_LAYERS[f];

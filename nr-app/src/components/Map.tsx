@@ -220,11 +220,11 @@ export default function Map() {
           keyExtractor={([key]) => key}
           renderItem={({ item: [key, config] }) => (
             <View style={styles.toggleContainer}>
-              <Text>{config.title}</Text>
               <Switch
                 value={enabledLayers[key]}
                 onValueChange={() => void dispatch(toggleLayer(key))}
               />
+              <Text>{config.title} </Text>
             </View>
           )}
         />

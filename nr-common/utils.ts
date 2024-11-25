@@ -24,6 +24,12 @@ export function isHexKey(key: string): boolean {
   return true;
 }
 
+export function isPlusCode(code: string) {
+  const re =
+    /(^|\s)([23456789C][23456789CFGHJMPQRV][23456789CFGHJMPQRVWX]{6}\+[23456789CFGHJMPQRVWX]{2,7})(\s|$)/i;
+  return re.test(code);
+}
+
 export function getCurrentTimestamp() {
   return Math.round(Date.now() / 1e3);
 }
@@ -84,8 +90,11 @@ export function getAllPlusCodePrefixes(
   plusCode: string,
   minimumLength: number
 ): string[] {
+  if (minimumLength % 2 !== 0) {
+    throw new Error("#HqXbxX-invalid-minimum-length");
+  }
   const numberOfCodes = (8 - minimumLength) / 2 + 1;
-  const plusCodes = Array.from({ length: numberOfCodes }).map((_value, index) =>
+  const plusCodes = Array.from({ length: numberOfCodes }, (_value, index) =>
     getPlusCodePrefix(plusCode, minimumLength + index * 2)
   );
   return plusCodes;

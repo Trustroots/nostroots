@@ -1,21 +1,12 @@
 import { OPEN_LOCATION_CODE_TAG_NAME } from "./constants.ts";
 import { z } from "./deps.ts";
+import { isPlusCode } from "./utils.ts";
 
 // import { version as PACKAGE_VERSION } from "./deno.json" with { type: "json" };
 export const CONTENT_MINIMUM_LENGTH = 3;
 export const CONTENT_MAXIMUM_LENGTH = 300;
 
 const PACKAGE_VERSION = "0.0.1";
-
-function isHex(s: string) {
-  return s.split("").every((c) => "0123456789abcdef".split("").includes(c));
-}
-
-function isPlusCode(code: string) {
-  const re =
-    /(^|\s)([23456789C][23456789CFGHJMPQRV][23456789CFGHJMPQRVWX]{6}\+[23456789CFGHJMPQRVWX]{2,7})(\s|$)/i;
-  return re.test(code);
-}
 
 export const eventSchema = z
   .object({

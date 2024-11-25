@@ -3,8 +3,7 @@ import {
   OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
   OPEN_LOCATION_CODE_TAG_NAME,
 } from "./constants.ts";
-import type { Event } from "./mod.ts";
-
+import { eventSchema, type Event } from "./mod.ts";
 
 function last<T>(items: T[]): T {
   const lastIndex = Math.max(items.length - 1, 0);
@@ -88,11 +87,10 @@ export function getFirstTagValueFromEvent(
   return firstValue;
 }
 
-export function getFirstLabelValueFromEvent(
-  nostrEvent: Event,
+export function getFirstLabelValueFromTags(
+  tags: string[][],
   labelName: string
 ): string | undefined {
-  const { tags } = nostrEvent;
   const matchingTag = tags.find(
     (tag) => tag[0] === "l" && last(tag) === labelName
   );
@@ -116,6 +114,13 @@ export function createLabelTags(
     ],
   ];
   return tags;
+}
+
+export function getFirstLabelValueFromEvent(
+  nostrEvent: Event,
+  labelName: string
+): string | undefined {
+  return getFirstLabelValueFromTags(nostrEvent.tags, labelName);
 }
 
 export function getPlusCodePrefix(plusCode: string, length: number): string {

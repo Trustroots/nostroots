@@ -1,6 +1,10 @@
 import { OPEN_LOCATION_CODE_TAG_NAME } from "./constants.ts";
 import { z } from "./deps.ts";
-import { isPlusCode } from "./utils.ts";
+import {
+  getFirstLabelValueFromEvent,
+  getFirstLabelValueFromTags,
+  isPlusCode,
+} from "./utils.ts";
 
 // import { version as PACKAGE_VERSION } from "./deno.json" with { type: "json" };
 export const CONTENT_MINIMUM_LENGTH = 3;
@@ -56,26 +60,70 @@ function hasVersion(tags: string[][]): boolean {
   return true;
 }
 
+export const tagsIncludingPlusCodeSchema = z
+  .string()
+  .array()
+  .array()
+  .refine(
+    (tags) => {
+      const plusCode = getFirstLabelValueFromTags(
+        tags,
+        OPEN_LOCATION_CODE_TAG_NAME
+      );
+      if (typeof plusCode === "undefined" || !isPlusCode(plusCode)) {
+        return false;
+      }
+      return true;
+    },
+    { message: "Tags have invalid or missing plus code" }
+  );
+
+export const contentSchema = z
+  .string()
+  .max(
+    CONTENT_MAXIMUM_LENGTH,
+    `content is above max length of ${CONTENT_MAXIMUM_LENGTH}`
+  )
+  .min(
+    CONTENT_MINIMUM_LENGTH,
+    `content is below min length of ${CONTENT_MINIMUM_LENGTH}`
+  );
+
 export const kind30398EventSchema = eventSchema.extend({
   kind: z.literal(30398),
-  tags: z
-    .string()
-    .array()
-    .array()
-    .refine(hasOpenLocationCode, {
-      message: "no valid open-location-code label",
-    })
-    .refine(hasVersion, { message: "no valid kind30398_version" }),
-  content: z
-    .string()
-    .max(
-      CONTENT_MAXIMUM_LENGTH,
-      `content is above max length of ${CONTENT_MAXIMUM_LENGTH}`
-    )
-    .min(
-      CONTENT_MINIMUM_LENGTH,
-      `content is below min length of ${CONTENT_MINIMUM_LENGTH}`
-    ),
+  // TODO Enable version check
+  tags: tagsIncludingPlusCodeSchema,
+  // tags: tagsIncludingPlusCodeSchema.refine(hasVersion, {
+  //   message: "no valid kind30398_version",
+  // }),
+  content: contentSchema,
 });
 
 export type Kind30398Event = z.infer<typeof kind30398EventSchema>;
+
+export const kind30397EventSchema = eventSchema.extend({
+  kind: z.literal(30397),
+  // TODO Enable version check
+  tags: tagsIncludingPlusCodeSchema,
+  // tags: tagsIncludingPlusCodeSchema.refine(hasVersion, {
+  //   message: "no valid kind30397_version",
+  // }),
+  content: contentSchema,
+});
+
+export function isValidEvent(event: Event) {
+  const { kind } = event;
+  switch (kind) {
+    case 30397: {
+      const { success } = kind30397EventSchema.safeParse(event);
+      return success;
+    }
+    case 30398: {
+      const { success } = kind30398EventSchema.safeParse(event);
+      return success;
+    }
+  }
+
+  const { success } = eventSchema.safeParse(event);
+  return success;
+}

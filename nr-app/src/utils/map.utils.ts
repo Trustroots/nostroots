@@ -75,6 +75,36 @@ export function plusCodeToCoordinates(plusCode: string): {
   }
 }
 
+export function plusCodeToRectangle(
+  plusCode: string,
+): [
+  { latitude: number; longitude: number },
+  { latitude: number; longitude: number },
+  { latitude: number; longitude: number },
+  { latitude: number; longitude: number },
+] {
+  let decoded;
+  try {
+    decoded = OpenLocationCode.decode(plusCode);
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("#ewW2XQ Error decoding Plus Code:", error.message);
+    }
+    throw error;
+  }
+
+  if (decoded) {
+    return [
+      { latitude: decoded.latitudeLo, longitude: decoded.longitudeLo },
+      { latitude: decoded.latitudeHi, longitude: decoded.longitudeLo },
+      { latitude: decoded.latitudeHi, longitude: decoded.longitudeHi },
+      { latitude: decoded.latitudeLo, longitude: decoded.longitudeHi },
+    ];
+  } else {
+    throw new Error("Invalid Plus Code #QWEIOKJQWEOK");
+  }
+}
+
 export function allPlusCodesForRegion({
   latitude,
   latitudeDelta,

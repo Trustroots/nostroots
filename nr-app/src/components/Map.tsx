@@ -2,6 +2,7 @@ import {
   allPlusCodesForRegion,
   coordinatesToPlusCode,
   plusCodeToCoordinates,
+  plusCodeToRectangle,
 } from "@/utils/map.utils";
 import {
   FlatList,
@@ -18,7 +19,7 @@ import {
   eventsSelectors,
   EventWithMetadata,
 } from "@/redux/slices/events.slice";
-import MapView, { Callout, LatLng, Marker } from "react-native-maps";
+import MapView, { Callout, LatLng, Marker, Polygon } from "react-native-maps";
 import Toast from "react-native-root-toast";
 
 import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@/common/constants";
@@ -98,30 +99,39 @@ const NoteMarker = ({
   }
 
   const layerConfig = getMapLayer(layerKey);
-
   const coordinates = plusCodeToCoordinates(plusCode);
+  const rectangleCoordinates = plusCodeToRectangle(plusCode);
 
   const url = getEventLinkUrl(event.event, layerConfig);
 
   const pinColor = layerConfig?.markerColor || "red";
 
   return (
-    <Marker coordinate={coordinates} pinColor={pinColor}>
-      <Callout
-        onPress={() => {
-          if (typeof url !== "undefined") {
-            Linking.openURL(url);
-          }
-        }}
-      >
-        <View style={styles.marker}>
-          <Text>
-            {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content} `}
-            <Text style={{ color: "blue" }}>{url}</Text>
-          </Text>
-        </View>
-      </Callout>
-    </Marker>
+    <View>
+      <Marker coordinate={coordinates} pinColor={pinColor}>
+        <Callout
+          onPress={() => {
+            if (typeof url !== "undefined") {
+              Linking.openURL(url);
+            }
+          }}
+        >
+          <View style={styles.marker}>
+            <Text>
+              {`${new Date(event.event.created_at * 1000).toLocaleString()} ${event.event.content} `}
+              <Text style={{ color: "blue" }}>{url}</Text>
+              <Text>{plusCode || null}</Text>
+            </Text>
+          </View>
+        </Callout>
+      </Marker>
+      <Polygon
+        coordinates={rectangleCoordinates}
+        fillColor="rgba(0, 200, 0, 0.5)" // Semi-transparent green
+        strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
+        strokeWidth={2}
+      />
+    </View>
   );
 };
 
@@ -233,6 +243,7 @@ export default function Map() {
             placeholder="Enter your note"
             value={note}
             onChangeText={setNote}
+            onSubmitEditing={handleAddNote}
           />
           <Button title="Add Note" onPress={handleAddNote} />
           <Button title="Cancel" onPress={() => setModalVisible(false)} />

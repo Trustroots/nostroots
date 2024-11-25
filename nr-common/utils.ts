@@ -26,8 +26,35 @@ export function isHexKey(key: string): boolean {
 
 export function isPlusCode(code: string) {
   const re =
-    /(^|\s)([23456789C][23456789CFGHJMPQRV][23456789CFGHJMPQRVWX]{6}\+[23456789CFGHJMPQRVWX]{2,7})(\s|$)/i;
-  return re.test(code);
+    /(^|\s)([23456789C][23456789CFGHJMPQRV][023456789CFGHJMPQRVWX]{6}\+[23456789CFGHJMPQRVWX]*)(\s|$)/i;
+  const simpleTestResult = re.test(code);
+  if (simpleTestResult === false) {
+    return false;
+  }
+  if (code[0] === "0" || code[1] === "0") {
+    return false;
+  }
+  const { failed } = code.split("").reduce(
+    ({ failed, zeroSeen }, letter) => {
+      if (failed || letter === "+") {
+        return { failed, zeroSeen };
+      }
+      if (letter === "0") {
+        return { failed, zeroSeen: true };
+      } else {
+        if (zeroSeen) {
+          return { failed: true, zeroSeen };
+        } else {
+          return { failed, zeroSeen };
+        }
+      }
+    },
+    { failed: false, zeroSeen: false }
+  );
+  if (failed) {
+    return false;
+  }
+  return true;
 }
 
 export function getCurrentTimestamp() {

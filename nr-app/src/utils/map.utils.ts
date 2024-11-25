@@ -5,6 +5,10 @@ type PlusCodeShortLength = 2 | 4 | 6 | 8;
 
 const plusCodeCharacters = "23456789CFGHJMPQRVWX" as const;
 
+export function isValidPlusCode(code: string): boolean {
+  return OpenLocationCode.isValid(code);
+}
+
 export function coordinatesToPlusCode({
   latitude,
   longitude,

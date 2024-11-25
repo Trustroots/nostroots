@@ -3,6 +3,7 @@ import {
   coordinatesToPlusCode,
   plusCodeToCoordinates,
   plusCodeToRectangle,
+  isValidPlusCode,
 } from "@/utils/map.utils";
 import {
   FlatList,
@@ -30,7 +31,7 @@ import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@common/constants";
 import {
   getFirstLabelValueFromEvent,
   getFirstTagValueFromEvent,
-  isPlusCode,
+  // isPlusCode,
 } from "@common/utils";
 import { createSelector } from "@reduxjs/toolkit";
 import { matchFilter, NostrEvent } from "nostr-tools";
@@ -47,9 +48,11 @@ const selectEventsForLayers = createSelector(
       (layerKey): [MAP_LAYER_KEY, EventWithMetadata[]] => {
         const layerConfig = MAP_LAYERS[layerKey];
         const filter = filterForMapLayerConfig(layerConfig);
+        console.log("RETLIF", filter);
         const events = allEvents.filter((event) =>
           matchFilter(filter, event.event),
         );
+        console.log("STNEVE", events);
         return [layerKey, events];
       },
     );
@@ -94,11 +97,13 @@ const NoteMarker = ({
     "open-location-code",
   );
 
-  if (typeof plusCode === "undefined" || !isPlusCode(plusCode)) {
-    console.warn(
+  if (typeof plusCode === "undefined" || !isValidPlusCode(plusCode)) {
+    console.log(
       "#9k8qKM skipping event with missing / invalid plusCode",
       event,
     );
+    console.log(plusCode);
+    console.log("Event tags:", event.event.tags);
     return null;
   }
 
@@ -109,6 +114,7 @@ const NoteMarker = ({
   const url = getEventLinkUrl(event.event, layerConfig);
 
   const pinColor = layerConfig?.markerColor || "red";
+  const rectangleColor = layerConfig?.rectangleColor || "rgba(255,0,0,0.5)";
 
   return (
     <View>
@@ -131,7 +137,7 @@ const NoteMarker = ({
       </Marker>
       <Polygon
         coordinates={rectangleCoordinates}
-        fillColor="rgba(0, 200, 0, 0.5)" // Semi-transparent green
+        fillColor={rectangleColor}
         strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
         strokeWidth={2}
       />
@@ -220,11 +226,11 @@ export default function Map() {
           keyExtractor={([key]) => key}
           renderItem={({ item: [key, config] }) => (
             <View style={styles.toggleContainer}>
-              <Text>{config.title}</Text>
               <Switch
                 value={enabledLayers[key]}
                 onValueChange={() => void dispatch(toggleLayer(key))}
               />
+              <Text>{config.title} </Text>
             </View>
           )}
         />

@@ -27,9 +27,10 @@ export const TIMESAFARI_AUTHOR_PUBLIC_KEY =
 export type MapLayer = {
   title: string;
   rootUrl: string;
-  kind: 30399 | 30398;
+  kind: 30399 | 30398 | 30397;
   pubkey: string;
   markerColor: string;
+  rectangleColor: string;
 };
 
 export const MAP_LAYERS = {
@@ -38,28 +39,38 @@ export const MAP_LAYERS = {
     rootUrl: "https://hitchmap.com",
     kind: 30399,
     pubkey: HITCHMAPS_AUTHOR_PUBLIC_KEY,
-    markerColor: "gold",
+    markerColor: "yellow",
+    rectangleColor: "rgba(255, 255, 0, 0.5)",
   } as MapLayer,
   hitchwiki: {
     title: "Hitchwiki",
     rootUrl: "https://hitchwiki.org",
     kind: 30399,
     pubkey: HITCHWIKI_AUTHOR_PUBLIC_KEY,
-    markerColor: "yellow",
+    markerColor: "gold",
+    rectangleColor: "rgba(255, 215, 0, 0.5)",
   } as MapLayer,
   timesafari: {
     title: "Time Safari",
     rootUrl: "https://www.timesafari.app",
     kind: 30399,
     pubkey: TIMESAFARI_AUTHOR_PUBLIC_KEY,
-    markerColor: "green",
+    markerColor: "blue",
+    rectangleColor: "rgba(0, 0, 255, 0.5)",
   } as MapLayer,
   triphopping: {
     title: "Trip Hopping",
     rootUrl: "https://www.triphopping.com",
     kind: 30398,
     pubkey: DEV_PUBKEY,
-    markerColor: "blue",
+    markerColor: "brown",
+  } as MapLayer,
+  unverified: {
+    title: "Unverified",
+    rootUrl: "https://notes.trustroots.org",
+    kind: 30397,
+    markerColor: "red",
+    rectangleColor: "rgba(255, 0, 0, 0.5)",
   } as MapLayer,
 } as const;
 export type MAP_LAYER_KEY = keyof typeof MAP_LAYERS;

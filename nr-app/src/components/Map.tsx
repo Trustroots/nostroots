@@ -3,6 +3,7 @@ import {
   coordinatesToPlusCode,
   plusCodeToCoordinates,
   plusCodeToRectangle,
+  isValidPlusCode,
 } from "@/utils/map.utils";
 import {
   FlatList,
@@ -30,7 +31,7 @@ import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@common/constants";
 import {
   getFirstLabelValueFromEvent,
   getFirstTagValueFromEvent,
-  isPlusCode,
+  // isPlusCode,
 } from "@common/utils";
 import { createSelector } from "@reduxjs/toolkit";
 import { matchFilter, NostrEvent } from "nostr-tools";
@@ -47,9 +48,11 @@ const selectEventsForLayers = createSelector(
       (layerKey): [MAP_LAYER_KEY, EventWithMetadata[]] => {
         const layerConfig = MAP_LAYERS[layerKey];
         const filter = filterForMapLayerConfig(layerConfig);
+        console.log('RETLIF', filter);
         const events = allEvents.filter((event) =>
           matchFilter(filter, event.event),
         );
+        console.log('STNEVE', events);
         return [layerKey, events];
       },
     );
@@ -94,11 +97,12 @@ const NoteMarker = ({
     "open-location-code",
   );
 
-  if (typeof plusCode === "undefined" || !isPlusCode(plusCode)) {
+  if (typeof plusCode === "undefined" || !isValidPlusCode(plusCode)) {
     console.warn(
       "#9k8qKM skipping event with missing / invalid plusCode",
       event,
     );
+    console.log(plusCode);
     return null;
   }
 

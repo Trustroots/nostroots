@@ -45,7 +45,7 @@ export function trustrootsMapFilterForPlusCodePrefixes(
 
 export function filterForMapLayerConfig(layerConfig: MapLayer): Filter {
   const filter: Filter = {
-    authors: [layerConfig.pubkey],
+    ...(layerConfig.pubkey ? { authors: [layerConfig.pubkey] } : {}),
     kinds: [layerConfig.kind],
   };
   return filter;

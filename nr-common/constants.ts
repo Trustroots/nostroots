@@ -65,7 +65,6 @@ export const MAP_LAYERS = {
     title: "Unverified",
     rootUrl: "https://notes.trustroots.org",
     kind: 30397,
-    pubkey: '*',
     markerColor: "red",
   } as MapLayer,
 } as const;

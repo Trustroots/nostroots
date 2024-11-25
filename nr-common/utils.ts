@@ -5,6 +5,7 @@ import {
 } from "./constants.ts";
 import type { Event } from "./mod.ts";
 
+
 function last<T>(items: T[]): T {
   const lastIndex = Math.max(items.length - 1, 0);
   return items[lastIndex];
@@ -25,6 +26,10 @@ export function isHexKey(key: string): boolean {
 }
 
 export function isPlusCode(code: string) {
+  return true;
+  // todo: use OpenLocationCode.isValid instead
+  // https://github.com/tspoke/typescript-open-location-code/blob/f44c7dd208fc65a903f4ab28381f0b4b59faac47/src/open-location-code.ts#L137
+
   const re =
     /(^|\s)([23456789C][23456789CFGHJMPQRV][23456789CFGHJMPQRVWX]{6}\+[23456789CFGHJMPQRVWX]{2,7})(\s|$)/i;
   return re.test(code);

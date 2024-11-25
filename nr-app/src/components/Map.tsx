@@ -30,6 +30,7 @@ import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@common/constants";
 import {
   getFirstLabelValueFromEvent,
   getFirstTagValueFromEvent,
+  isPlusCode,
 } from "@common/utils";
 import { createSelector } from "@reduxjs/toolkit";
 import { matchFilter, NostrEvent } from "nostr-tools";
@@ -93,7 +94,11 @@ const NoteMarker = ({
     "open-location-code",
   );
 
-  if (typeof plusCode === "undefined") {
+  if (typeof plusCode === "undefined" || !isPlusCode(plusCode)) {
+    console.warn(
+      "#9k8qKM skipping event with missing / invalid plusCode",
+      event,
+    );
     return null;
   }
 

@@ -52,21 +52,21 @@ export default function TabThreeScreen() {
         <Button
           title="Get nsec and mnemonic"
           onPress={async () => {
-            const keyHex = await getPrivateKeyHex();
-            const mnemonic = await getPrivateKeyMnemonic();
-            const { bech32PrivateKey } = getBech32PrivateKey({
-              privateKey: keyHex,
-            });
-            console.log("#GHL6ei Got hexKey and mnemonic", {
-              keyHex,
-              mnemonic,
-            });
-            setNsec(bech32PrivateKey);
-            setMnemonic(mnemonic);
-            setTimeout(() => {
-              setNsec("");
-              setMnemonic("");
-            }, 3e3);
+            try {
+              const keyHex = await getPrivateKeyHex();
+              const mnemonic = await getPrivateKeyMnemonic();
+              const { bech32PrivateKey } = getBech32PrivateKey({
+                privateKey: keyHex,
+              });
+              setNsec(bech32PrivateKey);
+              setMnemonic(mnemonic);
+              setTimeout(() => {
+                setNsec("");
+                setMnemonic("");
+              }, 3e3);
+            } catch (error) {
+              console.error("#bVVgTl Error getting nsec and mnemonic", error);
+            }
           }}
         />
         <TextInput style={styles.input} value={nsec} />
@@ -79,17 +79,21 @@ export default function TabThreeScreen() {
         <Button
           title="Save mnemonic"
           onPress={async () => {
-            dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonic)).then(
-              Toast.show("Saved", {
-                position: Toast.positions.TOP,
-                duration: Toast.durations.LONG,
-              }).catch((error: Error) => {
+            dispatch(
+              setPrivateKeyMnemonicPromiseAction.request(mnemonic.trim()),
+            )
+              .then(
+                Toast.show("Saved", {
+                  position: Toast.positions.TOP,
+                  duration: 10e3,
+                }),
+              )
+              .catch((error: Error) => {
                 Toast.show(`#EgV9ut Error ${error}`, {
                   position: Toast.positions.TOP,
-                  duration: Toast.durations.LONG,
+                  duration: 10e3,
                 });
-              }),
-            );
+              });
           }}
         />
         <Text style={styles.header}>Relays</Text>

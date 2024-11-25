@@ -11,6 +11,7 @@
     "test": "jest --watchAll",
     "lint": "expo lint",
     "lint-fix": "eslint --fix",
+    "lint-tsc": "tsc --noEmit",
     "prepare": "cd .. && husky nr-app/.husky"
   },
   "jest": {

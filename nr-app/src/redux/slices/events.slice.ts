@@ -1,5 +1,5 @@
 import { ID_SEPARATOR } from "@/constants";
-import { Event } from "@common/mod";
+import { Event, isValidEvent } from "@common/mod";
 import {
   createEntityAdapter,
   createSlice,
@@ -75,6 +75,12 @@ export const eventsSlice = createSlice({
       action: PayloadAction<{ event: Event; fromRelay: string }>,
     ) => {
       const { event, fromRelay: seenOnRelay } = action.payload;
+
+      // Skip events which don't pass validation
+      if (!isValidEvent(event)) {
+        return;
+      }
+
       const storageId = getStorageId(event);
 
       const eventWithMetadata = {

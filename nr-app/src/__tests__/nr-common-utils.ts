@@ -78,6 +78,15 @@ describe("nr-common/utils", () => {
       });
     });
 
+    describe("rejects plus codes with a single character after the plus", () => {
+      const invalidCodes = ["7FG49QCJ+2"];
+      invalidCodes.forEach((code) => {
+        it(`rejects ${code}`, () => {
+          expect(isPlusCode(code)).toEqual(false);
+        });
+      });
+    });
+
     describe("rejects codes with leading zeroes", () => {
       const invalidCodes = [
         "00G49Q00+2",

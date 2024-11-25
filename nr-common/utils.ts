@@ -32,15 +32,23 @@ export function isHexKey(key: string): boolean {
 }
 
 export function isPlusCode(code: string) {
+  // Test against a regex that does a reasonable job of finding bad values
   const re =
     /(^|\s)([23456789C][23456789CFGHJMPQRV][023456789CFGHJMPQRVWX]{6}\+[23456789CFGHJMPQRVWX]*)(\s|$)/i;
   const simpleTestResult = re.test(code);
   if (simpleTestResult === false) {
     return false;
   }
-  if (code[0] === "0" || code[1] === "0") {
-    return false;
+
+  // Don't allow just 1 trailing character after the plus
+  if (code.length > 9) {
+    const [, trailing] = code.split("+");
+    if (trailing.length === 1) {
+      return false;
+    }
   }
+
+  // Check if any characters follow a zero like `AA00AA00+` is invalid
   const { failed } = code.split("").reduce(
     ({ failed, zeroSeen }, letter) => {
       if (failed || letter === "+") {
@@ -61,6 +69,7 @@ export function isPlusCode(code: string) {
   if (failed) {
     return false;
   }
+
   return true;
 }
 

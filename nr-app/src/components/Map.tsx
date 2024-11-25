@@ -48,11 +48,11 @@ const selectEventsForLayers = createSelector(
       (layerKey): [MAP_LAYER_KEY, EventWithMetadata[]] => {
         const layerConfig = MAP_LAYERS[layerKey];
         const filter = filterForMapLayerConfig(layerConfig);
-        console.log('RETLIF', filter);
+        console.log("RETLIF", filter);
         const events = allEvents.filter((event) =>
           matchFilter(filter, event.event),
         );
-        console.log('STNEVE', events);
+        console.log("STNEVE", events);
         return [layerKey, events];
       },
     );
@@ -98,11 +98,12 @@ const NoteMarker = ({
   );
 
   if (typeof plusCode === "undefined" || !isValidPlusCode(plusCode)) {
-    console.warn(
+    console.log(
       "#9k8qKM skipping event with missing / invalid plusCode",
       event,
     );
     console.log(plusCode);
+    console.log("Event tags:", event.event.tags);
     return null;
   }
 
@@ -113,6 +114,7 @@ const NoteMarker = ({
   const url = getEventLinkUrl(event.event, layerConfig);
 
   const pinColor = layerConfig?.markerColor || "red";
+  const rectangleColor = layerConfig?.rectangleColor || "rgba(255,0,0,0.5)";
 
   return (
     <View>
@@ -135,7 +137,7 @@ const NoteMarker = ({
       </Marker>
       <Polygon
         coordinates={rectangleCoordinates}
-        fillColor="rgba(0, 200, 0, 0.5)" // Semi-transparent green
+        fillColor={rectangleColor}
         strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
         strokeWidth={2}
       />

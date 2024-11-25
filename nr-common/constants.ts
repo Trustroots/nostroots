@@ -30,6 +30,7 @@ export type MapLayer = {
   kind: 30399 | 30398 | 30397;
   pubkey: string;
   markerColor: string;
+  rectangleColor: string;
 };
 
 export const MAP_LAYERS = {
@@ -38,14 +39,16 @@ export const MAP_LAYERS = {
     rootUrl: "https://hitchmap.com",
     kind: 30399,
     pubkey: HITCHMAPS_AUTHOR_PUBLIC_KEY,
-    markerColor: "gold",
+    markerColor: "yellow",
+    rectangleColor: "rgba(255, 255, 0, 0.5)",
   } as MapLayer,
   hitchwiki: {
     title: "Hitchwiki",
     rootUrl: "https://hitchwiki.org",
     kind: 30399,
     pubkey: HITCHWIKI_AUTHOR_PUBLIC_KEY,
-    markerColor: "yellow",
+    markerColor: "gold",
+    rectangleColor: "rgba(255, 215, 0, 0.5)",
   } as MapLayer,
   timesafari: {
     title: "Time Safari",
@@ -53,6 +56,7 @@ export const MAP_LAYERS = {
     kind: 30399,
     pubkey: TIMESAFARI_AUTHOR_PUBLIC_KEY,
     markerColor: "blue",
+    rectangleColor: "rgba(0, 0, 255, 0.5)",
   } as MapLayer,
   triphopping: {
     title: "Trip Hopping",
@@ -66,6 +70,7 @@ export const MAP_LAYERS = {
     rootUrl: "https://notes.trustroots.org",
     kind: 30397,
     markerColor: "red",
+    rectangleColor: "rgba(255, 0, 0, 0.5)",
   } as MapLayer,
 } as const;
 export type MAP_LAYER_KEY = keyof typeof MAP_LAYERS;

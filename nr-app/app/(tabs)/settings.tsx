@@ -14,8 +14,10 @@ import {
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
+  View,
 } from "react-native";
 import Toast from "react-native-root-toast";
 
@@ -151,6 +153,10 @@ export default function TabThreeScreen() {
           }}
         />
       </ScrollView>
+      <View>
+        <Switch value={true} />
+        <Text>dev mode</Text>
+      </View>
     </SafeAreaView>
   );
 }

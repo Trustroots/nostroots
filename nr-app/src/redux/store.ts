@@ -9,6 +9,7 @@ import { eventsSlice } from "./slices/events.slice";
 import { mapSlice } from "./slices/map.slice";
 import { relaysSlice } from "./slices/relays.slice";
 import { keystoreSlice } from "./slices/keystore.slice";
+import { settingsSlice } from "./slices/settings.slice";
 
 const isOnDevice = Platform.OS !== "web";
 
@@ -21,6 +22,7 @@ const reducer = combineSlices(
   keystoreSlice,
   mapSlice,
   relaysSlice,
+  settingsSlice,
 );
 
 export const store = configureStore({

@@ -1,4 +1,4 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 type SettingsState = {
   areTestFeaturesEnabled: boolean;
@@ -12,7 +12,7 @@ export const settingsSlice = createSlice({
   name: "settings",
   initialState,
   reducers: {
-    toggleTestFeatures: (state, action) => {
+    toggleTestFeatures: (state, action: PayloadAction) => {
       state.areTestFeaturesEnabled = !state.areTestFeaturesEnabled;
     },
   },

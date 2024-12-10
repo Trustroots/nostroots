@@ -24,22 +24,20 @@ import Toast from "react-native-root-toast";
 const DevSwitch = () => {
   const [devMode, setDevMode] = useState(true); // Local state for toggle
 
-  const toggleVisibility = (value: boolean | ((prevState: boolean) => boolean)) => {
+  const toggleVisibility = (
+    value: boolean | ((prevState: boolean) => boolean),
+  ) => {
     setDevMode(value); // Update visibility based on switch value
   };
 
   return (
     <View>
-    <Switch
-      value={devMode}
-      onValueChange={toggleVisibility}
-    />
-    <Text>dev mode</Text>
-    {devMode && <Text>DEV MODE ON</Text>}
+      <Switch value={devMode} onValueChange={toggleVisibility} />
+      <Text>dev mode</Text>
+      {devMode && <Text>DEV MODE ON</Text>}
     </View>
   );
 };
-
 
 export default function TabThreeScreen() {
   const [nsec, setNsec] = useState("");

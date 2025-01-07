@@ -19,7 +19,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "org.trustroots.nostroots"
     },
     "web": {
       "bundler": "metro",
@@ -40,7 +41,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "0147b304-d2cd-4e24-a237-da8bd5f3e4f3"
+        "projectId": "a6c7b2e0-f036-44a3-b57c-d05b9d383c30"
       }
     },
     "runtimeVersion": {
@@ -49,6 +50,7 @@
     "newArchEnabled": true,
     "updates": {
       "url": "https://u.expo.dev/0147b304-d2cd-4e24-a237-da8bd5f3e4f3"
-    }
+    },
+    "owner": "nostroots"
   }
 }

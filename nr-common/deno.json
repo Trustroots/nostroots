@@ -4,6 +4,7 @@
   "exports": "./mod.ts",
   "imports": {
     "@babel/runtime": "npm:@babel/runtime@^7.26.0",
+    "@deno/dnt": "jsr:@deno/dnt@^0.41.3",
     "zod": "npm:zod@^3.23.8"
   },
   "tasks": {

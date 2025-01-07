@@ -6,7 +6,7 @@ import {
   plusCodeToCoordinates,
   plusCodeToRectangle,
 } from "@/utils/map.utils";
-import { getFirstLabelValueFromEvent } from "@common/utils";
+import { getFirstLabelValueFromEvent } from "@trustroots/nr-common";
 import React, { memo } from "react";
 import { Linking, StyleSheet, Text, View } from "react-native";
 import { Callout, Marker, Polygon } from "react-native-maps";

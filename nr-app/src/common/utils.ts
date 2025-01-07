@@ -1,6 +1,6 @@
 import { Filter } from "nostr-tools";
-import { MapLayer, NOSTROOTS_VALIDATION_PUBKEY } from "@common/constants";
-import { isHexKey } from "@common/utils";
+import { MapLayer, NOSTROOTS_VALIDATION_PUBKEY } from "@trustroots/nr-common";
+import { isHexKey } from "@trustroots/nr-common";
 
 // TODO - Move these into `nr-common` (they depend on nostr-tools)
 

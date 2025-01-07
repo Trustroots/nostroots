@@ -4,7 +4,7 @@ import { publishNotePromiseAction } from "@/redux/actions/publish.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { coordinatesToPlusCode } from "@/utils/map.utils";
-import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@common/constants";
+import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@trustroots/nr-common";
 import React, { useMemo, useState } from "react";
 import { Button, Modal, TextInput } from "react-native";
 import Toast from "react-native-root-toast";

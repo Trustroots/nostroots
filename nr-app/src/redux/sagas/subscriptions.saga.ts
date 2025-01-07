@@ -2,7 +2,7 @@ import {
   getSubscription,
   subscribeToFilter,
 } from "@/nostr/subscriptions.nostr";
-import { DEFAULT_RELAY_URL } from "@common/constants";
+import { DEFAULT_RELAY_URL } from "@trustroots/nr-common";
 import { Subscription } from "nostr-tools/lib/types/abstract-relay";
 import {
   all,

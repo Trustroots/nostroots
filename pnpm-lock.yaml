@@ -25,6 +25,9 @@ importers:
       '@reduxjs/toolkit':
         specifier: ^2.2.7
         version: 2.5.0(react-redux@9.2.0(@types/react@18.3.18)(react@18.3.1)(redux@5.0.1))(react@18.3.1)
+      '@trustroots/nr-common':
+        specifier: npm:@jsr/trustroots__nr-common@^0.0.1
+        version: '@jsr/trustroots__nr-common@0.0.1'
       expo:
         specifier: ~52.0.8
         version: 52.0.23(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@expo/metro-runtime@4.0.0(react-native@0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@types/react@18.3.18)(react@18.3.1)))(react-native@0.76.5(@babel/core@7.26.0)(@babel/preset-env@7.26.0(@babel/core@7.26.0))(@types/react@18.3.18)(react@18.3.1))(react@18.3.1)
@@ -78,7 +81,7 @@ importers:
         version: 2.10.3(typescript@5.3.3)
       nr-common:
         specifier: workspace:*
-        version: link:../nr-common/nr-common
+        version: link:../nr-common/build
       open-location-code-typescript:
         specifier: ^1.5.0
         version: 1.5.0
@@ -192,7 +195,7 @@ importers:
         specifier: ~5.3.3
         version: 5.3.3
 
-  nr-common/nr-common:
+  nr-common/build:
     devDependencies:
       '@types/node':
         specifier: ^20.9.0
@@ -1148,6 +1151,9 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
+
+  '@jsr/trustroots__nr-common@0.0.1':
+    resolution: {integrity: sha512-25w/4CO99my18qI3FYAPT9cxvkC6cxQXOZFl6HP4kjKyWv+GlzprN5Cp+vzZFQFUvPfPDevuYMQ9YozL1vaiJA==, tarball: https://npm.jsr.io/~/11/@jsr/trustroots__nr-common/0.0.1.tgz}
 
   '@mobily/ts-belt@3.13.1':
     resolution: {integrity: sha512-K5KqIhPI/EoCTbA6CGbrenM9s41OouyK8A03fGJJcla/zKucsgLbz8HNbeseoLarRPgyWJsUyCYqFhI7t3Ra9Q==}
@@ -7094,6 +7100,10 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
+
+  '@jsr/trustroots__nr-common@0.0.1':
+    dependencies:
+      zod: 3.24.1
 
   '@mobily/ts-belt@3.13.1': {}
 

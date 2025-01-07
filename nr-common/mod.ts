@@ -6,6 +6,9 @@ import {
   isPlusCode,
 } from "./utils.ts";
 
+export * from "./utils.ts";
+export * from "./constants.ts";
+
 // import { version as PACKAGE_VERSION } from "./deno.json" with { type: "json" };
 export const CONTENT_MINIMUM_LENGTH = 3;
 export const CONTENT_MAXIMUM_LENGTH = 300;

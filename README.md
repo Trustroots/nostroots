@@ -41,9 +41,8 @@ There are 3 parts to this code.
 - `nr-app` - An expo app
 - `nr-server` - A deno application that is hosted by Trustroots
 
-Before starting development of either `nr-app` or `nr-server`, first setup the `nr-common` code as per `nr-common/README.md`.
-
-
+> [!IMPORTANT]  
+> Before starting development of either `nr-app` or `nr-server`, first setup the `nr-common` code as per `nr-common/README.md`.
 
 ## Roadmap
 

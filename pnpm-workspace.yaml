@@ -1,0 +1,3 @@
+packages:
+  - 'nr-app'
+  - 'nr-common/build'

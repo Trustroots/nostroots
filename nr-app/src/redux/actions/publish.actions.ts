@@ -2,7 +2,7 @@ import { SerializableError } from "@/utils/error.utils";
 import {
   getCurrentTimestamp,
   getPlusCodeAndPlusCodePrefixTags,
-} from "@common/utils";
+} from "@trustroots/nr-common";
 import { nanoid } from "@reduxjs/toolkit";
 import { EventTemplate } from "nostr-tools";
 import { createPromiseAction } from "redux-saga-promise-actions";

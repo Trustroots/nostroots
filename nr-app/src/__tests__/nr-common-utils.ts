@@ -1,4 +1,4 @@
-import { isPlusCode } from "@common/utils";
+import { isPlusCode } from "@trustroots/nr-common";
 
 const plusCodeTestData: [string, number, number, number, number, number][] = [
   ["7FG49Q00+", 6, 20.35, 2.75, 20.4, 2.8],

@@ -7,7 +7,7 @@ import {
 } from "@/redux/slices/events.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { allPlusCodesForRegion } from "@/utils/map.utils";
-import { MAP_LAYER_KEY, MAP_LAYERS } from "@common/constants";
+import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { createSelector } from "@reduxjs/toolkit";
 import { matchFilter } from "nostr-tools";
 import { Fragment, useMemo } from "react";

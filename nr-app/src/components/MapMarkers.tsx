@@ -17,6 +17,7 @@ import MapView, {
   LongPressEvent,
   Marker,
   Region,
+  PROVIDER_GOOGLE,
 } from "react-native-maps";
 import { MapNoteMarker } from "./MapNoteMarker";
 
@@ -74,6 +75,7 @@ export function MapMarkers() {
       pitchEnabled={false}
       onLongPress={handleMapLongPress}
       onRegionChangeComplete={handleMapRegionChange}
+      provider={PROVIDER_GOOGLE}
     >
       <Marker
         coordinate={{ latitude: 52, longitude: 13 }}

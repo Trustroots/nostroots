@@ -14,7 +14,12 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "org.trustroots.nostroots"
+      "bundleIdentifier": "org.trustroots.nostroots",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyDw0KhR3qlPsireu68RvGXmh4nccIqnEQM"
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {

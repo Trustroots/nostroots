@@ -21,7 +21,12 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "org.trustroots.nostroots"
+      "package": "org.trustroots.nostroots",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCr1ZxZlVQNI_u7FYfPkjgvZv79UeaPFYQ"
+        }
+      }
     },
     "web": {
       "bundler": "metro",

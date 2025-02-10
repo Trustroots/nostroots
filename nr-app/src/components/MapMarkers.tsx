@@ -77,7 +77,7 @@ export function MapMarkers() {
     >
       <Marker
         coordinate={{ latitude: 52, longitude: 13 }}
-        title="A marker"
+        title="A hard coded test marker that should be removed soon"
         pinColor="indigo"
       />
 

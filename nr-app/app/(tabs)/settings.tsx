@@ -7,6 +7,11 @@ import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
+import {
+  settingsActions,
+  settingsSelectors,
+  settingsSlice,
+} from "@/redux/slices/settings.slice";
 import { generateSeedWords, getBech32PrivateKey } from "nip06";
 import { useEffect, useState } from "react";
 import {
@@ -22,19 +27,25 @@ import {
 import Toast from "react-native-root-toast";
 
 const DevSwitch = () => {
-  const [devMode, setDevMode] = useState(true); // Local state for toggle
+  const dispatch = useAppDispatch();
+  const areTestFeaturesEnabled = useAppSelector(
+    settingsSelectors.selectAreTestFeaturesEnabled,
+  );
 
-  const toggleVisibility = (
+  const toggleTestFeatures = (
     value: boolean | ((prevState: boolean) => boolean),
   ) => {
-    setDevMode(value); // Update visibility based on switch value
+    dispatch(settingsActions.toggleTestFeatures);
   };
 
   return (
     <View>
-      <Switch value={devMode} onValueChange={toggleVisibility} />
+      <Switch
+        value={areTestFeaturesEnabled}
+        onValueChange={toggleTestFeatures}
+      />
       <Text>dev mode</Text>
-      {devMode && <Text>DEV MODE ON</Text>}
+      {areTestFeaturesEnabled && <Text>DEV MODE ON</Text>}
     </View>
   );
 };

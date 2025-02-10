@@ -128,7 +128,7 @@ export default function TabThreeScreen() {
           }}
         />
         <Text style={styles.header}>Relays</Text>
-        <TextInput style={styles.input} value="['relay1', 'relay2']" />
+        <TextInput style={styles.input} value="['relay.trustroots.org']" />
         <Text style={styles.header}>Help</Text>
         <Text style={styles.q}>How does this work?</Text>
 

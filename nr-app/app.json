@@ -19,6 +19,9 @@
         "googleMaps": {
           "apiKey": "AIzaSyDw0KhR3qlPsireu68RvGXmh4nccIqnEQM"
         }
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {

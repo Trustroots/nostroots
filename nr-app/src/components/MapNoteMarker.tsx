@@ -7,7 +7,7 @@ import {
   plusCodeToRectangle,
 } from "@/utils/map.utils";
 import { getFirstLabelValueFromEvent } from "@common/utils";
-import React, { memo } from "react";
+import React, { Fragment, memo } from "react";
 import { Linking, StyleSheet, Text, View } from "react-native";
 import { Callout, Marker, Polygon } from "react-native-maps";
 
@@ -42,7 +42,7 @@ export function MapNoteMarkerInner({
   const rectangleColor = layerConfig?.rectangleColor || "rgba(255,0,0,0.5)";
 
   return (
-    <View>
+    <Fragment>
       <Marker coordinate={coordinates} pinColor={pinColor}>
         <Callout
           onPress={() => {
@@ -66,7 +66,7 @@ export function MapNoteMarkerInner({
         strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
         strokeWidth={2}
       />
-    </View>
+    </Fragment>
   );
 }
 

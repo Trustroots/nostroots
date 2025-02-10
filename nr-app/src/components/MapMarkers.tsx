@@ -18,8 +18,10 @@ import MapView, {
   Marker,
   Region,
   PROVIDER_GOOGLE,
+  PROVIDER_DEFAULT,
 } from "react-native-maps";
 import { MapNoteMarker } from "./MapNoteMarker";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 
 const selectEventsForLayers = createSelector(
   [eventsSelectors.selectAll, mapSelectors.selectEnabledLayerKeys],
@@ -75,7 +77,11 @@ export function MapMarkers() {
       pitchEnabled={false}
       onLongPress={handleMapLongPress}
       onRegionChangeComplete={handleMapRegionChange}
-      provider={PROVIDER_GOOGLE}
+      provider={
+        Constants.executionEnvironment === ExecutionEnvironment.StoreClient
+          ? PROVIDER_DEFAULT
+          : PROVIDER_GOOGLE
+      }
     >
       <Marker
         coordinate={{ latitude: 52, longitude: 13 }}

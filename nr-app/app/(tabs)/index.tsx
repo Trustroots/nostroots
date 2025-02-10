@@ -1,5 +1,10 @@
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Map from "@/components/Map";
 
 export default function HomeScreen() {
-  return <Map />;
+  return (
+    <ErrorBoundary>
+      <Map />
+    </ErrorBoundary>
+  );
 }

@@ -18,7 +18,7 @@ export function MapNoteMarkerInner({
   event: EventWithMetadata;
   layerKey?: string;
 }) {
-  console.log("#iNicG9 NoteMarker / render()", Date.now());
+  // console.log("#iNicG9 NoteMarker / render()", Date.now());
   const plusCode = getFirstLabelValueFromEvent(
     event.event,
     "open-location-code",

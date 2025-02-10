@@ -77,7 +77,7 @@ export default function Map() {
                 value={enabledLayers[key]}
                 onValueChange={() => void dispatch(mapActions.toggleLayer(key))}
               />
-              <Text>{config.title} </Text>
+              <Text style={styles.layerToggle}>{config.title} </Text>
             </View>
           )}
         />
@@ -130,6 +130,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.7)",
+  },
+  layerToggle: {
+    backgroundColor: "rgba(255, 255, 0, 0.7)",
   },
   input: {
     width: 200,

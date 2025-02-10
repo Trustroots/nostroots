@@ -44,6 +44,13 @@ There are 3 parts to this code.
 > [!IMPORTANT]  
 > Before starting development of either `nr-app` or `nr-server`, first setup the `nr-common` code as per `nr-common/README.md`.
 
+Run `pnpm i` in the root directory.
+In `nr-app`, run `pnpm start` and choose expo.
+For a development build, make sure you have Android or iOS build tools installed.
+
+### EAS Build locally
+You'll need to install the appropriate dev tools. For iOS, that's at least CocoaPods and Fastlane. For Android, it's Android studio
+
 ## Roadmap
 
 Goal: 70% of active Trustroots users are on Nostroots by middle of 2026

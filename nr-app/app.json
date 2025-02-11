@@ -16,9 +16,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "org.trustroots.nostroots",
       "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyDw0KhR3qlPsireu68RvGXmh4nccIqnEQM"
-        }
+        "googleMapsApiKey": "AIzaSyDw0KhR3qlPsireu68RvGXmh4nccIqnEQM"
       },
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -29,7 +27,12 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "org.trustroots.nostroots"
+      "package": "org.trustroots.nostroots",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCr1ZxZlVQNI_u7FYfPkjgvZv79UeaPFYQ"
+        }
+      }
     },
     "web": {
       "bundler": "metro",

@@ -41,11 +41,9 @@ There are 3 parts to this code.
 - `nr-app` - An expo app
 - `nr-server` - A deno application that is hosted by Trustroots
 
-> [!IMPORTANT]  
-> Before starting development of either `nr-app` or `nr-server`, first setup the `nr-common` code as per `nr-common/README.md`.
-
 Run `pnpm i` in the root directory.
-In `nr-app`, run `pnpm start` and choose expo.
+In `nr-app`, run `pnpm run start` and choose Expo Go.
+Then try switching to a device build. You can also start a device build directly by running `pnpm run ios` or `pnpm run android`.
 For a development build, make sure you have Android or iOS build tools installed.
 
 ### EAS Build locally

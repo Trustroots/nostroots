@@ -75,13 +75,16 @@ export default function TabThreeScreen() {
     <SafeAreaView style={styles.settings}>
       <ScrollView>
         <Text style={styles.header}>Keys</Text>
-        <Text style={styles.settings}>npub</Text>
+        <Text style={styles.q}>npub</Text>
         <TextInput style={styles.input} value={npub} />
+        {/**
         <Text style={styles.settings}>pub key hex</Text>
         <TextInput style={styles.input} value={pubHex} />
-        <Text style={styles.settings}>nsec</Text>
+        */}
+        <Text style={styles.q}>nsec</Text>
+        <TextInput style={styles.input} value={nsec} />
         <Button
-          title="Get nsec and mnemonic"
+          title="Show nsec"
           onPress={async () => {
             try {
               const keyHex = await getPrivateKeyHex();
@@ -94,13 +97,13 @@ export default function TabThreeScreen() {
               setTimeout(() => {
                 setNsec("");
                 setMnemonic("");
-              }, 3e3);
+              }, 15e3);
             } catch (error) {
               console.error("#bVVgTl Error getting nsec and mnemonic", error);
             }
           }}
         />
-        <TextInput style={styles.input} value={nsec} />
+        {/*
         <Text style={styles.settings}>seed</Text>
         <TextInput
           style={styles.input}
@@ -127,7 +130,8 @@ export default function TabThreeScreen() {
               });
           }}
         />
-        <Text style={styles.header}>Relays</Text>
+        */}
+        <Text style={styles.q}>relays</Text>
         <TextInput style={styles.input} value="['relay.trustroots.org']" />
         <Text style={styles.header}>Help</Text>
         <Text style={styles.q}>How does this work?</Text>
@@ -187,12 +191,15 @@ export default function TabThreeScreen() {
   );
 }
 const styles = StyleSheet.create({
-  settings: { backgroundColor: "#ffffff" },
+  settings: {
+    backgroundColor: "#ffffff",
+  },
   q: {
     fontSize: 15,
     fontWeight: "bold",
     marginTop: 10,
     marginBottom: 10,
+    marginLeft: 10,
   },
   a: {
     marginBottom: 10,
@@ -205,6 +212,7 @@ const styles = StyleSheet.create({
     padding: 4,
     borderBottomWidth: 1,
     borderBottomColor: "#ddd",
+    marginLeft: 7,
   },
   input: {
     height: 40,

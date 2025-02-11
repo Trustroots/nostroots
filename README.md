@@ -53,9 +53,6 @@ If you want to use a development build, you can switch to that by pressing `s`. 
 
 If you want to run a development build on your phone, you'll have to download the latest app and scan the QR code with it. For Android, you can use an existing build from https://expo.dev/accounts/nostroots/projects/nr-app/builds/ . For iOS, you'd have to register your device first using `eas devices` and then make a build.
 
-### EAS Build locally
-You'll need to install the appropriate dev tools. For iOS, that's at least CocoaPods and Fastlane. For Android, it's Android studio
-
 ## Roadmap
 
 Goal: 70% of active Trustroots users are on Nostroots by middle of 2026

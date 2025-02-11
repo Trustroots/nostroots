@@ -40,11 +40,18 @@ There are 3 parts to this code.
 - `nr-common` - A module that is shared between the rest of the projects
 - `nr-app` - An expo app
 - `nr-server` - A deno application that is hosted by Trustroots
+- `nr-push` - A Go application that handles push notifications for the app.
 
-Run `pnpm i` in the root directory.
-In `nr-app`, run `pnpm run start` and choose Expo Go.
-Then try switching to a device build. You can also start a device build directly by running `pnpm run ios` or `pnpm run android`.
-For a development build, make sure you have Android or iOS build tools installed.
+### Nostroots mobile app.
+
+First, run `pnpm i` in the root directory.
+
+The fastest way to get started is using Expo go:
+In `nr-app`, run `pnpm run start` and choose Expo Go. You can try starting an emulator or simulator from here if you have it installed. Alternatively, install the Expo Go app on your mobile device and scan the QR code.
+
+If you want to use a development build, you can switch to that by pressing `s`. Open an emulator or simulator with this build using the commands available.
+
+If you want to run a development build on your phone, you'll have to download the latest app and scan the QR code with it. For Android, you can use an existing build from https://expo.dev/accounts/nostroots/projects/nr-app/builds/ . For iOS, you'd have to register your device first using `eas devices` and then make a build.
 
 ### EAS Build locally
 You'll need to install the appropriate dev tools. For iOS, that's at least CocoaPods and Fastlane. For Android, it's Android studio

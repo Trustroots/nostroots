@@ -60,6 +60,61 @@ export const _addSeenOnRelayToMetadata = (
   return updatedMetadata;
 };
 
+function addEventToState(
+  state: ReturnType<typeof eventsAdapter.getInitialState>,
+  event: Event,
+  seenOnRelay: string,
+) {
+  // Skip events which don't pass validation
+  if (!isValidEvent(event)) {
+    return;
+  }
+
+  const storageId = getStorageId(event);
+
+  const eventWithMetadata = {
+    event,
+    metadata: {
+      seenOnRelays: [seenOnRelay],
+    },
+  };
+
+  const isExistingEvent = state.ids.includes(storageId);
+
+  if (!isExistingEvent) {
+    eventsAdapter.setOne(state, eventWithMetadata);
+    return;
+  }
+
+  const existingEvent = localSelectors.selectById(state, storageId);
+
+  if (existingEvent.event.id === event.id) {
+    if (_hasEventBeenSeenOnRelay(existingEvent, seenOnRelay)) {
+      return;
+    }
+
+    const updatedMetadata = _addSeenOnRelayToMetadata(
+      existingEvent.metadata,
+      seenOnRelay,
+    );
+    eventsAdapter.updateOne(state, {
+      id: storageId,
+      changes: {
+        metadata: updatedMetadata,
+      },
+    });
+    return;
+  }
+
+  const isUpdatedVersionOfEvent =
+    event.created_at > existingEvent.event.created_at;
+
+  if (isUpdatedVersionOfEvent) {
+    eventsAdapter.setOne(state, eventWithMetadata);
+    return;
+  }
+}
+
 export const eventsSlice = createSlice({
   name: "events",
   initialState: eventsAdapter.getInitialState(),
@@ -75,60 +130,23 @@ export const eventsSlice = createSlice({
       action: PayloadAction<{ event: Event; fromRelay: string }>,
     ) => {
       const { event, fromRelay: seenOnRelay } = action.payload;
+      addEventToState(state, event, seenOnRelay);
+    },
+    addEvents: (
+      state,
+      action: PayloadAction<{ events: Event[]; fromRelay: string }>,
+    ) => {
+      const { events, fromRelay: seenOnRelay } = action.payload;
 
-      // Skip events which don't pass validation
-      if (!isValidEvent(event)) {
-        return;
-      }
-
-      const storageId = getStorageId(event);
-
-      const eventWithMetadata = {
-        event,
-        metadata: {
-          seenOnRelays: [seenOnRelay],
-        },
-      };
-
-      const isExistingEvent = state.ids.includes(storageId);
-
-      if (!isExistingEvent) {
-        eventsAdapter.setOne(state, eventWithMetadata);
-        return;
-      }
-
-      const existingEvent = localSelectors.selectById(state, storageId);
-
-      if (existingEvent.event.id === event.id) {
-        if (_hasEventBeenSeenOnRelay(existingEvent, seenOnRelay)) {
-          return;
-        }
-
-        const updatedMetadata = _addSeenOnRelayToMetadata(
-          existingEvent.metadata,
-          seenOnRelay,
-        );
-        eventsAdapter.updateOne(state, {
-          id: storageId,
-          changes: {
-            metadata: updatedMetadata,
-          },
-        });
-        return;
-      }
-
-      const isUpdatedVersionOfEvent =
-        event.created_at > existingEvent.event.created_at;
-
-      if (isUpdatedVersionOfEvent) {
-        eventsAdapter.setOne(state, eventWithMetadata);
-        return;
-      }
+      events.forEach((event) => {
+        addEventToState(state, event, seenOnRelay);
+      });
     },
   },
 });
 
-export const { addEvent, setAllEventsWithMetadata } = eventsSlice.actions;
+export const { addEvent, addEvents, setAllEventsWithMetadata } =
+  eventsSlice.actions;
 
 export const eventsSelectors = eventsAdapter.getSelectors(
   eventsSlice.selectSlice,

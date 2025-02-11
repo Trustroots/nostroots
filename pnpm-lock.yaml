@@ -130,6 +130,9 @@ importers:
       redux-saga-promise-actions:
         specifier: ^1.3.5
         version: 1.3.5
+      reselect:
+        specifier: ^5.1.1
+        version: 5.1.1
       url-join:
         specifier: ^5.0.0
         version: 5.0.0

@@ -29,7 +29,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "org.trustroots.nostroots",
+      "package": "org.trustroots.nostroots"
     },
     "web": {
       "bundler": "metro",

@@ -7,18 +7,21 @@ import {
 } from "@/redux/slices/events.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { allPlusCodesForRegion } from "@/utils/map.utils";
-import { MAP_LAYER_KEY, MAP_LAYERS } from "@common/constants";
+import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { createSelector } from "@reduxjs/toolkit";
 import { matchFilter } from "nostr-tools";
 import { Fragment, useMemo } from "react";
-import { StyleSheet } from "react-native";
+import { Platform, StyleSheet } from "react-native";
 import MapView, {
   Details,
   LongPressEvent,
   Marker,
   Region,
+  PROVIDER_GOOGLE,
+  PROVIDER_DEFAULT,
 } from "react-native-maps";
 import { MapNoteMarker } from "./MapNoteMarker";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 
 const selectEventsForLayers = createSelector(
   [eventsSelectors.selectAll, mapSelectors.selectEnabledLayerKeys],
@@ -74,6 +77,13 @@ export function MapMarkers() {
       pitchEnabled={false}
       onLongPress={handleMapLongPress}
       onRegionChangeComplete={handleMapRegionChange}
+      // only use google maps on android dev and prod builds
+      provider={
+        Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
+        Platform.OS !== "android"
+          ? PROVIDER_DEFAULT
+          : PROVIDER_GOOGLE
+      }
     >
       <Marker
         coordinate={{ latitude: 52, longitude: 13 }}

@@ -1,59 +1,12 @@
-# Welcome to your Expo app 👋
+# Nostroots mobile app.
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
 
-## Get started
+## Getting started
+First, run `pnpm i`.
 
-1. Install watchman (or equivalent on *nix)
+The fastest way to get started is using Expo go:
+In `nr-app`, run `pnpm run start` and choose Expo Go. You can try starting an emulator or simulator from here if you have it installed. Alternatively, install the Expo Go app on your mobile device and scan the QR code.
 
-   ```bash
-   brew install watchman
-   ```
+If you want to use a development build, you can switch to that by pressing `s`. Open an emulator or simulator with this build using the commands available.
 
-2. Use nvm to set the correct node version. Make sure you have the appropriate version of node installed (`nvm i`).
-
-   ```bash
-   nvm use
-   ```
-
-3. Enable pnpm
-
-   ```bash
-   corepack enable pnpm
-   ```
-
-4. Install dependencies
-
-   ```bash
-   pnpm install
-   ```
-
-5. Start the app
-
-   ```bash
-   pnpm start
-   ```
-
-(If you get a `too many open files` error, `rm -rf node_modules; npm install` will [fix](https://github.com/Trustroots/nostroots/issues/30) this, funny enough.)
-
-### View the app
-
-You cannot (currently) view the app in the web. The maps package is not supported on web. The easiest option is to install an app called Expo Go into your phone. Then you can scan the QR code that was output in the terminal from the `pnpm start` command and the app will load onto your phone.
-
-This requires that your phone and computer are on the same network, and that your phone can load the app from your computer.
-
-You can also install Android Studio or XCode and then load the app in a simulator. That is beyond the scope of this readme, but [the expo docs](https://docs.expo.dev/get-started/set-up-your-environment/) are a good place to start.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+If you want to run a development build on your phone, you'll have to download the latest app and scan the QR code with it. For Android, you can use an existing build from https://expo.dev/accounts/nostroots/projects/nr-app/builds/ . For iOS, you'd have to register your device first using `eas devices` and then make a build.

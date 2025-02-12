@@ -13,12 +13,25 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "org.trustroots.nostroots",
+      "config": {
+        "googleMapsApiKey": "AIzaSyDw0KhR3qlPsireu68RvGXmh4nccIqnEQM"
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      },
+      "package": "org.trustroots.nostroots",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCr1ZxZlVQNI_u7FYfPkjgvZv79UeaPFYQ"
+        }
       }
     },
     "web": {
@@ -29,7 +42,15 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "trustroots-foundation-fo",
+          "project": "react-native",
+          "url": "https://sentry.io/"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
@@ -40,7 +61,7 @@
         "origin": false
       },
       "eas": {
-        "projectId": "0147b304-d2cd-4e24-a237-da8bd5f3e4f3"
+        "projectId": "a6c7b2e0-f036-44a3-b57c-d05b9d383c30"
       }
     },
     "runtimeVersion": {
@@ -49,6 +70,7 @@
     "newArchEnabled": true,
     "updates": {
       "url": "https://u.expo.dev/0147b304-d2cd-4e24-a237-da8bd5f3e4f3"
-    }
+    },
+    "owner": "nostroots"
   }
 }

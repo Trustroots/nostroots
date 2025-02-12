@@ -1,6 +1,6 @@
 import { NOSTR_EVENT_INDEX_MAXIMUM_PLUS_CODE_LENGTH } from "@/constants";
-import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@common/constants";
-import { getFirstTagValueFromEvent } from "@common/utils";
+import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@trustroots/nr-common";
+import { getFirstTagValueFromEvent } from "@trustroots/nr-common";
 import { NostrEvent } from "nostr-tools";
 import OpenLocationCode from "open-location-code-typescript";
 import urlJoin from "url-join";

@@ -1,5 +1,5 @@
 import { ID_SEPARATOR } from "@/constants";
-import { Event, isValidEvent } from "@common/mod";
+import { Event, isValidEvent } from "@trustroots/nr-common";
 import {
   createEntityAdapter,
   createSlice,

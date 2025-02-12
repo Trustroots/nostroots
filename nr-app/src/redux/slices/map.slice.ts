@@ -42,9 +42,16 @@ export const mapSlice = createSlice({
       state.enabledLayers[action.payload] = true;
     },
     disableLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
+      // Disable uncommenting layers for now
+      return state;
+      // eslint-disable-next-line no-unreachable
       state.enabledLayers[action.payload] = false;
     },
     toggleLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
+      // Disable uncommenting layers for now
+      if (state.enabledLayers[action.payload]) {
+        return state;
+      }
       state.enabledLayers[action.payload] =
         !state.enabledLayers[action.payload];
     },

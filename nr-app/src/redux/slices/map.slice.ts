@@ -59,14 +59,15 @@ export const mapSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(setVisiblePlusCodes, (state, action) => {
-      state.visiblePlusCodes = action.payload;
-    });
-    builder.addCase(setSubscriptionHasSeenEOSE, (state, action) => {
-      if (action.payload.id === MAP_SUBSCRIPTION_ID) {
-        state.mapSubscriptionIsUpdating = false;
-      }
-    });
+    builder
+      .addCase(setVisiblePlusCodes, (state, action) => {
+        state.visiblePlusCodes = action.payload;
+      })
+      .addCase(setSubscriptionHasSeenEOSE, (state, action) => {
+        if (action.payload.id === MAP_SUBSCRIPTION_ID) {
+          state.mapSubscriptionIsUpdating = false;
+        }
+      });
   },
   selectors: {
     selectVisiblePlusCodes: (state) => state.visiblePlusCodes,

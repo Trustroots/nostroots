@@ -2,7 +2,7 @@ import {
   filterForMapLayerConfig,
   trustrootsMapFilterForPlusCodePrefixes,
 } from "@/common/utils";
-import { MAP_LAYER_KEY, MAP_LAYERS } from "@common/constants";
+import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { createSelector } from "@reduxjs/toolkit";
 import { Filter } from "nostr-tools";
 import { AnyAction } from "redux-saga";

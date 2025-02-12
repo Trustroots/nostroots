@@ -40,9 +40,9 @@ There are 3 parts to this code.
 - `nr-common` - A module that is shared between the rest of the projects
 - `nr-app` - An expo app
 - `nr-server` - A deno application that is hosted by Trustroots
+- `nr-push` - A Go application that handles push notifications for the app.
 
-> [!IMPORTANT]  
-> Before starting development of either `nr-app` or `nr-server`, first setup the `nr-common` code as per `nr-common/README.md`.
+Please refer to the READMEs in the respective subfolders for working on them.
 
 ## Roadmap
 

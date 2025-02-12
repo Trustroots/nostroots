@@ -1,4 +1,4 @@
-import { MAP_LAYER_KEY } from "@common/constants";
+import { MAP_LAYER_KEY } from "@trustroots/nr-common";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { LatLng } from "react-native-maps";
 import { setVisiblePlusCodes } from "../actions/map.actions";

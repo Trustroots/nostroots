@@ -4,7 +4,7 @@ import { isHexKey } from "@common/utils";
 
 // TODO - Move these into `nr-common` (they depend on nostr-tools)
 
-export function trustrootsMapFilter(): Filter {
+export function getTrustrootsMapFilter(): Filter {
   const filter = {
     kinds: [30398],
     authors: [NOSTROOTS_VALIDATION_PUBKEY],
@@ -36,7 +36,7 @@ export function addOpenLocationCodePrefixToFilter(
 export function trustrootsMapFilterForPlusCodePrefixes(
   plusCodePrefixes: string[],
 ): Filter {
-  const baseFilter = trustrootsMapFilter();
+  const baseFilter = getTrustrootsMapFilter();
   const filter = addOpenLocationCodePrefixToFilter(
     baseFilter,
     plusCodePrefixes,

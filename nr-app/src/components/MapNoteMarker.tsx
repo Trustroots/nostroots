@@ -26,10 +26,11 @@ export function MapNoteMarkerInner({
   );
 
   if (typeof plusCode === "undefined" || !isValidPlusCode(plusCode)) {
-    console.log(
-      "#9k8qKM skipping event with missing / invalid plusCode",
-      JSON.stringify({ plusCode, event }),
-    );
+    __DEV__ &&
+      console.log(
+        "#9k8qKM skipping event with missing / invalid plusCode",
+        JSON.stringify({ plusCode, event }),
+      );
     return null;
   }
 

@@ -26,7 +26,7 @@ export default function TabFourScreen() {
         <Button
           title="Send connect response"
           onPress={async () => {
-            console.log("Sending connect response…");
+            __DEV__ && console.log("#OQ7VsC Sending connect response…");
             await sendConnectResponse(connectURI);
           }}
         />

@@ -66,7 +66,7 @@ export function MapMarkers() {
   const handleMapRegionChange = useMemo(
     () =>
       function handleMapRegionChangeHandler(region: Region, details: Details) {
-        console.log("#rIMmxg Map move completed", region, details);
+        __DEV__ && console.log("#rIMmxg Map move completed", region, details);
         const visiblePlusCodes = allPlusCodesForRegion(region);
         dispatch(setVisiblePlusCodes(visiblePlusCodes));
       },

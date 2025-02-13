@@ -172,7 +172,7 @@ export default function TabThreeScreen() {
         <Button
           title="Set visible plus codes"
           onPress={() => {
-            console.log("#bLtiOc pressed");
+            __DEV__ && console.log("#bLtiOc pressed");
             dispatch(
               setVisiblePlusCodes([
                 "8C000000+",

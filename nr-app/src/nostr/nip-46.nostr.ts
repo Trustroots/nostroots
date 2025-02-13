@@ -17,18 +17,19 @@ export async function sendConnectResponse(connectURI: string) {
     console.error(`invalid nostrconnect:// URI: ${connectURI}`);
     return;
   }
-  console.log(
-    `Parsed nostrconnect string: secret=${secret}, relayUrl=${relayUrl}, clientPubkey=${clientPubkey}`,
-  );
+  __DEV__ &&
+    console.log(
+      `#1wh2Iw Parsed nostrconnect string: secret=${secret}, relayUrl=${relayUrl}, clientPubkey=${clientPubkey}`,
+    );
 
   const content = JSON.stringify({ result: secret });
-  console.log("Encrypting event…");
+  __DEV__ && console.log("#n2zw7e Encrypting event…");
   const encryptedContent = await nip04.encrypt(
     account.privateKey.hex,
     clientPubkey,
     content,
   );
-  console.log("Finalizing event…");
+  __DEV__ && console.log("#rJKIjw Finalizing event…");
   const event = finalizeEvent(
     {
       kind: 24133,
@@ -39,9 +40,9 @@ export async function sendConnectResponse(connectURI: string) {
     hexToBytes(account.privateKey.hex),
   );
 
-  console.log("Connecting to relay…");
+  __DEV__ && console.log("#ceIOed Connecting to relay…");
   const relay = await Relay.connect(relayUrl);
-  console.log("Publishing event…");
+  __DEV__ && console.log("#FzVuzC Publishing event…");
   await relay.publish(event);
-  console.log("Done with nip-46 connect response");
+  __DEV__ && console.log("#Dirjmx Done with nip-46 connect response");
 }

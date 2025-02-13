@@ -36,14 +36,15 @@ export default function Map() {
         }
 
         const plusCode = coordinatesToPlusCode(selectedCoordinate);
-        console.log(
-          "#a9vi49v handleNoteAdd()",
-          noteContent,
-          "at",
-          selectedCoordinate,
-          plusCode,
-          "plusCode not very precise",
-        );
+        __DEV__ &&
+          console.log(
+            "#a9vi49v handleNoteAdd()",
+            noteContent,
+            "at",
+            selectedCoordinate,
+            plusCode,
+            "plusCode not very precise",
+          );
 
         try {
           await dispatch(publishNotePromiseAction(noteContent, plusCode));
@@ -62,7 +63,7 @@ export default function Map() {
     [selectedCoordinate, noteContent, dispatch],
   );
 
-  console.log("#iNicG9 Map.tsx / render()", Date.now());
+  __DEV__ && console.log("#iNicG9 Map.tsx / render()", Date.now());
 
   return (
     <View style={styles.mapContainer}>

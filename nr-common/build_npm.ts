@@ -15,7 +15,7 @@ await build({
     name: "@trustroots/nr-common",
     version: Deno.args[0],
     description: "Your package.",
-    license: "MIT",
+    license: "AGPL-3.0",
     repository: {
       type: "git",
       url: "git+https://github.com/trustroots/nostroots.git",

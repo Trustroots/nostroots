@@ -25,7 +25,11 @@ await build({
     },
   },
   filterDiagnostic(diagnostic) {
-    if (diagnostic.file?.path.includes("/build/src/deps/")) {
+    if (
+      diagnostic.file?.path.includes("/build/src/deps/") &&
+      (diagnostic.file?.path.endsWith("/assertion_error.ts") ||
+        diagnostic.file?.path.endsWith("/_equal.ts"))
+    ) {
       return false; // ignore all diagnostics in this file
     }
     // etc... more checks here

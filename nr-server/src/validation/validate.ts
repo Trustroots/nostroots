@@ -1,10 +1,12 @@
+import { getNip5PubKey } from "../../../nr-common/utils.ts";
 import { MAP_NOTE_KIND } from "../nr-common/constants.ts";
+
+import { nostrify, nostrTools } from "../../deps.ts";
 import {
   HITCHMAPS_AUTHOR_PUBLIC_KEY,
   MINIMUM_TRUSTROOTS_USERNAME_LENGTH,
   WAIT_FOR_KIND_ZERO_TIMEOUT_SECONDS,
 } from "../common/constants.ts";
-import { nostrify, nostrTools } from "../../deps.ts";
 import { log } from "../log.ts";
 import { Profile } from "../types.ts";
 
@@ -46,28 +48,6 @@ function getProfileFromEvent(event: nostrTools.Event): Profile | undefined {
 
     return profile;
   } catch {
-    return;
-  }
-}
-
-async function getNip5PubKey(
-  trustrootsUsername: string
-): Promise<string | undefined> {
-  try {
-    const nip5Response = await fetch(
-      `https://www.trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`
-    );
-    const nip5Json = (await nip5Response.json()) as {
-      names: {
-        [username: string]: string;
-      };
-    };
-
-    const nip5PubKey = nip5Json.names[trustrootsUsername];
-
-    return nip5PubKey;
-  } catch (e: unknown) {
-    console.warn(`Could not get nip5 key for ${trustrootsUsername}`, e);
     return;
   }
 }

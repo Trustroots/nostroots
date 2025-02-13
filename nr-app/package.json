@@ -25,6 +25,7 @@
     "@reduxjs/toolkit": "^2.2.7",
     "@trustroots/nr-common": "workspace:*",
     "expo": "~52.0.8",
+    "expo-clipboard": "~7.0.1",
     "expo-constants": "~17.0.3",
     "expo-crypto": "~14.0.1",
     "expo-dev-client": "~5.0.7",

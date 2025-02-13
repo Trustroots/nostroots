@@ -3,7 +3,7 @@ import {
   OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
   OPEN_LOCATION_CODE_TAG_NAME,
 } from "./constants.ts";
-import { eventSchema, type Event } from "./mod.ts";
+import { type Event } from "./mod.ts";
 
 function last<T>(items: T[]): T {
   const lastIndex = Math.max(items.length - 1, 0);
@@ -163,4 +163,26 @@ export function getPlusCodeAndPlusCodePrefixTags(plusCode: string) {
   );
   const tags = [...plusCodeTags, ...plusCodePrefixTags];
   return tags;
+}
+
+export async function getNip5PubKey(
+  trustrootsUsername: string
+): Promise<string | undefined> {
+  try {
+    const nip5Response = await fetch(
+      `https://www.trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`
+    );
+    const nip5Json = (await nip5Response.json()) as {
+      names: {
+        [username: string]: string;
+      };
+    };
+
+    const nip5PubKey = nip5Json.names[trustrootsUsername];
+
+    return nip5PubKey;
+  } catch (e: unknown) {
+    console.warn(`Could not get nip5 key for ${trustrootsUsername}`, e);
+    return;
+  }
 }

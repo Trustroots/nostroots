@@ -24,6 +24,13 @@ await build({
       url: "https://github.com/trustroots/nostroots/issues",
     },
   },
+  filterDiagnostic(diagnostic) {
+    if (diagnostic.file?.path.includes("/build/src/deps/")) {
+      return false; // ignore all diagnostics in this file
+    }
+    // etc... more checks here
+    return true;
+  },
   postBuild() {
     // steps to run after building and before running the tests
     Deno.copyFileSync("README.md", "build/README.md");

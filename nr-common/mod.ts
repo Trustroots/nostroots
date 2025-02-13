@@ -1,9 +1,15 @@
-import { OPEN_LOCATION_CODE_TAG_NAME } from "./constants.ts";
+import {
+  OPEN_LOCATION_CODE_TAG_NAME,
+  TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
+  TRUSTROOTS_USERNAME_MIN_LENGTH,
+} from "./constants.ts";
 import { z } from "./deps.ts";
 import {
   getFirstLabelValueFromEvent,
   getFirstLabelValueFromTags,
   isPlusCode,
+  isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue,
+  isValidTagsArrayWithTrustrootsUsername,
 } from "./utils.ts";
 
 export * from "./utils.ts";
@@ -91,6 +97,18 @@ export const contentSchema = z
     CONTENT_MINIMUM_LENGTH,
     `content is below min length of ${CONTENT_MINIMUM_LENGTH}`
   );
+
+export const kind10390EventSchema = eventSchema.extend({
+  kind: z.literal(10390),
+  tags: z
+    .array(z.array(z.string()))
+    .refine(isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue, {
+      message: "All label tags must have a value #2DPf9M",
+    })
+    .refine(isValidTagsArrayWithTrustrootsUsername, {
+      message: "Must have a valid trustroots username #KV4da8",
+    }),
+});
 
 export const kind30398EventSchema = eventSchema.extend({
   kind: z.literal(30398),

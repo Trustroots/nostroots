@@ -3,9 +3,16 @@ export const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2 as const;
 export const MAP_NOTE_KIND = 30397 as const;
 export const MAP_NOTE_REPOST_KIND = 30398 as const;
 
-export const OPEN_LOCATION_CODE_TAG_NAME = "open-location-code" as const;
-export const OPEN_LOCATION_CODE_PREFIX_TAG_NAME =
+export const OPEN_LOCATION_CODE_LABEL_NAMESPACE = "open-location-code" as const;
+export const OPEN_LOCATION_CODE_TAG_NAME = OPEN_LOCATION_CODE_LABEL_NAMESPACE;
+export const OPEN_LOCATION_CODE_PREFIX_LABEL_NAMESPACE =
   "open-location-code-prefix" as const;
+export const OPEN_LOCATION_CODE_PREFIX_TAG_NAME =
+  OPEN_LOCATION_CODE_PREFIX_LABEL_NAMESPACE;
+
+export const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = "org.trustroots:username";
+export const TRUSTROOTS_PICTURE_LABEL_NAMESPACE = "org.trustroots:picture";
+export const TRUSTROOTS_USERNAME_MIN_LENGTH = 3;
 
 export const DEFAULT_RELAY_URL = "wss://relay.trustroots.org";
 

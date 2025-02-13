@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.isHex = isHex;
 exports.isHexKey = isHexKey;
 exports.isPlusCode = isPlusCode;
+exports.isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue = isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue;
+exports.isValidTagsArrayWithTrustrootsUsername = isValidTagsArrayWithTrustrootsUsername;
 exports.getCurrentTimestamp = getCurrentTimestamp;
 exports.getFirstTagValueFromEvent = getFirstTagValueFromEvent;
 exports.getFirstLabelValueFromTags = getFirstLabelValueFromTags;
@@ -64,6 +66,26 @@ function isPlusCode(code) {
         }
     }, { failed: false, zeroSeen: false });
     if (failed) {
+        return false;
+    }
+    return true;
+}
+function isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(tags) {
+    const labelNamespaceTags = tags.filter((tag) => tag[0] === "L");
+    const allNamespacesHaveAtLeastOneTag = labelNamespaceTags.every((namespaceTag) => {
+        const namespace = namespaceTag[1];
+        const firstValue = getFirstLabelValueFromTags(tags, namespace);
+        if (typeof firstValue !== "undefined") {
+            return true;
+        }
+        return false;
+    });
+    return allNamespacesHaveAtLeastOneTag;
+}
+function isValidTagsArrayWithTrustrootsUsername(tags) {
+    const trustrootsUsername = getFirstLabelValueFromTags(tags, constants_js_1.TRUSTROOTS_USERNAME_LABEL_NAMESPACE);
+    if (typeof trustrootsUsername !== "string" ||
+        trustrootsUsername.length <= constants_js_1.TRUSTROOTS_USERNAME_MIN_LENGTH) {
         return false;
     }
     return true;

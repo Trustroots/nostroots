@@ -3,11 +3,11 @@
   "description": "Your package.",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/username/repo.git"
+    "url": "git+https://github.com/trustroots/nostroots.git"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/username/repo/issues"
+    "url": "https://github.com/trustroots/nostroots/issues"
   },
   "main": "./script/mod.js",
   "module": "./esm/mod.js",
@@ -22,7 +22,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.9.0",
-    "picocolors": "^1.0.0"
+    "picocolors": "^1.0.0",
+    "@deno/shim-deno": "~0.18.0"
   },
   "_generatedBy": "dnt@dev"
 }

@@ -25,7 +25,7 @@ const initialState: MapState = {
     hitchwiki: false,
     timesafari: false,
     triphopping: false,
-    unverified: true,
+    unverified: false,
   },
 };
 

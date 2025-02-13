@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "763988723746",
+    "project_id": "nostroots",
+    "storage_bucket": "nostroots.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:763988723746:android:53f899756885061fe0a27b",
+        "android_client_info": {
+          "package_name": "org.trustroots.nostroots"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2sljV-Rz7C_2q0sAaSdTo4ZRLdharyZI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

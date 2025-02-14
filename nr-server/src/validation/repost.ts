@@ -1,3 +1,6 @@
+import { async, nostrify } from "../../deps.ts";
+import { DELAY_AFTER_PROCESSING_EVENT_MS } from "../common/constants.ts";
+import { log } from "../log.ts";
 import {
   DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH,
   MAP_NOTE_REPOST_KIND,
@@ -10,9 +13,6 @@ import {
   getFirstLabelValueFromEvent,
   getFirstTagValueFromEvent,
 } from "../nr-common/utils.ts";
-import { async, nostrify } from "../../deps.ts";
-import { DELAY_AFTER_PROCESSING_EVENT_MS } from "../common/constants.ts";
-import { log } from "../log.ts";
 import { validateEvent } from "./validate.ts";
 
 const { NSecSigner } = nostrify;
@@ -100,6 +100,12 @@ export function processEventFactoryFactory(
 ) {
   return async function processEventFactory(event: nostrify.NostrEvent) {
     log.debug(`#C1NJbQ Got event`, event);
+
+    if (event.kind === MAP_NOTE_REPOST_KIND) {
+      log.info(
+        `#WAKKJk Skipping kind ${MAP_NOTE_REPOST_KIND} event with ID ${event.id}`
+      );
+    }
 
     const isEventValid = await validateEvent(relayPool, event);
     if (!isEventValid) {

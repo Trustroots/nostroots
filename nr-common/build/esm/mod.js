@@ -1,6 +1,6 @@
-import { OPEN_LOCATION_CODE_TAG_NAME } from "./constants.js";
+import { OPEN_LOCATION_CODE_TAG_NAME, } from "./constants.js";
 import { z } from "./deps.js";
-import { getFirstLabelValueFromTags, isPlusCode, } from "./utils.js";
+import { getFirstLabelValueFromTags, isPlusCode, isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue, isValidTagsArrayWithTrustrootsUsername, } from "./utils.js";
 export * from "./utils.js";
 export * from "./constants.js";
 // import { version as PACKAGE_VERSION } from "./deno.json" with { type: "json" };
@@ -62,6 +62,17 @@ export const contentSchema = z
     .string()
     .max(CONTENT_MAXIMUM_LENGTH, `content is above max length of ${CONTENT_MAXIMUM_LENGTH}`)
     .min(CONTENT_MINIMUM_LENGTH, `content is below min length of ${CONTENT_MINIMUM_LENGTH}`);
+export const kind10390EventSchema = eventSchema.extend({
+    kind: z.literal(10390),
+    tags: z
+        .array(z.array(z.string()))
+        .refine(isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue, {
+        message: "All label tags must have a value #2DPf9M",
+    })
+        .refine(isValidTagsArrayWithTrustrootsUsername, {
+        message: "Must have a valid trustroots username #KV4da8",
+    }),
+});
 export const kind30398EventSchema = eventSchema.extend({
     kind: z.literal(30398),
     // TODO Enable version check

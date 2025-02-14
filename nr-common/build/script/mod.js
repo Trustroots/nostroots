@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.kind30397EventSchema = exports.kind30398EventSchema = exports.contentSchema = exports.tagsIncludingPlusCodeSchema = exports.eventSchema = exports.CONTENT_MAXIMUM_LENGTH = exports.CONTENT_MINIMUM_LENGTH = void 0;
+exports.kind30397EventSchema = exports.kind30398EventSchema = exports.kind10390EventSchema = exports.contentSchema = exports.tagsIncludingPlusCodeSchema = exports.eventSchema = exports.CONTENT_MAXIMUM_LENGTH = exports.CONTENT_MINIMUM_LENGTH = void 0;
 exports.isValidEvent = isValidEvent;
 const constants_js_1 = require("./constants.js");
 const deps_js_1 = require("./deps.js");
@@ -80,6 +80,17 @@ exports.contentSchema = deps_js_1.z
     .string()
     .max(exports.CONTENT_MAXIMUM_LENGTH, `content is above max length of ${exports.CONTENT_MAXIMUM_LENGTH}`)
     .min(exports.CONTENT_MINIMUM_LENGTH, `content is below min length of ${exports.CONTENT_MINIMUM_LENGTH}`);
+exports.kind10390EventSchema = exports.eventSchema.extend({
+    kind: deps_js_1.z.literal(10390),
+    tags: deps_js_1.z
+        .array(deps_js_1.z.array(deps_js_1.z.string()))
+        .refine(utils_js_1.isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue, {
+        message: "All label tags must have a value #2DPf9M",
+    })
+        .refine(utils_js_1.isValidTagsArrayWithTrustrootsUsername, {
+        message: "Must have a valid trustroots username #KV4da8",
+    }),
+});
 exports.kind30398EventSchema = exports.eventSchema.extend({
     kind: deps_js_1.z.literal(30398),
     // TODO Enable version check

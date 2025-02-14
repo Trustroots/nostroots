@@ -2,6 +2,8 @@ import {
   DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH,
   OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
   OPEN_LOCATION_CODE_TAG_NAME,
+  TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
+  TRUSTROOTS_USERNAME_MIN_LENGTH,
 } from "./constants.js";
 import { eventSchema, type Event } from "./mod.js";
 
@@ -70,6 +72,39 @@ export function isPlusCode(code: string) {
     return false;
   }
 
+  return true;
+}
+
+export function isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(
+  tags: string[][]
+): boolean {
+  const labelNamespaceTags = tags.filter((tag) => tag[0] === "L");
+  const allNamespacesHaveAtLeastOneTag = labelNamespaceTags.every(
+    (namespaceTag) => {
+      const namespace = namespaceTag[1];
+      const firstValue = getFirstLabelValueFromTags(tags, namespace);
+      if (typeof firstValue !== "undefined") {
+        return true;
+      }
+      return false;
+    }
+  );
+  return allNamespacesHaveAtLeastOneTag;
+}
+
+export function isValidTagsArrayWithTrustrootsUsername(
+  tags: string[][]
+): boolean {
+  const trustrootsUsername = getFirstLabelValueFromTags(
+    tags,
+    TRUSTROOTS_USERNAME_LABEL_NAMESPACE
+  );
+  if (
+    typeof trustrootsUsername !== "string" ||
+    trustrootsUsername.length <= TRUSTROOTS_USERNAME_MIN_LENGTH
+  ) {
+    return false;
+  }
   return true;
 }
 

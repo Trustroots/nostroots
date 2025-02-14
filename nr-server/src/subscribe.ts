@@ -45,7 +45,7 @@ export async function subscribeAndRepost(
 
   async function _subscribe() {
     console.log(
-      `(Re)starting subscriptions, last message received at ${lastReceivedMessageTimestamp} (${new Date(
+      `#okwpth (Re)starting subscriptions, last message received at ${lastReceivedMessageTimestamp} (${new Date(
         lastReceivedMessageTimestamp * 1000
       ).toLocaleString()})`
     );
@@ -68,7 +68,7 @@ export async function subscribeAndRepost(
 
     try {
       for await (const msg of subscription) {
-        console.log("got msg", msg);
+        console.log("#uFKk4A Got msg", msg);
 
         if (msg[0] === "EVENT") {
           const event = msg[2];

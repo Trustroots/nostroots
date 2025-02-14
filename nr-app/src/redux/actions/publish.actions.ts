@@ -27,13 +27,24 @@ export const publishNoteActionCreator = createPromiseAction(
   { message: string }
 >();
 
-export function publishNotePromiseAction(note: string, plusCode: string) {
+export function publishNotePromiseAction(
+  note: string,
+  plusCode: string,
+  expirationTimestampSeconds?: number,
+) {
   const plusCodeAndPlusCodePrefixTags =
     getPlusCodeAndPlusCodePrefixTags(plusCode);
+  const tags = [["d", nanoid()], ...plusCodeAndPlusCodePrefixTags];
+  const tagsWithExpiration =
+    typeof expirationTimestampSeconds === "undefined"
+      ? tags
+      : tags.concat([
+          ["expiration", Math.round(expirationTimestampSeconds).toString()],
+        ]);
   const eventTemplate = {
     kind: 30397,
     content: note,
-    tags: [["d", nanoid()], ...plusCodeAndPlusCodePrefixTags],
+    tags: tagsWithExpiration,
     created_at: getCurrentTimestamp(),
   };
 

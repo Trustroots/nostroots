@@ -3,6 +3,7 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { coordinatesToPlusCode } from "@/utils/map.utils";
 import { Picker } from "@react-native-picker/picker";
+import { getCurrentTimestamp } from "@trustroots/nr-common";
 import { useMemo, useState } from "react";
 import { Button, Modal, StyleSheet, TextInput, View } from "react-native";
 import Toast from "react-native-root-toast";
@@ -22,7 +23,9 @@ export default function MapModal() {
   );
 
   const [noteContent, setNoteContent] = useState("");
-  const [noteExpiry, setNoteExpiry] = useState(YEAR_IN_SECONDS);
+  const [noteExpiry, setNoteExpiry] = useState<string>(
+    YEAR_IN_SECONDS.toString(),
+  );
 
   const closeModal = useMemo(
     () => () => dispatch(mapActions.closeAddNoteModal()),
@@ -39,6 +42,9 @@ export default function MapModal() {
           return;
         }
 
+        const expirationTimestampSeconds =
+          getCurrentTimestamp() + parseInt(noteExpiry);
+
         const plusCode = coordinatesToPlusCode(selectedCoordinate);
         __DEV__ &&
           console.log(
@@ -47,11 +53,18 @@ export default function MapModal() {
             "at",
             selectedCoordinate,
             plusCode,
-            "plusCode not very precise",
+            expirationTimestampSeconds,
+            noteExpiry,
           );
 
         try {
-          await dispatch(publishNotePromiseAction(noteContent, plusCode));
+          await dispatch(
+            publishNotePromiseAction(
+              noteContent,
+              plusCode,
+              expirationTimestampSeconds,
+            ),
+          );
         } catch (error) {
           Toast.show(
             `Error: #dxmsa3 ${error instanceof Error ? error.message : "unknown"}`,
@@ -64,7 +77,7 @@ export default function MapModal() {
 
         dispatch(mapActions.closeAddNoteModal());
       },
-    [selectedCoordinate, noteContent, dispatch],
+    [selectedCoordinate, noteContent, dispatch, noteExpiry],
   );
 
   return (
@@ -96,12 +109,11 @@ export default function MapModal() {
           style={styles.picker}
           itemStyle={styles.pickerItem}
         >
-          <Picker.Item label="1 year" value={YEAR_IN_SECONDS} />
-          <Picker.Item label="1 week" value={WEEK_IN_SECONDS} />
-          <Picker.Item label="1 month" value={MONTH_IN_SECONDS} />
-          <Picker.Item label="1 week" value={WEEK_IN_SECONDS} />
-          <Picker.Item label="1 hour" value={HOUR_IN_SECONDS} />
-          <Picker.Item label="1 minute" value={MINUTE_IN_SECONDS} />
+          <Picker.Item label="1 year" value={YEAR_IN_SECONDS.toString()} />
+          <Picker.Item label="1 month" value={MONTH_IN_SECONDS.toString()} />
+          <Picker.Item label="1 week" value={WEEK_IN_SECONDS.toString()} />
+          <Picker.Item label="1 hour" value={HOUR_IN_SECONDS.toString()} />
+          <Picker.Item label="1 minute" value={MINUTE_IN_SECONDS.toString()} />
         </Picker>
         <Button title="Add Note" onPress={handleAddNote} />
         <Button title="Cancel" onPress={closeModal} />

@@ -85,7 +85,8 @@ export function removeDTag(tags: Tags): Tags {
 
 function deriveTags(event: nostrify.NostrEvent): Tags {
   const plusCodePrefixTags = deriveOpenLocationTags(event);
-  const derivedTags = [...event.tags, ...plusCodePrefixTags];
+  const tagsExcludingDTag = removeDTag(event.tags);
+  const derivedTags = [...tagsExcludingDTag, ...plusCodePrefixTags];
   return derivedTags;
 }
 

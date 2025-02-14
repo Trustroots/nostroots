@@ -1,3 +1,4 @@
+import { useNotifications } from "@/hooks/useNotifications";
 import {
   getHasPrivateKeyInSecureStorage,
   getPrivateKeyHex,
@@ -25,6 +26,7 @@ import {
   View,
 } from "react-native";
 import Toast from "react-native-root-toast";
+import * as Device from "expo-device";
 
 const DevSwitch = () => {
   const dispatch = useAppDispatch();
@@ -59,6 +61,8 @@ export default function TabThreeScreen() {
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
   const pubHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
   const dispatch = useAppDispatch();
+
+  const { expoPushToken } = useNotifications();
 
   useEffect(() => {
     (async function asyncInner() {
@@ -133,6 +137,8 @@ export default function TabThreeScreen() {
         */}
         <Text style={styles.q}>relays</Text>
         <TextInput style={styles.input} value="['relay.trustroots.org']" />
+        <Text style={styles.q}>expo push token</Text>
+        <TextInput style={styles.input} value={expoPushToken} />
         <Text style={styles.header}>Help</Text>
         <Text style={styles.q}>How does this work?</Text>
 

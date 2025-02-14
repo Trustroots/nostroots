@@ -7,6 +7,11 @@ import {
 import { nostrify, nostrTools } from "../../deps.ts";
 import { log } from "../log.ts";
 import { Profile } from "../types.ts";
+import {
+  TRUSTROOTS_PROFILE_KIND,
+  getFirstLabelValueFromEvent,
+  TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
+} from "../../../nr-common/mod.ts";
 
 async function getKindZeroEvent(relayPool: nostrify.NPool, pubKey: string) {
   {
@@ -28,6 +33,29 @@ async function getKindZeroEvent(relayPool: nostrify.NPool, pubKey: string) {
     if (kindZeroEvents.length > 0) return kindZeroEvents[0];
     return;
   }
+}
+
+async function getTrustrootsProfileEvent(
+  relayPool: nostrify.NPool,
+  pubKey: string
+) {
+  const filter = [
+    {
+      authors: [pubKey],
+      kinds: [TRUSTROOTS_PROFILE_KIND],
+    },
+  ];
+
+  const controller = new AbortController();
+  const signal = controller.signal;
+  globalThis.setTimeout(
+    () => controller.abort(),
+    WAIT_FOR_KIND_ZERO_TIMEOUT_SECONDS * 1000
+  );
+
+  const profileEvents = await relayPool.query(filter, { signal });
+  if (profileEvents.length > 0) return profileEvents[0];
+  return;
 }
 
 function getProfileFromEvent(event: nostrTools.Event): Profile | undefined {
@@ -72,6 +100,34 @@ async function getNip5PubKey(
   }
 }
 
+async function getTrustrootsUsernameFromProfile(
+  relayPool: nostrify.NPool,
+  pubkey: string
+) {
+  const [trustrootsProfileEvent, kindZeroEvent] = await Promise.all([
+    getTrustrootsProfileEvent(relayPool, pubkey),
+    getKindZeroEvent(relayPool, pubkey),
+  ]);
+
+  if (typeof trustrootsProfileEvent !== "undefined") {
+    const trustrootsUsername = getFirstLabelValueFromEvent(
+      trustrootsProfileEvent,
+      TRUSTROOTS_USERNAME_LABEL_NAMESPACE
+    );
+
+    return trustrootsUsername;
+  }
+
+  if (typeof kindZeroEvent !== "undefined") {
+    const profile = getProfileFromEvent(kindZeroEvent);
+    if (typeof profile === "undefined") {
+      return;
+    }
+    const { trustrootsUsername } = profile;
+    return trustrootsUsername;
+  }
+}
+
 /**
  * Does this event meet our requirements for automated validation?
  *
@@ -91,21 +147,18 @@ export async function validateEvent(
     return true;
   }
 
-  const kindZeroEvent = await getKindZeroEvent(relayPool, event.pubkey);
+  const trustrootsUsername = await getTrustrootsUsernameFromProfile(
+    relayPool,
+    event.pubkey
+  );
 
-  if (typeof kindZeroEvent === "undefined") {
-    log.debug("#Kmf59M Skipping event with no kind zero event", { event });
+  if (typeof trustrootsUsername === "undefined") {
+    log.debug(
+      "#Kmf59M Skipping event with no trustrootsUsername from profile",
+      { event }
+    );
     return false;
   }
-
-  const profile = getProfileFromEvent(kindZeroEvent);
-
-  if (typeof profile === "undefined") {
-    log.debug("#pd4X7C Skipping event with invalid profile", { event });
-    return false;
-  }
-
-  const { trustrootsUsername } = profile;
 
   log.debug(`#yUtER5 Checking username ${trustrootsUsername}`);
 

@@ -27,6 +27,12 @@ import {
 } from "react-native";
 import Toast from "react-native-root-toast";
 import * as Device from "expo-device";
+import { getSerializableError } from "@/utils/error.utils";
+import {
+  TRUSTROOTS_PROFILE_KIND,
+  TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
+} from "@trustroots/nr-common";
+import TEMPORARYSetUsername from "@/components/TEMPORARYSetUsername";
 
 const DevSwitch = () => {
   const dispatch = useAppDispatch();
@@ -67,7 +73,7 @@ export default function TabThreeScreen() {
   useEffect(() => {
     (async function asyncInner() {
       const hasKey = await getHasPrivateKeyInSecureStorage();
-      if (!hasPrivateKey && hasKey) {
+      if (!hasPrivateKey && !hasKey) {
         const { mnemonic } = generateSeedWords();
         dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonic));
       }
@@ -139,6 +145,9 @@ export default function TabThreeScreen() {
         <TextInput style={styles.input} value="['relay.trustroots.org']" />
         <Text style={styles.q}>expo push token</Text>
         <TextInput style={styles.input} value={expoPushToken} />
+
+        <TEMPORARYSetUsername />
+
         <Text style={styles.header}>Help</Text>
         <Text style={styles.q}>How does this work?</Text>
 

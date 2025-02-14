@@ -4,7 +4,7 @@ import {
   getPlusCodeAndPlusCodePrefixTags,
 } from "@trustroots/nr-common";
 import { nanoid } from "@reduxjs/toolkit";
-import { EventTemplate } from "nostr-tools";
+import { Event, EventTemplate, VerifiedEvent } from "nostr-tools";
 import { createPromiseAction } from "redux-saga-promise-actions";
 
 export const publishEventPromiseAction = createPromiseAction(
@@ -12,20 +12,22 @@ export const publishEventPromiseAction = createPromiseAction(
   "publish/event/success",
   "publish/event/failure",
 )<
-  { eventTemplate: EventTemplate },
-  { [relayUrl: string]: string },
+  { event: VerifiedEvent },
+  { id: string; relayResponses: { [relayUrl: string]: string } },
   SerializableError
 >();
+
+export const publishEventTemplatePromiseAction = createPromiseAction(
+  "publish/eventTemplate/request",
+  "publish/eventTemplate/success",
+  "publish/eventTemplate/failure",
+)<{ eventTemplate: EventTemplate }, { event: Event }, SerializableError>();
 
 export const publishNoteActionCreator = createPromiseAction(
   "publish/note/request",
   "publish/note/success",
   "publish/note/failure",
-)<
-  { eventTemplate: EventTemplate },
-  { [relayUrl: string]: string },
-  { message: string }
->();
+)<{ event: Event }, { [relayUrl: string]: string }, { message: string }>();
 
 export function publishNotePromiseAction(
   note: string,
@@ -48,7 +50,7 @@ export function publishNotePromiseAction(
     created_at: getCurrentTimestamp(),
   };
 
-  const action = publishEventPromiseAction.request({ eventTemplate });
+  const action = publishEventTemplatePromiseAction.request({ eventTemplate });
 
   return action;
 }

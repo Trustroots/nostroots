@@ -1,3 +1,4 @@
+import TEMPORARYSetUsername from "@/components/TEMPORARYSetUsername";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
   getHasPrivateKeyInSecureStorage,
@@ -11,7 +12,6 @@ import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import {
   settingsActions,
   settingsSelectors,
-  settingsSlice,
 } from "@/redux/slices/settings.slice";
 import { generateSeedWords, getBech32PrivateKey } from "nip06";
 import { useEffect, useState } from "react";
@@ -25,14 +25,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Toast from "react-native-root-toast";
-import * as Device from "expo-device";
-import { getSerializableError } from "@/utils/error.utils";
-import {
-  TRUSTROOTS_PROFILE_KIND,
-  TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
-} from "@trustroots/nr-common";
-import TEMPORARYSetUsername from "@/components/TEMPORARYSetUsername";
 
 const DevSwitch = () => {
   const dispatch = useAppDispatch();
@@ -65,7 +57,7 @@ export default function TabThreeScreen() {
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
   );
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
-  const pubHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
+  // const pubHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
   const dispatch = useAppDispatch();
 
   const { expoPushToken } = useNotifications();

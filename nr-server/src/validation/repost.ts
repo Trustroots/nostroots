@@ -78,6 +78,11 @@ function deriveOpenLocationTags(event: nostrify.NostrEvent): Tags {
   return plusCodePrefixTags;
 }
 
+export function removeDTag(tags: Tags): Tags {
+  const filteredTags = tags.filter(([tag]) => tag !== "d");
+  return filteredTags;
+}
+
 function deriveTags(event: nostrify.NostrEvent): Tags {
   const plusCodePrefixTags = deriveOpenLocationTags(event);
   const derivedTags = [...event.tags, ...plusCodePrefixTags];

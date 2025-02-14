@@ -1,8 +1,8 @@
 /src/
-/esm/utils.test.js
-/esm/utils.test.d.ts
-/script/utils.test.js
-/script/utils.test.d.ts
+/esm/src/utils.test.js
+/esm/src/utils.test.d.ts
+/script/src/utils.test.js
+/script/src/utils.test.d.ts
 /esm/deps/jsr.io/@std/assert/1.0.11/assertion_error.js
 /esm/deps/jsr.io/@std/assert/1.0.11/assertion_error.d.ts
 /script/deps/jsr.io/@std/assert/1.0.11/assertion_error.js

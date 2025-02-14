@@ -3,7 +3,7 @@ const process = require("process");
 const { pathToFileURL } = require("url");
 const { testDefinitions } = require("@deno/shim-deno/test-internals");
 const filePaths = [
-    "utils.test.js",
+    "src/utils.test.js",
 ];
 async function main() {
     const testContext = {

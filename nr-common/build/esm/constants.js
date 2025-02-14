@@ -1,4 +1,7 @@
+export const PACKAGE_VERSION = "0.0.1";
 export const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2;
+export const TRUSTROOTS_PROFILE_KIND = 10390;
+export const NOTIFICATION_SUBSCRIPTION_KIND = 10395;
 export const MAP_NOTE_KIND = 30397;
 export const MAP_NOTE_REPOST_KIND = 30398;
 export const OPEN_LOCATION_CODE_LABEL_NAMESPACE = "open-location-code";
@@ -8,6 +11,8 @@ export const OPEN_LOCATION_CODE_PREFIX_TAG_NAME = OPEN_LOCATION_CODE_PREFIX_LABE
 export const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = "org.trustroots:username";
 export const TRUSTROOTS_PICTURE_LABEL_NAMESPACE = "org.trustroots:picture";
 export const TRUSTROOTS_USERNAME_MIN_LENGTH = 3;
+export const CONTENT_MINIMUM_LENGTH = 3;
+export const CONTENT_MAXIMUM_LENGTH = 300;
 export const DEFAULT_RELAY_URL = "wss://relay.trustroots.org";
 export const DEV_PUBKEY = "80789235a71a388074abfa5c482e270456d2357425266270f82071cf2b1de74a";
 export const NOSTROOTS_VALIDATION_PUBKEY = "f5bc71692fc08ea52c0d1c8bcfb87579584106b5feb4ea542b1b8a95612f257b";

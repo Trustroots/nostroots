@@ -20,6 +20,9 @@
   "scripts": {
     "test": "node test_runner.js"
   },
+  "dependencies": {
+    "nostr-tools": "2.10.4"
+  },
   "devDependencies": {
     "@types/node": "^20.9.0",
     "picocolors": "^1.0.0",

@@ -1,5 +1,9 @@
+export const PACKAGE_VERSION = "0.0.1";
+
 export const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2 as const;
 
+export const TRUSTROOTS_PROFILE_KIND = 10390 as const;
+export const NOTIFICATION_SUBSCRIPTION_KIND = 10395 as const;
 export const MAP_NOTE_KIND = 30397 as const;
 export const MAP_NOTE_REPOST_KIND = 30398 as const;
 
@@ -13,6 +17,9 @@ export const OPEN_LOCATION_CODE_PREFIX_TAG_NAME =
 export const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = "org.trustroots:username";
 export const TRUSTROOTS_PICTURE_LABEL_NAMESPACE = "org.trustroots:picture";
 export const TRUSTROOTS_USERNAME_MIN_LENGTH = 3;
+
+export const CONTENT_MINIMUM_LENGTH = 3;
+export const CONTENT_MAXIMUM_LENGTH = 300;
 
 export const DEFAULT_RELAY_URL = "wss://relay.trustroots.org";
 

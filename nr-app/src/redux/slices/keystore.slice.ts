@@ -24,8 +24,14 @@ export const keystoreSlice = createSlice({
   selectors: {
     selectHasPrivateKeyInSecureStorage: (state) =>
       state.hasPrivateKeyInSecureStorage,
-    selectPublicKeyHex: (state) => state.publicKeyHex,
-    selectPublicKeyNpub: (state) => state.publicKeyNpub,
+    selectPublicKeyHex: (state) => {
+      console.log("seelct public key hex", state);
+      return state.publicKeyHex;
+    },
+    selectPublicKeyNpub: (state) => {
+      console.log("seelct public key npub", state);
+      return state.publicKeyNpub;
+    },
   },
 });
 

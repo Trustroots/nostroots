@@ -1,12 +1,14 @@
 import {
-  getHasPrivateKeyInSecureStorage,
+  derivePublicKeyHexFromMnemonic,
   getPrivateKeyHex,
   getPrivateKeyMnemonic,
 } from "@/nostr/keystore.nostr";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
-import { keystoreSelectors } from "@/redux/slices/keystore.slice";
+import {
+  keystoreSelectors,
+  setPublicKeyHex,
+} from "@/redux/slices/keystore.slice";
 import { Button, Modal, StyleSheet, Text, View } from "react-native";
 
 import OnboardModal from "@/components/OnboardModal";
@@ -15,8 +17,8 @@ import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
-import { generateSeedWords, getBech32PrivateKey } from "nip06";
-import { useEffect, useState } from "react";
+import { getBech32PrivateKey } from "nip06";
+import { useState } from "react";
 import { SafeAreaView, ScrollView, Switch, TextInput } from "react-native";
 
 const DevSwitch = () => {
@@ -51,22 +53,35 @@ export default function TabThreeScreen() {
   const hasPrivateKeyFromRedux = useAppSelector(
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
   );
+
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
-  const pubHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
   const dispatch = useAppDispatch();
 
-  useEffect(() => {
-    (async function asyncInner() {
-      const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
-      if (!hasPrivateKeyFromRedux && !hasKeyFromStorage) {
-        const { mnemonic } = generateSeedWords();
-        dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonic));
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const [modalVisible, setModalVisible] = useState(false);
+
+  const showNsec = async () => {
+    try {
+      // const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
+
+      const keyHex = await getPrivateKeyHex();
+      const mnemonic = await getPrivateKeyMnemonic();
+
+      const pubKeyHex = derivePublicKeyHexFromMnemonic(mnemonic);
+      dispatch(setPublicKeyHex(pubKeyHex));
+
+      const { bech32PrivateKey } = getBech32PrivateKey({
+        privateKey: keyHex,
+      });
+      setNsec(bech32PrivateKey);
+      setMnemonic(mnemonic);
+      setTimeout(() => {
+        setNsec("");
+        setMnemonic("");
+      }, 15e3);
+    } catch (error) {
+      console.error("#bVVgTl Error getting nsec and mnemonic", error);
+    }
+  };
 
   return (
     <SafeAreaView style={styles.settings}>
@@ -78,12 +93,12 @@ export default function TabThreeScreen() {
             visible={modalVisible}
             onRequestClose={() => setModalVisible(false)}
           >
-            <OnboardModal npub={npub} setModalVisible={setModalVisible} />
+            <OnboardModal setModalVisible={setModalVisible} />
           </Modal>
         </View>
         {username === "" ? (
           <Button
-            title="Link your TrustRoots Key"
+            title="Link Your Trustroots.org Profile"
             onPress={() => setModalVisible(true)}
           />
         ) : (
@@ -92,60 +107,13 @@ export default function TabThreeScreen() {
 
         <Text style={styles.q}>npub</Text>
         <TextInput style={styles.input} value={npub} />
-        {/**
-        <Text style={styles.settings}>pub key hex</Text>
-        <TextInput style={styles.input} value={pubHex} />
-        */}
         <Text style={styles.q}>nsec</Text>
         <TextInput style={styles.input} value={nsec} />
-        <Button
-          title="Show nsec"
-          onPress={async () => {
-            try {
-              const keyHex = await getPrivateKeyHex();
-              const mnemonic = await getPrivateKeyMnemonic();
-              const { bech32PrivateKey } = getBech32PrivateKey({
-                privateKey: keyHex,
-              });
-              setNsec(bech32PrivateKey);
-              setMnemonic(mnemonic);
-              setTimeout(() => {
-                setNsec("");
-                setMnemonic("");
-              }, 15e3);
-            } catch (error) {
-              console.error("#bVVgTl Error getting nsec and mnemonic", error);
-            }
-          }}
-        />
-        {/*
-        <Text style={styles.settings}>seed</Text>
-        <TextInput
-          style={styles.input}
-          value={mnemonic}
-          onChangeText={setMnemonic}
-        />
-        <Button
-          title="Save mnemonic"
-          onPress={async () => {
-            dispatch(
-              setPrivateKeyMnemonicPromiseAction.request(mnemonic.trim()),
-            )
-              .then(
-                Toast.show("Saved", {
-                  position: Toast.positions.TOP,
-                  duration: 10e3,
-                }),
-              )
-              .catch((error: Error) => {
-                Toast.show(`#EgV9ut Error ${error}`, {
-                  position: Toast.positions.TOP,
-                  duration: 10e3,
-                });
-              });
-          }}
-        />
-        */}
+        <Text style={styles.q}>nsec mnemonic</Text>
+        <TextInput style={styles.input} value={mnemonic} />
+        {hasPrivateKeyFromRedux && (
+          <Button title="Show nsec" onPress={showNsec} />
+        )}
         <Text style={styles.q}>relays</Text>
         <TextInput style={styles.input} value="['relay.trustroots.org']" />
         <Text style={styles.header}>Help</Text>
@@ -245,62 +213,5 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "white",
-  },
-  modalText: {
-    fontSize: 20,
-    marginBottom: 20,
-  },
-  closeButton: {
-    backgroundColor: "#2196F3",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  closeButtonText: {
-    color: "white",
-    fontSize: 16,
-  },
-
-  // username
-
-  usernameContainer: {
-    padding: 0,
-  },
-  usernameLabel: {
-    fontSize: 16,
-    marginBottom: 5,
-  },
-  usernameInput: {
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  usernameSubmitBtn: {
-    backgroundColor: "#2196F3",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    alignItems: "center",
-  },
-  usernameSubmit: {
-    color: "white",
-    fontSize: 16,
-  },
-
-  usernameInputError: {
-    borderColor: "red",
-  },
-  output: {
-    fontSize: 16,
-    color: "blue",
   },
 });

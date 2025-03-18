@@ -1,11 +1,25 @@
+export const PACKAGE_VERSION = "0.0.1";
+
 export const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2 as const;
 
+export const TRUSTROOTS_PROFILE_KIND = 10390 as const;
+export const NOTIFICATION_SUBSCRIPTION_KIND = 10395 as const;
 export const MAP_NOTE_KIND = 30397 as const;
 export const MAP_NOTE_REPOST_KIND = 30398 as const;
 
-export const OPEN_LOCATION_CODE_TAG_NAME = "open-location-code" as const;
-export const OPEN_LOCATION_CODE_PREFIX_TAG_NAME =
+export const OPEN_LOCATION_CODE_LABEL_NAMESPACE = "open-location-code" as const;
+export const OPEN_LOCATION_CODE_TAG_NAME = OPEN_LOCATION_CODE_LABEL_NAMESPACE;
+export const OPEN_LOCATION_CODE_PREFIX_LABEL_NAMESPACE =
   "open-location-code-prefix" as const;
+export const OPEN_LOCATION_CODE_PREFIX_TAG_NAME =
+  OPEN_LOCATION_CODE_PREFIX_LABEL_NAMESPACE;
+
+export const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = "org.trustroots:username";
+export const TRUSTROOTS_PICTURE_LABEL_NAMESPACE = "org.trustroots:picture";
+export const TRUSTROOTS_USERNAME_MIN_LENGTH = 3;
+
+export const CONTENT_MINIMUM_LENGTH = 3;
+export const CONTENT_MAXIMUM_LENGTH = 300;
 
 export const DEFAULT_RELAY_URL = "wss://relay.trustroots.org";
 
@@ -23,6 +37,10 @@ export const HITCHWIKI_AUTHOR_PUBLIC_KEY =
 
 export const TIMESAFARI_AUTHOR_PUBLIC_KEY =
   "76e88d2e653fc3655f8e0b97f6bc85f5468eaffc5d64522b584ce13eedbd8af7" as const;
+
+// cross-env DSN id - use for native + server
+export const SENTRY_DSN =
+  "https://ea370f9e4aba87f6e69a479f2d41bc23@o4508806276841472.ingest.de.sentry.io/4508806292176976" as const;
 
 export type MapLayer = {
   title: string;

@@ -15,14 +15,25 @@ await build({
     name: "@trustroots/nr-common",
     version: Deno.args[0],
     description: "Your package.",
-    license: "MIT",
+    license: "AGPL-3.0",
     repository: {
       type: "git",
-      url: "git+https://github.com/username/repo.git",
+      url: "git+https://github.com/trustroots/nostroots.git",
     },
     bugs: {
-      url: "https://github.com/username/repo/issues",
+      url: "https://github.com/trustroots/nostroots/issues",
     },
+  },
+  filterDiagnostic(diagnostic) {
+    if (
+      diagnostic.file?.path.includes("/build/src/deps/") &&
+      (diagnostic.file?.path.endsWith("/assertion_error.ts") ||
+        diagnostic.file?.path.endsWith("/_equal.ts"))
+    ) {
+      return false; // ignore all diagnostics in this file
+    }
+    // etc... more checks here
+    return true;
   },
   postBuild() {
     // steps to run after building and before running the tests

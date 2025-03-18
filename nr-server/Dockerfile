@@ -1,6 +1,15 @@
+FROM scratch AS build-nr-common
+
+WORKDIR /app
+COPY --from=nr-common . /app/nr-common
+
 FROM denoland/deno:2.1.1
 
 WORKDIR /app
+
+COPY --from=build-nr-common /app/nr-common/ /app/nr-common/
+
+WORKDIR /app/nr-server
 
 # Prefer not to run as root.
 USER deno

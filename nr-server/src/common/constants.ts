@@ -2,13 +2,7 @@ export const PRIVATE_KEY_STORAGE_KEY = "__nostrPrivateKey" as const;
 export const RELAYS_STORAGE_KEY = "__nostrRelays" as const;
 export const PLUS_CODE_TAG_KEY = "l" as const;
 export const LABEL_NAMESPACE_TAG = "L" as const;
-export const DEFAULT_RELAYS = [
-  "wss://relay.damus.io",
-  "wss://relay.primal.net",
-  "wss://nostr.manasiwibi.com",
-  "wss://nos.lol",
-  "wss://relay.trustroots.org",
-] as const;
+export const DEFAULT_RELAYS = ["wss://relay.trustroots.org"] as const;
 export const DEV_RELAYS = ["ws://localhost:7000"];
 export const PANEL_CONTAINER_ID = "panelID";
 export const BADGE_CONTAINER_ID = "badge";

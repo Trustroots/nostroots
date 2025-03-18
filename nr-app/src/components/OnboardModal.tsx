@@ -222,6 +222,8 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
           value={mnemonicText}
           onChangeText={handleMnemonicChange}
           placeholder="mnemonic text"
+          autoCapitalize="none"
+          autoCorrect={false}
         />
 
         {error && <Text style={styles.usernameInputError}>{error}</Text>}
@@ -266,6 +268,8 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
           value={usernameText}
           onChangeText={handleTextChange}
           placeholder="Verify your trustroots username"
+          autoCapitalize="none"
+          autoCorrect={false}
         />
         {error && <Text style={styles.usernameInputError}>{error}</Text>}
 

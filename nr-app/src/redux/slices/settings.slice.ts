@@ -2,10 +2,12 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
 type SettingsState = {
   areTestFeaturesEnabled: boolean;
+  username: string;
 };
 
 const initialState: SettingsState = {
   areTestFeaturesEnabled: false,
+  username: "",
 };
 
 export const settingsSlice = createSlice({
@@ -15,9 +17,13 @@ export const settingsSlice = createSlice({
     toggleTestFeatures: (state, action: PayloadAction) => {
       state.areTestFeaturesEnabled = !state.areTestFeaturesEnabled;
     },
+    setUsername: (state, action: PayloadAction<string>) => {
+      state.username = action.payload;
+    },
   },
   selectors: {
     selectAreTestFeaturesEnabled: (state) => state.areTestFeaturesEnabled,
+    selectUsername: (state) => state.username,
   },
 });
 

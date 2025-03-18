@@ -160,3 +160,15 @@ export function hasVersion(tags) {
         return false;
     return true;
 }
+export async function getNip5PubKey(trustrootsUsername) {
+    try {
+        const nip5Response = await fetch(`https://www.trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`);
+        const nip5Json = (await nip5Response.json());
+        const nip5PubKey = nip5Json.names[trustrootsUsername];
+        return nip5PubKey;
+    }
+    catch (e) {
+        console.warn(`Could not get nip5 key for ${trustrootsUsername}`, e);
+        return;
+    }
+}

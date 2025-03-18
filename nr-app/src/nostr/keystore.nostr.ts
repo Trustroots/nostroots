@@ -2,8 +2,8 @@ import {
   SECURE_STORE_PRIVATE_KEY_HEX_KEY,
   SECURE_STORE_PRIVATE_KEY_HEX_NMEONIC,
 } from "@/constants";
-import { isHexKey } from "@trustroots/nr-common";
 import { hexToBytes } from "@noble/hashes/utils";
+import { isHexKey } from "@trustroots/nr-common";
 import * as SecureStore from "expo-secure-store";
 import { accountFromSeedWords } from "nip06";
 import { EventTemplate, finalizeEvent, VerifiedEvent } from "nostr-tools";
@@ -70,4 +70,9 @@ export async function signEventTemplate(
   const key = await getPrivateKeyBytes();
   const event = finalizeEvent(eventTemplate, key);
   return event;
+}
+
+export function derivePublicKeyHexFromMnemonic(mnemonic: string) {
+  const account = accountFromSeedWords({ mnemonic });
+  return account.publicKey.hex;
 }

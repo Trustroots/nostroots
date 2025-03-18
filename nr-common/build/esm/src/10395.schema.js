@@ -12,9 +12,6 @@ export const kind10395ContentDecodedSchema = z.object({
 export const kind10395EventSchema = baseEventSchema.extend({
     kind: z.literal(NOTIFICATION_SUBSCRIPTION_KIND),
     // TODO Enable version check
-    // tags: tagsIncludingPlusCodeSchema.refine(hasVersion, {
-    //   message: "no valid kind30397_version",
-    // }),
     content: z.string().refine((content) => {
         try {
             const result = JSON.parse(content);

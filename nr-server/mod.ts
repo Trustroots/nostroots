@@ -41,7 +41,9 @@ await new cliffy.Command()
     const privateKey = getOrCreatePrivateKey(options.privateKeyNsec);
     const maxAgeMinutes = options.maxAgeMinutes;
 
-    log.debug(`#PnFUPS Startup isDev ${isDev}`);
+    log.debug(
+      `#PnFUPS Startup isDev ${isDev} and subscribe ${options.subscribe}`
+    );
 
     if (options.subscribe) {
       subscribeAndRepost(privateKey, isDev, maxAgeMinutes);

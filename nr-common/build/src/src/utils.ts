@@ -234,3 +234,25 @@ export function hasVersion(tags: string[][]): boolean {
   if (version !== PACKAGE_VERSION) return false;
   return true;
 }
+
+export async function getNip5PubKey(
+  trustrootsUsername: string
+): Promise<string | undefined> {
+  try {
+    const nip5Response = await fetch(
+      `https://www.trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`
+    );
+    const nip5Json = (await nip5Response.json()) as {
+      names: {
+        [username: string]: string;
+      };
+    };
+
+    const nip5PubKey = nip5Json.names[trustrootsUsername];
+
+    return nip5PubKey;
+  } catch (e: unknown) {
+    console.warn(`Could not get nip5 key for ${trustrootsUsername}`, e);
+    return;
+  }
+}

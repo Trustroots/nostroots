@@ -11,6 +11,7 @@ import {
   TRUSTROOTS_PROFILE_KIND,
   getFirstLabelValueFromEvent,
   TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
+  getNip5PubKey,
 } from "../../../nr-common/mod.ts";
 
 async function getKindZeroEvent(relayPool: nostrify.NPool, pubKey: string) {
@@ -74,28 +75,6 @@ function getProfileFromEvent(event: nostrTools.Event): Profile | undefined {
 
     return profile;
   } catch {
-    return;
-  }
-}
-
-async function getNip5PubKey(
-  trustrootsUsername: string
-): Promise<string | undefined> {
-  try {
-    const nip5Response = await fetch(
-      `https://www.trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`
-    );
-    const nip5Json = (await nip5Response.json()) as {
-      names: {
-        [username: string]: string;
-      };
-    };
-
-    const nip5PubKey = nip5Json.names[trustrootsUsername];
-
-    return nip5PubKey;
-  } catch (e: unknown) {
-    console.warn(`Could not get nip5 key for ${trustrootsUsername}`, e);
     return;
   }
 }

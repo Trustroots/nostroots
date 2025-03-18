@@ -37,8 +37,7 @@ import {
   setPublicKeyHex,
 } from "@/redux/slices/keystore.slice";
 
-// import { getNip5PubKey } from "@trustroots/nr-common";
-import { getNip5PubKey } from "../../../nr-common/utils.ts";
+import { getNip5PubKey } from "@trustroots/nr-common";
 
 interface OnboardModalProps {
   setModalVisible: React.Dispatch<React.SetStateAction<boolean>>;

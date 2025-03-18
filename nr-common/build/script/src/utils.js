@@ -15,6 +15,7 @@ exports.getAllPlusCodePrefixes = getAllPlusCodePrefixes;
 exports.getPlusCodeAndPlusCodePrefixTags = getPlusCodeAndPlusCodePrefixTags;
 exports.hasOpenLocationCode = hasOpenLocationCode;
 exports.hasVersion = hasVersion;
+exports.getNip5PubKey = getNip5PubKey;
 const constants_js_1 = require("../constants.js");
 function last(items) {
     const lastIndex = Math.max(items.length - 1, 0);
@@ -176,4 +177,16 @@ function hasVersion(tags) {
     if (version !== constants_js_1.PACKAGE_VERSION)
         return false;
     return true;
+}
+async function getNip5PubKey(trustrootsUsername) {
+    try {
+        const nip5Response = await fetch(`https://www.trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`);
+        const nip5Json = (await nip5Response.json());
+        const nip5PubKey = nip5Json.names[trustrootsUsername];
+        return nip5PubKey;
+    }
+    catch (e) {
+        console.warn(`Could not get nip5 key for ${trustrootsUsername}`, e);
+        return;
+    }
 }

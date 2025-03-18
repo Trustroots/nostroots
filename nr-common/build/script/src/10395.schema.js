@@ -15,9 +15,6 @@ exports.kind10395ContentDecodedSchema = deps_js_1.z.object({
 exports.kind10395EventSchema = base_schema_js_1.baseEventSchema.extend({
     kind: deps_js_1.z.literal(constants_js_1.NOTIFICATION_SUBSCRIPTION_KIND),
     // TODO Enable version check
-    // tags: tagsIncludingPlusCodeSchema.refine(hasVersion, {
-    //   message: "no valid kind30397_version",
-    // }),
     content: deps_js_1.z.string().refine((content) => {
         try {
             const result = JSON.parse(content);

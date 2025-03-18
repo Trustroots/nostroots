@@ -294,7 +294,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
       />
 
       <OpenTrustRootsButton
-        url={`https://notes.trustroots.org/#user=${username}`}
+        url={`https://www.trustroots.org/profile/edit/networks`}
         title={"Set Public Key (trustroots.org)"}
       />
 

@@ -25,7 +25,7 @@ const initialState: MapState = {
     hitchwiki: false,
     timesafari: false,
     triphopping: false,
-    unverified: true,
+    unverified: false,
   },
 };
 
@@ -42,9 +42,16 @@ export const mapSlice = createSlice({
       state.enabledLayers[action.payload] = true;
     },
     disableLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
+      // Disable uncommenting layers for now
+      return state;
+      // eslint-disable-next-line no-unreachable
       state.enabledLayers[action.payload] = false;
     },
     toggleLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
+      // Disable uncommenting layers for now
+      if (state.enabledLayers[action.payload]) {
+        return state;
+      }
       state.enabledLayers[action.payload] =
         !state.enabledLayers[action.payload];
     },
@@ -59,14 +66,15 @@ export const mapSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    builder.addCase(setVisiblePlusCodes, (state, action) => {
-      state.visiblePlusCodes = action.payload;
-    });
-    builder.addCase(setSubscriptionHasSeenEOSE, (state, action) => {
-      if (action.payload.id === MAP_SUBSCRIPTION_ID) {
-        state.mapSubscriptionIsUpdating = false;
-      }
-    });
+    builder
+      .addCase(setVisiblePlusCodes, (state, action) => {
+        state.visiblePlusCodes = action.payload;
+      })
+      .addCase(setSubscriptionHasSeenEOSE, (state, action) => {
+        if (action.payload.id === MAP_SUBSCRIPTION_ID) {
+          state.mapSubscriptionIsUpdating = false;
+        }
+      });
   },
   selectors: {
     selectVisiblePlusCodes: (state) => state.visiblePlusCodes,

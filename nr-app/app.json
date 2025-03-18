@@ -32,7 +32,8 @@
         "googleMaps": {
           "apiKey": "AIzaSyCr1ZxZlVQNI_u7FYfPkjgvZv79UeaPFYQ"
         }
-      }
+      },
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "bundler": "metro",
@@ -42,7 +43,15 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "@sentry/react-native/expo",
+        {
+          "organization": "trustroots-foundation-fo",
+          "project": "react-native",
+          "url": "https://sentry.io/"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

@@ -1,3 +1,20 @@
+import { getBech32PrivateKey } from "nip06";
+import { useState } from "react";
+import {
+  Button,
+  Modal,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+
+import OnboardModal from "@/components/OnboardModal";
+import TEMPORARYSetUsername from "@/components/TEMPORARYSetUsername";
+import { useNotifications } from "@/hooks/useNotifications";
 import {
   derivePublicKeyHexFromMnemonic,
   getPrivateKeyHex,
@@ -9,17 +26,10 @@ import {
   keystoreSelectors,
   setPublicKeyHex,
 } from "@/redux/slices/keystore.slice";
-import { Button, Modal, StyleSheet, Text, View } from "react-native";
-
-import OnboardModal from "@/components/OnboardModal";
-
 import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
-import { getBech32PrivateKey } from "nip06";
-import { useState } from "react";
-import { SafeAreaView, ScrollView, Switch, TextInput } from "react-native";
 
 const DevSwitch = () => {
   const dispatch = useAppDispatch();
@@ -46,6 +56,8 @@ const DevSwitch = () => {
 };
 
 export default function TabThreeScreen() {
+  const { expoPushToken } = useNotifications();
+
   const username = useAppSelector(settingsSelectors.selectUsername);
 
   const [nsec, setNsec] = useState("");
@@ -55,6 +67,7 @@ export default function TabThreeScreen() {
   );
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
+
   const dispatch = useAppDispatch();
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -116,6 +129,11 @@ export default function TabThreeScreen() {
         )}
         <Text style={styles.q}>relays</Text>
         <TextInput style={styles.input} value="['relay.trustroots.org']" />
+        <Text style={styles.q}>expo push token</Text>
+        <TextInput style={styles.input} value={expoPushToken} />
+
+        <TEMPORARYSetUsername />
+
         <Text style={styles.header}>Help</Text>
         <Text style={styles.q}>How does this work?</Text>
 
@@ -155,7 +173,7 @@ export default function TabThreeScreen() {
         <Button
           title="Set visible plus codes"
           onPress={() => {
-            console.log("#bLtiOc pressed");
+            __DEV__ && console.log("#bLtiOc pressed");
             dispatch(
               setVisiblePlusCodes([
                 "8C000000+",

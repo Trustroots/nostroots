@@ -4,7 +4,7 @@ import {
   getPlusCodeAndPlusCodePrefixTags,
 } from "@trustroots/nr-common";
 import { nanoid } from "@reduxjs/toolkit";
-import { EventTemplate } from "nostr-tools";
+import { Event, EventTemplate, VerifiedEvent } from "nostr-tools";
 import { createPromiseAction } from "redux-saga-promise-actions";
 
 export const publishEventPromiseAction = createPromiseAction(
@@ -12,32 +12,45 @@ export const publishEventPromiseAction = createPromiseAction(
   "publish/event/success",
   "publish/event/failure",
 )<
-  { eventTemplate: EventTemplate },
-  { [relayUrl: string]: string },
+  { event: VerifiedEvent },
+  { id: string; relayResponses: { [relayUrl: string]: string } },
   SerializableError
 >();
+
+export const publishEventTemplatePromiseAction = createPromiseAction(
+  "publish/eventTemplate/request",
+  "publish/eventTemplate/success",
+  "publish/eventTemplate/failure",
+)<{ eventTemplate: EventTemplate }, { event: Event }, SerializableError>();
 
 export const publishNoteActionCreator = createPromiseAction(
   "publish/note/request",
   "publish/note/success",
   "publish/note/failure",
-)<
-  { eventTemplate: EventTemplate },
-  { [relayUrl: string]: string },
-  { message: string }
->();
+)<{ event: Event }, { [relayUrl: string]: string }, { message: string }>();
 
-export function publishNotePromiseAction(note: string, plusCode: string) {
+export function publishNotePromiseAction(
+  note: string,
+  plusCode: string,
+  expirationTimestampSeconds?: number,
+) {
   const plusCodeAndPlusCodePrefixTags =
     getPlusCodeAndPlusCodePrefixTags(plusCode);
+  const tags = [["d", nanoid()], ...plusCodeAndPlusCodePrefixTags];
+  const tagsWithExpiration =
+    typeof expirationTimestampSeconds === "undefined"
+      ? tags
+      : tags.concat([
+          ["expiration", Math.round(expirationTimestampSeconds).toString()],
+        ]);
   const eventTemplate = {
     kind: 30397,
     content: note,
-    tags: [["d", nanoid()], ...plusCodeAndPlusCodePrefixTags],
+    tags: tagsWithExpiration,
     created_at: getCurrentTimestamp(),
   };
 
-  const action = publishEventPromiseAction.request({ eventTemplate });
+  const action = publishEventTemplatePromiseAction.request({ eventTemplate });
 
   return action;
 }

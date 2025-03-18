@@ -7,22 +7,21 @@ import {
   resolvePromiseAction,
 } from "redux-saga-promise-actions";
 import { all, call, put, select, takeEvery } from "redux-saga/effects";
-import { publishEventPromiseAction } from "../actions/publish.actions";
+import {
+  publishEventPromiseAction,
+  publishEventTemplatePromiseAction,
+} from "../actions/publish.actions";
 import { relaySelectors } from "../slices/relays.slice";
 
-export function* publishSagaEffect(
+export function* publishEventSagaEffect(
   action: ReturnType<typeof publishEventPromiseAction.request>,
 ): Generator<any, void, any> {
   try {
-    const { eventTemplate } = action.payload;
+    const { event } = action.payload;
+    const { id } = event;
 
     const relayUrls: ReturnType<typeof relaySelectors.getActiveRelayUrls> =
       yield select(relaySelectors.getActiveRelayUrls);
-
-    const event: Awaited<ReturnType<typeof signEventTemplate>> = yield call(
-      signEventTemplate,
-      eventTemplate,
-    );
 
     const results: Awaited<ReturnType<typeof publishVerifiedEventToRelay>>[] =
       yield all(
@@ -32,8 +31,8 @@ export function* publishSagaEffect(
       );
 
     const resultPairs = A.zip(relayUrls, results);
-
-    const output = Object.fromEntries(resultPairs);
+    const relayResponses = Object.fromEntries(resultPairs);
+    const output = { id, relayResponses };
 
     yield put(publishEventPromiseAction.success(output));
     resolvePromiseAction(action, output);
@@ -45,9 +44,33 @@ export function* publishSagaEffect(
 }
 
 export function* publishEventSaga() {
-  yield takeEvery(publishEventPromiseAction.request, publishSagaEffect);
+  yield takeEvery(publishEventPromiseAction.request, publishEventSagaEffect);
+}
+
+export function* publishEventTemplateSagaEffect(
+  action: ReturnType<typeof publishEventTemplatePromiseAction.request>,
+): Generator<any, void, Awaited<ReturnType<typeof signEventTemplate>>> {
+  const { eventTemplate } = action.payload;
+
+  try {
+    const event = yield call(signEventTemplate, eventTemplate);
+
+    yield put(publishEventPromiseAction.request({ event }));
+
+    yield put(publishEventTemplatePromiseAction.success({ event }));
+  } catch (error) {
+    const serializableError = getSerializableError(error);
+    yield put(publishEventTemplatePromiseAction.failure(serializableError));
+  }
+}
+
+export function* publishEventTemplateSaga() {
+  yield takeEvery(
+    publishEventTemplatePromiseAction.request,
+    publishEventTemplateSagaEffect,
+  );
 }
 
 export default function* publishSaga() {
-  yield all([publishEventSaga()]);
+  yield all([publishEventSaga(), publishEventTemplateSaga()]);
 }

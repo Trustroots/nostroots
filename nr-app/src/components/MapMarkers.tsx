@@ -1,4 +1,7 @@
-import { filterForMapLayerConfig, trustrootsMapFilter } from "@/common/utils";
+import {
+  filterForMapLayerConfig,
+  getTrustrootsMapFilter,
+} from "@/common/utils";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
@@ -27,7 +30,7 @@ const selectEventsForLayers = createSelector(
   [eventsSelectors.selectAll, mapSelectors.selectEnabledLayerKeys],
   (allEvents, activeLayers) => {
     const trustrootsEvents = allEvents.filter((event) =>
-      matchFilter(trustrootsMapFilter(), event.event),
+      matchFilter(getTrustrootsMapFilter(), event.event),
     );
     const layerEvents = activeLayers.map(
       (layerKey): [MAP_LAYER_KEY, EventWithMetadata[]] => {
@@ -63,7 +66,7 @@ export function MapMarkers() {
   const handleMapRegionChange = useMemo(
     () =>
       function handleMapRegionChangeHandler(region: Region, details: Details) {
-        console.log("#rIMmxg Map move completed", region, details);
+        __DEV__ && console.log("#rIMmxg Map move completed", region, details);
         const visiblePlusCodes = allPlusCodesForRegion(region);
         dispatch(setVisiblePlusCodes(visiblePlusCodes));
       },

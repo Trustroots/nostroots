@@ -1,4 +1,10 @@
 import { z } from "../deps.js";
+/**
+ * A kind 10390 event is a trustroots profile on nostr.
+ *
+ * So it's a nostr event, inspired by kind 0, that stores the trustroots
+ * username as a tag value.
+ */
 export declare const kind10390EventSchema: z.ZodObject<z.objectUtil.extendShape<{
     id: z.ZodString;
     pubkey: z.ZodString;

@@ -1,17 +1,17 @@
+import {
+  TRUSTROOTS_PROFILE_KIND,
+  TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
+} from "../constants.ts";
 import { z } from "../deps.ts";
 import {
-  isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue,
-  isValidTagsArrayWithTrustrootsUsername,
-} from "./utils.ts";
-import {
-  baseEventSchema,
   baseEventTemplateSchema,
   finalizedEventFields,
 } from "./base.schema.ts";
-import { EventTemplate } from "npm:nostr-tools@2.10.4";
-import { TRUSTROOTS_PROFILE_KIND } from "../constants.ts";
-import { TRUSTROOTS_USERNAME_LABEL_NAMESPACE } from "../constants.ts";
-import { getCurrentTimestamp } from "./utils.ts";
+import {
+  getCurrentTimestamp,
+  isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue,
+  isValidTagsArrayWithTrustrootsUsername,
+} from "./utils.ts";
 
 /**
  * A kind 10390 event is a trustroots profile on nostr.

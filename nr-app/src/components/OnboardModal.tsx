@@ -5,6 +5,7 @@ import {
 } from "@/nostr/keystore.nostr";
 // import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 //
+import { nip19 } from "nostr-tools";
 
 import { generateSeedWords } from "nip06";
 
@@ -134,20 +135,28 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
     setNip5VerificationLoading(true);
     const nip5Result = await getNip5PubKey(usernameText);
 
-    setNip5VerificationLoading(false);
-    if (nip5Result === npub) {
-      setError(null);
-
-      setUsernameText("");
-      dispatch(settingsActions.setUsername(usernameText));
-      setStep("finishScreen");
+    if (nip5Result === undefined) {
+      setError("There was an error requesting verification for this key.");
       return;
-    }
+    } else {
+      const npubResponse = nip19.npubEncode(nip5Result);
 
-    setError(
-      "Invalid username for this key. Check your username or your public key.",
-    );
-    return;
+      setNip5VerificationLoading(false);
+      if (npubResponse === npub) {
+        setError(null);
+
+        setUsernameText("");
+        dispatch(settingsActions.setUsername(usernameText));
+        setStep("finishScreen");
+        return;
+      } else {
+        console.log("nip5Result", npubResponse, npub);
+        setError(
+          "Invalid username for this key. Check your username or your public key.",
+        );
+        return;
+      }
+    }
   };
 
   const handleTextChange = (text: string) => {

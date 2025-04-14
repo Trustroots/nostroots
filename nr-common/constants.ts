@@ -100,3 +100,10 @@ export const MAP_LAYERS = {
   unverified,
 } as const;
 export type MAP_LAYER_KEY = keyof typeof MAP_LAYERS;
+
+export const PRIVATE_KEY_STORAGE_KEY = "__nostrPrivateKey" as const;
+export const RELAYS_STORAGE_KEY = "__nostrRelays" as const;
+export const PLUS_CODE_TAG_KEY = "l" as const;
+export const LABEL_NAMESPACE_TAG = "L" as const;
+export const DEFAULT_RELAYS = [DEFAULT_RELAY_URL] as const;
+export const DEV_RELAYS = ["ws://localhost:7000"];

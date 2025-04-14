@@ -1,8 +1,4 @@
-import {
-  HITCHMAPS_AUTHOR_PUBLIC_KEY,
-  MINIMUM_TRUSTROOTS_USERNAME_LENGTH,
-  WAIT_FOR_KIND_ZERO_TIMEOUT_SECONDS,
-} from "../common/constants.ts";
+import { WAIT_FOR_KIND_ZERO_TIMEOUT_SECONDS } from "../common/constants.ts";
 import { nostrify, nostrTools, nrCommon } from "../../deps.ts";
 const {
   MAP_NOTE_KIND,
@@ -10,6 +6,8 @@ const {
   getFirstLabelValueFromEvent,
   TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
   getNip5PubKey,
+  HITCHMAPS_AUTHOR_PUBLIC_KEY,
+  TRUSTROOTS_USERNAME_MIN_LENGTH,
 } = nrCommon;
 import { log } from "../log.ts";
 import { Profile } from "../types.ts";
@@ -68,7 +66,7 @@ function getProfileFromEvent(event: nostrTools.Event): Profile | undefined {
 
     if (
       typeof trustrootsUsername !== "string" ||
-      trustrootsUsername.length < MINIMUM_TRUSTROOTS_USERNAME_LENGTH
+      trustrootsUsername.length < TRUSTROOTS_USERNAME_MIN_LENGTH
     ) {
       return;
     }

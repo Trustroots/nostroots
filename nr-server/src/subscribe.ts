@@ -1,8 +1,6 @@
 import { newQueue, nostrify, nrCommon } from "../deps.ts";
-import {
-  DEV_PUBKEY,
-  SUBSCRIPTIONS_MAX_AGE_IN_MINUTES,
-} from "./common/constants.ts";
+const { DEV_PUBKEY } = nrCommon;
+import { SUBSCRIPTIONS_MAX_AGE_IN_MINUTES } from "./common/constants.ts";
 const { MAP_NOTE_KIND } = nrCommon;
 import { log } from "./log.ts";
 import { getRelayPool } from "./relays.ts";

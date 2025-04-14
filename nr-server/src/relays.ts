@@ -1,5 +1,5 @@
-import { newQueue, nostrify } from "../deps.ts";
-import { DEFAULT_RELAYS, DEV_RELAYS } from "./common/constants.ts";
+import { newQueue, nostrify, nrCommon } from "../deps.ts";
+const { DEFAULT_RELAYS, DEV_RELAYS } = nrCommon;
 
 const { NPool, NRelay1, NSecSigner } = nostrify;
 

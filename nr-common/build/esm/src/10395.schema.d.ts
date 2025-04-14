@@ -753,32 +753,32 @@ export declare const kind10395ContentDecodedSchema: z.ZodObject<{
         };
     };
 }>;
-export declare const kind10395EventSchema: z.ZodObject<z.objectUtil.extendShape<{
-    id: z.ZodString;
-    pubkey: z.ZodString;
+export declare const kind10395EventSchema: z.ZodObject<z.objectUtil.extendShape<z.objectUtil.extendShape<{
     kind: z.ZodNumber;
     created_at: z.ZodNumber;
     tags: z.ZodArray<z.ZodArray<z.ZodString, "many">, "many">;
     content: z.ZodString;
-    sig: z.ZodString;
 }, {
+    id: z.ZodString;
+    pubkey: z.ZodString;
+    sig: z.ZodString;
+}>, {
     kind: z.ZodLiteral<10395>;
     content: z.ZodEffects<z.ZodString, string, string>;
 }>, "strict", z.ZodTypeAny, {
-    id: string;
-    pubkey: string;
     kind: 10395;
     created_at: number;
     tags: string[][];
     content: string;
+    id: string;
+    pubkey: string;
     sig: string;
 }, {
-    id: string;
-    pubkey: string;
     kind: 10395;
     created_at: number;
     tags: string[][];
     content: string;
+    id: string;
+    pubkey: string;
     sig: string;
 }>;
-//# sourceMappingURL=10395.schema.d.ts.map

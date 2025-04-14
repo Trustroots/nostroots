@@ -6,4 +6,3 @@ export * from "./src/10395.schema.js";
 export * from "./src/30397.schema.js";
 export * from "./src/30398.schema.js";
 export * from "./src/event.schema.js";
-//# sourceMappingURL=mod.d.ts.map

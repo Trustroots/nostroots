@@ -34,12 +34,20 @@ export async function subscribeToFilter({
   const subscription = relay.subscribe(filters, {
     subscriptionId,
     onevent: (event: Event) => {
-      store.dispatch(addEvent({ event, fromRelay: relayUrl }));
+      try {
+        store.dispatch(addEvent({ event, fromRelay: relayUrl }));
+      } catch (error) {
+        console.error("#ROkIr5 Caught error in store.dispatch()", error);
+      }
     },
     oneose: () => {
-      store.dispatch(
-        setSubscriptionHasSeenEOSE({ id: subscriptionId, relayUrl }),
-      );
+      try {
+        store.dispatch(
+          setSubscriptionHasSeenEOSE({ id: subscriptionId, relayUrl }),
+        );
+      } catch (error) {
+        console.error("#6duput Caught error in store.dispatch()", error);
+      }
     },
     // NOTE: Type casting here because `id` is not available on `.subscribe()`
     // https://github.com/nbd-wtf/nostr-tools/issues/439

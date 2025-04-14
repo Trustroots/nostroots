@@ -3,6 +3,7 @@ import { publishVerifiedEventToRelay } from "@/nostr/publish.nostr";
 import { getSerializableError } from "@/utils/error.utils";
 import { A } from "@mobily/ts-belt";
 import {
+  dispatch,
   rejectPromiseAction,
   resolvePromiseAction,
 } from "redux-saga-promise-actions";
@@ -55,12 +56,17 @@ export function* publishEventTemplateSagaEffect(
   try {
     const event = yield call(signEventTemplate, eventTemplate);
 
-    yield put(publishEventPromiseAction.request({ event }));
+    const payload = { event };
 
-    yield put(publishEventTemplatePromiseAction.success({ event }));
+    yield dispatch(publishEventPromiseAction.request(payload));
+
+    yield put(publishEventTemplatePromiseAction.success(payload));
+    resolvePromiseAction(action, payload);
   } catch (error) {
+    console.error("#oUtVSG Got error", error);
     const serializableError = getSerializableError(error);
     yield put(publishEventTemplatePromiseAction.failure(serializableError));
+    rejectPromiseAction(action, error);
   }
 }
 

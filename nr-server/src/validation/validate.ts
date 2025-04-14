@@ -1,18 +1,18 @@
-import { MAP_NOTE_KIND } from "../nr-common/constants.ts";
 import {
   HITCHMAPS_AUTHOR_PUBLIC_KEY,
   MINIMUM_TRUSTROOTS_USERNAME_LENGTH,
   WAIT_FOR_KIND_ZERO_TIMEOUT_SECONDS,
 } from "../common/constants.ts";
-import { nostrify, nostrTools } from "../../deps.ts";
-import { log } from "../log.ts";
-import { Profile } from "../types.ts";
-import {
+import { nostrify, nostrTools, nrCommon } from "../../deps.ts";
+const {
+  MAP_NOTE_KIND,
   TRUSTROOTS_PROFILE_KIND,
   getFirstLabelValueFromEvent,
   TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
   getNip5PubKey,
-} from "../../../nr-common/mod.ts";
+} = nrCommon;
+import { log } from "../log.ts";
+import { Profile } from "../types.ts";
 
 async function getKindZeroEvent(relayPool: nostrify.NPool, pubKey: string) {
   {

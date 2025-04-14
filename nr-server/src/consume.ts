@@ -1,5 +1,5 @@
-import { eventSchema } from "./nr-common/mod.ts";
-import { amqp } from "../deps.ts";
+import { amqp, nrCommon } from "../deps.ts";
+const { eventSchema } = nrCommon;
 import { getRelayPool } from "./relays.ts";
 import { processEventFactoryFactory } from "./validation/repost.ts";
 import { log } from "./log.ts";

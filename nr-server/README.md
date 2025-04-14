@@ -10,3 +10,5 @@ it locally you can run:
 
 This exposes the `nr-common` folder as `nr-common` inside docker, hence the
 first lines of `Dockerfile`.
+
+Add the `--load` line if you're getting no image and a warning about no output being specified.

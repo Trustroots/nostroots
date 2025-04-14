@@ -11,7 +11,7 @@ import "react-native-reanimated";
 import { RootSiblingParent } from "react-native-root-siblings";
 import { Provider } from "react-redux";
 
-import { SENTRY_DSN } from "../../nr-common/constants.ts";
+import { SENTRY_DSN } from "@trustroots/nr-common";
 
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";

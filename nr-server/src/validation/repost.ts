@@ -1,18 +1,18 @@
-import { async, nostrify } from "../../deps.ts";
+import { async, nostrify, nrCommon } from "../../deps.ts";
 import { DELAY_AFTER_PROCESSING_EVENT_MS } from "../common/constants.ts";
 import { log } from "../log.ts";
-import {
+
+const {
   DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH,
   MAP_NOTE_REPOST_KIND,
   OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
   OPEN_LOCATION_CODE_TAG_NAME,
-} from "../nr-common/constants.ts";
-import {
   createLabelTags,
   getAllPlusCodePrefixes,
   getFirstLabelValueFromEvent,
   getFirstTagValueFromEvent,
-} from "../nr-common/utils.ts";
+} = nrCommon;
+
 import { validateEvent } from "./validate.ts";
 
 const { NSecSigner } = nostrify;

@@ -10,7 +10,6 @@ await build({
     // see JS docs for overview and more options
     deno: true,
   },
-  scriptModule: false,
   test: false,
   importMap: "deno.jsonc",
   packageManager: "pnpm",

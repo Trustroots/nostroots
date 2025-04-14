@@ -9,7 +9,8 @@
   },
   "tasks": {
     "cache": "deno cache --node-modules-dir deps.ts",
-    "build": "deno run -A build_npm.ts ",
+    "build": "deno run -A build_npm.ts",
+    "build:watch": "deno run -A --watch=src/,constants.ts,deps.ts,mod.ts build_npm.ts",
     "test": "deno test --ignore=build/"
   },
   "license": "AGPL-3.0-or-later"

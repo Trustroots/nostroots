@@ -1,9 +1,9 @@
-import { MAP_NOTE_KIND } from "./nr-common/constants.ts";
-import { newQueue, nostrify } from "../deps.ts";
+import { newQueue, nostrify, nrCommon } from "../deps.ts";
 import {
   DEV_PUBKEY,
   SUBSCRIPTIONS_MAX_AGE_IN_MINUTES,
 } from "./common/constants.ts";
+const { MAP_NOTE_KIND } = nrCommon;
 import { log } from "./log.ts";
 import { getRelayPool } from "./relays.ts";
 import { processEventFactoryFactory } from "./validation/repost.ts";

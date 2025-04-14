@@ -15,4 +15,3 @@ export declare function getPlusCodeAndPlusCodePrefixTags(plusCode: string): stri
 export declare function hasOpenLocationCode(tags: string[][]): boolean;
 export declare function hasVersion(tags: string[][]): boolean;
 export declare function getNip5PubKey(trustrootsUsername: string): Promise<string | undefined>;
-//# sourceMappingURL=utils.d.ts.map

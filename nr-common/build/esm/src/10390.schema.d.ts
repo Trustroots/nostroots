@@ -62,4 +62,3 @@ export declare function createKind10390EventTemplate(trustrootsUsername: string)
     tags: string[][];
     content: string;
 };
-//# sourceMappingURL=10390.schema.d.ts.map

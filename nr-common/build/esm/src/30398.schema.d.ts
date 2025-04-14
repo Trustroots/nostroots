@@ -30,4 +30,3 @@ export declare const kind30398EventSchema: z.ZodObject<z.objectUtil.extendShape<
     sig: string;
 }>;
 export type Kind30398Event = z.infer<typeof kind30398EventSchema>;
-//# sourceMappingURL=30398.schema.d.ts.map

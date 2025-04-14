@@ -57,4 +57,3 @@ export declare const baseEventSchema: z.ZodObject<z.objectUtil.extendShape<{
 export type Event = z.infer<typeof baseEventSchema>;
 export declare const tagsIncludingPlusCodeSchema: z.ZodEffects<z.ZodArray<z.ZodArray<z.ZodString, "many">, "many">, string[][], string[][]>;
 export declare const contentSchema: z.ZodString;
-//# sourceMappingURL=base.schema.d.ts.map

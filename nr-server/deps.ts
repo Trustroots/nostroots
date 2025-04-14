@@ -12,4 +12,4 @@ export * as expect from "jsr:@std/expect@1.0.13";
 export * as amqp from "https://deno.land/x/amqp@v0.24.0/mod.ts";
 import { z } from "zod";
 export { z };
-export * as nrCommon from "../nr-common/mod.ts";
+export * as nrCommon from "@trustroots/nr-common";

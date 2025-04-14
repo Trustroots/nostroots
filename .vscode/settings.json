@@ -9,5 +9,8 @@
     "./nr-server",
     "./development-utils/nip-46-client"
   ],
-  "deno.enable": true
+  "deno.enable": true,
+  "search.exclude": {
+    "**/nr-common/build": true
+  }
 }

@@ -40,4 +40,3 @@ export declare const PLUS_CODE_TAG_KEY: "l";
 export declare const LABEL_NAMESPACE_TAG: "L";
 export declare const DEFAULT_RELAYS: readonly ["wss://relay.trustroots.org"];
 export declare const DEV_RELAYS: string[];
-//# sourceMappingURL=constants.d.ts.map

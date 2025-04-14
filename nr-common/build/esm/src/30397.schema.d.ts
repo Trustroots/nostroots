@@ -29,4 +29,3 @@ export declare const kind30397EventSchema: z.ZodObject<z.objectUtil.extendShape<
     pubkey: string;
     sig: string;
 }>;
-//# sourceMappingURL=30397.schema.d.ts.map

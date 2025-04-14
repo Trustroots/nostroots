@@ -9,7 +9,7 @@
   "bugs": {
     "url": "https://github.com/trustroots/nostroots/issues"
   },
-  "main": "./script/mod.js",
+  "main": "./esm/mod.js",
   "module": "./esm/mod.js",
   "exports": {
     ".": {
@@ -17,16 +17,12 @@
       "require": "./script/mod.js"
     }
   },
-  "scripts": {
-    "test": "node test_runner.js"
-  },
   "dependencies": {
-    "nostr-tools": "2.10.4"
+    "nostr-tools": "2.10.4",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@types/node": "^20.9.0",
-    "picocolors": "^1.0.0",
-    "@deno/shim-deno": "~0.18.0"
+    "@types/node": "^20.9.0"
   },
   "_generatedBy": "dnt@dev"
 }

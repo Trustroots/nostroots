@@ -782,4 +782,3 @@ export declare const kind10395EventSchema: z.ZodObject<z.objectUtil.extendShape<
     pubkey: string;
     sig: string;
 }>;
-//# sourceMappingURL=10395.schema.d.ts.map

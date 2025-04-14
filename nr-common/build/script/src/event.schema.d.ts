@@ -40,4 +40,3 @@ export declare const eventSchema: import("zod").ZodEffects<import("zod").ZodObje
     pubkey: string;
     sig: string;
 }>;
-//# sourceMappingURL=event.schema.d.ts.map

@@ -11,6 +11,10 @@ await build({
     deno: true,
   },
   test: false,
+  importMap: "deno.jsonc",
+  packageManager: "pnpm",
+  skipSourceOutput: true,
+  skipNpmInstall: true,
   package: {
     // package.json properties
     name: "@trustroots/nr-common",
@@ -24,6 +28,7 @@ await build({
     bugs: {
       url: "https://github.com/trustroots/nostroots/issues",
     },
+    main: "./esm/mod.js",
   },
   filterDiagnostic(diagnostic) {
     if (

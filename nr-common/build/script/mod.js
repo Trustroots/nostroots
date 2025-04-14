@@ -23,3 +23,4 @@ __exportStar(require("./src/10395.schema.js"), exports);
 __exportStar(require("./src/30397.schema.js"), exports);
 __exportStar(require("./src/30398.schema.js"), exports);
 __exportStar(require("./src/event.schema.js"), exports);
+__exportStar(require("./src/isValidEvent.js"), exports);

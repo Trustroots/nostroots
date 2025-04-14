@@ -36,4 +36,8 @@ export declare const MAP_LAYERS: {
     readonly unverified: MapLayer;
 };
 export type MAP_LAYER_KEY = keyof typeof MAP_LAYERS;
+export declare const PLUS_CODE_TAG_KEY: "l";
+export declare const LABEL_NAMESPACE_TAG: "L";
+export declare const DEFAULT_RELAYS: readonly ["wss://relay.trustroots.org"];
+export declare const DEV_RELAYS: string[];
 //# sourceMappingURL=constants.d.ts.map

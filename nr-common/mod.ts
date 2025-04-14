@@ -8,3 +8,4 @@ export * from "./src/10395.schema.ts";
 export * from "./src/30397.schema.ts";
 export * from "./src/30398.schema.ts";
 export * from "./src/event.schema.ts";
+export * from "./src/isValidEvent.ts";

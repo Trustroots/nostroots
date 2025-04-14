@@ -3,12 +3,12 @@ import {
   MAP_NOTE_REPOST_KIND,
   NOTIFICATION_SUBSCRIPTION_KIND,
   TRUSTROOTS_PROFILE_KIND,
-} from "../constants.ts";
-import { kind10390EventSchema } from "./10390.schema.ts";
-import { kind10395EventSchema } from "./10395.schema.ts";
-import { kind30397EventSchema } from "./30397.schema.ts";
-import { kind30398EventSchema } from "./30398.schema.ts";
-import { baseEventSchema, type Event } from "./base.schema.ts";
+} from "../constants.js";
+import { kind10390EventSchema } from "./10390.schema.js";
+import { kind10395EventSchema } from "./10395.schema.js";
+import { kind30397EventSchema } from "./30397.schema.js";
+import { kind30398EventSchema } from "./30398.schema.js";
+import { baseEventSchema, type Event } from "./base.schema.js";
 
 export function isValidEvent(event: Event): boolean {
   try {

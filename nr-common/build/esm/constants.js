@@ -68,3 +68,7 @@ export const MAP_LAYERS = {
     triphopping,
     unverified,
 };
+export const PLUS_CODE_TAG_KEY = "l";
+export const LABEL_NAMESPACE_TAG = "L";
+export const DEFAULT_RELAYS = [DEFAULT_RELAY_URL];
+export const DEV_RELAYS = ["ws://localhost:7000"];

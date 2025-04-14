@@ -1,19 +1,22 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.contentSchema = exports.tagsIncludingPlusCodeSchema = exports.baseEventSchema = void 0;
+exports.contentSchema = exports.tagsIncludingPlusCodeSchema = exports.baseEventSchema = exports.finalizedEventFields = exports.baseEventTemplateSchema = void 0;
 const constants_js_1 = require("../constants.js");
 const deps_js_1 = require("../deps.js");
 const utils_js_1 = require("./utils.js");
-exports.baseEventSchema = deps_js_1.z
-    .object({
-    id: deps_js_1.z.string().length(64),
-    pubkey: deps_js_1.z.string().length(64),
+exports.baseEventTemplateSchema = deps_js_1.z.object({
     kind: deps_js_1.z.number(),
     created_at: deps_js_1.z.number(),
     tags: deps_js_1.z.string().array().array(),
     content: deps_js_1.z.string(),
+});
+exports.finalizedEventFields = deps_js_1.z.object({
+    id: deps_js_1.z.string().length(64),
+    pubkey: deps_js_1.z.string().length(64),
     sig: deps_js_1.z.string(),
-})
+});
+exports.baseEventSchema = exports.baseEventTemplateSchema
+    .merge(exports.finalizedEventFields)
     .strict();
 exports.tagsIncludingPlusCodeSchema = deps_js_1.z
     .string()

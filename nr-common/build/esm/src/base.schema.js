@@ -1,16 +1,19 @@
 import { CONTENT_MAXIMUM_LENGTH, CONTENT_MINIMUM_LENGTH, OPEN_LOCATION_CODE_TAG_NAME, } from "../constants.js";
 import { z } from "../deps.js";
 import { getFirstLabelValueFromTags, isPlusCode } from "./utils.js";
-export const baseEventSchema = z
-    .object({
-    id: z.string().length(64),
-    pubkey: z.string().length(64),
+export const baseEventTemplateSchema = z.object({
     kind: z.number(),
     created_at: z.number(),
     tags: z.string().array().array(),
     content: z.string(),
+});
+export const finalizedEventFields = z.object({
+    id: z.string().length(64),
+    pubkey: z.string().length(64),
     sig: z.string(),
-})
+});
+export const baseEventSchema = baseEventTemplateSchema
+    .merge(finalizedEventFields)
     .strict();
 export const tagsIncludingPlusCodeSchema = z
     .string()

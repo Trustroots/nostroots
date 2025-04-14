@@ -5,6 +5,13 @@ import {
 } from "./utils.ts";
 import { baseEventSchema } from "./base.schema.ts";
 
+/**
+ * A kind 10390 event is a trustroots profile on nostr.
+ *
+ * So it's a nostr event, inspired by kind 0, that stores the trustroots
+ * username as a tag value.
+ */
+
 export const kind10390EventSchema = baseEventSchema.extend({
   kind: z.literal(10390),
   tags: z

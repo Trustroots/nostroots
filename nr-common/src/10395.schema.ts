@@ -13,7 +13,7 @@ import { filterSchema } from "./filter.schema.ts";
 
 export const kind10395SubscriptionFilterSchema = z.object({
   filter: filterSchema,
-});
+}).array();
 
 export const kind10395ContentDecodedSchema = z.object({
   tokens: z.object({}), // TODO Define the shape of this
@@ -25,6 +25,7 @@ export const kind10395EventSchema = baseEventSchema.extend({
   // TODO Enable version check
   content: z.string().refine((content) => {
     try {
+      // TODO - This is incorrect, the contents must be decrypted first
       const result = JSON.parse(content);
       kind10395ContentDecodedSchema.parse(result);
     } catch {

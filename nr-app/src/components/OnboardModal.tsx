@@ -3,6 +3,10 @@ import {
   getHasPrivateKeyInSecureStorage,
   getPrivateKeyMnemonic,
 } from "@/nostr/keystore.nostr";
+
+import { publishEventTemplatePromiseAction } from "@/redux/actions/publish.actions";
+
+import Toast from "react-native-root-toast";
 // import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 //
 import { nip19 } from "nostr-tools";
@@ -22,12 +26,15 @@ import {
 
 import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
 
-import Toast from "react-native-root-toast";
-
 import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
+
+import {
+  Kind10390EventTemplate,
+  createKind10390EventTemplate,
+} from "@trustroots/nr-common";
 
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
@@ -118,7 +125,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
   };
 
   const handleUsernameSubmit = async () => {
-    // sanity check if the username exists
+    // sanity check: the username has not been set yet
     if (username !== "") {
       return;
     }
@@ -145,9 +152,29 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
       if (npubResponse === npub) {
         setError(null);
 
-        setUsernameText("");
-        dispatch(settingsActions.setUsername(usernameText));
-        setStep("finishScreen");
+        try {
+          console.log("about to publish event");
+          const eventTemplate: Kind10390EventTemplate =
+            createKind10390EventTemplate(usernameText);
+
+          // publish the username pubkey event
+          await dispatch(
+            publishEventTemplatePromiseAction.request({ eventTemplate }),
+          );
+          console.log("publish event");
+
+          setUsernameText("");
+          dispatch(settingsActions.setUsername(usernameText));
+          setStep("finishScreen");
+        } catch (error) {
+          console.log("error publishing");
+          // const serializeableError = getSerializableError(error);
+          Toast.show(
+            // `Error sending profile event #grC53G ${serializeableError.toString()}`,
+            `Error publishing username to relay`,
+          );
+        }
+
         return;
       } else {
         console.log("nip5Result", npubResponse, npub);

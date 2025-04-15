@@ -16,6 +16,7 @@ export default function Map() {
   return (
     <View style={styles.mapContainer}>
       <MapMarkers />
+
       <View style={styles.toggleWrapper}>
         <FlatList
           data={Object.entries(MAP_LAYERS) as [MAP_LAYER_KEY, MapLayer][]}

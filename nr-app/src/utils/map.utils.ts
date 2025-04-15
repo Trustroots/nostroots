@@ -3,7 +3,7 @@ import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@trustroots/nr-common";
 import { getFirstTagValueFromEvent } from "@trustroots/nr-common";
 import { NostrEvent } from "nostr-tools";
 import OpenLocationCode from "open-location-code-typescript";
-import urlJoin from "url-join";
+import { urlJoin } from "url-join-ts";
 
 type PlusCodeShortLength = 2 | 4 | 6 | 8;
 

@@ -11,26 +11,21 @@ import { filterSchema } from "./filter.schema.ts";
  * notification server's private key.
  */
 
+export const expoPushTokenListSchema = z.object({
+  expoPushToken: z.string(),
+}).array();
+
 export const kind10395SubscriptionFilterSchema = z.object({
   filter: filterSchema,
 }).array();
 
-export const kind10395ContentDecodedSchema = z.object({
-  tokens: z.object({}), // TODO Define the shape of this
+export const kind10395ContentDecryptedDecodedSchema = z.object({
+  tokens: expoPushTokenListSchema,
   filters: kind10395SubscriptionFilterSchema,
 });
 
 export const kind10395EventSchema = baseEventSchema.extend({
   kind: z.literal(NOTIFICATION_SUBSCRIPTION_KIND),
   // TODO Enable version check
-  content: z.string().refine((content) => {
-    try {
-      // TODO - This is incorrect, the contents must be decrypted first
-      const result = JSON.parse(content);
-      kind10395ContentDecodedSchema.parse(result);
-    } catch {
-      return false;
-    }
-    return true;
-  }),
+  content: z.string(),
 });

@@ -121,7 +121,7 @@ export function allPlusCodesForRegion({
   latitudeDelta: number;
   longitude: number;
   longitudeDelta: number;
-  codeLength?: PlusCodeShortLength;
+  codeLength: PlusCodeShortLength;
 }) {
   // - Code for bottom left
   // - Code for top right

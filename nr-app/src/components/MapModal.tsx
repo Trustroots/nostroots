@@ -51,6 +51,16 @@ export default function MapModal() {
           return;
         }
 
+        // validate note content
+        if (noteContent.length === 0) {
+          // toast isnt visible with modal for some reason
+          // Toast.show("Note content cannot be empty", {
+          //   duration: Toast.durations.LONG,
+          //   position: Toast.positions.TOP,
+          // });
+          return;
+        }
+
         const expirationTimestampSeconds =
           getCurrentTimestamp() + parseInt(noteExpiry);
 
@@ -74,6 +84,13 @@ export default function MapModal() {
               expirationTimestampSeconds,
             ),
           );
+
+          Toast.show("Note added successfully", {
+            duration: Toast.durations.LONG,
+            position: Toast.positions.TOP,
+          });
+
+          setNoteContent("");
         } catch (error) {
           Toast.show(
             `Error: #dxmsa3 ${error instanceof Error ? error.message : "unknown"}`,

@@ -5,7 +5,16 @@ import { coordinatesToPlusCode } from "@/utils/map.utils";
 import { Picker } from "@react-native-picker/picker";
 import { getCurrentTimestamp } from "@trustroots/nr-common";
 import { useMemo, useState } from "react";
-import { Button, Modal, StyleSheet, TextInput, View } from "react-native";
+import {
+  Button,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import Toast from "react-native-root-toast";
 
 const MINUTE_IN_SECONDS = 60;
@@ -24,7 +33,7 @@ export default function MapModal() {
 
   const [noteContent, setNoteContent] = useState("");
   const [noteExpiry, setNoteExpiry] = useState<string>(
-    YEAR_IN_SECONDS.toString(),
+    WEEK_IN_SECONDS.toString(),
   );
 
   const closeModal = useMemo(
@@ -87,37 +96,46 @@ export default function MapModal() {
       animationType="slide"
       onRequestClose={closeModal}
     >
-      <View style={styles.modalContainer}>
-        <TextInput
-          ref={(input) => {
-            if (input) {
-              input.focus();
-            }
-          }}
-          style={styles.input}
-          placeholder="Enter your note"
-          value={noteContent}
-          onChangeText={setNoteContent}
-          onSubmitEditing={handleAddNote}
-          multiline={true}
-        />
-        <Picker
-          selectedValue={noteExpiry}
-          onValueChange={(v) => {
-            setNoteExpiry(v);
-          }}
-          style={styles.picker}
-          itemStyle={styles.pickerItem}
-        >
-          <Picker.Item label="1 year" value={YEAR_IN_SECONDS.toString()} />
-          <Picker.Item label="1 month" value={MONTH_IN_SECONDS.toString()} />
-          <Picker.Item label="1 week" value={WEEK_IN_SECONDS.toString()} />
-          <Picker.Item label="1 hour" value={HOUR_IN_SECONDS.toString()} />
-          <Picker.Item label="1 minute" value={MINUTE_IN_SECONDS.toString()} />
-        </Picker>
-        <Button title="Add Note" onPress={handleAddNote} />
-        <Button title="Cancel" onPress={closeModal} />
-      </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={styles.modalContainer}
+      >
+        <View style={styles.contentContainer}>
+          <Text style={styles.inputLabel}>Add Note to Map</Text>
+          <TextInput
+            ref={(input) => {
+              if (input) {
+                input.focus();
+              }
+            }}
+            style={styles.input}
+            placeholder="Enter your note"
+            value={noteContent}
+            onChangeText={setNoteContent}
+            onSubmitEditing={handleAddNote}
+            multiline={true}
+          />
+          <Picker
+            selectedValue={noteExpiry}
+            onValueChange={(v) => {
+              setNoteExpiry(v);
+            }}
+            style={styles.picker}
+            itemStyle={styles.pickerItem}
+          >
+            <Picker.Item label="1 year" value={YEAR_IN_SECONDS.toString()} />
+            <Picker.Item label="1 month" value={MONTH_IN_SECONDS.toString()} />
+            <Picker.Item label="1 week" value={WEEK_IN_SECONDS.toString()} />
+            <Picker.Item label="1 hour" value={HOUR_IN_SECONDS.toString()} />
+            <Picker.Item
+              label="1 minute"
+              value={MINUTE_IN_SECONDS.toString()}
+            />
+          </Picker>
+          <Button title="Add Note" onPress={handleAddNote} />
+          <Button title="Cancel" onPress={closeModal} />
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -129,23 +147,42 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.7)",
   },
+  contentContainer: {
+    width: "80%",
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
   layerToggle: {
     color: "rgba(255,255,255,1)",
     backgroundColor: "rgba(10, 10, 0, 0.2)",
   },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
   input: {
-    width: 200,
+    width: "100%",
     height: 80,
     padding: 10,
     backgroundColor: "white",
     marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
   },
   marker: {
     width: 200,
   },
   picker: {
-    width: 200,
+    width: "100%",
     backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 5,
+    marginBottom: 10,
   },
   pickerItem: {
     color: "black",

@@ -48,7 +48,7 @@ export const mapSlice = createSlice({
       state.enabledLayers[action.payload] = false;
     },
     toggleLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
-      // Disable uncommenting layers for now
+      // Disable turning off layers for now
       if (state.enabledLayers[action.payload]) {
         return state;
       }

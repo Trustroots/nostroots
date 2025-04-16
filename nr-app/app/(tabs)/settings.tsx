@@ -72,6 +72,7 @@ export default function TabThreeScreen() {
   );
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
+  const publicKeyHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
 
   const dispatch = useAppDispatch();
 
@@ -101,41 +102,6 @@ export default function TabThreeScreen() {
     }
   };
 
-  let userKeyInfo = (
-    <View>
-      <View>
-        <Text style={styles.q}>trustroots.org</Text>
-        <Text style={styles.q}>username: {username}</Text>
-      </View>
-
-      <View>
-        <Text style={styles.q}>npub</Text>
-        <TextInput style={styles.input} value={npub} />
-        <Text style={styles.q}>nsec</Text>
-        <TextInput style={styles.input} value={nsec} />
-        <Text style={styles.q}>nsec mnemonic</Text>
-        <TextInput style={styles.input} value={mnemonic} />
-        {hasPrivateKeyFromRedux && (
-          <Button title="Show nsec" onPress={showNsec} />
-        )}
-      </View>
-    </View>
-  );
-
-  if (username === "") {
-    userKeyInfo = (
-      <View>
-        <Text style={styles.q}>trustroots.org</Text>
-        <View style={styles.input}>
-          <Button
-            title="Link Your Trustroots.org Profile"
-            onPress={() => setModalVisible(true)}
-          />
-        </View>
-      </View>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.settings}>
       <ScrollView>
@@ -150,7 +116,40 @@ export default function TabThreeScreen() {
           </Modal>
         </View>
 
-        {userKeyInfo}
+        {username === "" ? (
+          <View>
+            <Text style={styles.q}>trustroots.org</Text>
+            <View style={styles.input}>
+              <Button
+                title="Link Your Trustroots.org Profile"
+                onPress={() => setModalVisible(true)}
+              />
+            </View>
+          </View>
+        ) : null}
+
+        {username.length > 0 || areTestFeaturesEnabled ? (
+          <View>
+            <View>
+              <Text style={styles.q}>trustroots.org</Text>
+              <Text style={styles.q}>username: {username}</Text>
+            </View>
+
+            <View>
+              <Text style={styles.q}>npub</Text>
+              <TextInput style={styles.input} value={npub} />
+              <Text style={styles.q}>public key hex</Text>
+              <TextInput style={styles.input} value={publicKeyHex} />
+              <Text style={styles.q}>nsec</Text>
+              <TextInput style={styles.input} value={nsec} />
+              <Text style={styles.q}>nsec mnemonic</Text>
+              <TextInput style={styles.input} value={mnemonic} />
+              {hasPrivateKeyFromRedux && (
+                <Button title="Show nsec" onPress={showNsec} />
+              )}
+            </View>
+          </View>
+        ) : null}
 
         {areTestFeaturesEnabled && (
           <View>

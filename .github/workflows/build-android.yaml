@@ -15,7 +15,6 @@ jobs:
 
       - name: 🏗 Setup EAS
         uses: expo/expo-github-action@v8
-        working-directory: ./nr-app
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}

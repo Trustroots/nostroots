@@ -25,6 +25,7 @@
   "dependencies": {
     "@expo/vector-icons": "^14.0.4",
     "@mobily/ts-belt": "^3.13.1",
+    "@react-native-async-storage/async-storage": "^2.1.2",
     "@react-native-picker/picker": "2.9.0",
     "@react-navigation/native": "^7.0.3",
     "@reduxjs/toolkit": "^2.2.7",
@@ -66,6 +67,7 @@
     "react-redux": "^9.1.2",
     "reactotron-react-native": "^5.1.10",
     "redux-devtools-expo-dev-plugin": "^1.0.0",
+    "redux-persist": "^6.0.0",
     "redux-saga": "^1.3.0",
     "redux-saga-promise-actions": "^1.3.5",
     "reselect": "^5.1.1",

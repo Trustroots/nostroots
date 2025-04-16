@@ -10,6 +10,7 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 import { RootSiblingParent } from "react-native-root-siblings";
 import { Provider } from "react-redux";
+import { PersistGate } from "redux-persist/integration/react";
 
 import { SENTRY_DSN } from "@trustroots/nr-common";
 
@@ -17,7 +18,7 @@ import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { store } from "@/redux/store";
+import { persistor, store } from "@/redux/store";
 
 // Construct a new integration instance. This is needed to communicate between the integration and React
 const navigationIntegration = Sentry.reactNavigationIntegration({
@@ -56,14 +57,18 @@ function RootLayout() {
 
   return (
     <Provider store={store}>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <RootSiblingParent>
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        </RootSiblingParent>
-      </ThemeProvider>
+      <PersistGate loading={null} persistor={persistor}>
+        <ThemeProvider
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        >
+          <RootSiblingParent>
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+          </RootSiblingParent>
+        </ThemeProvider>
+      </PersistGate>
     </Provider>
   );
 }

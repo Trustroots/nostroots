@@ -68,8 +68,8 @@ const unverified = {
 exports.MAP_LAYERS = {
     hitchmap,
     hitchwiki,
-    timesafari,
-    triphopping,
+//    timesafari,
+//    triphopping,
     unverified,
 };
 exports.PLUS_CODE_TAG_KEY = "l";

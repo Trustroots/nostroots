@@ -23,8 +23,8 @@ const initialState: MapState = {
   enabledLayers: {
     hitchmap: false,
     hitchwiki: false,
-    timesafari: false,
-    triphopping: false,
+    // timesafari: false,
+    // triphopping: false,
     unverified: true,
   },
 };

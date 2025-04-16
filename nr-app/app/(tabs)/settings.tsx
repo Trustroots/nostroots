@@ -13,7 +13,6 @@ import {
 } from "react-native";
 
 import OnboardModal from "@/components/OnboardModal";
-import TEMPORARYSetUsername from "@/components/TEMPORARYSetUsername";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
   derivePublicKeyHexFromMnemonic,
@@ -43,7 +42,7 @@ const DevSwitch = () => {
   const toggleTestFeatures = (
     value: boolean | ((prevState: boolean) => boolean),
   ) => {
-    dispatch(settingsActions.toggleTestFeatures);
+    dispatch(settingsActions.toggleTestFeatures());
   };
 
   return (
@@ -52,7 +51,6 @@ const DevSwitch = () => {
         value={areTestFeaturesEnabled}
         onValueChange={toggleTestFeatures}
       />
-      <Text>dev mode</Text>
       {areTestFeaturesEnabled && <Text>DEV MODE ON</Text>}
     </View>
   );
@@ -62,6 +60,10 @@ export default function TabThreeScreen() {
   const { expoPushToken } = useNotifications();
 
   const username = useAppSelector(settingsSelectors.selectUsername);
+
+  const areTestFeaturesEnabled = useAppSelector(
+    settingsSelectors.selectAreTestFeaturesEnabled,
+  );
 
   const [nsec, setNsec] = useState("");
   const [mnemonic, setMnemonic] = useState("");
@@ -99,6 +101,41 @@ export default function TabThreeScreen() {
     }
   };
 
+  let userKeyInfo = (
+    <View>
+      <View>
+        <Text style={styles.q}>trustroots.org</Text>
+        <Text style={styles.q}>username: {username}</Text>
+      </View>
+
+      <View>
+        <Text style={styles.q}>npub</Text>
+        <TextInput style={styles.input} value={npub} />
+        <Text style={styles.q}>nsec</Text>
+        <TextInput style={styles.input} value={nsec} />
+        <Text style={styles.q}>nsec mnemonic</Text>
+        <TextInput style={styles.input} value={mnemonic} />
+        {hasPrivateKeyFromRedux && (
+          <Button title="Show nsec" onPress={showNsec} />
+        )}
+      </View>
+    </View>
+  );
+
+  if (username === "") {
+    userKeyInfo = (
+      <View>
+        <Text style={styles.q}>trustroots.org</Text>
+        <View style={styles.input}>
+          <Button
+            title="Link Your Trustroots.org Profile"
+            onPress={() => setModalVisible(true)}
+          />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.settings}>
       <ScrollView>
@@ -112,30 +149,34 @@ export default function TabThreeScreen() {
             <OnboardModal setModalVisible={setModalVisible} />
           </Modal>
         </View>
-        {username === "" ? (
-          <Button
-            title="Link Your Trustroots.org Profile"
-            onPress={() => setModalVisible(true)}
-          />
-        ) : (
-          <Text style={styles.q}>username: {username}</Text>
-        )}
 
-        <Text style={styles.q}>npub</Text>
-        <TextInput style={styles.input} value={npub} />
-        <Text style={styles.q}>nsec</Text>
-        <TextInput style={styles.input} value={nsec} />
-        <Text style={styles.q}>nsec mnemonic</Text>
-        <TextInput style={styles.input} value={mnemonic} />
-        {hasPrivateKeyFromRedux && (
-          <Button title="Show nsec" onPress={showNsec} />
-        )}
-        <Text style={styles.q}>relays</Text>
-        <TextInput style={styles.input} value="['relay.trustroots.org']" />
-        <Text style={styles.q}>expo push token</Text>
-        <TextInput style={styles.input} value={expoPushToken} />
+        {userKeyInfo}
 
-        <TEMPORARYSetUsername />
+        {areTestFeaturesEnabled && (
+          <View>
+            <Text style={styles.q}>relays</Text>
+            <TextInput style={styles.input} value="['relay.trustroots.org']" />
+            <Text style={styles.q}>expo push token</Text>
+            <TextInput style={styles.input} value={expoPushToken} />
+
+            <Button
+              title="Set visible plus codes"
+              onPress={() => {
+                __DEV__ && console.log("#bLtiOc pressed");
+                dispatch(
+                  setVisiblePlusCodes([
+                    "8C000000+",
+                    "8F000000+",
+                    "8G000000+",
+                    "9C000000+",
+                    "9F000000+",
+                    "9G000000+",
+                  ]),
+                );
+              }}
+            />
+          </View>
+        )}
 
         <Button
           title="Set filter notification"
@@ -194,24 +235,13 @@ export default function TabThreeScreen() {
           database and thus the official organization irrelevant.
         </Text>
 
-        <Button
-          title="Set visible plus codes"
-          onPress={() => {
-            __DEV__ && console.log("#bLtiOc pressed");
-            dispatch(
-              setVisiblePlusCodes([
-                "8C000000+",
-                "8F000000+",
-                "8G000000+",
-                "9C000000+",
-                "9F000000+",
-                "9G000000+",
-              ]),
-            );
-          }}
-        />
+        <View>
+          <Text style={styles.q}>dev switch</Text>
+          <View style={styles.section}>
+            <DevSwitch />
+          </View>
+        </View>
       </ScrollView>
-      <DevSwitch />
     </SafeAreaView>
   );
 }
@@ -239,6 +269,16 @@ const styles = StyleSheet.create({
     borderBottomColor: "#ddd",
     marginLeft: 7,
   },
+  section: {
+    paddingBottom: 10,
+    paddingTop: 10,
+    borderColor: "gray",
+    borderWidth: 1,
+    marginBottom: 20,
+    paddingHorizontal: 10,
+    backgroundColor: "#ffffff",
+  },
+
   input: {
     height: 40,
     borderColor: "gray",

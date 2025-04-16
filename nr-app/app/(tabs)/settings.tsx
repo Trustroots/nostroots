@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 
+import BuildData from "@/components/BuildData";
 import OnboardModal from "@/components/OnboardModal";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
@@ -20,18 +21,18 @@ import {
   getPrivateKeyMnemonic,
 } from "@/nostr/keystore.nostr";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
+import { notificationSubscribeToFilterPromiseAction } from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
   keystoreSelectors,
   setPublicKeyHex,
 } from "@/redux/slices/keystore.slice";
+import { notificationsSlice } from "@/redux/slices/notifications.slice";
 import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
-import { notificationSubscribeToFilterPromiseAction } from "@/redux/actions/notifications.actions";
 import Toast from "react-native-root-toast";
-import { notificationsSlice } from "@/redux/slices/notifications.slice";
 
 const DevSwitch = () => {
   const dispatch = useAppDispatch();
@@ -148,6 +149,7 @@ export default function TabThreeScreen() {
                 <Button title="Show nsec" onPress={showNsec} />
               )}
             </View>
+            <BuildData />
           </View>
         ) : null}
 

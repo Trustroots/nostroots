@@ -24,4 +24,5 @@ jobs:
         run: pnpm i
 
       - name: 🚀 Start Build
+        working-directory: ./nr-app
         run: eas build --platform android --profile development --non-interactive

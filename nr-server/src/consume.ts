@@ -64,17 +64,28 @@ export async function consume(
       { queue: queueName },
       async function processQueueItem(args, _props, data) {
         try {
+          const ack = async () => {
+            await channel.ack({ deliveryTag: args.deliveryTag });
+          };
+
           const text = new TextDecoder().decode(data);
           console.log("#QXP3Bz Got event body", args, text);
 
           const strfryMessage = JSON.parse(text);
           const { event: unvalidatedEvent } = strfryMessage;
 
-          const event = eventSchema.parse(unvalidatedEvent);
+          // If this throws, then the `channel.ack()` below won't happen
+          const { success, data: event } =
+            eventSchema.safeParse(unvalidatedEvent);
+
+          if (!success) {
+            await ack();
+            return;
+          }
 
           await processEventFactory(event);
 
-          await channel.ack({ deliveryTag: args.deliveryTag });
+          await ack();
         } catch (error) {
           console.error("#Y5y2oB Error in channel.consume", error);
         }

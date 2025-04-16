@@ -23,9 +23,9 @@ const initialState: MapState = {
   enabledLayers: {
     hitchmap: false,
     hitchwiki: false,
-    // timesafari: false,
-    // triphopping: false,
-    unverified: true,
+    timesafari: false,
+    triphopping: false,
+    unverified: false,
   },
 };
 
@@ -48,10 +48,6 @@ export const mapSlice = createSlice({
       state.enabledLayers[action.payload] = false;
     },
     toggleLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
-      // Disable uncommenting layers for now
-      if (state.enabledLayers[action.payload]) {
-        return state;
-      }
       state.enabledLayers[action.payload] =
         !state.enabledLayers[action.payload];
     },

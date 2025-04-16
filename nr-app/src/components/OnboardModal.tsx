@@ -71,6 +71,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
   const [error, setError] = useState<string | null>(null);
   const [nip5VerificationLoading, setNip5VerificationLoading] =
     useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const hasPrivateKeyFromRedux = useAppSelector(
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
@@ -125,8 +126,14 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
   };
 
   const handleUsernameSubmit = async () => {
+    // Prevent multiple submissions
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+
     // sanity check: the username has not been set yet
     if (username !== "") {
+      setIsSubmitting(false);
       return;
     }
 
@@ -136,6 +143,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
       !/^[a-zA-Z0-9]+$/.test(usernameText.trim())
     ) {
       setError("Input must be at least 3 alphanumeric characters.");
+      setIsSubmitting(false);
       return;
     }
     // freeze the text box
@@ -144,6 +152,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
 
     if (nip5Result === undefined) {
       setError("There was an error requesting verification for this key.");
+      setIsSubmitting(false);
       return;
     } else {
       const npubResponse = nip19.npubEncode(nip5Result);
@@ -173,6 +182,8 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
             // `Error sending profile event #grC53G ${serializeableError.toString()}`,
             `Error publishing username to relay`,
           );
+        } finally {
+          setIsSubmitting(false);
         }
 
         return;
@@ -181,6 +192,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
         setError(
           "Invalid username for this key. Check your username or your public key.",
         );
+        setIsSubmitting(false);
         return;
       }
     }
@@ -310,10 +322,16 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
         {error && <Text style={styles.usernameInputError}>{error}</Text>}
 
         <TouchableOpacity
-          style={styles.usernameSubmitBtn}
+          style={[
+            styles.usernameSubmitBtn,
+            isSubmitting ? styles.disabledButton : null,
+          ]}
           onPress={handleUsernameSubmit}
+          disabled={isSubmitting}
         >
-          <Text style={styles.usernameSubmit}>Submit</Text>
+          <Text style={styles.usernameSubmit}>
+            {isSubmitting ? "Submitting..." : "Submit"}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -440,6 +458,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 5,
     alignItems: "center",
+  },
+  disabledButton: {
+    backgroundColor: "#cccccc",
   },
   usernameSubmit: {
     color: "white",

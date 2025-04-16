@@ -9,22 +9,26 @@ import {
   EventWithMetadata,
 } from "@/redux/slices/events.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
+import { rootLogger } from "@/utils/logger.utils";
 import { allPlusCodesForRegion } from "@/utils/map.utils";
-import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { createSelector } from "@reduxjs/toolkit";
+import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { matchFilter } from "nostr-tools";
-import { Fragment, useMemo } from "react";
+import { Fragment, useMemo, useRef } from "react";
 import { Platform, StyleSheet } from "react-native";
 import MapView, {
+  BoundingBox,
   Details,
   LongPressEvent,
   Marker,
-  Region,
-  PROVIDER_GOOGLE,
   PROVIDER_DEFAULT,
+  PROVIDER_GOOGLE,
+  Region,
 } from "react-native-maps";
 import { MapNoteMarker } from "./MapNoteMarker";
-import Constants, { ExecutionEnvironment } from "expo-constants";
+
+const log = rootLogger.extend("MapMarkers");
 
 const selectEventsForLayers = createSelector(
   [eventsSelectors.selectAll, mapSelectors.selectEnabledLayerKeys],
@@ -51,9 +55,26 @@ const selectEventsForLayers = createSelector(
   },
 );
 
+function boundariesToRegion(boundaries: BoundingBox): Region {
+  const { northEast, southWest } = boundaries;
+  const latitudeDelta = northEast.latitude - southWest.latitude;
+  const longitudeDelta = northEast.longitude - southWest.longitude;
+
+  const middlePoint = {
+    latitude: southWest.latitude + latitudeDelta / 2,
+    longitude: southWest.longitude + longitudeDelta / 2,
+    latitudeDelta,
+    longitudeDelta,
+  };
+
+  return middlePoint;
+}
+
 export function MapMarkers() {
   const eventsForLayers = useAppSelector(selectEventsForLayers);
   const dispatch = useAppDispatch();
+
+  const mapViewRef = useRef<MapView>(null);
 
   const handleMapLongPress = useMemo(
     () =>
@@ -87,6 +108,17 @@ export function MapMarkers() {
           ? PROVIDER_DEFAULT
           : PROVIDER_GOOGLE
       }
+      ref={mapViewRef}
+      onMapReady={async (event) => {
+        if (mapViewRef.current === null) {
+          log.error("#SHtaWM mapViewRef is null");
+          return;
+        }
+        const boundaries = await mapViewRef.current.getMapBoundaries();
+        log.debug("#iztRxR onMapReady", boundaries);
+        const region = boundariesToRegion(boundaries);
+        handleMapRegionChange(region, {});
+      }}
     >
       <Marker
         coordinate={{ latitude: 52, longitude: 13 }}

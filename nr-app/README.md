@@ -17,12 +17,17 @@ commands available.
 
 ## Run a development build
 
-If you want to run a development build on your phone, you'll have to
-download the latest app and scan the QR code with it. For Android, you
+You will want to run a development build on an emulator/simulator on your laptop. Run the correct command for your platform:
+
+```
+eas build:run --profile development --platform android --latest # android
+eas build:run --platform ios --profile simulator --latest # ios
+```
+
+You can also use your physical phone. For Android, you
 can use an existing build from
 https://expo.dev/accounts/nostroots/projects/nr-app/builds/ . For iOS,
-you'd have to register your device first using `eas devices` and then
-make a build.
+you'd have to register your device first using [this link](https://expo.dev/register-device/2e489efb-3f93-453c-99b0-4567492e6bda).
 
 ## Preview builds
 

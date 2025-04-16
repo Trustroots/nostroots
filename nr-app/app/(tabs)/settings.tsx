@@ -149,12 +149,12 @@ export default function TabThreeScreen() {
                 <Button title="Show nsec" onPress={showNsec} />
               )}
             </View>
-            <BuildData />
           </View>
         ) : null}
 
         {areTestFeaturesEnabled && (
           <View>
+            <BuildData />
             <Text style={styles.q}>relays</Text>
             <TextInput style={styles.input} value="['relay.trustroots.org']" />
             <Text style={styles.q}>expo push token</Text>

@@ -167,7 +167,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
           dispatch(settingsActions.setUsername(usernameText));
           setStep("finishScreen");
         } catch (error) {
-          console.log("error publishing");
+          console.log("error publishing", error);
           // const serializeableError = getSerializableError(error);
           Toast.show(
             // `Error sending profile event #grC53G ${serializeableError.toString()}`,

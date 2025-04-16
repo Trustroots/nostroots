@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "nr-app",
+    "name": "Nostroots",
     "slug": "nr-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -70,7 +70,7 @@
     },
     "newArchEnabled": true,
     "updates": {
-      "url": "https://u.expo.dev/0147b304-d2cd-4e24-a237-da8bd5f3e4f3"
+      "url": "https://u.expo.dev/a6c7b2e0-f036-44a3-b57c-d05b9d383c30"
     },
     "owner": "nostroots"
   }

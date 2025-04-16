@@ -15,7 +15,8 @@
     "prepare": "cd .. && husky nr-app/.husky",
     "build:android": "eas build --platform android --profile development",
     "build:ios": "eas build --platform ios --profile development",
-    "build:simulator": "eas build --platform android --profile simulator"
+    "build:simulator": "eas build --platform android --profile simulator",
+    "build:android-preview": "eas build --platform android --profile preview"
   },
   "pkgx": "+facebook.com/watchman",
   "jest": {

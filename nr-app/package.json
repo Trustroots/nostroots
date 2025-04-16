@@ -18,7 +18,7 @@
     "build:simulator": "eas build --platform android --profile simulator",
     "build:android-preview": "eas build --platform android --profile preview"
   },
-  "pkgx": "+facebook.com/watchman",
+  "pkgx": "facebook.com/watchman",
   "jest": {
     "preset": "jest-expo"
   },

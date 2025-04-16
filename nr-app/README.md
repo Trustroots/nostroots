@@ -29,9 +29,11 @@ can use an existing build from
 https://expo.dev/accounts/nostroots/projects/nr-app/builds/ . For iOS,
 you'd have to register your device first using [this link](https://expo.dev/register-device/2e489efb-3f93-453c-99b0-4567492e6bda).
 
-## Preview builds
+## Preview builds for testing
 
 We're generating preview builds for android for testing. To create a new preview build, run the "Build in EAS Cloud" GitHub action with `android-preview`. To get the download url for the last created build, run `eas build:list --platform android --build-profile preview --json --non-interactive --status finished --limit 1 | jq '.[0]'.artifacts.buildUrl -r` locally.
+
+To push an update to the people running the preview build, run `eas update --channel preview --message "mymessage"`.
 
 ### Local network
 

@@ -2,7 +2,7 @@
   "version": "4",
   "specifiers": {
     "jsr:@henrygd/queue@1.0.6": "1.0.6",
-    "jsr:@nashaddams/amqp@^1.1.0": "1.1.0",
+    "jsr:@nashaddams/amqp@1.1.0": "1.1.0",
     "jsr:@nostrify/nostrify@0.30": "0.30.0",
     "jsr:@nostrify/types@0.30": "0.30.0",
     "jsr:@std/assert@^1.0.11": "1.0.11",
@@ -329,7 +329,6 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@nashaddams/amqp@^1.1.0",
       "npm:zod@^3.23.8"
     ]
   }

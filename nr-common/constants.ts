@@ -70,6 +70,7 @@ const hitchwiki: MapLayer = {
   markerColor: "gold",
   rectangleColor: "rgba(255, 215, 0, 0.5)",
 };
+/*
 const timesafari: MapLayer = {
   title: "Time Safari",
   rootUrl: "https://www.timesafari.app",
@@ -86,6 +87,7 @@ const triphopping: MapLayer = {
   markerColor: "brown",
   rectangleColor: "rgba(0, 0, 255, 0.5)",
 };
+*/
 const unverified: MapLayer = {
   title: "Unverified",
   rootUrl: "https://notes.trustroots.org",
@@ -98,8 +100,8 @@ const unverified: MapLayer = {
 export const MAP_LAYERS = {
   hitchmap,
   hitchwiki,
-  timesafari,
-  triphopping,
+//  timesafari,
+//  triphopping,
   unverified,
 } as const;
 export type MAP_LAYER_KEY = keyof typeof MAP_LAYERS;

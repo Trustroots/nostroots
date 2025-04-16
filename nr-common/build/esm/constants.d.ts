@@ -14,6 +14,7 @@ export declare const TRUSTROOTS_USERNAME_MIN_LENGTH = 3;
 export declare const CONTENT_MINIMUM_LENGTH = 3;
 export declare const CONTENT_MAXIMUM_LENGTH = 300;
 export declare const DEFAULT_RELAY_URL = "wss://relay.trustroots.org";
+export declare const NOTIFICATION_SERVER_PUBKEY: "51340781544c47086eb049b0ac10403d75554bf7531f5934b75194f70d15f5f5";
 export declare const DEV_PUBKEY: "80789235a71a388074abfa5c482e270456d2357425266270f82071cf2b1de74a";
 export declare const NOSTROOTS_VALIDATION_PUBKEY: "f5bc71692fc08ea52c0d1c8bcfb87579584106b5feb4ea542b1b8a95612f257b";
 export declare const HITCHMAPS_AUTHOR_PUBLIC_KEY: "53055ee011e96a00a705b38253b9cbc6614ccbd37df4dad42ec69bbe608c4209";

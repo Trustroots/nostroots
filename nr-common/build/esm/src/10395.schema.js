@@ -1,7 +1,9 @@
-import { NOTIFICATION_SUBSCRIPTION_KIND } from "../constants.js";
+import { NOTIFICATION_SERVER_PUBKEY, NOTIFICATION_SUBSCRIPTION_KIND, } from "../constants.js";
 import { z } from "../deps.js";
-import { baseEventSchema } from "./base.schema.js";
+import { finalizedEventFields } from "./base.schema.js";
+import { baseEventTemplateSchema } from "./base.schema.js";
 import { filterSchema } from "./filter.schema.js";
+import { getCurrentTimestamp } from "./utils.js";
 /**
  * A kind 10395 event is an event where the user specifies what nostr events
  * they want to receive a push notification about. They do that by specifying a
@@ -9,24 +11,38 @@ import { filterSchema } from "./filter.schema.js";
  * takes the form of a NIP04 encrypted event which is encrypted for the
  * notification server's private key.
  */
-export const kind10395SubscriptionFilterSchema = z.object({
+export const expoPushTokenListSchema = z
+    .object({
+    expoPushToken: z.string(),
+})
+    .array();
+export const kind10395SubscriptionFilterSchema = z
+    .object({
     filter: filterSchema,
-});
-export const kind10395ContentDecodedSchema = z.object({
-    tokens: z.object({}), // TODO Define the shape of this
+})
+    .array();
+export const kind10395ContentDecryptedDecodedSchema = z.object({
+    tokens: expoPushTokenListSchema,
     filters: kind10395SubscriptionFilterSchema,
 });
-export const kind10395EventSchema = baseEventSchema.extend({
+export const kind10395EventTemplateSchema = baseEventTemplateSchema.extend({
     kind: z.literal(NOTIFICATION_SUBSCRIPTION_KIND),
     // TODO Enable version check
-    content: z.string().refine((content) => {
-        try {
-            const result = JSON.parse(content);
-            kind10395ContentDecodedSchema.parse(result);
-        }
-        catch {
-            return false;
-        }
-        return true;
-    }),
+    content: z.string(),
 });
+export const kind10395EventSchema = kind10395EventTemplateSchema.merge(finalizedEventFields);
+export function create10395EventData(expoPushToken, filters) {
+    return {
+        tokens: [{ expoPushToken }],
+        filters: filters.map((filter) => ({ filter })),
+    };
+}
+export function create10395EventTemplate(encryptedContent) {
+    const template = {
+        kind: NOTIFICATION_SUBSCRIPTION_KIND,
+        content: encryptedContent,
+        tags: [["p", NOTIFICATION_SERVER_PUBKEY]],
+        created_at: getCurrentTimestamp(),
+    };
+    return template;
+}

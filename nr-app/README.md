@@ -1,6 +1,5 @@
 # Nostroots mobile app.
 
-
 ## Getting started
 
 First, run `pnpm i`.
@@ -16,22 +15,29 @@ If you want to use a development build, you can switch to that by
 pressing `s`. Open an emulator or simulator with this build using the
 commands available.
 
-If you want to run a development build on your phone, you'll have to
-download the latest app and scan the QR code with it. For Android, you
+## Run a development build
+
+You will want to run a development build on an emulator/simulator on your laptop. Run the correct command for your platform:
+
+```
+eas build:run --profile development --platform android --latest # android
+eas build:run --platform ios --profile simulator --latest # ios
+```
+
+You can also use your physical phone. For Android, you
 can use an existing build from
 https://expo.dev/accounts/nostroots/projects/nr-app/builds/ . For iOS,
-you'd have to register your device first using `eas devices` and then
-make a build.
+you'd have to register your device first using [this link](https://expo.dev/register-device/2e489efb-3f93-453c-99b0-4567492e6bda).
 
+## Preview builds
 
-## Notes
+We're generating preview builds for android for testing. To create a new preview build, run the "Build in EAS Cloud" GitHub action with `android-preview`. To get the download url for the last created build, run `eas build:list --platform android --build-profile preview --json --non-interactive --status finished --limit 1 | jq '.[0]'.artifacts.buildUrl -r` locally.
 
 ### Local network
 
 For Expo Go to work on a physical phone they need to be connected to
-the same local network.  Using a VPN on the development laptop and/or
+the same local network. Using a VPN on the development laptop and/or
 on the phone can cause issues with this.
-
 
 ### Android
 
@@ -39,9 +45,9 @@ Android Studio seems bloated but it's a good way to get a working
 Android emulator.
 
 macOS notes:
-* `brew install android-studio`
-* use `~/Library/Android`
 
+- `brew install android-studio`
+- use `~/Library/Android`
 
 ### iOS
 

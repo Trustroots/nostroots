@@ -129,7 +129,10 @@ export async function validateEvent(
     event.pubkey
   );
 
-  if (typeof trustrootsUsername === "undefined") {
+  if (
+    typeof trustrootsUsername === "undefined" ||
+    trustrootsUsername.length === 0
+  ) {
     log.debug(
       "#Kmf59M Skipping event with no trustrootsUsername from profile",
       { event }

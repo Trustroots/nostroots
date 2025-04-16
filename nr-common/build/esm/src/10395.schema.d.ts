@@ -1,3 +1,4 @@
+import { Filter } from "nostr-tools/filter";
 import { z } from "../deps.js";
 /**
  * A kind 10395 event is an event where the user specifies what nostr events
@@ -6,7 +7,14 @@ import { z } from "../deps.js";
  * takes the form of a NIP04 encrypted event which is encrypted for the
  * notification server's private key.
  */
-export declare const kind10395SubscriptionFilterSchema: z.ZodObject<{
+export declare const expoPushTokenListSchema: z.ZodArray<z.ZodObject<{
+    expoPushToken: z.ZodString;
+}, "strip", z.ZodTypeAny, {
+    expoPushToken: string;
+}, {
+    expoPushToken: string;
+}>, "many">;
+export declare const kind10395SubscriptionFilterSchema: z.ZodArray<z.ZodObject<{
     filter: z.ZodObject<{
         ids: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
         kinds: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
@@ -312,10 +320,16 @@ export declare const kind10395SubscriptionFilterSchema: z.ZodObject<{
         "#Y"?: string[] | undefined;
         "#Z"?: string[] | undefined;
     };
-}>;
-export declare const kind10395ContentDecodedSchema: z.ZodObject<{
-    tokens: z.ZodObject<{}, "strip", z.ZodTypeAny, {}, {}>;
-    filters: z.ZodObject<{
+}>, "many">;
+export declare const kind10395ContentDecryptedDecodedSchema: z.ZodObject<{
+    tokens: z.ZodArray<z.ZodObject<{
+        expoPushToken: z.ZodString;
+    }, "strip", z.ZodTypeAny, {
+        expoPushToken: string;
+    }, {
+        expoPushToken: string;
+    }>, "many">;
+    filters: z.ZodArray<z.ZodObject<{
         filter: z.ZodObject<{
             ids: z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
             kinds: z.ZodOptional<z.ZodArray<z.ZodNumber, "many">>;
@@ -621,9 +635,11 @@ export declare const kind10395ContentDecodedSchema: z.ZodObject<{
             "#Y"?: string[] | undefined;
             "#Z"?: string[] | undefined;
         };
-    }>;
+    }>, "many">;
 }, "strip", z.ZodTypeAny, {
-    tokens: {};
+    tokens: {
+        expoPushToken: string;
+    }[];
     filters: {
         filter: {
             ids?: string[] | undefined;
@@ -686,9 +702,11 @@ export declare const kind10395ContentDecodedSchema: z.ZodObject<{
             "#Y"?: string[] | undefined;
             "#Z"?: string[] | undefined;
         };
-    };
+    }[];
 }, {
-    tokens: {};
+    tokens: {
+        expoPushToken: string;
+    }[];
     filters: {
         filter: {
             ids?: string[] | undefined;
@@ -751,21 +769,42 @@ export declare const kind10395ContentDecodedSchema: z.ZodObject<{
             "#Y"?: string[] | undefined;
             "#Z"?: string[] | undefined;
         };
-    };
+    }[];
 }>;
+export type Kind10395ContentDecryptedDecoded = z.infer<typeof kind10395ContentDecryptedDecodedSchema>;
+export declare const kind10395EventTemplateSchema: z.ZodObject<z.objectUtil.extendShape<{
+    kind: z.ZodNumber;
+    created_at: z.ZodNumber;
+    tags: z.ZodArray<z.ZodArray<z.ZodString, "many">, "many">;
+    content: z.ZodString;
+}, {
+    kind: z.ZodLiteral<10395>;
+    content: z.ZodString;
+}>, "strip", z.ZodTypeAny, {
+    kind: 10395;
+    created_at: number;
+    tags: string[][];
+    content: string;
+}, {
+    kind: 10395;
+    created_at: number;
+    tags: string[][];
+    content: string;
+}>;
+export type Kind10395EventTemplate = z.infer<typeof kind10395EventTemplateSchema>;
 export declare const kind10395EventSchema: z.ZodObject<z.objectUtil.extendShape<z.objectUtil.extendShape<{
     kind: z.ZodNumber;
     created_at: z.ZodNumber;
     tags: z.ZodArray<z.ZodArray<z.ZodString, "many">, "many">;
     content: z.ZodString;
 }, {
+    kind: z.ZodLiteral<10395>;
+    content: z.ZodString;
+}>, {
     id: z.ZodString;
     pubkey: z.ZodString;
     sig: z.ZodString;
-}>, {
-    kind: z.ZodLiteral<10395>;
-    content: z.ZodEffects<z.ZodString, string, string>;
-}>, "strict", z.ZodTypeAny, {
+}>, "strip", z.ZodTypeAny, {
     kind: 10395;
     created_at: number;
     tags: string[][];
@@ -782,3 +821,6 @@ export declare const kind10395EventSchema: z.ZodObject<z.objectUtil.extendShape<
     pubkey: string;
     sig: string;
 }>;
+export type Kind10395Event = z.infer<typeof kind10395EventSchema>;
+export declare function create10395EventData(expoPushToken: string, filters: Filter[]): Kind10395ContentDecryptedDecoded;
+export declare function create10395EventTemplate(encryptedContent: string): Kind10395EventTemplate;

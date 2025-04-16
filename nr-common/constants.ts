@@ -23,6 +23,9 @@ export const CONTENT_MAXIMUM_LENGTH = 300;
 
 export const DEFAULT_RELAY_URL = "wss://relay.trustroots.org";
 
+export const NOTIFICATION_SERVER_PUBKEY =
+  "51340781544c47086eb049b0ac10403d75554bf7531f5934b75194f70d15f5f5" as const;
+
 export const DEV_PUBKEY =
   "80789235a71a388074abfa5c482e270456d2357425266270f82071cf2b1de74a" as const;
 
@@ -67,6 +70,7 @@ const hitchwiki: MapLayer = {
   markerColor: "gold",
   rectangleColor: "rgba(255, 215, 0, 0.5)",
 };
+/*
 const timesafari: MapLayer = {
   title: "Time Safari",
   rootUrl: "https://www.timesafari.app",
@@ -83,6 +87,7 @@ const triphopping: MapLayer = {
   markerColor: "brown",
   rectangleColor: "rgba(0, 0, 255, 0.5)",
 };
+*/
 const unverified: MapLayer = {
   title: "Unverified",
   rootUrl: "https://notes.trustroots.org",
@@ -95,8 +100,8 @@ const unverified: MapLayer = {
 export const MAP_LAYERS = {
   hitchmap,
   hitchwiki,
-  timesafari,
-  triphopping,
+//  timesafari,
+//  triphopping,
   unverified,
 } as const;
 export type MAP_LAYER_KEY = keyof typeof MAP_LAYERS;

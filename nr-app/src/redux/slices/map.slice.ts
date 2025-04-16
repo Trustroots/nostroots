@@ -48,10 +48,6 @@ export const mapSlice = createSlice({
       state.enabledLayers[action.payload] = false;
     },
     toggleLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
-      // Disable turning off layers for now
-      if (state.enabledLayers[action.payload]) {
-        return state;
-      }
       state.enabledLayers[action.payload] =
         !state.enabledLayers[action.payload];
     },

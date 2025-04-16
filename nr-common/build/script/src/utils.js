@@ -180,9 +180,17 @@ function hasVersion(tags) {
 }
 async function getNip5PubKey(trustrootsUsername) {
     try {
-        const nip5Response = await fetch(`https://www.trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`);
-        const nip5Json = (await nip5Response.json());
-        const nip5PubKey = nip5Json.names[trustrootsUsername];
+        const url = `https://www.trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`;
+        const nip5Response = await fetch(url);
+        const { names, error } = (await nip5Response.json());
+        if (error) {
+            console.warn(`NIP-5 error for ${trustrootsUsername}:`, error);
+            return;
+        }
+        if (!names) {
+            return;
+        }
+        const nip5PubKey = names[trustrootsUsername];
         return nip5PubKey;
     }
     catch (e) {

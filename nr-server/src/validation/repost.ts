@@ -98,18 +98,25 @@ export function processEventFactoryFactory(
   relayPool: nostrify.NPool,
   privateKey: Uint8Array
 ) {
-  return async function processEventFactory(event: nostrify.NostrEvent) {
-    log.debug(`#C1NJbQ Got event`, event);
+  return async function processEventFactory(
+    event: nostrify.NostrEvent,
+    requestId?: string
+  ) {
+    const logId =
+      typeof requestId === "string" && requestId.length > 0
+        ? ` ${requestId}`
+        : "";
+    log.debug(`#C1NJbQ${logId} Got event`, event);
 
     if (event.kind === MAP_NOTE_REPOST_KIND) {
       log.info(
-        `#WAKKJk Skipping kind ${MAP_NOTE_REPOST_KIND} event with ID ${event.id}`
+        `#WAKKJk${logId} Skipping kind ${MAP_NOTE_REPOST_KIND} event with ID ${event.id}`
       );
     }
 
     const isEventValid = await validateEvent(relayPool, event);
     if (!isEventValid) {
-      log.info(`#u0Prc5 Discarding invalid event ${event.id}`);
+      log.info(`#u0Prc5${logId} Discarding invalid event ${event.id}`);
       return;
     }
     const repostedEvent = await generateRepostedEvent(event, privateKey);

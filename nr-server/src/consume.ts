@@ -89,7 +89,7 @@ export async function consume(
             return;
           }
 
-          await processEventFactory(event);
+          await processEventFactory(event, id);
 
           await ack();
         } catch (error) {

@@ -1,7 +1,14 @@
-import { NOTIFICATION_SUBSCRIPTION_KIND } from "../constants.ts";
+import { Filter } from "npm:nostr-tools@2.10.4/filter";
+import {
+  NOTIFICATION_SERVER_PUBKEY,
+  NOTIFICATION_SUBSCRIPTION_KIND,
+  TRUSTROOTS_PROFILE_KIND,
+} from "../constants.ts";
 import { z } from "../deps.ts";
-import { baseEventSchema } from "./base.schema.ts";
+import { finalizedEventFields } from "./base.schema.ts";
+import { baseEventSchema, baseEventTemplateSchema } from "./base.schema.ts";
 import { filterSchema } from "./filter.schema.ts";
+import { getCurrentTimestamp } from "./utils.ts";
 
 /**
  * A kind 10395 event is an event where the user specifies what nostr events
@@ -11,21 +18,59 @@ import { filterSchema } from "./filter.schema.ts";
  * notification server's private key.
  */
 
-export const expoPushTokenListSchema = z.object({
-  expoPushToken: z.string(),
-}).array();
+export const expoPushTokenListSchema = z
+  .object({
+    expoPushToken: z.string(),
+  })
+  .array();
 
-export const kind10395SubscriptionFilterSchema = z.object({
-  filter: filterSchema,
-}).array();
+export const kind10395SubscriptionFilterSchema = z
+  .object({
+    filter: filterSchema,
+  })
+  .array();
 
 export const kind10395ContentDecryptedDecodedSchema = z.object({
   tokens: expoPushTokenListSchema,
   filters: kind10395SubscriptionFilterSchema,
 });
+export type Kind10395ContentDecryptedDecoded = z.infer<
+  typeof kind10395ContentDecryptedDecodedSchema
+>;
 
-export const kind10395EventSchema = baseEventSchema.extend({
+export const kind10395EventTemplateSchema = baseEventTemplateSchema.extend({
   kind: z.literal(NOTIFICATION_SUBSCRIPTION_KIND),
   // TODO Enable version check
   content: z.string(),
 });
+
+export type Kind10395EventTemplate = z.infer<
+  typeof kind10395EventTemplateSchema
+>;
+
+export const kind10395EventSchema =
+  kind10395EventTemplateSchema.merge(finalizedEventFields);
+
+export type Kind10395Event = z.infer<typeof kind10395EventSchema>;
+
+export function create10395EventData(
+  expoPushToken: string,
+  filters: Filter[]
+): Kind10395ContentDecryptedDecoded {
+  return {
+    tokens: [{ expoPushToken }],
+    filters: filters.map((filter) => ({ filter })),
+  };
+}
+
+export function create10395EventTemplate(
+  encryptedContent: string
+): Kind10395EventTemplate {
+  const template: Kind10395EventTemplate = {
+    kind: NOTIFICATION_SUBSCRIPTION_KIND,
+    content: encryptedContent,
+    tags: [["p", NOTIFICATION_SERVER_PUBKEY]],
+    created_at: getCurrentTimestamp(),
+  };
+  return template;
+}

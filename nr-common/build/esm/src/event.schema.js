@@ -1,28 +1,41 @@
+import { MAP_NOTE_REPOST_KIND } from "../constants.js";
+import { MAP_NOTE_KIND, NOTIFICATION_SUBSCRIPTION_KIND, TRUSTROOTS_PROFILE_KIND, } from "../constants.js";
 import { kind10390EventSchema } from "./10390.schema.js";
 import { kind10395EventSchema } from "./10395.schema.js";
 import { kind30397EventSchema } from "./30397.schema.js";
 import { kind30398EventSchema } from "./30398.schema.js";
 import { baseEventSchema } from "./base.schema.js";
-export const eventSchema = baseEventSchema.refine((event) => {
+// TODO - Improve failures here
+export const eventSchema = baseEventSchema
+    .refine((event) => {
     const { kind } = event;
-    switch (kind) {
-        case 10390: {
-            const { success } = kind10390EventSchema.safeParse(event);
-            return success;
-        }
-        case 10395: {
-            const { success } = kind10395EventSchema.safeParse(event);
-            return success;
-        }
-        case 30397: {
-            const { success } = kind30397EventSchema.safeParse(event);
-            return success;
-        }
-        case 30398: {
-            const { success } = kind30398EventSchema.safeParse(event);
-            return success;
-        }
+    if (kind === TRUSTROOTS_PROFILE_KIND) {
+        const { success } = kind10390EventSchema.safeParse(event);
+        return success;
     }
+}, { message: "#ORzfDS-kind-10390-schema-failed" })
+    .refine((event) => {
+    const { kind } = event;
+    if (kind === NOTIFICATION_SUBSCRIPTION_KIND) {
+        const { success } = kind10395EventSchema.safeParse(event);
+        return success;
+    }
+}, { message: "#4P6NFR-kind-10395-schema-failed" })
+    .refine((event) => {
+    const { kind } = event;
+    if (kind === MAP_NOTE_KIND) {
+        const { success } = kind30397EventSchema.safeParse(event);
+        return success;
+    }
+}, { message: "#zqKj3t-kind-30397-schema-failed" })
+    .refine((event) => {
+    const { kind } = event;
+    if (kind === MAP_NOTE_REPOST_KIND) {
+        const { success } = kind30398EventSchema.safeParse(event);
+        return success;
+    }
+}, { message: "#1WlNEs-kind-30398-schema-failed" })
+    .refine((event) => {
     const { success } = baseEventSchema.safeParse(event);
     return success;
-});
+}, { message: "#wuKVfX-base-event-schema-failed" });

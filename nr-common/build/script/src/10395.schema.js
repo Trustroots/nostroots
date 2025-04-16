@@ -1,10 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.kind10395EventSchema = exports.kind10395ContentDecodedSchema = exports.kind10395SubscriptionFilterSchema = void 0;
+exports.kind10395EventSchema = exports.kind10395EventTemplateSchema = exports.kind10395ContentDecryptedDecodedSchema = exports.kind10395SubscriptionFilterSchema = exports.expoPushTokenListSchema = void 0;
+exports.create10395EventData = create10395EventData;
+exports.create10395EventTemplate = create10395EventTemplate;
 const constants_js_1 = require("../constants.js");
 const deps_js_1 = require("../deps.js");
 const base_schema_js_1 = require("./base.schema.js");
+const base_schema_js_2 = require("./base.schema.js");
 const filter_schema_js_1 = require("./filter.schema.js");
+const utils_js_1 = require("./utils.js");
 /**
  * A kind 10395 event is an event where the user specifies what nostr events
  * they want to receive a push notification about. They do that by specifying a
@@ -12,24 +16,38 @@ const filter_schema_js_1 = require("./filter.schema.js");
  * takes the form of a NIP04 encrypted event which is encrypted for the
  * notification server's private key.
  */
-exports.kind10395SubscriptionFilterSchema = deps_js_1.z.object({
+exports.expoPushTokenListSchema = deps_js_1.z
+    .object({
+    expoPushToken: deps_js_1.z.string(),
+})
+    .array();
+exports.kind10395SubscriptionFilterSchema = deps_js_1.z
+    .object({
     filter: filter_schema_js_1.filterSchema,
-});
-exports.kind10395ContentDecodedSchema = deps_js_1.z.object({
-    tokens: deps_js_1.z.object({}), // TODO Define the shape of this
+})
+    .array();
+exports.kind10395ContentDecryptedDecodedSchema = deps_js_1.z.object({
+    tokens: exports.expoPushTokenListSchema,
     filters: exports.kind10395SubscriptionFilterSchema,
 });
-exports.kind10395EventSchema = base_schema_js_1.baseEventSchema.extend({
+exports.kind10395EventTemplateSchema = base_schema_js_2.baseEventTemplateSchema.extend({
     kind: deps_js_1.z.literal(constants_js_1.NOTIFICATION_SUBSCRIPTION_KIND),
     // TODO Enable version check
-    content: deps_js_1.z.string().refine((content) => {
-        try {
-            const result = JSON.parse(content);
-            exports.kind10395ContentDecodedSchema.parse(result);
-        }
-        catch {
-            return false;
-        }
-        return true;
-    }),
+    content: deps_js_1.z.string(),
 });
+exports.kind10395EventSchema = exports.kind10395EventTemplateSchema.merge(base_schema_js_1.finalizedEventFields);
+function create10395EventData(expoPushToken, filters) {
+    return {
+        tokens: [{ expoPushToken }],
+        filters: filters.map((filter) => ({ filter })),
+    };
+}
+function create10395EventTemplate(encryptedContent) {
+    const template = {
+        kind: constants_js_1.NOTIFICATION_SUBSCRIPTION_KIND,
+        content: encryptedContent,
+        tags: [["p", constants_js_1.NOTIFICATION_SERVER_PUBKEY]],
+        created_at: (0, utils_js_1.getCurrentTimestamp)(),
+    };
+    return template;
+}

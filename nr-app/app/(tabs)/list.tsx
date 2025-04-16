@@ -5,7 +5,6 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAppSelector } from "@/redux/hooks";
 import { eventsSelectors } from "@/redux/slices/events.slice";
-import { Picker } from "@react-native-picker/picker";
 
 export default function TabTwoScreen() {
   const events = useAppSelector(eventsSelectors.selectAll);
@@ -36,22 +35,6 @@ export default function TabTwoScreen() {
             </View>
           ))}
         </View>
-        <Picker
-          selectedValue={(365 * 60 * 24).toString()}
-          onValueChange={(v) => {
-            console.log("#taa250 Picker", v);
-          }}
-        >
-          <Picker.Item
-            label="1 year"
-            value={(365 * 60 * 24).toString()}
-            style={{ color: "red", backgroundColor: "blue" }}
-          />
-          <Picker.Item label="1 week" value={(7 * 60 * 24).toString()} />
-          <Picker.Item label="1 month" value={(30 * 7 * 60 * 24).toString()} />
-          <Picker.Item label="1 hour" value={(60 * 24).toString()} />
-          <Picker.Item label="1 minute" value="60" />
-        </Picker>
       </ScrollView>
     </SafeAreaView>
   );

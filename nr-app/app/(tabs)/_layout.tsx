@@ -4,9 +4,14 @@ import React from "react";
 import { TabBarIcon } from "@/components/navigation/TabBarIcon";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useAppSelector } from "@/redux/hooks";
+import { settingsSelectors } from "@/redux/slices/settings.slice";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const areTestFeaturesEnabled = useAppSelector(
+    settingsSelectors.selectAreTestFeaturesEnabled,
+  );
 
   return (
     <Tabs
@@ -58,6 +63,7 @@ export default function TabLayout() {
               color={color}
             />
           ),
+          href: areTestFeaturesEnabled ? "/connect" : null,
         }}
       />
     </Tabs>

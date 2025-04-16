@@ -2,6 +2,15 @@ name: Create android development build
 
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: 'Platform'
+        required: true
+        default: 'android'
+        type: choice
+        options:
+          - android
+          - ios
 
 jobs:
   update:
@@ -24,4 +33,4 @@ jobs:
 
       - name: 🚀 Start Build
         working-directory: ./nr-app
-        run: eas build --platform android --profile development --non-interactive
+        run: eas build --platform ${{ inputs.platform }}  --profile development --non-interactive

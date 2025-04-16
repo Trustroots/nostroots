@@ -12,7 +12,10 @@
     "lint": "expo lint",
     "lint-fix": "eslint --fix",
     "lint-ts": "tsc --noEmit",
-    "prepare": "cd .. && husky nr-app/.husky"
+    "prepare": "cd .. && husky nr-app/.husky",
+    "build:android": "eas build --platform android --profile development",
+    "build:ios": "eas build --platform ios --profile development",
+    "build:simulator": "eas build --platform android --profile simulator"
   },
   "pkgx": "+facebook.com/watchman",
   "jest": {

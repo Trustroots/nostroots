@@ -8,10 +8,17 @@
       "developmentClient": true,
       "distribution": "internal"
     },
-    "preview": {
+    "simulator": {
+      "developmentClient": true,
+      "ios": {
+        "simulator": true
+      },
       "distribution": "internal"
     },
-    "production": {}
+    "preview": {
+      "distribution": "internal",
+      "environment": "preview"
+    }
   },
   "submit": {
     "production": {}

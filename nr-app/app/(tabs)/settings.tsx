@@ -30,6 +30,9 @@ import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
+import { notificationSubscribeToFilterPromiseAction } from "@/redux/actions/notifications.actions";
+import Toast from "react-native-root-toast";
+import { notificationsSlice } from "@/redux/slices/notifications.slice";
 
 const DevSwitch = () => {
   const dispatch = useAppDispatch();
@@ -133,6 +136,27 @@ export default function TabThreeScreen() {
         <TextInput style={styles.input} value={expoPushToken} />
 
         <TEMPORARYSetUsername />
+
+        <Button
+          title="Set filter notification"
+          onPress={async () => {
+            try {
+              dispatch(
+                notificationsSlice.actions.setExpoPushToken(
+                  "ExponentPushToken[tnvHKbIICOgGP7SxcA2jcB]",
+                ),
+              );
+              const result = await dispatch(
+                notificationSubscribeToFilterPromiseAction.request({
+                  filter: { kinds: [30397] },
+                }),
+              );
+              Toast.show(`#PnvMz0 Success: ${JSON.stringify(result)}`);
+            } catch (error) {
+              Toast.show(`#Y0WER5 Error: ${error}`);
+            }
+          }}
+        />
 
         <Text style={styles.header}>Help</Text>
         <Text style={styles.q}>How does this work?</Text>

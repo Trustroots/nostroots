@@ -19,6 +19,7 @@ export const eventSchema = baseEventSchema
         const { success } = kind10390EventSchema.safeParse(event);
         return success;
       }
+      return true;
     },
     { message: "#ORzfDS-kind-10390-schema-failed" }
   )
@@ -29,6 +30,7 @@ export const eventSchema = baseEventSchema
         const { success } = kind10395EventSchema.safeParse(event);
         return success;
       }
+      return true;
     },
     { message: "#4P6NFR-kind-10395-schema-failed" }
   )
@@ -39,6 +41,7 @@ export const eventSchema = baseEventSchema
         const { success } = kind30397EventSchema.safeParse(event);
         return success;
       }
+      return true;
     },
     { message: "#zqKj3t-kind-30397-schema-failed" }
   )
@@ -49,6 +52,7 @@ export const eventSchema = baseEventSchema
         const { success } = kind30398EventSchema.safeParse(event);
         return success;
       }
+      return true;
     },
     { message: "#1WlNEs-kind-30398-schema-failed" }
   )

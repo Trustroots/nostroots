@@ -16,6 +16,7 @@ exports.eventSchema = base_schema_js_1.baseEventSchema
         const { success } = _10390_schema_js_1.kind10390EventSchema.safeParse(event);
         return success;
     }
+    return true;
 }, { message: "#ORzfDS-kind-10390-schema-failed" })
     .refine((event) => {
     const { kind } = event;
@@ -23,6 +24,7 @@ exports.eventSchema = base_schema_js_1.baseEventSchema
         const { success } = _10395_schema_js_1.kind10395EventSchema.safeParse(event);
         return success;
     }
+    return true;
 }, { message: "#4P6NFR-kind-10395-schema-failed" })
     .refine((event) => {
     const { kind } = event;
@@ -30,6 +32,7 @@ exports.eventSchema = base_schema_js_1.baseEventSchema
         const { success } = _30397_schema_js_1.kind30397EventSchema.safeParse(event);
         return success;
     }
+    return true;
 }, { message: "#zqKj3t-kind-30397-schema-failed" })
     .refine((event) => {
     const { kind } = event;
@@ -37,6 +40,7 @@ exports.eventSchema = base_schema_js_1.baseEventSchema
         const { success } = _30398_schema_js_1.kind30398EventSchema.safeParse(event);
         return success;
     }
+    return true;
 }, { message: "#1WlNEs-kind-30398-schema-failed" })
     .refine((event) => {
     const { success } = base_schema_js_1.baseEventSchema.safeParse(event);

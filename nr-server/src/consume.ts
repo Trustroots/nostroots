@@ -26,22 +26,40 @@ export async function consume(
     log.debug(`#nxcSXE Using the empty AMQP url`);
   }
 
+  const url = URL.parse(amqpUrlActual);
+
+  if (url === null) {
+    throw new Error("#jwBa1l-failed-to-parse-amqp-url");
+  }
+
   try {
-    const connection = await amqp.connect(amqpUrlActual);
+    const connection = await amqp.connect({
+      hostname: url.hostname,
+      port: parseInt(url.port),
+      username: url.username,
+      password: url.password,
+    });
     const channel = await connection.openChannel();
+
+    // Fetch only 1 message at a time
+    await channel.qos({ prefetchCount: 1 });
+
     await channel.declareExchange({
       exchange: exchangeName,
       durable: true,
       type: "fanout",
     });
+
     await channel.declareQueue({
       queue: queueName,
       durable: true,
     });
+
     await channel.bindQueue({
       exchange: exchangeName,
       queue: queueName,
     });
+
     channel.consume(
       { queue: queueName },
       async function processQueueItem(args, _props, data) {

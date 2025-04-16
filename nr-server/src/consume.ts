@@ -70,7 +70,7 @@ export async function consume(
         const id = createId();
         try {
           const ack = async () => {
-            console.log(`#zQ5dXu sending ack for ${id}`);
+            console.log(`#zQ5dXu ${id} sending ack`);
             await channel.ack({ deliveryTag: args.deliveryTag });
           };
 

@@ -17,6 +17,9 @@ import { createSelector } from "reselect";
 import { notificationSubscribeToFilterPromiseAction } from "../actions/notifications.actions";
 import { publishEventTemplatePromiseAction } from "../actions/publish.actions";
 import { notificationsSlice } from "../slices/notifications.slice";
+import { rootLogger } from "@/utils/logger.utils";
+
+const log = rootLogger.extend("notifications");
 
 const notificationsSubscribeSagaEffectSelector = createSelector(
   notificationsSlice.selectors.selectFilters,
@@ -27,15 +30,15 @@ const notificationsSubscribeSagaEffectSelector = createSelector(
 );
 
 async function encryptMessage(plaintext: string) {
-  console.log("#Lrr7Uz getting private key");
+  log.debug("#Lrr7Uz getting private key");
   const privateKey = await getPrivateKeyHex();
-  console.log("#XQSpLX got private key");
+  log.debug("#XQSpLX got private key");
   const encryptedText = nip04.encrypt(
     privateKey,
     NOTIFICATION_SERVER_PUBKEY,
     plaintext,
   );
-  console.log("#lLLP9n encrypted", encryptedText);
+  log.debug("#lLLP9n encrypted", encryptedText);
   return encryptedText;
 }
 
@@ -48,6 +51,7 @@ function* notificationsSubscribeSagaEffect(
   | Awaited<ReturnType<typeof encryptMessage>>
 > {
   try {
+    log.debug("#ChMVeW notificationsSubscribeSagaEffect()*");
     const { filter } = action.payload;
     const { filters, expoPushToken } = (yield select(
       notificationsSubscribeSagaEffectSelector,

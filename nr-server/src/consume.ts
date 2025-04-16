@@ -1,4 +1,4 @@
-import { amqp, nrCommon } from "../deps.ts";
+import { amqp, nanoid, nrCommon } from "../deps.ts";
 const { eventSchema } = nrCommon;
 import { getRelayPool } from "./relays.ts";
 import { processEventFactoryFactory } from "./validation/repost.ts";
@@ -8,6 +8,10 @@ const exchangeName = "nostrEvents";
 const queueName = "repost";
 
 const EMPTY_AMQP_URL = "amqp://insecure:insecure@localhost:5672";
+
+const createId = nanoid.customAlphabet(
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+);
 
 export async function consume(
   privateKey: Uint8Array,
@@ -63,13 +67,15 @@ export async function consume(
     channel.consume(
       { queue: queueName },
       async function processQueueItem(args, _props, data) {
+        const id = createId();
         try {
           const ack = async () => {
+            console.log(`#zQ5dXu sending ack for ${id}`);
             await channel.ack({ deliveryTag: args.deliveryTag });
           };
 
           const text = new TextDecoder().decode(data);
-          console.log("#QXP3Bz Got event body", args, text);
+          console.log(`#QXP3Bz Got event body for ${id}`, args, text);
 
           const strfryMessage = JSON.parse(text);
           const { event: unvalidatedEvent } = strfryMessage;
@@ -87,7 +93,7 @@ export async function consume(
 
           await ack();
         } catch (error) {
-          console.error("#Y5y2oB Error in channel.consume", error);
+          console.error(`#Y5y2oB Error in channel.consume ${id}`, error);
         }
       }
     );

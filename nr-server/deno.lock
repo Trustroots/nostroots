@@ -5,6 +5,7 @@
     "jsr:@nashaddams/amqp@1.1.0": "1.1.0",
     "jsr:@nostrify/nostrify@0.30": "0.30.0",
     "jsr:@nostrify/types@0.30": "0.30.0",
+    "jsr:@sitnik/nanoid@5.1.5": "5.1.5",
     "jsr:@std/assert@^1.0.11": "1.0.11",
     "jsr:@std/async@1.0.3": "1.0.3",
     "jsr:@std/bytes@^1.0.2": "1.0.4",
@@ -52,6 +53,9 @@
     },
     "@nostrify/types@0.30.0": {
       "integrity": "1f38fa849cff930bd709edbf94ef9ac02f46afb8b851f86c8736517b354616da"
+    },
+    "@sitnik/nanoid@5.1.5": {
+      "integrity": "55bd5f57087d67b1dcb7c1f4a07efdfe77a3ac57ca0af90f162c1f676ebf8f4b"
     },
     "@std/assert@1.0.11": {
       "integrity": "2461ef3c368fe88bc60e186e7744a93112f16fd110022e113a0849e94d1c83c1",

@@ -10,6 +10,7 @@ import { mapSlice } from "./slices/map.slice";
 import { relaysSlice } from "./slices/relays.slice";
 import { keystoreSlice } from "./slices/keystore.slice";
 import { settingsSlice } from "./slices/settings.slice";
+import { notificationsSlice } from "./slices/notifications.slice";
 
 const isOnDevice = Platform.OS !== "web";
 
@@ -21,6 +22,7 @@ const reducer = combineSlices(
   eventsSlice,
   keystoreSlice,
   mapSlice,
+  notificationsSlice,
   relaysSlice,
   settingsSlice,
 );

@@ -7,6 +7,7 @@ import {
 } from "@trustroots/nr-common";
 import { NostrEvent } from "nostr-tools";
 import OpenLocationCode from "open-location-code-typescript";
+import { BoundingBox, Region } from "react-native-maps";
 import { urlJoin } from "url-join-ts";
 
 type PlusCodeShortLength = 2 | 4 | 6 | 8;
@@ -314,4 +315,19 @@ export function getEventLinkUrl(event: NostrEvent, layerConfig?: MapLayer) {
   const linkBaseUrl = layerConfig.rootUrl;
   const url = urlJoin(linkBaseUrl, linkPath);
   return url;
+}
+
+export function boundariesToRegion(boundaries: BoundingBox): Region {
+  const { northEast, southWest } = boundaries;
+  const latitudeDelta = northEast.latitude - southWest.latitude;
+  const longitudeDelta = northEast.longitude - southWest.longitude;
+
+  const middlePoint = {
+    latitude: southWest.latitude + latitudeDelta / 2,
+    longitude: southWest.longitude + longitudeDelta / 2,
+    latitudeDelta,
+    longitudeDelta,
+  };
+
+  return middlePoint;
 }

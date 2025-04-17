@@ -1,14 +1,17 @@
 import { MAP_LAYER_KEY } from "@trustroots/nr-common";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { LatLng } from "react-native-maps";
+import { BoundingBox, LatLng, Point, Region } from "react-native-maps";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { setSubscriptionHasSeenEOSE } from "./relays.slice";
+import { string } from "zod";
 
 export const MAP_SUBSCRIPTION_ID = "mapVisiblePlusCodesSubscription";
 
 interface MapState {
   mapSubscriptionIsUpdating: boolean;
   visiblePlusCodes: string[];
+  selectedPlusCode: string;
+  boundingBox?: BoundingBox;
   isAddNoteModalOpen: boolean;
   selectedLatLng?: LatLng;
   enabledLayers: {
@@ -20,6 +23,7 @@ const initialState: MapState = {
   mapSubscriptionIsUpdating: false,
   visiblePlusCodes: [],
   isAddNoteModalOpen: false,
+  selectedPlusCode: "",
   enabledLayers: {
     hitchmap: false,
     hitchwiki: false,
@@ -57,8 +61,17 @@ export const mapSlice = createSlice({
     closeAddNoteModal: (state) => {
       state.isAddNoteModalOpen = false;
     },
+    setSelectedPlusCode: (state, action: PayloadAction<string>) => {
+      state.selectedPlusCode = action.payload;
+    },
     setSelectedLatLng: (state, action: PayloadAction<LatLng>) => {
       state.selectedLatLng = action.payload;
+    },
+    setBoundingBox: (
+      state,
+      action: PayloadAction<{ northEast: LatLng; southWest: LatLng }>,
+    ) => {
+      state.boundingBox = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -81,6 +94,7 @@ export const mapSlice = createSlice({
     }),
     selectSelectedLatLng: (state) => state.selectedLatLng,
     selectIsAddNoteModalOpen: (state) => state.isAddNoteModalOpen,
+    selectBoundingBox: (state) => state.boundingBox,
   },
 });
 

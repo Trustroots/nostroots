@@ -317,6 +317,20 @@ export function getEventLinkUrl(event: NostrEvent, layerConfig?: MapLayer) {
   return url;
 }
 
+export function regionToBoundingBox(region: Region) {
+  const boundingBox = {
+    northEast: {
+      latitude: region.latitude + region.latitudeDelta / 2,
+      longitude: region.longitude + region.longitudeDelta / 2,
+    },
+    southWest: {
+      latitude: region.latitude - region.latitudeDelta / 2,
+      longitude: region.longitude - region.longitudeDelta / 2,
+    },
+  };
+  return boundingBox;
+}
+
 export function boundariesToRegion(boundaries: BoundingBox): Region {
   const { northEast, southWest } = boundaries;
   const latitudeDelta = northEast.latitude - southWest.latitude;
@@ -330,4 +344,66 @@ export function boundariesToRegion(boundaries: BoundingBox): Region {
   };
 
   return middlePoint;
+}
+
+export function arePlusCodesTheSameLength(
+  firstPlusCode: string,
+  secondPlusCode: string,
+) {
+  const sameStringLength = firstPlusCode.length === secondPlusCode.length;
+  const firstZeroesAtSameIndex =
+    firstPlusCode.indexOf("0") === secondPlusCode.indexOf("0");
+  return sameStringLength && firstZeroesAtSameIndex;
+}
+
+function degreeSizeForPlusCodeLength(size: PlusCodeShortLength) {
+  switch (size) {
+    case 2:
+      return 20;
+    case 4:
+      return 1;
+    case 6:
+      return 0.05;
+    case 8:
+      return 0.0025;
+  }
+}
+
+export function getAllPlusCodesBetweenTwoPlusCodes(
+  southWestPlusCode: string,
+  northEastPlusCode: string,
+  length: PlusCodeShortLength,
+) {
+  if (southWestPlusCode.length > 9 || northEastPlusCode.length > 9) {
+    throw new Error("#w2RUhg-plus-code-too-long");
+  }
+
+  const southWestLatLng = OpenLocationCode.decode(southWestPlusCode);
+  const northEastLatLng = OpenLocationCode.decode(northEastPlusCode);
+
+  const latitudeDelta = northEastLatLng.latitudeHi - southWestLatLng.latitudeLo;
+  const longitudeDelta =
+    northEastLatLng.longitudeHi - southWestLatLng.longitudeLo;
+
+  const degreesPerStep = degreeSizeForPlusCodeLength(length);
+
+  const latitudeSteps = Math.ceil(latitudeDelta / degreesPerStep);
+  const longitudeSteps = Math.ceil(longitudeDelta / degreesPerStep);
+
+  const plusCodes = Array.from({ length: latitudeSteps }).flatMap(
+    (value, latitudeIndex) => {
+      return Array.from({ length: longitudeSteps }).map(
+        (value, longitudeIndex) => {
+          const latitude =
+            southWestLatLng.latitudeCenter + latitudeIndex * degreesPerStep;
+          const longitude =
+            southWestLatLng.longitudeCenter + longitudeIndex * degreesPerStep;
+          const plusCode = OpenLocationCode.encode(latitude, longitude, length);
+          return plusCode;
+        },
+      );
+    },
+  );
+
+  return plusCodes;
 }

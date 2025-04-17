@@ -1,7 +1,7 @@
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { eventsSelectors } from "@/redux/slices/events.slice";
-import { mapSelectors } from "@/redux/slices/map.slice";
+import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import {
   isEventForPlusCodeExactly,
   isEventWithinThisPlusCode,
@@ -10,8 +10,11 @@ import { rootLogger } from "@/utils/logger.utils";
 import {
   allPlusCodesForRegion,
   boundariesToRegion,
+  coordinatesToPlusCode,
   getAllChildPlusCodes,
+  getAllPlusCodesBetweenTwoPlusCodes,
   plusCodeToRectangle,
+  regionToBoundingBox,
 } from "@/utils/map.utils";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useMemo, useRef } from "react";
@@ -27,6 +30,18 @@ import { createSelector } from "reselect";
 
 const log = rootLogger.extend("MapPlusCodes");
 
+function whatLengthOfPlusCodeToShow(region: Region) {
+  const factor = 1.6;
+  if (region.latitudeDelta > 20 * factor) {
+    return 2;
+  } else if (region.latitudeDelta > 1 * factor) {
+    return 4;
+  } else if (region.latitudeDelta > 0.05 * factor) {
+    return 6;
+  }
+  return 8;
+}
+
 const selectPlusCodesToShow = createSelector(
   mapSelectors.selectVisiblePlusCodes,
   (visiblePlusCodes) => {
@@ -36,8 +51,30 @@ const selectPlusCodesToShow = createSelector(
 );
 
 const selectPlusCodesWithState = createSelector(
-  [selectPlusCodesToShow, eventsSelectors.selectAll],
-  (plusCodes, events) => {
+  [eventsSelectors.selectAll, mapSelectors.selectBoundingBox],
+  (events, boundingBox) => {
+    if (typeof boundingBox === "undefined") {
+      return [];
+    }
+
+    const length = whatLengthOfPlusCodeToShow(boundariesToRegion(boundingBox));
+
+    const southWest = coordinatesToPlusCode({
+      ...boundingBox.southWest,
+      length,
+    });
+    const northEast = coordinatesToPlusCode({
+      ...boundingBox.northEast,
+      length,
+    });
+
+    // const plusCodes = [southWest, northEast];
+    const plusCodes = getAllPlusCodesBetweenTwoPlusCodes(
+      southWest,
+      northEast,
+      length,
+    );
+
     const output = plusCodes.map((plusCode) => {
       const eventsForThisPlusCodeExactly = events.filter((event) =>
         isEventForPlusCodeExactly(event.event, plusCode),
@@ -66,13 +103,17 @@ export default function MapPlusCodes() {
     () =>
       function handleMapRegionChangeHandler(region: Region, details: Details) {
         __DEV__ && console.log("#rIMmxg Map move completed", region, details);
+        const boundingBox = regionToBoundingBox(region);
+        dispatch(mapActions.setBoundingBox(boundingBox));
         const visiblePlusCodes = allPlusCodesForRegion(region);
         dispatch(setVisiblePlusCodes(visiblePlusCodes));
+        const length = whatLengthOfPlusCodeToShow(region);
+        log.debug("#mzWdGm regionChange plusCode length", length);
       },
     [dispatch],
   );
 
-  log.debug(`#WAYYWp showPlusCodes ${plusCodesWithState.length}`);
+  log.debug(`#WAYYWp showPlusCodes`, plusCodesWithState);
 
   return (
     <MapView
@@ -99,18 +140,6 @@ export default function MapPlusCodes() {
         handleMapRegionChange(region, {});
       }}
     >
-      {false && (
-        <Polygon
-          coordinates={plusCodeToRectangle("9F000000+")}
-          fillColor="rgba(255, 0, 0, 0.3)"
-          strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
-          strokeWidth={2}
-          onPress={() => {
-            console.log("#HYgLFP plus code polygon pressed");
-          }}
-        />
-      )}
-
       {true &&
         plusCodesWithState.map((plusCodeWithState, index) => (
           <Polygon
@@ -122,9 +151,10 @@ export default function MapPlusCodes() {
             strokeWidth={2}
             tappable={true}
             onPress={() => {
-              console.log(
-                `#HYgLFP plus code polygon pressed on ${JSON.stringify(plusCodeWithState)}`,
+              dispatch(
+                mapActions.setSelectedPlusCode(plusCodeWithState.plusCode),
               );
+              dispatch(mapActions.openAddNoteModal());
             }}
           />
         ))}

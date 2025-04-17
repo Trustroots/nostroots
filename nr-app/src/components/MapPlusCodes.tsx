@@ -1,13 +1,20 @@
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { eventsSelectors } from "@/redux/slices/events.slice";
 import { mapSelectors } from "@/redux/slices/map.slice";
 import {
+  isEventForPlusCodeExactly,
+  isEventWithinThisPlusCode,
+} from "@/utils/event.utils";
+import { rootLogger } from "@/utils/logger.utils";
+import {
   allPlusCodesForRegion,
+  boundariesToRegion,
   getAllChildPlusCodes,
   plusCodeToRectangle,
 } from "@/utils/map.utils";
 import Constants, { ExecutionEnvironment } from "expo-constants";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Platform, StyleSheet } from "react-native";
 import MapView, {
   Details,
@@ -18,20 +25,42 @@ import MapView, {
 } from "react-native-maps";
 import { createSelector } from "reselect";
 
+const log = rootLogger.extend("MapPlusCodes");
+
 const selectPlusCodesToShow = createSelector(
   mapSelectors.selectVisiblePlusCodes,
   (visiblePlusCodes) => {
     const allPlusCodes = visiblePlusCodes.flatMap(getAllChildPlusCodes);
-    // return allPlusCodes;
-    const subset = allPlusCodes.slice(0, 200);
-    return subset;
+    return allPlusCodes;
+  },
+);
+
+const selectPlusCodesWithState = createSelector(
+  [selectPlusCodesToShow, eventsSelectors.selectAll],
+  (plusCodes, events) => {
+    const output = plusCodes.map((plusCode) => {
+      const eventsForThisPlusCodeExactly = events.filter((event) =>
+        isEventForPlusCodeExactly(event.event, plusCode),
+      );
+      const eventsWithinThisPlusCode = events.filter((event) =>
+        isEventWithinThisPlusCode(event.event, plusCode),
+      );
+      return {
+        plusCode,
+        eventCountForThisPlusCodeExactly: eventsForThisPlusCodeExactly.length,
+        eventCountWithinThisPlusCode: eventsWithinThisPlusCode.length,
+      };
+    });
+    return output;
   },
 );
 
 export default function MapPlusCodes() {
   const dispatch = useAppDispatch();
 
-  const showPlusCodes = useAppSelector(selectPlusCodesToShow);
+  const plusCodesWithState = useAppSelector(selectPlusCodesWithState);
+
+  const mapViewRef = useRef<MapView>(null);
 
   const handleMapRegionChange = useMemo(
     () =>
@@ -43,8 +72,11 @@ export default function MapPlusCodes() {
     [dispatch],
   );
 
+  log.debug(`#WAYYWp showPlusCodes ${plusCodesWithState.length}`);
+
   return (
     <MapView
+      ref={mapViewRef}
       style={styles.map}
       rotateEnabled={false}
       pitchEnabled={false}
@@ -56,11 +88,20 @@ export default function MapPlusCodes() {
           ? PROVIDER_DEFAULT
           : PROVIDER_GOOGLE
       }
+      onMapReady={async (event) => {
+        if (mapViewRef.current === null) {
+          log.error("#SHtaWM mapViewRef is null");
+          return;
+        }
+        const boundaries = await mapViewRef.current.getMapBoundaries();
+        log.debug("#iztRxR onMapReady", boundaries);
+        const region = boundariesToRegion(boundaries);
+        handleMapRegionChange(region, {});
+      }}
     >
-      {showPlusCodes.map((plusCode, index) => (
+      {false && (
         <Polygon
-          key={index}
-          coordinates={plusCodeToRectangle(plusCode)}
+          coordinates={plusCodeToRectangle("9F000000+")}
           fillColor="rgba(255, 0, 0, 0.3)"
           strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
           strokeWidth={2}
@@ -68,7 +109,25 @@ export default function MapPlusCodes() {
             console.log("#HYgLFP plus code polygon pressed");
           }}
         />
-      ))}
+      )}
+
+      {true &&
+        plusCodesWithState.map((plusCodeWithState, index) => (
+          <Polygon
+            key={index}
+            coordinates={plusCodeToRectangle(plusCodeWithState.plusCode)}
+            // fillColor={`rgba(255, 0, 0, 0.${plusCodeWithState.events.length > 9 ? "9" : plusCodeWithState.events.length.toString().substring(0, 1)}})`}
+            fillColor={`rgba(${Math.min(255, plusCodeWithState.eventCountWithinThisPlusCode * 60).toString()}, 0, 0, 0.6)`}
+            strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
+            strokeWidth={2}
+            tappable={true}
+            onPress={() => {
+              console.log(
+                `#HYgLFP plus code polygon pressed on ${JSON.stringify(plusCodeWithState)}`,
+              );
+            }}
+          />
+        ))}
     </MapView>
   );
 }

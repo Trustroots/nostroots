@@ -1,11 +1,10 @@
-import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
-
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@trustroots/nr-common";
 import React from "react";
-import { MapMarkers } from "./MapMarkers";
+import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
 import MapModal from "./MapModal";
+import MapPlusCodes from "./MapPlusCodes";
 
 export default function Map() {
   const enabledLayers = useAppSelector(mapSelectors.selectEnabledLayers);
@@ -15,7 +14,7 @@ export default function Map() {
 
   return (
     <View style={styles.mapContainer}>
-      <MapMarkers />
+      <MapPlusCodes />
 
       <View style={styles.toggleWrapper}>
         <FlatList

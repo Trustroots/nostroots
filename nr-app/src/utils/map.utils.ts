@@ -1,9 +1,9 @@
 import { NOSTR_EVENT_INDEX_MAXIMUM_PLUS_CODE_LENGTH } from "@/constants";
 import {
+  getFirstTagValueFromEvent,
   MAP_LAYER_KEY,
   MAP_LAYERS,
   MapLayer,
-  getFirstTagValueFromEvent,
 } from "@trustroots/nr-common";
 import { NostrEvent } from "nostr-tools";
 import OpenLocationCode from "open-location-code-typescript";

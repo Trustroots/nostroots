@@ -21,7 +21,6 @@ import MapView, {
   BoundingBox,
   Details,
   LongPressEvent,
-  Marker,
   PROVIDER_DEFAULT,
   PROVIDER_GOOGLE,
   Region,

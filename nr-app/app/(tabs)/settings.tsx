@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 
+import BuildData from "@/components/BuildData";
 import OnboardModal from "@/components/OnboardModal";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
@@ -20,18 +21,19 @@ import {
   getPrivateKeyMnemonic,
 } from "@/nostr/keystore.nostr";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
+import { notificationSubscribeToFilterPromiseAction } from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
 import {
   keystoreSelectors,
   setPublicKeyHex,
 } from "@/redux/slices/keystore.slice";
+import { notificationsSlice } from "@/redux/slices/notifications.slice";
 import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
-import { notificationSubscribeToFilterPromiseAction } from "@/redux/actions/notifications.actions";
 import Toast from "react-native-root-toast";
-import { notificationsSlice } from "@/redux/slices/notifications.slice";
 
 const DevSwitch = () => {
   const dispatch = useAppDispatch();
@@ -67,6 +69,9 @@ export default function TabThreeScreen() {
 
   const [nsec, setNsec] = useState("");
   const [mnemonic, setMnemonic] = useState("");
+  const [mnemonicInput, setMnemonicInput] = useState("");
+  const [showUpdateButton, setShowUpdateButton] = useState(false);
+  const [mnemonicError, setMnemonicError] = useState<string | null>(null);
   const hasPrivateKeyFromRedux = useAppSelector(
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
   );
@@ -93,12 +98,36 @@ export default function TabThreeScreen() {
       });
       setNsec(bech32PrivateKey);
       setMnemonic(mnemonic);
-      setTimeout(() => {
-        setNsec("");
-        setMnemonic("");
-      }, 15e3);
+      setMnemonicInput(mnemonic);
+      setShowUpdateButton(false);
     } catch (error) {
       console.error("#bVVgTl Error getting nsec and mnemonic", error);
+    }
+  };
+
+  const handleMnemonicChange = (text: string) => {
+    setMnemonicInput(text);
+    // Only show update button if the input is different from the current mnemonic
+    setShowUpdateButton(text !== mnemonic && text.trim() !== "");
+  };
+
+  const handleMnemonicSubmit = async () => {
+    if (mnemonicInput.trim() !== "") {
+      try {
+        setMnemonicError(null);
+        await dispatch(
+          setPrivateKeyMnemonicPromiseAction.request(mnemonicInput),
+        );
+        const pubKeyHex = derivePublicKeyHexFromMnemonic(mnemonicInput);
+        dispatch(setPublicKeyHex(pubKeyHex));
+        setMnemonicInput("");
+        setShowUpdateButton(false);
+        Toast.show("Mnemonic updated successfully", {
+          duration: Toast.durations.SHORT,
+        });
+      } catch (error) {
+        setMnemonicError("Invalid mnemonic. Please check and try again.");
+      }
     }
   };
 
@@ -116,7 +145,7 @@ export default function TabThreeScreen() {
           </Modal>
         </View>
 
-        {username === "" ? (
+        {username === "" || areTestFeaturesEnabled ? (
           <View>
             <Text style={styles.q}>trustroots.org</Text>
             <View style={styles.input}>
@@ -131,8 +160,8 @@ export default function TabThreeScreen() {
         {username.length > 0 || areTestFeaturesEnabled ? (
           <View>
             <View>
-              <Text style={styles.q}>trustroots.org</Text>
-              <Text style={styles.q}>username: {username}</Text>
+              <Text style={styles.q}>trustroots.org username:</Text>
+              <Text style={styles.textValue}>{username}</Text>
             </View>
 
             <View>
@@ -143,16 +172,28 @@ export default function TabThreeScreen() {
               <Text style={styles.q}>nsec</Text>
               <TextInput style={styles.input} value={nsec} />
               <Text style={styles.q}>nsec mnemonic</Text>
-              <TextInput style={styles.input} value={mnemonic} />
-              {hasPrivateKeyFromRedux && (
-                <Button title="Show nsec" onPress={showNsec} />
+              <TextInput
+                style={styles.input}
+                value={mnemonicInput}
+                onChangeText={handleMnemonicChange}
+              />
+              {mnemonicError && (
+                <Text style={styles.errorText}>{mnemonicError}</Text>
               )}
+              {showUpdateButton && (
+                <Button
+                  title="Save New Mnemonic"
+                  onPress={handleMnemonicSubmit}
+                />
+              )}
+              <Button title="Show nsec" onPress={showNsec} />
             </View>
           </View>
         ) : null}
 
         {areTestFeaturesEnabled && (
           <View>
+            <BuildData />
             <Text style={styles.q}>relays</Text>
             <TextInput style={styles.input} value="['relay.trustroots.org']" />
             <Text style={styles.q}>expo push token</Text>
@@ -202,26 +243,30 @@ export default function TabThreeScreen() {
         <Text style={styles.q}>How does this work?</Text>
 
         <Text style={styles.a}>
-          Scroll around on the map. Long press (or right click) to add a note to
-          the map.
+          After linking your trustroots profile to this application you can
+          leave semi-public notes on the map. You can see notes on the map left
+          by others, or notes that relate to other projects like hitchwiki and
+          hitchmap.
         </Text>
 
         <Text style={styles.q}>Where can I get help?</Text>
 
         <Text style={styles.a}>
           If you encounter issues with this app, or want to share feedback, you
-          can reach the team behind this on telegram or reddit, satellite.earth
-          (a reddit-style nostr application) or simply leave a note here in the
-          Antarctica area.
+          can reach the team behind this at https://www.trustroots.org/support
+          or simply leave a note in the Antarctica area.
         </Text>
 
-        <Text style={styles.q}>How does this improve Trustroots?</Text>
+        <Text style={styles.q}>How does this enhance Trustroots?</Text>
 
         <Text style={styles.a}>
-          Thanks for asking. Soon(tm): We hope we can quickly build something
-          like a geochat app which is better and more used than what the old
-          meet functionality had to offer, and which adds some interactivity to
-          circles.
+          Thanks for asking. Soon(tm): We hope we can quickly turn this into an
+          application that is easier to use and has more activity than the
+          previous meet functionality on Trustroots. We also want to integrate
+          it with Trustroots circles. We want it to be a tool that can Help
+          travellers and hosts connect in other ways besides the classical "I
+          would like a place to stay next week". Try posting notes looking for a
+          place, or use it to organize a last-minute potluck in the park.
         </Text>
         <Text style={styles.a}>
           Mid-term: We want this app and Trustroots users to be able to interact
@@ -277,6 +322,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     backgroundColor: "#ffffff",
   },
+  textValue: {
+    // height: 40,
+    // borderColor: "gray",
+    // borderWidth: 1,
+    marginBottom: 20,
+    padding: 10,
+    borderColor: "gray",
+    borderWidth: 1,
+  },
 
   input: {
     height: 40,
@@ -294,5 +348,14 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  updateButton: {
+    marginTop: 10,
+    backgroundColor: "blue",
+  },
+  errorText: {
+    color: "red",
+    marginTop: 5,
+    marginBottom: 10,
   },
 });

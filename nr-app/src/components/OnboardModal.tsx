@@ -14,6 +14,7 @@ import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
+import { rootLogger } from "@/utils/logger.utils";
 import {
   Kind10390EventTemplate,
   createKind10390EventTemplate,
@@ -34,6 +35,8 @@ import {
 } from "react-native";
 import Toast from "react-native-root-toast";
 
+const log = rootLogger.extend("OnboardModal");
+
 interface OnboardModalProps {
   setModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -50,7 +53,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
   const pubHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
-  console.log("pub keys:", npub, pubHex);
+  log.debug("#cn2pzj pub keys:", npub, pubHex);
 
   const [step, setStep] = useState<string>("isUserScreen");
   const [mnemonicText, setMnemonicText] = useState<string>("");

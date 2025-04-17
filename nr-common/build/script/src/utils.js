@@ -3,12 +3,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.isHex = isHex;
 exports.isHexKey = isHexKey;
 exports.isPlusCode = isPlusCode;
+exports.isPlusCodeInsidePlusCode = isPlusCodeInsidePlusCode;
 exports.isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue = isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue;
 exports.isValidTagsArrayWithTrustrootsUsername = isValidTagsArrayWithTrustrootsUsername;
 exports.getCurrentTimestamp = getCurrentTimestamp;
 exports.getFirstTagValueFromEvent = getFirstTagValueFromEvent;
+exports.getAllLabelValuesFromTags = getAllLabelValuesFromTags;
 exports.getFirstLabelValueFromTags = getFirstLabelValueFromTags;
 exports.createLabelTags = createLabelTags;
+exports.getAllLabelValuesFromEvent = getAllLabelValuesFromEvent;
 exports.getFirstLabelValueFromEvent = getFirstLabelValueFromEvent;
 exports.getPlusCodePrefix = getPlusCodePrefix;
 exports.getAllPlusCodePrefixes = getAllPlusCodePrefixes;
@@ -73,6 +76,16 @@ function isPlusCode(code) {
     }
     return true;
 }
+function isPlusCodeInsidePlusCode(containingPlusCode, targetPlusCode) {
+    const indexOfFirstZero = containingPlusCode.indexOf("0");
+    // If the plus code has a trailing zero, use the code up to that as a search
+    // prefix, otherwise use the whole code
+    const startsWithPrefix = indexOfFirstZero === -1
+        ? containingPlusCode
+        : containingPlusCode.slice(0, indexOfFirstZero);
+    const isWithin = targetPlusCode.startsWith(startsWithPrefix);
+    return isWithin;
+}
 function isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(tags) {
     const labelNamespaceTags = tags.filter((tag) => tag[0] === "L");
     const allNamespacesHaveAtLeastOneTag = labelNamespaceTags.every((namespaceTag) => {
@@ -104,13 +117,20 @@ function getFirstTagValueFromEvent(nostrEvent, tagName) {
     const [, firstValue] = firstMatchingTagPair;
     return firstValue;
 }
-function getFirstLabelValueFromTags(tags, labelName) {
+function getAllLabelValuesFromTags(tags, labelName) {
     const matchingTag = tags.find((tag) => tag[0] === "l" && last(tag) === labelName);
     if (typeof matchingTag === "undefined") {
         return;
     }
-    const labelValue = matchingTag[1];
-    return labelValue;
+    const labelValues = matchingTag.slice(1, -1);
+    return labelValues;
+}
+function getFirstLabelValueFromTags(tags, labelName) {
+    const tagsValues = getAllLabelValuesFromTags(tags, labelName);
+    if (typeof tagsValues === "undefined" || tagsValues.length === 0) {
+        return;
+    }
+    return tagsValues[0];
 }
 function createLabelTags(labelName, labelValue) {
     const tags = [
@@ -122,6 +142,9 @@ function createLabelTags(labelName, labelValue) {
         ],
     ];
     return tags;
+}
+function getAllLabelValuesFromEvent(nostrEvent, labelName) {
+    return getAllLabelValuesFromTags(nostrEvent.tags, labelName);
 }
 function getFirstLabelValueFromEvent(nostrEvent, labelName) {
     return getFirstLabelValueFromTags(nostrEvent.tags, labelName);

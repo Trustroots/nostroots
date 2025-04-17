@@ -1,12 +1,11 @@
-import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
-
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { settingsSelectors } from "@/redux/slices/settings.slice";
 import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@trustroots/nr-common";
 import React, { useMemo } from "react";
-import { MapMarkers } from "./MapMarkers";
+import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
 import MapModal from "./MapModal";
+import MapPlusCodes from "./MapPlusCodes";
 
 // filter out these note types if test features are disabled
 const TEST_FEATURE_LAYERS: MAP_LAYER_KEY[] = ["timesafari", "triphopping"];
@@ -35,7 +34,8 @@ export default function Map() {
 
   return (
     <View style={styles.mapContainer}>
-      <MapMarkers />
+      <MapPlusCodes />
+
       <View style={styles.toggleWrapper}>
         <FlatList
           data={filteredMapLayers}

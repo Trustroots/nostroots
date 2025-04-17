@@ -120,12 +120,6 @@ export function MapMarkers() {
         handleMapRegionChange(region, {});
       }}
     >
-      <Marker
-        coordinate={{ latitude: 52, longitude: 13 }}
-        title="A hard coded test marker that should be removed soon"
-        pinColor="indigo"
-      />
-
       {Object.entries(eventsForLayers).map(([layerKey, events]) => (
         <Fragment key={layerKey}>
           {events.map((event) => (

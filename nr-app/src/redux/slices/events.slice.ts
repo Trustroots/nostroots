@@ -1,10 +1,13 @@
 import { ID_SEPARATOR } from "@/constants";
-import { Event, isValidEvent } from "@trustroots/nr-common";
+import { Event, eventSchema } from "@trustroots/nr-common";
 import {
   createEntityAdapter,
   createSlice,
   PayloadAction,
 } from "@reduxjs/toolkit";
+import { rootLogger } from "@/utils/logger.utils";
+
+const log = rootLogger.extend("events.slice");
 
 type EventMetadata = {
   seenOnRelays: string[];
@@ -66,7 +69,13 @@ function addEventToState(
   seenOnRelay: string,
 ) {
   // Skip events which don't pass validation
-  if (!isValidEvent(event)) {
+  const validationResult = eventSchema.safeParse(event);
+  if (!validationResult.success) {
+    log.debug(
+      "#dGBJqf Skipping event that fails validation",
+      event,
+      validationResult,
+    );
     return;
   }
 

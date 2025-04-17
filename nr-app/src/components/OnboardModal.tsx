@@ -3,17 +3,27 @@ import {
   getHasPrivateKeyInSecureStorage,
   getPrivateKeyMnemonic,
 } from "@/nostr/keystore.nostr";
-
 import { publishEventTemplatePromiseAction } from "@/redux/actions/publish.actions";
-
-import Toast from "react-native-root-toast";
-// import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
-//
-import { nip19 } from "nostr-tools";
-
-import { generateSeedWords } from "nip06";
-
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
+import {
+  keystoreSelectors,
+  setPublicKeyHex,
+} from "@/redux/slices/keystore.slice";
+import {
+  settingsActions,
+  settingsSelectors,
+} from "@/redux/slices/settings.slice";
+import { rootLogger } from "@/utils/logger.utils";
+import {
+  Kind10390EventTemplate,
+  createKind10390EventTemplate,
+  getNip5PubKey,
+} from "@trustroots/nr-common";
 import * as Clipboard from "expo-clipboard";
+import { generateSeedWords } from "nip06";
+import { nip19 } from "nostr-tools";
+import { useEffect, useState } from "react";
 import {
   Button,
   Linking,
@@ -23,29 +33,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast from "react-native-root-toast";
 
-import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
-
-import {
-  settingsActions,
-  settingsSelectors,
-} from "@/redux/slices/settings.slice";
-
-import {
-  Kind10390EventTemplate,
-  createKind10390EventTemplate,
-} from "@trustroots/nr-common";
-
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-
-import { useEffect, useState } from "react";
-
-import {
-  keystoreSelectors,
-  setPublicKeyHex,
-} from "@/redux/slices/keystore.slice";
-
-import { getNip5PubKey } from "@trustroots/nr-common";
+const log = rootLogger.extend("OnboardModal");
 
 interface OnboardModalProps {
   setModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
@@ -63,7 +53,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
   const pubHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
-  console.log("pub keys:", npub, pubHex);
+  log.debug("#cn2pzj pub keys:", npub, pubHex);
 
   const [step, setStep] = useState<string>("isUserScreen");
   const [mnemonicText, setMnemonicText] = useState<string>("");

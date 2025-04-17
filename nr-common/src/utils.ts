@@ -76,6 +76,21 @@ export function isPlusCode(code: string) {
   return true;
 }
 
+export function isPlusCodeInsidePlusCode(
+  containingPlusCode: string,
+  targetPlusCode: string
+): boolean {
+  const indexOfFirstZero = containingPlusCode.indexOf("0");
+  // If the plus code has a trailing zero, use the code up to that as a search
+  // prefix, otherwise use the whole code
+  const startsWithPrefix =
+    indexOfFirstZero === -1
+      ? containingPlusCode
+      : containingPlusCode.slice(0, indexOfFirstZero);
+  const isWithin = targetPlusCode.startsWith(startsWithPrefix);
+  return isWithin;
+}
+
 export function isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(
   tags: string[][]
 ): boolean {
@@ -128,18 +143,29 @@ export function getFirstTagValueFromEvent(
   return firstValue;
 }
 
-export function getFirstLabelValueFromTags(
+export function getAllLabelValuesFromTags(
   tags: string[][],
   labelName: string
-): string | undefined {
+): string[] | undefined {
   const matchingTag = tags.find(
     (tag) => tag[0] === "l" && last(tag) === labelName
   );
   if (typeof matchingTag === "undefined") {
     return;
   }
-  const labelValue = matchingTag[1];
-  return labelValue;
+  const labelValues = matchingTag.slice(1, -1);
+  return labelValues;
+}
+
+export function getFirstLabelValueFromTags(
+  tags: string[][],
+  labelName: string
+): string | undefined {
+  const tagsValues = getAllLabelValuesFromTags(tags, labelName);
+  if (typeof tagsValues === "undefined" || tagsValues.length === 0) {
+    return;
+  }
+  return tagsValues[0];
 }
 
 export function createLabelTags(
@@ -155,6 +181,13 @@ export function createLabelTags(
     ],
   ];
   return tags;
+}
+
+export function getAllLabelValuesFromEvent(
+  nostrEvent: Event,
+  labelName: string
+): string[] | undefined {
+  return getAllLabelValuesFromTags(nostrEvent.tags, labelName);
 }
 
 export function getFirstLabelValueFromEvent(

@@ -149,12 +149,12 @@ export function allPlusCodesForRegion({
   // - Code for bottom left
   // - Code for top right
   const bottomLeftCoordinates = {
-    latitude: latitude - latitudeDelta,
-    longitude: longitude - longitudeDelta,
+    latitude: latitude - latitudeDelta / 2,
+    longitude: longitude - longitudeDelta / 2,
   };
   const topRightCoordinates = {
-    latitude: latitude + latitudeDelta,
-    longitude: longitude + longitudeDelta,
+    latitude: latitude + latitudeDelta / 2,
+    longitude: longitude + longitudeDelta / 2,
   };
 
   const bottomLeftCode = OpenLocationCode.encode(

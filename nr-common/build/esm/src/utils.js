@@ -86,13 +86,20 @@ export function getFirstTagValueFromEvent(nostrEvent, tagName) {
     const [, firstValue] = firstMatchingTagPair;
     return firstValue;
 }
-export function getFirstLabelValueFromTags(tags, labelName) {
+export function getAllLabelValuesFromTags(tags, labelName) {
     const matchingTag = tags.find((tag) => tag[0] === "l" && last(tag) === labelName);
     if (typeof matchingTag === "undefined") {
         return;
     }
-    const labelValue = matchingTag[1];
-    return labelValue;
+    const labelValues = matchingTag.slice(1, -1);
+    return labelValues;
+}
+export function getFirstLabelValueFromTags(tags, labelName) {
+    const tagsValues = getAllLabelValuesFromTags(tags, labelName);
+    if (typeof tagsValues === "undefined" || tagsValues.length === 0) {
+        return;
+    }
+    return tagsValues[0];
 }
 export function createLabelTags(labelName, labelValue) {
     const tags = [
@@ -104,6 +111,9 @@ export function createLabelTags(labelName, labelValue) {
         ],
     ];
     return tags;
+}
+export function getAllLabelValuesFromEvent(nostrEvent, labelName) {
+    return getAllLabelValuesFromTags(nostrEvent.tags, labelName);
 }
 export function getFirstLabelValueFromEvent(nostrEvent, labelName) {
     return getFirstLabelValueFromTags(nostrEvent.tags, labelName);

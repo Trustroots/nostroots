@@ -6,8 +6,10 @@ export declare function isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(tags: 
 export declare function isValidTagsArrayWithTrustrootsUsername(tags: string[][]): boolean;
 export declare function getCurrentTimestamp(): number;
 export declare function getFirstTagValueFromEvent(nostrEvent: Event, tagName: string): string | undefined;
+export declare function getAllLabelValuesFromTags(tags: string[][], labelName: string): string[] | undefined;
 export declare function getFirstLabelValueFromTags(tags: string[][], labelName: string): string | undefined;
 export declare function createLabelTags(labelName: string, labelValue: string | string[]): string[][];
+export declare function getAllLabelValuesFromEvent(nostrEvent: Event, labelName: string): string[] | undefined;
 export declare function getFirstLabelValueFromEvent(nostrEvent: Event, labelName: string): string | undefined;
 export declare function getPlusCodePrefix(plusCode: string, length: number): string;
 export declare function getAllPlusCodePrefixes(plusCode: string, minimumLength: number): string[];

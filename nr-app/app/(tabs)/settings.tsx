@@ -23,6 +23,7 @@ import {
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { notificationSubscribeToFilterPromiseAction } from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
 import {
   keystoreSelectors,
   setPublicKeyHex,
@@ -68,6 +69,8 @@ export default function TabThreeScreen() {
 
   const [nsec, setNsec] = useState("");
   const [mnemonic, setMnemonic] = useState("");
+  const [mnemonicInput, setMnemonicInput] = useState("");
+  const [showUpdateButton, setShowUpdateButton] = useState(false);
   const hasPrivateKeyFromRedux = useAppSelector(
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
   );
@@ -94,12 +97,29 @@ export default function TabThreeScreen() {
       });
       setNsec(bech32PrivateKey);
       setMnemonic(mnemonic);
-      setTimeout(() => {
-        setNsec("");
-        setMnemonic("");
-      }, 15e3);
+      setMnemonicInput(mnemonic);
+      setShowUpdateButton(false);
     } catch (error) {
       console.error("#bVVgTl Error getting nsec and mnemonic", error);
+    }
+  };
+
+  const handleMnemonicChange = (text: string) => {
+    setMnemonicInput(text);
+    // Only show update button if the input is different from the current mnemonic
+    setShowUpdateButton(text !== mnemonic && text.trim() !== "");
+  };
+
+  const handleMnemonicSubmit = () => {
+    if (mnemonicInput.trim() !== "") {
+      dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonicInput));
+      const pubKeyHex = derivePublicKeyHexFromMnemonic(mnemonicInput);
+      dispatch(setPublicKeyHex(pubKeyHex));
+      setMnemonicInput("");
+      setShowUpdateButton(false);
+      Toast.show("Mnemonic updated successfully", {
+        duration: Toast.durations.SHORT,
+      });
     }
   };
 
@@ -144,10 +164,19 @@ export default function TabThreeScreen() {
               <Text style={styles.q}>nsec</Text>
               <TextInput style={styles.input} value={nsec} />
               <Text style={styles.q}>nsec mnemonic</Text>
-              <TextInput style={styles.input} value={mnemonic} />
-              {hasPrivateKeyFromRedux && (
-                <Button title="Show nsec" onPress={showNsec} />
+              <TextInput
+                style={styles.input}
+                value={mnemonicInput}
+                onChangeText={handleMnemonicChange}
+              />
+              {showUpdateButton && (
+                <Button
+                  style={styles.updateButton}
+                  title="Save New Mnemonic"
+                  onPress={handleMnemonicSubmit}
+                />
               )}
+              <Button title="Show nsec" onPress={showNsec} />
             </View>
           </View>
         ) : null}
@@ -296,5 +325,9 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  updateButton: {
+    marginTop: 10,
+    backgroundColor: "blue",
   },
 });

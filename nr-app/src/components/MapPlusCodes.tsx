@@ -113,8 +113,6 @@ export default function MapPlusCodes() {
     [dispatch],
   );
 
-  log.debug(`#WAYYWp showPlusCodes`, plusCodesWithState);
-
   return (
     <MapView
       ref={mapViewRef}

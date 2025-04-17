@@ -220,6 +220,27 @@ export function allPlusCodesForRegion({
   return codes;
 }
 
+export function isPlusCodeBetweenTwoPlusCodes(
+  firstPlusCode: string,
+  secondPlusCode: string,
+  targetPlusCode: string,
+) {
+  const firstCoordinates = plusCodeToCoordinates(firstPlusCode);
+  const secondCoordinates = plusCodeToCoordinates(secondPlusCode);
+  const targetCoordinates = plusCodeToCoordinates(targetPlusCode);
+  const isLatitudeWithinTarget =
+    (targetCoordinates.latitude >= firstCoordinates.latitude &&
+      targetCoordinates.latitude <= secondCoordinates.latitude) ||
+    (targetCoordinates.latitude >= secondCoordinates.latitude &&
+      targetCoordinates.latitude <= firstCoordinates.latitude);
+  const isLongitudeWithinTarget =
+    (targetCoordinates.longitude >= firstCoordinates.longitude &&
+      targetCoordinates.longitude <= secondCoordinates.longitude) ||
+    (targetCoordinates.longitude >= secondCoordinates.longitude &&
+      targetCoordinates.longitude <= firstCoordinates.longitude);
+  return isLatitudeWithinTarget && isLongitudeWithinTarget;
+}
+
 export function plusCodeHasTrailingZeroes(plusCode: string) {
   // A plus code cannot have trailing zeroes unless it is exactly 9 chars long
   if (plusCode.length !== 9) {

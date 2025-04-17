@@ -1,5 +1,6 @@
 import {
   getAllChildPlusCodes,
+  isPlusCodeBetweenTwoPlusCodes,
   plusCodeHasTrailingZeroes,
   plusCodeToFirstFourSegments,
 } from "@/utils/map.utils";
@@ -36,6 +37,20 @@ describe("map.utils", () => {
       expect(plusCodeHasTrailingZeroes("7FG49Q00+")).toEqual(true);
       expect(plusCodeHasTrailingZeroes("7FG40000+")).toEqual(true);
       expect(plusCodeHasTrailingZeroes("7F000000+")).toEqual(true);
+    });
+  });
+
+  describe("isPlusCodeBetweenTwoPlusCodes()", () => {
+    it("returns true for the same plus code three times", () => {
+      expect(
+        isPlusCodeBetweenTwoPlusCodes("7FG49Q00+", "7FG49Q00+", "7FG49Q00+"),
+      ).toEqual(true);
+    });
+
+    it("returns true when the target is in between the corners", () => {
+      expect(
+        isPlusCodeBetweenTwoPlusCodes("9F5G2G5Q+", "9F4F8QP5+", "9F4GP647+"),
+      ).toEqual(true);
     });
   });
 

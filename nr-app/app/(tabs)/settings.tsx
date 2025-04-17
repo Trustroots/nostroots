@@ -233,26 +233,30 @@ export default function TabThreeScreen() {
         <Text style={styles.q}>How does this work?</Text>
 
         <Text style={styles.a}>
-          Scroll around on the map. Long press (or right click) to add a note to
-          the map.
+          After linking your trustroots profile to this application
+          you can leave semi-public notes on the map. You can see 
+          notes on the map left by others, or notes that relate to other
+          projects like hitchwiki and hitchmap.
         </Text>
 
         <Text style={styles.q}>Where can I get help?</Text>
 
         <Text style={styles.a}>
           If you encounter issues with this app, or want to share feedback, you
-          can reach the team behind this on telegram or reddit, satellite.earth
-          (a reddit-style nostr application) or simply leave a note here in the
-          Antarctica area.
+          can reach the team behind this at https://www.trustroots.org/support
+          or simply leave a note in the Antarctica area.
         </Text>
 
-        <Text style={styles.q}>How does this improve Trustroots?</Text>
+        <Text style={styles.q}>How does this enhance Trustroots?</Text>
 
         <Text style={styles.a}>
-          Thanks for asking. Soon(tm): We hope we can quickly build something
-          like a geochat app which is better and more used than what the old
-          meet functionality had to offer, and which adds some interactivity to
-          circles.
+          Thanks for asking. Soon(tm): We hope we can quickly turn this into
+          an application that is easier to use and has more activity than the
+          previous meet functionality on Trustroots. We also want to integrate
+          it with Trustroots circles.  We want it to be a tool that can Help
+          travellers and hosts connect in other ways besides the classical
+          "I would like a place to stay next week".  Try posting notes looking for
+          a place, or use it to organize a last-minute potluck in the park.
         </Text>
         <Text style={styles.a}>
           Mid-term: We want this app and Trustroots users to be able to interact

@@ -55,6 +55,16 @@ export function isPlusCode(code) {
     }
     return true;
 }
+export function isPlusCodeInsidePlusCode(containingPlusCode, targetPlusCode) {
+    const indexOfFirstZero = containingPlusCode.indexOf("0");
+    // If the plus code has a trailing zero, use the code up to that as a search
+    // prefix, otherwise use the whole code
+    const startsWithPrefix = indexOfFirstZero === -1
+        ? containingPlusCode
+        : containingPlusCode.slice(0, indexOfFirstZero);
+    const isWithin = targetPlusCode.startsWith(startsWithPrefix);
+    return isWithin;
+}
 export function isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(tags) {
     const labelNamespaceTags = tags.filter((tag) => tag[0] === "L");
     const allNamespacesHaveAtLeastOneTag = labelNamespaceTags.every((namespaceTag) => {

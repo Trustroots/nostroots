@@ -2,6 +2,7 @@ import type { Event } from "./base.schema.js";
 export declare function isHex(s: string): boolean;
 export declare function isHexKey(key: string): boolean;
 export declare function isPlusCode(code: string): boolean;
+export declare function isPlusCodeInsidePlusCode(containingPlusCode: string, targetPlusCode: string): boolean;
 export declare function isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(tags: string[][]): boolean;
 export declare function isValidTagsArrayWithTrustrootsUsername(tags: string[][]): boolean;
 export declare function getCurrentTimestamp(): number;

@@ -76,6 +76,21 @@ export function isPlusCode(code: string) {
   return true;
 }
 
+export function isPlusCodeInsidePlusCode(
+  containingPlusCode: string,
+  targetPlusCode: string
+): boolean {
+  const indexOfFirstZero = containingPlusCode.indexOf("0");
+  // If the plus code has a trailing zero, use the code up to that as a search
+  // prefix, otherwise use the whole code
+  const startsWithPrefix =
+    indexOfFirstZero === -1
+      ? containingPlusCode
+      : containingPlusCode.slice(0, indexOfFirstZero);
+  const isWithin = targetPlusCode.startsWith(startsWithPrefix);
+  return isWithin;
+}
+
 export function isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(
   tags: string[][]
 ): boolean {

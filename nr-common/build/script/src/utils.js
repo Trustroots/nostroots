@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.isHex = isHex;
 exports.isHexKey = isHexKey;
 exports.isPlusCode = isPlusCode;
+exports.isPlusCodeInsidePlusCode = isPlusCodeInsidePlusCode;
 exports.isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue = isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue;
 exports.isValidTagsArrayWithTrustrootsUsername = isValidTagsArrayWithTrustrootsUsername;
 exports.getCurrentTimestamp = getCurrentTimestamp;
@@ -74,6 +75,16 @@ function isPlusCode(code) {
         return false;
     }
     return true;
+}
+function isPlusCodeInsidePlusCode(containingPlusCode, targetPlusCode) {
+    const indexOfFirstZero = containingPlusCode.indexOf("0");
+    // If the plus code has a trailing zero, use the code up to that as a search
+    // prefix, otherwise use the whole code
+    const startsWithPrefix = indexOfFirstZero === -1
+        ? containingPlusCode
+        : containingPlusCode.slice(0, indexOfFirstZero);
+    const isWithin = targetPlusCode.startsWith(startsWithPrefix);
+    return isWithin;
 }
 function isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(tags) {
     const labelNamespaceTags = tags.filter((tag) => tag[0] === "L");

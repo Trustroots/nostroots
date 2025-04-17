@@ -71,6 +71,7 @@ export default function TabThreeScreen() {
   const [mnemonic, setMnemonic] = useState("");
   const [mnemonicInput, setMnemonicInput] = useState("");
   const [showUpdateButton, setShowUpdateButton] = useState(false);
+  const [mnemonicError, setMnemonicError] = useState<string | null>(null);
   const hasPrivateKeyFromRedux = useAppSelector(
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
   );
@@ -110,16 +111,23 @@ export default function TabThreeScreen() {
     setShowUpdateButton(text !== mnemonic && text.trim() !== "");
   };
 
-  const handleMnemonicSubmit = () => {
+  const handleMnemonicSubmit = async () => {
     if (mnemonicInput.trim() !== "") {
-      dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonicInput));
-      const pubKeyHex = derivePublicKeyHexFromMnemonic(mnemonicInput);
-      dispatch(setPublicKeyHex(pubKeyHex));
-      setMnemonicInput("");
-      setShowUpdateButton(false);
-      Toast.show("Mnemonic updated successfully", {
-        duration: Toast.durations.SHORT,
-      });
+      try {
+        setMnemonicError(null);
+        await dispatch(
+          setPrivateKeyMnemonicPromiseAction.request(mnemonicInput),
+        );
+        const pubKeyHex = derivePublicKeyHexFromMnemonic(mnemonicInput);
+        dispatch(setPublicKeyHex(pubKeyHex));
+        setMnemonicInput("");
+        setShowUpdateButton(false);
+        Toast.show("Mnemonic updated successfully", {
+          duration: Toast.durations.SHORT,
+        });
+      } catch (error) {
+        setMnemonicError("Invalid mnemonic. Please check and try again.");
+      }
     }
   };
 
@@ -137,7 +145,7 @@ export default function TabThreeScreen() {
           </Modal>
         </View>
 
-        {username === "" ? (
+        {username === "" || areTestFeaturesEnabled ? (
           <View>
             <Text style={styles.q}>trustroots.org</Text>
             <View style={styles.input}>
@@ -152,8 +160,8 @@ export default function TabThreeScreen() {
         {username.length > 0 || areTestFeaturesEnabled ? (
           <View>
             <View>
-              <Text style={styles.q}>trustroots.org</Text>
-              <Text style={styles.q}>username: {username}</Text>
+              <Text style={styles.q}>trustroots.org username:</Text>
+              <Text style={styles.textValue}>{username}</Text>
             </View>
 
             <View>
@@ -169,9 +177,11 @@ export default function TabThreeScreen() {
                 value={mnemonicInput}
                 onChangeText={handleMnemonicChange}
               />
+              {mnemonicError && (
+                <Text style={styles.errorText}>{mnemonicError}</Text>
+              )}
               {showUpdateButton && (
                 <Button
-                  style={styles.updateButton}
                   title="Save New Mnemonic"
                   onPress={handleMnemonicSubmit}
                 />
@@ -312,6 +322,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     backgroundColor: "#ffffff",
   },
+  textValue: {
+    // height: 40,
+    // borderColor: "gray",
+    // borderWidth: 1,
+    marginBottom: 20,
+    padding: 10,
+    borderColor: "gray",
+    borderWidth: 1,
+  },
 
   input: {
     height: 40,
@@ -333,5 +352,10 @@ const styles = StyleSheet.create({
   updateButton: {
     marginTop: 10,
     backgroundColor: "blue",
+  },
+  errorText: {
+    color: "red",
+    marginTop: 5,
+    marginBottom: 10,
   },
 });

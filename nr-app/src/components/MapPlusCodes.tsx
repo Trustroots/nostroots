@@ -99,8 +99,6 @@ export default function MapPlusCodes() {
     [dispatch],
   );
 
-  console.log("#VsiKo8 MapPlusCodes", mapSelectors);
-
   return (
     <MapView
       ref={mapViewRef}

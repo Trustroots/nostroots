@@ -1,5 +1,10 @@
 import { ID_SEPARATOR } from "@/constants";
-import { Event, eventSchema } from "@trustroots/nr-common";
+import {
+  Event,
+  eventSchema,
+  getTrustrootsUsernameFromProfileEvent,
+  TRUSTROOTS_PROFILE_KIND,
+} from "@trustroots/nr-common";
 import {
   createEntityAdapter,
   createSelector,
@@ -11,6 +16,8 @@ import {
   isEventForPlusCodeExactly,
   isEventWithinThisPlusCode,
 } from "@/utils/event.utils";
+import { RootState } from "../store";
+import { Filter, matchFilter } from "nostr-tools";
 
 const log = rootLogger.extend("events.slice");
 
@@ -178,8 +185,42 @@ const selectEventsWithinPlusCodeFactory = (plusCode: string) =>
     ),
   );
 
+const selectAuthorProfileEventFactory = (authorPublicKey?: string) =>
+  createSelector([adapterSelectors.selectAll], (events) => {
+    if (
+      typeof authorPublicKey === "undefined" ||
+      authorPublicKey.length === 0
+    ) {
+      return;
+    }
+    const authorFilter: Filter = {
+      authors: [authorPublicKey],
+      kinds: [TRUSTROOTS_PROFILE_KIND],
+    };
+    const profileEvent = events.find((eventWithMetdata) =>
+      matchFilter(authorFilter, eventWithMetdata.event),
+    );
+    return profileEvent;
+  });
+
+const selectTrustrootsUsernameFactory = (authorPublicKey?: string) =>
+  createSelector(
+    [selectAuthorProfileEventFactory(authorPublicKey)],
+    (profileEvent) => {
+      if (typeof profileEvent === "undefined") {
+        return;
+      }
+      const username = getTrustrootsUsernameFromProfileEvent(
+        profileEvent.event,
+      );
+      return username;
+    },
+  );
+
 export const eventsSelectors = {
   ...adapterSelectors,
   selectEventsForPlusCodeExactlyFactory,
   selectEventsWithinPlusCodeFactory,
+  selectAuthorProfileEventFactory,
+  selectTrustrootsUsernameFactory,
 };

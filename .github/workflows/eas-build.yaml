@@ -15,24 +15,9 @@ on:
           - simulator
 
 jobs:
-  update:
-    runs-on: ubuntu-latest
+  build:
+    uses: ./.github/workflows/setup-eas.yaml
     steps:
-      - name: 🏗 Setup repo
-        uses: actions/checkout@v3
-      
-      - name: 🏗 Setup pnpm
-        uses: pnpm/action-setup@v4
-
-      - name: 🏗 Setup EAS
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-
-      - name: 📦 Install dependencies
-        run: pnpm i
-
       - name: 🚀 Start Build
         working-directory: ./nr-app
         run: pnpm run build:${{ inputs.platform }}

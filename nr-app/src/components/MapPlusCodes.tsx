@@ -132,7 +132,7 @@ export default function MapPlusCodes() {
             key={plusCodeWithState.plusCode}
             coordinates={plusCodeToRectangle(plusCodeWithState.plusCode)}
             // fillColor={`rgba(255, 0, 0, 0.${plusCodeWithState.events.length > 9 ? "9" : plusCodeWithState.events.length.toString().substring(0, 1)}})`}
-            fillColor={`rgba(${Math.min(255, plusCodeWithState.eventCountForThisPlusCodeExactly * 60).toString()}, 0, 0, 0.6)`}
+            fillColor={`rgba(${Math.min(255, (plusCodeWithState.eventCountForThisPlusCodeExactly + plusCodeWithState.eventCountWithinThisPlusCode) * 60).toString()}, 0, 0, 0.6)`}
             strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
             strokeWidth={2}
             tappable={true}

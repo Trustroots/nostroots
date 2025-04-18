@@ -1,8 +1,4 @@
-import {
-  derivePublicKeyHexFromMnemonic,
-  getHasPrivateKeyInSecureStorage,
-  getPrivateKeyMnemonic,
-} from "@/nostr/keystore.nostr";
+import { getHasPrivateKeyInSecureStorage } from "@/nostr/keystore.nostr";
 
 import { publishEventTemplatePromiseAction } from "@/redux/actions/publish.actions";
 
@@ -40,32 +36,27 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 
 import { useEffect, useState } from "react";
 
-import {
-  keystoreSelectors,
-  setPublicKeyHex,
-} from "@/redux/slices/keystore.slice";
+import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 
 import { getNip5PubKey } from "@trustroots/nr-common";
 
 interface OnboardModalProps {
   setModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
+  step?: string;
 }
 
-export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
+export default function OnboardModal({
+  setModalVisible,
+  step = "isUserScreen",
+}: OnboardModalProps) {
   const dispatch = useAppDispatch();
 
   const username = useAppSelector(settingsSelectors.selectUsername);
 
-  // (() => {
-  //   const { mnemonic } = generateSeedWords();
-  //   console.log("MMNMNNM", mnemonic);
-  // })();
-
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
   const pubHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
-  console.log("pub keys:", npub, pubHex);
 
-  const [step, setStep] = useState<string>("isUserScreen");
+  const [currentStep, setCurrentStep] = useState<string>(step);
   const [mnemonicText, setMnemonicText] = useState<string>("");
   const [usernameText, setUsernameText] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
@@ -77,23 +68,10 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
   );
 
-  // init the component:
-  // get the key from secure storage and put it in redux
+  // update currentStep when step prop changes
   useEffect(() => {
-    (async function asyncInner() {
-      const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
-
-      // if we don't have it in redux
-      if (hasKeyFromStorage && !hasPrivateKeyFromRedux) {
-        const mnemonic = await getPrivateKeyMnemonic();
-
-        dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonic));
-        const pubKeyHex = derivePublicKeyHexFromMnemonic(mnemonic);
-        dispatch(setPublicKeyHex(pubKeyHex));
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    setCurrentStep(step);
+  }, [step]);
 
   const OpenTrustRootsButton = ({
     url,
@@ -117,7 +95,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
 
   const handleMnemonicSubmit = () => {
     dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonicText));
-    setStep("usernameScreen");
+    setCurrentStep("usernameScreen");
   };
 
   const handleMnemonicChange = (text: string) => {
@@ -137,7 +115,6 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
       return;
     }
 
-    // TODO: basic text input validation??
     if (
       usernameText.trim().length < 3 ||
       !/^[a-zA-Z0-9]+$/.test(usernameText.trim())
@@ -174,7 +151,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
 
           setUsernameText("");
           dispatch(settingsActions.setUsername(usernameText));
-          setStep("finishScreen");
+          setCurrentStep("finishScreen");
         } catch (error) {
           console.log("error publishing", error);
           // const serializeableError = getSerializableError(error);
@@ -217,7 +194,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
     if (!hasPrivateKeyFromRedux && !hasKeyFromStorage) {
       const { mnemonic } = generateSeedWords();
       await dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonic));
-      setStep("setPubKeyScreen");
+      setCurrentStep("setPubKeyScreen");
     }
   };
 
@@ -226,10 +203,10 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
     const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
     if (!hasPrivateKeyFromRedux && !hasKeyFromStorage) {
       // go to set key
-      setStep("genKeyPairScreen");
+      setCurrentStep("genKeyPairScreen");
     } else
       // skip key set to next step
-      setStep("setPubKeyScreen");
+      setCurrentStep("setPubKeyScreen");
   };
 
   const genKeyPairScreen = (
@@ -251,7 +228,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
 
       <Button
         title="I'd like to set my own cryptographic key."
-        onPress={() => setStep("setKeyMnemonicScreen")}
+        onPress={() => setCurrentStep("setKeyMnemonicScreen")}
       />
     </View>
   );
@@ -358,7 +335,7 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
 
       <TouchableOpacity
         style={styles.usernameSubmitBtn}
-        onPress={() => setStep("usernameScreen")}
+        onPress={() => setCurrentStep("usernameScreen")}
       >
         <Text style={styles.usernameSubmit}>I set my Key</Text>
       </TouchableOpacity>
@@ -368,16 +345,21 @@ export default function OnboardModal({ setModalVisible }: OnboardModalProps) {
   const finishScreen = (
     <View style={styles.instructions}>
       <Text style={styles.modalText}>Thanks {username}, you're all set!</Text>
+      <TouchableOpacity
+        style={styles.closeButton}
+        onPress={() => setModalVisible(false)}
+      >
+        <Text style={styles.closeButtonText}>Close</Text>
+      </TouchableOpacity>
     </View>
   );
 
   let stepScreen;
-  switch (step) {
+  switch (currentStep) {
     case "isUserScreen":
       stepScreen = isUserScreen;
       break;
     case "usernameScreen":
-      // stepScreen = step1;
       stepScreen = usernameScreen;
       break;
     case "genKeyPairScreen":

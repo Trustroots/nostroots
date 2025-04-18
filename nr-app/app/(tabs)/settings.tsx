@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getBech32PrivateKey } from "nip06";
 import { useState } from "react";
 import {
@@ -157,7 +158,7 @@ export default function TabThreeScreen() {
           </View>
         ) : null}
 
-        {username.length > 0 || areTestFeaturesEnabled ? (
+        {(username && username.length > 0) || areTestFeaturesEnabled ? (
           <View>
             <View>
               <Text style={styles.q}>trustroots.org username:</Text>
@@ -213,6 +214,22 @@ export default function TabThreeScreen() {
                     "9G000000+",
                   ]),
                 );
+              }}
+            />
+
+            <Button
+              title="Clear AsyncStorage"
+              onPress={async () => {
+                try {
+                  await AsyncStorage.clear();
+                  Toast.show("AsyncStorage successfully cleared", {
+                    duration: Toast.durations.SHORT,
+                  });
+                } catch (error) {
+                  Toast.show(`Error clearing AsyncStorage: ${error}`, {
+                    duration: Toast.durations.SHORT,
+                  });
+                }
               }}
             />
           </View>

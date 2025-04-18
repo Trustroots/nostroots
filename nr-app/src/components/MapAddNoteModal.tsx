@@ -24,7 +24,7 @@ const WEEK_IN_SECONDS = 7 * DAY_IN_SECONDS;
 const MONTH_IN_SECONDS = 30 * DAY_IN_SECONDS;
 const YEAR_IN_SECONDS = 365 * DAY_IN_SECONDS;
 
-export default function MapModal() {
+export default function MapAddNoteModal() {
   const dispatch = useAppDispatch();
   const selectedCoordinate = useAppSelector(mapSelectors.selectSelectedLatLng);
   const isAddNoteModalOpen = useAppSelector(

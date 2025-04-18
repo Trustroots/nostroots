@@ -4,9 +4,9 @@ import { settingsSelectors } from "@/redux/slices/settings.slice";
 import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@trustroots/nr-common";
 import React, { useMemo } from "react";
 import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
-import MapModal from "./MapModal";
-import MapPlusCodes from "./MapPlusCodes";
+import MapAddNoteModal from "./MapAddNoteModal";
 import { MapMarkers } from "./MapMarkers";
+import MapPlusCodes from "./MapPlusCodes";
 
 // filter out these note types if test features are disabled
 const TEST_FEATURE_LAYERS: MAP_LAYER_KEY[] = ["timesafari", "triphopping"];
@@ -56,7 +56,7 @@ export default function Map() {
         />
       </View>
 
-      <MapModal />
+      <MapAddNoteModal />
     </View>
   );
 }

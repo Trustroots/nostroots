@@ -125,7 +125,7 @@ export default function TabThreeScreen() {
         Toast.show("Mnemonic updated successfully", {
           duration: Toast.durations.SHORT,
         });
-      } catch (error) {
+      } catch {
         setMnemonicError("Invalid mnemonic. Please check and try again.");
       }
     }

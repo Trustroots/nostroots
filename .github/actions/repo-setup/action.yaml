@@ -1,0 +1,23 @@
+name: 🏗 Repo Setup
+
+inputs:
+  token:
+    required: true
+    description: "EXPO_TOKEN"
+
+runs:
+  using: composite
+  steps:
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v4
+
+    - name: Setup EAS
+      uses: expo/expo-github-action@v8
+      with:
+        eas-version: latest
+        token: ${{ inputs.token }}
+        packager: pnpm
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm i

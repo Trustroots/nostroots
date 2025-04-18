@@ -18,7 +18,9 @@ const isOnDevice = Platform.OS !== "web";
 
 const sagaMiddleware = createSagaMiddleware();
 
-const maybeDevToolsEnhancer = isOnDevice ? [devtoolsEnhancer()] : [];
+const maybeDevToolsEnhancer = isOnDevice
+  ? [devtoolsEnhancer({ maxAge: 200 })]
+  : [];
 
 const rootReducer = combineSlices(
   eventsSlice,

@@ -152,7 +152,7 @@ export default function MapPlusCodes() {
               dispatch(
                 mapActions.setSelectedPlusCode(plusCodeWithState.plusCode),
               );
-              dispatch(mapActions.openAddNoteModal());
+              dispatch(mapActions.openMapModal());
             }}
           />
         ))}

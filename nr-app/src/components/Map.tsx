@@ -7,6 +7,7 @@ import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
 import MapAddNoteModal from "./MapAddNoteModal";
 import { MapMarkers } from "./MapMarkers";
 import MapPlusCodes from "./MapPlusCodes";
+import MapModal from "./MapModal";
 
 // filter out these note types if test features are disabled
 const TEST_FEATURE_LAYERS: MAP_LAYER_KEY[] = ["timesafari", "triphopping"];
@@ -56,7 +57,9 @@ export default function Map() {
         />
       </View>
 
+      {/* This should be removed and deleted once the plus code map goes live */}
       <MapAddNoteModal />
+      <MapModal />
     </View>
   );
 }

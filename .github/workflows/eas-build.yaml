@@ -16,6 +16,7 @@ on:
 
 jobs:
   build:
+    runs-on: ubuntu-latest
     steps:
       - uses: ./.github/actions/repo-setup
         with:

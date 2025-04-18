@@ -1,6 +1,6 @@
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
-import { Button, Modal, Text, View } from "react-native";
+import { Button, Modal, ScrollView, Text, View } from "react-native";
 import NotesList from "./NotesList";
 import AddNoteForm from "./AddNoteForm";
 
@@ -12,7 +12,7 @@ export default function MapModal() {
 
   return (
     <Modal visible={showModal}>
-      <View>
+      <ScrollView>
         <Button
           title="Close"
           onPress={() => {
@@ -34,7 +34,7 @@ export default function MapModal() {
             dispatch(mapActions.closeMapModal());
           }}
         />
-      </View>
+      </ScrollView>
     </Modal>
   );
 }

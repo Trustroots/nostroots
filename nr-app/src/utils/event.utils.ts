@@ -18,6 +18,9 @@ export function isEventWithinThisPlusCode(event: NostrEvent, plusCode: string) {
     event,
     OPEN_LOCATION_CODE_LABEL_NAMESPACE,
   );
+  if (typeof eventPlusCode === "undefined") {
+    return false;
+  }
   const isWithin = isPlusCodeInsidePlusCode(plusCode, eventPlusCode);
   return isWithin;
 }

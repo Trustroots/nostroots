@@ -1,4 +1,4 @@
-name: Create  build in EAS Cloud
+name: Send an OTA update
 
 on:
   workflow_dispatch:

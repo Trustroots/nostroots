@@ -2,10 +2,15 @@ import { ID_SEPARATOR } from "@/constants";
 import { Event, eventSchema } from "@trustroots/nr-common";
 import {
   createEntityAdapter,
+  createSelector,
   createSlice,
   PayloadAction,
 } from "@reduxjs/toolkit";
 import { rootLogger } from "@/utils/logger.utils";
+import {
+  isEventForPlusCodeExactly,
+  isEventWithinThisPlusCode,
+} from "@/utils/event.utils";
 
 const log = rootLogger.extend("events.slice");
 
@@ -157,6 +162,24 @@ export const eventsSlice = createSlice({
 export const { addEvent, addEvents, setAllEventsWithMetadata } =
   eventsSlice.actions;
 
-export const eventsSelectors = eventsAdapter.getSelectors(
-  eventsSlice.selectSlice,
-);
+const adapterSelectors = eventsAdapter.getSelectors(eventsSlice.selectSlice);
+
+const selectEventsForPlusCodeExactlyFactory = (plusCode: string) =>
+  createSelector([adapterSelectors.selectAll], (events) =>
+    events.filter((event) => isEventForPlusCodeExactly(event.event, plusCode)),
+  );
+
+const selectEventsWithinPlusCodeFactory = (plusCode: string) =>
+  createSelector([adapterSelectors.selectAll], (events) =>
+    events.filter(
+      (event) =>
+        !isEventForPlusCodeExactly(event.event, plusCode) &&
+        isEventWithinThisPlusCode(event.event, plusCode),
+    ),
+  );
+
+export const eventsSelectors = {
+  ...adapterSelectors,
+  selectEventsForPlusCodeExactlyFactory,
+  selectEventsWithinPlusCodeFactory,
+};

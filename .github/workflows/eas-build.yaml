@@ -16,8 +16,10 @@ on:
 
 jobs:
   build:
-    uses: ./.github/workflows/setup-eas.yaml
     steps:
+      - uses: ./.github/actions/repo-setup
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
       - name: 🚀 Start Build
         working-directory: ./nr-app
         run: pnpm run build:${{ inputs.platform }}

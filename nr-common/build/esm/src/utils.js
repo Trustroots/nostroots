@@ -200,3 +200,7 @@ export async function getNip5PubKey(trustrootsUsername) {
         return;
     }
 }
+export function getTrustrootsUsernameFromProfileEvent(event) {
+    const username = getFirstLabelValueFromEvent(event, TRUSTROOTS_USERNAME_LABEL_NAMESPACE);
+    return username;
+}

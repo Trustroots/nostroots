@@ -19,6 +19,7 @@ exports.getPlusCodeAndPlusCodePrefixTags = getPlusCodeAndPlusCodePrefixTags;
 exports.hasOpenLocationCode = hasOpenLocationCode;
 exports.hasVersion = hasVersion;
 exports.getNip5PubKey = getNip5PubKey;
+exports.getTrustrootsUsernameFromProfileEvent = getTrustrootsUsernameFromProfileEvent;
 const constants_js_1 = require("../constants.js");
 function last(items) {
     const lastIndex = Math.max(items.length - 1, 0);
@@ -220,4 +221,8 @@ async function getNip5PubKey(trustrootsUsername) {
         console.warn(`Could not get nip5 key for ${trustrootsUsername}`, e);
         return;
     }
+}
+function getTrustrootsUsernameFromProfileEvent(event) {
+    const username = getFirstLabelValueFromEvent(event, constants_js_1.TRUSTROOTS_USERNAME_LABEL_NAMESPACE);
+    return username;
 }

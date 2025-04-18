@@ -1,3 +1,4 @@
+import { NostrEvent } from "npm:nostr-tools@2.10.4/core";
 import {
   DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH,
   OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
@@ -297,4 +298,12 @@ export async function getNip5PubKey(
     console.warn(`Could not get nip5 key for ${trustrootsUsername}`, e);
     return;
   }
+}
+
+export function getTrustrootsUsernameFromProfileEvent(event: NostrEvent) {
+  const username = getFirstLabelValueFromEvent(
+    event,
+    TRUSTROOTS_USERNAME_LABEL_NAMESPACE
+  );
+  return username;
 }

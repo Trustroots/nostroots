@@ -1,3 +1,4 @@
+import { NostrEvent } from "nostr-tools/core";
 import type { Event } from "./base.schema.js";
 export declare function isHex(s: string): boolean;
 export declare function isHexKey(key: string): boolean;
@@ -18,3 +19,4 @@ export declare function getPlusCodeAndPlusCodePrefixTags(plusCode: string): stri
 export declare function hasOpenLocationCode(tags: string[][]): boolean;
 export declare function hasVersion(tags: string[][]): boolean;
 export declare function getNip5PubKey(trustrootsUsername: string): Promise<string | undefined>;
+export declare function getTrustrootsUsernameFromProfileEvent(event: NostrEvent): string | undefined;

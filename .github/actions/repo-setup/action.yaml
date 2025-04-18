@@ -16,6 +16,7 @@ runs:
       with:
         eas-version: latest
         token: ${{ inputs.token }}
+        packager: pnpm
 
     - name: Install dependencies
       shell: bash

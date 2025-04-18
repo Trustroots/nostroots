@@ -25,9 +25,25 @@ exports.HITCHWIKI_AUTHOR_PUBLIC_KEY = "16db5234c1dd8082897bd2d21bbec4b8051d2cd03
 exports.TIMESAFARI_AUTHOR_PUBLIC_KEY = "76e88d2e653fc3655f8e0b97f6bc85f5468eaffc5d64522b584ce13eedbd8af7";
 // cross-env DSN id - use for native + server
 exports.SENTRY_DSN = "https://ea370f9e4aba87f6e69a479f2d41bc23@o4508806276841472.ingest.de.sentry.io/4508806292176976";
+const trustroots = {
+    title: "Trustroots",
+    filter: {
+        authors: [exports.NOSTROOTS_VALIDATION_PUBKEY],
+        kinds: [exports.MAP_NOTE_REPOST_KIND],
+    },
+    rootUrl: "",
+    kind: 30398,
+    pubkey: exports.NOSTROOTS_VALIDATION_PUBKEY,
+    markerColor: "green",
+    rectangleColor: "grey",
+};
 const hitchmap = {
     title: "Hitchmap",
     rootUrl: "https://hitchmap.com",
+    filter: {
+        kinds: [30399],
+        authors: [exports.HITCHMAPS_AUTHOR_PUBLIC_KEY],
+    },
     kind: 30399,
     pubkey: exports.HITCHMAPS_AUTHOR_PUBLIC_KEY,
     markerColor: "yellow",
@@ -36,6 +52,10 @@ const hitchmap = {
 const hitchwiki = {
     title: "Hitchwiki",
     rootUrl: "https://hitchwiki.org",
+    filter: {
+        kinds: [30399],
+        authors: [exports.HITCHWIKI_AUTHOR_PUBLIC_KEY],
+    },
     kind: 30399,
     pubkey: exports.HITCHWIKI_AUTHOR_PUBLIC_KEY,
     markerColor: "gold",
@@ -44,6 +64,10 @@ const hitchwiki = {
 const timesafari = {
     title: "Time Safari",
     rootUrl: "https://www.timesafari.app",
+    filter: {
+        kinds: [30399],
+        authors: [exports.TIMESAFARI_AUTHOR_PUBLIC_KEY],
+    },
     kind: 30399,
     pubkey: exports.TIMESAFARI_AUTHOR_PUBLIC_KEY,
     markerColor: "blue",
@@ -52,6 +76,10 @@ const timesafari = {
 const triphopping = {
     title: "Trip Hopping",
     rootUrl: "https://www.triphopping.com",
+    filter: {
+        kinds: [30398],
+        authors: [exports.DEV_PUBKEY],
+    },
     kind: 30398,
     pubkey: exports.DEV_PUBKEY,
     markerColor: "brown",
@@ -60,12 +88,16 @@ const triphopping = {
 const unverified = {
     title: "Unverified",
     rootUrl: "https://notes.trustroots.org",
+    filter: {
+        kinds: [30397],
+    },
     kind: 30397,
     pubkey: "",
     markerColor: "red",
     rectangleColor: "rgba(255, 0, 0, 0.5)",
 };
 exports.MAP_LAYERS = {
+    trustroots,
     hitchmap,
     hitchwiki,
     timesafari,

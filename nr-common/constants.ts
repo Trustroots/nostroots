@@ -1,3 +1,5 @@
+import { Filter } from "npm:nostr-tools@2.10.4";
+
 export const PACKAGE_VERSION = "0.0.1";
 
 export const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2 as const;
@@ -47,16 +49,37 @@ export const SENTRY_DSN =
 
 export type MapLayer = {
   title: string;
+  filter: Filter;
+  // TODO - Figure out how to handle this for trustroots
   rootUrl: string;
+  // TODO - Replace kind & pubkey with a filter
   kind: 30399 | 30398 | 30397;
   pubkey: string;
+  // TODO - Drop marker colour and rectangle colour
   markerColor: string;
   rectangleColor: string;
+};
+
+const trustroots: MapLayer = {
+  title: "Trustroots",
+  filter: {
+    authors: [NOSTROOTS_VALIDATION_PUBKEY],
+    kinds: [MAP_NOTE_REPOST_KIND],
+  },
+  rootUrl: "",
+  kind: 30398,
+  pubkey: NOSTROOTS_VALIDATION_PUBKEY,
+  markerColor: "green",
+  rectangleColor: "grey",
 };
 
 const hitchmap: MapLayer = {
   title: "Hitchmap",
   rootUrl: "https://hitchmap.com",
+  filter: {
+    kinds: [30399],
+    authors: [HITCHMAPS_AUTHOR_PUBLIC_KEY],
+  },
   kind: 30399,
   pubkey: HITCHMAPS_AUTHOR_PUBLIC_KEY,
   markerColor: "yellow",
@@ -65,6 +88,10 @@ const hitchmap: MapLayer = {
 const hitchwiki: MapLayer = {
   title: "Hitchwiki",
   rootUrl: "https://hitchwiki.org",
+  filter: {
+    kinds: [30399],
+    authors: [HITCHWIKI_AUTHOR_PUBLIC_KEY],
+  },
   kind: 30399,
   pubkey: HITCHWIKI_AUTHOR_PUBLIC_KEY,
   markerColor: "gold",
@@ -73,6 +100,10 @@ const hitchwiki: MapLayer = {
 const timesafari: MapLayer = {
   title: "Time Safari",
   rootUrl: "https://www.timesafari.app",
+  filter: {
+    kinds: [30399],
+    authors: [TIMESAFARI_AUTHOR_PUBLIC_KEY],
+  },
   kind: 30399,
   pubkey: TIMESAFARI_AUTHOR_PUBLIC_KEY,
   markerColor: "blue",
@@ -81,6 +112,10 @@ const timesafari: MapLayer = {
 const triphopping: MapLayer = {
   title: "Trip Hopping",
   rootUrl: "https://www.triphopping.com",
+  filter: {
+    kinds: [30398],
+    authors: [DEV_PUBKEY],
+  },
   kind: 30398,
   pubkey: DEV_PUBKEY,
   markerColor: "brown",
@@ -89,6 +124,9 @@ const triphopping: MapLayer = {
 const unverified: MapLayer = {
   title: "Unverified",
   rootUrl: "https://notes.trustroots.org",
+  filter: {
+    kinds: [30397],
+  },
   kind: 30397,
   pubkey: "",
   markerColor: "red",
@@ -96,6 +134,7 @@ const unverified: MapLayer = {
 };
 
 export const MAP_LAYERS = {
+  trustroots,
   hitchmap,
   hitchwiki,
   timesafari,

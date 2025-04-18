@@ -28,7 +28,7 @@ export default function TabTwoScreen() {
             <View key={kind}>
               <Text style={styles.kindHeading}>Kind: {kind}</Text>
               <View style={styles.marker} />
-              {events.map((event) => (
+              {events!.map((event) => (
                 <View key={event.event.id}>
                   <Text style={styles.note}>{event.event.content}</Text>
                   <Text style={styles.note}>

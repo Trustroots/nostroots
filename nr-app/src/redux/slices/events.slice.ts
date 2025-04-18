@@ -1,22 +1,21 @@
 import { ID_SEPARATOR } from "@/constants";
 import {
-  Event,
-  eventSchema,
-  getTrustrootsUsernameFromProfileEvent,
-  TRUSTROOTS_PROFILE_KIND,
-} from "@trustroots/nr-common";
+  isEventForPlusCodeExactly,
+  isEventWithinThisPlusCode,
+} from "@/utils/event.utils";
+import { rootLogger } from "@/utils/logger.utils";
 import {
   createEntityAdapter,
   createSelector,
   createSlice,
   PayloadAction,
 } from "@reduxjs/toolkit";
-import { rootLogger } from "@/utils/logger.utils";
 import {
-  isEventForPlusCodeExactly,
-  isEventWithinThisPlusCode,
-} from "@/utils/event.utils";
-import { RootState } from "../store";
+  Event,
+  eventSchema,
+  getTrustrootsUsernameFromProfileEvent,
+  TRUSTROOTS_PROFILE_KIND,
+} from "@trustroots/nr-common";
 import { Filter, matchFilter } from "nostr-tools";
 
 const log = rootLogger.extend("events.slice");

@@ -5,7 +5,7 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAppSelector } from "@/redux/hooks";
 import { eventsSelectors } from "@/redux/slices/events.slice";
-import { A, D } from "@mobily/ts-belt";
+import { A } from "@mobily/ts-belt";
 
 export default function TabTwoScreen() {
   const allEvents = useAppSelector(eventsSelectors.selectAll);

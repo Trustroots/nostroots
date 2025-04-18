@@ -2,7 +2,7 @@ import {
   getSubscription,
   subscribeToFilter,
 } from "@/nostr/subscriptions.nostr";
-import { createSelector, nanoid } from "@reduxjs/toolkit";
+import { nanoid } from "@reduxjs/toolkit";
 import {
   DEFAULT_RELAY_URL,
   getAuthorFromEvent,

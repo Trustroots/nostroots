@@ -3,11 +3,7 @@ import {
   eventsSelectors,
   EventWithMetadata,
 } from "@/redux/slices/events.slice";
-import { RootState } from "@/redux/store";
-import {
-  getAuthorFromEvent,
-  getTrustrootsUsernameFromProfileEvent,
-} from "@trustroots/nr-common";
+import { getAuthorFromEvent } from "@trustroots/nr-common";
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 

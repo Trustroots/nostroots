@@ -41,24 +41,22 @@ const hitchwiki = {
     markerColor: "gold",
     rectangleColor: "rgba(255, 215, 0, 0.5)",
 };
-/*
-const timesafari: MapLayer = {
-  title: "Time Safari",
-  rootUrl: "https://www.timesafari.app",
-  kind: 30399,
-  pubkey: TIMESAFARI_AUTHOR_PUBLIC_KEY,
-  markerColor: "blue",
-  rectangleColor: "rgba(0, 0, 255, 0.5)",
+const timesafari = {
+    title: "Time Safari",
+    rootUrl: "https://www.timesafari.app",
+    kind: 30399,
+    pubkey: exports.TIMESAFARI_AUTHOR_PUBLIC_KEY,
+    markerColor: "blue",
+    rectangleColor: "rgba(0, 0, 255, 0.5)",
 };
-const triphopping: MapLayer = {
-  title: "Trip Hopping",
-  rootUrl: "https://www.triphopping.com",
-  kind: 30398,
-  pubkey: DEV_PUBKEY,
-  markerColor: "brown",
-  rectangleColor: "rgba(0, 0, 255, 0.5)",
+const triphopping = {
+    title: "Trip Hopping",
+    rootUrl: "https://www.triphopping.com",
+    kind: 30398,
+    pubkey: exports.DEV_PUBKEY,
+    markerColor: "brown",
+    rectangleColor: "rgba(0, 0, 255, 0.5)",
 };
-*/
 const unverified = {
     title: "Unverified",
     rootUrl: "https://notes.trustroots.org",
@@ -70,8 +68,8 @@ const unverified = {
 exports.MAP_LAYERS = {
     hitchmap,
     hitchwiki,
-    //  timesafari,
-    //  triphopping,
+    timesafari,
+    triphopping,
     unverified,
 };
 exports.PLUS_CODE_TAG_KEY = "l";

@@ -32,6 +32,8 @@ export type MapLayer = {
 export declare const MAP_LAYERS: {
     readonly hitchmap: MapLayer;
     readonly hitchwiki: MapLayer;
+    readonly timesafari: MapLayer;
+    readonly triphopping: MapLayer;
     readonly unverified: MapLayer;
 };
 export type MAP_LAYER_KEY = keyof typeof MAP_LAYERS;

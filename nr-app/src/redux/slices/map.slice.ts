@@ -25,7 +25,7 @@ const initialState: MapState = {
   isAddNoteModalOpen: false,
   selectedPlusCode: "",
   selectedLayer: "trustroots",
-  enablePlusCodeMapTEMPORARY: false,
+  enablePlusCodeMapTEMPORARY: true,
 };
 
 export const mapSlice = createSlice({

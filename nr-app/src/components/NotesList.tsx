@@ -4,6 +4,7 @@ import { filterEventsForPlusCode } from "@/utils/map.utils";
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
+import NotesSingle from "./NotesSingle";
 
 const notesListSelectorFactory = (plusCode: string) =>
   createSelector(mapSelectors.selectEventsForSelectedMapLayer, (events) => {
@@ -25,19 +26,19 @@ export default function NotesList({ plusCode }: { plusCode: string }) {
         {plusCode}
       </Text>
       {eventsForPlusCodeExactly.map((eventWithMetadata) => (
-        <View key={eventWithMetadata.event.id}>
-          <Text>Note ID: {eventWithMetadata.event.id}</Text>
-          <Text>Content: {eventWithMetadata.event.content}</Text>
-        </View>
+        <NotesSingle
+          key={eventWithMetadata.event.id}
+          eventWithMetadata={eventWithMetadata}
+        />
       ))}
       <Text style={styles.heading}>
         {eventsWithinPlusCode.length.toString()} within plus code {plusCode}
       </Text>
       {eventsWithinPlusCode.map((eventWithMetadata) => (
-        <View key={eventWithMetadata.event.id}>
-          <Text>Note ID: {eventWithMetadata.event.id}</Text>
-          <Text>Content: {eventWithMetadata.event.content}</Text>
-        </View>
+        <NotesSingle
+          key={eventWithMetadata.event.id}
+          eventWithMetadata={eventWithMetadata}
+        />
       ))}
     </View>
   );

@@ -30,7 +30,7 @@ export default function NotesList({ plusCode }: { plusCode: string }) {
         {eventsWithinPlusCode.length.toString()} within plus code {plusCode}
       </Text>
       {eventsWithinPlusCode.map((eventWithMetadata) => (
-        <View>
+        <View key={eventWithMetadata.event.id}>
           <Text>Note ID: {eventWithMetadata.event.id}</Text>
           <Text>Content: {eventWithMetadata.event.content}</Text>
         </View>

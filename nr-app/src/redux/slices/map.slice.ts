@@ -1,9 +1,8 @@
-import { MAP_LAYER_KEY } from "@trustroots/nr-common";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { BoundingBox, LatLng, Point, Region } from "react-native-maps";
+import { MAP_LAYER_KEY } from "@trustroots/nr-common";
+import { BoundingBox, LatLng } from "react-native-maps";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { setSubscriptionHasSeenEOSE } from "./relays.slice";
-import { string } from "zod";
 
 export const MAP_SUBSCRIPTION_ID = "mapVisiblePlusCodesSubscription";
 
@@ -17,6 +16,7 @@ interface MapState {
   enabledLayers: {
     [key in MAP_LAYER_KEY]: boolean;
   };
+  enablePlusCodeMapTEMPORARY: boolean;
 }
 
 const initialState: MapState = {
@@ -31,6 +31,7 @@ const initialState: MapState = {
     triphopping: false,
     unverified: false,
   },
+  enablePlusCodeMapTEMPORARY: false,
 };
 
 export const mapSlice = createSlice({
@@ -73,6 +74,9 @@ export const mapSlice = createSlice({
     ) => {
       state.boundingBox = action.payload;
     },
+    togglePlusCodeMapTEMPORARY: (state) => {
+      state.enablePlusCodeMapTEMPORARY = !state.enablePlusCodeMapTEMPORARY;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -95,6 +99,8 @@ export const mapSlice = createSlice({
     selectSelectedLatLng: (state) => state.selectedLatLng,
     selectIsAddNoteModalOpen: (state) => state.isAddNoteModalOpen,
     selectBoundingBox: (state) => state.boundingBox,
+    selectEnablePlusCodeMapTEMPORARY: (state) =>
+      state.enablePlusCodeMapTEMPORARY,
   },
 });
 

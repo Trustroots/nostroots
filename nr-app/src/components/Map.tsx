@@ -6,6 +6,7 @@ import React, { useMemo } from "react";
 import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
 import MapModal from "./MapModal";
 import MapPlusCodes from "./MapPlusCodes";
+import { MapMarkers } from "./MapMarkers";
 
 // filter out these note types if test features are disabled
 const TEST_FEATURE_LAYERS: MAP_LAYER_KEY[] = ["timesafari", "triphopping"];
@@ -14,6 +15,9 @@ export default function Map() {
   const enabledLayers = useAppSelector(mapSelectors.selectEnabledLayers);
   const areTestFeaturesEnabled = useAppSelector(
     settingsSelectors.selectAreTestFeaturesEnabled,
+  );
+  const enablePlusCodeMapTEMPORARY = useAppSelector(
+    mapSelectors.selectEnablePlusCodeMapTEMPORARY,
   );
   const dispatch = useAppDispatch();
 
@@ -34,7 +38,7 @@ export default function Map() {
 
   return (
     <View style={styles.mapContainer}>
-      <MapPlusCodes />
+      {enablePlusCodeMapTEMPORARY ? <MapPlusCodes /> : <MapMarkers />}
 
       <View style={styles.toggleWrapper}>
         <FlatList

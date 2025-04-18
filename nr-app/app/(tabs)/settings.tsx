@@ -34,6 +34,7 @@ import {
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
 import Toast from "react-native-root-toast";
+import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 
 const DevSwitch = () => {
   const dispatch = useAppDispatch();
@@ -80,6 +81,10 @@ export default function TabThreeScreen() {
   const publicKeyHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
 
   const dispatch = useAppDispatch();
+
+  const enablePlusCodeMapTEMPORARY = useAppSelector(
+    mapSelectors.selectEnablePlusCodeMapTEMPORARY,
+  );
 
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -193,6 +198,15 @@ export default function TabThreeScreen() {
 
         {areTestFeaturesEnabled && (
           <View>
+            <View>
+              <Switch
+                value={enablePlusCodeMapTEMPORARY}
+                onChange={() => {
+                  dispatch(mapActions.togglePlusCodeMapTEMPORARY());
+                }}
+              />
+              <Text>Enable the experimental plus code map</Text>
+            </View>
             <BuildData />
             <Text style={styles.q}>relays</Text>
             <TextInput style={styles.input} value="['relay.trustroots.org']" />

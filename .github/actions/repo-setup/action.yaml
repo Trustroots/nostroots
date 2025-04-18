@@ -18,4 +18,5 @@ runs:
         token: ${{ inputs.token }}
 
     - name: Install dependencies
+      shell: bash
       run: pnpm i

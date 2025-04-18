@@ -123,6 +123,8 @@ export const relaysSlice = createSlice({
       Object.keys(state.relays).filter(
         (relayUrl) => state.relays[relayUrl].isActive,
       ),
+    selectSubscription: (state, id): Subscription | undefined =>
+      state.subscriptions[id],
   },
 });
 

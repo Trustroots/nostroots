@@ -11,7 +11,6 @@ interface MapState {
   visiblePlusCodes: string[];
   selectedPlusCode: string;
   boundingBox?: BoundingBox;
-  isMapModalOpen: boolean;
   isAddNoteModalOpen: boolean;
   selectedLatLng?: LatLng;
   enabledLayers: {
@@ -23,7 +22,6 @@ interface MapState {
 const initialState: MapState = {
   mapSubscriptionIsUpdating: false,
   visiblePlusCodes: [],
-  isMapModalOpen: false,
   isAddNoteModalOpen: false,
   selectedPlusCode: "",
   enabledLayers: {
@@ -58,15 +56,6 @@ export const mapSlice = createSlice({
       state.enabledLayers[action.payload] =
         !state.enabledLayers[action.payload];
     },
-    openMapModal: (state) => {
-      state.isMapModalOpen = true;
-    },
-    closeMapModal: (state) => {
-      state.isMapModalOpen = false;
-    },
-    toggleMapModal: (state) => {
-      state.isMapModalOpen = !state.isMapModalOpen;
-    },
     openAddNoteModal: (state) => {
       state.isAddNoteModalOpen = true;
     },
@@ -75,6 +64,9 @@ export const mapSlice = createSlice({
     },
     setSelectedPlusCode: (state, action: PayloadAction<string>) => {
       state.selectedPlusCode = action.payload;
+    },
+    closeMapModal: (state) => {
+      state.selectedPlusCode = "";
     },
     setSelectedLatLng: (state, action: PayloadAction<LatLng>) => {
       state.selectedLatLng = action.payload;
@@ -108,7 +100,8 @@ export const mapSlice = createSlice({
       visiblePlusCodes: state.visiblePlusCodes,
     }),
     selectSelectedLatLng: (state) => state.selectedLatLng,
-    selectIsMapModalOpen: (state) => state.isMapModalOpen,
+    selectSelectedPlusCode: (state) => state.selectedPlusCode,
+    selectIsMapModalOpen: (state) => state.selectedPlusCode !== "",
     selectIsAddNoteModalOpen: (state) => state.isAddNoteModalOpen,
     selectBoundingBox: (state) => state.boundingBox,
     selectEnablePlusCodeMapTEMPORARY: (state) =>

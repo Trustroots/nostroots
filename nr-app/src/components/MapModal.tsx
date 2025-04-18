@@ -1,14 +1,17 @@
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { Button, Modal, Text, View } from "react-native";
+import NotesList from "./NotesList";
 
 export default function MapModal() {
   const dispatch = useAppDispatch();
   const showModal = useAppSelector(mapSelectors.selectIsMapModalOpen);
+  const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
 
   return (
     <Modal visible={showModal}>
       <View>
+        <NotesList plusCode={selectedPlusCode} />
         <Text>Modal is under development</Text>
         <Button
           title="Close"

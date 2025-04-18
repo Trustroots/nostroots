@@ -9,7 +9,7 @@ import {
   getTrustrootsUsernameFromProfileEvent,
 } from "@trustroots/nr-common";
 import { useMemo } from "react";
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 
 function NoteAuthorInfo({ authorPublicKey }: { authorPublicKey?: string }) {
   const selectTrustrootsUsername = useMemo(
@@ -33,10 +33,18 @@ export default function NotesSingle({
   const authorPublicKey = getAuthorFromEvent(eventWithMetadata.event);
 
   return (
-    <View>
+    <View style={styles.container}>
       <Text>Note ID: {eventWithMetadata.event.id}</Text>
       <Text>Content: {eventWithMetadata.event.content}</Text>
       <NoteAuthorInfo authorPublicKey={authorPublicKey} />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    padding: 6,
+    borderBottomColor: "black",
+    borderBottomWidth: 1,
+  },
+});

@@ -1,4 +1,5 @@
 import { NOSTR_EVENT_INDEX_MAXIMUM_PLUS_CODE_LENGTH } from "@/constants";
+import { EventWithMetadata } from "@/redux/slices/events.slice";
 import {
   getFirstTagValueFromEvent,
   MAP_LAYER_KEY,
@@ -9,6 +10,10 @@ import { NostrEvent } from "nostr-tools";
 import OpenLocationCode from "open-location-code-typescript";
 import { BoundingBox, Region } from "react-native-maps";
 import { urlJoin } from "url-join-ts";
+import {
+  isEventForPlusCodeExactly,
+  isEventWithinThisPlusCode,
+} from "./event.utils";
 
 type PlusCodeShortLength = 2 | 4 | 6 | 8;
 
@@ -406,4 +411,19 @@ export function getAllPlusCodesBetweenTwoPlusCodes(
   );
 
   return plusCodes;
+}
+
+export function filterEventsForPlusCode(
+  events: EventWithMetadata[],
+  plusCode: string,
+) {
+  const eventsForPlusCodeExactly = events.filter((eventWithMetadata) =>
+    isEventForPlusCodeExactly(eventWithMetadata.event, plusCode),
+  );
+  const eventsWithinPlusCode = events.filter(
+    (eventWithMetadata) =>
+      !isEventForPlusCodeExactly(eventWithMetadata.event, plusCode) &&
+      isEventWithinThisPlusCode(eventWithMetadata.event, plusCode),
+  );
+  return { eventsForPlusCodeExactly, eventsWithinPlusCode };
 }

@@ -3,6 +3,8 @@ import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { BoundingBox, LatLng } from "react-native-maps";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { setSubscriptionHasSeenEOSE } from "./relays.slice";
+import { eventsSelectors } from "./events.slice";
+import { matchFilter } from "nostr-tools";
 
 export const MAP_SUBSCRIPTION_ID = "mapVisiblePlusCodesSubscription";
 
@@ -99,6 +101,7 @@ export const mapSlice = createSlice({
       enabledLayers: [state.selectedLayer],
       visiblePlusCodes: state.visiblePlusCodes,
     }),
+    selectSelectedLayer: (state) => state.selectedLayer,
     selectSelectedLatLng: (state) => state.selectedLatLng,
     selectSelectedPlusCode: (state) => state.selectedPlusCode,
     selectIsMapModalOpen: (state) => state.selectedPlusCode !== "",
@@ -110,6 +113,22 @@ export const mapSlice = createSlice({
   },
 });
 
+const mapSliceSelectors = mapSlice.selectors;
+
+const selectEventsForSelectedMapLayer = createSelector(
+  [eventsSelectors.selectAll, mapSliceSelectors.selectSelectedLayer],
+  (events, selectedLayer) => {
+    const layer = MAP_LAYERS[selectedLayer];
+    const eventsForLayer = events.filter((eventWithMetadata) =>
+      matchFilter(layer.filter, eventWithMetadata.event),
+    );
+    return eventsForLayer;
+  },
+);
+
 export const mapActions = mapSlice.actions;
 
-export const mapSelectors = mapSlice.selectors;
+export const mapSelectors = {
+  ...mapSliceSelectors,
+  selectEventsForSelectedMapLayer,
+};

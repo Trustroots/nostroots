@@ -1,17 +1,12 @@
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { eventsSelectors } from "@/redux/slices/events.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
-import {
-  isEventForPlusCodeExactly,
-  isEventWithinThisPlusCode,
-} from "@/utils/event.utils";
 import { rootLogger } from "@/utils/logger.utils";
 import {
   allPlusCodesForRegion,
   boundariesToRegion,
   coordinatesToPlusCode,
-  getAllChildPlusCodes,
+  filterEventsForPlusCode,
   getAllPlusCodesBetweenTwoPlusCodes,
   plusCodeToRectangle,
   regionToBoundingBox,
@@ -42,16 +37,11 @@ function whatLengthOfPlusCodeToShow(region: Region) {
   return 8;
 }
 
-const selectPlusCodesToShow = createSelector(
-  mapSelectors.selectVisiblePlusCodes,
-  (visiblePlusCodes) => {
-    const allPlusCodes = visiblePlusCodes.flatMap(getAllChildPlusCodes);
-    return allPlusCodes;
-  },
-);
-
 const selectPlusCodesWithState = createSelector(
-  [eventsSelectors.selectAll, mapSelectors.selectBoundingBox],
+  [
+    mapSelectors.selectEventsForSelectedMapLayer,
+    mapSelectors.selectBoundingBox,
+  ],
   (events, boundingBox) => {
     if (typeof boundingBox === "undefined") {
       return [];
@@ -76,16 +66,12 @@ const selectPlusCodesWithState = createSelector(
     );
 
     const output = plusCodes.map((plusCode) => {
-      const eventsForThisPlusCodeExactly = events.filter((event) =>
-        isEventForPlusCodeExactly(event.event, plusCode),
-      );
-      const eventsWithinThisPlusCode = events.filter((event) =>
-        isEventWithinThisPlusCode(event.event, plusCode),
-      );
+      const { eventsForPlusCodeExactly, eventsWithinPlusCode } =
+        filterEventsForPlusCode(events, plusCode);
       return {
         plusCode,
-        eventCountForThisPlusCodeExactly: eventsForThisPlusCodeExactly.length,
-        eventCountWithinThisPlusCode: eventsWithinThisPlusCode.length,
+        eventCountForThisPlusCodeExactly: eventsForPlusCodeExactly.length,
+        eventCountWithinThisPlusCode: eventsWithinPlusCode.length,
       };
     });
     return output;
@@ -112,6 +98,8 @@ export default function MapPlusCodes() {
       },
     [dispatch],
   );
+
+  console.log("#VsiKo8 MapPlusCodes", mapSelectors);
 
   return (
     <MapView
@@ -141,10 +129,10 @@ export default function MapPlusCodes() {
       {true &&
         plusCodesWithState.map((plusCodeWithState, index) => (
           <Polygon
-            key={index}
+            key={plusCodeWithState.plusCode}
             coordinates={plusCodeToRectangle(plusCodeWithState.plusCode)}
             // fillColor={`rgba(255, 0, 0, 0.${plusCodeWithState.events.length > 9 ? "9" : plusCodeWithState.events.length.toString().substring(0, 1)}})`}
-            fillColor={`rgba(${Math.min(255, plusCodeWithState.eventCountWithinThisPlusCode * 60).toString()}, 0, 0, 0.6)`}
+            fillColor={`rgba(${Math.min(255, plusCodeWithState.eventCountForThisPlusCodeExactly * 60).toString()}, 0, 0, 0.6)`}
             strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
             strokeWidth={2}
             tappable={true}

@@ -1,26 +1,30 @@
 import { useAppSelector } from "@/redux/hooks";
-import { eventsSelectors } from "@/redux/slices/events.slice";
+import { mapSelectors } from "@/redux/slices/map.slice";
+import { filterEventsForPlusCode } from "@/utils/map.utils";
+import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
+const notesListSelectorFactory = (plusCode: string) =>
+  createSelector(mapSelectors.selectEventsForSelectedMapLayer, (events) => {
+    return filterEventsForPlusCode(events, plusCode);
+  });
+
 export default function NotesList({ plusCode }: { plusCode: string }) {
-  const selectEventsForPlusCodeExactly = useMemo(
-    () => eventsSelectors.selectEventsForPlusCodeExactlyFactory(plusCode),
+  const selector = useMemo(
+    () => notesListSelectorFactory(plusCode),
     [plusCode],
   );
-  const events = useAppSelector(selectEventsForPlusCodeExactly);
-  const selectEventsWithinPlusCode = useMemo(
-    () => eventsSelectors.selectEventsWithinPlusCodeFactory(plusCode),
-    [plusCode],
-  );
-  const eventsWithinPlusCode = useAppSelector(selectEventsWithinPlusCode);
+  const { eventsForPlusCodeExactly, eventsWithinPlusCode } =
+    useAppSelector(selector);
 
   return (
     <View>
       <Text style={styles.heading}>
-        {events.length.toString()} exact matches for {plusCode}
+        {eventsForPlusCodeExactly.length.toString()} exact matches for{" "}
+        {plusCode}
       </Text>
-      {events.map((eventWithMetadata) => (
+      {eventsForPlusCodeExactly.map((eventWithMetadata) => (
         <View key={eventWithMetadata.event.id}>
           <Text>Note ID: {eventWithMetadata.event.id}</Text>
           <Text>Content: {eventWithMetadata.event.content}</Text>

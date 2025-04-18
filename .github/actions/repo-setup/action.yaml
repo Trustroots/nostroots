@@ -8,9 +8,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Setup repo
-      uses: actions/checkout@v3
-    
     - name: Setup pnpm
       uses: pnpm/action-setup@v4
 

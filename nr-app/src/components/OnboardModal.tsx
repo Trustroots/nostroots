@@ -3,9 +3,7 @@ import { getHasPrivateKeyInSecureStorage } from "@/nostr/keystore.nostr";
 import { publishEventTemplatePromiseAction } from "@/redux/actions/publish.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
-import {
-  keystoreSelectors
-} from "@/redux/slices/keystore.slice";
+import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import {
   settingsActions,
   settingsSelectors,
@@ -28,13 +26,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-
-
-
-
-
-
 
 interface OnboardModalProps {
   setModalVisible: React.Dispatch<React.SetStateAction<boolean>>;

@@ -72,12 +72,8 @@ function AppContent() {
   const dispatch = useAppDispatch();
   const [welcomeVisible, setWelcomeVisible] = useState(false);
   const [onboardVisible, setOnboardVisible] = useState(false);
-  const [nip5VerificationLoading, setNip5VerificationLoading] = useState(true);
+  const [nip5VerificationLoaded, setNip5VerificationLoaded] = useState(false);
   const [onboardModalStep, setOnboardModalStep] = useState("isUserScreen");
-
-  const hasPrivateKeyFromRedux = useAppSelector(
-    keystoreSelectors.selectHasPrivateKeyInSecureStorage,
-  );
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
   // const pubHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
@@ -86,9 +82,6 @@ function AppContent() {
   const hasBeenOpenedBefore = useAppSelector(
     settingsSelectors.selectHasBeenOpenedBefore,
   );
-
-  // Get the keystore loading state
-  const isKeystoreLoading = useAppSelector(keystoreSelectors.selectIsLoading);
 
   // Get the settings loading state
   const isSettingsDataLoaded = useAppSelector(
@@ -102,66 +95,67 @@ function AppContent() {
       setOnboardVisible(true);
       dispatch(settingsActions.setHasBeenOpenedBefore(true));
     }
-    // setOnboardModalStep("foobar");
   }, [dispatch, hasBeenOpenedBefore]);
 
   useEffect(() => {
-    // case for some reason keys are set even if user key isnt in redux
-    (async function hydrateKeys() {
-      const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
+    (async function initUserAndVerify() {
+      // there is no public key from the redux store
+      if (!npub) {
+        // try to get key from secure storage
+        const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
 
-      // if we don't have it in redux
-      if (hasKeyFromStorage && !hasPrivateKeyFromRedux) {
-        const mnemonic = await getPrivateKeyMnemonic();
+        // we don't have private key in redux store
+        if (hasKeyFromStorage) {
+          const mnemonic = await getPrivateKeyMnemonic();
 
-        dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonic));
-        const pubKeyHex = derivePublicKeyHexFromMnemonic(mnemonic);
-        dispatch(setPublicKeyHex(pubKeyHex));
+          dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonic));
+          const pubKeyHex = derivePublicKeyHexFromMnemonic(mnemonic);
+
+          // move to the next step w/ useEffect listening for npub
+          dispatch(setPublicKeyHex(pubKeyHex));
+          return;
+        } else {
+          // TODO: set onboard modal: no private key found
+          setOnboardModalStep("accountErrorScreen");
+          setNip5VerificationLoaded(true);
+          setOnboardVisible(true);
+          return;
+        }
       }
-    })();
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isKeystoreLoading]);
+      if (isSettingsDataLoaded) {
+        if (
+          hasBeenOpenedBefore &&
+          username &&
+          npub &&
+          nip5VerificationLoaded === false
+        ) {
+          const nip5Result = await getNip5PubKey(username);
 
-  useEffect(() => {
-    (async function userVerify() {
-      if (
-        hasBeenOpenedBefore &&
-        username &&
-        npub &&
-        nip5VerificationLoading === false
-      ) {
-        const nip5Result = await getNip5PubKey(username);
-
-        if (nip5Result) {
-          const npubResponse = nip19.npubEncode(nip5Result);
-          if (npubResponse === npub) {
-            // don't show modal
-            setOnboardVisible(false);
+          if (nip5Result) {
+            const npubResponse = nip19.npubEncode(nip5Result);
+            if (npubResponse === npub) {
+              // don't show modal
+              setOnboardVisible(false);
+              setNip5VerificationLoaded(true);
+              return;
+            }
           }
         }
 
-        // todo: special screens if the users nip5 fails
-        // setOnboardModalStep("usernameScreen");
-        setNip5VerificationLoading(false);
+        // TODO: set state of onboard modal depending on nip5 result
+        //for example: no username, bad nip5 etc.
+        setOnboardModalStep("accountErrorScreen");
         setOnboardVisible(true);
+        setNip5VerificationLoaded(true);
       }
     })();
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSettingsDataLoaded, isKeystoreLoading, npub, hasBeenOpenedBefore]);
+  }, [isSettingsDataLoaded, npub, hasBeenOpenedBefore]);
 
   // Determine if the loading modal should be visible
-  // Show if data is loading
-  const showLoadingModal =
-    isKeystoreLoading || !isSettingsDataLoaded || !nip5VerificationLoading;
-  // const showLoadingModal = true;
-
-  // Handle loading completion
-  const handleLoadingComplete = () => {
-    // Any actions needed when loading is complete
-    console.log("Loading complete");
-  };
+  const showLoadingModal = !isSettingsDataLoaded || !nip5VerificationLoaded;
 
   return (
     <>

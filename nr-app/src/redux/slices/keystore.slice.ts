@@ -5,21 +5,18 @@ type KeystoreState = {
   hasPrivateKeyInSecureStorage: boolean;
   publicKeyNpub?: `npub${string}`;
   publicKeyHex?: string;
-  isLoading: boolean;
+  isLoaded: boolean;
 };
 
 const initialState: KeystoreState = {
   hasPrivateKeyInSecureStorage: false,
-  isLoading: false,
+  isLoaded: false,
 };
 
 export const keystoreSlice = createSlice({
   name: "keystore",
   initialState,
   reducers: {
-    setLoading: (state, action: PayloadAction<boolean>) => {
-      state.isLoading = action.payload;
-    },
     setPublicKeyHex: (state, action: PayloadAction<string>) => {
       state.hasPrivateKeyInSecureStorage = true;
       state.publicKeyHex = action.payload;
@@ -30,17 +27,16 @@ export const keystoreSlice = createSlice({
     selectHasPrivateKeyInSecureStorage: (state) =>
       state.hasPrivateKeyInSecureStorage,
     selectPublicKeyHex: (state) => {
-      console.log("seelct public key hex", state);
+      // console.log("seelct public key hex", state);
       return state.publicKeyHex;
     },
     selectPublicKeyNpub: (state) => {
-      console.log("seelct public key npub", state);
+      // console.log("seelct public key npub", state);
       return state.publicKeyNpub;
     },
-    selectIsLoading: (state) => state.isLoading,
   },
 });
 
-export const { setPublicKeyHex, setLoading } = keystoreSlice.actions;
+export const { setPublicKeyHex } = keystoreSlice.actions;
 
 export const keystoreSelectors = keystoreSlice.selectors;

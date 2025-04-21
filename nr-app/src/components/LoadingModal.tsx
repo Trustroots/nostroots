@@ -8,20 +8,21 @@ interface LoadingScreenProps {
   zIndex?: number;
 }
 
+// display the loading modal for a min amount of time to avoid flashing
+const MIN_LOADING_TIME = 1000;
+
 const LoadingScreen: React.FC<LoadingScreenProps> = ({ loading, zIndex }) => {
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
-  const minDisplayTime = 3000; // 3 seconds in milliseconds
 
   useEffect(() => {
     // Start the timer when component mounts
     const timer = setTimeout(() => {
       setMinTimeElapsed(true);
-    }, minDisplayTime);
+    }, MIN_LOADING_TIME);
 
     return () => clearTimeout(timer);
   }, []);
 
-  const showLoading = loading || !minTimeElapsed;
   const shouldDisplay = loading || !minTimeElapsed;
 
   if (!shouldDisplay) {
@@ -37,9 +38,11 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ loading, zIndex }) => {
     <View style={viewStyles}>
       <View style={styles.modalView}>
         <Text style={styles.modalTitle}>Nostroots</Text>
-        {showLoading && <Text style={styles.modalText}>loading...</Text>}
+        {shouldDisplay && <Text style={styles.modalText}>loading...</Text>}
 
-        <ActivityIndicator size="large" color="#0000ff" />
+        <View style={{ marginTop: 20 }}>
+          <ActivityIndicator size="large" color="#0000ff" />
+        </View>
       </View>
     </View>
   );

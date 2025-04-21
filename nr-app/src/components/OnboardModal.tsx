@@ -110,7 +110,7 @@ export default function OnboardModal({
     setIsSubmitting(true);
 
     // sanity check: the username has not been set yet
-    if (username !== "") {
+    if (username !== null) {
       setIsSubmitting(false);
       return;
     }
@@ -209,6 +209,10 @@ export default function OnboardModal({
       setCurrentStep("setPubKeyScreen");
   };
 
+  const nextStepAccountError = async () => {
+    setCurrentStep("isUserScreen");
+  };
+
   const genKeyPairScreen = (
     <View style={styles.instructions}>
       <Text style={styles.modalText}>
@@ -263,8 +267,20 @@ export default function OnboardModal({
     </View>
   );
 
+  const accountErrorScreen = (
+    <View style={styles.instructions}>
+      <Text style={styles.modalText}>
+        Looks like your trustroots.org account info is out of date.
+      </Text>
+      <Button title="Continue" onPress={nextStepAccountError} />
+    </View>
+  );
+
   const isUserScreen = (
     <View style={styles.instructions}>
+      <Text style={styles.modalText}>
+        Let's get you started setting up the app!
+      </Text>
       <Text style={styles.modalText}>
         Do you have a trustroots.org account?
       </Text>
@@ -356,6 +372,10 @@ export default function OnboardModal({
 
   let stepScreen;
   switch (currentStep) {
+    case "accountErrorScreen":
+      stepScreen = accountErrorScreen;
+      break;
+
     case "isUserScreen":
       stepScreen = isUserScreen;
       break;
@@ -405,6 +425,7 @@ const styles = StyleSheet.create({
   modalText: {
     fontSize: 20,
     marginBottom: 20,
+    textAlign: "center",
   },
   closeButton: {
     backgroundColor: "#2196F3",
@@ -415,6 +436,7 @@ const styles = StyleSheet.create({
   closeButtonText: {
     color: "white",
     fontSize: 16,
+    textAlign: "center",
   },
 
   // username

@@ -73,9 +73,6 @@ export default function TabThreeScreen() {
   const [mnemonicInput, setMnemonicInput] = useState("");
   const [showUpdateButton, setShowUpdateButton] = useState(false);
   const [mnemonicError, setMnemonicError] = useState<string | null>(null);
-  const hasPrivateKeyFromRedux = useAppSelector(
-    keystoreSelectors.selectHasPrivateKeyInSecureStorage,
-  );
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
   const publicKeyHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
@@ -126,7 +123,7 @@ export default function TabThreeScreen() {
         Toast.show("Mnemonic updated successfully", {
           duration: Toast.durations.SHORT,
         });
-      } catch (error) {
+      } catch {
         setMnemonicError("Invalid mnemonic. Please check and try again.");
       }
     }

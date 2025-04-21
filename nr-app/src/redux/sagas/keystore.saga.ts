@@ -7,17 +7,27 @@ import { setPublicKeyHex } from "../slices/keystore.slice";
 export function* setPrivateKeySagaEffect(
   action: ReturnType<typeof setPrivateKey>,
 ) {
-  yield call(setPrivateKeyMnemonic, action.payload);
+  try {
+    yield call(setPrivateKeyMnemonic, action.payload);
+  } catch (error) {
+    console.error("keystore setPrivateKeySagaEffect error", error);
+    throw error;
+  }
 }
 
 export const [setPrivateKeyMnemonicPromiseAction, setPrivateKeySaga] =
   createPromiseActionSaga<string, void>({
     actionTypePrefix: "keystore/setPrivateKey",
     *effect(action) {
-      const account: Awaited<ReturnType<typeof setPrivateKeyMnemonic>> =
-        yield call(setPrivateKeyMnemonic, action.payload);
+      try {
+        const account: Awaited<ReturnType<typeof setPrivateKeyMnemonic>> =
+          yield call(setPrivateKeyMnemonic, action.payload);
 
-      yield put(setPublicKeyHex(account.publicKey.hex));
+        yield put(setPublicKeyHex(account.publicKey.hex));
+      } catch (error) {
+        console.error("keystore setPrivateKeyMnemonic error", error);
+        throw error;
+      }
     },
   });
 

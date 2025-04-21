@@ -5,10 +5,12 @@ type KeystoreState = {
   hasPrivateKeyInSecureStorage: boolean;
   publicKeyNpub?: `npub${string}`;
   publicKeyHex?: string;
+  isLoaded: boolean;
 };
 
 const initialState: KeystoreState = {
   hasPrivateKeyInSecureStorage: false,
+  isLoaded: false,
 };
 
 export const keystoreSlice = createSlice({
@@ -25,11 +27,11 @@ export const keystoreSlice = createSlice({
     selectHasPrivateKeyInSecureStorage: (state) =>
       state.hasPrivateKeyInSecureStorage,
     selectPublicKeyHex: (state) => {
-      console.log("seelct public key hex", state);
+      // console.log("seelct public key hex", state);
       return state.publicKeyHex;
     },
     selectPublicKeyNpub: (state) => {
-      console.log("seelct public key npub", state);
+      // console.log("seelct public key npub", state);
       return state.publicKeyNpub;
     },
   },

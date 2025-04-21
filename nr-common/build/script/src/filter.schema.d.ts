@@ -60,9 +60,9 @@ export declare const filterSchema: z.ZodObject<{
     "#Y": z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     "#Z": z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
 }, "strip", z.ZodTypeAny, {
-    ids?: string[] | undefined;
-    kinds?: number[] | undefined;
     authors?: string[] | undefined;
+    kinds?: number[] | undefined;
+    ids?: string[] | undefined;
     since?: number | undefined;
     until?: number | undefined;
     limit?: number | undefined;
@@ -120,9 +120,9 @@ export declare const filterSchema: z.ZodObject<{
     "#Y"?: string[] | undefined;
     "#Z"?: string[] | undefined;
 }, {
-    ids?: string[] | undefined;
-    kinds?: number[] | undefined;
     authors?: string[] | undefined;
+    kinds?: number[] | undefined;
+    ids?: string[] | undefined;
     since?: number | undefined;
     until?: number | undefined;
     limit?: number | undefined;

@@ -76,9 +76,9 @@ export declare const kind10395SubscriptionFilterSchema: z.ZodArray<z.ZodObject<{
         "#Y": z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
         "#Z": z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
     }, "strip", z.ZodTypeAny, {
-        ids?: string[] | undefined;
-        kinds?: number[] | undefined;
         authors?: string[] | undefined;
+        kinds?: number[] | undefined;
+        ids?: string[] | undefined;
         since?: number | undefined;
         until?: number | undefined;
         limit?: number | undefined;
@@ -136,9 +136,9 @@ export declare const kind10395SubscriptionFilterSchema: z.ZodArray<z.ZodObject<{
         "#Y"?: string[] | undefined;
         "#Z"?: string[] | undefined;
     }, {
-        ids?: string[] | undefined;
-        kinds?: number[] | undefined;
         authors?: string[] | undefined;
+        kinds?: number[] | undefined;
+        ids?: string[] | undefined;
         since?: number | undefined;
         until?: number | undefined;
         limit?: number | undefined;
@@ -198,9 +198,9 @@ export declare const kind10395SubscriptionFilterSchema: z.ZodArray<z.ZodObject<{
     }>;
 }, "strip", z.ZodTypeAny, {
     filter: {
-        ids?: string[] | undefined;
-        kinds?: number[] | undefined;
         authors?: string[] | undefined;
+        kinds?: number[] | undefined;
+        ids?: string[] | undefined;
         since?: number | undefined;
         until?: number | undefined;
         limit?: number | undefined;
@@ -260,9 +260,9 @@ export declare const kind10395SubscriptionFilterSchema: z.ZodArray<z.ZodObject<{
     };
 }, {
     filter: {
-        ids?: string[] | undefined;
-        kinds?: number[] | undefined;
         authors?: string[] | undefined;
+        kinds?: number[] | undefined;
+        ids?: string[] | undefined;
         since?: number | undefined;
         until?: number | undefined;
         limit?: number | undefined;
@@ -391,9 +391,9 @@ export declare const kind10395ContentDecryptedDecodedSchema: z.ZodObject<{
             "#Y": z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
             "#Z": z.ZodOptional<z.ZodArray<z.ZodString, "many">>;
         }, "strip", z.ZodTypeAny, {
-            ids?: string[] | undefined;
-            kinds?: number[] | undefined;
             authors?: string[] | undefined;
+            kinds?: number[] | undefined;
+            ids?: string[] | undefined;
             since?: number | undefined;
             until?: number | undefined;
             limit?: number | undefined;
@@ -451,9 +451,9 @@ export declare const kind10395ContentDecryptedDecodedSchema: z.ZodObject<{
             "#Y"?: string[] | undefined;
             "#Z"?: string[] | undefined;
         }, {
-            ids?: string[] | undefined;
-            kinds?: number[] | undefined;
             authors?: string[] | undefined;
+            kinds?: number[] | undefined;
+            ids?: string[] | undefined;
             since?: number | undefined;
             until?: number | undefined;
             limit?: number | undefined;
@@ -513,9 +513,9 @@ export declare const kind10395ContentDecryptedDecodedSchema: z.ZodObject<{
         }>;
     }, "strip", z.ZodTypeAny, {
         filter: {
-            ids?: string[] | undefined;
-            kinds?: number[] | undefined;
             authors?: string[] | undefined;
+            kinds?: number[] | undefined;
+            ids?: string[] | undefined;
             since?: number | undefined;
             until?: number | undefined;
             limit?: number | undefined;
@@ -575,9 +575,9 @@ export declare const kind10395ContentDecryptedDecodedSchema: z.ZodObject<{
         };
     }, {
         filter: {
-            ids?: string[] | undefined;
-            kinds?: number[] | undefined;
             authors?: string[] | undefined;
+            kinds?: number[] | undefined;
+            ids?: string[] | undefined;
             since?: number | undefined;
             until?: number | undefined;
             limit?: number | undefined;
@@ -642,9 +642,9 @@ export declare const kind10395ContentDecryptedDecodedSchema: z.ZodObject<{
     }[];
     filters: {
         filter: {
-            ids?: string[] | undefined;
-            kinds?: number[] | undefined;
             authors?: string[] | undefined;
+            kinds?: number[] | undefined;
+            ids?: string[] | undefined;
             since?: number | undefined;
             until?: number | undefined;
             limit?: number | undefined;
@@ -709,9 +709,9 @@ export declare const kind10395ContentDecryptedDecodedSchema: z.ZodObject<{
     }[];
     filters: {
         filter: {
-            ids?: string[] | undefined;
-            kinds?: number[] | undefined;
             authors?: string[] | undefined;
+            kinds?: number[] | undefined;
+            ids?: string[] | undefined;
             since?: number | undefined;
             until?: number | undefined;
             limit?: number | undefined;

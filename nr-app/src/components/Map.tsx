@@ -1,11 +1,12 @@
-import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
-
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { settingsSelectors } from "@/redux/slices/settings.slice";
 import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@trustroots/nr-common";
 import React, { useMemo } from "react";
+import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
+import MapAddNoteModal from "./MapAddNoteModal";
 import { MapMarkers } from "./MapMarkers";
+import MapPlusCodes from "./MapPlusCodes";
 import MapModal from "./MapModal";
 
 // filter out these note types if test features are disabled
@@ -15,6 +16,9 @@ export default function Map() {
   const enabledLayers = useAppSelector(mapSelectors.selectEnabledLayers);
   const areTestFeaturesEnabled = useAppSelector(
     settingsSelectors.selectAreTestFeaturesEnabled,
+  );
+  const enablePlusCodeMapTEMPORARY = useAppSelector(
+    mapSelectors.selectEnablePlusCodeMapTEMPORARY,
   );
   const dispatch = useAppDispatch();
 
@@ -35,7 +39,8 @@ export default function Map() {
 
   return (
     <View style={styles.mapContainer}>
-      <MapMarkers />
+      {enablePlusCodeMapTEMPORARY ? <MapPlusCodes /> : <MapMarkers />}
+
       <View style={styles.toggleWrapper}>
         <FlatList
           data={filteredMapLayers}
@@ -52,6 +57,8 @@ export default function Map() {
         />
       </View>
 
+      {/* This should be removed and deleted once the plus code map goes live */}
+      <MapAddNoteModal />
       <MapModal />
     </View>
   );

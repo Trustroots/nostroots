@@ -18,7 +18,9 @@ const isOnDevice = Platform.OS !== "web";
 
 const sagaMiddleware = createSagaMiddleware();
 
-const maybeDevToolsEnhancer = isOnDevice ? [devtoolsEnhancer()] : [];
+const maybeDevToolsEnhancer = isOnDevice
+  ? [devtoolsEnhancer({ maxAge: 200 })]
+  : [];
 
 const rootReducer = combineSlices(
   eventsSlice,
@@ -32,7 +34,7 @@ const rootReducer = combineSlices(
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
-  whitelist: ["settings", "keystore", "relays"], // Only persist these reducers
+  whitelist: ["settings", "keystore"], // Only persist these reducers
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

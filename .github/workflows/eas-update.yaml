@@ -1,0 +1,32 @@
+name: Send an OTA update
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Update Channel
+        required: true
+        default: 'preview'
+        type: choice
+        options:
+          - preview
+      message:
+        description: Message
+        required: true
+        default: ''
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/repo-setup
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🗞️ Send Update
+        working-directory: ./nr-app
+        run: eas update --channel ${{inputs.channel}} --message "${{inputs.message}}"

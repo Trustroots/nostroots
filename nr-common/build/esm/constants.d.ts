@@ -1,3 +1,4 @@
+import { Filter } from "nostr-tools";
 export declare const PACKAGE_VERSION = "0.0.1";
 export declare const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH: 2;
 export declare const TRUSTROOTS_PROFILE_KIND: 10390;
@@ -23,6 +24,7 @@ export declare const TIMESAFARI_AUTHOR_PUBLIC_KEY: "76e88d2e653fc3655f8e0b97f6bc
 export declare const SENTRY_DSN: "https://ea370f9e4aba87f6e69a479f2d41bc23@o4508806276841472.ingest.de.sentry.io/4508806292176976";
 export type MapLayer = {
     title: string;
+    filter: Filter;
     rootUrl: string;
     kind: 30399 | 30398 | 30397;
     pubkey: string;
@@ -30,6 +32,7 @@ export type MapLayer = {
     rectangleColor: string;
 };
 export declare const MAP_LAYERS: {
+    readonly trustroots: MapLayer;
     readonly hitchmap: MapLayer;
     readonly hitchwiki: MapLayer;
     readonly timesafari: MapLayer;

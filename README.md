@@ -16,31 +16,33 @@ One measure of success is that 70% of active trustroots users have used their no
 
 ## Next steps
 
-Given the goals above, and our (deprecated) experiment with [notes.trustroots.org](https://notes.trustroots.org), the next step is to build a better map that uses nostr to move data around. This will take the form of a mobile application. The reasoning for a mobile application is to be able to provide the best possible use case on mobile. We reason that people will use the map primarily on mobile devices, and the experience is significantly better in a native app compared to a progressive web app.
+We are working on an app, for which there are now APKs available at https://github.com/Trustroots/nostroots/issues/80
 
-The app should be on similar level of quality and polish as the trustroots site. The app should always be an optional addition to the core trustroots experience, but not mandatory. Users should be able to find hosts without installing an app.
+This is a work in progress, based on our (deprecated) experiment with [notes.trustroots.org](https://notes.trustroots.org). Data is stored on nostr relays. The reasoning for a mobile application is to be able to provide the best possible use case on mobile. We reason that people will use the map primarily on mobile devices, and the experience is significantly better in a native app compared to a progressive web app.
+
+The app should have a similar level of quality and polish as the trustroots site. Initially the app is an optional addition to the core trustroots experience, not mandatory. Users should be able to find hosts without installing an app.
 
 The key features the app requires are:
 
-- Ability to post notes on an area of the map
-  - Posted to an area, rather than a point
-  - Could be seen as a forum post, an event invitation, or otherwise
-  - The word note in this context means the nostr definition of a note
-- Interactions between users
-  - Potentially replies that are also public
-  - At least for the foreseeable future, the map should support interactions over several months, so a person might post and then three months later another person might reply
-- Notifications
-  - If somebody replies to what you posted, you should be told
-  - It should be possible to signup to be notified about anything that's posted in a given area
+- [x] Ability to post notes on an area of the map
+  - [ ] Posted to an area, rather than a point
+  - [ ] Could be seen as a forum post, an event invitation, or otherwise
+  - [ ] The word note in this context means the nostr definition of a note
+- [ ] Interactions between users
+  - [ ] Potentially replies that are also public
+  - [ ] At least for the foreseeable future, the map should support interactions over several months, so a person might post and then three months later another person might reply
+- [ ] Notifications
+  - [ ] If somebody replies to what you posted, you should be told
+  - [ ] It should be possible to signup to be notified about anything that's posted in a given area
 
 ## Getting started
 
-There are 3 parts to this code.
+There are 4 parts to this code.
 
 - `nr-common` - A module that is shared between the rest of the projects
 - `nr-app` - An expo app
 - `nr-server` - A deno application that is hosted by Trustroots
-- `nr-push` - A Go application that handles push notifications for the app.
+- `nr-push` - A Go application that handles push notifications for the app, code currently at https://github.com/trustroots/notification-daemon
 
 Please refer to the READMEs in the respective subfolders for working on them.
 
@@ -86,50 +88,7 @@ Possible groups and communities:
    - [lindyhop circle](https://www.trustroots.org/circles/lindyhoppers)
 - [1NITE TENT](https://1nitetent.com/)
 
-
-### Timeline
-**Q4 2024:**
-- Add functionality on main trustroots site to display and link recommended organisations in Berlin
-  - possibly based on circles
-  - track what gets clicked on
-  - solicit experience reports and recs for other groups to display
-  - minimally-invasive w/r/t to the existing messy codebase
-- Build out Trustroots app
-  - full notes functionality
-  - ["login-with-trustroots" functionality](https://nips.nostr.com/46)
-  - putting more profile data onto Nostr with opt-in, starting with Circles
-  - experiment with nip-46 login with nip-05 flow
-
-**Q1 2025:**
-- Add login-with functionality to most promising one partner org
-- Add more recommended orgs
-- Solicit for some Berlin community management role?
-- feed more data into the map and filter by Circles
-
-**Q2 2025:**
-- add nip-46 login to Trustroots app and begin encouraging users to store their nsec outside of the Trustroots app
-- add login-with functionality to another partner org
-
-
-### Log in with Nostr/Trustroots
-#### User flow
-- People search for something in Berlin
-- A little sidebar informs them of other services in Berlin they might be interested in
-  - it includes a mention of the app and ease of using them via the app.
-- User downloads app.
-- They're onboarded onto Nostr
-  - private key generated and saved
-  - public key nip-05 verified
-  - (some) profile information published on the Nostr ecosystem (do we need extra consent here?).
-- In the app, they can click on a link to an app [and get taken straight to the service](https://nips.nostr.com/46#direct-connection-initiated-by-remote-signer) onto the "edit account" page to fill in missing information.
-
-#### Technical Flow:
-- partner site embeds javascript we provide on their website
-- partner site adds `login-with-nostr` endpoint to their API
-- user clicks a "login with trustroots" button on 
-- nip-46 flow is initiated
-- server-side, sign-in gets verified and trustroots information parsed with a library we provide
-
+See https://github.com/Trustroots/nostroots/issues/90
 
 ---
 

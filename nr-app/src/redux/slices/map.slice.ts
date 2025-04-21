@@ -1,32 +1,31 @@
-import { MAP_LAYER_KEY } from "@trustroots/nr-common";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { LatLng } from "react-native-maps";
+import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
+import { BoundingBox, LatLng } from "react-native-maps";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { setSubscriptionHasSeenEOSE } from "./relays.slice";
+import { eventsSelectors } from "./events.slice";
+import { matchFilter } from "nostr-tools";
 
 export const MAP_SUBSCRIPTION_ID = "mapVisiblePlusCodesSubscription";
 
 interface MapState {
   mapSubscriptionIsUpdating: boolean;
   visiblePlusCodes: string[];
+  selectedPlusCode: string;
+  boundingBox?: BoundingBox;
   isAddNoteModalOpen: boolean;
   selectedLatLng?: LatLng;
-  enabledLayers: {
-    [key in MAP_LAYER_KEY]: boolean;
-  };
+  selectedLayer: MAP_LAYER_KEY;
+  enablePlusCodeMapTEMPORARY: boolean;
 }
 
 const initialState: MapState = {
   mapSubscriptionIsUpdating: false,
   visiblePlusCodes: [],
   isAddNoteModalOpen: false,
-  enabledLayers: {
-    hitchmap: false,
-    hitchwiki: false,
-    timesafari: false,
-    triphopping: false,
-    unverified: false,
-  },
+  selectedPlusCode: "",
+  selectedLayer: "trustroots",
+  enablePlusCodeMapTEMPORARY: true,
 };
 
 export const mapSlice = createSlice({
@@ -39,17 +38,19 @@ export const mapSlice = createSlice({
       }
     },
     enableLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
-      state.enabledLayers[action.payload] = true;
+      state.selectedLayer = action.payload;
     },
     disableLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
-      // Disable uncommenting layers for now
-      return state;
-      // eslint-disable-next-line no-unreachable
-      state.enabledLayers[action.payload] = false;
+      // Disable turning off layers for now
+      // return state;
+      state.selectedLayer = "trustroots";
     },
     toggleLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
-      state.enabledLayers[action.payload] =
-        !state.enabledLayers[action.payload];
+      if (state.selectedLayer === action.payload) {
+        state.selectedLayer = "trustroots";
+      } else {
+        state.selectedLayer = action.payload;
+      }
     },
     openAddNoteModal: (state) => {
       state.isAddNoteModalOpen = true;
@@ -57,8 +58,23 @@ export const mapSlice = createSlice({
     closeAddNoteModal: (state) => {
       state.isAddNoteModalOpen = false;
     },
+    setSelectedPlusCode: (state, action: PayloadAction<string>) => {
+      state.selectedPlusCode = action.payload;
+    },
+    closeMapModal: (state) => {
+      state.selectedPlusCode = "";
+    },
     setSelectedLatLng: (state, action: PayloadAction<LatLng>) => {
       state.selectedLatLng = action.payload;
+    },
+    setBoundingBox: (
+      state,
+      action: PayloadAction<{ northEast: LatLng; southWest: LatLng }>,
+    ) => {
+      state.boundingBox = action.payload;
+    },
+    togglePlusCodeMapTEMPORARY: (state) => {
+      state.enablePlusCodeMapTEMPORARY = !state.enablePlusCodeMapTEMPORARY;
     },
   },
   extraReducers: (builder) => {
@@ -74,28 +90,45 @@ export const mapSlice = createSlice({
   },
   selectors: {
     selectVisiblePlusCodes: (state) => state.visiblePlusCodes,
-    selectEnabledLayers: (state) => state.enabledLayers,
+    selectEnabledLayers: (state) =>
+      Object.fromEntries(
+        Object.entries(MAP_LAYERS).map(([key]) => [
+          key,
+          key === state.selectedLayer,
+        ]),
+      ),
     selectEnabledLayersAndVisiblePlusCodes: (state) => ({
-      enabledLayers: state.enabledLayers,
+      enabledLayers: [state.selectedLayer],
       visiblePlusCodes: state.visiblePlusCodes,
     }),
+    selectSelectedLayer: (state) => state.selectedLayer,
     selectSelectedLatLng: (state) => state.selectedLatLng,
+    selectSelectedPlusCode: (state) => state.selectedPlusCode,
+    selectIsMapModalOpen: (state) => state.selectedPlusCode !== "",
     selectIsAddNoteModalOpen: (state) => state.isAddNoteModalOpen,
+    selectBoundingBox: (state) => state.boundingBox,
+    selectEnablePlusCodeMapTEMPORARY: (state) =>
+      state.enablePlusCodeMapTEMPORARY,
+    selectEnabledLayerKeys: (state) => [state.selectedLayer],
   },
 });
 
-export const mapActions = mapSlice.actions;
+const mapSliceSelectors = mapSlice.selectors;
 
-const selectEnabledLayerKeys = createSelector(
-  [mapSlice.selectors.selectEnabledLayers],
-  (enabledLayers) => {
-    // NOTE: The return type of `Object.keys()` is `string[]` and I don't know
-    // how to tell TypeScript that it should be `keyof typeof
-    // state.enabledLayers` so I cast it here instead.
-    const keys = Object.keys(enabledLayers) as MAP_LAYER_KEY[];
-    const enabledKeys = keys.filter((key) => enabledLayers[key]);
-    return enabledKeys;
+const selectEventsForSelectedMapLayer = createSelector(
+  [eventsSelectors.selectAll, mapSliceSelectors.selectSelectedLayer],
+  (events, selectedLayer) => {
+    const layer = MAP_LAYERS[selectedLayer];
+    const eventsForLayer = events.filter((eventWithMetadata) =>
+      matchFilter(layer.filter, eventWithMetadata.event),
+    );
+    return eventsForLayer;
   },
 );
 
-export const mapSelectors = { ...mapSlice.selectors, selectEnabledLayerKeys };
+export const mapActions = mapSlice.actions;
+
+export const mapSelectors = {
+  ...mapSliceSelectors,
+  selectEventsForSelectedMapLayer,
+};

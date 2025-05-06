@@ -4,6 +4,8 @@ Trustroots is a social network of travelers and hosts that offer couches. Founde
 
 nostroots is an initiative to seamlessly transition Trustroots, the platform for sharing, hosting, and community building, onto the nostr network. By leveraging the unique decentralized and open-source nature of nostr, nostroots aims to enhance Trustroots' community-focused ethos with greater privacy, security, and user autonomy.
 
+_Send us a DM at [nostrchat.io](https://www.nostrchat.io/dm/npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj)_
+
 ## Goals
 
 The principal goal is to facilitate real world interactions.

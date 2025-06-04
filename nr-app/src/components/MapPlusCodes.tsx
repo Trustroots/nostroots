@@ -11,6 +11,7 @@ import {
   plusCodeToRectangle,
   regionToBoundingBox,
 } from "@/utils/map.utils";
+import { createSelector } from "@reduxjs/toolkit";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useMemo, useRef } from "react";
 import { Platform, StyleSheet } from "react-native";
@@ -21,7 +22,6 @@ import MapView, {
   PROVIDER_GOOGLE,
   Region,
 } from "react-native-maps";
-import { createSelector } from "reselect";
 
 const log = rootLogger.extend("MapPlusCodes");
 
@@ -36,6 +36,16 @@ function whatLengthOfPlusCodeToShow(region: Region) {
   }
   return 8;
 }
+
+// Memoized selector for visible plus codes to prevent selector warnings
+const selectVisiblePlusCodesFromRegion = createSelector(
+  [mapSelectors.selectBoundingBox],
+  (boundingBox) => {
+    if (!boundingBox) return [];
+    const region = boundariesToRegion(boundingBox);
+    return allPlusCodesForRegion(region);
+  },
+);
 
 const selectPlusCodesWithState = createSelector(
   [
@@ -65,15 +75,37 @@ const selectPlusCodesWithState = createSelector(
       length,
     );
 
-    const output = plusCodes.map((plusCode) => {
-      const { eventsForPlusCodeExactly, eventsWithinPlusCode } =
-        filterEventsForPlusCode(events, plusCode);
-      return {
-        plusCode,
-        eventCountForThisPlusCodeExactly: eventsForPlusCodeExactly.length,
-        eventCountWithinThisPlusCode: eventsWithinPlusCode.length,
-      };
-    });
+    const output = plusCodes
+      .map((plusCode) => {
+        const { eventsForPlusCodeExactly, eventsWithinPlusCode } =
+          filterEventsForPlusCode(events, plusCode);
+
+        // Get coordinates and validate them
+        const coordinates = plusCodeToRectangle(plusCode);
+
+        // Ensure coordinates are valid before returning
+        if (
+          !coordinates ||
+          coordinates.some(
+            (coord) =>
+              coord.latitude == null ||
+              coord.longitude == null ||
+              isNaN(coord.latitude) ||
+              isNaN(coord.longitude),
+          )
+        ) {
+          return null; // Return null for invalid coordinates
+        }
+
+        return {
+          plusCode,
+          coordinates,
+          eventCountForThisPlusCodeExactly: eventsForPlusCodeExactly.length,
+          eventCountWithinThisPlusCode: eventsWithinPlusCode.length,
+        };
+      })
+      .filter(Boolean); // Filter out null entries
+
     return output;
   },
 );
@@ -82,6 +114,7 @@ export default function MapPlusCodes() {
   const dispatch = useAppDispatch();
 
   const plusCodesWithState = useAppSelector(selectPlusCodesWithState);
+  const visiblePlusCodes = useAppSelector(selectVisiblePlusCodesFromRegion);
 
   const mapViewRef = useRef<MapView>(null);
 
@@ -91,12 +124,12 @@ export default function MapPlusCodes() {
         __DEV__ && console.log("#rIMmxg Map move completed", region, details);
         const boundingBox = regionToBoundingBox(region);
         dispatch(mapActions.setBoundingBox(boundingBox));
-        const visiblePlusCodes = allPlusCodesForRegion(region);
+        // Use the memoized selector result instead of calling allPlusCodesForRegion directly
         dispatch(setVisiblePlusCodes(visiblePlusCodes));
         const length = whatLengthOfPlusCodeToShow(region);
         log.debug("#mzWdGm regionChange plusCode length", length);
       },
-    [dispatch],
+    [dispatch, visiblePlusCodes],
   );
 
   return (
@@ -124,23 +157,30 @@ export default function MapPlusCodes() {
         handleMapRegionChange(region, {});
       }}
     >
-      {true &&
-        plusCodesWithState.map((plusCodeWithState, index) => (
-          <Polygon
-            key={plusCodeWithState.plusCode}
-            coordinates={plusCodeToRectangle(plusCodeWithState.plusCode)}
-            // fillColor={`rgba(255, 0, 0, 0.${plusCodeWithState.events.length > 9 ? "9" : plusCodeWithState.events.length.toString().substring(0, 1)}})`}
-            fillColor={`rgba(${Math.min(255, (plusCodeWithState.eventCountForThisPlusCodeExactly + plusCodeWithState.eventCountWithinThisPlusCode) * 60).toString()}, 0, 0, 0.6)`}
-            strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
-            strokeWidth={2}
-            tappable={true}
-            onPress={() => {
-              dispatch(
-                mapActions.setSelectedPlusCode(plusCodeWithState.plusCode),
-              );
-            }}
-          />
-        ))}
+      {plusCodesWithState.length > 0 &&
+        plusCodesWithState.map((plusCodeWithState, index) => {
+          // Additional safety check before rendering
+          if (!plusCodeWithState?.coordinates) {
+            return null;
+          }
+
+          return (
+            <Polygon
+              key={`polygon-${plusCodeWithState.plusCode}-${index}`}
+              coordinates={plusCodeWithState.coordinates}
+              // fillColor={`rgba(255, 0, 0, 0.${plusCodeWithState.events.length > 9 ? "9" : plusCodeWithState.events.length.toString().substring(0, 1)}})`}
+              fillColor={`rgba(${Math.min(255, (plusCodeWithState.eventCountForThisPlusCodeExactly + plusCodeWithState.eventCountWithinThisPlusCode) * 60).toString()}, 0, 0, 0.6)`}
+              strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
+              strokeWidth={2}
+              tappable={true}
+              onPress={() => {
+                dispatch(
+                  mapActions.setSelectedPlusCode(plusCodeWithState.plusCode),
+                );
+              }}
+            />
+          );
+        })}
     </MapView>
   );
 }

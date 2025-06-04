@@ -1,10 +1,10 @@
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
+import { matchFilter } from "nostr-tools";
 import { BoundingBox, LatLng } from "react-native-maps";
 import { setVisiblePlusCodes } from "../actions/map.actions";
-import { setSubscriptionHasSeenEOSE } from "./relays.slice";
 import { eventsSelectors } from "./events.slice";
-import { matchFilter } from "nostr-tools";
+import { setSubscriptionHasSeenEOSE } from "./relays.slice";
 
 export const MAP_SUBSCRIPTION_ID = "mapVisiblePlusCodesSubscription";
 
@@ -90,17 +90,6 @@ export const mapSlice = createSlice({
   },
   selectors: {
     selectVisiblePlusCodes: (state) => state.visiblePlusCodes,
-    selectEnabledLayers: (state) =>
-      Object.fromEntries(
-        Object.entries(MAP_LAYERS).map(([key]) => [
-          key,
-          key === state.selectedLayer,
-        ]),
-      ),
-    selectEnabledLayersAndVisiblePlusCodes: (state) => ({
-      enabledLayers: [state.selectedLayer],
-      visiblePlusCodes: state.visiblePlusCodes,
-    }),
     selectSelectedLayer: (state) => state.selectedLayer,
     selectSelectedLatLng: (state) => state.selectedLatLng,
     selectSelectedPlusCode: (state) => state.selectedPlusCode,
@@ -114,6 +103,27 @@ export const mapSlice = createSlice({
 });
 
 const mapSliceSelectors = mapSlice.selectors;
+
+// Create a memoized selector for enabled layers to prevent unnecessary re-renders
+const selectEnabledLayers = createSelector(
+  [mapSliceSelectors.selectSelectedLayer],
+  (selectedLayer) =>
+    Object.fromEntries(
+      Object.entries(MAP_LAYERS).map(([key]) => [key, key === selectedLayer]),
+    ),
+);
+
+// Create a memoized selector for enabled layers and visible plus codes
+const selectEnabledLayersAndVisiblePlusCodes = createSelector(
+  [
+    mapSliceSelectors.selectSelectedLayer,
+    mapSliceSelectors.selectVisiblePlusCodes,
+  ],
+  (selectedLayer, visiblePlusCodes) => ({
+    enabledLayers: [selectedLayer],
+    visiblePlusCodes: visiblePlusCodes,
+  }),
+);
 
 const selectEventsForSelectedMapLayer = createSelector(
   [eventsSelectors.selectAll, mapSliceSelectors.selectSelectedLayer],
@@ -130,5 +140,7 @@ export const mapActions = mapSlice.actions;
 
 export const mapSelectors = {
   ...mapSliceSelectors,
+  selectEnabledLayers,
+  selectEnabledLayersAndVisiblePlusCodes,
   selectEventsForSelectedMapLayer,
 };

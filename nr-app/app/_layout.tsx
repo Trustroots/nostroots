@@ -18,6 +18,8 @@ import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
 
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { rehydrated } from "@/redux/actions/startup.actions";
+import { useAppDispatch } from "@/redux/hooks";
 import { persistor, store } from "@/redux/store";
 
 // Construct a new integration instance. This is needed to communicate between the integration and React
@@ -40,6 +42,7 @@ Sentry.init({
 SplashScreen.preventAutoHideAsync();
 
 function RootLayout() {
+  const dispatch = useAppDispatch();
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
@@ -57,7 +60,14 @@ function RootLayout() {
 
   return (
     <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
+      <PersistGate
+        loading={null}
+        persistor={persistor}
+        onBeforeLift={() => {
+          // Dispatch startup action after redux-persist has rehydrated the store
+          dispatch(rehydrated());
+        }}
+      >
         <ThemeProvider
           value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
         >

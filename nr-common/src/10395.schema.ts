@@ -1,12 +1,13 @@
-import { Filter } from "npm:nostr-tools@2.10.4/filter";
+import type { Filter } from "npm:nostr-tools@2.10.4/filter";
 import {
   NOTIFICATION_SERVER_PUBKEY,
   NOTIFICATION_SUBSCRIPTION_KIND,
-  TRUSTROOTS_PROFILE_KIND,
 } from "../constants.ts";
 import { z } from "../deps.ts";
-import { finalizedEventFields } from "./base.schema.ts";
-import { baseEventSchema, baseEventTemplateSchema } from "./base.schema.ts";
+import {
+  baseEventTemplateSchema,
+  finalizedEventFields,
+} from "./base.schema.ts";
 import { filterSchema } from "./filter.schema.ts";
 import { getCurrentTimestamp } from "./utils.ts";
 

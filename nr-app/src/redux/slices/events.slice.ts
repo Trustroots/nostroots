@@ -168,7 +168,12 @@ export const eventsSlice = createSlice({
 export const { addEvent, addEvents, setAllEventsWithMetadata } =
   eventsSlice.actions;
 
-const adapterSelectors = eventsAdapter.getSelectors(eventsSlice.selectSlice);
+const adapterSelectors = eventsAdapter.getSelectors();
+
+const selectAll = createSelector(
+  eventsSlice.selectSlice,
+  adapterSelectors.selectAll,
+);
 
 const selectEventsForPlusCodeExactlyFactory = (plusCode: string) =>
   createSelector([adapterSelectors.selectAll], (events) =>
@@ -217,7 +222,7 @@ const selectTrustrootsUsernameFactory = (authorPublicKey?: string) =>
   );
 
 export const eventsSelectors = {
-  ...adapterSelectors,
+  selectAll: selectAll,
   selectEventsForPlusCodeExactlyFactory,
   selectEventsWithinPlusCodeFactory,
   selectAuthorProfileEventFactory,

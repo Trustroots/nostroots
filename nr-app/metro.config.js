@@ -18,4 +18,7 @@ config.resolver.nodeModulesPaths = [
   path.resolve(workspaceRoot, "node_modules"),
 ];
 
+// Disable package exports support to fix Redux Saga compatibility with React Native 0.79
+config.resolver.unstable_enablePackageExports = false;
+
 module.exports = config;

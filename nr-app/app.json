@@ -2,13 +2,13 @@
   "expo": {
     "name": "Nostroots",
     "slug": "nr-app",
-    "version": "1.0.0",
+    "version": "0.0.1",
     "orientation": "portrait",
-    "icon": "./assets/images/nostroots-300x300.jpg",
+    "icon": "./assets/images/nostroots-300x300.png",
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/images/nostroots-300x300.jpg",
+      "image": "./assets/images/nostroots-300x300.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -24,7 +24,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/nostroots-300x300.jpg",
+        "foregroundImage": "./assets/images/nostroots-300x300.png",
         "backgroundColor": "#ffffff"
       },
       "package": "org.trustroots.nostroots",
@@ -51,7 +51,8 @@
           "project": "react-native",
           "url": "https://sentry.io/"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

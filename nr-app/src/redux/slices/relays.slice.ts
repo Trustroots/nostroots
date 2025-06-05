@@ -1,5 +1,5 @@
 import { DEFAULT_RELAY_URL } from "@trustroots/nr-common";
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Filter } from "nostr-tools";
 
 type RelayNotice = {
@@ -119,10 +119,11 @@ export const relaysSlice = createSlice({
     },
   },
   selectors: {
-    getActiveRelayUrls: (state) =>
-      Object.keys(state.relays).filter(
-        (relayUrl) => state.relays[relayUrl].isActive,
-      ),
+    getActiveRelayUrls: createSelector(
+      (state: RelaysState) => state.relays,
+      (relays) =>
+        Object.keys(relays).filter((relayUrl) => relays[relayUrl].isActive),
+    ),
     selectSubscription: (state, id): Subscription | undefined =>
       state.subscriptions[id],
   },

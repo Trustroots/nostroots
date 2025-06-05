@@ -222,7 +222,7 @@ const selectTrustrootsUsernameFactory = (authorPublicKey?: string) =>
   );
 
 export const eventsSelectors = {
-  selectAll: selectAll,
+  selectAll,
   selectEventsForPlusCodeExactlyFactory,
   selectEventsWithinPlusCodeFactory,
   selectAuthorProfileEventFactory,

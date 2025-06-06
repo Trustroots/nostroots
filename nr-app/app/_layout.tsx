@@ -186,7 +186,6 @@ function AppContent() {
 }
 
 function RootLayout() {
-  const dispatch = useAppDispatch();
   const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
@@ -209,7 +208,7 @@ function RootLayout() {
         persistor={persistor}
         onBeforeLift={() => {
           // Dispatch startup action after redux-persist has rehydrated the store
-          dispatch(rehydrated());
+          store.dispatch(rehydrated());
           // This is called right before the persisted state is applied to Redux
           store.dispatch(settingsActions.setDataLoaded(true));
         }}

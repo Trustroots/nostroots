@@ -13,6 +13,7 @@ import { mapSlice } from "./slices/map.slice";
 import { relaysSlice } from "./slices/relays.slice";
 import { settingsSlice } from "./slices/settings.slice";
 import { notificationsSlice } from "./slices/notifications.slice";
+import { startup } from "./actions/startup.actions";
 
 const isOnDevice = Platform.OS !== "web";
 
@@ -34,7 +35,7 @@ const rootReducer = combineSlices(
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
-  whitelist: ["settings", "keystore"], // Only persist these reducers
+  whitelist: ["events", "keystore", "notifications", "settings"], // Only persist these reducers
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
@@ -60,6 +61,8 @@ export const persistor = persistStore(store);
 export type AppStore = typeof store;
 
 sagaMiddleware.run(rootSaga);
+
+store.dispatch(startup());
 
 export type RootState = ReturnType<typeof store.getState>;
 

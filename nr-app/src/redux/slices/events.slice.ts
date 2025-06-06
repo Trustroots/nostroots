@@ -176,12 +176,12 @@ const selectAll = createSelector(
 );
 
 const selectEventsForPlusCodeExactlyFactory = (plusCode: string) =>
-  createSelector([adapterSelectors.selectAll], (events) =>
+  createSelector([selectAll], (events) =>
     events.filter((event) => isEventForPlusCodeExactly(event.event, plusCode)),
   );
 
 const selectEventsWithinPlusCodeFactory = (plusCode: string) =>
-  createSelector([adapterSelectors.selectAll], (events) =>
+  createSelector([selectAll], (events) =>
     events.filter(
       (event) =>
         !isEventForPlusCodeExactly(event.event, plusCode) &&
@@ -190,7 +190,7 @@ const selectEventsWithinPlusCodeFactory = (plusCode: string) =>
   );
 
 const selectAuthorProfileEventFactory = (authorPublicKey?: string) =>
-  createSelector([adapterSelectors.selectAll], (events) => {
+  createSelector([selectAll], (events) => {
     if (
       typeof authorPublicKey === "undefined" ||
       authorPublicKey.length === 0
@@ -222,7 +222,7 @@ const selectTrustrootsUsernameFactory = (authorPublicKey?: string) =>
   );
 
 export const eventsSelectors = {
-  selectAll: selectAll,
+  selectAll,
   selectEventsForPlusCodeExactlyFactory,
   selectEventsWithinPlusCodeFactory,
   selectAuthorProfileEventFactory,

@@ -61,3 +61,5 @@ export const filterSchema = z.object({
   "#Y": z.string().array().optional(),
   "#Z": z.string().array().optional(),
 });
+
+export type Filter = z.infer<typeof filterSchema>;

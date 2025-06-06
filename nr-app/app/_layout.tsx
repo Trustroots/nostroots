@@ -32,6 +32,7 @@ import { SENTRY_DSN } from "@trustroots/nr-common";
 
 import LoadingScreen from "@/components/LoadingModal";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { rehydrated } from "@/redux/actions/startup.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
   keystoreSelectors,
@@ -206,6 +207,8 @@ function RootLayout() {
         loading={null}
         persistor={persistor}
         onBeforeLift={() => {
+          // Dispatch startup action after redux-persist has rehydrated the store
+          store.dispatch(rehydrated());
           // This is called right before the persisted state is applied to Redux
           store.dispatch(settingsActions.setDataLoaded(true));
         }}

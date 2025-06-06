@@ -180,3 +180,4 @@ export declare const filterSchema: z.ZodObject<{
     "#Y"?: string[] | undefined;
     "#Z"?: string[] | undefined;
 }>;
+export type Filter = z.infer<typeof filterSchema>;

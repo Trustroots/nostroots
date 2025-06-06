@@ -1,12 +1,12 @@
-import { Filter } from "npm:nostr-tools@2.10.4/filter";
 import {
   NOTIFICATION_SERVER_PUBKEY,
   NOTIFICATION_SUBSCRIPTION_KIND,
-  TRUSTROOTS_PROFILE_KIND,
 } from "../constants.ts";
 import { z } from "../deps.ts";
-import { finalizedEventFields } from "./base.schema.ts";
-import { baseEventSchema, baseEventTemplateSchema } from "./base.schema.ts";
+import {
+  baseEventTemplateSchema,
+  finalizedEventFields,
+} from "./base.schema.ts";
 import { filterSchema } from "./filter.schema.ts";
 import { getCurrentTimestamp } from "./utils.ts";
 
@@ -53,14 +53,11 @@ export const kind10395EventSchema =
 
 export type Kind10395Event = z.infer<typeof kind10395EventSchema>;
 
-export function create10395EventData(
-  expoPushToken: string,
-  filters: Filter[]
+export function validate10395EventData(
+  data: Kind10395ContentDecryptedDecoded
 ): Kind10395ContentDecryptedDecoded {
-  return {
-    tokens: [{ expoPushToken }],
-    filters: filters.map((filter) => ({ filter })),
-  };
+  kind10395ContentDecryptedDecodedSchema.parse(data);
+  return data;
 }
 
 export function create10395EventTemplate(

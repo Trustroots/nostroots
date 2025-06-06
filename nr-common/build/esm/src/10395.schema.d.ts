@@ -1,4 +1,3 @@
-import { Filter } from "nostr-tools/filter";
 import { z } from "../deps.js";
 /**
  * A kind 10395 event is an event where the user specifies what nostr events
@@ -822,5 +821,5 @@ export declare const kind10395EventSchema: z.ZodObject<z.objectUtil.extendShape<
     sig: string;
 }>;
 export type Kind10395Event = z.infer<typeof kind10395EventSchema>;
-export declare function create10395EventData(expoPushToken: string, filters: Filter[]): Kind10395ContentDecryptedDecoded;
+export declare function validate10395EventData(data: Kind10395ContentDecryptedDecoded): Kind10395ContentDecryptedDecoded;
 export declare function create10395EventTemplate(encryptedContent: string): Kind10395EventTemplate;

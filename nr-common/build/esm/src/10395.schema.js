@@ -1,7 +1,6 @@
 import { NOTIFICATION_SERVER_PUBKEY, NOTIFICATION_SUBSCRIPTION_KIND, } from "../constants.js";
 import { z } from "../deps.js";
-import { finalizedEventFields } from "./base.schema.js";
-import { baseEventTemplateSchema } from "./base.schema.js";
+import { baseEventTemplateSchema, finalizedEventFields, } from "./base.schema.js";
 import { filterSchema } from "./filter.schema.js";
 import { getCurrentTimestamp } from "./utils.js";
 /**
@@ -31,11 +30,9 @@ export const kind10395EventTemplateSchema = baseEventTemplateSchema.extend({
     content: z.string(),
 });
 export const kind10395EventSchema = kind10395EventTemplateSchema.merge(finalizedEventFields);
-export function create10395EventData(expoPushToken, filters) {
-    return {
-        tokens: [{ expoPushToken }],
-        filters: filters.map((filter) => ({ filter })),
-    };
+export function validate10395EventData(data) {
+    kind10395ContentDecryptedDecodedSchema.parse(data);
+    return data;
 }
 export function create10395EventTemplate(encryptedContent) {
     const template = {

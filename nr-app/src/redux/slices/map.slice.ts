@@ -13,6 +13,7 @@ interface MapState {
   visiblePlusCodes: string[];
   selectedPlusCode: string;
   boundingBox?: BoundingBox;
+  isMapModalOpen: boolean;
   isAddNoteModalOpen: boolean;
   selectedLatLng?: LatLng;
   selectedLayer: MAP_LAYER_KEY;
@@ -22,6 +23,7 @@ interface MapState {
 const initialState: MapState = {
   mapSubscriptionIsUpdating: false,
   visiblePlusCodes: [],
+  isMapModalOpen: false,
   isAddNoteModalOpen: false,
   selectedPlusCode: "",
   selectedLayer: "trustroots",
@@ -60,9 +62,10 @@ export const mapSlice = createSlice({
     },
     setSelectedPlusCode: (state, action: PayloadAction<string>) => {
       state.selectedPlusCode = action.payload;
+      state.isMapModalOpen = true;
     },
     closeMapModal: (state) => {
-      state.selectedPlusCode = "";
+      state.isMapModalOpen = false;
     },
     setSelectedLatLng: (state, action: PayloadAction<LatLng>) => {
       state.selectedLatLng = action.payload;
@@ -107,7 +110,7 @@ export const mapSlice = createSlice({
     selectSelectedLayer: (state) => state.selectedLayer,
     selectSelectedLatLng: (state) => state.selectedLatLng,
     selectSelectedPlusCode: (state) => state.selectedPlusCode,
-    selectIsMapModalOpen: (state) => state.selectedPlusCode !== "",
+    selectIsMapModalOpen: (state) => state.isMapModalOpen,
     selectIsAddNoteModalOpen: (state) => state.isAddNoteModalOpen,
     selectBoundingBox: (state) => state.boundingBox,
     selectEnablePlusCodeMapTEMPORARY: (state) =>

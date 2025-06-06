@@ -1,8 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Filter } from "nostr-tools";
+import { Filter } from "@trustroots/nr-common";
 
 type NotificationsState = {
-  filters: Filter[];
+  filters: { filter: Filter }[];
   tokens: {
     expoPushToken: string;
   }[];
@@ -18,7 +18,10 @@ export const notificationsSlice = createSlice({
   initialState,
   reducers: {
     addFilter: (state, action: PayloadAction<Filter>) => {
-      state.filters.push(action.payload);
+      state.filters.push({ filter: action.payload });
+    },
+    removeAllFilters: (state, action: PayloadAction<void>) => {
+      state.filters = [];
     },
     setExpoPushToken: (state, action: PayloadAction<string>) => {
       const isNewToken = state.tokens.every(
@@ -37,7 +40,9 @@ export const notificationsSlice = createSlice({
     },
   },
   selectors: {
+    selectData: (state) => state,
     selectFilters: (state) => state.filters,
+    selectTokens: (state) => state.tokens,
     // We currently assume there is only 1 token, although in theory we could
     // add support for multiple tokens in the future, and the note schema allows
     // for that.
@@ -48,5 +53,7 @@ export const notificationsSlice = createSlice({
     },
   },
 });
+
+export const notificationSelectors = notificationsSlice.selectors;
 
 export const notificationsActions = notificationsSlice.actions;

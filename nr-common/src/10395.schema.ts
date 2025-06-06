@@ -1,4 +1,3 @@
-import type { Filter } from "npm:nostr-tools@2.10.4/filter";
 import {
   NOTIFICATION_SERVER_PUBKEY,
   NOTIFICATION_SUBSCRIPTION_KIND,
@@ -54,14 +53,11 @@ export const kind10395EventSchema =
 
 export type Kind10395Event = z.infer<typeof kind10395EventSchema>;
 
-export function create10395EventData(
-  expoPushToken: string,
-  filters: Filter[]
+export function validate10395EventData(
+  data: Kind10395ContentDecryptedDecoded
 ): Kind10395ContentDecryptedDecoded {
-  return {
-    tokens: [{ expoPushToken }],
-    filters: filters.map((filter) => ({ filter })),
-  };
+  kind10395ContentDecryptedDecodedSchema.parse(data);
+  return data;
 }
 
 export function create10395EventTemplate(

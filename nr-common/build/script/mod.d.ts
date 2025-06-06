@@ -1,4 +1,5 @@
 export * from "./constants.js";
+export * from "./src/filter.schema.js";
 export * from "./src/base.schema.js";
 export * from "./src/utils.js";
 export * from "./src/10390.schema.js";

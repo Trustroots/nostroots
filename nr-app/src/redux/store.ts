@@ -35,7 +35,7 @@ const rootReducer = combineSlices(
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
-  whitelist: ["settings", "keystore"], // Only persist these reducers
+  whitelist: ["events", "keystore", "notifications", "settings"], // Only persist these reducers
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

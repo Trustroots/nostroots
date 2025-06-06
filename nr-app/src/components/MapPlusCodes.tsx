@@ -23,6 +23,8 @@ import MapView, {
 } from "react-native-maps";
 import { createSelector } from "reselect";
 
+// TODO - Only show if a plus code has direct notes, child notes, or no notes
+
 const log = rootLogger.extend("MapPlusCodes");
 
 function whatLengthOfPlusCodeToShow(region: Region) {

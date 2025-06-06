@@ -29,7 +29,10 @@ import {
   keystoreSelectors,
   setPublicKeyHex,
 } from "@/redux/slices/keystore.slice";
-import { notificationsSlice } from "@/redux/slices/notifications.slice";
+import {
+  notificationsActions,
+  notificationsSlice,
+} from "@/redux/slices/notifications.slice";
 import {
   settingsActions,
   settingsSelectors,
@@ -208,8 +211,15 @@ export default function TabThreeScreen() {
             <BuildData />
             <Text style={styles.q}>relays</Text>
             <TextInput style={styles.input} value="['relay.trustroots.org']" />
+
             <Text style={styles.q}>expo push token</Text>
             <TextInput style={styles.input} value={expoPushToken} />
+            <Button
+              title="Register this device for push notifications"
+              onPress={() => {
+                dispatch(notificationsActions.setExpoPushToken(expoPushToken));
+              }}
+            />
 
             <Button
               title="Set visible plus codes"

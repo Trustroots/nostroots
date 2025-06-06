@@ -1,23 +1,39 @@
-import { getPrivateKeyHex } from "@/nostr/keystore.nostr";
+import { getPrivateKeyBytes, getPrivateKeyHex } from "@/nostr/keystore.nostr";
 import { getSerializableError } from "@/utils/error.utils";
+import { rootLogger } from "@/utils/logger.utils";
 import { F } from "@mobily/ts-belt";
 import {
   create10395EventData,
   create10395EventTemplate,
+  kind10395ContentDecryptedDecodedSchema,
   NOTIFICATION_SERVER_PUBKEY,
 } from "@trustroots/nr-common";
 import { nip04 } from "nostr-tools";
+import { AnyAction } from "redux-saga";
 import {
   dispatch,
   rejectPromiseAction,
   resolvePromiseAction,
 } from "redux-saga-promise-actions";
-import { all, call, Effect, put, select, takeEvery } from "redux-saga/effects";
+import {
+  all,
+  call,
+  Effect,
+  put,
+  select,
+  take,
+  takeEvery,
+} from "redux-saga/effects";
 import { createSelector } from "reselect";
 import { notificationSubscribeToFilterPromiseAction } from "../actions/notifications.actions";
 import { publishEventTemplatePromiseAction } from "../actions/publish.actions";
-import { notificationsSlice } from "../slices/notifications.slice";
-import { rootLogger } from "@/utils/logger.utils";
+import { rehydrated } from "../actions/startup.actions";
+import { startSubscription } from "../actions/subscription.actions";
+import { addEvent } from "../slices/events.slice";
+import {
+  notificationsActions,
+  notificationsSlice,
+} from "../slices/notifications.slice";
 
 const log = rootLogger.extend("notifications");
 
@@ -28,6 +44,8 @@ const notificationsSubscribeSagaEffectSelector = createSelector(
     return { filters, expoPushToken };
   },
 );
+
+const NOTIFICATION_SUBSCRIPTION_SUBSCRIPTION_ID = "notificationSubscription";
 
 async function encryptMessage(plaintext: string) {
   log.debug("#Lrr7Uz getting private key");
@@ -57,7 +75,7 @@ function* notificationsSubscribeSagaEffect(
       notificationsSubscribeSagaEffectSelector,
     )) as ReturnType<typeof notificationsSubscribeSagaEffectSelector>;
 
-    if (typeof expoPushToken === "undefined") {
+    if (typeof expoPushToken === "undefined" || expoPushToken.length === 0) {
       throw new Error("#wWpPXH-missing-push-token");
     }
 
@@ -108,6 +126,93 @@ function* notificationsSubscribeSaga() {
   );
 }
 
+function* callGetPrivateKeyBytes(): Generator<
+  Effect,
+  Awaited<ReturnType<typeof getPrivateKeyBytes>>,
+  Awaited<ReturnType<typeof getPrivateKeyBytes>>
+> {
+  const privateKey = yield call(getPrivateKeyBytes);
+  return privateKey;
+}
+
+function* callNip04Decrypt(
+  privateKey: Uint8Array,
+  message: string,
+): Generator<
+  Effect,
+  Awaited<ReturnType<typeof nip04.decrypt>>,
+  Awaited<ReturnType<typeof nip04.decrypt>>
+> {
+  const decrypted = yield call(
+    nip04.decrypt,
+    privateKey,
+    NOTIFICATION_SERVER_PUBKEY,
+    message,
+  );
+  return decrypted;
+}
+
+export function* notificationSubscriptionsAddEventSagaEffect(
+  action: ReturnType<typeof addEvent>,
+) {
+  const privateKey = yield* callGetPrivateKeyBytes();
+  const decrypted = yield* callNip04Decrypt(
+    privateKey,
+    action.payload.event.content,
+  );
+
+  const parsed = JSON.parse(decrypted);
+
+  const validated = kind10395ContentDecryptedDecodedSchema.parse(parsed);
+
+  yield put(notificationsActions.setData(validated));
+}
+
+export function isAddEventAction(
+  action: AnyAction,
+): action is ReturnType<typeof addEvent> {
+  return action.type === addEvent.toString();
+}
+
+export function isAddEventKind10395Action(action: AnyAction): boolean {
+  if (!isAddEventAction(action)) {
+    return false;
+  }
+
+  if (action.payload.event.kind !== 10395) {
+    return false;
+  }
+
+  return true;
+}
+
+export function* notificationSubscriptionsAddEventSaga() {
+  yield takeEvery(
+    isAddEventKind10395Action,
+    notificationSubscriptionsAddEventSagaEffect,
+  );
+}
+
+export function* notificationSubscriptionsStartupSaga(): Generator<
+  Effect,
+  void,
+  void
+> {
+  yield take(rehydrated);
+
+  yield put(
+    startSubscription({
+      filters: [],
+      id: NOTIFICATION_SUBSCRIPTION_SUBSCRIPTION_ID,
+    }),
+  );
+
+  // TODO - Get the push token from the device if it is available and set it into state
+}
+
 export default function* notificationsSaga() {
-  yield all([notificationsSubscribeSaga()]);
+  yield all([
+    notificationsSubscribeSaga(),
+    notificationSubscriptionsStartupSaga(),
+  ]);
 }

@@ -3,12 +3,14 @@ import { Filter } from "nostr-tools";
 
 type NotificationsState = {
   filters: Filter[];
-  expoPushTokens: string[];
+  tokens: {
+    expoPushToken: string;
+  }[];
 };
 
 const initialState: NotificationsState = {
   filters: [],
-  expoPushTokens: [],
+  tokens: [],
 };
 
 export const notificationsSlice = createSlice({
@@ -19,7 +21,19 @@ export const notificationsSlice = createSlice({
       state.filters.push(action.payload);
     },
     setExpoPushToken: (state, action: PayloadAction<string>) => {
-      state.expoPushTokens = [action.payload];
+      const isNewToken = state.tokens.every(
+        ({ expoPushToken }) => action.payload !== expoPushToken,
+      );
+      if (isNewToken) {
+        state.tokens = [{ expoPushToken: action.payload }];
+      }
+    },
+    setData: (
+      state,
+      action: PayloadAction<Pick<NotificationsState, "filters" | "tokens">>,
+    ) => {
+      state.filters = action.payload.filters;
+      state.tokens = action.payload.tokens;
     },
   },
   selectors: {
@@ -28,8 +42,8 @@ export const notificationsSlice = createSlice({
     // add support for multiple tokens in the future, and the note schema allows
     // for that.
     selectExpoPushToken: (state) => {
-      if (state.expoPushTokens.length === 1) {
-        return state.expoPushTokens[0];
+      if (state.tokens.length === 1) {
+        return state.tokens[0].expoPushToken;
       }
     },
   },

@@ -4,6 +4,7 @@ import { Button, Modal, ScrollView, Text, View } from "react-native";
 import NotesList from "./NotesList";
 import AddNoteForm from "./AddNoteForm";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { subscribeToPlusCode } from "@/redux/actions/notifications.actions";
 
 export default function MapModal() {
   const dispatch = useAppDispatch();
@@ -29,6 +30,17 @@ export default function MapModal() {
               <Text>Choose the trustroots layer to be able to add content</Text>
             </View>
           )}
+
+          <View>
+            <Text>Subscribe to notifications for this plus code</Text>
+            <Button
+              title="Subscribe"
+              onPress={() => {
+                dispatch(subscribeToPlusCode(selectedPlusCode));
+              }}
+            />
+          </View>
+
           <Text>Modal is under development</Text>
           <Button
             title="Close"

@@ -20,6 +20,7 @@ import { injectStore } from "@/nostr/subscriptions.nostr";
 injectStore(store);
 
 if (__DEV__) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   require("./reactotron.config");
 }
 

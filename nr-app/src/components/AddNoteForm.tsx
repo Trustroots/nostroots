@@ -52,7 +52,7 @@ export default function AddNoteForm() {
           );
         }
 
-        // validate note content. Must be longer than 3 chars (https://github.com/Trustroots/nostroots/issues/76)
+        // validate note content. Must be longer than 3 chars
         if (noteContent.trim().length < 3) {
           Toast.show("Note must be at least 3 characters long", {
             duration: Toast.durations.LONG,

@@ -52,9 +52,9 @@ export default function AddNoteForm() {
           );
         }
 
-        // validate note content
-        if (noteContent.length === 0) {
-          Toast.show("Note content cannot be empty", {
+        // validate note content. Must be longer than 3 chars
+        if (noteContent.trim().length < 3) {
+          Toast.show("Note must be at least 3 characters long", {
             duration: Toast.durations.LONG,
             position: Toast.positions.TOP,
           });

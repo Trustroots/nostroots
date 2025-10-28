@@ -1,0 +1,16 @@
+diff --git a/node_modules/react-native-maps/ios/AirMaps/AIRMap.m b/node_modules/react-native-maps/ios/AirMaps/AIRMap.m
+index 07a4638..6495357 100644
+--- a/node_modules/react-native-maps/ios/AirMaps/AIRMap.m
++++ b/node_modules/react-native-maps/ios/AirMaps/AIRMap.m
+@@ -135,7 +135,10 @@ const NSInteger AIRMapMaxZoomLevel = 20;
+             [self insertReactSubview:(UIView *)childSubviews[i] atIndex:atIndex];
+         }
+     }
+-    [_reactSubviews insertObject:(UIView *)subview atIndex:(NSUInteger) atIndex];
++    if (subview != nil && [subview isKindOfClass:[UIView class]]) {
++        NSUInteger safeIndex = MIN(atIndex, _reactSubviews.count);
++        [_reactSubviews insertObject:(UIView *)subview atIndex:safeIndex];
++    }
+ }
+ #pragma clang diagnostic pop
+ 

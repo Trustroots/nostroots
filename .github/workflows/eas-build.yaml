@@ -1,4 +1,4 @@
-name: Create  build in EAS Cloud
+name: Create build in EAS Cloud
 
 on:
   workflow_dispatch:

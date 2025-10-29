@@ -26,6 +26,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import Toast from "react-native-root-toast";
 
 interface OnboardModalProps {
   setModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
@@ -41,7 +42,6 @@ export default function OnboardModal({
   const username = useAppSelector(settingsSelectors.selectUsername);
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
-  const pubHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
 
   const [currentStep, setCurrentStep] = useState<string>(step);
   const [mnemonicText, setMnemonicText] = useState<string>("");
@@ -172,7 +172,7 @@ export default function OnboardModal({
     await Clipboard.setStringAsync(npub || "");
     Toast.show("Copied public key to Clipboard!", {
       duration: Toast.durations.LONG,
-      position: Toast.positions.TOP,
+      position: Toast.positions.CENTER,
     });
   };
 

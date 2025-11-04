@@ -4,21 +4,39 @@ import { settingsSelectors } from "@/redux/slices/settings.slice";
 import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@trustroots/nr-common";
 import React, { useMemo } from "react";
 import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
-import MapAddNoteModal from "./MapAddNoteModal";
+import MapAddNoteModal from "../MapAddNoteModal";
+import MapModal from "../MapModal";
+import MaplibreView from "./MaplibreView";
 import { MapMarkers } from "./MapMarkers";
 import MapPlusCodes from "./MapPlusCodes";
-import MapModal from "./MapModal";
 
 // filter out these note types if test features are disabled
 const TEST_FEATURE_LAYERS: MAP_LAYER_KEY[] = ["timesafari", "triphopping"];
+
+function MapView() {
+  const enablePlusCodeMapTEMPORARY = useAppSelector(
+    mapSelectors.selectEnablePlusCodeMapTEMPORARY,
+  );
+
+  const enableMapLibre = useAppSelector(
+    settingsSelectors.selectEnableMaplibreGL,
+  );
+
+  if (enableMapLibre) {
+    return <MaplibreView />;
+  }
+
+  if (enablePlusCodeMapTEMPORARY) {
+    return <MapPlusCodes />;
+  }
+
+  return <MapMarkers />;
+}
 
 export default function Map() {
   const enabledLayers = useAppSelector(mapSelectors.selectEnabledLayers);
   const areTestFeaturesEnabled = useAppSelector(
     settingsSelectors.selectAreTestFeaturesEnabled,
-  );
-  const enablePlusCodeMapTEMPORARY = useAppSelector(
-    mapSelectors.selectEnablePlusCodeMapTEMPORARY,
   );
   const dispatch = useAppDispatch();
 
@@ -39,7 +57,7 @@ export default function Map() {
 
   return (
     <View style={styles.mapContainer}>
-      {enablePlusCodeMapTEMPORARY ? <MapPlusCodes /> : <MapMarkers />}
+      <MapView />
 
       <View style={styles.toggleWrapper}>
         <FlatList

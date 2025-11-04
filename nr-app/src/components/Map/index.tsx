@@ -23,7 +23,7 @@ function MapView() {
   );
 
   if (enableMapLibre) {
-    return <MaplibreView />;
+    return <MaplibreView enablePlusCodes={enablePlusCodeMapTEMPORARY} />;
   }
 
   if (enablePlusCodeMapTEMPORARY) {

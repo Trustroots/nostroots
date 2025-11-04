@@ -27,7 +27,7 @@ import { createSelector } from "reselect";
 
 const log = rootLogger.extend("MapPlusCodes");
 
-function whatLengthOfPlusCodeToShow(region: Region) {
+export function whatLengthOfPlusCodeToShow(region: Region) {
   const factor = 1.6;
   if (region.latitudeDelta > 20 * factor) {
     return 2;
@@ -39,7 +39,7 @@ function whatLengthOfPlusCodeToShow(region: Region) {
   return 8;
 }
 
-const selectPlusCodesWithState = createSelector(
+export const selectPlusCodesWithState = createSelector(
   [
     mapSelectors.selectEventsForSelectedMapLayer,
     mapSelectors.selectBoundingBox,

@@ -37,7 +37,8 @@ export const settingsSlice = createSlice({
       state.isDataLoaded = action.payload;
     },
     toggleMaplibreGL: (state) => {
-      state.experimentalFeatures.maplibreGL = !state.experimentalFeatures.maplibreGL;
+      state.experimentalFeatures.maplibreGL =
+        !state.experimentalFeatures.maplibreGL;
     },
   },
   selectors: {

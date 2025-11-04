@@ -148,13 +148,13 @@ export function getAllLabelValuesFromTags(
   tags: string[][],
   labelName: string
 ): string[] | undefined {
-  const matchingTag = tags.find(
+  const matchingTags = tags.filter(
     (tag) => tag[0] === "l" && last(tag) === labelName
   );
-  if (typeof matchingTag === "undefined") {
+  if (matchingTags.length === 0) {
     return;
   }
-  const labelValues = matchingTag.slice(1, -1);
+  const labelValues = matchingTags.flatMap((tagArray) => tagArray.slice(1, -1));
   return labelValues;
 }
 
@@ -172,15 +172,11 @@ export function getFirstLabelValueFromTags(
 export function createLabelTags(
   labelName: string,
   labelValue: string | string[]
-) {
-  const tags = [
-    ["L", labelName],
-    [
-      "l",
-      ...(Array.isArray(labelValue) ? labelValue : [labelValue]),
-      labelName,
-    ],
-  ];
+): string[][] {
+  const labelTag = ["L", labelName];
+  const values = Array.isArray(labelValue) ? labelValue : [labelValue];
+  const valueTags = values.map((value) => ["l", value, labelName]);
+  const tags = [labelTag].concat(valueTags);
   return tags;
 }
 

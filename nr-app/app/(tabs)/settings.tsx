@@ -87,6 +87,8 @@ export default function TabThreeScreen() {
     mapSelectors.selectEnablePlusCodeMapTEMPORARY,
   );
 
+  const enableMaplibreGL = useAppSelector(settingsSelectors.selectEnableMaplibreGL);
+
   const [modalVisible, setModalVisible] = useState(false);
 
   const showNsec = async () => {
@@ -199,14 +201,26 @@ export default function TabThreeScreen() {
 
         {areTestFeaturesEnabled && (
           <View>
-            <View>
-              <Switch
-                value={enablePlusCodeMapTEMPORARY}
-                onChange={() => {
-                  dispatch(mapActions.togglePlusCodeMapTEMPORARY());
-                }}
-              />
-              <Text>Enable the experimental plus code map</Text>
+            <View style={styles.section}>
+              <Text style={styles.header}>Experimental Features</Text>
+              <View>
+                <Switch
+                  value={enablePlusCodeMapTEMPORARY}
+                  onChange={() => {
+                    dispatch(mapActions.togglePlusCodeMapTEMPORARY());
+                  }}
+                />
+                <Text>Enable the experimental plus code map</Text>
+              </View>
+              <View>
+                <Switch
+                  value={enableMaplibreGL}
+                  onValueChange={() => {
+                    dispatch(settingsActions.toggleMaplibreGL());
+                  }}
+                />
+                <Text>MaplibreGL</Text>
+              </View>
             </View>
             <BuildData />
             <Text style={styles.q}>relays</Text>

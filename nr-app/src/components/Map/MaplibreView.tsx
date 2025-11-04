@@ -2,5 +2,10 @@ import { MapView } from "@maplibre/maplibre-react-native";
 import React from "react";
 
 export default function MaplibreView() {
-  return <MapView style={{ flex: 1 }} />;
+  return (
+    <MapView
+      style={{ flex: 1 }}
+      mapStyle="https://tiles.openfreemap.org/styles/liberty"
+    />
+  );
 }

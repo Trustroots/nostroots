@@ -114,10 +114,10 @@ export default function MaplibreView({
       style={{ flex: 1 }}
       mapStyle="https://tiles.openfreemap.org/styles/liberty"
       onDidFinishLoadingMap={async () => {
-        log.debug("#SHtaWM Maplibre map finished loading");
+        log.debug("#K7EGGk Maplibre map finished loading");
         const boundaries = await map.current?.getVisibleBounds();
         if (!boundaries) {
-          log.error("#SHtaWM boundaries is undefined");
+          log.error("#gFwP2E boundaries is undefined");
           return;
         }
 

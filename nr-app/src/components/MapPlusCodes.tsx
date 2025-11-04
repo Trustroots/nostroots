@@ -129,7 +129,7 @@ export default function MapPlusCodes() {
       {true &&
         plusCodesWithState.map((plusCodeWithState, index) => (
           <Polygon
-            key={plusCodeWithState.plusCode}
+            key={index}
             coordinates={plusCodeToRectangle(plusCodeWithState.plusCode)}
             // fillColor={`rgba(255, 0, 0, 0.${plusCodeWithState.events.length > 9 ? "9" : plusCodeWithState.events.length.toString().substring(0, 1)}})`}
             fillColor={`rgba(${Math.min(255, (plusCodeWithState.eventCountForThisPlusCodeExactly + plusCodeWithState.eventCountWithinThisPlusCode) * 60).toString()}, 0, 0, 0.6)`}

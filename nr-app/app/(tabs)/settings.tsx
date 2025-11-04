@@ -88,7 +88,7 @@ export default function TabThreeScreen() {
   );
 
   const enableMaplibreGL = useAppSelector(
-    settingsSelectors.selectEnableMaplibreGL,
+    mapSelectors.selectEnableMapLibreGLTEMPORARY,
   );
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -218,7 +218,7 @@ export default function TabThreeScreen() {
                 <Switch
                   value={enableMaplibreGL}
                   onValueChange={() => {
-                    dispatch(settingsActions.toggleMaplibreGL());
+                    dispatch(mapActions.toggleMapLibreGLTEMPORARY());
                   }}
                 />
                 <Text>MaplibreGL</Text>

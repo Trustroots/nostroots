@@ -5,9 +5,6 @@ type SettingsState = {
   username: string | null;
   hasBeenOpenedBefore: boolean;
   isDataLoaded: boolean;
-  experimentalFeatures: {
-    maplibreGL: boolean;
-  };
 };
 
 const initialState: SettingsState = {
@@ -15,9 +12,6 @@ const initialState: SettingsState = {
   username: null,
   hasBeenOpenedBefore: false,
   isDataLoaded: false,
-  experimentalFeatures: {
-    maplibreGL: false,
-  },
 };
 
 export const settingsSlice = createSlice({
@@ -36,17 +30,12 @@ export const settingsSlice = createSlice({
     setDataLoaded: (state, action: PayloadAction<boolean>) => {
       state.isDataLoaded = action.payload;
     },
-    toggleMaplibreGL: (state) => {
-      state.experimentalFeatures.maplibreGL =
-        !state.experimentalFeatures.maplibreGL;
-    },
   },
   selectors: {
     selectAreTestFeaturesEnabled: (state) => state.areTestFeaturesEnabled,
     selectUsername: (state) => state.username,
     selectHasBeenOpenedBefore: (state) => state.hasBeenOpenedBefore,
     selectIsDataLoaded: (state) => state.isDataLoaded,
-    selectEnableMaplibreGL: (state) => state.experimentalFeatures.maplibreGL,
   },
 });
 

@@ -19,7 +19,7 @@ function MapView() {
   );
 
   const enableMapLibre = useAppSelector(
-    settingsSelectors.selectEnableMaplibreGL,
+    mapSelectors.selectEnableMapLibreGLTEMPORARY,
   );
 
   if (enableMapLibre) {

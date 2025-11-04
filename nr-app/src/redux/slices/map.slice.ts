@@ -18,6 +18,7 @@ interface MapState {
   selectedLatLng?: LatLng;
   selectedLayer: MAP_LAYER_KEY;
   enablePlusCodeMapTEMPORARY: boolean;
+  enableMapLibreGLTEMPORARY: boolean;
 }
 
 const initialState: MapState = {
@@ -28,6 +29,7 @@ const initialState: MapState = {
   selectedPlusCode: "",
   selectedLayer: "trustroots",
   enablePlusCodeMapTEMPORARY: true,
+  enableMapLibreGLTEMPORARY: false,
 };
 
 export const mapSlice = createSlice({
@@ -79,6 +81,9 @@ export const mapSlice = createSlice({
     togglePlusCodeMapTEMPORARY: (state) => {
       state.enablePlusCodeMapTEMPORARY = !state.enablePlusCodeMapTEMPORARY;
     },
+    toggleMapLibreGLTEMPORARY: (state) => {
+      state.enableMapLibreGLTEMPORARY = !state.enableMapLibreGLTEMPORARY;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -115,6 +120,7 @@ export const mapSlice = createSlice({
     selectBoundingBox: (state) => state.boundingBox,
     selectEnablePlusCodeMapTEMPORARY: (state) =>
       state.enablePlusCodeMapTEMPORARY,
+    selectEnableMapLibreGLTEMPORARY: (state) => state.enableMapLibreGLTEMPORARY,
     selectEnabledLayerKeys: (state) => [state.selectedLayer],
   },
 });

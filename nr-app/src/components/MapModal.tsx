@@ -1,17 +1,13 @@
+import { subscribeToPlusCode } from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
-import {
-  Button,
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import NotesList from "./NotesList";
-import AddNoteForm from "./AddNoteForm";
+import { Modal, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { subscribeToPlusCode } from "@/redux/actions/notifications.actions";
+import AddNoteForm from "./AddNoteForm";
+import NotesList from "./NotesList";
+import { Button } from "./ui/button";
+import { Section } from "./ui/section";
+import { Text } from "./ui/text";
 
 export default function MapModal() {
   const dispatch = useAppDispatch();
@@ -23,68 +19,49 @@ export default function MapModal() {
     <Modal visible={showModal}>
       <SafeAreaView>
         <ScrollView>
-          <Button
-            title="Close"
-            onPress={() => {
-              dispatch(mapActions.closeMapModal());
-            }}
-          />
-
-          <View style={styles.separator} />
-
-          <NotesList plusCode={selectedPlusCode} />
-
-          <View style={styles.separator} />
-
-          {selectedLayer === "trustroots" ? (
-            <AddNoteForm />
-          ) : (
-            <View>
-              <Text>Choose the trustroots layer to be able to add content</Text>
-            </View>
-          )}
-
-          <View style={styles.separator} />
-
-          <View style={styles.section}>
-            <Text style={styles.heading}>Subscribe</Text>
-            <Text>Subscribe to notifications for this plus code</Text>
+          <View className="p-4 flex flex-col gap-2">
             <Button
-              title="Subscribe"
+              variant="outline"
+              title="Close"
               onPress={() => {
-                dispatch(subscribeToPlusCode(selectedPlusCode));
+                dispatch(mapActions.closeMapModal());
               }}
             />
+
+            <NotesList plusCode={selectedPlusCode} />
+
+            {selectedLayer === "trustroots" ? (
+              <AddNoteForm />
+            ) : (
+              <View>
+                <Text>
+                  Choose the trustroots layer to be able to add content
+                </Text>
+              </View>
+            )}
+
+            <Section>
+              <Text variant="h2">Subscribe</Text>
+              <Text>Subscribe to notifications for this plus code</Text>
+              <Button
+                title="Subscribe"
+                onPress={() => {
+                  dispatch(subscribeToPlusCode(selectedPlusCode));
+                }}
+              />
+            </Section>
+
+            <Button
+              variant="outline"
+              title="Close"
+              onPress={() => {
+                dispatch(mapActions.closeMapModal());
+              }}
+            />
+            <Text variant="muted">Modal is under development</Text>
           </View>
-
-          <View style={styles.separator} />
-
-          <Text>Modal is under development</Text>
-          <Button
-            title="Close"
-            onPress={() => {
-              dispatch(mapActions.closeMapModal());
-            }}
-          />
         </ScrollView>
       </SafeAreaView>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  separator: {
-    width: "100%",
-    height: 2,
-    borderColor: "black",
-    borderWidth: 1,
-    marginVertical: 12,
-  },
-  section: {
-    padding: 8,
-  },
-  heading: {
-    fontSize: 24,
-    marginVertical: 8,
-  },
-});

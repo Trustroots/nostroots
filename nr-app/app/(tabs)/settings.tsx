@@ -14,6 +14,7 @@ import {
 import BuildData from "@/components/BuildData";
 import OnboardModal from "@/components/OnboardModal";
 import { Button } from "@/components/ui/button";
+import { Section } from "@/components/ui/section";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
   derivePublicKeyHexFromMnemonic,
@@ -76,20 +77,6 @@ const ToggleSwitch = ({
     <View className="flex flex-row gap-2 items-center">
       <Switch value={value} onChange={onToggle} />
       <Text variant="small">{label}</Text>
-    </View>
-  );
-};
-
-const Section = ({
-  children,
-  noGutter,
-}: {
-  children: React.ReactNode;
-  noGutter?: boolean;
-}) => {
-  return (
-    <View className={`flex flex-col gap-2 ${noGutter ? "my-0" : "my-4"}`}>
-      {children}
     </View>
   );
 };

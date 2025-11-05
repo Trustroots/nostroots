@@ -3,8 +3,9 @@ import { mapSelectors } from "@/redux/slices/map.slice";
 import { filterEventsForPlusCode } from "@/utils/map.utils";
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { View } from "react-native";
 import NotesSingle from "./NotesSingle";
+import { Text } from "./ui/text";
 
 const notesListSelectorFactory = (plusCode: string) =>
   createSelector(mapSelectors.selectEventsForSelectedMapLayer, (events) => {
@@ -20,34 +21,36 @@ export default function NotesList({ plusCode }: { plusCode: string }) {
     useAppSelector(selector);
 
   return (
-    <View>
-      <Text style={styles.heading}>
+    <>
+      <Text className="text-gray-800 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-500">
         {eventsForPlusCodeExactly.length.toString()} exact matches for{" "}
-        {plusCode}
+        <Text className="font-mono font-bold text-blue-600">{plusCode}</Text>
       </Text>
-      {eventsForPlusCodeExactly.map((eventWithMetadata) => (
-        <NotesSingle
-          key={eventWithMetadata.event.id}
-          eventWithMetadata={eventWithMetadata}
-        />
-      ))}
-      <Text style={styles.heading}>
-        {eventsWithinPlusCode.length.toString()} within plus code {plusCode}
+      {eventsForPlusCodeExactly.length > 0 && (
+        <View>
+          {eventsForPlusCodeExactly.map((eventWithMetadata) => (
+            <NotesSingle
+              key={eventWithMetadata.event.id}
+              eventWithMetadata={eventWithMetadata}
+            />
+          ))}
+        </View>
+      )}
+
+      <Text className="text-gray-800 bg-green-50 p-3 rounded-lg border-l-4 border-green-500">
+        {eventsWithinPlusCode.length.toString()} within plus code{" "}
+        <Text className="font-mono font-bold text-green-600">{plusCode}</Text>
       </Text>
-      {eventsWithinPlusCode.map((eventWithMetadata) => (
-        <NotesSingle
-          key={eventWithMetadata.event.id}
-          eventWithMetadata={eventWithMetadata}
-        />
-      ))}
-    </View>
+      {eventsWithinPlusCode.length > 0 && (
+        <View>
+          {eventsWithinPlusCode.map((eventWithMetadata) => (
+            <NotesSingle
+              key={eventWithMetadata.event.id}
+              eventWithMetadata={eventWithMetadata}
+            />
+          ))}
+        </View>
+      )}
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  heading: {
-    fontSize: 18,
-    marginVertical: 12,
-    padding: 8,
-  },
-});

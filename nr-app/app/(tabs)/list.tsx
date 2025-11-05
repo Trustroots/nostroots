@@ -1,18 +1,17 @@
-// import Ionicons from "@expo/vector-icons/Ionicons";
-import { SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useAppSelector } from "@/redux/hooks";
 import { eventsSelectors } from "@/redux/slices/events.slice";
 import { A } from "@mobily/ts-belt";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TabTwoScreen() {
   const allEvents = useAppSelector(eventsSelectors.selectAll);
   const groupedEvents = Object.entries(
     A.groupBy(allEvents, (event) => event.event.kind.toString()),
   );
-  // const groupedEvents = events.reduce((eventWithMetadata) => {}, {});
 
   return (
     <SafeAreaView>

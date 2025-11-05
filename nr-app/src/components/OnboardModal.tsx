@@ -17,16 +17,10 @@ import * as Clipboard from "expo-clipboard";
 import { generateSeedWords } from "nip06";
 import { nip19 } from "nostr-tools";
 import { useEffect, useState } from "react";
-import {
-  Button,
-  Linking,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Linking, StyleSheet, TextInput, View } from "react-native";
 import Toast from "react-native-root-toast";
+import { Button } from "./ui/button";
+import { Text } from "./ui/text";
 
 interface OnboardModalProps {
   setModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
@@ -77,7 +71,7 @@ export default function OnboardModal({
       }
     };
 
-    return <Button title={title} onPress={handlePress} />;
+    return <Button onPress={handlePress} title={title} />;
   };
 
   const handleMnemonicSubmit = () => {
@@ -207,19 +201,15 @@ export default function OnboardModal({
       </Text>
 
       <View style={styles.usernameContainer}>
-        <TouchableOpacity
-          style={styles.usernameSubmitBtn}
+        <Button
+          title="Generate a new cryptographic key pair for me."
           onPress={handleGenKey}
-        >
-          <Text style={styles.usernameSubmit}>
-            Generate me a new cryptographic key pair.
-          </Text>
-        </TouchableOpacity>
+        />
       </View>
 
       <Button
-        title="I'd like to set my own cryptographic key."
         onPress={() => setCurrentStep("setKeyMnemonicScreen")}
+        title="I'd like to set my own cryptographic key."
       />
     </View>
   );
@@ -244,12 +234,7 @@ export default function OnboardModal({
 
         {error && <Text style={styles.usernameInputError}>{error}</Text>}
 
-        <TouchableOpacity
-          style={styles.usernameSubmitBtn}
-          onPress={handleMnemonicSubmit}
-        >
-          <Text style={styles.usernameSubmit}>Save</Text>
-        </TouchableOpacity>
+        <Button onPress={handleMnemonicSubmit} title="Save" />
       </View>
     </View>
   );
@@ -259,7 +244,7 @@ export default function OnboardModal({
       <Text style={styles.modalText}>
         Looks like your trustroots.org account info is out of date.
       </Text>
-      <Button title="Continue" onPress={nextStepAccountError} />
+      <Button onPress={nextStepAccountError} title="Continue" />
     </View>
   );
 
@@ -268,17 +253,22 @@ export default function OnboardModal({
       <Text style={styles.modalText}>
         Let's get you started setting up the app!
       </Text>
+
       <Text style={styles.modalText}>
         Do you have a trustroots.org account?
       </Text>
-      <OpenTrustRootsButton
-        url={"https://www.trustroots.org/signup"}
-        title={"No, create a trustroots.org account."}
-      />
-      <Button
-        title="Yes, I already have an account."
-        onPress={nextStepIsUser}
-      />
+
+      <View className="flex flex-col gap-2">
+        <OpenTrustRootsButton
+          url={"https://www.trustroots.org/signup"}
+          title={"No, create a trustroots.org account."}
+        />
+
+        <Button
+          onPress={nextStepIsUser}
+          title="Yes, I already have an account."
+        />
+      </View>
     </View>
   );
 
@@ -301,18 +291,11 @@ export default function OnboardModal({
         />
         {error && <Text style={styles.usernameInputError}>{error}</Text>}
 
-        <TouchableOpacity
-          style={[
-            styles.usernameSubmitBtn,
-            isSubmitting ? styles.disabledButton : null,
-          ]}
+        <Button
           onPress={handleUsernameSubmit}
           disabled={isSubmitting}
-        >
-          <Text style={styles.usernameSubmit}>
-            {isSubmitting ? "Submitting..." : "Submit"}
-          </Text>
-        </TouchableOpacity>
+          title={isSubmitting ? "Submitting..." : "Submit"}
+        />
       </View>
     </View>
   );
@@ -326,34 +309,30 @@ export default function OnboardModal({
 
       <Text style={styles.modalText}>Public Key: {npub}</Text>
 
-      <Button
-        title="Copy Public Key to Clipboard"
-        onPress={() => handleCopy(npub)}
-      />
+      <View className="flex flex-col gap-2">
+        <Button
+          onPress={() => handleCopy(npub)}
+          title="Copy Public Key to Clipboard"
+        />
 
-      <OpenTrustRootsButton
-        url={`https://www.trustroots.org/profile/edit/networks`}
-        title={"Set Public Key (trustroots.org)"}
-      />
+        <OpenTrustRootsButton
+          url={`https://www.trustroots.org/profile/edit/networks`}
+          title={"Set Public Key (trustroots.org)"}
+        />
 
-      <TouchableOpacity
-        style={styles.usernameSubmitBtn}
-        onPress={() => setCurrentStep("usernameScreen")}
-      >
-        <Text style={styles.usernameSubmit}>I set my Key</Text>
-      </TouchableOpacity>
+        <Button
+          onPress={() => setCurrentStep("usernameScreen")}
+          title="I set my key"
+        />
+      </View>
     </View>
   );
 
   const finishScreen = (
     <View style={styles.instructions}>
       <Text style={styles.modalText}>Thanks {username}, you're all set!</Text>
-      <TouchableOpacity
-        style={styles.closeButton}
-        onPress={() => setModalVisible(false)}
-      >
-        <Text style={styles.closeButtonText}>Close</Text>
-      </TouchableOpacity>
+
+      <Button onPress={() => setModalVisible(false)} title="Close" />
     </View>
   );
 
@@ -389,12 +368,11 @@ export default function OnboardModal({
     <View style={styles.modalContainer}>
       {stepScreen}
 
-      <TouchableOpacity
-        style={styles.closeButton}
+      <Button
+        variant="outline"
         onPress={() => setModalVisible(false)}
-      >
-        <Text style={styles.closeButtonText}>Close</Text>
-      </TouchableOpacity>
+        title="Close"
+      />
     </View>
   );
 }
@@ -414,20 +392,8 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: "center",
   },
-  closeButton: {
-    backgroundColor: "#2196F3",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-  },
-  closeButtonText: {
-    color: "white",
-    fontSize: 16,
-    textAlign: "center",
-  },
 
   // username
-
   usernameContainer: {
     padding: 0,
   },
@@ -443,21 +409,10 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 10,
   },
-  usernameSubmitBtn: {
-    backgroundColor: "#2196F3",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
-    alignItems: "center",
-  },
-  disabledButton: {
-    backgroundColor: "#cccccc",
-  },
   usernameSubmit: {
     color: "white",
     fontSize: 16,
   },
-
   usernameInputError: {
     borderColor: "red",
   },

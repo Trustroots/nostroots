@@ -771,15 +771,13 @@ export declare const kind10395ContentDecryptedDecodedSchema: z.ZodObject<{
     }[];
 }>;
 export type Kind10395ContentDecryptedDecoded = z.infer<typeof kind10395ContentDecryptedDecodedSchema>;
-export declare const kind10395EventTemplateSchema: z.ZodObject<z.objectUtil.extendShape<{
-    kind: z.ZodNumber;
+export declare const kind10395EventTemplateSchema: z.ZodObject<{
     created_at: z.ZodNumber;
     tags: z.ZodArray<z.ZodArray<z.ZodString, "many">, "many">;
-    content: z.ZodString;
-}, {
+} & {
     kind: z.ZodLiteral<10395>;
     content: z.ZodString;
-}>, "strip", z.ZodTypeAny, {
+}, "strip", z.ZodTypeAny, {
     kind: 10395;
     created_at: number;
     tags: string[][];
@@ -791,19 +789,17 @@ export declare const kind10395EventTemplateSchema: z.ZodObject<z.objectUtil.exte
     content: string;
 }>;
 export type Kind10395EventTemplate = z.infer<typeof kind10395EventTemplateSchema>;
-export declare const kind10395EventSchema: z.ZodObject<z.objectUtil.extendShape<z.objectUtil.extendShape<{
-    kind: z.ZodNumber;
+export declare const kind10395EventSchema: z.ZodObject<{
     created_at: z.ZodNumber;
     tags: z.ZodArray<z.ZodArray<z.ZodString, "many">, "many">;
-    content: z.ZodString;
-}, {
+} & {
     kind: z.ZodLiteral<10395>;
     content: z.ZodString;
-}>, {
+} & {
     id: z.ZodString;
     pubkey: z.ZodString;
     sig: z.ZodString;
-}>, "strip", z.ZodTypeAny, {
+}, "strip", z.ZodTypeAny, {
     kind: 10395;
     created_at: number;
     tags: string[][];

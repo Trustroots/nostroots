@@ -75,7 +75,7 @@
     "reselect": "^5.1.1",
     "url-join-ts": "^1.0.5",
     "utils": "link:@noble/hashes/utils",
-    "zod": "^3.23.8"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

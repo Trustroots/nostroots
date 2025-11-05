@@ -97,11 +97,11 @@ export function getFirstTagValueFromEvent(nostrEvent, tagName) {
     return firstValue;
 }
 export function getAllLabelValuesFromTags(tags, labelName) {
-    const matchingTag = tags.find((tag) => tag[0] === "l" && last(tag) === labelName);
-    if (typeof matchingTag === "undefined") {
+    const matchingTags = tags.filter((tag) => tag[0] === "l" && last(tag) === labelName);
+    if (matchingTags.length === 0) {
         return;
     }
-    const labelValues = matchingTag.slice(1, -1);
+    const labelValues = matchingTags.flatMap((tagArray) => tagArray.slice(1, -1));
     return labelValues;
 }
 export function getFirstLabelValueFromTags(tags, labelName) {
@@ -112,14 +112,10 @@ export function getFirstLabelValueFromTags(tags, labelName) {
     return tagsValues[0];
 }
 export function createLabelTags(labelName, labelValue) {
-    const tags = [
-        ["L", labelName],
-        [
-            "l",
-            ...(Array.isArray(labelValue) ? labelValue : [labelValue]),
-            labelName,
-        ],
-    ];
+    const labelTag = ["L", labelName];
+    const values = Array.isArray(labelValue) ? labelValue : [labelValue];
+    const valueTags = values.map((value) => ["l", value, labelName]);
+    const tags = [labelTag].concat(valueTags);
     return tags;
 }
 export function getAllLabelValuesFromEvent(nostrEvent, labelName) {

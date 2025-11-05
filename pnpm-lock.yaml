@@ -170,7 +170,7 @@ importers:
         specifier: link:@noble/hashes/utils
         version: link:@noble/hashes/utils
       zod:
-        specifier: ^3.23.8
+        specifier: ^3.25.76
         version: 3.25.76
     devDependencies:
       '@babel/core':

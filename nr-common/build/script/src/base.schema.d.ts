@@ -28,16 +28,16 @@ export declare const finalizedEventFields: z.ZodObject<{
     pubkey: string;
     sig: string;
 }>;
-export declare const baseEventSchema: z.ZodObject<z.objectUtil.extendShape<{
+export declare const baseEventSchema: z.ZodObject<{
     kind: z.ZodNumber;
     created_at: z.ZodNumber;
     tags: z.ZodArray<z.ZodArray<z.ZodString, "many">, "many">;
     content: z.ZodString;
-}, {
+} & {
     id: z.ZodString;
     pubkey: z.ZodString;
     sig: z.ZodString;
-}>, "strict", z.ZodTypeAny, {
+}, "strict", z.ZodTypeAny, {
     kind: number;
     created_at: number;
     tags: string[][];

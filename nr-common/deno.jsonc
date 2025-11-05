@@ -5,13 +5,13 @@
   "imports": {
     // "@babel/runtime": "npm:@babel/runtime@^7.26.0",
     "@deno/dnt": "jsr:@deno/dnt@^0.41.3",
-    "zod": "npm:zod@^3.23.8"
+    "zod": "npm:zod@^3.25.76",
   },
   "tasks": {
     "cache": "deno cache --node-modules-dir deps.ts",
     "build": "deno run -A build_npm.ts",
     "build:watch": "deno run -A --watch=src/,constants.ts,deps.ts,mod.ts build_npm.ts",
-    "test": "deno test --ignore=build/"
+    "test": "deno test --ignore=build/",
   },
-  "license": "AGPL-3.0-or-later"
+  "license": "AGPL-3.0-or-later",
 }

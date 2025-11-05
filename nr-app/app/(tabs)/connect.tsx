@@ -1,23 +1,19 @@
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 import { sendConnectResponse } from "@/nostr/nip-46.nostr";
 import { useState } from "react";
-import {
-  Button,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-} from "react-native";
+import { ScrollView, StyleSheet, TextInput } from "react-native";
 import "react-native-get-random-values";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TabFourScreen() {
   const [connectURI, setConnectURI] = useState("");
 
   return (
-    <SafeAreaView style={styles.settings}>
+    <SafeAreaView className="p-4 bg-white h-full">
       <ScrollView>
-        <Text style={styles.header}>NIP-46 Connect</Text>
-        <Text style={styles.settings}>nostrconnect:// url</Text>
+        <Text variant="h1">NIP-46 Connect</Text>
+        <Text variant="muted">nostrconnect:// url</Text>
         <TextInput
           style={styles.input}
           value={connectURI}
@@ -35,25 +31,6 @@ export default function TabFourScreen() {
   );
 }
 const styles = StyleSheet.create({
-  settings: { backgroundColor: "#ffffff" },
-  q: {
-    fontSize: 15,
-    fontWeight: "bold",
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  a: {
-    marginBottom: 10,
-    marginTop: 10,
-  },
-  header: {
-    backgroundColor: "#f8f8f8",
-    fontSize: 24,
-    fontWeight: "bold",
-    padding: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-  },
   input: {
     height: 40,
     borderColor: "gray",

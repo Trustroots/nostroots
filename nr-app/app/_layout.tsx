@@ -49,6 +49,8 @@ import {
 
 import { persistor, store } from "@/redux/store";
 
+import "@/global.css";
+
 // Construct a new integration instance. This is needed to communicate between the integration and React
 const navigationIntegration = Sentry.reactNavigationIntegration({
   enableTimeToInitialDisplay: !isRunningInExpoGo(),

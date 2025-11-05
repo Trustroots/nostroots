@@ -1,19 +1,19 @@
+import { Text } from "@/components/ui/text";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getBech32PrivateKey } from "nip06";
 import { useState } from "react";
 import {
-  Button,
   Modal,
   ScrollView,
   StyleSheet,
   Switch,
-  Text,
   TextInput,
   View,
 } from "react-native";
 
 import BuildData from "@/components/BuildData";
 import OnboardModal from "@/components/OnboardModal";
+import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
   derivePublicKeyHexFromMnemonic,
@@ -63,7 +63,38 @@ const DevSwitch = () => {
   );
 };
 
-export default function TabThreeScreen() {
+const ToggleSwitch = ({
+  value,
+  onToggle,
+  label,
+}: {
+  value: boolean;
+  onToggle: () => void;
+  label: string;
+}) => {
+  return (
+    <View className="flex flex-row gap-2 items-center">
+      <Switch value={value} onChange={onToggle} />
+      <Text variant="small">{label}</Text>
+    </View>
+  );
+};
+
+const Section = ({
+  children,
+  noGutter,
+}: {
+  children: React.ReactNode;
+  noGutter?: boolean;
+}) => {
+  return (
+    <View className={`flex flex-col gap-2 ${noGutter ? "my-0" : "my-4"}`}>
+      {children}
+    </View>
+  );
+};
+
+export default function SettingsScreen() {
   const { expoPushToken } = useNotifications();
 
   const username = useAppSelector(settingsSelectors.selectUsername);
@@ -137,8 +168,10 @@ export default function TabThreeScreen() {
     }
   };
 
+  const inputClassName = "border border-gray-300 rounded px-3 py-2 bg-white";
+
   return (
-    <SafeAreaView style={styles.settings}>
+    <SafeAreaView className="bg-white px-4">
       <ScrollView>
         <View>
           <Modal
@@ -151,71 +184,72 @@ export default function TabThreeScreen() {
           </Modal>
         </View>
 
-        {username === "" || areTestFeaturesEnabled ? (
-          <View>
-            <Text style={styles.q}>trustroots.org</Text>
-            <View style={styles.input}>
-              <Button
-                title="Link Your Trustroots.org Profile"
-                onPress={() => setModalVisible(true)}
-              />
-            </View>
-          </View>
-        ) : null}
+        <Text variant="h1">Settings</Text>
+
+        {username === "" ||
+          (areTestFeaturesEnabled && (
+            <Button
+              title="Link Your Trustroots.org Profile"
+              onPress={() => setModalVisible(true)}
+            />
+          ))}
 
         {(username && username.length > 0) || areTestFeaturesEnabled ? (
-          <View>
-            <View>
-              <Text style={styles.q}>trustroots.org username:</Text>
-              <Text style={styles.textValue}>{username}</Text>
-            </View>
+          <Section>
+            <Text className="font-bold">trustroots.org username:</Text>
+            <Text className={inputClassName}>{username}</Text>
 
-            <View>
-              <Text style={styles.q}>npub</Text>
-              <TextInput style={styles.input} value={npub} />
-              <Text style={styles.q}>public key hex</Text>
-              <TextInput style={styles.input} value={publicKeyHex} />
-              <Text style={styles.q}>nsec</Text>
-              <TextInput style={styles.input} value={nsec} />
-              <Text style={styles.q}>nsec mnemonic</Text>
-              <TextInput
-                style={styles.input}
-                value={mnemonicInput}
-                onChangeText={handleMnemonicChange}
+            <Text className="font-bold">npub</Text>
+            <TextInput className={inputClassName} value={npub} />
+
+            <Text className="font-bold">public key hex</Text>
+            <TextInput className={inputClassName} value={publicKeyHex} />
+
+            <Text className="font-bold">nsec</Text>
+            <TextInput className={inputClassName} value={nsec} />
+
+            <Text className="font-bold">nsec mnemonic</Text>
+            <TextInput
+              className={inputClassName}
+              value={mnemonicInput}
+              onChangeText={handleMnemonicChange}
+            />
+
+            {mnemonicError && (
+              <Text style={styles.errorText}>{mnemonicError}</Text>
+            )}
+
+            {showUpdateButton && (
+              <Button
+                title="Save New Mnemonic"
+                onPress={handleMnemonicSubmit}
               />
-              {mnemonicError && (
-                <Text style={styles.errorText}>{mnemonicError}</Text>
-              )}
-              {showUpdateButton && (
-                <Button
-                  title="Save New Mnemonic"
-                  onPress={handleMnemonicSubmit}
-                />
-              )}
-              <Button title="Show nsec" onPress={showNsec} />
-            </View>
-          </View>
+            )}
+            <Button title="Show nsec" onPress={showNsec} />
+          </Section>
         ) : null}
 
         {areTestFeaturesEnabled && (
-          <View>
-            <View>
-              <Switch
-                value={enablePlusCodeMapTEMPORARY}
-                onChange={() => {
-                  dispatch(mapActions.togglePlusCodeMapTEMPORARY());
-                }}
-              />
-              <Text>Enable the experimental plus code map</Text>
-            </View>
-            <BuildData />
-            <Text style={styles.q}>relays</Text>
-            <TextInput style={styles.input} value="['relay.trustroots.org']" />
+          <Section>
+            <ToggleSwitch
+              label="Enable the experimental plus code map"
+              value={enablePlusCodeMapTEMPORARY}
+              onToggle={() => {
+                dispatch(mapActions.togglePlusCodeMapTEMPORARY());
+              }}
+            />
 
-            <View style={styles.section}>
-              <Text style={styles.header}>Notifications</Text>
-              <Text style={styles.q}>expo push token</Text>
-              <TextInput style={styles.input} value={expoPushToken} />
+            <BuildData />
+            <Text className="font-bold">relays</Text>
+            <TextInput
+              className={inputClassName}
+              value="['relay.trustroots.org']"
+            />
+
+            <Section>
+              <Text variant="h2">Notifications</Text>
+              <Text className="font-bold">expo push token</Text>
+              <TextInput className={inputClassName} value={expoPushToken} />
               <Button
                 title="Register this device for push notifications"
                 onPress={() => {
@@ -230,7 +264,7 @@ export default function TabThreeScreen() {
                   dispatch(notificationsActions.removeAllFilters());
                 }}
               />
-            </View>
+            </Section>
 
             <Button
               title="Set visible plus codes"
@@ -264,7 +298,7 @@ export default function TabThreeScreen() {
                 }
               }}
             />
-          </View>
+          </Section>
         )}
 
         <Button
@@ -288,52 +322,61 @@ export default function TabThreeScreen() {
           }}
         />
 
-        <Text style={styles.header}>Help</Text>
-        <Text style={styles.q}>How does this work?</Text>
+        <Section>
+          <Text variant="h2">Help</Text>
 
-        <Text style={styles.a}>
-          After linking your trustroots profile to this application you can
-          leave semi-public notes on the map. You can see notes on the map left
-          by others, or notes that relate to other projects like hitchwiki and
-          hitchmap.
-        </Text>
+          <Text variant="h3">How does this work?</Text>
 
-        <Text style={styles.q}>Where can I get help?</Text>
+          <Text variant="p">
+            After linking your trustroots profile to this application you can
+            leave semi-public notes on the map. You can see notes on the map
+            left by others, or notes that relate to other projects like
+            hitchwiki and hitchmap.
+          </Text>
 
-        <Text style={styles.a}>
-          If you encounter issues with this app, or want to share feedback, you
-          can reach the team behind this at https://www.trustroots.org/support
-          or simply leave a note in the Antarctica area.
-        </Text>
+          <Text variant="h3">Where can I get help?</Text>
 
-        <Text style={styles.q}>How does this enhance Trustroots?</Text>
+          <Text variant="p">
+            If you encounter issues with this app, or want to share feedback,
+            you can reach the team behind this at
+            https://www.trustroots.org/support or simply leave a note in the
+            Antarctica area.
+          </Text>
 
-        <Text style={styles.a}>
-          Thanks for asking. Soon(tm): We hope we can quickly turn this into an
-          application that is easier to use and has more activity than the
-          previous meet functionality on Trustroots. We also want to integrate
-          it with Trustroots circles. We want it to be a tool that can Help
-          travellers and hosts connect in other ways besides the classical "I
-          would like a place to stay next week". Try posting notes looking for a
-          place, or use it to organize a last-minute potluck in the park.
-        </Text>
-        <Text style={styles.a}>
-          Mid-term: We want this app and Trustroots users to be able to interact
-          with other applications, such as e.g. hitchmap.com build new
-          applications e.g. for ridesharing or finding out where the cool events
-          and parties are.
-        </Text>
-        <Text style={styles.a}>
-          Long-term: We strive to make the centralized Trustroots server and
-          database and thus the official organization irrelevant.
-        </Text>
+          <Text variant="h3">How does this enhance Trustroots?</Text>
 
-        <View>
-          <Text style={styles.q}>dev switch</Text>
-          <View style={styles.section}>
-            <DevSwitch />
-          </View>
-        </View>
+          <Text variant="p">
+            Thanks for asking. Soon(tm): We hope we can quickly turn this into
+            an application that is easier to use and has more activity than the
+            previous meet functionality on Trustroots. We also want to integrate
+            it with Trustroots circles. We want it to be a tool that can Help
+            travellers and hosts connect in other ways besides the classical "I
+            would like a place to stay next week". Try posting notes looking for
+            a place, or use it to organize a last-minute potluck in the park.
+          </Text>
+
+          <Text variant="p">
+            Mid-term: We want this app and Trustroots users to be able to
+            interact with other applications, such as e.g. hitchmap.com build
+            new applications e.g. for ridesharing or finding out where the cool
+            events and parties are.
+          </Text>
+
+          <Text variant="p">
+            Long-term: We strive to make the centralized Trustroots server and
+            database and thus the official organization irrelevant.
+          </Text>
+        </Section>
+
+        <Section>
+          <ToggleSwitch
+            label="Developer Mode"
+            value={areTestFeaturesEnabled}
+            onToggle={() => {
+              dispatch(settingsActions.toggleTestFeatures());
+            }}
+          />
+        </Section>
       </ScrollView>
     </SafeAreaView>
   );
@@ -341,13 +384,6 @@ export default function TabThreeScreen() {
 const styles = StyleSheet.create({
   settings: {
     backgroundColor: "#ffffff",
-  },
-  q: {
-    fontSize: 15,
-    fontWeight: "bold",
-    marginTop: 10,
-    marginBottom: 10,
-    marginLeft: 10,
   },
   a: {
     marginBottom: 10,
@@ -371,36 +407,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     backgroundColor: "#ffffff",
   },
-  textValue: {
-    // height: 40,
-    // borderColor: "gray",
-    // borderWidth: 1,
-    marginBottom: 20,
-    padding: 10,
-    borderColor: "gray",
-    borderWidth: 1,
-  },
-
   input: {
     height: 40,
     borderColor: "gray",
     borderWidth: 1,
-    marginBottom: 20,
     paddingHorizontal: 10,
     backgroundColor: "#ffffff",
-  },
-
-  instructions: {
-    padding: 50,
-  },
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  updateButton: {
-    marginTop: 10,
-    backgroundColor: "blue",
   },
   errorText: {
     color: "red",

@@ -38,6 +38,7 @@ import {
   keystoreSelectors,
   setPublicKeyHex,
 } from "@/redux/slices/keystore.slice";
+import { PortalHost } from "@rn-primitives/portal";
 
 import OnboardModal from "@/components/OnboardModal";
 import WelcomeScreen from "@/components/WelcomeModal";
@@ -220,6 +221,7 @@ function RootLayout() {
           value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
         >
           <AppContent />
+          <PortalHost />
         </ThemeProvider>
       </PersistGate>
     </Provider>

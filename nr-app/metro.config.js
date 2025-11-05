@@ -10,4 +10,5 @@ config.resolver.unstable_enablePackageExports = false;
 
 module.exports = withNativeWind(config, {
   input: "./src/global.css",
+  inlineRem: 16,
 });

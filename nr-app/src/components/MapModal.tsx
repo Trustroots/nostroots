@@ -46,7 +46,8 @@ export default function MapModal() {
 
           <View style={styles.separator} />
 
-          <View>
+          <View style={styles.section}>
+            <Text style={styles.heading}>Subscribe</Text>
             <Text>Subscribe to notifications for this plus code</Text>
             <Button
               title="Subscribe"
@@ -78,5 +79,12 @@ const styles = StyleSheet.create({
     borderColor: "black",
     borderWidth: 1,
     marginVertical: 12,
+  },
+  section: {
+    padding: 8,
+  },
+  heading: {
+    fontSize: 24,
+    marginVertical: 8,
   },
 });

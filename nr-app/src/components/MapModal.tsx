@@ -1,6 +1,13 @@
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
-import { Button, Modal, ScrollView, Text, View } from "react-native";
+import {
+  Button,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import NotesList from "./NotesList";
 import AddNoteForm from "./AddNoteForm";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -22,7 +29,13 @@ export default function MapModal() {
               dispatch(mapActions.closeMapModal());
             }}
           />
+
+          <View style={styles.separator} />
+
           <NotesList plusCode={selectedPlusCode} />
+
+          <View style={styles.separator} />
+
           {selectedLayer === "trustroots" ? (
             <AddNoteForm />
           ) : (
@@ -30,6 +43,8 @@ export default function MapModal() {
               <Text>Choose the trustroots layer to be able to add content</Text>
             </View>
           )}
+
+          <View style={styles.separator} />
 
           <View>
             <Text>Subscribe to notifications for this plus code</Text>
@@ -40,6 +55,8 @@ export default function MapModal() {
               }}
             />
           </View>
+
+          <View style={styles.separator} />
 
           <Text>Modal is under development</Text>
           <Button
@@ -53,3 +70,13 @@ export default function MapModal() {
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  separator: {
+    width: "100%",
+    height: 2,
+    borderColor: "black",
+    borderWidth: 1,
+    marginVertical: 12,
+  },
+});

@@ -47,5 +47,7 @@ export default function NotesList({ plusCode }: { plusCode: string }) {
 const styles = StyleSheet.create({
   heading: {
     fontSize: 18,
+    marginVertical: 12,
+    padding: 8,
   },
 });

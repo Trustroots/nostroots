@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   Button,
   Modal,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Switch,
@@ -29,6 +28,7 @@ import {
   keystoreSelectors,
   setPublicKeyHex,
 } from "@/redux/slices/keystore.slice";
+import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import {
   notificationsActions,
   notificationsSlice,
@@ -38,7 +38,7 @@ import {
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
 import Toast from "react-native-root-toast";
-import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const DevSwitch = () => {
   const dispatch = useAppDispatch();

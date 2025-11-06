@@ -22,7 +22,6 @@ import {
   getPrivateKeyMnemonic,
 } from "@/nostr/keystore.nostr";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
-import { notificationSubscribeToFilterPromiseAction } from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
 import {
@@ -30,10 +29,7 @@ import {
   setPublicKeyHex,
 } from "@/redux/slices/keystore.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
-import {
-  notificationsActions,
-  notificationsSlice,
-} from "@/redux/slices/notifications.slice";
+import { notificationsActions } from "@/redux/slices/notifications.slice";
 import {
   settingsActions,
   settingsSelectors,

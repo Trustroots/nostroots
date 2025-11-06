@@ -34,7 +34,6 @@ import { addEvent } from "../slices/events.slice";
 import {
   notificationsActions,
   notificationSelectors,
-  notificationsSlice,
 } from "../slices/notifications.slice";
 
 const log = rootLogger.extend("notifications");

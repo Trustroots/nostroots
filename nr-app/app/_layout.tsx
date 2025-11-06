@@ -172,19 +172,15 @@ function AppContent() {
 
       {showLoadingModal ? (
         <LoadingScreen loading={true} />
+      ) : welcomeVisible ? (
+        <WelcomeScreen onClose={() => setWelcomeVisible(false)} />
       ) : (
-        <>
-          {welcomeVisible && (
-            <WelcomeScreen onClose={() => setWelcomeVisible(false)} />
-          )}
-
-          {onboardVisible && (
-            <OnboardModal
-              setModalVisible={setOnboardVisible}
-              step={onboardModalStep}
-            />
-          )}
-        </>
+        onboardVisible && (
+          <OnboardModal
+            setModalVisible={setOnboardVisible}
+            step={onboardModalStep}
+          />
+        )
       )}
     </>
   );

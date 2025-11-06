@@ -20,7 +20,7 @@ import { useEffect, useState } from "react";
 import { Linking, StyleSheet, TextInput, View } from "react-native";
 import Toast from "react-native-root-toast";
 import { Button } from "./ui/button";
-import { Text } from "./ui/text";
+import { Text, TextClassContext } from "./ui/text";
 
 interface OnboardModalProps {
   setModalVisible: React.Dispatch<React.SetStateAction<boolean>>;
@@ -34,7 +34,6 @@ export default function OnboardModal({
   const dispatch = useAppDispatch();
 
   const username = useAppSelector(settingsSelectors.selectUsername);
-
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
 
   const [currentStep, setCurrentStep] = useState<string>(step);
@@ -195,10 +194,8 @@ export default function OnboardModal({
   };
 
   const genKeyPairScreen = (
-    <View style={styles.instructions}>
-      <Text style={styles.modalText}>
-        Let's set a trustroots.org cryptographic key pair.
-      </Text>
+    <>
+      <Text>Let's set a trustroots.org cryptographic key pair.</Text>
 
       <View style={styles.usernameContainer}>
         <Button
@@ -211,12 +208,12 @@ export default function OnboardModal({
         onPress={() => setCurrentStep("setKeyMnemonicScreen")}
         title="I'd like to set my own cryptographic key."
       />
-    </View>
+    </>
   );
 
   const setKeyMnemonicScreen = (
-    <View style={styles.instructions}>
-      <Text style={styles.modalText}>Let's set a trustroots.org key.</Text>
+    <>
+      <Text>Let's set a trustroots.org key.</Text>
 
       <View style={styles.usernameContainer}>
         <Text style={styles.usernameLabel}>Paste mnemonic here:</Text>
@@ -236,27 +233,21 @@ export default function OnboardModal({
 
         <Button onPress={handleMnemonicSubmit} title="Save" />
       </View>
-    </View>
+    </>
   );
 
   const accountErrorScreen = (
-    <View style={styles.instructions}>
-      <Text style={styles.modalText}>
-        Looks like your trustroots.org account info is out of date.
-      </Text>
+    <>
+      <Text>Looks like your trustroots.org account info is out of date.</Text>
       <Button onPress={nextStepAccountError} title="Continue" />
-    </View>
+    </>
   );
 
   const isUserScreen = (
-    <View style={styles.instructions}>
-      <Text style={styles.modalText}>
-        Let's get you started setting up the app!
-      </Text>
+    <>
+      <Text>Let's get you started setting up the app!</Text>
 
-      <Text style={styles.modalText}>
-        Do you have a trustroots.org account?
-      </Text>
+      <Text>Do you have a trustroots.org account?</Text>
 
       <View className="flex flex-col gap-2">
         <OpenTrustRootsButton
@@ -269,12 +260,12 @@ export default function OnboardModal({
           title="Yes, I already have an account."
         />
       </View>
-    </View>
+    </>
   );
 
   const usernameScreen = (
-    <View style={styles.instructions}>
-      <Text style={styles.modalText}>Set your trustroots.org username.</Text>
+    <>
+      <Text>Set your trustroots.org username.</Text>
 
       <View style={styles.usernameContainer}>
         <Text style={styles.usernameLabel}>trustroots.org username:</Text>
@@ -297,17 +288,17 @@ export default function OnboardModal({
           title={isSubmitting ? "Submitting..." : "Submit"}
         />
       </View>
-    </View>
+    </>
   );
 
   const setPubKeyScreen = (
-    <View style={styles.instructions}>
-      <Text style={styles.modalText}>
+    <>
+      <Text>
         Copy your public key and set your public key on your trustroots.org
         profile.
       </Text>
 
-      <Text style={styles.modalText}>Public Key: {npub}</Text>
+      <Text>Public Key: {npub}</Text>
 
       <View className="flex flex-col gap-2">
         <Button
@@ -325,13 +316,12 @@ export default function OnboardModal({
           title="I set my key"
         />
       </View>
-    </View>
+    </>
   );
 
   const finishScreen = (
-    <View style={styles.instructions}>
-      <Text style={styles.modalText}>Thanks {username}, you're all set!</Text>
-
+    <View>
+      <Text>Thanks {username}, you're all set!</Text>
       <Button onPress={() => setModalVisible(false)} title="Close" />
     </View>
   );
@@ -341,7 +331,6 @@ export default function OnboardModal({
     case "accountErrorScreen":
       stepScreen = accountErrorScreen;
       break;
-
     case "isUserScreen":
       stepScreen = isUserScreen;
       break;
@@ -351,22 +340,22 @@ export default function OnboardModal({
     case "genKeyPairScreen":
       stepScreen = genKeyPairScreen;
       break;
-
     case "setKeyMnemonicScreen":
       stepScreen = setKeyMnemonicScreen;
       break;
     case "setPubKeyScreen":
       stepScreen = setPubKeyScreen;
       break;
-
     case "finishScreen":
       stepScreen = finishScreen;
       break;
   }
 
   return (
-    <View style={styles.modalContainer}>
-      {stepScreen}
+    <View className="absolute inset-0 p-safe-offset-6 px-safe-offset-12 z-50 bg-white flex justify-center items-center gap-6">
+      <TextClassContext.Provider value="text-center">
+        {stepScreen}
+      </TextClassContext.Provider>
 
       <Button
         variant="outline"
@@ -378,9 +367,6 @@ export default function OnboardModal({
 }
 
 const styles = StyleSheet.create({
-  instructions: {
-    padding: 50,
-  },
   modalContainer: {
     flex: 1,
     justifyContent: "center",

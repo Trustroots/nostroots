@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
-
-import { StyleSheet, Text } from "react-native";
+import { Text, TextClassContext } from "./ui/text";
 
 interface LoadingScreenProps {
   loading: boolean;
-  zIndex?: number;
 }
 
 // display the loading modal for a min amount of time to avoid flashing
 const MIN_LOADING_TIME = 1000;
 
-const LoadingScreen: React.FC<LoadingScreenProps> = ({ loading, zIndex }) => {
+const LoadingScreen: React.FC<LoadingScreenProps> = ({ loading }) => {
   const [minTimeElapsed, setMinTimeElapsed] = useState(false);
 
   useEffect(() => {
@@ -29,70 +27,15 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ loading, zIndex }) => {
     return null;
   }
 
-  const viewStyles = [
-    styles.fullScreenView,
-    zIndex !== undefined && { zIndex },
-  ];
-
   return (
-    <View style={viewStyles}>
-      <View style={styles.modalView}>
-        <Text style={styles.modalTitle}>Nostroots</Text>
-        {shouldDisplay && <Text style={styles.modalText}>loading...</Text>}
+    <View className="absolute inset-0 px-safe-offset-6 justify-center items-center bg-primary z-50 flex flex-col gap-4">
+      <TextClassContext.Provider value="text-white text-center">
+        <Text variant="h1">Nostroots</Text>
 
-        <View style={{ marginTop: 20 }}>
-          <ActivityIndicator size="large" color="#0000ff" />
-        </View>
-      </View>
+        <ActivityIndicator size="large" color="#fff" />
+      </TextClassContext.Provider>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  fullScreenView: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    zIndex: 1000,
-  },
-  modalView: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  modalText: {
-    fontSize: 18,
-    marginBottom: 30,
-    textAlign: "center",
-  },
-  button: {
-    backgroundColor: "#2196F3",
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-});
 
 export default LoadingScreen;

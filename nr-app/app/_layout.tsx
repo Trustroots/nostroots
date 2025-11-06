@@ -22,7 +22,6 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
 import "react-native-reanimated";
 import { RootSiblingParent } from "react-native-root-siblings";
 import { Provider } from "react-redux";
@@ -171,19 +170,21 @@ function AppContent() {
         </Stack>
       </RootSiblingParent>
 
-      <LoadingScreen loading={showLoadingModal} zIndex={999} />
-      <WelcomeScreen
-        visible={welcomeVisible}
-        zIndex={899}
-        onClose={() => setWelcomeVisible(false)}
-      />
-      {onboardVisible && (
-        <View style={styles.fullScreenOverlay}>
-          <OnboardModal
-            setModalVisible={setOnboardVisible}
-            step={onboardModalStep}
-          />
-        </View>
+      {showLoadingModal ? (
+        <LoadingScreen loading={true} />
+      ) : (
+        <>
+          {welcomeVisible && (
+            <WelcomeScreen onClose={() => setWelcomeVisible(false)} />
+          )}
+
+          {onboardVisible && (
+            <OnboardModal
+              setModalVisible={setOnboardVisible}
+              step={onboardModalStep}
+            />
+          )}
+        </>
       )}
     </>
   );
@@ -230,14 +231,3 @@ function RootLayout() {
 
 // Wrap the Root Layout route component with `Sentry.wrap` to capture gesture info and profiling data.
 export default Sentry.wrap(RootLayout);
-
-const styles = StyleSheet.create({
-  fullScreenOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 100,
-  },
-});

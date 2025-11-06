@@ -4,7 +4,6 @@ import { sendConnectResponse } from "@/nostr/nip-46.nostr";
 import { useState } from "react";
 import { ScrollView, StyleSheet, TextInput } from "react-native";
 import "react-native-get-random-values";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TabFourScreen() {
   const [connectURI, setConnectURI] = useState("");

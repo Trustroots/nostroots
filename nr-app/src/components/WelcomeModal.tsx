@@ -10,7 +10,7 @@ interface WelcomeScreenProps {
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onClose }) => {
   return (
-    <View className="absolute inset-0 p-safe-offset-6 z-50 bg-white flex justify-center items-center gap-6">
+    <View className="absolute inset-0 p-safe-offset-6 bg-white flex justify-center items-center gap-6">
       <Text
         variant="h1"
         className="text-3xl font-bold text-gray-900 text-center mb-0"

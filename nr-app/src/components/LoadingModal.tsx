@@ -28,7 +28,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ loading }) => {
   }
 
   return (
-    <View className="absolute inset-0 px-safe-offset-6 justify-center items-center bg-primary z-50 flex flex-col gap-4">
+    <View className="absolute inset-0 px-safe-offset-6 justify-center items-center bg-primary flex flex-col gap-4">
       <TextClassContext.Provider value="text-white text-center">
         <Text variant="h1">Nostroots</Text>
 

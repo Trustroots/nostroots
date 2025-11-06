@@ -352,7 +352,7 @@ export default function OnboardModal({
   }
 
   return (
-    <View className="absolute inset-0 p-safe-offset-6 px-safe-offset-12 z-50 bg-white flex justify-center items-center gap-6">
+    <View className="absolute inset-0 p-safe-offset-6 px-safe-offset-12 bg-white flex justify-center items-center gap-6">
       <TextClassContext.Provider value="text-center">
         {stepScreen}
       </TextClassContext.Provider>

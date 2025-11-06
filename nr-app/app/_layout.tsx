@@ -164,24 +164,22 @@ function AppContent() {
   return (
     <>
       <RootSiblingParent>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      </RootSiblingParent>
-
-      {showLoadingModal ? (
-        <LoadingScreen loading={true} />
-      ) : welcomeVisible ? (
-        <WelcomeScreen onClose={() => setWelcomeVisible(false)} />
-      ) : (
-        onboardVisible && (
+        {showLoadingModal ? (
+          <LoadingScreen loading={true} />
+        ) : welcomeVisible ? (
+          <WelcomeScreen onClose={() => setWelcomeVisible(false)} />
+        ) : onboardVisible ? (
           <OnboardModal
             setModalVisible={setOnboardVisible}
             step={onboardModalStep}
           />
-        )
-      )}
+        ) : (
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        )}
+      </RootSiblingParent>
     </>
   );
 }

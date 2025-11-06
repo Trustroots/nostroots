@@ -35,9 +35,11 @@ export default function MapModal() {
           </View>
         )}
 
-        <Section>
-          <NotificationSubscription />
-        </Section>
+        {selectedLayer !== "trustroots" ? null : (
+          <Section>
+            <NotificationSubscription />
+          </Section>
+        )}
 
         <Button
           variant="outline"

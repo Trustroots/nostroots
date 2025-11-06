@@ -258,27 +258,6 @@ export default function SettingsScreen() {
         </Section>
       )}
 
-      <Button
-        title="Set filter notification"
-        onPress={async () => {
-          try {
-            dispatch(
-              notificationsSlice.actions.setExpoPushToken(
-                "ExponentPushToken[tnvHKbIICOgGP7SxcA2jcB]",
-              ),
-            );
-            const result = await dispatch(
-              notificationSubscribeToFilterPromiseAction.request({
-                filter: { kinds: [30397] },
-              }),
-            );
-            Toast.show(`#PnvMz0 Success: ${JSON.stringify(result)}`);
-          } catch (error) {
-            Toast.show(`#Y0WER5 Error: ${error}`);
-          }
-        }}
-      />
-
       <Section>
         <Text variant="h2">Help</Text>
 

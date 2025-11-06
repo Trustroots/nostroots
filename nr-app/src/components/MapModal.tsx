@@ -7,12 +7,16 @@ import NotificationSubscription from "./NotificationSubscription";
 import { Button } from "./ui/button";
 import { Section } from "./ui/section";
 import { Text } from "./ui/text";
+import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 
 export default function MapModal() {
   const dispatch = useAppDispatch();
   const showModal = useAppSelector(mapSelectors.selectIsMapModalOpen);
   const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
   const selectedLayer = useAppSelector(mapSelectors.selectSelectedLayer);
+  const hasPrivateKeyInSecureStorage = useAppSelector(
+    keystoreSelectors.selectHasPrivateKeyInSecureStorage,
+  );
 
   return (
     <Modal visible={showModal}>
@@ -27,18 +31,31 @@ export default function MapModal() {
 
         <NotesList plusCode={selectedPlusCode} />
 
-        {selectedLayer === "trustroots" ? (
-          <AddNoteForm />
-        ) : (
-          <View>
-            <Text>Choose the trustroots layer to be able to add content</Text>
-          </View>
-        )}
-
-        {selectedLayer !== "trustroots" ? null : (
+        {!hasPrivateKeyInSecureStorage ? (
           <Section>
-            <NotificationSubscription />
+            <Text>
+              Go to settings and setup your private key to be able to post onto
+              the map.
+            </Text>
           </Section>
+        ) : (
+          <>
+            {selectedLayer === "trustroots" ? (
+              <AddNoteForm />
+            ) : (
+              <View>
+                <Text>
+                  Choose the trustroots layer to be able to add content
+                </Text>
+              </View>
+            )}
+
+            {selectedLayer !== "trustroots" ? null : (
+              <Section>
+                <NotificationSubscription />
+              </Section>
+            )}
+          </>
         )}
 
         <Button

@@ -17,51 +17,45 @@ export default function MapModal() {
 
   return (
     <Modal visible={showModal}>
-      <SafeAreaView>
-        <ScrollView>
-          <View className="p-4 flex flex-col gap-2">
-            <Button
-              variant="outline"
-              title="Close"
-              onPress={() => {
-                dispatch(mapActions.closeMapModal());
-              }}
-            />
+      <ScrollView contentContainerClassName="p-safe-offset-4 bg-white flex flex-col gap-2">
+        <Button
+          variant="outline"
+          title="Close"
+          onPress={() => {
+            dispatch(mapActions.closeMapModal());
+          }}
+        />
 
-            <NotesList plusCode={selectedPlusCode} />
+        <NotesList plusCode={selectedPlusCode} />
 
-            {selectedLayer === "trustroots" ? (
-              <AddNoteForm />
-            ) : (
-              <View>
-                <Text>
-                  Choose the trustroots layer to be able to add content
-                </Text>
-              </View>
-            )}
-
-            <Section>
-              <Text variant="h2">Subscribe</Text>
-              <Text>Subscribe to notifications for this plus code</Text>
-              <Button
-                title="Subscribe"
-                onPress={() => {
-                  dispatch(subscribeToPlusCode(selectedPlusCode));
-                }}
-              />
-            </Section>
-
-            <Button
-              variant="outline"
-              title="Close"
-              onPress={() => {
-                dispatch(mapActions.closeMapModal());
-              }}
-            />
-            <Text variant="muted">Modal is under development</Text>
+        {selectedLayer === "trustroots" ? (
+          <AddNoteForm />
+        ) : (
+          <View>
+            <Text>Choose the trustroots layer to be able to add content</Text>
           </View>
-        </ScrollView>
-      </SafeAreaView>
+        )}
+
+        <Section>
+          <Text variant="h2">Subscribe</Text>
+          <Text>Subscribe to notifications for this plus code</Text>
+          <Button
+            title="Subscribe"
+            onPress={() => {
+              dispatch(subscribeToPlusCode(selectedPlusCode));
+            }}
+          />
+        </Section>
+
+        <Button
+          variant="outline"
+          title="Close"
+          onPress={() => {
+            dispatch(mapActions.closeMapModal());
+          }}
+        />
+        <Text variant="muted">Modal is under development</Text>
+      </ScrollView>
     </Modal>
   );
 }

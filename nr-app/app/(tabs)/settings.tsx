@@ -39,30 +39,6 @@ import {
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
 import Toast from "react-native-root-toast";
-import { SafeAreaView } from "react-native-safe-area-context";
-
-const DevSwitch = () => {
-  const dispatch = useAppDispatch();
-  const areTestFeaturesEnabled = useAppSelector(
-    settingsSelectors.selectAreTestFeaturesEnabled,
-  );
-
-  const toggleTestFeatures = (
-    value: boolean | ((prevState: boolean) => boolean),
-  ) => {
-    dispatch(settingsActions.toggleTestFeatures());
-  };
-
-  return (
-    <View>
-      <Switch
-        value={areTestFeaturesEnabled}
-        onValueChange={toggleTestFeatures}
-      />
-      {areTestFeaturesEnabled && <Text>DEV MODE ON</Text>}
-    </View>
-  );
-};
 
 const ToggleSwitch = ({
   value,
@@ -158,214 +134,206 @@ export default function SettingsScreen() {
   const inputClassName = "border border-gray-300 rounded px-3 py-2 bg-white";
 
   return (
-    <SafeAreaView className="bg-white px-4">
-      <ScrollView>
-        <View>
-          <Modal
-            animationType="slide"
-            transparent={false}
-            visible={modalVisible}
-            onRequestClose={() => setModalVisible(false)}
-          >
-            <OnboardModal setModalVisible={setModalVisible} />
-          </Modal>
-        </View>
+    <ScrollView contentContainerClassName="p-safe-offset-4 bg-white">
+      <View>
+        <Modal
+          animationType="slide"
+          transparent={false}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <OnboardModal setModalVisible={setModalVisible} />
+        </Modal>
+      </View>
 
-        <Text variant="h1">Settings</Text>
+      <Text variant="h1">Settings</Text>
 
-        {username === "" ||
-          (areTestFeaturesEnabled && (
-            <Button
-              title="Link Your Trustroots.org Profile"
-              onPress={() => setModalVisible(true)}
-            />
-          ))}
+      {username === "" ||
+        (areTestFeaturesEnabled && (
+          <Button
+            title="Link Your Trustroots.org Profile"
+            onPress={() => setModalVisible(true)}
+          />
+        ))}
 
-        {(username && username.length > 0) || areTestFeaturesEnabled ? (
-          <Section>
-            <Text className="font-bold">trustroots.org username:</Text>
-            <Text className={inputClassName}>{username}</Text>
-
-            <Text className="font-bold">npub</Text>
-            <TextInput className={inputClassName} value={npub} />
-
-            <Text className="font-bold">public key hex</Text>
-            <TextInput className={inputClassName} value={publicKeyHex} />
-
-            <Text className="font-bold">nsec</Text>
-            <TextInput className={inputClassName} value={nsec} />
-
-            <Text className="font-bold">nsec mnemonic</Text>
-            <TextInput
-              className={inputClassName}
-              value={mnemonicInput}
-              onChangeText={handleMnemonicChange}
-            />
-
-            {mnemonicError && (
-              <Text style={styles.errorText}>{mnemonicError}</Text>
-            )}
-
-            {showUpdateButton && (
-              <Button
-                title="Save New Mnemonic"
-                onPress={handleMnemonicSubmit}
-              />
-            )}
-            <Button title="Show nsec" onPress={showNsec} />
-          </Section>
-        ) : null}
-
-        {areTestFeaturesEnabled && (
-          <Section>
-            <ToggleSwitch
-              label="Enable the experimental plus code map"
-              value={enablePlusCodeMapTEMPORARY}
-              onToggle={() => {
-                dispatch(mapActions.togglePlusCodeMapTEMPORARY());
-              }}
-            />
-
-            <BuildData />
-            <Text className="font-bold">relays</Text>
-            <TextInput
-              className={inputClassName}
-              value="['relay.trustroots.org']"
-            />
-
-            <Section>
-              <Text variant="h2">Notifications</Text>
-              <Text className="font-bold">expo push token</Text>
-              <TextInput className={inputClassName} value={expoPushToken} />
-              <Button
-                title="Register this device for push notifications"
-                onPress={() => {
-                  dispatch(
-                    notificationsActions.setExpoPushToken(expoPushToken),
-                  );
-                }}
-              />
-              <Button
-                title="Reset all subscription filters"
-                onPress={() => {
-                  dispatch(notificationsActions.removeAllFilters());
-                }}
-              />
-            </Section>
-
-            <Button
-              title="Set visible plus codes"
-              onPress={() => {
-                __DEV__ && console.log("#bLtiOc pressed");
-                dispatch(
-                  setVisiblePlusCodes([
-                    "8C000000+",
-                    "8F000000+",
-                    "8G000000+",
-                    "9C000000+",
-                    "9F000000+",
-                    "9G000000+",
-                  ]),
-                );
-              }}
-            />
-
-            <Button
-              title="Clear AsyncStorage"
-              onPress={async () => {
-                try {
-                  await AsyncStorage.clear();
-                  Toast.show("AsyncStorage successfully cleared", {
-                    duration: Toast.durations.SHORT,
-                  });
-                } catch (error) {
-                  Toast.show(`Error clearing AsyncStorage: ${error}`, {
-                    duration: Toast.durations.SHORT,
-                  });
-                }
-              }}
-            />
-          </Section>
-        )}
-
-        <Button
-          title="Set filter notification"
-          onPress={async () => {
-            try {
-              dispatch(
-                notificationsSlice.actions.setExpoPushToken(
-                  "ExponentPushToken[tnvHKbIICOgGP7SxcA2jcB]",
-                ),
-              );
-              const result = await dispatch(
-                notificationSubscribeToFilterPromiseAction.request({
-                  filter: { kinds: [30397] },
-                }),
-              );
-              Toast.show(`#PnvMz0 Success: ${JSON.stringify(result)}`);
-            } catch (error) {
-              Toast.show(`#Y0WER5 Error: ${error}`);
-            }
-          }}
-        />
-
+      {(username && username.length > 0) || areTestFeaturesEnabled ? (
         <Section>
-          <Text variant="h2">Help</Text>
+          <Text className="font-bold">trustroots.org username:</Text>
+          <Text className={inputClassName}>{username}</Text>
 
-          <Text variant="h3">How does this work?</Text>
+          <Text className="font-bold">npub</Text>
+          <TextInput className={inputClassName} value={npub} />
 
-          <Text variant="p">
-            After linking your trustroots profile to this application you can
-            leave semi-public notes on the map. You can see notes on the map
-            left by others, or notes that relate to other projects like
-            hitchwiki and hitchmap.
-          </Text>
+          <Text className="font-bold">public key hex</Text>
+          <TextInput className={inputClassName} value={publicKeyHex} />
 
-          <Text variant="h3">Where can I get help?</Text>
+          <Text className="font-bold">nsec</Text>
+          <TextInput className={inputClassName} value={nsec} />
 
-          <Text variant="p">
-            If you encounter issues with this app, or want to share feedback,
-            you can reach the team behind this at
-            https://www.trustroots.org/support or simply leave a note in the
-            Antarctica area.
-          </Text>
+          <Text className="font-bold">nsec mnemonic</Text>
+          <TextInput
+            className={inputClassName}
+            value={mnemonicInput}
+            onChangeText={handleMnemonicChange}
+          />
 
-          <Text variant="h3">How does this enhance Trustroots?</Text>
+          {mnemonicError && (
+            <Text style={styles.errorText}>{mnemonicError}</Text>
+          )}
 
-          <Text variant="p">
-            Thanks for asking. Soon(tm): We hope we can quickly turn this into
-            an application that is easier to use and has more activity than the
-            previous meet functionality on Trustroots. We also want to integrate
-            it with Trustroots circles. We want it to be a tool that can Help
-            travellers and hosts connect in other ways besides the classical "I
-            would like a place to stay next week". Try posting notes looking for
-            a place, or use it to organize a last-minute potluck in the park.
-          </Text>
-
-          <Text variant="p">
-            Mid-term: We want this app and Trustroots users to be able to
-            interact with other applications, such as e.g. hitchmap.com build
-            new applications e.g. for ridesharing or finding out where the cool
-            events and parties are.
-          </Text>
-
-          <Text variant="p">
-            Long-term: We strive to make the centralized Trustroots server and
-            database and thus the official organization irrelevant.
-          </Text>
+          {showUpdateButton && (
+            <Button title="Save New Mnemonic" onPress={handleMnemonicSubmit} />
+          )}
+          <Button title="Show nsec" onPress={showNsec} />
         </Section>
+      ) : null}
 
+      {areTestFeaturesEnabled && (
         <Section>
           <ToggleSwitch
-            label="Developer Mode"
-            value={areTestFeaturesEnabled}
+            label="Enable the experimental plus code map"
+            value={enablePlusCodeMapTEMPORARY}
             onToggle={() => {
-              dispatch(settingsActions.toggleTestFeatures());
+              dispatch(mapActions.togglePlusCodeMapTEMPORARY());
+            }}
+          />
+
+          <BuildData />
+          <Text className="font-bold">relays</Text>
+          <TextInput
+            className={inputClassName}
+            value="['relay.trustroots.org']"
+          />
+
+          <Section>
+            <Text variant="h2">Notifications</Text>
+            <Text className="font-bold">expo push token</Text>
+            <TextInput className={inputClassName} value={expoPushToken} />
+            <Button
+              title="Register this device for push notifications"
+              onPress={() => {
+                dispatch(notificationsActions.setExpoPushToken(expoPushToken));
+              }}
+            />
+            <Button
+              title="Reset all subscription filters"
+              onPress={() => {
+                dispatch(notificationsActions.removeAllFilters());
+              }}
+            />
+          </Section>
+
+          <Button
+            title="Set visible plus codes"
+            onPress={() => {
+              __DEV__ && console.log("#bLtiOc pressed");
+              dispatch(
+                setVisiblePlusCodes([
+                  "8C000000+",
+                  "8F000000+",
+                  "8G000000+",
+                  "9C000000+",
+                  "9F000000+",
+                  "9G000000+",
+                ]),
+              );
+            }}
+          />
+
+          <Button
+            title="Clear AsyncStorage"
+            onPress={async () => {
+              try {
+                await AsyncStorage.clear();
+                Toast.show("AsyncStorage successfully cleared", {
+                  duration: Toast.durations.SHORT,
+                });
+              } catch (error) {
+                Toast.show(`Error clearing AsyncStorage: ${error}`, {
+                  duration: Toast.durations.SHORT,
+                });
+              }
             }}
           />
         </Section>
-      </ScrollView>
-    </SafeAreaView>
+      )}
+
+      <Button
+        title="Set filter notification"
+        onPress={async () => {
+          try {
+            dispatch(
+              notificationsSlice.actions.setExpoPushToken(
+                "ExponentPushToken[tnvHKbIICOgGP7SxcA2jcB]",
+              ),
+            );
+            const result = await dispatch(
+              notificationSubscribeToFilterPromiseAction.request({
+                filter: { kinds: [30397] },
+              }),
+            );
+            Toast.show(`#PnvMz0 Success: ${JSON.stringify(result)}`);
+          } catch (error) {
+            Toast.show(`#Y0WER5 Error: ${error}`);
+          }
+        }}
+      />
+
+      <Section>
+        <Text variant="h2">Help</Text>
+
+        <Text variant="h3">How does this work?</Text>
+
+        <Text variant="p">
+          After linking your trustroots profile to this application you can
+          leave semi-public notes on the map. You can see notes on the map left
+          by others, or notes that relate to other projects like hitchwiki and
+          hitchmap.
+        </Text>
+
+        <Text variant="h3">Where can I get help?</Text>
+
+        <Text variant="p">
+          If you encounter issues with this app, or want to share feedback, you
+          can reach the team behind this at https://www.trustroots.org/support
+          or simply leave a note in the Antarctica area.
+        </Text>
+
+        <Text variant="h3">How does this enhance Trustroots?</Text>
+
+        <Text variant="p">
+          Thanks for asking. Soon(tm): We hope we can quickly turn this into an
+          application that is easier to use and has more activity than the
+          previous meet functionality on Trustroots. We also want to integrate
+          it with Trustroots circles. We want it to be a tool that can Help
+          travellers and hosts connect in other ways besides the classical "I
+          would like a place to stay next week". Try posting notes looking for a
+          place, or use it to organize a last-minute potluck in the park.
+        </Text>
+
+        <Text variant="p">
+          Mid-term: We want this app and Trustroots users to be able to interact
+          with other applications, such as e.g. hitchmap.com build new
+          applications e.g. for ridesharing or finding out where the cool events
+          and parties are.
+        </Text>
+
+        <Text variant="p">
+          Long-term: We strive to make the centralized Trustroots server and
+          database and thus the official organization irrelevant.
+        </Text>
+      </Section>
+
+      <Section>
+        <ToggleSwitch
+          label="Developer Mode"
+          value={areTestFeaturesEnabled}
+          onToggle={() => {
+            dispatch(settingsActions.toggleTestFeatures());
+          }}
+        />
+      </Section>
+    </ScrollView>
   );
 }
 const styles = StyleSheet.create({

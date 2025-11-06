@@ -1,9 +1,9 @@
-import { subscribeToPlusCode } from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { Modal, ScrollView, View } from "react-native";
 import AddNoteForm from "./AddNoteForm";
 import NotesList from "./NotesList";
+import NotificationSubscription from "./NotificationSubscription";
 import { Button } from "./ui/button";
 import { Section } from "./ui/section";
 import { Text } from "./ui/text";
@@ -36,14 +36,7 @@ export default function MapModal() {
         )}
 
         <Section>
-          <Text variant="h2">Subscribe</Text>
-          <Text>Subscribe to notifications for this plus code</Text>
-          <Button
-            title="Subscribe"
-            onPress={() => {
-              dispatch(subscribeToPlusCode(selectedPlusCode));
-            }}
-          />
+          <NotificationSubscription />
         </Section>
 
         <Button

@@ -30,6 +30,14 @@ export const notificationsSlice = createSlice({
       }
       state.filters.push({ filter: action.payload });
     },
+    removeFilter: (state, action: PayloadAction<Filter>) => {
+      state.filters = state.filters.filter((existingFilterDraft) => {
+        const unwrappedDraft = current(existingFilterDraft);
+        const existingFilter = unwrappedDraft.filter;
+        const isEqual = F.equals(existingFilter, action.payload);
+        return !isEqual;
+      });
+    },
     removeAllFilters: (state, action: PayloadAction<void>) => {
       state.filters = [];
     },

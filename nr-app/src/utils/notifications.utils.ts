@@ -1,7 +1,68 @@
-import { eventSchema } from "@trustroots/nr-common";
+import {
+  eventSchema,
+  Filter,
+  isPlusCodeInsidePlusCode,
+  MAP_NOTE_REPOST_KIND,
+  OPEN_LOCATION_CODE_LABEL_NAMESPACE,
+  PlusCode,
+} from "@trustroots/nr-common";
 import * as Notifications from "expo-notifications";
 import Toast from "react-native-root-toast";
 import { z } from "zod";
+
+export function filterForPlusCode(plusCode: PlusCode) {
+  const filter: Filter = {
+    kinds: [MAP_NOTE_REPOST_KIND],
+    "#L": [OPEN_LOCATION_CODE_LABEL_NAMESPACE],
+    "#l": [plusCode],
+  };
+  return filter;
+}
+
+function hasLabelFilter(
+  filter: Filter,
+): filter is Filter & { ["#l"]: string[] } {
+  const hasLabel = "#l" in filter;
+  if (!hasLabel) {
+    return false;
+  }
+  const labelValues = filter["#l"];
+  if (!Array.isArray(labelValues)) {
+    return false;
+  }
+  if (
+    labelValues.every((label) => typeof label === "string" && label.length > 0)
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function doesFilterMatchPlusCodeExactly(
+  filter: Filter,
+  plusCode: PlusCode,
+): boolean {
+  if (!hasLabelFilter(filter)) {
+    return false;
+  }
+  const labelValues = filter["#l"];
+  const hasMatchForRequiredPlusCode = labelValues.includes(plusCode);
+  return hasMatchForRequiredPlusCode;
+}
+
+export function doesFilterMatchParentPlusCode(
+  filter: Filter,
+  plusCode: PlusCode,
+): boolean {
+  if (!hasLabelFilter(filter)) {
+    return false;
+  }
+  const labelValues = filter["#l"];
+  const hasMatchingPlusCode = labelValues.some((label) =>
+    isPlusCodeInsidePlusCode(label, plusCode),
+  );
+  return hasMatchingPlusCode;
+}
 
 const EventNotificationSchema = z.object({
   type: z.literal("event"),

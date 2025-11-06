@@ -67,7 +67,7 @@ export default function OnboardModal({
         await Linking.openURL(url);
       } else {
         // fail silently, some kind of compatibility error happened?
-        console.error(`Don't know how to open this URL: ${url}`);
+        if (__DEV__) console.error(`Don't know how to open this URL: ${url}`);
       }
     };
 
@@ -120,7 +120,7 @@ export default function OnboardModal({
         setError(null);
 
         try {
-          console.log("about to publish event");
+          if (__DEV__) console.log("about to publish event");
           const eventTemplate: Kind10390EventTemplate =
             createKind10390EventTemplate(usernameText);
 
@@ -128,13 +128,13 @@ export default function OnboardModal({
           await dispatch(
             publishEventTemplatePromiseAction.request({ eventTemplate }),
           );
-          console.log("publish event");
+          if (__DEV__) console.log("publish event");
 
           setUsernameText("");
           dispatch(settingsActions.setUsername(usernameText));
           setCurrentStep("finishScreen");
         } catch (error) {
-          console.log("error publishing", error);
+          if (__DEV__) console.log("error publishing", error);
           // const serializeableError = getSerializableError(error);
           Toast.show(
             // `Error sending profile event #grC53G ${serializeableError.toString()}`,
@@ -146,7 +146,7 @@ export default function OnboardModal({
 
         return;
       } else {
-        console.log("nip5Result", npubResponse, npub);
+        if (__DEV__) console.log("nip5Result", npubResponse, npub);
         setError(
           "Invalid username for this key. Check your username or your public key.",
         );

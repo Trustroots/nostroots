@@ -3,6 +3,7 @@ import {
   Filter,
   isPlusCodeInsidePlusCode,
   MAP_NOTE_REPOST_KIND,
+  NOSTROOTS_VALIDATION_PUBKEY,
   OPEN_LOCATION_CODE_LABEL_NAMESPACE,
   PlusCode,
 } from "@trustroots/nr-common";
@@ -13,6 +14,7 @@ import { z } from "zod";
 export function filterForPlusCode(plusCode: PlusCode) {
   const filter: Filter = {
     kinds: [MAP_NOTE_REPOST_KIND],
+    authors: [NOSTROOTS_VALIDATION_PUBKEY],
     "#L": [OPEN_LOCATION_CODE_LABEL_NAMESPACE],
     "#l": [plusCode],
   };

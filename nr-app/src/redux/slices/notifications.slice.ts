@@ -1,4 +1,5 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { F } from "@mobily/ts-belt";
+import { createSlice, current, PayloadAction } from "@reduxjs/toolkit";
 import { Filter } from "@trustroots/nr-common";
 
 type NotificationsState = {
@@ -18,7 +19,24 @@ export const notificationsSlice = createSlice({
   initialState,
   reducers: {
     addFilter: (state, action: PayloadAction<Filter>) => {
+      const filterAlreadyExists = state.filters.some((existingFilterDraft) => {
+        const unwrappedDraft = current(existingFilterDraft);
+        const existingFilter = unwrappedDraft.filter;
+        const isEqual = F.equals(existingFilter, action.payload);
+        return isEqual;
+      });
+      if (filterAlreadyExists) {
+        return;
+      }
       state.filters.push({ filter: action.payload });
+    },
+    removeFilter: (state, action: PayloadAction<Filter>) => {
+      state.filters = state.filters.filter((existingFilterDraft) => {
+        const unwrappedDraft = current(existingFilterDraft);
+        const existingFilter = unwrappedDraft.filter;
+        const isEqual = F.equals(existingFilter, action.payload);
+        return !isEqual;
+      });
     },
     removeAllFilters: (state, action: PayloadAction<void>) => {
       state.filters = [];

@@ -22,7 +22,6 @@ import {
   getPrivateKeyMnemonic,
 } from "@/nostr/keystore.nostr";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
-import { notificationSubscribeToFilterPromiseAction } from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
 import {
@@ -30,10 +29,7 @@ import {
   setPublicKeyHex,
 } from "@/redux/slices/keystore.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
-import {
-  notificationsActions,
-  notificationsSlice,
-} from "@/redux/slices/notifications.slice";
+import { notificationsActions } from "@/redux/slices/notifications.slice";
 import {
   settingsActions,
   settingsSelectors,
@@ -257,27 +253,6 @@ export default function SettingsScreen() {
           />
         </Section>
       )}
-
-      <Button
-        title="Set filter notification"
-        onPress={async () => {
-          try {
-            dispatch(
-              notificationsSlice.actions.setExpoPushToken(
-                "ExponentPushToken[tnvHKbIICOgGP7SxcA2jcB]",
-              ),
-            );
-            const result = await dispatch(
-              notificationSubscribeToFilterPromiseAction.request({
-                filter: { kinds: [30397] },
-              }),
-            );
-            Toast.show(`#PnvMz0 Success: ${JSON.stringify(result)}`);
-          } catch (error) {
-            Toast.show(`#Y0WER5 Error: ${error}`);
-          }
-        }}
-      />
 
       <Section>
         <Text variant="h2">Help</Text>

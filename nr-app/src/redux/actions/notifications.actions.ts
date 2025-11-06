@@ -1,8 +1,5 @@
 import { SerializableError } from "@/utils/error.utils";
-import {
-  MAP_NOTE_REPOST_KIND,
-  OPEN_LOCATION_CODE_LABEL_NAMESPACE,
-} from "@trustroots/nr-common";
+import { filterForPlusCode } from "@/utils/notifications.utils";
 import { Filter } from "nostr-tools";
 import { createPromiseAction } from "redux-saga-promise-actions";
 
@@ -17,11 +14,23 @@ export const notificationSubscribeToFilterPromiseAction = createPromiseAction(
 >();
 
 export const subscribeToPlusCode = (plusCode: string) => {
-  const filter: Filter = {
-    kinds: [MAP_NOTE_REPOST_KIND],
-    "#L": [OPEN_LOCATION_CODE_LABEL_NAMESPACE],
-    "#l": [plusCode],
-  };
+  const filter = filterForPlusCode(plusCode);
 
   return notificationSubscribeToFilterPromiseAction.request({ filter });
+};
+
+export const notificationUnsubscribeToFilterPromiseAction = createPromiseAction(
+  "notifications/unsubscribe/request",
+  "notifications/unsubscribe/success",
+  "notifications/unsubscribe/failure",
+)<
+  { filter: Filter },
+  { success: boolean; message?: string },
+  SerializableError
+>();
+
+export const unsubscribeFromPlusCode = (plusCode: string) => {
+  const filter = filterForPlusCode(plusCode);
+
+  return notificationUnsubscribeToFilterPromiseAction.request({ filter });
 };

@@ -30,6 +30,20 @@ export default function NotesSingle({
 }) {
   const authorPublicKey = getAuthorFromEvent(eventWithMetadata.event);
 
+  const fullData = {
+    name: "full event data",
+    ...eventWithMetadata,
+    author: {
+      publicKey: authorPublicKey,
+    },
+  };
+  console.log("--------------------------------");
+  console.log("--------------------------------");
+  console.log("--------------------------------");
+  console.log(JSON.stringify(fullData, null, 2));
+  console.log("--------------------------------");
+  console.log("--------------------------------");
+
   return (
     <Section className="px-4 pb-4 bg-white rounded-lg border border-gray-200">
       <Text variant="p">{eventWithMetadata.event.content}</Text>

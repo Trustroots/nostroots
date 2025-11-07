@@ -240,6 +240,7 @@ export default function SettingsScreen() {
             />
           </Section>
 
+          <Text variant="h2">Utils</Text>
           <Button
             title="Set visible plus codes"
             onPress={() => {

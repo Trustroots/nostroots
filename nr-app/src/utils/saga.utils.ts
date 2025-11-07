@@ -32,7 +32,11 @@ export function createPromiseActionSaga<PayloadType, ResolveType>({
         yield put(promiseAction.success(result));
         resolvePromiseAction(action, result);
       } catch (resolveError) {
-        console.error("#OKwHTw resolving promise action failed", resolveError);
+        if (__DEV__)
+          console.error(
+            "#OKwHTw resolving promise action failed",
+            resolveError,
+          );
       }
     } catch (error) {
       try {
@@ -40,7 +44,8 @@ export function createPromiseActionSaga<PayloadType, ResolveType>({
         yield put(promiseAction.failure(serializableError));
         rejectPromiseAction(action, error);
       } catch (rejectError) {
-        console.error("#jOKR3b rejecting promise action failed", rejectError);
+        if (__DEV__)
+          console.error("#jOKR3b rejecting promise action failed", rejectError);
       }
     }
   };

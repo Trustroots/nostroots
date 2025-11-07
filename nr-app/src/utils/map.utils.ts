@@ -88,7 +88,8 @@ export function plusCodeToCoordinates(plusCode: string): {
     decoded = OpenLocationCode.decode(plusCode);
   } catch (error) {
     if (error instanceof Error) {
-      console.error("#ewW2XQ Error decoding Plus Code:", error.message);
+      if (__DEV__)
+        console.error("#ewW2XQ Error decoding Plus Code:", error.message);
     }
     throw error;
   }
@@ -116,7 +117,8 @@ export function plusCodeToRectangle(
     decoded = OpenLocationCode.decode(plusCode);
   } catch (error) {
     if (error instanceof Error) {
-      console.error("#ewW2XQ Error decoding Plus Code:", error.message);
+      if (__DEV__)
+        console.error("#ewW2XQ Error decoding Plus Code:", error.message);
     }
     throw error;
   }

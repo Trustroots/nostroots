@@ -37,7 +37,8 @@ export async function subscribeToFilter({
       try {
         store.dispatch(addEvent({ event, fromRelay: relayUrl }));
       } catch (error) {
-        console.error("#ROkIr5 Caught error in store.dispatch()", error);
+        if (__DEV__)
+          console.error("#ROkIr5 Caught error in store.dispatch()", error);
       }
     },
     oneose: () => {
@@ -46,7 +47,8 @@ export async function subscribeToFilter({
           setSubscriptionHasSeenEOSE({ id: subscriptionId, relayUrl }),
         );
       } catch (error) {
-        console.error("#6duput Caught error in store.dispatch()", error);
+        if (__DEV__)
+          console.error("#6duput Caught error in store.dispatch()", error);
       }
     },
     // NOTE: Type casting here because `id` is not available on `.subscribe()`

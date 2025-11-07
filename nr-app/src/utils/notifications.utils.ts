@@ -1,6 +1,7 @@
+import { getCurrentIfDraft } from "@/common/utils";
 import { NotificationSubscriptionFilter } from "@/redux/slices/notifications.slice";
 import { F } from "@mobily/ts-belt";
-import { current, Draft } from "@reduxjs/toolkit";
+import { Draft } from "@reduxjs/toolkit";
 import {
   eventSchema,
   Filter,
@@ -19,7 +20,7 @@ export function removeFilterFromFiltersArray(
   targetFilter: NotificationSubscriptionFilter,
 ) {
   return filters.filter((existingFilterDraft) => {
-    const unwrappedDraft = current(existingFilterDraft);
+    const unwrappedDraft = getCurrentIfDraft(existingFilterDraft);
     const isEqual = F.equals(unwrappedDraft, targetFilter);
     return !isEqual;
   });
@@ -33,7 +34,7 @@ export function addFilterToFiltersArray(
   newFilter: NotificationSubscriptionFilter,
 ) {
   const filterAlreadyExists = filters.some((existingFilterDraft) => {
-    const unwrappedDraft = current(existingFilterDraft);
+    const unwrappedDraft = getCurrentIfDraft(existingFilterDraft);
     const isEqual = F.equals(unwrappedDraft, newFilter);
     return isEqual;
   });

@@ -1,6 +1,7 @@
 import { Filter } from "nostr-tools";
 import { MapLayer, NOSTROOTS_VALIDATION_PUBKEY } from "@trustroots/nr-common";
 import { isHexKey } from "@trustroots/nr-common";
+import { current, isDraft, WritableDraft } from "@reduxjs/toolkit";
 
 // TODO - Move these into `nr-common` (they depend on nostr-tools)
 
@@ -71,4 +72,12 @@ export function filterForMapLayerConfigForPlusCodePrefixes(
     plusCodePrefixes,
   );
   return filter;
+}
+
+export function getCurrentIfDraft<T>(input: T | WritableDraft<T>): T {
+  const isWrapped = isDraft(input);
+  if (isWrapped) {
+    return current(input) as T;
+  }
+  return input as T;
 }

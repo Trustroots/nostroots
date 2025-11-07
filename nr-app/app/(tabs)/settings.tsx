@@ -73,6 +73,10 @@ export default function SettingsScreen() {
     mapSelectors.selectEnablePlusCodeMapTEMPORARY,
   );
 
+  const notificationSubscriptionsJson = useAppSelector((state) =>
+    JSON.stringify(state.notifications.filters),
+  );
+
   const [modalVisible, setModalVisible] = useState(false);
 
   const showNsec = async () => {
@@ -228,6 +232,9 @@ export default function SettingsScreen() {
                 dispatch(notificationsActions.removeAllFilters());
               }}
             />
+
+            <Text>Subscription data</Text>
+            <TextInput value={notificationSubscriptionsJson} />
           </Section>
 
           <Button

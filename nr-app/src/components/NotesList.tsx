@@ -22,13 +22,21 @@ const notesListSelectorFactory = (plusCode: string) =>
     return sortedEvents;
   });
 
-export default function NotesList({ plusCode }: { plusCode: string }) {
+export default function NotesList({
+  plusCode,
+  selectedEventId,
+}: {
+  plusCode: string;
+  selectedEventId?: string | null;
+}) {
   const selector = useMemo(
     () => notesListSelectorFactory(plusCode),
     [plusCode],
   );
   const { eventsForPlusCodeExactly, eventsWithinPlusCode } =
     useAppSelector(selector);
+
+  // console.log("#Lz8K48 selectedEventId", selectedEventId);
 
   return (
     <>
@@ -42,6 +50,7 @@ export default function NotesList({ plusCode }: { plusCode: string }) {
             <NotesSingle
               key={eventWithMetadata.event.id}
               eventWithMetadata={eventWithMetadata}
+              isSelected={eventWithMetadata.event.id === selectedEventId}
             />
           ))}
         </View>
@@ -57,6 +66,7 @@ export default function NotesList({ plusCode }: { plusCode: string }) {
             <NotesSingle
               key={eventWithMetadata.event.id}
               eventWithMetadata={eventWithMetadata}
+              isSelected={eventWithMetadata.event.id === selectedEventId}
             />
           ))}
         </View>

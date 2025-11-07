@@ -39,13 +39,25 @@ function NoteAuthorInfo({ authorPublicKey }: { authorPublicKey?: string }) {
 
 export default function NotesSingle({
   eventWithMetadata,
+  isSelected,
 }: {
   eventWithMetadata: EventWithMetadata;
+  isSelected: boolean;
 }) {
   const authorPublicKey = getAuthorFromEvent(eventWithMetadata.event);
 
+  const fullData = {
+    name: "full event data",
+    ...eventWithMetadata,
+    author: {
+      publicKey: authorPublicKey,
+    },
+  };
+
   return (
-    <Section className="px-4 pb-4 bg-white rounded-lg border border-gray-200">
+    <Section
+      className={`px-4 pb-4 bg-white rounded-lg border ${isSelected ? "border-red-500" : "border-gray-200"}`}
+    >
       <Text variant="p">{eventWithMetadata.event.content}</Text>
       <View className="mb-2">
         <NoteAuthorInfo authorPublicKey={authorPublicKey} />

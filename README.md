@@ -78,4 +78,3 @@ See https://github.com/Trustroots/nostroots/issues/102 for ideas around partner 
 
 
 https://team.trustroots.org/nostr.html is the project's home page.
-

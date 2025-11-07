@@ -2,9 +2,11 @@ import {
   filterForMapLayerConfig,
   trustrootsMapFilterForPlusCodePrefixes,
 } from "@/common/utils";
+import { mapRefService } from "@/utils/mapRef";
+import { createSelector, PayloadAction } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
-import { createSelector } from "@reduxjs/toolkit";
 import { Filter } from "nostr-tools";
+import { Region } from "react-native-maps";
 import { AnyAction } from "redux-saga";
 import {
   all,
@@ -83,8 +85,55 @@ export function* updateDataForMapFromLayerToggleSaga() {
   yield takeEvery(mapActions.toggleLayer, updateDataForMapSagaEffect);
 }
 
+/**
+ * Saga to handle animateToRegion action
+ */
+function* animateToRegionSaga(
+  action: PayloadAction<{ region: Region; duration?: number }>,
+) {
+  const { region, duration } = action.payload;
+  mapRefService.animateToRegion(region, duration);
+}
+
+/**
+ * Saga to handle animateToCoordinate action
+ */
+function* animateToCoordinateSaga(
+  action: PayloadAction<{
+    latitude: number;
+    longitude: number;
+    latitudeDelta?: number;
+    longitudeDelta?: number;
+    duration?: number;
+  }>,
+) {
+  const { latitude, longitude, latitudeDelta, longitudeDelta, duration } =
+    action.payload;
+  mapRefService.animateToCoordinate(
+    latitude,
+    longitude,
+    latitudeDelta,
+    longitudeDelta,
+    duration,
+  );
+}
+
+/**
+ * Watch for map animation actions
+ */
+export function* watchMapAnimationsSaga() {
+  yield all([
+    takeEvery(mapActions.animateToRegion, animateToRegionSaga),
+    takeEvery(mapActions.animateToCoordinate, animateToCoordinateSaga),
+  ]);
+}
+
 export default function* mapSaga() {
-  yield all([updateDataForMapSaga(), updateDataForMapFromLayerToggleSaga()]);
+  yield all([
+    updateDataForMapSaga(),
+    updateDataForMapFromLayerToggleSaga(),
+    watchMapAnimationsSaga(),
+  ]);
 }
 
 /**

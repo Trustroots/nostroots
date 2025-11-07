@@ -1,9 +1,9 @@
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { matchFilter } from "nostr-tools";
-import { BoundingBox, LatLng } from "react-native-maps";
+import { BoundingBox, LatLng, Region } from "react-native-maps";
 import { setVisiblePlusCodes } from "../actions/map.actions";
-import { eventsSelectors } from "./events.slice";
+import { eventsSelectors, EventWithMetadata } from "./events.slice";
 import { setSubscriptionHasSeenEOSE } from "./relays.slice";
 
 export const MAP_SUBSCRIPTION_ID = "mapVisiblePlusCodesSubscription";
@@ -14,8 +14,13 @@ interface MapState {
   selectedPlusCode: string;
   boundingBox?: BoundingBox;
   isMapModalOpen: boolean;
+  isHalfMapEventModalOpen: boolean;
   isAddNoteModalOpen: boolean;
   selectedLatLng?: LatLng;
+  currentMapLocation?: LatLng;
+  centerMapOnCurrentLocation: boolean;
+  centerMapOnHalfModal: boolean;
+  currentNotificationEvent?: EventWithMetadata;
   selectedLayer: MAP_LAYER_KEY;
   enablePlusCodeMapTEMPORARY: boolean;
 }
@@ -24,7 +29,13 @@ const initialState: MapState = {
   mapSubscriptionIsUpdating: false,
   visiblePlusCodes: [],
   isMapModalOpen: false,
+  isHalfMapEventModalOpen: false,
   isAddNoteModalOpen: false,
+  selectedLatLng: undefined,
+  currentMapLocation: undefined,
+  centerMapOnCurrentLocation: false,
+  centerMapOnHalfModal: false,
+  currentNotificationEvent: undefined,
   selectedPlusCode: "",
   selectedLayer: "trustroots",
   enablePlusCodeMapTEMPORARY: true,
@@ -34,6 +45,21 @@ export const mapSlice = createSlice({
   name: "map",
   initialState,
   reducers: {
+    centerMapOnCurrentLocationComplete: (state) => {
+      state.centerMapOnCurrentLocation = false;
+    },
+    centerMapOnCurrentLocation: (state) => {
+      state.centerMapOnCurrentLocation = true;
+    },
+    centerMapOnHalfModalComplete: (state) => {
+      state.centerMapOnHalfModal = false;
+    },
+    centerMapOnHalfModal: (state) => {
+      state.centerMapOnHalfModal = true;
+    },
+    setCurrentMapLocation: (state, action: PayloadAction<LatLng>) => {
+      state.currentMapLocation = action.payload;
+    },
     setMapSubscriptionIsUpdating: (state, action: PayloadAction<boolean>) => {
       if (state.mapSubscriptionIsUpdating !== action.payload) {
         state.mapSubscriptionIsUpdating = action.payload;
@@ -61,8 +87,26 @@ export const mapSlice = createSlice({
       state.isAddNoteModalOpen = false;
     },
     setSelectedPlusCode: (state, action: PayloadAction<string>) => {
+      // console.log("#Lz8K48 setSelectedPlusCode", action.payload);
       state.selectedPlusCode = action.payload;
       state.isMapModalOpen = true;
+    },
+    setCurrentNotificationEvent: (
+      state,
+      action: PayloadAction<EventWithMetadata>,
+    ) => {
+      state.currentNotificationEvent = action.payload;
+    },
+    openHalfMapEventModal: (
+      state,
+      action: PayloadAction<EventWithMetadata>,
+    ) => {
+      state.isHalfMapEventModalOpen = true;
+      state.currentNotificationEvent = action.payload;
+    },
+    closeHalfMapEventModal: (state) => {
+      state.isHalfMapEventModalOpen = false;
+      state.currentNotificationEvent = undefined;
     },
     closeMapModal: (state) => {
       state.isMapModalOpen = false;
@@ -78,6 +122,26 @@ export const mapSlice = createSlice({
     },
     togglePlusCodeMapTEMPORARY: (state) => {
       state.enablePlusCodeMapTEMPORARY = !state.enablePlusCodeMapTEMPORARY;
+    },
+    // Action to trigger map animation - handled by saga
+    animateToRegion: (
+      state,
+      action: PayloadAction<{ region: Region; duration?: number }>,
+    ) => {
+      // This action is handled by the saga
+    },
+    // Action to trigger map animation to a coordinate
+    animateToCoordinate: (
+      state,
+      action: PayloadAction<{
+        latitude: number;
+        longitude: number;
+        latitudeDelta?: number;
+        longitudeDelta?: number;
+        duration?: number;
+      }>,
+    ) => {
+      // This action is handled by the saga
     },
   },
   extraReducers: (builder) => {
@@ -95,7 +159,7 @@ export const mapSlice = createSlice({
     selectVisiblePlusCodes: (state) => state.visiblePlusCodes,
     selectEnabledLayers: createSelector(
       (state: MapState) => state.selectedLayer,
-      (selectedLayer) =>
+      (selectedLayer: MAP_LAYER_KEY) =>
         Object.fromEntries(
           Object.entries(MAP_LAYERS).map(([key]) => [
             key,
@@ -108,13 +172,24 @@ export const mapSlice = createSlice({
       visiblePlusCodes: state.visiblePlusCodes,
     }),
     selectSelectedLayer: (state) => state.selectedLayer,
-    selectSelectedLatLng: (state) => state.selectedLatLng,
+    selectSelectedLatLng: (state: MapState) => state.selectedLatLng,
     selectSelectedPlusCode: (state) => state.selectedPlusCode,
     selectIsMapModalOpen: (state) => state.isMapModalOpen,
+    selectIsHalfMapEventModalOpen: (state) => state.isHalfMapEventModalOpen,
     selectIsAddNoteModalOpen: (state) => state.isAddNoteModalOpen,
     selectBoundingBox: (state) => state.boundingBox,
     selectEnablePlusCodeMapTEMPORARY: (state) =>
       state.enablePlusCodeMapTEMPORARY,
+    selectEnabledLayerKeys: createSelector(
+      (state: MapState) => state,
+      (state: MapState) => [state.selectedLayer],
+    ),
+    selectCurrentMapLocation: (state: MapState) => state.currentMapLocation,
+    selectCenterMapOnCurrentLocation: (state: MapState) =>
+      state.centerMapOnCurrentLocation,
+    selectCenterMapOnHalfModal: (state: MapState) => state.centerMapOnHalfModal,
+    selectCurrentNotificationEvent: (state: MapState) =>
+      state.currentNotificationEvent,
   },
 });
 
@@ -127,7 +202,7 @@ const selectEnabledLayerKeys = createSelector(
 
 const selectEventsForSelectedMapLayer = createSelector(
   [eventsSelectors.selectAll, mapSliceSelectors.selectSelectedLayer],
-  (events, selectedLayer) => {
+  (events: EventWithMetadata[], selectedLayer: MAP_LAYER_KEY) => {
     const layer = MAP_LAYERS[selectedLayer];
     const eventsForLayer = events.filter((eventWithMetadata) =>
       matchFilter(layer.filter, eventWithMetadata.event),

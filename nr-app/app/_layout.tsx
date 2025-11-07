@@ -2,11 +2,7 @@ import { getPublicKeyHexFromSecureStorage } from "@/nostr/keystore.nostr";
 
 import { nip19 } from "nostr-tools";
 
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
+import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { getNip5PubKey } from "@trustroots/nr-common";
 
 import * as Sentry from "@sentry/react-native";
@@ -24,7 +20,6 @@ import { PersistGate } from "redux-persist/integration/react";
 import { SENTRY_DSN } from "@trustroots/nr-common";
 
 import LoadingScreen from "@/components/LoadingModal";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import { rehydrated } from "@/redux/actions/startup.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
@@ -35,6 +30,7 @@ import { PortalHost } from "@rn-primitives/portal";
 
 import OnboardModal from "@/components/OnboardModal";
 import WelcomeScreen from "@/components/WelcomeModal";
+import { colorScheme } from "nativewind";
 
 import {
   settingsActions,
@@ -179,12 +175,12 @@ function AppContent() {
 }
 
 function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
   useEffect(() => {
+    colorScheme.set("light");
     if (loaded) {
       SplashScreen.hideAsync();
     }
@@ -207,7 +203,8 @@ function RootLayout() {
         }}
       >
         <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          value={DefaultTheme}
+          // value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
         >
           <AppContent />
           <PortalHost />

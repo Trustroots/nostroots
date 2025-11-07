@@ -68,6 +68,8 @@ function* notificationsSubscribeSagaEffect(
     log.debug("#ChMVeW notificationsSubscribeSagaEffect()*");
     const { filter } = action.payload;
 
+    yield put(notificationsActions.addFilter(filter));
+
     const notificationData = (yield select(
       notificationSelectors.selectData,
     )) as ReturnType<typeof notificationSelectors.selectData>;
@@ -89,8 +91,6 @@ function* notificationsSubscribeSagaEffect(
     yield dispatch(
       publishEventTemplatePromiseAction.request({ eventTemplate }),
     );
-
-    yield put(notificationsActions.addFilter(filter));
 
     const output = { success: true };
     yield put(notificationSubscribeToFilterPromiseAction.success(output));
@@ -125,6 +125,8 @@ function* notificationsUnsubscribeSagaEffect(
     log.debug("#J3njd0 notificationsUnsubscribeSagaEffect()*");
     const { filter } = action.payload;
 
+    yield put(notificationsActions.removeFilter(filter));
+
     const notificationData = (yield select(
       notificationSelectors.selectData,
     )) as ReturnType<typeof notificationSelectors.selectData>;
@@ -146,8 +148,6 @@ function* notificationsUnsubscribeSagaEffect(
     yield dispatch(
       publishEventTemplatePromiseAction.request({ eventTemplate }),
     );
-
-    yield put(notificationsActions.removeFilter(filter));
 
     const output = { success: true };
     yield put(notificationUnsubscribeToFilterPromiseAction.success(output));

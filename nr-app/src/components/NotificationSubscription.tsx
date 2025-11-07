@@ -66,7 +66,7 @@ export default function NotificationSubscription() {
             onPress={async () => {
               try {
                 await dispatch(unsubscribeFromPlusCode(selectedPlusCode));
-                Toast.show("Successfully subscribed", {
+                Toast.show("Successfully unsubscribed", {
                   duration: Toast.durations.LONG,
                 });
               } catch (error) {

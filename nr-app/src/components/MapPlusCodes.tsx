@@ -2,6 +2,7 @@ import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { rootLogger } from "@/utils/logger.utils";
+import { mapRefService } from "@/utils/mapRef";
 import {
   allPlusCodesForRegion,
   boundariesToRegion,
@@ -12,7 +13,7 @@ import {
   regionToBoundingBox,
 } from "@/utils/map.utils";
 import Constants, { ExecutionEnvironment } from "expo-constants";
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Platform, StyleSheet } from "react-native";
 import MapView, {
   Details,
@@ -84,8 +85,47 @@ export default function MapPlusCodes() {
   const dispatch = useAppDispatch();
 
   const plusCodesWithState = useAppSelector(selectPlusCodesWithState);
+  const centerMapOnCurrentLocation = useAppSelector(
+    mapSelectors.selectCenterMapOnCurrentLocation,
+  );
+  const currentMapLocation = useAppSelector(
+    mapSelectors.selectCurrentMapLocation,
+  );
 
   const mapViewRef = useRef<MapView>(null);
+
+  // Clean up the map ref on unmount
+  useEffect(() => {
+    return () => {
+      mapRefService.setMapRef(null);
+    };
+  }, []);
+
+  // Handle centering map on current location when flag is set
+  useEffect(() => {
+    if (
+      centerMapOnCurrentLocation &&
+      currentMapLocation &&
+      typeof currentMapLocation === "object" &&
+      "latitude" in currentMapLocation &&
+      "longitude" in currentMapLocation &&
+      typeof currentMapLocation.latitude === "number" &&
+      typeof currentMapLocation.longitude === "number"
+    ) {
+      // Use the new action-based approach
+      dispatch(
+        mapActions.animateToCoordinate({
+          latitude: currentMapLocation.latitude,
+          longitude: currentMapLocation.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+          duration: 1000,
+        }),
+      );
+      // Clear the flag
+      dispatch(mapActions.centerMapOnCurrentLocationComplete());
+    }
+  }, [centerMapOnCurrentLocation, currentMapLocation, dispatch]);
 
   const handleMapRegionChange = useMemo(
     () =>
@@ -120,6 +160,9 @@ export default function MapPlusCodes() {
           log.error("#SHtaWM mapViewRef is null");
           return;
         }
+        // Register the map ref with the service for Redux sagas to use
+        mapRefService.setMapRef(mapViewRef.current);
+
         const boundaries = await mapViewRef.current.getMapBoundaries();
         log.debug("#iztRxR onMapReady", boundaries);
         const region = boundariesToRegion(boundaries);

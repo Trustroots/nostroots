@@ -1,8 +1,16 @@
+import {
+  addFilterToFiltersArray,
+  removeFilterFromFiltersArray,
+} from "@/utils/notifications.utils";
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Filter } from "@trustroots/nr-common";
 
-type NotificationsState = {
-  filters: { filter: Filter }[];
+export type NotificationSubscriptionFilter = {
+  filter: Filter;
+};
+
+export type NotificationsState = {
+  filters: NotificationSubscriptionFilter[];
   tokens: {
     expoPushToken: string;
   }[];
@@ -17,10 +25,22 @@ export const notificationsSlice = createSlice({
   name: "notifications",
   initialState,
   reducers: {
-    addFilter: (state, action: PayloadAction<Filter>) => {
-      state.filters.push({ filter: action.payload });
+    addFilter: (
+      state,
+      action: PayloadAction<NotificationSubscriptionFilter>,
+    ) => {
+      state.filters = addFilterToFiltersArray(state.filters, action.payload);
     },
-    removeAllFilters: (state, action: PayloadAction<void>) => {
+    removeFilter: (
+      state,
+      action: PayloadAction<NotificationSubscriptionFilter>,
+    ) => {
+      state.filters = removeFilterFromFiltersArray(
+        state.filters,
+        action.payload,
+      );
+    },
+    removeAllFilters: (state) => {
       state.filters = [];
     },
     setExpoPushToken: (state, action: PayloadAction<string>) => {

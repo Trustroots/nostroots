@@ -1,9 +1,9 @@
 import { addEvent } from "@/redux/slices/events.slice";
 import { setSubscriptionHasSeenEOSE } from "@/redux/slices/relays.slice";
 import { Event, Filter } from "nostr-tools";
-import { Subscription } from "nostr-tools/lib/types/abstract-relay";
-import { getRelay } from "./relays.nostr";
 import { AppStore } from "@/redux/store";
+import { Subscription } from "nostr-tools/abstract-relay";
+import { getRelay } from "./relays.nostr";
 
 // NOTE: This pattern is required to avoid a circular import dependency
 let store: AppStore;
@@ -37,7 +37,8 @@ export async function subscribeToFilter({
       try {
         store.dispatch(addEvent({ event, fromRelay: relayUrl }));
       } catch (error) {
-        console.error("#ROkIr5 Caught error in store.dispatch()", error);
+        if (__DEV__)
+          console.error("#ROkIr5 Caught error in store.dispatch()", error);
       }
     },
     oneose: () => {
@@ -46,7 +47,8 @@ export async function subscribeToFilter({
           setSubscriptionHasSeenEOSE({ id: subscriptionId, relayUrl }),
         );
       } catch (error) {
-        console.error("#6duput Caught error in store.dispatch()", error);
+        if (__DEV__)
+          console.error("#6duput Caught error in store.dispatch()", error);
       }
     },
     // NOTE: Type casting here because `id` is not available on `.subscribe()`

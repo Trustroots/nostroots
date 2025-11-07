@@ -1,19 +1,9 @@
-import {
-  derivePublicKeyHexFromMnemonic,
-  getHasPrivateKeyInSecureStorage,
-  getPrivateKeyMnemonic,
-} from "@/nostr/keystore.nostr";
+import { getPublicKeyHexFromSecureStorage } from "@/nostr/keystore.nostr";
 
 import { nip19 } from "nostr-tools";
 
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
+import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { getNip5PubKey } from "@trustroots/nr-common";
-
-import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
 
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
@@ -22,26 +12,25 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as React from "react";
 import { useEffect, useState } from "react";
-import { StyleSheet, View } from "react-native";
 import "react-native-reanimated";
 import { RootSiblingParent } from "react-native-root-siblings";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 
-import { SENTRY_DSN } from "@trustroots/nr-common";
-
 import LoadingScreen from "@/components/LoadingModal";
-import { useColorScheme } from "@/hooks/useColorScheme";
 import { rehydrated } from "@/redux/actions/startup.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
   keystoreSelectors,
   setPublicKeyHex,
 } from "@/redux/slices/keystore.slice";
+import { setupNotificationHandling } from "@/utils/notifications.utils";
 import { PortalHost } from "@rn-primitives/portal";
+import { SENTRY_DSN } from "@trustroots/nr-common";
 
 import OnboardModal from "@/components/OnboardModal";
 import WelcomeScreen from "@/components/WelcomeModal";
+import { colorScheme } from "nativewind";
 
 import {
   settingsActions,
@@ -106,18 +95,18 @@ function AppContent() {
     (async function initUserAndVerify() {
       // there is no public key from the redux store
       if (!npub) {
-        // try to get key from secure storage
-        const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
+        const publicKeyHexResult = await getPublicKeyHexFromSecureStorage();
 
-        // we don't have private key in redux store
-        if (hasKeyFromStorage) {
-          const mnemonic = await getPrivateKeyMnemonic();
+        const hasPrivateKeyAvailable =
+          typeof publicKeyHexResult !== "undefined";
 
-          dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonic));
-          const pubKeyHex = derivePublicKeyHexFromMnemonic(mnemonic);
-
-          // move to the next step w/ useEffect listening for npub
-          dispatch(setPublicKeyHex(pubKeyHex));
+        if (hasPrivateKeyAvailable) {
+          dispatch(
+            setPublicKeyHex({
+              hasMnemonic: publicKeyHexResult.hasMnemonicInSecureStorage,
+              publicKeyHex: publicKeyHexResult.publicKeyHex,
+            }),
+          );
           return;
         } else {
           // TODO: set onboard modal: no private key found
@@ -165,40 +154,43 @@ function AppContent() {
   return (
     <>
       <RootSiblingParent>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      </RootSiblingParent>
-
-      <LoadingScreen loading={showLoadingModal} zIndex={999} />
-      <WelcomeScreen
-        visible={welcomeVisible}
-        zIndex={899}
-        onClose={() => setWelcomeVisible(false)}
-      />
-      {onboardVisible && (
-        <View style={styles.fullScreenOverlay}>
+        {showLoadingModal ? (
+          <LoadingScreen loading={true} />
+        ) : welcomeVisible ? (
+          <WelcomeScreen onClose={() => setWelcomeVisible(false)} />
+        ) : onboardVisible ? (
           <OnboardModal
             setModalVisible={setOnboardVisible}
             step={onboardModalStep}
           />
-        </View>
-      )}
+        ) : (
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        )}
+      </RootSiblingParent>
     </>
   );
 }
 
 function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
 
   useEffect(() => {
+    colorScheme.set("light");
+
+    const subscription = setupNotificationHandling();
+
     if (loaded) {
       SplashScreen.hideAsync();
     }
+
+    return () => {
+      subscription.remove();
+    };
   }, [loaded]);
 
   if (!loaded) {
@@ -218,7 +210,8 @@ function RootLayout() {
         }}
       >
         <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          value={DefaultTheme}
+          // value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
         >
           <AppContent />
           <PortalHost />
@@ -230,14 +223,3 @@ function RootLayout() {
 
 // Wrap the Root Layout route component with `Sentry.wrap` to capture gesture info and profiling data.
 export default Sentry.wrap(RootLayout);
-
-const styles = StyleSheet.create({
-  fullScreenOverlay: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 100,
-  },
-});

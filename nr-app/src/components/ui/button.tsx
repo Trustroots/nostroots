@@ -64,7 +64,7 @@ const buttonVariants = cva(
 
 const buttonTextVariants = cva(
   cn(
-    "text-foreground text-sm font-medium",
+    "text-foreground text-sm font-medium text-center",
     Platform.select({ web: "pointer-events-none transition-colors" }),
   ),
   {
@@ -103,12 +103,14 @@ type ButtonProps = React.ComponentProps<typeof Pressable> &
   React.RefAttributes<typeof Pressable> &
   VariantProps<typeof buttonVariants> & {
     title?: string;
+    textClassName?: string;
   };
 
 function Button({
   children,
   title,
   className,
+  textClassName,
   variant,
   size,
   ...props
@@ -124,7 +126,7 @@ function Button({
         role="button"
         {...props}
       >
-        {title ? <Text>{title}</Text> : children}
+        {title ? <Text className={textClassName}>{title}</Text> : children}
       </Pressable>
     </TextClassContext.Provider>
   );

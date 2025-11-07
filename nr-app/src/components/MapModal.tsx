@@ -1,10 +1,10 @@
-import { subscribeToPlusCode } from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { RootState } from "@/redux/store";
 import { useSelector } from "react-redux";
 
 import { EventWithMetadata } from "@/redux/slices/events.slice";
+import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import {
   BottomSheetModal,
   BottomSheetModalProvider,
@@ -12,11 +12,12 @@ import {
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useEffect, useMemo, useRef } from "react";
-import { StyleSheet, View, useWindowDimensions } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AddNoteForm from "./AddNoteForm";
 import NotesList from "./NotesList";
+import NotificationSubscription from "./NotificationSubscription";
 import { Button } from "./ui/button";
 import { Section } from "./ui/section";
 import { Text } from "./ui/text";
@@ -35,6 +36,9 @@ export default function MapModal() {
   console.log("#Lz8K48 selectedEvent - mapModal", selectedEvent);
 
   const selectedLayer = useAppSelector(mapSelectors.selectSelectedLayer);
+  const hasPrivateKeyInSecureStorage = useAppSelector(
+    keystoreSelectors.selectHasPrivateKeyInSecureStorage,
+  );
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const { height } = useWindowDimensions();
@@ -95,26 +99,33 @@ export default function MapModal() {
                     selectedEventId={selectedEvent?.event.id}
                   />
 
-                  {selectedLayer === "trustroots" ? (
-                    <AddNoteForm />
-                  ) : (
-                    <View>
+                  {!hasPrivateKeyInSecureStorage ? (
+                    <Section>
                       <Text>
-                        Choose the trustroots layer to be able to add content
+                        Go to settings and setup your private key to be able to
+                        post onto the map.
                       </Text>
-                    </View>
-                  )}
+                    </Section>
+                  ) : (
+                    <>
+                      {selectedLayer === "trustroots" ? (
+                        <AddNoteForm />
+                      ) : (
+                        <View>
+                          <Text>
+                            Choose the trustroots layer to be able to add
+                            content
+                          </Text>
+                        </View>
+                      )}
 
-                  <Section>
-                    <Text variant="h2">Subscribe</Text>
-                    <Text>Subscribe to notifications for this plus code</Text>
-                    <Button
-                      title="Subscribe"
-                      onPress={() => {
-                        dispatch(subscribeToPlusCode(selectedPlusCode));
-                      }}
-                    />
-                  </Section>
+                      {selectedLayer !== "trustroots" ? null : (
+                        <Section>
+                          <NotificationSubscription />
+                        </Section>
+                      )}
+                    </>
+                  )}
 
                   <Button
                     variant="outline"

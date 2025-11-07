@@ -21,7 +21,8 @@
       "distribution": "internal",
       "environment": "preview",
       "channel": "preview"
-    }
+    },
+    "production": {}
   },
   "submit": {
     "production": {}

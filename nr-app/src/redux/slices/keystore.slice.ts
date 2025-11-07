@@ -2,14 +2,16 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { nip19 } from "nostr-tools";
 
 type KeystoreState = {
-  hasPrivateKeyInSecureStorage: boolean;
+  hasPrivateKeyHexInSecureStorage: boolean;
+  hasPrivateKeyMnemonicInSecureStorage: boolean;
   publicKeyNpub?: `npub${string}`;
   publicKeyHex?: string;
   isLoaded: boolean;
 };
 
 const initialState: KeystoreState = {
-  hasPrivateKeyInSecureStorage: false,
+  hasPrivateKeyHexInSecureStorage: false,
+  hasPrivateKeyMnemonicInSecureStorage: false,
   isLoaded: false,
 };
 
@@ -17,15 +19,23 @@ export const keystoreSlice = createSlice({
   name: "keystore",
   initialState,
   reducers: {
-    setPublicKeyHex: (state, action: PayloadAction<string>) => {
-      state.hasPrivateKeyInSecureStorage = true;
-      state.publicKeyHex = action.payload;
-      state.publicKeyNpub = nip19.npubEncode(action.payload);
+    setPublicKeyHex: (
+      state,
+      action: PayloadAction<{ publicKeyHex: string; hasMnemonic: boolean }>,
+    ) => {
+      state.hasPrivateKeyHexInSecureStorage = true;
+      state.hasPrivateKeyMnemonicInSecureStorage = action.payload.hasMnemonic;
+      state.publicKeyHex = action.payload.publicKeyHex;
+      state.publicKeyNpub = nip19.npubEncode(action.payload.publicKeyHex);
     },
   },
   selectors: {
     selectHasPrivateKeyInSecureStorage: (state) =>
-      state.hasPrivateKeyInSecureStorage,
+      state.hasPrivateKeyHexInSecureStorage,
+    selectHasPrivateKeyHexInSecureStorage: (state) =>
+      state.hasPrivateKeyHexInSecureStorage,
+    selectHasPrivateKeyMnemonicInSecureStorage: (state) =>
+      state.hasPrivateKeyMnemonicInSecureStorage,
     selectPublicKeyHex: (state) => {
       // console.log("seelct public key hex", state);
       return state.publicKeyHex;

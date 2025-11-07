@@ -1,33 +1,27 @@
-import { setPrivateKeyMnemonic } from "@/nostr/keystore.nostr";
+import { setPrivateKeyInSecureStorage } from "@/nostr/keystore.nostr";
 import { createPromiseActionSaga } from "@/utils/saga.utils";
 import { all, call, put } from "redux-saga/effects";
-import { setPrivateKey } from "../actions/keystore.actions";
 import { setPublicKeyHex } from "../slices/keystore.slice";
 
-export function* setPrivateKeySagaEffect(
-  action: ReturnType<typeof setPrivateKey>,
-) {
-  try {
-    yield call(setPrivateKeyMnemonic, action.payload);
-  } catch (error) {
-    console.error("keystore setPrivateKeySagaEffect error", error);
-    throw error;
-  }
-}
-
-export const [setPrivateKeyMnemonicPromiseAction, setPrivateKeySaga] =
-  createPromiseActionSaga<string, void>({
+export const [setPrivateKeyPromiseAction, setPrivateKeySaga] =
+  createPromiseActionSaga<
+    { mnemonic: string } | { privateKeyHex: string },
+    void
+  >({
     actionTypePrefix: "keystore/setPrivateKey",
     *effect(action) {
-      try {
-        const account: Awaited<ReturnType<typeof setPrivateKeyMnemonic>> =
-          yield call(setPrivateKeyMnemonic, action.payload);
+      const hasMnemonic = "mnemonic" in action.payload;
 
-        yield put(setPublicKeyHex(account.publicKey.hex));
-      } catch (error) {
-        console.error("keystore setPrivateKeyMnemonic error", error);
-        throw error;
-      }
+      const publicKeyHex: Awaited<
+        ReturnType<typeof setPrivateKeyInSecureStorage>
+      > = yield call(setPrivateKeyInSecureStorage, action.payload);
+
+      yield put(
+        setPublicKeyHex({
+          hasMnemonic,
+          publicKeyHex,
+        }),
+      );
     },
   });
 

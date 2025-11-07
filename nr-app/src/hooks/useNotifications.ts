@@ -66,6 +66,7 @@ async function registerForPushNotificationsAsync() {
   }
 }
 
+/** @todo I believe this will set up multiple listeners if hook is used in multiple places? */
 export function useNotifications() {
   const [expoPushToken, setExpoPushToken] = useState(
     "only works on device with dev build",

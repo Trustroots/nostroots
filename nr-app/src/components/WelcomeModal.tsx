@@ -1,95 +1,56 @@
 import React from "react";
 
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { View } from "react-native";
+import { Button } from "./ui/button";
+import { Text } from "./ui/text";
 
 interface WelcomeScreenProps {
-  visible: boolean;
   onClose: () => void;
-  zIndex?: number;
 }
 
-const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
-  visible,
-  onClose,
-  zIndex,
-}) => {
-  if (!visible) {
-    return null;
-  }
-
-  const viewStyles = [
-    styles.fullScreenView,
-    zIndex !== undefined && { zIndex },
-  ];
-
+const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onClose }) => {
   return (
-    <View style={viewStyles}>
-      <View style={styles.modalView}>
-        <Text style={styles.modalTitle}>Welcome to Nostroots</Text>
-        <View>
-          <Text style={styles.modalText}>This app is a work in progress.</Text>
-          <Text style={styles.modalText}>
-            You can add your own map notes, and share them with others.
-          </Text>
+    <View className="absolute inset-0 p-safe-offset-6 bg-white flex justify-center items-center gap-6">
+      <Text
+        variant="h1"
+        className="text-3xl font-bold text-gray-900 text-center mb-0"
+      >
+        Welcome to Nostroots
+      </Text>
 
-          <Text style={styles.modalText}>
-            This app uses the open-source decentralized Nostr protocol.
-          </Text>
-        </View>
-        <TouchableOpacity style={styles.button} onPress={onClose}>
-          <Text style={styles.buttonText}>Continue</Text>
-        </TouchableOpacity>
+      <View className="w-1/2 h-1 bg-primary" />
+
+      <View className="flex gap-4 max-w-sm">
+        <Text className="text-gray-600 leading-relaxed text-balance text-center">
+          Connect with travelers and locals through shared map notes and
+          experiences.
+        </Text>
+
+        <Text className="text-gray-600 leading-relaxed text-balance text-center">
+          Built on Nostr's decentralized network, your data stays in your
+          control while connecting with the Trustroots community.
+        </Text>
+
+        <Text className="text-gray-600 leading-relaxed text-balance text-center">
+          Share locations, tips, and stories without relying on centralized
+          platforms.
+        </Text>
       </View>
+
+      <View className="w-full max-w-xs">
+        <Button
+          onPress={onClose}
+          title="Get Started"
+          size="lg"
+          textClassName="uppercase"
+        />
+      </View>
+
+      <Text variant="muted" className="text-center uppercase text-xs">
+        This app is a work in progress.
+      </Text>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  fullScreenView: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 10, // Ensure it appears on top
-  },
-  modalView: {
-    flex: 1,
-    width: "100%",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-  },
-  modalText: {
-    fontSize: 18,
-    marginBottom: 30,
-    textAlign: "center",
-  },
-  button: {
-    backgroundColor: "#2196F3",
-    borderRadius: 25,
-    paddingVertical: 12,
-    paddingHorizontal: 30,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  buttonText: {
-    color: "white",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-});
 
 export default WelcomeScreen;

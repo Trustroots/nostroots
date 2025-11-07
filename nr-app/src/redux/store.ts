@@ -48,6 +48,7 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActionPaths: ["meta.promise", "register", "rehydrate"],
       },
+      immutableCheck: false,
     })
       .prepend(promiseMiddleware)
       .concat(sagaMiddleware),

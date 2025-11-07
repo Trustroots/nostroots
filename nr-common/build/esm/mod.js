@@ -9,4 +9,5 @@ export * from "./src/30397.schema.js";
 export * from "./src/30398.schema.js";
 export * from "./src/event.schema.js";
 export * from "./src/isValidEvent.js";
+export * from "./src/plusCode.schema.js";
 export * from "./src/getAuthorFromEvent.js";

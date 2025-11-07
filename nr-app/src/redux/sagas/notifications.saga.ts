@@ -1,6 +1,14 @@
-import { getPrivateKeyBytes, getPrivateKeyHex } from "@/nostr/keystore.nostr";
+import {
+  getPrivateKeyBytesFromSecureStorage,
+  getPrivateKeyHexFromSecureStorage,
+} from "@/nostr/keystore.nostr";
 import { getSerializableError } from "@/utils/error.utils";
 import { rootLogger } from "@/utils/logger.utils";
+import {
+  addFilterToFiltersArray,
+  removeFilterFromFiltersArray,
+} from "@/utils/notifications.utils";
+import { createPromiseActionSaga } from "@/utils/saga.utils";
 import {
   create10395EventTemplate,
   kind10395ContentDecryptedDecodedSchema,
@@ -23,7 +31,10 @@ import {
   take,
   takeEvery,
 } from "redux-saga/effects";
-import { notificationSubscribeToFilterPromiseAction } from "../actions/notifications.actions";
+import {
+  notificationSubscribeToFilterPromiseAction,
+  notificationUnsubscribeToFilterPromiseAction,
+} from "../actions/notifications.actions";
 import { publishEventTemplatePromiseAction } from "../actions/publish.actions";
 import { rehydrated } from "../actions/startup.actions";
 import { startSubscription } from "../actions/subscription.actions";
@@ -31,8 +42,9 @@ import { addEvent } from "../slices/events.slice";
 import {
   notificationsActions,
   notificationSelectors,
-  notificationsSlice,
+  NotificationsState,
 } from "../slices/notifications.slice";
+import { store } from "../store";
 
 const log = rootLogger.extend("notifications");
 
@@ -40,7 +52,7 @@ const NOTIFICATION_SUBSCRIPTION_SUBSCRIPTION_ID = "notificationSubscription";
 
 async function encryptMessage(plaintext: string) {
   log.debug("#Lrr7Uz getting private key");
-  const privateKey = await getPrivateKeyHex();
+  const privateKey = await getPrivateKeyHexFromSecureStorage();
   log.debug("#XQSpLX got private key");
   const encryptedText = nip04.encrypt(
     privateKey,
@@ -51,23 +63,18 @@ async function encryptMessage(plaintext: string) {
   return encryptedText;
 }
 
-function* notificationsSubscribeSagaEffect(
-  action: ReturnType<typeof notificationSubscribeToFilterPromiseAction.request>,
-): Generator<
-  Effect,
-  void,
-  | ReturnType<typeof notificationSelectors.selectData>
-  | Awaited<ReturnType<typeof encryptMessage>>
-> {
-  try {
-    log.debug("#ChMVeW notificationsSubscribeSagaEffect()*");
-    const { filter } = action.payload;
-
-    yield put(notificationsActions.addFilter(filter));
-
-    const notificationData = (yield select(
-      notificationSelectors.selectData,
-    )) as ReturnType<typeof notificationSelectors.selectData>;
+export const [
+  sendNotificationSubscriptionEventAction,
+  sendNotificationSubscriptionEventSaga,
+] = createPromiseActionSaga<NotificationsState | undefined, void>({
+  actionTypePrefix: "notifications/sendSubscriptionEvent",
+  *effect(action) {
+    const notificationData =
+      typeof action.payload !== "undefined"
+        ? action.payload
+        : ((yield select((state) => state.notifications)) as ReturnType<
+            typeof store.getState
+          >["notifications"]);
 
     if (notificationData.tokens.length === 0) {
       throw new Error("#wWpPXH-missing-push-token");
@@ -86,8 +93,40 @@ function* notificationsSubscribeSagaEffect(
     yield dispatch(
       publishEventTemplatePromiseAction.request({ eventTemplate }),
     );
+  },
+});
 
-    yield put(notificationsSlice.actions.addFilter(filter));
+function* notificationsSubscribeSagaEffect(
+  action: ReturnType<typeof notificationSubscribeToFilterPromiseAction.request>,
+): Generator<
+  Effect,
+  void,
+  | ReturnType<typeof notificationSelectors.selectData>
+  | Awaited<ReturnType<typeof encryptMessage>>
+> {
+  try {
+    log.debug("#ChMVeW notificationsSubscribeSagaEffect()*");
+
+    const originalNotificationData = (yield select(
+      notificationSelectors.selectData,
+    )) as ReturnType<typeof notificationSelectors.selectData>;
+
+    const updatedFilters = addFilterToFiltersArray(
+      originalNotificationData.filters,
+      action.payload,
+    );
+
+    const notificationData = {
+      ...originalNotificationData,
+      filters: updatedFilters,
+    };
+
+    yield put(
+      sendNotificationSubscriptionEventAction.request(notificationData),
+    );
+
+    // Now that the event has published, remove the filter from redux
+    yield put(notificationsActions.addFilter(action.payload));
 
     const output = { success: true };
     yield put(notificationSubscribeToFilterPromiseAction.success(output));
@@ -96,6 +135,58 @@ function* notificationsSubscribeSagaEffect(
     const serializableError = getSerializableError(error);
     yield put(
       notificationSubscribeToFilterPromiseAction.failure(serializableError),
+    );
+    rejectPromiseAction(action, error);
+  }
+}
+
+function* notificationsUnsubscribeSaga() {
+  yield takeEvery(
+    notificationUnsubscribeToFilterPromiseAction.request,
+    notificationsUnsubscribeSagaEffect,
+  );
+}
+
+function* notificationsUnsubscribeSagaEffect(
+  action: ReturnType<
+    typeof notificationUnsubscribeToFilterPromiseAction.request
+  >,
+): Generator<
+  Effect,
+  void,
+  | ReturnType<typeof notificationSelectors.selectData>
+  | Awaited<ReturnType<typeof encryptMessage>>
+> {
+  try {
+    log.debug("#J3njd0 notificationsUnsubscribeSagaEffect()*");
+
+    const originalNotificationData = (yield select(
+      notificationSelectors.selectData,
+    )) as ReturnType<typeof notificationSelectors.selectData>;
+
+    const updatedFilters = removeFilterFromFiltersArray(
+      originalNotificationData.filters,
+      action.payload,
+    );
+
+    const notificationData = {
+      ...originalNotificationData,
+      filters: updatedFilters,
+    };
+
+    yield put(
+      sendNotificationSubscriptionEventAction.request(notificationData),
+    );
+
+    yield put(notificationsActions.removeFilter(action.payload));
+
+    const output = { success: true };
+    yield put(notificationUnsubscribeToFilterPromiseAction.success(output));
+    resolvePromiseAction(action, output);
+  } catch (error) {
+    const serializableError = getSerializableError(error);
+    yield put(
+      notificationUnsubscribeToFilterPromiseAction.failure(serializableError),
     );
     rejectPromiseAction(action, error);
   }
@@ -110,10 +201,10 @@ function* notificationsSubscribeSaga() {
 
 function* callGetPrivateKeyBytes(): Generator<
   Effect,
-  Awaited<ReturnType<typeof getPrivateKeyBytes>>,
-  Awaited<ReturnType<typeof getPrivateKeyBytes>>
+  Awaited<ReturnType<typeof getPrivateKeyBytesFromSecureStorage>>,
+  Awaited<ReturnType<typeof getPrivateKeyBytesFromSecureStorage>>
 > {
-  const privateKey = yield call(getPrivateKeyBytes);
+  const privateKey = yield call(getPrivateKeyBytesFromSecureStorage);
   return privateKey;
 }
 
@@ -194,7 +285,9 @@ export function* notificationSubscriptionsStartupSaga(): Generator<
 
 export default function* notificationsSaga() {
   yield all([
+    sendNotificationSubscriptionEventSaga(),
     notificationsSubscribeSaga(),
+    notificationsUnsubscribeSaga(),
     notificationSubscriptionsStartupSaga(),
   ]);
 }

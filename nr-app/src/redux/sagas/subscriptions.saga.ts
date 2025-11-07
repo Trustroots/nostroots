@@ -8,7 +8,7 @@ import {
   getAuthorFromEvent,
   TRUSTROOTS_PROFILE_KIND,
 } from "@trustroots/nr-common";
-import { Subscription } from "nostr-tools/lib/types/abstract-relay";
+import { Subscription } from "nostr-tools/abstract-relay";
 import {
   all,
   call,

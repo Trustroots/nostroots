@@ -195,6 +195,11 @@ export const mapSlice = createSlice({
 
 const mapSliceSelectors = mapSlice.selectors;
 
+const selectEnabledLayerKeys = createSelector(
+  [mapSliceSelectors.selectSelectedLayer],
+  (selectedLayer) => [selectedLayer],
+);
+
 const selectEventsForSelectedMapLayer = createSelector(
   [eventsSelectors.selectAll, mapSliceSelectors.selectSelectedLayer],
   (events: EventWithMetadata[], selectedLayer: MAP_LAYER_KEY) => {
@@ -210,5 +215,6 @@ export const mapActions = mapSlice.actions;
 
 export const mapSelectors = {
   ...mapSliceSelectors,
+  selectEnabledLayerKeys,
   selectEventsForSelectedMapLayer,
 };

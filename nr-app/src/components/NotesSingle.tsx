@@ -6,6 +6,7 @@ import {
 import { getAuthorFromEvent } from "@trustroots/nr-common";
 import { useMemo } from "react";
 import { View } from "react-native";
+import { ExternalLink } from "./ExternalLink";
 import { Section } from "./ui/section";
 import { Text } from "./ui/text";
 
@@ -16,9 +17,22 @@ function NoteAuthorInfo({ authorPublicKey }: { authorPublicKey?: string }) {
   );
   const username = useAppSelector(selectTrustrootsUsername);
 
+  if (typeof username === "undefined") {
+    return (
+      <View className="flex-row items-center space-x-2">
+        <Text variant="muted">– "Anonymous"</Text>
+      </View>
+    );
+  }
+
   return (
     <View className="flex-row items-center space-x-2">
-      <Text variant="muted">– {username || "Anonymous"}</Text>
+      <Text variant="muted">
+        {"- "}
+        <ExternalLink href={`http://trustroots.org/profile/${username}`}>
+          {username}
+        </ExternalLink>
+      </Text>
     </View>
   );
 }

@@ -3,14 +3,7 @@ import { bytesToHex } from "@noble/hashes/utils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getBech32PrivateKey } from "nip06";
 import { useState } from "react";
-import {
-  Modal,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TextInput,
-  View,
-} from "react-native";
+import { Modal, ScrollView, Switch, TextInput, View } from "react-native";
 
 import BuildData from "@/components/BuildData";
 import OnboardModal from "@/components/OnboardModal";
@@ -333,42 +326,3 @@ export default function SettingsScreen() {
     </ScrollView>
   );
 }
-const styles = StyleSheet.create({
-  settings: {
-    backgroundColor: "#ffffff",
-  },
-  a: {
-    marginBottom: 10,
-    marginTop: 10,
-  },
-  header: {
-    backgroundColor: "#f8f8f8",
-    fontSize: 24,
-    fontWeight: "bold",
-    padding: 4,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ddd",
-    marginLeft: 7,
-  },
-  section: {
-    paddingBottom: 10,
-    paddingTop: 10,
-    borderColor: "gray",
-    borderWidth: 1,
-    marginBottom: 20,
-    paddingHorizontal: 10,
-    backgroundColor: "#ffffff",
-  },
-  input: {
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    backgroundColor: "#ffffff",
-  },
-  errorText: {
-    color: "red",
-    marginTop: 5,
-    marginBottom: 10,
-  },
-});

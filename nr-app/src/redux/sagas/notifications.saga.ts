@@ -121,7 +121,7 @@ function* notificationsSubscribeSagaEffect(
       filters: updatedFilters,
     };
 
-    yield put(
+    yield dispatch(
       sendNotificationSubscriptionEventAction.request(notificationData),
     );
 
@@ -174,7 +174,7 @@ function* notificationsUnsubscribeSagaEffect(
       filters: updatedFilters,
     };
 
-    yield put(
+    yield dispatch(
       sendNotificationSubscriptionEventAction.request(notificationData),
     );
 

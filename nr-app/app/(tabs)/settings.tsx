@@ -1,6 +1,5 @@
 import { Text } from "@/components/ui/text";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
 import { getBech32PrivateKey } from "nip06";
 import { useState } from "react";
 import {
@@ -39,8 +38,9 @@ import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
+import { openEvent } from "@/utils/notifications.utils";
+import { getFirstLabelValueFromEvent } from "@trustroots/nr-common";
 import Toast from "react-native-root-toast";
-import { getCurrentLocation } from "../../src/utils/location";
 
 const ToggleSwitch = ({
   value,
@@ -62,11 +62,11 @@ const ToggleSwitch = ({
 export default function SettingsScreen() {
   const { expoPushToken } = useNotifications();
 
-  const username = useAppSelector(settingsSelectors.selectUsername);
+  const username = useAppSelector(settingsSelectors.selectUsername) as string;
 
   const areTestFeaturesEnabled = useAppSelector(
     settingsSelectors.selectAreTestFeaturesEnabled,
-  );
+  ) as boolean;
 
   const [nsec, setNsec] = useState("");
   const [mnemonic, setMnemonic] = useState("");
@@ -74,31 +74,62 @@ export default function SettingsScreen() {
   const [showUpdateButton, setShowUpdateButton] = useState(false);
   const [mnemonicError, setMnemonicError] = useState<string | null>(null);
 
-  const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
-  const publicKeyHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
+  const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub) as string;
+  const publicKeyHex = useAppSelector(
+    keystoreSelectors.selectPublicKeyHex,
+  ) as string;
 
   const dispatch = useAppDispatch();
 
   const enablePlusCodeMapTEMPORARY = useAppSelector(
     mapSelectors.selectEnablePlusCodeMapTEMPORARY,
-  );
+  ) as boolean;
 
   const [modalVisible, setModalVisible] = useState(false);
 
-  const centerMapOnCurrentLocation = async () => {
-    const location = await getCurrentLocation();
-    if (location) {
-      // Update the stored map location
-      dispatch(
-        mapActions.setCurrentMapLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        }),
-      );
-      // Set flag to trigger animation when map is ready
-      dispatch(mapActions.centerMapOnCurrentLocation());
-      // Navigate to the map screen
-      router.replace("/");
+  const centerMapOnPlusCode = async () => {
+    const testEventData = {
+      name: "full event data",
+      event: {
+        content: "Why is this rendering?",
+        created_at: 1732556890,
+        id: "bac235d27263d11b81358715c8094048af87950092a2738f481dddbd5c7d9a4a",
+        kind: 30397,
+        pubkey:
+          "dfc6060909365e5234e44ac64ffcd8b115d7b80d3025af7642826383fe8473b8",
+        sig: "239515bee5f38fa244f51ba4dd6432f32eab1a74fa1898fb9c81e22898be1ab66ed4333ab7756732e43cfed353254085c607f3573fb5f8478157f547e5fbf91e",
+        tags: [
+          ["d", "37RSmSWyIio1HgFku7kPn"],
+          ["L", "open-location-code"],
+          ["l", "8CFJ2J7C+H8", "open-location-code"],
+          ["L", "open-location-code-prefix"],
+          [
+            "l",
+            "8C000000+",
+            "8CFJ0000+",
+            "8CFJ2J00+",
+            "8CFJ2J7C+",
+            "open-location-code-prefix",
+          ],
+        ],
+      },
+      metadata: {
+        seenOnRelays: ["wss://relay.trustroots.org"],
+      },
+      author: {
+        publicKey:
+          "dfc6060909365e5234e44ac64ffcd8b115d7b80d3025af7642826383fe8473b8",
+      },
+    };
+
+    // get the event
+    const event = testEventData.event;
+
+    // get the plus code from the event
+    const plusCode = getFirstLabelValueFromEvent(event, "open-location-code");
+
+    if (plusCode) {
+      openEvent(plusCode);
     }
   };
 
@@ -200,10 +231,7 @@ export default function SettingsScreen() {
             <Text style={styles.errorText}>{mnemonicError}</Text>
           )}
 
-          <Button
-            title="Center map on current location"
-            onPress={centerMapOnCurrentLocation}
-          />
+          <Button title="Simulate Open Event" onPress={centerMapOnPlusCode} />
 
           {showUpdateButton && (
             <Button title="Save New Mnemonic" onPress={handleMnemonicSubmit} />

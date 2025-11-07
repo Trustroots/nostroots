@@ -10,6 +10,7 @@ import { router } from "expo-router";
 import { Event } from "nostr-tools";
 import Toast from "react-native-root-toast";
 import { z } from "zod";
+import { plusCodeToCoordinates } from "./map.utils";
 
 const EventNotificationSchema = z.object({
   type: z.literal("event"),
@@ -67,7 +68,20 @@ function notificationResponseReceived(
 export const openEvent = (plusCode: PlusCode) => {
   // store.dispatch(mapActions.enableLayer("trustroots"));
   store.dispatch(mapActions.enableLayer("unverified"));
-  store.dispatch(mapActions.setSelectedPlusCode(plusCode));
+
+  // open the modal
+  // store.dispatch(mapActions.setSelectedPlusCode(plusCode));
+
+  const location = plusCodeToCoordinates(plusCode);
+
+  // use the pluscode location to center the map
+  store.dispatch(
+    mapActions.setCurrentMapLocation({
+      latitude: location.latitude,
+      longitude: location.longitude,
+    }),
+  );
+  store.dispatch(mapActions.centerMapOnCurrentLocation());
 
   // change to the map tab
   router.replace("/");

@@ -38,7 +38,10 @@ import {
   notificationsActions,
   notificationSelectors,
 } from "../slices/notifications.slice";
-import { removeFilterFromFiltersArray } from "@/utils/notifications.utils";
+import {
+  addFilterToFiltersArray,
+  removeFilterFromFiltersArray,
+} from "@/utils/notifications.utils";
 
 const log = rootLogger.extend("notifications");
 
@@ -68,11 +71,19 @@ function* notificationsSubscribeSagaEffect(
   try {
     log.debug("#ChMVeW notificationsSubscribeSagaEffect()*");
 
-    yield put(notificationsActions.addFilter(action.payload));
-
-    const notificationData = (yield select(
+    const originalNotificationData = (yield select(
       notificationSelectors.selectData,
     )) as ReturnType<typeof notificationSelectors.selectData>;
+
+    const updatedFilters = addFilterToFiltersArray(
+      originalNotificationData.filters,
+      action.payload,
+    );
+
+    const notificationData = {
+      ...originalNotificationData,
+      filters: updatedFilters,
+    };
 
     if (notificationData.tokens.length === 0) {
       throw new Error("#wWpPXH-missing-push-token");
@@ -91,6 +102,9 @@ function* notificationsSubscribeSagaEffect(
     yield dispatch(
       publishEventTemplatePromiseAction.request({ eventTemplate }),
     );
+
+    // Now that the event has published, remove the filter from redux
+    yield put(notificationsActions.addFilter(action.payload));
 
     const output = { success: true };
     yield put(notificationSubscribeToFilterPromiseAction.success(output));

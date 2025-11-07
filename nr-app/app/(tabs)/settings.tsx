@@ -129,7 +129,7 @@ export default function SettingsScreen() {
     const plusCode = getFirstLabelValueFromEvent(event, "open-location-code");
 
     if (plusCode) {
-      openEvent(plusCode);
+      openEvent(plusCode, event);
     }
   };
 

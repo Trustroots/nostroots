@@ -19,6 +19,7 @@ interface MapState {
   selectedLatLng?: LatLng;
   currentMapLocation?: LatLng;
   centerMapOnCurrentLocation: boolean;
+  currentNotificationEvent?: EventWithMetadata;
 
   selectedLayer: MAP_LAYER_KEY;
   enablePlusCodeMapTEMPORARY: boolean;
@@ -35,6 +36,7 @@ const initialState: MapState = {
   selectedLayer: "trustroots",
   enablePlusCodeMapTEMPORARY: true,
   centerMapOnCurrentLocation: false,
+  currentNotificationEvent: undefined,
 };
 
 export const mapSlice = createSlice({
@@ -79,11 +81,16 @@ export const mapSlice = createSlice({
     setSelectedPlusCode: (state, action: PayloadAction<string>) => {
       state.selectedPlusCode = action.payload;
     },
-    openHalfMapEventModal: (state) => {
+    openHalfMapEventModal: (
+      state,
+      action: PayloadAction<EventWithMetadata>,
+    ) => {
       state.isHalfMapEventModalOpen = true;
+      state.currentNotificationEvent = action.payload;
     },
     closeHalfMapEventModal: (state) => {
       state.isHalfMapEventModalOpen = false;
+      state.currentNotificationEvent = undefined;
     },
     closeMapModal: (state) => {
       state.isMapModalOpen = false;
@@ -164,6 +171,8 @@ export const mapSlice = createSlice({
     selectCurrentMapLocation: (state: MapState) => state.currentMapLocation,
     selectCenterMapOnCurrentLocation: (state: MapState) =>
       state.centerMapOnCurrentLocation,
+    selectCurrentNotificationEvent: (state: MapState) =>
+      state.currentNotificationEvent,
   },
 });
 

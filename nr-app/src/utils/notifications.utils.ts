@@ -1,13 +1,14 @@
+import { addEvent } from "@/redux/slices/events.slice";
 import { mapActions } from "@/redux/slices/map.slice";
 import { store } from "@/redux/store";
 import {
+  Event,
   eventSchema,
   getFirstLabelValueFromEvent,
   OPEN_LOCATION_CODE_LABEL_NAMESPACE,
 } from "@trustroots/nr-common";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
-import { Event } from "nostr-tools";
 import Toast from "react-native-root-toast";
 import { z } from "zod";
 import { plusCodeToCoordinates } from "./map.utils";
@@ -61,29 +62,37 @@ function notificationResponseReceived(
     getFirstLabelValueFromEvent(event, OPEN_LOCATION_CODE_LABEL_NAMESPACE);
 
   if (plusCode) {
-    openEvent(plusCode);
+    openEvent(plusCode, event);
   }
 }
 
-export const openEvent = (plusCode: PlusCode) => {
-  // store.dispatch(mapActions.enableLayer("trustroots"));
+export const openEvent = (plusCode: string, event: Event) => {
+  console.log("#jU7fIj Event", event);
+
+  // Disptach an action to show the unverified layer on the map
   store.dispatch(mapActions.enableLayer("unverified"));
 
-  // open the modal
-  store.dispatch(mapActions.setSelectedPlusCode(plusCode));
-  // open the half modal instead
-  store.dispatch(mapActions.openHalfMapEventModal());
+  // a layer to the map.
+  if (event.kind === 30398) {
+    store.dispatch(addEvent({ event, fromRelay: "notification" }));
+  }
+
+  store.dispatch(
+    mapActions.openHalfMapEventModal({ event, metadata: { seenOnRelays: [] } }),
+  );
 
   const location = plusCodeToCoordinates(plusCode);
 
-  // use the pluscode location to center the map
-  store.dispatch(
-    mapActions.setCurrentMapLocation({
-      latitude: location.latitude,
-      longitude: location.longitude,
-    }),
-  );
-  store.dispatch(mapActions.centerMapOnCurrentLocation());
+  if (location) {
+    // use the pluscode location to center the map
+    store.dispatch(
+      mapActions.setCurrentMapLocation({
+        latitude: location.latitude,
+        longitude: location.longitude,
+      }),
+    );
+    store.dispatch(mapActions.centerMapOnCurrentLocation());
+  }
 
   // change to the map tab
   router.replace("/");

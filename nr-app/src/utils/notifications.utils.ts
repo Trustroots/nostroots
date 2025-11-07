@@ -73,13 +73,11 @@ export const openEvent = (plusCode: string, event: Event) => {
   store.dispatch(mapActions.enableLayer("unverified"));
 
   // a layer to the map.
-  if (event.kind === 30398) {
-    store.dispatch(addEvent({ event, fromRelay: "notification" }));
-  }
+  store.dispatch(addEvent({ event, fromRelay: "notification" }));
 
-  store.dispatch(
-    mapActions.openHalfMapEventModal({ event, metadata: { seenOnRelays: [] } }),
-  );
+  // store.dispatch(
+  //   mapActions.openHalfMapEventModal({ event, metadata: { seenOnRelays: [] } }),
+  // );
 
   const location = plusCodeToCoordinates(plusCode);
 
@@ -91,7 +89,19 @@ export const openEvent = (plusCode: string, event: Event) => {
         longitude: location.longitude,
       }),
     );
+
+    // set selectedPlusCode
+    store.dispatch(mapActions.setSelectedPlusCode(plusCode));
+
     store.dispatch(mapActions.centerMapOnHalfModal());
+
+    // set the current notification event here
+    store.dispatch(
+      mapActions.setCurrentNotificationEvent({
+        event,
+        metadata: { seenOnRelays: [] },
+      }),
+    );
   }
 
   // change to the map tab

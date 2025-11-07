@@ -87,7 +87,15 @@ export const mapSlice = createSlice({
       state.isAddNoteModalOpen = false;
     },
     setSelectedPlusCode: (state, action: PayloadAction<string>) => {
+      // console.log("#Lz8K48 setSelectedPlusCode", action.payload);
       state.selectedPlusCode = action.payload;
+      state.isMapModalOpen = true;
+    },
+    setCurrentNotificationEvent: (
+      state,
+      action: PayloadAction<EventWithMetadata>,
+    ) => {
+      state.currentNotificationEvent = action.payload;
     },
     openHalfMapEventModal: (
       state,

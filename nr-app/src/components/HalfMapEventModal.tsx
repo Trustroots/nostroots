@@ -26,64 +26,65 @@ export default function HalfMapEventModal() {
       style={{ justifyContent: "flex-end", margin: 0 }}
       backdropOpacity={0}
     >
-      <View className="h-1/2 rounded-t-3xl bg-background p-4 shadow-2xl">
-        <View style={{ flex: 1 }}>
-          <ScrollView>
-            {selectedEvent ? (
-              <Section>
-                <Text>
-                  <Text className="font-bold">Created At: </Text>
+      <View className="h-1/2 rounded-t-3xl bg-background p-8 shadow-2xl">
+        {selectedEvent ? (
+          <View className="flex-1">
+            <ScrollView>
+              <View className="space-y-4">
+                {/* Divider */}
+                <Text className="text-xs text-gray-500">
+                  {getKindName(selectedEvent.event.kind)} -
                   {new Date(
                     selectedEvent.event.created_at * 1000,
-                  ).toLocaleString()}
+                  ).toLocaleDateString()}
+                  -{" "}
+                  {new Date(
+                    selectedEvent.event.created_at * 1000,
+                  ).toLocaleTimeString()}
                 </Text>
 
-                <Text selectable numberOfLines={1}>
-                  <Text className="font-bold">id: </Text>
-                  {selectedEvent.event.id}
-                </Text>
+                {/* Divider */}
+                <View className="my-4 h-px bg-gray-200" />
 
-                <Text selectable numberOfLines={1}>
-                  <Text className="font-bold">author: </Text>
-                  {selectedEvent.event.pubkey}
-                </Text>
+                {/* Content */}
+                <Text className="text-base">{selectedEvent.event.content}</Text>
+              </View>
+            </ScrollView>
 
-                <Text>
-                  <Text className="font-bold">kind: </Text>
-                  {getKindName(selectedEvent.event.kind)}
-                </Text>
+            {/* Footer */}
+            <View className="mt-4 space-y-2 border-t border-gray-200 pt-4">
+              <Text
+                selectable
+                numberOfLines={1}
+                className="flex-shrink text-sm text-gray-500"
+              >
+                <Text className="text-sm font-bold">Author: </Text>
+                {selectedEvent.event.pubkey}...
+              </Text>
 
-                <Text>
-                  <Text className="font-bold">Content: </Text>
-                  {selectedEvent.event.content}
-                </Text>
-
-                {/* <Text className="mt-2 font-bold text-sm">Tags:</Text>
-                {selectedEvent.event.tags.map((tag, index) => (
-                  <Text key={index} className="ml-2">
-                    - [{tag.map((t) => `"${t}"`).join(", ")}]
-                  </Text>
-                ))} */}
-
-                <Text selectable numberOfLines={1}>
-                  <Text className="font-bold">signature: </Text>
-                  {selectedEvent.event.sig}
-                </Text>
-
-                {/* <Text className="mt-2 font-bold">Seen on Relays:</Text>
-                {selectedEvent.metadata.seenOnRelays.map((relay, index) => (
-                  <Text key={index} className="ml-2">
-                    - {relay}
-                  </Text>
-                ))} */}
-              </Section>
-            ) : (
-              <Section>
-                <Text>No event selected.</Text>
-              </Section>
-            )}
-          </ScrollView>
-        </View>
+              <Text
+                selectable
+                numberOfLines={1}
+                className="text-sm text-gray-500"
+              >
+                <Text className="text-sm font-bold">ID: </Text>
+                {selectedEvent.event.id}
+              </Text>
+              <Text
+                selectable
+                numberOfLines={1}
+                className="text-sm text-gray-500"
+              >
+                <Text className="text-sm font-bold">Signature: </Text>
+                {selectedEvent.event.sig}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <Section>
+            <Text>No event selected.</Text>
+          </Section>
+        )}
       </View>
     </Modal>
   );

@@ -93,6 +93,9 @@ export default function MapPlusCodes() {
   const centerMapOnCurrentLocation = useAppSelector(
     mapSelectors.selectCenterMapOnCurrentLocation,
   );
+  const centerMapOnHalfModal = useAppSelector(
+    mapSelectors.selectCenterMapOnHalfModal,
+  );
   const currentMapLocation = useAppSelector(
     mapSelectors.selectCurrentMapLocation,
   );
@@ -122,8 +125,8 @@ export default function MapPlusCodes() {
         mapActions.animateToCoordinate({
           latitude: currentMapLocation.latitude,
           longitude: currentMapLocation.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+          latitudeDelta: 0.1844,
+          longitudeDelta: 0.0842,
           duration: 1000,
         }),
       );
@@ -131,6 +134,33 @@ export default function MapPlusCodes() {
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
     }
   }, [centerMapOnCurrentLocation, currentMapLocation, dispatch]);
+
+  // Handle centering map for half modal
+  useEffect(() => {
+    if (
+      centerMapOnHalfModal &&
+      currentMapLocation &&
+      typeof currentMapLocation === "object" &&
+      "latitude" in currentMapLocation &&
+      "longitude" in currentMapLocation &&
+      typeof currentMapLocation.latitude === "number" &&
+      typeof currentMapLocation.longitude === "number"
+    ) {
+      // Adjust center point for half modal
+      const adjustedLatitude = currentMapLocation.latitude - 0.02; // Adjust as needed
+      dispatch(
+        mapActions.animateToCoordinate({
+          latitude: adjustedLatitude,
+          longitude: currentMapLocation.longitude,
+          latitudeDelta: 0.1844,
+          longitudeDelta: 0.0842,
+          duration: 1000,
+        }),
+      );
+      // Clear the flag
+      dispatch(mapActions.centerMapOnHalfModalComplete());
+    }
+  }, [centerMapOnHalfModal, currentMapLocation, dispatch]);
 
   const handleLocationPress = async () => {
     const location = await getCurrentLocation();
@@ -145,8 +175,8 @@ export default function MapPlusCodes() {
         mapActions.animateToCoordinate({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+          latitudeDelta: 0.1844,
+          longitudeDelta: 0.0842,
           duration: 1000,
         }),
       );

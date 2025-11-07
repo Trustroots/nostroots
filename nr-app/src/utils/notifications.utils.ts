@@ -91,7 +91,7 @@ export const openEvent = (plusCode: string, event: Event) => {
         longitude: location.longitude,
       }),
     );
-    store.dispatch(mapActions.centerMapOnCurrentLocation());
+    store.dispatch(mapActions.centerMapOnHalfModal());
   }
 
   // change to the map tab

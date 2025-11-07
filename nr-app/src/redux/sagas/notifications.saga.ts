@@ -1,4 +1,7 @@
-import { getPrivateKeyBytes, getPrivateKeyHex } from "@/nostr/keystore.nostr";
+import {
+  getPrivateKeyBytesFromSecureStorage,
+  getPrivateKeyHexFromSecureStorage,
+} from "@/nostr/keystore.nostr";
 import { getSerializableError } from "@/utils/error.utils";
 import { rootLogger } from "@/utils/logger.utils";
 import {
@@ -42,7 +45,7 @@ const NOTIFICATION_SUBSCRIPTION_SUBSCRIPTION_ID = "notificationSubscription";
 
 async function encryptMessage(plaintext: string) {
   log.debug("#Lrr7Uz getting private key");
-  const privateKey = await getPrivateKeyHex();
+  const privateKey = await getPrivateKeyHexFromSecureStorage();
   log.debug("#XQSpLX got private key");
   const encryptedText = nip04.encrypt(
     privateKey,
@@ -167,10 +170,10 @@ function* notificationsSubscribeSaga() {
 
 function* callGetPrivateKeyBytes(): Generator<
   Effect,
-  Awaited<ReturnType<typeof getPrivateKeyBytes>>,
-  Awaited<ReturnType<typeof getPrivateKeyBytes>>
+  Awaited<ReturnType<typeof getPrivateKeyBytesFromSecureStorage>>,
+  Awaited<ReturnType<typeof getPrivateKeyBytesFromSecureStorage>>
 > {
-  const privateKey = yield call(getPrivateKeyBytes);
+  const privateKey = yield call(getPrivateKeyBytesFromSecureStorage);
   return privateKey;
 }
 

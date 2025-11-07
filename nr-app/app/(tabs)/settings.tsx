@@ -1,4 +1,5 @@
 import { Text } from "@/components/ui/text";
+import { bytesToHex } from "@noble/hashes/utils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getBech32PrivateKey } from "nip06";
 import { useState } from "react";
@@ -17,23 +18,20 @@ import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
-  derivePublicKeyHexFromMnemonic,
-  getPrivateKeyHex,
-  getPrivateKeyMnemonic,
+  getPrivateKeyHexFromSecureStorage,
+  getPrivateKeyMnemonicFromSecureStorage,
 } from "@/nostr/keystore.nostr";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
-import {
-  keystoreSelectors,
-  setPublicKeyHex,
-} from "@/redux/slices/keystore.slice";
+import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
+import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { notificationsActions } from "@/redux/slices/notifications.slice";
 import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
+import { nip19 } from "nostr-tools";
 import Toast from "react-native-root-toast";
 
 const ToggleSwitch = ({
@@ -54,6 +52,7 @@ const ToggleSwitch = ({
 };
 
 export default function SettingsScreen() {
+  const dispatch = useAppDispatch();
   const { expoPushToken } = useNotifications();
 
   const username = useAppSelector(settingsSelectors.selectUsername);
@@ -65,13 +64,10 @@ export default function SettingsScreen() {
   const [nsec, setNsec] = useState("");
   const [mnemonic, setMnemonic] = useState("");
   const [mnemonicInput, setMnemonicInput] = useState("");
-  const [showUpdateButton, setShowUpdateButton] = useState(false);
-  const [mnemonicError, setMnemonicError] = useState<string | null>(null);
+  const [nsecInput, setNsecInput] = useState("");
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
   const publicKeyHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
-
-  const dispatch = useAppDispatch();
 
   const enablePlusCodeMapTEMPORARY = useAppSelector(
     mapSelectors.selectEnablePlusCodeMapTEMPORARY,
@@ -81,49 +77,20 @@ export default function SettingsScreen() {
 
   const showNsec = async () => {
     try {
-      // const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
-
-      const keyHex = await getPrivateKeyHex();
-      const mnemonic = await getPrivateKeyMnemonic();
-
-      const pubKeyHex = derivePublicKeyHexFromMnemonic(mnemonic);
-      dispatch(setPublicKeyHex(pubKeyHex));
-
+      const keyHex = await getPrivateKeyHexFromSecureStorage();
       const { bech32PrivateKey } = getBech32PrivateKey({
         privateKey: keyHex,
       });
       setNsec(bech32PrivateKey);
-      setMnemonic(mnemonic);
-      setMnemonicInput(mnemonic);
-      setShowUpdateButton(false);
-    } catch (error) {
-      console.error("#bVVgTl Error getting nsec and mnemonic", error);
+    } catch {
+      setNsec("Failed to load nsec");
     }
-  };
 
-  const handleMnemonicChange = (text: string) => {
-    setMnemonicInput(text);
-    // Only show update button if the input is different from the current mnemonic
-    setShowUpdateButton(text !== mnemonic && text.trim() !== "");
-  };
-
-  const handleMnemonicSubmit = async () => {
-    if (mnemonicInput.trim() !== "") {
-      try {
-        setMnemonicError(null);
-        await dispatch(
-          setPrivateKeyMnemonicPromiseAction.request(mnemonicInput),
-        );
-        const pubKeyHex = derivePublicKeyHexFromMnemonic(mnemonicInput);
-        dispatch(setPublicKeyHex(pubKeyHex));
-        setMnemonicInput("");
-        setShowUpdateButton(false);
-        Toast.show("Mnemonic updated successfully", {
-          duration: Toast.durations.SHORT,
-        });
-      } catch {
-        setMnemonicError("Invalid mnemonic. Please check and try again.");
-      }
+    try {
+      const mnemonic = await getPrivateKeyMnemonicFromSecureStorage();
+      setMnemonic(mnemonic);
+    } catch {
+      setMnemonic("Failed to find mnemonic");
     }
   };
 
@@ -167,20 +134,64 @@ export default function SettingsScreen() {
           <TextInput className={inputClassName} value={nsec} />
 
           <Text className="font-bold">nsec mnemonic</Text>
+          <TextInput className={inputClassName} value={mnemonic} />
+
+          <Button title="Show nsec" onPress={showNsec} />
+
+          <Text variant="h2">Import mnemonic</Text>
+          <Text>
+            If you have a mnemonic and want to import it, enter it into the
+            field below and use the "Import mnemonic" button.
+          </Text>
           <TextInput
             className={inputClassName}
             value={mnemonicInput}
-            onChangeText={handleMnemonicChange}
+            onChangeText={(t) => setMnemonicInput(t)}
+          />
+          <Button
+            title="Import mnemonic"
+            onPress={async () => {
+              try {
+                await dispatch(
+                  setPrivateKeyPromiseAction.request({
+                    mnemonic: mnemonicInput,
+                  }),
+                );
+              } catch (error) {
+                Toast.show(`#wkoJ8d ERROR: ${error}`);
+              }
+            }}
           />
 
-          {mnemonicError && (
-            <Text style={styles.errorText}>{mnemonicError}</Text>
-          )}
-
-          {showUpdateButton && (
-            <Button title="Save New Mnemonic" onPress={handleMnemonicSubmit} />
-          )}
-          <Button title="Show nsec" onPress={showNsec} />
+          <Text variant="h2">Import nsec</Text>
+          <Text>
+            If you have an nsec and want to import it, enter it into the field
+            below and use the "Import nsec" button.
+          </Text>
+          <TextInput
+            className={inputClassName}
+            value={nsecInput}
+            onChangeText={setNsecInput}
+          />
+          <Button
+            title="Import nsec"
+            onPress={async () => {
+              try {
+                const decoded = nip19.decode(nsecInput);
+                console.log("#ccz7WL Got decoded");
+                if (decoded.type === "nsec") {
+                  const privateKeyHex = bytesToHex(decoded.data);
+                  console.log("#ccz7WL Got hex string");
+                  await dispatch(
+                    setPrivateKeyPromiseAction.request({ privateKeyHex }),
+                  );
+                  Toast.show("Nsec imported successfully");
+                }
+              } catch (error) {
+                Toast.show(`#5qG7nO ERROR: ${error}`);
+              }
+            }}
+          />
         </Section>
       ) : null}
 

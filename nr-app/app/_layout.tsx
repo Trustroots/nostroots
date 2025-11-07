@@ -1,8 +1,4 @@
-import {
-  derivePublicKeyHexFromMnemonic,
-  getHasPrivateKeyInSecureStorage,
-  getPrivateKeyMnemonic,
-} from "@/nostr/keystore.nostr";
+import { getPublicKeyHexFromSecureStorage } from "@/nostr/keystore.nostr";
 
 import { nip19 } from "nostr-tools";
 
@@ -12,8 +8,6 @@ import {
   ThemeProvider,
 } from "@react-navigation/native";
 import { getNip5PubKey } from "@trustroots/nr-common";
-
-import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
 
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
@@ -105,18 +99,18 @@ function AppContent() {
     (async function initUserAndVerify() {
       // there is no public key from the redux store
       if (!npub) {
-        // try to get key from secure storage
-        const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
+        const publicKeyHexResult = await getPublicKeyHexFromSecureStorage();
 
-        // we don't have private key in redux store
-        if (hasKeyFromStorage) {
-          const mnemonic = await getPrivateKeyMnemonic();
+        const hasPrivateKeyAvailable =
+          typeof publicKeyHexResult !== "undefined";
 
-          dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonic));
-          const pubKeyHex = derivePublicKeyHexFromMnemonic(mnemonic);
-
-          // move to the next step w/ useEffect listening for npub
-          dispatch(setPublicKeyHex(pubKeyHex));
+        if (hasPrivateKeyAvailable) {
+          dispatch(
+            setPublicKeyHex({
+              hasMnemonic: publicKeyHexResult.hasMenmonicInSecureStorage,
+              publicKeyHex: publicKeyHexResult.publicKeyHex,
+            }),
+          );
           return;
         } else {
           // TODO: set onboard modal: no private key found

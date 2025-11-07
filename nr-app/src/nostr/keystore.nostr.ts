@@ -1,14 +1,23 @@
 import {
   SECURE_STORE_PRIVATE_KEY_HEX_KEY,
-  SECURE_STORE_PRIVATE_KEY_HEX_NMEONIC,
+  SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
 } from "@/constants";
-import { hexToBytes } from "@noble/hashes/utils";
+import { hexToBytes, utf8ToBytes } from "@noble/hashes/utils";
 import { isHexKey } from "@trustroots/nr-common";
 import * as SecureStore from "expo-secure-store";
 import { accountFromSeedWords } from "nip06";
-import { EventTemplate, finalizeEvent, VerifiedEvent } from "nostr-tools";
+import {
+  EventTemplate,
+  finalizeEvent,
+  getPublicKey,
+  VerifiedEvent,
+} from "nostr-tools";
 
-export async function getPrivateKeyHex(): Promise<string> {
+const SecureStoreKeySettings = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+};
+
+export async function getPrivateKeyHexFromSecureStorage(): Promise<string> {
   const result = await SecureStore.getItemAsync(
     SECURE_STORE_PRIVATE_KEY_HEX_KEY,
   );
@@ -21,15 +30,15 @@ export async function getPrivateKeyHex(): Promise<string> {
   return result;
 }
 
-export async function getPrivateKeyBytes(): Promise<Uint8Array> {
-  const keyHex = await getPrivateKeyHex();
+export async function getPrivateKeyBytesFromSecureStorage(): Promise<Uint8Array> {
+  const keyHex = await getPrivateKeyHexFromSecureStorage();
   const keyBytes = hexToBytes(keyHex);
   return keyBytes;
 }
 
-export async function getPrivateKeyMnemonic(): Promise<string> {
+export async function getPrivateKeyMnemonicFromSecureStorage(): Promise<string> {
   const mnemonic = await SecureStore.getItemAsync(
-    SECURE_STORE_PRIVATE_KEY_HEX_NMEONIC,
+    SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
   );
   if (mnemonic === null) {
     throw new Error("#ATaXag-failed-to-get-mnemonic");
@@ -37,37 +46,114 @@ export async function getPrivateKeyMnemonic(): Promise<string> {
   return mnemonic;
 }
 
-export async function getHasPrivateKeyInSecureStorage(): Promise<boolean> {
-  const mnemonic = await SecureStore.getItemAsync(
-    SECURE_STORE_PRIVATE_KEY_HEX_NMEONIC,
-  );
-  const hasKey = typeof mnemonic === "string" && mnemonic.length > 0;
-  return hasKey;
+export async function getHasPrivateKeyMnemonicInSecureStroage(): Promise<boolean> {
+  try {
+    const mnemonic = await getPrivateKeyMnemonicFromSecureStorage();
+    if (typeof mnemonic === "string" && mnemonic.length > 10) {
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
-export async function setPrivateKeyMnemonic(keyMnemonic: string) {
-  const account = accountFromSeedWords({ mnemonic: keyMnemonic });
-  await SecureStore.setItemAsync(
-    SECURE_STORE_PRIVATE_KEY_HEX_NMEONIC,
-    keyMnemonic,
-    {
-      keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
-    },
-  );
-  await SecureStore.setItemAsync(
-    SECURE_STORE_PRIVATE_KEY_HEX_KEY,
-    account.privateKey.hex,
-    {
-      keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
-    },
-  );
-  return account;
+export async function getHasPrivateKeyHexInSecureStorage(): Promise<boolean> {
+  try {
+    await getPrivateKeyHexFromSecureStorage();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function getHasPrivateKeyInSecureStorage(): Promise<boolean> {
+  try {
+    const hasMnemonic = await getHasPrivateKeyMnemonicInSecureStroage();
+    if (hasMnemonic) {
+      return true;
+    }
+    const hasHex = await getHasPrivateKeyHexInSecureStorage();
+    return hasHex;
+  } catch {
+    return false;
+  }
+}
+
+export async function getPublicKeyHexFromSecureStorage(): Promise<
+  | {
+      hasMenmonicInSecureStorage: boolean;
+      publicKeyHex: string;
+    }
+  | undefined
+> {
+  try {
+    const hasMnemonic = await getHasPrivateKeyMnemonicInSecureStroage();
+    if (hasMnemonic) {
+      const mnemonic = await getPrivateKeyMnemonicFromSecureStorage();
+      const account = accountFromSeedWords({ mnemonic });
+      return {
+        hasMenmonicInSecureStorage: true,
+        publicKeyHex: account.publicKey.hex,
+      };
+    } else {
+      const hasPrivateKeyHex = await getHasPrivateKeyHexInSecureStorage();
+      if (!hasPrivateKeyHex) {
+        return;
+      }
+      const privateKeyHexBytes = await getPrivateKeyBytesFromSecureStorage();
+      const publicKeyHex = getPublicKey(privateKeyHexBytes);
+      return {
+        hasMenmonicInSecureStorage: false,
+        publicKeyHex,
+      };
+    }
+  } catch {}
+}
+
+export async function setPrivateKeyInSecureStorage(
+  input: { mnemonic: string } | { privateKeyHex: string },
+) {
+  if ("mnemonic" in input) {
+    const { mnemonic } = input;
+    const account = accountFromSeedWords({ mnemonic: mnemonic });
+    await SecureStore.setItemAsync(
+      SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
+      mnemonic,
+      SecureStoreKeySettings,
+    );
+    await SecureStore.setItemAsync(
+      SECURE_STORE_PRIVATE_KEY_HEX_KEY,
+      account.privateKey.hex,
+      SecureStoreKeySettings,
+    );
+    return account.publicKey.hex;
+  } else {
+    const { privateKeyHex } = input;
+    const privateKeyHexBytes = hexToBytes(privateKeyHex);
+    console.log("#Nr3YsH got bytes", privateKeyHex, privateKeyHexBytes);
+    try {
+      debugger;
+      const publicKeyHex = getPublicKey(privateKeyHexBytes);
+      console.log("#EFGGEx got hex");
+      await SecureStore.deleteItemAsync(SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC);
+      await SecureStore.setItemAsync(
+        SECURE_STORE_PRIVATE_KEY_HEX_KEY,
+        privateKeyHex,
+        SecureStoreKeySettings,
+      );
+      return publicKeyHex;
+    } catch (error) {
+      console.error("#85VtuH got error", error);
+      throw error;
+    }
+  }
 }
 
 export async function signEventTemplate(
   eventTemplate: EventTemplate,
 ): Promise<VerifiedEvent> {
-  const key = await getPrivateKeyBytes();
+  const key = await getPrivateKeyBytesFromSecureStorage();
   const event = finalizeEvent(eventTemplate, key);
   return event;
 }

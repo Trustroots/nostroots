@@ -2,7 +2,7 @@ import { getHasPrivateKeyInSecureStorage } from "@/nostr/keystore.nostr";
 
 import { publishEventTemplatePromiseAction } from "@/redux/actions/publish.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { setPrivateKeyMnemonicPromiseAction } from "@/redux/sagas/keystore.saga";
+import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import {
   settingsActions,
@@ -74,7 +74,7 @@ export default function OnboardModal({
   };
 
   const handleMnemonicSubmit = () => {
-    dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonicText));
+    dispatch(setPrivateKeyPromiseAction.request({ mnemonic: mnemonicText }));
     setCurrentStep("usernameScreen");
   };
 
@@ -173,7 +173,9 @@ export default function OnboardModal({
     const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
     if (!hasPrivateKeyFromRedux && !hasKeyFromStorage) {
       const { mnemonic } = generateSeedWords();
-      await dispatch(setPrivateKeyMnemonicPromiseAction.request(mnemonic));
+      await dispatch(
+        setPrivateKeyPromiseAction.request({ mnemonic: mnemonic }),
+      );
       setCurrentStep("setPubKeyScreen");
     }
   };

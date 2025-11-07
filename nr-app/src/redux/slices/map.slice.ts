@@ -115,14 +115,15 @@ export const mapSlice = createSlice({
     selectBoundingBox: (state) => state.boundingBox,
     selectEnablePlusCodeMapTEMPORARY: (state) =>
       state.enablePlusCodeMapTEMPORARY,
-    selectEnabledLayerKeys: createSelector(
-      (state) => state,
-      (state) => [state.selectedLayer],
-    ),
   },
 });
 
 const mapSliceSelectors = mapSlice.selectors;
+
+const selectEnabledLayerKeys = createSelector(
+  [mapSliceSelectors.selectSelectedLayer],
+  (selectedLayer) => [selectedLayer],
+);
 
 const selectEventsForSelectedMapLayer = createSelector(
   [eventsSelectors.selectAll, mapSliceSelectors.selectSelectedLayer],
@@ -139,5 +140,6 @@ export const mapActions = mapSlice.actions;
 
 export const mapSelectors = {
   ...mapSliceSelectors,
+  selectEnabledLayerKeys,
   selectEventsForSelectedMapLayer,
 };

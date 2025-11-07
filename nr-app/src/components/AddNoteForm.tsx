@@ -1,7 +1,6 @@
 import { publishNotePromiseAction } from "@/redux/actions/publish.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
-import { Picker } from "@react-native-picker/picker";
 import { getCurrentTimestamp } from "@trustroots/nr-common";
 import { useMemo, useState } from "react";
 import {
@@ -14,6 +13,15 @@ import {
   View,
 } from "react-native";
 import Toast from "react-native-root-toast";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 
 const MINUTE_IN_SECONDS = 60;
 const HOUR_IN_SECONDS = 60 * MINUTE_IN_SECONDS;
@@ -21,6 +29,14 @@ const DAY_IN_SECONDS = 24 * HOUR_IN_SECONDS;
 const WEEK_IN_SECONDS = 7 * DAY_IN_SECONDS;
 const MONTH_IN_SECONDS = 30 * DAY_IN_SECONDS;
 const YEAR_IN_SECONDS = 365 * DAY_IN_SECONDS;
+
+const noteExpiryOptions = [
+  { label: "1 year", value: YEAR_IN_SECONDS.toString() },
+  { label: "1 month", value: MONTH_IN_SECONDS.toString() },
+  { label: "1 week", value: WEEK_IN_SECONDS.toString() },
+  { label: "1 day", value: DAY_IN_SECONDS.toString() },
+  { label: "1 hour", value: HOUR_IN_SECONDS.toString() },
+];
 
 export default function AddNoteForm() {
   const dispatch = useAppDispatch();
@@ -111,11 +127,6 @@ export default function AddNoteForm() {
       <View style={styles.contentContainer}>
         <Text style={styles.inputLabel}>Add Note to Map</Text>
         <TextInput
-          ref={(input) => {
-            if (input) {
-              input.focus();
-            }
-          }}
           style={styles.input}
           placeholder="Enter your note"
           value={noteContent}
@@ -123,20 +134,31 @@ export default function AddNoteForm() {
           onSubmitEditing={handleAddNote}
           multiline={true}
         />
-        <Picker
-          selectedValue={noteExpiry}
-          onValueChange={(v) => {
-            setNoteExpiry(v);
+
+        <Text>Note expiry:</Text>
+        <Select
+          onValueChange={(selectedOption) => {
+            if (typeof selectedOption !== "undefined") {
+              setNoteExpiry(selectedOption.value);
+            }
           }}
-          style={styles.picker}
-          itemStyle={styles.pickerItem}
+          defaultValue={noteExpiryOptions[3]}
         >
-          <Picker.Item label="1 year" value={YEAR_IN_SECONDS.toString()} />
-          <Picker.Item label="1 month" value={MONTH_IN_SECONDS.toString()} />
-          <Picker.Item label="1 week" value={WEEK_IN_SECONDS.toString()} />
-          <Picker.Item label="1 hour" value={HOUR_IN_SECONDS.toString()} />
-          <Picker.Item label="1 minute" value={MINUTE_IN_SECONDS.toString()} />
-        </Picker>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select a fruit" />
+          </SelectTrigger>
+          <SelectContent className="w-[180px]">
+            <SelectGroup>
+              <SelectLabel>Note expiry</SelectLabel>
+              {noteExpiryOptions.map(({ label, value }, index) => (
+                <SelectItem label={label} value={value} key={index}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+
         <View style={styles.buttonContainer}>
           <View style={styles.button}>
             <Button title="Add Note" onPress={handleAddNote} />

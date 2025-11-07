@@ -9,7 +9,17 @@ import { Text } from "./ui/text";
 
 const notesListSelectorFactory = (plusCode: string) =>
   createSelector(mapSelectors.selectEventsForSelectedMapLayer, (events) => {
-    return filterEventsForPlusCode(events, plusCode);
+    const { eventsForPlusCodeExactly, eventsWithinPlusCode } =
+      filterEventsForPlusCode(events, plusCode);
+    const sortedEvents = {
+      eventsForPlusCodeExactly: eventsForPlusCodeExactly.sort(
+        (a, b) => b.event.created_at - a.event.created_at,
+      ),
+      eventsWithinPlusCode: eventsWithinPlusCode.sort(
+        (a, b) => b.event.created_at - a.event.created_at,
+      ),
+    };
+    return sortedEvents;
   });
 
 export default function NotesList({ plusCode }: { plusCode: string }) {

@@ -2,7 +2,6 @@ import { subscribeToPlusCode } from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { Modal, ScrollView, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import AddNoteForm from "./AddNoteForm";
 import NotesList from "./NotesList";
 import { Button } from "./ui/button";

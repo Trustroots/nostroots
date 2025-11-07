@@ -16,7 +16,7 @@ import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { matchFilter } from "nostr-tools";
 import { Fragment, useEffect, useMemo, useRef } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import MapView, {
   BoundingBox,
   Details,
@@ -27,6 +27,10 @@ import MapView, {
 } from "react-native-maps";
 import { mapRefService } from "../utils/mapRef";
 import { MapNoteMarker } from "./MapNoteMarker";
+// @ts-ignore
+import { Colors } from "@/constants/Colors";
+import { getCurrentLocation } from "@/utils/location";
+import { FontAwesome } from "@expo/vector-icons";
 
 const log = rootLogger.extend("MapMarkers");
 
@@ -128,6 +132,29 @@ export function MapMarkers() {
       },
     [dispatch],
   );
+
+  const handleLocationPress = async () => {
+    const location = await getCurrentLocation();
+    if (location) {
+      dispatch(
+        mapActions.setCurrentMapLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        }),
+      );
+      dispatch(
+        mapActions.animateToCoordinate({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+          duration: 1000,
+        }),
+      );
+      dispatch(mapActions.centerMapOnCurrentLocationComplete());
+    }
+  };
+
   const handleMapRegionChange = useMemo(
     () =>
       function handleMapRegionChangeHandler(region: Region, details: Details) {
@@ -202,6 +229,12 @@ export function MapMarkers() {
           </Fragment>
         ))}
       </MapView>
+      <TouchableOpacity
+        style={styles.locationButton}
+        onPress={handleLocationPress}
+      >
+        <FontAwesome name="location-arrow" size={22} color={Colors.light.tint} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -235,5 +268,19 @@ const styles = StyleSheet.create({
   },
   marker: {
     width: 200,
+  },
+  locationButton: {
+    position: "absolute",
+    bottom: 30,
+    right: 30,
+    backgroundColor: "white",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 5,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
 });

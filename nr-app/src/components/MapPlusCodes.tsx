@@ -2,7 +2,6 @@ import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { rootLogger } from "@/utils/logger.utils";
-import { mapRefService } from "@/utils/mapRef";
 import {
   allPlusCodesForRegion,
   boundariesToRegion,
@@ -12,9 +11,10 @@ import {
   plusCodeToRectangle,
   regionToBoundingBox,
 } from "@/utils/map.utils";
+import { mapRefService } from "@/utils/mapRef";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useEffect, useMemo, useRef } from "react";
-import { Platform, StyleSheet } from "react-native";
+import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
 import MapView, {
   Details,
   Polygon,
@@ -22,7 +22,12 @@ import MapView, {
   PROVIDER_GOOGLE,
   Region,
 } from "react-native-maps";
+// @ts-ignore
+import { getCurrentLocation } from "@/utils/location";
+import { FontAwesome } from "@expo/vector-icons";
 import { createSelector } from "reselect";
+
+import { Colors } from "@/constants/Colors";
 
 // TODO - Only show if a plus code has direct notes, child notes, or no notes
 
@@ -45,7 +50,7 @@ const selectPlusCodesWithState = createSelector(
     mapSelectors.selectEventsForSelectedMapLayer,
     mapSelectors.selectBoundingBox,
   ],
-  (events, boundingBox) => {
+  (events: any, boundingBox: any) => {
     if (typeof boundingBox === "undefined") {
       return [];
     }
@@ -127,6 +132,28 @@ export default function MapPlusCodes() {
     }
   }, [centerMapOnCurrentLocation, currentMapLocation, dispatch]);
 
+  const handleLocationPress = async () => {
+    const location = await getCurrentLocation();
+    if (location) {
+      dispatch(
+        mapActions.setCurrentMapLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        }),
+      );
+      dispatch(
+        mapActions.animateToCoordinate({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+          duration: 1000,
+        }),
+      );
+      dispatch(mapActions.centerMapOnCurrentLocationComplete());
+    }
+  };
+
   const handleMapRegionChange = useMemo(
     () =>
       function handleMapRegionChangeHandler(region: Region, details: Details) {
@@ -142,51 +169,61 @@ export default function MapPlusCodes() {
   );
 
   return (
-    <MapView
-      ref={mapViewRef}
-      style={styles.map}
-      rotateEnabled={false}
-      pitchEnabled={false}
-      onRegionChangeComplete={handleMapRegionChange}
-      // only use google maps on android dev and prod builds
-      provider={
-        Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
-        Platform.OS !== "android"
-          ? PROVIDER_DEFAULT
-          : PROVIDER_GOOGLE
-      }
-      onMapReady={async (event) => {
-        if (mapViewRef.current === null) {
-          log.error("#SHtaWM mapViewRef is null");
-          return;
+    <View style={styles.mapContainer}>
+      <MapView
+        ref={mapViewRef}
+        style={styles.map}
+        rotateEnabled={false}
+        pitchEnabled={false}
+        onRegionChangeComplete={handleMapRegionChange}
+        // only use google maps on android dev and prod builds
+        provider={
+          Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
+            Platform.OS !== "android"
+            ? PROVIDER_DEFAULT
+            : PROVIDER_GOOGLE
         }
-        // Register the map ref with the service for Redux sagas to use
-        mapRefService.setMapRef(mapViewRef.current);
+        onMapReady={async (event) => {
+          if (mapViewRef.current === null) {
+            log.error("#SHtaWM mapViewRef is null");
+            return;
+          }
+          // Register the map ref with the service for Redux sagas to use
+          mapRefService.setMapRef(mapViewRef.current);
 
-        const boundaries = await mapViewRef.current.getMapBoundaries();
-        log.debug("#iztRxR onMapReady", boundaries);
-        const region = boundariesToRegion(boundaries);
-        handleMapRegionChange(region, {});
-      }}
-    >
-      {true &&
-        plusCodesWithState.map((plusCodeWithState, index) => (
-          <Polygon
-            key={index}
-            coordinates={plusCodeToRectangle(plusCodeWithState.plusCode)}
-            // fillColor={`rgba(255, 0, 0, 0.${plusCodeWithState.events.length > 9 ? "9" : plusCodeWithState.events.length.toString().substring(0, 1)}})`}
-            fillColor={`rgba(${Math.min(255, (plusCodeWithState.eventCountForThisPlusCodeExactly + plusCodeWithState.eventCountWithinThisPlusCode) * 60).toString()}, 0, 0, 0.6)`}
-            strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
-            strokeWidth={2}
-            tappable={true}
-            onPress={() => {
-              dispatch(
-                mapActions.setSelectedPlusCode(plusCodeWithState.plusCode),
-              );
-            }}
-          />
-        ))}
-    </MapView>
+          const boundaries = await mapViewRef.current.getMapBoundaries();
+          log.debug("#iztRxR onMapReady", boundaries);
+          const region = boundariesToRegion(boundaries);
+          handleMapRegionChange(region, {});
+        }}
+      >
+        {true &&
+          (plusCodesWithState as any[]).map(
+            (plusCodeWithState: any, index: any) => (
+              <Polygon
+                key={index}
+                coordinates={plusCodeToRectangle(plusCodeWithState.plusCode)}
+                // fillColor={`rgba(255, 0, 0, 0.${plusCodeWithState.events.length > 9 ? "9" : plusCodeWithState.events.length.toString().substring(0, 1)}})`}
+                fillColor={`rgba(${Math.min(255, (plusCodeWithState.eventCountForThisPlusCodeExactly + plusCodeWithState.eventCountWithinThisPlusCode) * 60).toString()}, 0, 0, 0.6)`}
+                strokeColor="rgba(0, 0, 0, 0.5)" // Semi-transparent black
+                strokeWidth={2}
+                tappable={true}
+                onPress={() => {
+                  dispatch(
+                    mapActions.setSelectedPlusCode(plusCodeWithState.plusCode),
+                  );
+                }}
+              />
+            ),
+          )}
+      </MapView>
+      <TouchableOpacity
+        style={styles.locationButton}
+        onPress={handleLocationPress}
+      >
+        <FontAwesome name="location-arrow" size={22} color={Colors.light.tint} />
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -219,5 +256,19 @@ const styles = StyleSheet.create({
   },
   marker: {
     width: 200,
+  },
+  locationButton: {
+    position: "absolute",
+    bottom: 30,
+    right: 30,
+    backgroundColor: "white",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 5,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
 });

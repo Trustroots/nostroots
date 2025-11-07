@@ -1,5 +1,6 @@
 import { Text } from "@/components/ui/text";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { router } from "expo-router";
 import { getBech32PrivateKey } from "nip06";
 import { useState } from "react";
 import {
@@ -39,6 +40,7 @@ import {
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
 import Toast from "react-native-root-toast";
+import { getCurrentLocation } from "../../src/utils/location";
 
 const ToggleSwitch = ({
   value,
@@ -82,6 +84,23 @@ export default function SettingsScreen() {
   );
 
   const [modalVisible, setModalVisible] = useState(false);
+
+  const centerMapOnCurrentLocation = async () => {
+    const location = await getCurrentLocation();
+    if (location) {
+      // Update the stored map location
+      dispatch(
+        mapActions.setCurrentMapLocation({
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+        }),
+      );
+      // Set flag to trigger animation when map is ready
+      dispatch(mapActions.centerMapOnCurrentLocation());
+      // Navigate to the map screen
+      router.replace("/");
+    }
+  };
 
   const showNsec = async () => {
     try {
@@ -180,6 +199,11 @@ export default function SettingsScreen() {
           {mnemonicError && (
             <Text style={styles.errorText}>{mnemonicError}</Text>
           )}
+
+          <Button
+            title="Center map on current location"
+            onPress={centerMapOnCurrentLocation}
+          />
 
           {showUpdateButton && (
             <Button title="Save New Mnemonic" onPress={handleMnemonicSubmit} />

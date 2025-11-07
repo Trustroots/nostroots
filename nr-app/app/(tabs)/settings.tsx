@@ -234,7 +234,10 @@ export default function SettingsScreen() {
             />
 
             <Text>Subscription data</Text>
-            <TextInput value={notificationSubscriptionsJson} />
+            <TextInput
+              className={inputClassName}
+              value={notificationSubscriptionsJson}
+            />
           </Section>
 
           <Button

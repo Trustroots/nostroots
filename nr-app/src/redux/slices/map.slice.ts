@@ -14,6 +14,7 @@ interface MapState {
   selectedPlusCode: string;
   boundingBox?: BoundingBox;
   isMapModalOpen: boolean;
+  isHalfMapEventModalOpen: boolean;
   isAddNoteModalOpen: boolean;
   selectedLatLng?: LatLng;
   currentMapLocation?: LatLng;
@@ -27,6 +28,7 @@ const initialState: MapState = {
   mapSubscriptionIsUpdating: false,
   visiblePlusCodes: [],
   isMapModalOpen: false,
+  isHalfMapEventModalOpen: false,
   isAddNoteModalOpen: false,
   selectedLatLng: undefined,
   selectedPlusCode: "",
@@ -76,7 +78,12 @@ export const mapSlice = createSlice({
     },
     setSelectedPlusCode: (state, action: PayloadAction<string>) => {
       state.selectedPlusCode = action.payload;
-      state.isMapModalOpen = true;
+    },
+    openHalfMapEventModal: (state) => {
+      state.isHalfMapEventModalOpen = true;
+    },
+    closeHalfMapEventModal: (state) => {
+      state.isHalfMapEventModalOpen = false;
     },
     closeMapModal: (state) => {
       state.isMapModalOpen = false;
@@ -145,6 +152,7 @@ export const mapSlice = createSlice({
     selectSelectedLatLng: (state: MapState) => state.selectedLatLng,
     selectSelectedPlusCode: (state) => state.selectedPlusCode,
     selectIsMapModalOpen: (state) => state.isMapModalOpen,
+    selectIsHalfMapEventModalOpen: (state) => state.isHalfMapEventModalOpen,
     selectIsAddNoteModalOpen: (state) => state.isAddNoteModalOpen,
     selectBoundingBox: (state) => state.boundingBox,
     selectEnablePlusCodeMapTEMPORARY: (state) =>

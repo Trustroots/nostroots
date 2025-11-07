@@ -70,7 +70,9 @@ export const openEvent = (plusCode: PlusCode) => {
   store.dispatch(mapActions.enableLayer("unverified"));
 
   // open the modal
-  // store.dispatch(mapActions.setSelectedPlusCode(plusCode));
+  store.dispatch(mapActions.setSelectedPlusCode(plusCode));
+  // open the half modal instead
+  store.dispatch(mapActions.openHalfMapEventModal());
 
   const location = plusCodeToCoordinates(plusCode);
 

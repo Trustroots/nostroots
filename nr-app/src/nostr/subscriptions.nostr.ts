@@ -1,9 +1,9 @@
 import { addEvent } from "@/redux/slices/events.slice";
 import { setSubscriptionHasSeenEOSE } from "@/redux/slices/relays.slice";
 import { Event, Filter } from "nostr-tools";
-import { Subscription } from "nostr-tools/lib/types/abstract-relay";
-import { getRelay } from "./relays.nostr";
 import { AppStore } from "@/redux/store";
+import { Subscription } from "nostr-tools/abstract-relay";
+import { getRelay } from "./relays.nostr";
 
 // NOTE: This pattern is required to avoid a circular import dependency
 let store: AppStore;

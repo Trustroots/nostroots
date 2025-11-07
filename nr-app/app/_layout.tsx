@@ -17,8 +17,6 @@ import { RootSiblingParent } from "react-native-root-siblings";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 
-import { SENTRY_DSN } from "@trustroots/nr-common";
-
 import LoadingScreen from "@/components/LoadingModal";
 import { rehydrated } from "@/redux/actions/startup.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -26,7 +24,9 @@ import {
   keystoreSelectors,
   setPublicKeyHex,
 } from "@/redux/slices/keystore.slice";
+import { setupNotificationHandling } from "@/utils/notifications.utils";
 import { PortalHost } from "@rn-primitives/portal";
+import { SENTRY_DSN } from "@trustroots/nr-common";
 
 import OnboardModal from "@/components/OnboardModal";
 import WelcomeScreen from "@/components/WelcomeModal";
@@ -181,9 +181,16 @@ function RootLayout() {
 
   useEffect(() => {
     colorScheme.set("light");
+
+    const subscription = setupNotificationHandling();
+
     if (loaded) {
       SplashScreen.hideAsync();
     }
+
+    return () => {
+      subscription.remove();
+    };
   }, [loaded]);
 
   if (!loaded) {

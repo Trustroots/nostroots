@@ -24,7 +24,4 @@ if (__DEV__) {
   require("./reactotron.config");
 }
 
-import { setupNotificationHandling } from "@/utils/notifications.utils";
-setupNotificationHandling();
-
 import "expo-router/entry";

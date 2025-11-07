@@ -72,7 +72,7 @@ const EventNotificationSchema = z.object({
 });
 
 export function setupNotificationHandling() {
-  Notifications.addNotificationResponseReceivedListener(
+  return Notifications.addNotificationResponseReceivedListener(
     function notificationResponseReceived(response) {
       const notificationData = response.notification.request.content.data;
 

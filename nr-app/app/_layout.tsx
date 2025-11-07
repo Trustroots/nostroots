@@ -103,7 +103,7 @@ function AppContent() {
         if (hasPrivateKeyAvailable) {
           dispatch(
             setPublicKeyHex({
-              hasMnemonic: publicKeyHexResult.hasMenmonicInSecureStorage,
+              hasMnemonic: publicKeyHexResult.hasMnemonicInSecureStorage,
               publicKeyHex: publicKeyHexResult.publicKeyHex,
             }),
           );

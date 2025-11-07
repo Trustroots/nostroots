@@ -38,6 +38,7 @@ import {
   notificationsActions,
   notificationSelectors,
 } from "../slices/notifications.slice";
+import { removeFilterFromFiltersArray } from "@/utils/notifications.utils";
 
 const log = rootLogger.extend("notifications");
 
@@ -66,9 +67,8 @@ function* notificationsSubscribeSagaEffect(
 > {
   try {
     log.debug("#ChMVeW notificationsSubscribeSagaEffect()*");
-    const { filter } = action.payload;
 
-    yield put(notificationsActions.addFilter(filter));
+    yield put(notificationsActions.addFilter(action.payload));
 
     const notificationData = (yield select(
       notificationSelectors.selectData,
@@ -123,13 +123,20 @@ function* notificationsUnsubscribeSagaEffect(
 > {
   try {
     log.debug("#J3njd0 notificationsUnsubscribeSagaEffect()*");
-    const { filter } = action.payload;
 
-    yield put(notificationsActions.removeFilter(filter));
-
-    const notificationData = (yield select(
+    const originalNotificationData = (yield select(
       notificationSelectors.selectData,
     )) as ReturnType<typeof notificationSelectors.selectData>;
+
+    const updatedFilters = removeFilterFromFiltersArray(
+      originalNotificationData.filters,
+      action.payload,
+    );
+
+    const notificationData = {
+      ...originalNotificationData,
+      filters: updatedFilters,
+    };
 
     if (notificationData.tokens.length === 0) {
       throw new Error("#wWpPXH-missing-push-token");
@@ -148,6 +155,8 @@ function* notificationsUnsubscribeSagaEffect(
     yield dispatch(
       publishEventTemplatePromiseAction.request({ eventTemplate }),
     );
+
+    yield put(notificationsActions.removeFilter(action.payload));
 
     const output = { success: true };
     yield put(notificationUnsubscribeToFilterPromiseAction.success(output));

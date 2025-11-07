@@ -1,3 +1,6 @@
+import { NotificationSubscriptionFilter } from "@/redux/slices/notifications.slice";
+import { F } from "@mobily/ts-belt";
+import { current, Draft } from "@reduxjs/toolkit";
 import {
   eventSchema,
   Filter,
@@ -10,6 +13,35 @@ import {
 import * as Notifications from "expo-notifications";
 import Toast from "react-native-root-toast";
 import { z } from "zod";
+
+export function removeFilterFromFiltersArray(
+  filters: NotificationSubscriptionFilter[],
+  targetFilter: NotificationSubscriptionFilter,
+) {
+  return filters.filter((existingFilterDraft) => {
+    const unwrappedDraft = current(existingFilterDraft);
+    const isEqual = F.equals(unwrappedDraft, targetFilter);
+    return !isEqual;
+  });
+}
+
+export function addFilterToFiltersArray(
+  filters: (
+    | NotificationSubscriptionFilter
+    | Draft<NotificationSubscriptionFilter>
+  )[],
+  newFilter: NotificationSubscriptionFilter,
+) {
+  const filterAlreadyExists = filters.some((existingFilterDraft) => {
+    const unwrappedDraft = current(existingFilterDraft);
+    const isEqual = F.equals(unwrappedDraft, newFilter);
+    return isEqual;
+  });
+  if (filterAlreadyExists) {
+    return filters;
+  }
+  return filters.concat(newFilter);
+}
 
 export function filterForPlusCode(plusCode: PlusCode) {
   const filter: Filter = {

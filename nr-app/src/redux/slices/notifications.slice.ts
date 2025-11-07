@@ -1,9 +1,16 @@
-import { F } from "@mobily/ts-belt";
-import { createSlice, current, PayloadAction } from "@reduxjs/toolkit";
+import {
+  addFilterToFiltersArray,
+  removeFilterFromFiltersArray,
+} from "@/utils/notifications.utils";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Filter } from "@trustroots/nr-common";
 
+export type NotificationSubscriptionFilter = {
+  filter: Filter;
+};
+
 type NotificationsState = {
-  filters: { filter: Filter }[];
+  filters: NotificationSubscriptionFilter[];
   tokens: {
     expoPushToken: string;
   }[];
@@ -18,27 +25,22 @@ export const notificationsSlice = createSlice({
   name: "notifications",
   initialState,
   reducers: {
-    addFilter: (state, action: PayloadAction<Filter>) => {
-      const filterAlreadyExists = state.filters.some((existingFilterDraft) => {
-        const unwrappedDraft = current(existingFilterDraft);
-        const existingFilter = unwrappedDraft.filter;
-        const isEqual = F.equals(existingFilter, action.payload);
-        return isEqual;
-      });
-      if (filterAlreadyExists) {
-        return;
-      }
-      state.filters.push({ filter: action.payload });
+    addFilter: (
+      state,
+      action: PayloadAction<NotificationSubscriptionFilter>,
+    ) => {
+      state.filters = addFilterToFiltersArray(state.filters, action.payload);
     },
-    removeFilter: (state, action: PayloadAction<Filter>) => {
-      state.filters = state.filters.filter((existingFilterDraft) => {
-        const unwrappedDraft = current(existingFilterDraft);
-        const existingFilter = unwrappedDraft.filter;
-        const isEqual = F.equals(existingFilter, action.payload);
-        return !isEqual;
-      });
+    removeFilter: (
+      state,
+      action: PayloadAction<NotificationSubscriptionFilter>,
+    ) => {
+      state.filters = removeFilterFromFiltersArray(
+        state.filters,
+        action.payload,
+      );
     },
-    removeAllFilters: (state, action: PayloadAction<void>) => {
+    removeAllFilters: (state) => {
       state.filters = [];
     },
     setExpoPushToken: (state, action: PayloadAction<string>) => {

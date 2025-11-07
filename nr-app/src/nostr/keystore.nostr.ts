@@ -2,7 +2,7 @@ import {
   SECURE_STORE_PRIVATE_KEY_HEX_KEY,
   SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
 } from "@/constants";
-import { hexToBytes, utf8ToBytes } from "@noble/hashes/utils";
+import { hexToBytes } from "@noble/hashes/utils";
 import { isHexKey } from "@trustroots/nr-common";
 import * as SecureStore from "expo-secure-store";
 import { accountFromSeedWords } from "nip06";
@@ -46,7 +46,7 @@ export async function getPrivateKeyMnemonicFromSecureStorage(): Promise<string> 
   return mnemonic;
 }
 
-export async function getHasPrivateKeyMnemonicInSecureStroage(): Promise<boolean> {
+export async function getHasPrivateKeyMnemonicInSecureStorage(): Promise<boolean> {
   try {
     const mnemonic = await getPrivateKeyMnemonicFromSecureStorage();
     if (typeof mnemonic === "string" && mnemonic.length > 10) {
@@ -69,7 +69,7 @@ export async function getHasPrivateKeyHexInSecureStorage(): Promise<boolean> {
 
 export async function getHasPrivateKeyInSecureStorage(): Promise<boolean> {
   try {
-    const hasMnemonic = await getHasPrivateKeyMnemonicInSecureStroage();
+    const hasMnemonic = await getHasPrivateKeyMnemonicInSecureStorage();
     if (hasMnemonic) {
       return true;
     }
@@ -82,18 +82,18 @@ export async function getHasPrivateKeyInSecureStorage(): Promise<boolean> {
 
 export async function getPublicKeyHexFromSecureStorage(): Promise<
   | {
-      hasMenmonicInSecureStorage: boolean;
+      hasMnemonicInSecureStorage: boolean;
       publicKeyHex: string;
     }
   | undefined
 > {
   try {
-    const hasMnemonic = await getHasPrivateKeyMnemonicInSecureStroage();
+    const hasMnemonic = await getHasPrivateKeyMnemonicInSecureStorage();
     if (hasMnemonic) {
       const mnemonic = await getPrivateKeyMnemonicFromSecureStorage();
       const account = accountFromSeedWords({ mnemonic });
       return {
-        hasMenmonicInSecureStorage: true,
+        hasMnemonicInSecureStorage: true,
         publicKeyHex: account.publicKey.hex,
       };
     } else {
@@ -104,7 +104,7 @@ export async function getPublicKeyHexFromSecureStorage(): Promise<
       const privateKeyHexBytes = await getPrivateKeyBytesFromSecureStorage();
       const publicKeyHex = getPublicKey(privateKeyHexBytes);
       return {
-        hasMenmonicInSecureStorage: false,
+        hasMnemonicInSecureStorage: false,
         publicKeyHex,
       };
     }

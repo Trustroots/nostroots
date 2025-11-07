@@ -5,6 +5,11 @@ import {
 import { getSerializableError } from "@/utils/error.utils";
 import { rootLogger } from "@/utils/logger.utils";
 import {
+  addFilterToFiltersArray,
+  removeFilterFromFiltersArray,
+} from "@/utils/notifications.utils";
+import { createPromiseActionSaga } from "@/utils/saga.utils";
+import {
   create10395EventTemplate,
   kind10395ContentDecryptedDecodedSchema,
   NOTIFICATION_SERVER_PUBKEY,
@@ -37,11 +42,9 @@ import { addEvent } from "../slices/events.slice";
 import {
   notificationsActions,
   notificationSelectors,
+  NotificationsState,
 } from "../slices/notifications.slice";
-import {
-  addFilterToFiltersArray,
-  removeFilterFromFiltersArray,
-} from "@/utils/notifications.utils";
+import { store } from "../store";
 
 const log = rootLogger.extend("notifications");
 
@@ -59,6 +62,39 @@ async function encryptMessage(plaintext: string) {
   log.debug("#lLLP9n encrypted", encryptedText);
   return encryptedText;
 }
+
+export const [
+  sendNotificationSubscriptionEventAction,
+  sendNotificationSubscriptionEventSaga,
+] = createPromiseActionSaga<NotificationsState | undefined, void>({
+  actionTypePrefix: "notifications/sendSubscriptionEvent",
+  *effect(action) {
+    const notificationData =
+      typeof action.payload !== "undefined"
+        ? action.payload
+        : ((yield select((state) => state.notifications)) as ReturnType<
+            typeof store.getState
+          >["notifications"]);
+
+    if (notificationData.tokens.length === 0) {
+      throw new Error("#wWpPXH-missing-push-token");
+    }
+
+    const data = validate10395EventData(notificationData);
+    const dataAsJsonString = JSON.stringify(data);
+
+    const encryptedContent = (yield call(
+      encryptMessage,
+      dataAsJsonString,
+    )) as string;
+
+    const eventTemplate = create10395EventTemplate(encryptedContent);
+
+    yield dispatch(
+      publishEventTemplatePromiseAction.request({ eventTemplate }),
+    );
+  },
+});
 
 function* notificationsSubscribeSagaEffect(
   action: ReturnType<typeof notificationSubscribeToFilterPromiseAction.request>,
@@ -85,22 +121,8 @@ function* notificationsSubscribeSagaEffect(
       filters: updatedFilters,
     };
 
-    if (notificationData.tokens.length === 0) {
-      throw new Error("#wWpPXH-missing-push-token");
-    }
-
-    const data = validate10395EventData(notificationData);
-    const dataAsJsonString = JSON.stringify(data);
-
-    const encryptedContent = (yield call(
-      encryptMessage,
-      dataAsJsonString,
-    )) as string;
-
-    const eventTemplate = create10395EventTemplate(encryptedContent);
-
-    yield dispatch(
-      publishEventTemplatePromiseAction.request({ eventTemplate }),
+    yield put(
+      sendNotificationSubscriptionEventAction.request(notificationData),
     );
 
     // Now that the event has published, remove the filter from redux
@@ -152,22 +174,8 @@ function* notificationsUnsubscribeSagaEffect(
       filters: updatedFilters,
     };
 
-    if (notificationData.tokens.length === 0) {
-      throw new Error("#wWpPXH-missing-push-token");
-    }
-
-    const data = validate10395EventData(notificationData);
-    const dataAsJsonString = JSON.stringify(data);
-
-    const encryptedContent = (yield call(
-      encryptMessage,
-      dataAsJsonString,
-    )) as string;
-
-    const eventTemplate = create10395EventTemplate(encryptedContent);
-
-    yield dispatch(
-      publishEventTemplatePromiseAction.request({ eventTemplate }),
+    yield put(
+      sendNotificationSubscriptionEventAction.request(notificationData),
     );
 
     yield put(notificationsActions.removeFilter(action.payload));
@@ -277,6 +285,7 @@ export function* notificationSubscriptionsStartupSaga(): Generator<
 
 export default function* notificationsSaga() {
   yield all([
+    sendNotificationSubscriptionEventSaga(),
     notificationsSubscribeSaga(),
     notificationsUnsubscribeSaga(),
     notificationSubscriptionsStartupSaga(),

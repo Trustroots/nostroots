@@ -17,6 +17,7 @@ import {
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
+import { sendNotificationSubscriptionEventAction } from "@/redux/sagas/notifications.saga";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { notificationsActions } from "@/redux/slices/notifications.slice";
@@ -221,8 +222,18 @@ export default function SettingsScreen() {
             />
             <Button
               title="Reset all subscription filters"
-              onPress={() => {
-                dispatch(notificationsActions.removeAllFilters());
+              onPress={async () => {
+                try {
+                  dispatch(notificationsActions.removeAllFilters());
+                  console.log("#odQ9ry start");
+                  await dispatch(
+                    sendNotificationSubscriptionEventAction.request(),
+                  );
+                  console.log("#odQ9ry finish");
+                  Toast.show("All filters removed");
+                } catch (error) {
+                  Toast.show(`#hh2gOl Error: ${error}`);
+                }
               }}
             />
 

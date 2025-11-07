@@ -9,7 +9,7 @@ export type NotificationSubscriptionFilter = {
   filter: Filter;
 };
 
-type NotificationsState = {
+export type NotificationsState = {
   filters: NotificationSubscriptionFilter[];
   tokens: {
     expoPushToken: string;

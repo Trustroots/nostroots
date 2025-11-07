@@ -105,6 +105,7 @@ const EventNotificationSchema = z.object({
 });
 
 export function setupNotificationHandling() {
+  /** @todo This is double? See: /nr-app/src/hooks/useNotifications.ts  */
   return Notifications.addNotificationResponseReceivedListener(
     function notificationResponseReceived(response) {
       const notificationData = response.notification.request.content.data;

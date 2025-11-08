@@ -8,10 +8,10 @@ import { getNip5PubKey } from "@trustroots/nr-common";
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
 import { useFonts } from "expo-font";
-import { Stack } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import * as React from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import "react-native-reanimated";
 import { RootSiblingParent } from "react-native-root-siblings";
 import { Provider } from "react-redux";
@@ -33,6 +33,7 @@ import WelcomeScreen from "@/components/WelcomeModal";
 import { colorScheme } from "nativewind";
 
 import {
+  selectFeatureFlags,
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
@@ -63,14 +64,15 @@ SplashScreen.preventAutoHideAsync();
 
 // Child component that contains all Redux-dependent code
 function AppContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const dispatch = useAppDispatch();
   const [welcomeVisible, setWelcomeVisible] = useState(false);
   const [onboardVisible, setOnboardVisible] = useState(false);
-  const [nip5VerificationLoaded, setNip5VerificationLoaded] = useState(false);
   const [onboardModalStep, setOnboardModalStep] = useState("isUserScreen");
+  const [nip5VerificationLoaded, setNip5VerificationLoaded] = useState(false);
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
-  // const pubHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
 
   const username = useAppSelector(settingsSelectors.selectUsername);
   const hasBeenOpenedBefore = useAppSelector(
@@ -82,95 +84,121 @@ function AppContent() {
     settingsSelectors.selectIsDataLoaded,
   );
 
-  // use effect to see if this is the first time app has opened
-  useEffect(() => {
-    if (!hasBeenOpenedBefore) {
-      setWelcomeVisible(true);
+  // Onboarding feature flags and force toggles.
+  const { useNewOnboarding, forceOnboarding, forceWelcome } =
+    useAppSelector(selectFeatureFlags);
+
+  console.log({
+    pathname,
+    useNewOnboarding,
+    onboardVisible,
+    forceOnboarding,
+    forceWelcome,
+  });
+
+  // Initializes user data and performs NIP-5 verification
+  const initUserAndVerify = useCallback(async () => {
+    let error = false;
+
+    if (!npub) {
+      const result = await getPublicKeyHexFromSecureStorage();
+      if (result) {
+        dispatch(
+          setPublicKeyHex({
+            hasMnemonic: result.hasMnemonicInSecureStorage,
+            publicKeyHex: result.publicKeyHex,
+          }),
+        );
+      } else {
+        error = true;
+      }
+    }
+
+    if (!username) {
+      error = true;
+    } else {
+      const nip5Result = await getNip5PubKey(username);
+
+      let npubResponse;
+      if (nip5Result) {
+        npubResponse = nip19.npubEncode(nip5Result);
+      }
+
+      if (npubResponse !== npub || !nip5Result) {
+        error = true;
+      }
+    }
+
+    setNip5VerificationLoaded(true);
+
+    if (error) {
       setOnboardVisible(true);
+      setOnboardModalStep("accountErrorScreen");
+    }
+  }, [npub, username, dispatch]);
+
+  // First-run behavior: Set the welcome and onboarding modals
+  // based on whether the app has been opened before
+  useEffect(() => {
+    if (!hasBeenOpenedBefore || forceWelcome) {
+      setWelcomeVisible(true);
+    }
+
+    if (!hasBeenOpenedBefore || forceOnboarding) {
+      setOnboardVisible(true);
+    }
+
+    if (!hasBeenOpenedBefore) {
       dispatch(settingsActions.setHasBeenOpenedBefore(true));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch, hasBeenOpenedBefore]);
 
+  // Initialize user data and perform NIP-5 verification
+  // when username or npub changes
   useEffect(() => {
-    (async function initUserAndVerify() {
-      // there is no public key from the redux store
-      if (!npub) {
-        const publicKeyHexResult = await getPublicKeyHexFromSecureStorage();
+    initUserAndVerify();
+  }, [initUserAndVerify, username, npub]);
 
-        const hasPrivateKeyAvailable =
-          typeof publicKeyHexResult !== "undefined";
+  // Redirect to onboarding if needed
+  useEffect(() => {
+    if (
+      pathname.startsWith("/onboarding") ||
+      !onboardVisible ||
+      !useNewOnboarding
+    ) {
+      return;
+    }
 
-        if (hasPrivateKeyAvailable) {
-          dispatch(
-            setPublicKeyHex({
-              hasMnemonic: publicKeyHexResult.hasMnemonicInSecureStorage,
-              publicKeyHex: publicKeyHexResult.publicKeyHex,
-            }),
-          );
-          return;
-        } else {
-          // TODO: set onboard modal: no private key found
-          setOnboardModalStep("accountErrorScreen");
-          setNip5VerificationLoaded(true);
-          setOnboardVisible(true);
-          return;
-        }
-      }
-
-      if (isSettingsDataLoaded) {
-        if (
-          hasBeenOpenedBefore &&
-          username &&
-          npub &&
-          nip5VerificationLoaded === false
-        ) {
-          const nip5Result = await getNip5PubKey(username);
-
-          if (nip5Result) {
-            const npubResponse = nip19.npubEncode(nip5Result);
-            if (npubResponse === npub) {
-              // don't show modal
-              setOnboardVisible(false);
-              setNip5VerificationLoaded(true);
-              return;
-            }
-          }
-        }
-
-        // TODO: set state of onboard modal depending on nip5 result
-        //for example: no username, bad nip5 etc.
-        setOnboardModalStep("accountErrorScreen");
-        setOnboardVisible(true);
-        setNip5VerificationLoaded(true);
-      }
-    })();
-
+    router.replace("/onboarding");
+    setOnboardVisible(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSettingsDataLoaded, npub, hasBeenOpenedBefore]);
+  }, [onboardVisible]);
 
   // Determine if the loading modal should be visible
   const showLoadingModal = !isSettingsDataLoaded || !nip5VerificationLoaded;
 
+  if (showLoadingModal) {
+    return <LoadingScreen loading={true} />;
+  }
+
   return (
-    <>
-      <RootSiblingParent>
-        {showLoadingModal ? (
-          <LoadingScreen loading={true} />
-        ) : welcomeVisible ? (
-          <WelcomeScreen onClose={() => setWelcomeVisible(false)} />
-        ) : onboardVisible ? (
-          <OnboardModal
-            setModalVisible={setOnboardVisible}
-            step={onboardModalStep}
-          />
-        ) : (
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-        )}
-      </RootSiblingParent>
-    </>
+    <RootSiblingParent>
+      {welcomeVisible ? (
+        <WelcomeScreen onClose={() => setWelcomeVisible(false)} />
+      ) : onboardVisible && !useNewOnboarding ? (
+        <OnboardModal
+          setModalVisible={setOnboardVisible}
+          step={onboardModalStep}
+        />
+      ) : (
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      )}
+    </RootSiblingParent>
   );
 }
 

@@ -81,7 +81,7 @@ function boundariesToRegion(boundaries: BoundingBox): Region {
   return middlePoint;
 }
 
-export function MapMarkers() {
+export default function MapMarkers() {
   const eventsForLayers = useAppSelector(selectEventsForLayers) as Record<
     string,
     EventWithMetadata[]

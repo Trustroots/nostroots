@@ -27,6 +27,7 @@ import {
 } from "@/redux/slices/keystore.slice";
 import { PortalHost } from "@rn-primitives/portal";
 import { SENTRY_DSN } from "@trustroots/nr-common";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import OnboardModal from "@/components/OnboardModal";
 import WelcomeScreen from "@/components/WelcomeModal";
@@ -176,20 +177,22 @@ function AppContent() {
 
   return (
     <RootSiblingParent>
-      {welcomeVisible ? (
-        <WelcomeScreen onClose={() => setWelcomeVisible(false)} />
-      ) : onboardVisible && !useNewOnboarding ? (
-        <OnboardModal
-          setModalVisible={setOnboardVisible}
-          step={onboardModalStep}
-        />
-      ) : (
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-      )}
+      <GestureHandlerRootView>
+        {welcomeVisible ? (
+          <WelcomeScreen onClose={() => setWelcomeVisible(false)} />
+        ) : onboardVisible && !useNewOnboarding ? (
+          <OnboardModal
+            setModalVisible={setOnboardVisible}
+            step={onboardModalStep}
+          />
+        ) : (
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+        )}
+      </GestureHandlerRootView>
     </RootSiblingParent>
   );
 }

@@ -5,6 +5,9 @@ type SettingsState = {
   username: string | null;
   hasBeenOpenedBefore: boolean;
   isDataLoaded: boolean;
+  // Feature flag for opting into the new onboarding flow.
+  // Defaults to false to preserve existing behavior.
+  useNewOnboarding: boolean;
 };
 
 const initialState: SettingsState = {
@@ -12,6 +15,7 @@ const initialState: SettingsState = {
   username: null,
   hasBeenOpenedBefore: false,
   isDataLoaded: false,
+  useNewOnboarding: false,
 };
 
 export const settingsSlice = createSlice({
@@ -30,12 +34,18 @@ export const settingsSlice = createSlice({
     setDataLoaded: (state, action: PayloadAction<boolean>) => {
       state.isDataLoaded = action.payload;
     },
+    // Explicit setter for New Onboarding feature flag.
+    setUseNewOnboarding: (state, action: PayloadAction<boolean>) => {
+      state.useNewOnboarding = action.payload;
+    },
   },
   selectors: {
     selectAreTestFeaturesEnabled: (state) => state.areTestFeaturesEnabled,
     selectUsername: (state) => state.username,
     selectHasBeenOpenedBefore: (state) => state.hasBeenOpenedBefore,
     selectIsDataLoaded: (state) => state.isDataLoaded,
+    // Selector for the New Onboarding feature flag.
+    selectUseNewOnboarding: (state) => state.useNewOnboarding,
   },
 });
 

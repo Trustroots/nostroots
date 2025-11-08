@@ -4,6 +4,7 @@ export const TRUSTROOTS_PROFILE_KIND = 10390;
 export const NOTIFICATION_SUBSCRIPTION_KIND = 10395;
 export const MAP_NOTE_KIND = 30397;
 export const MAP_NOTE_REPOST_KIND = 30398;
+export const NOSTR_EXPIRATION_TAG_NAME = "expiration";
 export const OPEN_LOCATION_CODE_LABEL_NAMESPACE = "open-location-code";
 export const OPEN_LOCATION_CODE_TAG_NAME = OPEN_LOCATION_CODE_LABEL_NAMESPACE;
 export const OPEN_LOCATION_CODE_PREFIX_LABEL_NAMESPACE = "open-location-code-prefix";

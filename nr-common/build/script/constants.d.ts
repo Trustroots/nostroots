@@ -5,6 +5,7 @@ export declare const TRUSTROOTS_PROFILE_KIND: 10390;
 export declare const NOTIFICATION_SUBSCRIPTION_KIND: 10395;
 export declare const MAP_NOTE_KIND: 30397;
 export declare const MAP_NOTE_REPOST_KIND: 30398;
+export declare const NOSTR_EXPIRATION_TAG_NAME = "expiration";
 export declare const OPEN_LOCATION_CODE_LABEL_NAMESPACE: "open-location-code";
 export declare const OPEN_LOCATION_CODE_TAG_NAME: "open-location-code";
 export declare const OPEN_LOCATION_CODE_PREFIX_LABEL_NAMESPACE: "open-location-code-prefix";

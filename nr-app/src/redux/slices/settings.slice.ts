@@ -7,6 +7,7 @@ type SettingsState = {
   isDataLoaded: boolean;
   areTestFeaturesEnabled: boolean;
   useNewOnboarding: boolean;
+  useSkipOnboarding: boolean;
   forceOnboarding: boolean;
   forceWelcome: boolean;
 };
@@ -17,6 +18,7 @@ const initialState: SettingsState = {
   isDataLoaded: false,
   areTestFeaturesEnabled: false,
   useNewOnboarding: true,
+  useSkipOnboarding: true,
   forceOnboarding: false,
   forceWelcome: false,
 };
@@ -46,6 +48,9 @@ export const settingsSlice = createSlice({
     setForceWelcome: (state, action: PayloadAction<boolean>) => {
       state.forceWelcome = action.payload;
     },
+    setUseSkipOnboarding: (state, action: PayloadAction<boolean>) => {
+      state.useSkipOnboarding = action.payload;
+    },
   },
   selectors: {
     selectAreTestFeaturesEnabled: (state) => state.areTestFeaturesEnabled,
@@ -63,6 +68,7 @@ export const selectFeatureFlags = createSelector(
   (state: RootState) => state.settings,
   (settings: SettingsState) => ({
     useNewOnboarding: settings.useNewOnboarding,
+    useSkipOnboarding: settings.useSkipOnboarding,
     forceOnboarding: settings.forceOnboarding,
     forceWelcome: settings.forceWelcome,
   }),

@@ -5,9 +5,12 @@ import { ScrollView, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { IdCardLanyardIcon } from "lucide-react-native";
+import { selectFeatureFlags } from "@/redux/slices/settings.slice";
+import { useAppSelector } from "@/redux/hooks";
 
 export default function OnboardingIdentityScreen() {
   const router = useRouter();
+  const { useSkipOnboarding } = useAppSelector(selectFeatureFlags);
 
   const goBack = () => {
     router.back();
@@ -15,6 +18,10 @@ export default function OnboardingIdentityScreen() {
 
   const goNext = () => {
     router.push("/onboarding/key");
+  };
+
+  const goSkip = () => {
+    router.push("/(tabs)");
   };
 
   return (
@@ -50,6 +57,15 @@ export default function OnboardingIdentityScreen() {
           size="lg"
           title="Continue"
         />
+        {useSkipOnboarding && (
+          <Button
+            variant="outline"
+            onPress={goSkip}
+            size="lg"
+            title="Skip"
+            textClassName="text-white"
+          />
+        )}
       </View>
 
       <View className="p-4 opacity-75">

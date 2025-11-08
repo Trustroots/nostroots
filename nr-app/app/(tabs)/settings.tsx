@@ -64,7 +64,7 @@ export default function SettingsScreen() {
   ) as boolean;
 
   // Onboarding configuration and debug flags.
-  const { useNewOnboarding, forceOnboarding, forceWelcome } =
+  const { useNewOnboarding, useSkipOnboarding, forceOnboarding, forceWelcome } =
     useAppSelector(selectFeatureFlags);
 
   const [nsec, setNsec] = useState("");
@@ -432,6 +432,16 @@ export default function SettingsScreen() {
             value={useNewOnboarding}
             onToggle={() => {
               dispatch(settingsActions.setUseNewOnboarding(!useNewOnboarding));
+            }}
+          />
+
+          <ToggleSwitch
+            label="Allow skipping new onboarding flow"
+            value={useSkipOnboarding}
+            onToggle={() => {
+              dispatch(
+                settingsActions.setUseSkipOnboarding(!useSkipOnboarding),
+              );
             }}
           />
 

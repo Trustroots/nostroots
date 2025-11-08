@@ -17,7 +17,6 @@ import { RootSiblingParent } from "react-native-root-siblings";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 
-import { setupNotificationHandling } from "@/startup/notifications.startup";
 import LoadingScreen from "@/components/LoadingModal";
 import { rehydrated } from "@/redux/actions/startup.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
@@ -25,6 +24,7 @@ import {
   keystoreSelectors,
   setPublicKeyHex,
 } from "@/redux/slices/keystore.slice";
+import { setupNotificationHandling } from "@/startup/notifications.startup";
 import { PortalHost } from "@rn-primitives/portal";
 import { SENTRY_DSN } from "@trustroots/nr-common";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -64,6 +64,7 @@ Sentry.init({
 SplashScreen.preventAutoHideAsync();
 
 // Child component that contains all Redux-dependent code
+/** @todo When the new onboarding is approved, remove all the feature flag logic here. */
 function AppContent() {
   const router = useRouter();
   const pathname = usePathname();
@@ -72,6 +73,7 @@ function AppContent() {
   const [onboardVisible, setOnboardVisible] = useState(false);
   const [onboardModalStep, setOnboardModalStep] = useState("isUserScreen");
   const [nip5VerificationLoaded, setNip5VerificationLoaded] = useState(false);
+  const [nip5Error, setNip5Error] = useState<boolean | string | null>(null);
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
 
@@ -91,6 +93,14 @@ function AppContent() {
 
   // Initializes user data and performs NIP-5 verification
   const initUserAndVerify = useCallback(async () => {
+    if (useNewOnboarding) {
+      if (!username || !npub) {
+        setNip5VerificationLoaded(true);
+        setOnboardVisible(true);
+        return;
+      }
+    }
+
     let error = false;
 
     if (!npub) {
@@ -125,8 +135,12 @@ function AppContent() {
     setNip5VerificationLoaded(true);
 
     if (error) {
-      setOnboardVisible(true);
-      setOnboardModalStep("accountErrorScreen");
+      setNip5Error(error);
+
+      if (!useNewOnboarding) {
+        setOnboardVisible(true);
+        setOnboardModalStep("accountErrorScreen");
+      }
     }
   }, [npub, username, dispatch]);
 
@@ -157,16 +171,16 @@ function AppContent() {
   useEffect(() => {
     if (
       pathname.startsWith("/onboarding") ||
-      !onboardVisible ||
+      (!onboardVisible && !nip5Error) ||
       !useNewOnboarding
     ) {
       return;
     }
 
-    router.replace("/onboarding");
+    router.replace(nip5Error ? "/onboarding/error" : "/onboarding");
     setOnboardVisible(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onboardVisible]);
+  }, [onboardVisible, nip5Error]);
 
   // Determine if the loading modal should be visible
   const showLoadingModal = !isSettingsDataLoaded || !nip5VerificationLoaded;

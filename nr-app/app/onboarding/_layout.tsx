@@ -1,7 +1,7 @@
 import { Slot, usePathname } from "expo-router";
 import { ScrollView, View } from "react-native";
 
-import { Text, TextClassContext } from "@/components/ui/text";
+import { TextClassContext } from "@/components/ui/text";
 import { cn } from "@/utils/cn.utils";
 import { SafeAreaView } from "react-native-safe-area-context";
 

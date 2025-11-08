@@ -125,7 +125,11 @@ export default function OnboardingKeyScreen() {
   };
 
   const goBack = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.dismissTo("/onboarding/identity");
+    }
   };
 
   const goNext = useCallback(async () => {
@@ -264,9 +268,7 @@ export default function OnboardingKeyScreen() {
       </View>
 
       <View className="flex flex-row gap-2">
-        {router.canGoBack() && (
-          <Button variant="secondary" onPress={goBack} size="lg" title="Back" />
-        )}
+        <Button variant="secondary" onPress={goBack} size="lg" title="Back" />
         <Button
           variant="secondary"
           onPress={goNext}

@@ -105,7 +105,11 @@ export default function OnboardingLinkScreen() {
   };
 
   const goBack = () => {
-    router.back();
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.dismissTo("/onboarding/key");
+    }
   };
 
   const goNext = () => {
@@ -201,9 +205,7 @@ export default function OnboardingLinkScreen() {
       )}
 
       <View className="flex flex-row gap-2">
-        {router.canGoBack() && (
-          <Button variant="secondary" onPress={goBack} size="lg" title="Back" />
-        )}
+        <Button variant="secondary" onPress={goBack} size="lg" title="Back" />
         <Button
           variant="secondary"
           onPress={goNext}

@@ -1,6 +1,7 @@
 import { Text } from "@/components/ui/text";
 import { bytesToHex } from "@noble/hashes/utils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
 import { getBech32PrivateKey } from "nip06";
 import { useState } from "react";
 import { Modal, ScrollView, Switch, TextInput, View } from "react-native";
@@ -9,6 +10,10 @@ import BuildData from "@/components/BuildData";
 import OnboardModal from "@/components/OnboardModal";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
+import {
+  SECURE_STORE_PRIVATE_KEY_HEX_KEY,
+  SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
+} from "@/constants";
 import { useNotifications } from "@/hooks/useNotifications";
 import {
   getPrivateKeyHexFromSecureStorage,
@@ -332,6 +337,27 @@ export default function SettingsScreen() {
                 });
               } catch (error) {
                 Toast.show(`Error clearing AsyncStorage: ${error}`, {
+                  duration: Toast.durations.SHORT,
+                });
+              }
+            }}
+          />
+
+          <Button
+            title="Clear SecureStorage"
+            onPress={async () => {
+              try {
+                await SecureStore.deleteItemAsync(
+                  SECURE_STORE_PRIVATE_KEY_HEX_KEY,
+                );
+                await SecureStore.deleteItemAsync(
+                  SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
+                );
+                Toast.show("SecureStorage successfully cleared", {
+                  duration: Toast.durations.SHORT,
+                });
+              } catch (error) {
+                Toast.show(`Error clearing SecureStorage: ${error}`, {
                   duration: Toast.durations.SHORT,
                 });
               }

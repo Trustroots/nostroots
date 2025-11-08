@@ -89,12 +89,6 @@ export default function OnboardModal({
 
     setIsSubmitting(true);
 
-    // sanity check: the username has not been set yet
-    if (username !== null) {
-      setIsSubmitting(false);
-      return;
-    }
-
     if (
       usernameText.trim().length < 3 ||
       !/^[a-zA-Z0-9]+$/.test(usernameText.trim())

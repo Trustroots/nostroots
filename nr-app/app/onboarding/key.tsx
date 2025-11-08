@@ -25,6 +25,7 @@ export default function OnboardingKeyScreen() {
     "generate",
   );
 
+  const [showKey, setShowKey] = useState<boolean>(false);
   const [existingKeyInput, setExistingKeyInput] = useState<string>("");
   const [existingKeyStatus, setExistingKeyStatus] = useState<
     "idle" | "saving" | "saved"
@@ -53,7 +54,7 @@ export default function OnboardingKeyScreen() {
     try {
       await Clipboard.setStringAsync(value);
       const Toast = (await import("react-native-root-toast")).default;
-      Toast.show("Copied words to Clipboard!", {
+      Toast.show("Copied to Clipboard!", {
         duration: Toast.durations.SHORT,
         position: Toast.positions.BOTTOM,
       });
@@ -66,6 +67,10 @@ export default function OnboardingKeyScreen() {
     setMnemonic(generateSeedWords().mnemonic);
     setMnemonicConfirmed(false);
     setMnemonicError(null);
+  };
+
+  const handleShow = () => {
+    setShowKey(!showKey);
   };
 
   const saveExistingKey = async () => {
@@ -177,6 +182,7 @@ export default function OnboardingKeyScreen() {
               className="bg-white rounded-lg p-4 gap-4 w-full"
             >
               <TextInput
+                secureTextEntry={!showKey}
                 autoCapitalize="none"
                 autoCorrect={false}
                 value={existingKeyInput}
@@ -187,6 +193,22 @@ export default function OnboardingKeyScreen() {
               {keyError && (
                 <Text className="text-xs text-red-500">{keyError}</Text>
               )}
+              <View className="flex flex-row gap-2">
+                <Button
+                  className="w-1/2"
+                  size="sm"
+                  variant="outline"
+                  title="Copy"
+                  onPress={() => handleCopy(existingKeyInput)}
+                />
+                <Button
+                  className="flex-1"
+                  size="sm"
+                  variant="outline"
+                  title={showKey ? "Hide" : "Show"}
+                  onPress={handleShow}
+                />
+              </View>
               <Button
                 size="lg"
                 title={

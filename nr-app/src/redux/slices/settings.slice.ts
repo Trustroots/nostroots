@@ -1,17 +1,24 @@
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { RootState } from "../store";
 
 type SettingsState = {
-  areTestFeaturesEnabled: boolean;
   username: string | null;
   hasBeenOpenedBefore: boolean;
   isDataLoaded: boolean;
+  areTestFeaturesEnabled: boolean;
+  useNewOnboarding: boolean;
+  forceOnboarding: boolean;
+  forceWelcome: boolean;
 };
 
 const initialState: SettingsState = {
-  areTestFeaturesEnabled: false,
   username: null,
   hasBeenOpenedBefore: false,
   isDataLoaded: false,
+  areTestFeaturesEnabled: false,
+  useNewOnboarding: false,
+  forceOnboarding: false,
+  forceWelcome: false,
 };
 
 export const settingsSlice = createSlice({
@@ -30,6 +37,15 @@ export const settingsSlice = createSlice({
     setDataLoaded: (state, action: PayloadAction<boolean>) => {
       state.isDataLoaded = action.payload;
     },
+    setUseNewOnboarding: (state, action: PayloadAction<boolean>) => {
+      state.useNewOnboarding = action.payload;
+    },
+    setForceOnboarding: (state, action: PayloadAction<boolean>) => {
+      state.forceOnboarding = action.payload;
+    },
+    setForceWelcome: (state, action: PayloadAction<boolean>) => {
+      state.forceWelcome = action.payload;
+    },
   },
   selectors: {
     selectAreTestFeaturesEnabled: (state) => state.areTestFeaturesEnabled,
@@ -42,3 +58,12 @@ export const settingsSlice = createSlice({
 export const settingsActions = settingsSlice.actions;
 
 export const settingsSelectors = settingsSlice.selectors;
+
+export const selectFeatureFlags = createSelector(
+  (state: RootState) => state.settings,
+  (settings: SettingsState) => ({
+    useNewOnboarding: settings.useNewOnboarding,
+    forceOnboarding: settings.forceOnboarding,
+    forceWelcome: settings.forceWelcome,
+  }),
+);

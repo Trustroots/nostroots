@@ -69,7 +69,7 @@ export default function OnboardingLayout() {
     <SafeAreaView className="flex-1 bg-primary">
       <TextClassContext.Provider value="text-white text-center">
         <OnboardingHeader />
-        <ScrollView contentContainerClassName="grow">
+        <ScrollView contentContainerClassName="grow py-12">
           <Slot />
         </ScrollView>
       </TextClassContext.Provider>

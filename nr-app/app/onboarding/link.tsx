@@ -10,8 +10,8 @@ import { publishVerifiedEventToRelay } from "@/nostr/publish.nostr";
 import { useAppSelector } from "@/redux/hooks";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { createKind10390EventTemplate } from "@trustroots/nr-common";
+import * as Clipboard from "expo-clipboard";
 import { LinkIcon } from "lucide-react-native";
-
 export default function OnboardingLinkScreen() {
   const router = useRouter();
 
@@ -125,11 +125,25 @@ export default function OnboardingLinkScreen() {
       <View className="flex gap-6 w-full">
         <View className="flex gap-1 items-start">
           <Text variant="small" className="font-bold">
-            Your Nostr Public Key
+            Your Nostr Public Key (Click to Copy)
           </Text>
           <Text
             className="text-sm bg-white text-black truncate rounded-md p-2"
             numberOfLines={1}
+            onPress={async () => {
+              if (!npub) return;
+              try {
+                await Clipboard.setStringAsync(npub);
+                // Use dynamic import to avoid runtime issues if Toast is not available everywhere
+                const Toast = (await import("react-native-root-toast")).default;
+                Toast.show("Copied public key to Clipboard!", {
+                  duration: Toast.durations.SHORT,
+                  position: Toast.positions.BOTTOM,
+                });
+              } catch (error) {
+                console.error("Failed to copy npub to clipboard", error);
+              }
+            }}
           >
             {npub || "Nostr key not found on this device."}
           </Text>

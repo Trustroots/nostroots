@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Text, TextClassContext } from "@/components/ui/text";
 import { useAppDispatch } from "@/redux/hooks";
 import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
+import * as Clipboard from "expo-clipboard";
 import { KeyIcon } from "lucide-react-native";
 import { generateSeedWords } from "nip06";
 
@@ -166,6 +167,41 @@ export default function OnboardingKeyScreen() {
               <Text className="text-sm font-mono border border-gray-200 rounded-md p-3">
                 {mnemonic}
               </Text>
+              <View className="flex flex-row gap-2">
+                <Button
+                  className="w-1/2"
+                  size="sm"
+                  variant="outline"
+                  title="Copy"
+                  onPress={async () => {
+                    try {
+                      await Clipboard.setStringAsync(mnemonic);
+                      const Toast = (await import("react-native-root-toast"))
+                        .default;
+                      Toast.show("Copied words to Clipboard!", {
+                        duration: Toast.durations.SHORT,
+                        position: Toast.positions.BOTTOM,
+                      });
+                    } catch (error) {
+                      console.error(
+                        "Failed to copy mnemonic to clipboard",
+                        error,
+                      );
+                    }
+                  }}
+                />
+                <Button
+                  className="flex-1"
+                  size="sm"
+                  variant="outline"
+                  title="Regenerate"
+                  onPress={() => {
+                    setMnemonic(generateSeedWords().mnemonic);
+                    setMnemonicConfirmed(false);
+                    setMnemonicError(null);
+                  }}
+                />
+              </View>
               <Button
                 size="sm"
                 variant={mnemonicConfirmed ? "secondary" : "outline"}

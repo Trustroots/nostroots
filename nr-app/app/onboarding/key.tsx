@@ -15,7 +15,7 @@ import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
 import { bytesToHex } from "@noble/hashes/utils";
 import * as Clipboard from "expo-clipboard";
 import { KeyIcon } from "lucide-react-native";
-import { generateSeedWords } from "nip06";
+import { generateSeedWords, getBech32PrivateKey } from "nip06";
 
 export default function OnboardingKeyScreen() {
   const router = useRouter();
@@ -41,8 +41,10 @@ export default function OnboardingKeyScreen() {
     (async () => {
       const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
       if (hasKeyFromStorage) {
+        const privateKey = await getPrivateKeyHexFromSecureStorage();
+        const { bech32PrivateKey: nsec } = getBech32PrivateKey({ privateKey });
+        setExistingKeyInput(nsec);
         setCurrentTab("existing");
-        setExistingKeyInput(await getPrivateKeyHexFromSecureStorage());
       }
     })();
   }, []);

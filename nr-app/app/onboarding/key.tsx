@@ -6,9 +6,13 @@ import { TextInput, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Text, TextClassContext } from "@/components/ui/text";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import {
+  getHasPrivateKeyInSecureStorage,
+  getPrivateKeyHexFromSecureStorage,
+} from "@/nostr/keystore.nostr";
+import { useAppDispatch } from "@/redux/hooks";
 import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
-import { keystoreSelectors } from "@/redux/slices/keystore.slice";
+import { bytesToHex } from "@noble/hashes/utils";
 import * as Clipboard from "expo-clipboard";
 import { KeyIcon } from "lucide-react-native";
 import { generateSeedWords } from "nip06";
@@ -17,15 +21,15 @@ export default function OnboardingKeyScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
-  const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
-
   const [currentTab, setCurrentTab] = useState<"existing" | "generate">(
     "generate",
   );
 
-  const [existingKeyInput, setExistingKeyInput] = useState(npub || "");
+  const [existingKeyInput, setExistingKeyInput] = useState<string>("");
+  const [existingKeyStatus, setExistingKeyStatus] = useState<
+    "idle" | "saving" | "saved"
+  >("idle");
   const [keyError, setKeyError] = useState<string | null>(null);
-  const [isSavingKey, setIsSavingKey] = useState(false);
 
   const [mnemonic, setMnemonic] = useState("Loading...");
   const [mnemonicConfirmed, setMnemonicConfirmed] = useState(false);
@@ -33,6 +37,14 @@ export default function OnboardingKeyScreen() {
 
   useEffect(() => {
     setMnemonic(generateSeedWords().mnemonic);
+
+    (async () => {
+      const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
+      if (hasKeyFromStorage) {
+        setCurrentTab("existing");
+        setExistingKeyInput(await getPrivateKeyHexFromSecureStorage());
+      }
+    })();
   }, []);
 
   const handleCopy = async (value: string) => {
@@ -62,15 +74,13 @@ export default function OnboardingKeyScreen() {
       return;
     }
 
-    let privateKeyHex = existingKeyInput.trim();
+    let privateKey = existingKeyInput.trim();
 
     try {
-      if (privateKeyHex.startsWith("nsec")) {
-        const decoded = nip19.decode(privateKeyHex);
+      if (privateKey.startsWith("nsec")) {
+        const decoded = nip19.decode(privateKey);
         if (decoded.type === "nsec") {
-          privateKeyHex = Buffer.from(decoded.data as Uint8Array).toString(
-            "hex",
-          );
+          privateKey = bytesToHex(decoded.data);
         } else {
           throw new Error("Invalid nsec");
         }
@@ -80,14 +90,16 @@ export default function OnboardingKeyScreen() {
       return;
     }
 
-    setIsSavingKey(true);
+    setExistingKeyStatus("saving");
     try {
-      await dispatch(setPrivateKeyPromiseAction.request({ privateKeyHex }));
+      await dispatch(
+        setPrivateKeyPromiseAction.request({ privateKeyHex: privateKey }),
+      );
+      setExistingKeyStatus("saved");
     } catch (error) {
       console.error("Failed to save key", error);
       setKeyError("We could not save this key. Please check and try again.");
-    } finally {
-      setIsSavingKey(false);
+      setExistingKeyStatus("idle");
     }
   };
 
@@ -97,14 +109,11 @@ export default function OnboardingKeyScreen() {
       return;
     }
 
-    setIsSavingKey(true);
     try {
       dispatch(setPrivateKeyPromiseAction.request({ mnemonic }));
     } catch (error) {
       console.error("Failed to save mnemonic", error);
       setMnemonicError("We could not set up this key. Please try again.");
-    } finally {
-      setIsSavingKey(false);
     }
   };
 
@@ -124,7 +133,9 @@ export default function OnboardingKeyScreen() {
 
   const canContinue =
     currentTab === "existing"
-      ? existingKeyInput.trim().length > 0 && !isSavingKey && !keyError
+      ? existingKeyInput.trim().length > 0 &&
+        existingKeyStatus === "saved" &&
+        !keyError
       : mnemonicConfirmed;
 
   return (
@@ -176,8 +187,14 @@ export default function OnboardingKeyScreen() {
               )}
               <Button
                 size="lg"
-                title={isSavingKey ? "Saving..." : "Save"}
-                disabled={isSavingKey}
+                title={
+                  existingKeyStatus === "saved"
+                    ? "Saved"
+                    : existingKeyStatus === "saving"
+                      ? "Saving..."
+                      : "Save Key"
+                }
+                disabled={["saving", "saved"].includes(existingKeyStatus)}
                 onPress={saveExistingKey}
               />
             </TabsContent>
@@ -230,7 +247,7 @@ export default function OnboardingKeyScreen() {
           variant="secondary"
           onPress={goNext}
           size="lg"
-          title={isSavingKey ? "Saving..." : "Continue"}
+          title={"Continue"}
           disabled={!canContinue}
         />
       </View>

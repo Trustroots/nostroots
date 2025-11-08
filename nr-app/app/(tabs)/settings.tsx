@@ -26,10 +26,10 @@ import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
-import { openEvent } from "@/utils/notifications.utils";
 import { getFirstLabelValueFromEvent } from "@trustroots/nr-common";
 import { nip19 } from "nostr-tools";
 import Toast from "react-native-root-toast";
+import { openEvent } from "@/startup/notifications.startup";
 
 const ToggleSwitch = ({
   value,

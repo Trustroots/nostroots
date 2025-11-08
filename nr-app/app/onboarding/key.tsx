@@ -32,6 +32,25 @@ export default function OnboardingKeyScreen() {
     setMnemonic(generateSeedWords().mnemonic);
   }, []);
 
+  const handleCopy = async (value: string) => {
+    try {
+      await Clipboard.setStringAsync(value);
+      const Toast = (await import("react-native-root-toast")).default;
+      Toast.show("Copied words to Clipboard!", {
+        duration: Toast.durations.SHORT,
+        position: Toast.positions.BOTTOM,
+      });
+    } catch (error) {
+      console.error("Failed to copy mnemonic to clipboard", error);
+    }
+  };
+
+  const handleRegenerateMnemonic = () => {
+    setMnemonic(generateSeedWords().mnemonic);
+    setMnemonicConfirmed(false);
+    setMnemonicError(null);
+  };
+
   const saveExistingKey = async () => {
     setKeyError(null);
 
@@ -173,33 +192,14 @@ export default function OnboardingKeyScreen() {
                   size="sm"
                   variant="outline"
                   title="Copy"
-                  onPress={async () => {
-                    try {
-                      await Clipboard.setStringAsync(mnemonic);
-                      const Toast = (await import("react-native-root-toast"))
-                        .default;
-                      Toast.show("Copied words to Clipboard!", {
-                        duration: Toast.durations.SHORT,
-                        position: Toast.positions.BOTTOM,
-                      });
-                    } catch (error) {
-                      console.error(
-                        "Failed to copy mnemonic to clipboard",
-                        error,
-                      );
-                    }
-                  }}
+                  onPress={() => handleCopy(mnemonic)}
                 />
                 <Button
                   className="flex-1"
                   size="sm"
                   variant="outline"
                   title="Regenerate"
-                  onPress={() => {
-                    setMnemonic(generateSeedWords().mnemonic);
-                    setMnemonicConfirmed(false);
-                    setMnemonicError(null);
-                  }}
+                  onPress={handleRegenerateMnemonic}
                 />
               </View>
               <Button

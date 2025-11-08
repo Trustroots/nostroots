@@ -1,6 +1,10 @@
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
+import {
+  animateToCoordinate,
+  mapActions,
+  mapSelectors,
+} from "@/redux/slices/map.slice";
 import { rootLogger } from "@/utils/logger.utils";
 import {
   allPlusCodesForRegion,
@@ -122,13 +126,13 @@ export default function MapPlusCodes() {
     ) {
       // Use the new action-based approach
       dispatch(
-        mapActions.animateToCoordinate({
-          latitude: currentMapLocation.latitude,
-          longitude: currentMapLocation.longitude,
-          latitudeDelta: 0.1844,
-          longitudeDelta: 0.0842,
-          duration: 1000,
-        }),
+        animateToCoordinate(
+          currentMapLocation.latitude,
+          currentMapLocation.longitude,
+          0.1844,
+          0.0842,
+          1000,
+        ),
       );
       // Clear the flag
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
@@ -149,13 +153,13 @@ export default function MapPlusCodes() {
       // Adjust center point for half modal
       const adjustedLatitude = currentMapLocation.latitude - 0.02; // Adjust as needed
       dispatch(
-        mapActions.animateToCoordinate({
-          latitude: adjustedLatitude,
-          longitude: currentMapLocation.longitude,
-          latitudeDelta: 0.1844,
-          longitudeDelta: 0.0842,
-          duration: 1000,
-        }),
+        animateToCoordinate(
+          adjustedLatitude,
+          currentMapLocation.longitude,
+          0.1844,
+          0.0842,
+          1000,
+        ),
       );
       // Clear the flag
       dispatch(mapActions.centerMapOnHalfModalComplete());
@@ -172,13 +176,13 @@ export default function MapPlusCodes() {
         }),
       );
       dispatch(
-        mapActions.animateToCoordinate({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          latitudeDelta: 0.1844,
-          longitudeDelta: 0.0842,
-          duration: 1000,
-        }),
+        animateToCoordinate(
+          location.coords.latitude,
+          location.coords.longitude,
+          0.1844,
+          0.0842,
+          1000,
+        ),
       );
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
     }
@@ -209,7 +213,7 @@ export default function MapPlusCodes() {
         // only use google maps on android dev and prod builds
         provider={
           Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
-            Platform.OS !== "android"
+          Platform.OS !== "android"
             ? PROVIDER_DEFAULT
             : PROVIDER_GOOGLE
         }
@@ -251,7 +255,11 @@ export default function MapPlusCodes() {
         style={styles.locationButton}
         onPress={handleLocationPress}
       >
-        <FontAwesome name="location-arrow" size={22} color={Colors.light.tint} />
+        <FontAwesome
+          name="location-arrow"
+          size={22}
+          color={Colors.light.tint}
+        />
       </TouchableOpacity>
     </View>
   );

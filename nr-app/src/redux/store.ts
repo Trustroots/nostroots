@@ -6,14 +6,14 @@ import { promiseMiddleware } from "redux-saga-promise-actions";
 
 import { Platform } from "react-native";
 import devtoolsEnhancer from "redux-devtools-expo-dev-plugin";
+import { startup } from "./actions/startup.actions";
 import rootSaga from "./sagas/root.saga";
 import { eventsSlice } from "./slices/events.slice";
 import { keystoreSlice } from "./slices/keystore.slice";
 import { mapSlice } from "./slices/map.slice";
+import { notificationsSlice } from "./slices/notifications.slice";
 import { relaysSlice } from "./slices/relays.slice";
 import { settingsSlice } from "./slices/settings.slice";
-import { notificationsSlice } from "./slices/notifications.slice";
-import { startup } from "./actions/startup.actions";
 
 const isOnDevice = Platform.OS !== "web";
 
@@ -44,7 +44,7 @@ export const store = configureStore({
   reducer: persistedReducer,
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      thunk: false,
+      thunk: true,
       serializableCheck: {
         ignoredActionPaths: ["meta.promise", "register", "rehydrate"],
       },

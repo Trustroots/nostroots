@@ -64,7 +64,7 @@ function MyComponent() {
 If you're in a saga and need more control, you can use the service directly:
 
 ```typescript
-import { mapRefService } from '@/utils/mapRef';
+import { mapRefService } from "@/utils/mapRef";
 
 function* mySaga() {
   // Animate to a coordinate
@@ -79,24 +79,30 @@ function* mySaga() {
   });
 
   // Fit to multiple coordinates
-  mapRefService.fitToCoordinates([
-    { latitude: 37.78825, longitude: -122.4324 },
-    { latitude: 37.33233, longitude: -122.03121 },
-  ], {
-    edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-    animated: true,
-  });
+  mapRefService.fitToCoordinates(
+    [
+      { latitude: 37.78825, longitude: -122.4324 },
+      { latitude: 37.33233, longitude: -122.03121 },
+    ],
+    {
+      edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+      animated: true,
+    },
+  );
 
   // Animate camera (more advanced)
-  mapRefService.animateCamera({
-    center: { latitude: 37.78825, longitude: -122.4324 },
-    zoom: 15,
-  }, 1000);
+  mapRefService.animateCamera(
+    {
+      center: { latitude: 37.78825, longitude: -122.4324 },
+      zoom: 15,
+    },
+    1000,
+  );
 
   // Get map boundaries
-  const boundaries = yield call([mapRefService, 'getMapBoundaries']);
+  const boundaries = yield call([mapRefService, "getMapBoundaries"]);
   if (boundaries) {
-    console.log('Map boundaries:', boundaries);
+    console.log("Map boundaries:", boundaries);
   }
 }
 ```
@@ -104,18 +110,23 @@ function* mySaga() {
 ## Available Methods
 
 ### `animateToRegion(region: Region, duration?: number)`
+
 Animates the map to a specific region.
 
 ### `animateToCoordinate(latitude, longitude, latitudeDelta?, longitudeDelta?, duration?)`
+
 Animates the map to a specific coordinate with optional zoom levels.
 
 ### `animateCamera(camera, duration?)`
+
 Provides more control over the camera animation (pitch, heading, altitude, zoom).
 
 ### `fitToCoordinates(coordinates, options?)`
+
 Fits the map to show all the specified coordinates.
 
 ### `getMapBoundaries()`
+
 Returns the current visible boundaries of the map.
 
 ## Example: Navigate to Event Location
@@ -123,19 +134,24 @@ Returns the current visible boundaries of the map.
 ```typescript
 // In a saga that handles event selection
 function* navigateToEventSaga(action: PayloadAction<{ eventId: string }>) {
-  const event = yield select(eventsSelectors.selectById, action.payload.eventId);
+  const event = yield select(
+    eventsSelectors.selectById,
+    action.payload.eventId,
+  );
 
   if (event?.event.tags) {
-    const gTag = event.event.tags.find(tag => tag[0] === 'g');
+    const gTag = event.event.tags.find((tag) => tag[0] === "g");
     if (gTag && gTag[1]) {
       const [lat, lon] = decodeGeohash(gTag[1]);
 
       // Animate to the event location
-      yield put(mapActions.animateToCoordinate({
-        latitude: lat,
-        longitude: lon,
-        duration: 1000,
-      }));
+      yield put(
+        mapActions.animateToCoordinate({
+          latitude: lat,
+          longitude: lon,
+          duration: 1000,
+        }),
+      );
     }
   }
 }
@@ -147,4 +163,3 @@ function* navigateToEventSaga(action: PayloadAction<{ eventId: string }>) {
 - The ref is cleaned up when the component unmounts
 - If you try to call map methods before the ref is set, a warning will be logged
 - All map method calls are non-blocking and fail gracefully if the ref isn't available
-

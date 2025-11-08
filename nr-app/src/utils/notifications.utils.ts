@@ -162,7 +162,7 @@ function notificationResponseReceived(
 }
 
 export const openEvent = (plusCode: string, event: Event) => {
-  // Disptach an action to show the unverified layer on the map
+  // Dispatch an action to show the unverified layer on the map
   store.dispatch(mapActions.enableLayer("unverified"));
 
   // a layer to the map.

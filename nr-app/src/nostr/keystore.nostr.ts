@@ -108,7 +108,9 @@ export async function getPublicKeyHexFromSecureStorage(): Promise<
         publicKeyHex,
       };
     }
-  } catch {}
+  } catch (error) {
+    // TODO: handle error
+  }
 }
 
 export async function setPrivateKeyInSecureStorage(
@@ -133,7 +135,7 @@ export async function setPrivateKeyInSecureStorage(
     const privateKeyHexBytes = hexToBytes(privateKeyHex);
     console.log("#Nr3YsH got bytes", privateKeyHex, privateKeyHexBytes);
     try {
-      debugger;
+      // debugger;
       const publicKeyHex = getPublicKey(privateKeyHexBytes);
       console.log("#EFGGEx got hex");
       await SecureStore.deleteItemAsync(SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC);

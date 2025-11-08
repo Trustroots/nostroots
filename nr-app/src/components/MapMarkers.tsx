@@ -8,7 +8,11 @@ import {
   eventsSelectors,
   EventWithMetadata,
 } from "@/redux/slices/events.slice";
-import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
+import {
+  animateToCoordinate,
+  mapActions,
+  mapSelectors,
+} from "@/redux/slices/map.slice";
 import { rootLogger } from "@/utils/logger.utils";
 import { allPlusCodesForRegion } from "@/utils/map.utils";
 import { createSelector } from "@reduxjs/toolkit";
@@ -111,13 +115,13 @@ export function MapMarkers() {
     ) {
       // Use the new action-based approach
       dispatch(
-        mapActions.animateToCoordinate({
-          latitude: currentMapLocation.latitude,
-          longitude: currentMapLocation.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-          duration: 1000,
-        }),
+        animateToCoordinate(
+          currentMapLocation.latitude,
+          currentMapLocation.longitude,
+          0.0922,
+          0.0421,
+          1000,
+        ),
       );
       // Clear the flag
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
@@ -143,13 +147,13 @@ export function MapMarkers() {
         }),
       );
       dispatch(
-        mapActions.animateToCoordinate({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-          duration: 1000,
-        }),
+        animateToCoordinate(
+          location.coords.latitude,
+          location.coords.longitude,
+          0.0922,
+          0.0421,
+          1000,
+        ),
       );
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
     }
@@ -168,23 +172,23 @@ export function MapMarkers() {
   // Set initial region - use saved location or default to a world view
   const initialRegion: Region =
     currentMapLocation &&
-      typeof currentMapLocation === "object" &&
-      "latitude" in currentMapLocation &&
-      "longitude" in currentMapLocation &&
-      typeof currentMapLocation.latitude === "number" &&
-      typeof currentMapLocation.longitude === "number"
+    typeof currentMapLocation === "object" &&
+    "latitude" in currentMapLocation &&
+    "longitude" in currentMapLocation &&
+    typeof currentMapLocation.latitude === "number" &&
+    typeof currentMapLocation.longitude === "number"
       ? {
-        latitude: currentMapLocation.latitude,
-        longitude: currentMapLocation.longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      }
+          latitude: currentMapLocation.latitude,
+          longitude: currentMapLocation.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }
       : {
-        latitude: 37.78825, // Default to San Francisco
-        longitude: -122.4324,
-        latitudeDelta: 50, // Zoomed out to show more of the world
-        longitudeDelta: 50,
-      };
+          latitude: 37.78825, // Default to San Francisco
+          longitude: -122.4324,
+          latitudeDelta: 50, // Zoomed out to show more of the world
+          longitudeDelta: 50,
+        };
 
   return (
     <View style={StyleSheet.absoluteFillObject}>
@@ -198,7 +202,7 @@ export function MapMarkers() {
         // only use google maps on android dev and prod builds
         provider={
           Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
-            Platform.OS !== "android"
+          Platform.OS !== "android"
             ? PROVIDER_DEFAULT
             : PROVIDER_GOOGLE
         }
@@ -233,7 +237,11 @@ export function MapMarkers() {
         style={styles.locationButton}
         onPress={handleLocationPress}
       >
-        <FontAwesome name="location-arrow" size={22} color={Colors.light.tint} />
+        <FontAwesome
+          name="location-arrow"
+          size={22}
+          color={Colors.light.tint}
+        />
       </TouchableOpacity>
     </View>
   );

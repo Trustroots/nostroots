@@ -6,7 +6,7 @@ import React, { useMemo } from "react";
 import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
 import HalfMapEventModal from "./HalfMapEventModal";
 import MapAddNoteModal from "./MapAddNoteModal";
-import MapMarkers from "./MapMarkers";
+import { MapMarkers } from "./MapMarkers";
 import MapModal from "./MapModal";
 import MapPlusCodes from "./MapPlusCodes";
 
@@ -23,7 +23,7 @@ export default function Map() {
   );
   const dispatch = useAppDispatch();
 
-  __DEV__ && console.log("#iNicG9 Map.tsx / render()", Date.now());
+  // __DEV__ && console.log("#iNicG9 Map.tsx / render()", Date.now());
 
   // Filter MAP_LAYERS based on areTestFeaturesEnabled
   const filteredMapLayers = useMemo(() => {

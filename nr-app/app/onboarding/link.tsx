@@ -12,6 +12,7 @@ import { settingsActions } from "@/redux/slices/settings.slice";
 import { createKind10390EventTemplate } from "@trustroots/nr-common";
 import * as Clipboard from "expo-clipboard";
 import { LinkIcon } from "lucide-react-native";
+import Toast from "react-native-root-toast";
 
 export default function OnboardingLinkScreen() {
   const dispatch = useAppDispatch();
@@ -138,8 +139,6 @@ export default function OnboardingLinkScreen() {
               if (!npub) return;
               try {
                 await Clipboard.setStringAsync(npub);
-                // Use dynamic import to avoid runtime issues if Toast is not available everywhere
-                const Toast = (await import("react-native-root-toast")).default;
                 Toast.show("Copied public key to Clipboard!", {
                   duration: Toast.durations.SHORT,
                   position: Toast.positions.BOTTOM,

@@ -16,6 +16,7 @@ import { bytesToHex } from "@noble/hashes/utils";
 import * as Clipboard from "expo-clipboard";
 import { KeyIcon } from "lucide-react-native";
 import { generateSeedWords, getBech32PrivateKey } from "nip06";
+import Toast from "react-native-root-toast";
 
 export default function OnboardingKeyScreen() {
   const router = useRouter();
@@ -53,7 +54,6 @@ export default function OnboardingKeyScreen() {
   const handleCopy = async (value: string) => {
     try {
       await Clipboard.setStringAsync(value);
-      const Toast = (await import("react-native-root-toast")).default;
       Toast.show("Copied to Clipboard!", {
         duration: Toast.durations.SHORT,
         position: Toast.positions.BOTTOM,

@@ -18,7 +18,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AddNoteForm from "./AddNoteForm";
 import NotesList from "./NotesList";
 import NotificationSubscription from "./NotificationSubscription";
-import { Button } from "./ui/button";
 import { Section } from "./ui/section";
 import { Text } from "./ui/text";
 
@@ -86,14 +85,6 @@ export default function MapModal() {
             <BottomSheetView style={[styles.sheet, bottomSheetContentStyle]}>
               <BottomSheetScrollView contentContainerStyle={scrollContentStyle}>
                 <View style={styles.contentStack}>
-                  <Button
-                    variant="outline"
-                    title="Close"
-                    onPress={() => {
-                      dispatch(mapActions.closeMapModal());
-                    }}
-                  />
-
                   <NotesList
                     plusCode={selectedPlusCode}
                     selectedEventId={selectedEvent?.event.id}
@@ -126,15 +117,6 @@ export default function MapModal() {
                       )}
                     </>
                   )}
-
-                  <Button
-                    variant="outline"
-                    title="Close"
-                    onPress={() => {
-                      dispatch(mapActions.closeMapModal());
-                    }}
-                  />
-                  <Text variant="muted">Modal is under development</Text>
                 </View>
               </BottomSheetScrollView>
             </BottomSheetView>
@@ -165,7 +147,6 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
   },
   contentStack: {
-    flex: 1,
     flexDirection: "column",
     gap: 8,
   },

@@ -46,14 +46,6 @@ export default function NotesSingle({
 }) {
   const authorPublicKey = getAuthorFromEvent(eventWithMetadata.event);
 
-  const fullData = {
-    name: "full event data",
-    ...eventWithMetadata,
-    author: {
-      publicKey: authorPublicKey,
-    },
-  };
-
   return (
     <Section
       className={`px-4 pb-4 bg-white rounded-lg border ${isSelected ? "border-red-500" : "border-gray-200"}`}

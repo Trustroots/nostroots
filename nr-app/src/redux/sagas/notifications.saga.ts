@@ -23,15 +23,7 @@ import {
   rejectPromiseAction,
   resolvePromiseAction,
 } from "redux-saga-promise-actions";
-import {
-  all,
-  call,
-  Effect,
-  put,
-  select,
-  take,
-  takeEvery,
-} from "redux-saga/effects";
+import { all, call, Effect, put, select, takeEvery } from "redux-saga/effects";
 import {
   notificationSubscribeToFilterPromiseAction,
   notificationUnsubscribeToFilterPromiseAction,
@@ -39,14 +31,14 @@ import {
 import { publishEventTemplatePromiseAction } from "../actions/publish.actions";
 import { rehydrated } from "../actions/startup.actions";
 import { startSubscription } from "../actions/subscription.actions";
-import { addEvent, eventsSelectors } from "../slices/events.slice";
+import { addEvent } from "../slices/events.slice";
+import { keystoreSelectors, setPublicKeyHex } from "../slices/keystore.slice";
 import {
   notificationsActions,
   notificationSelectors,
   NotificationsState,
 } from "../slices/notifications.slice";
 import { store } from "../store";
-import { keystoreSelectors, setPublicKeyHex } from "../slices/keystore.slice";
 
 const log = rootLogger.extend("notifications");
 

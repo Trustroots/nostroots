@@ -121,6 +121,11 @@ function notificationResponseReceived(
   const parseResult = EventNotificationSchema.safeParse(notificationData);
 
   if (!parseResult.success) {
+    if (__DEV__)
+      console.log(
+        "#IBadHG Unknown notification payload received",
+        notificationData,
+      );
     // TODO Figure out how to log errors here
     Toast.show(
       `Unknown notification payload received #aiylbx\n${JSON.stringify(notificationData)}`,

@@ -5,14 +5,16 @@ import { Linking, TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { signEventTemplate } from "@/nostr/keystore.nostr";
-import { publishVerifiedEventToRelay } from "@/nostr/publish.nostr";
-import { useAppSelector } from "@/redux/hooks";
+import { publishEventTemplatePromiseAction } from "@/redux/actions/publish.actions";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
+import { settingsActions } from "@/redux/slices/settings.slice";
 import { createKind10390EventTemplate } from "@trustroots/nr-common";
 import * as Clipboard from "expo-clipboard";
 import { LinkIcon } from "lucide-react-native";
+
 export default function OnboardingLinkScreen() {
+  const dispatch = useAppDispatch();
   const router = useRouter();
 
   const npubFromStore = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
@@ -83,11 +85,13 @@ export default function OnboardingLinkScreen() {
 
       // Build Kind 10390 event using shared helper.
       const eventTemplate = createKind10390EventTemplate(trimmedUsername);
-      const signedEvent = await signEventTemplate(eventTemplate);
 
       // NOTE: relay URL should come from configuration; placeholder used here.
-      await publishVerifiedEventToRelay(signedEvent, "wss://relay.damus.io");
+      await dispatch(
+        publishEventTemplatePromiseAction.request({ eventTemplate }),
+      );
 
+      dispatch(settingsActions.setUsername(trimmedUsername));
       setLinkStatus("linked");
     } catch (error) {
       console.error("Link verification or publish failed", error);

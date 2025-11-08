@@ -16,7 +16,7 @@ const initialState: SettingsState = {
   hasBeenOpenedBefore: false,
   isDataLoaded: false,
   areTestFeaturesEnabled: false,
-  useNewOnboarding: false,
+  useNewOnboarding: true,
   forceOnboarding: false,
   forceWelcome: false,
 };

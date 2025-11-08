@@ -22,6 +22,7 @@ import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { notificationsActions } from "@/redux/slices/notifications.slice";
 import {
+  selectFeatureFlags,
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
@@ -56,6 +57,10 @@ export default function SettingsScreen() {
   const areTestFeaturesEnabled = useAppSelector(
     settingsSelectors.selectAreTestFeaturesEnabled,
   ) as boolean;
+
+  // Onboarding configuration and debug flags.
+  const { useNewOnboarding, forceOnboarding, forceWelcome } =
+    useAppSelector(selectFeatureFlags);
 
   const [nsec, setNsec] = useState("");
   const [mnemonic, setMnemonic] = useState("");
@@ -386,6 +391,36 @@ export default function SettingsScreen() {
           }}
         />
       </Section>
+
+      {areTestFeaturesEnabled && (
+        <Section>
+          <Text variant="h2">Onboarding / Welcome Flags</Text>
+
+          <ToggleSwitch
+            label="Use new onboarding flow"
+            value={useNewOnboarding}
+            onToggle={() => {
+              dispatch(settingsActions.setUseNewOnboarding(!useNewOnboarding));
+            }}
+          />
+
+          <ToggleSwitch
+            label="Force onboarding on startup"
+            value={forceOnboarding}
+            onToggle={() => {
+              dispatch(settingsActions.setForceOnboarding(!forceOnboarding));
+            }}
+          />
+
+          <ToggleSwitch
+            label="Force welcome on startup"
+            value={forceWelcome}
+            onToggle={() => {
+              dispatch(settingsActions.setForceWelcome(!forceWelcome));
+            }}
+          />
+        </Section>
+      )}
     </ScrollView>
   );
 }

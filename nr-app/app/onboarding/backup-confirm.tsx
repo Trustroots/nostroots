@@ -155,7 +155,7 @@ export default function OnboardingBackupConfirmScreen() {
     setInput("");
     setError(null);
     setSuccess(false);
-    router.back();
+    router.dismissTo("/onboarding/key");
   };
 
   const isConfirmDisabled =
@@ -212,28 +212,28 @@ export default function OnboardingBackupConfirmScreen() {
         )}
       </View>
 
+      <Button
+        variant="secondary"
+        size="lg"
+        title={
+          success
+            ? "Backup confirmed"
+            : isVerifying
+              ? "Confirming..."
+              : "Confirm backup"
+        }
+        disabled={isConfirmDisabled}
+        onPress={handleConfirm}
+      />
+
       <View className="flex flex-row gap-2 mt-4">
-        {router.canGoBack() && (
-          <Button
-            variant="secondary"
-            onPress={handleBack}
-            size="lg"
-            title="Back"
-          />
-        )}
         <Button
           variant="secondary"
+          onPress={handleBack}
           size="lg"
-          title={
-            success
-              ? "Backup confirmed"
-              : isVerifying
-                ? "Confirming..."
-                : "Confirm backup"
-          }
-          disabled={isConfirmDisabled}
-          onPress={handleConfirm}
+          title="Back"
         />
+
         <Button
           variant="secondary"
           size="lg"

@@ -222,17 +222,21 @@ function* callNip04Decrypt(
 export function* notificationSubscriptionsAddEventSagaEffect(
   action: ReturnType<typeof addEvent>,
 ) {
-  const privateKey = yield* callGetPrivateKeyBytes();
-  const decrypted = yield* callNip04Decrypt(
-    privateKey,
-    action.payload.event.content,
-  );
+  try {
+    const privateKey = yield* callGetPrivateKeyBytes();
+    const decrypted = yield* callNip04Decrypt(
+      privateKey,
+      action.payload.event.content,
+    );
 
-  const parsed = JSON.parse(decrypted);
+    const parsed = JSON.parse(decrypted);
 
-  const validated = kind10395ContentDecryptedDecodedSchema.parse(parsed);
+    const validated = kind10395ContentDecryptedDecodedSchema.parse(parsed);
 
-  yield put(notificationsActions.setData(validated));
+    yield put(notificationsActions.setData(validated));
+  } catch {
+    // If we can't decrypt the message for any reason, silently ignore it
+  }
 }
 
 export function isAddEventAction(

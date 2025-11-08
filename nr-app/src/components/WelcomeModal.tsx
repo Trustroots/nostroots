@@ -27,11 +27,6 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onClose }) => {
         </Text>
 
         <Text className="text-gray-600 leading-relaxed text-balance text-center">
-          Built on Nostr's decentralized network, your data stays in your
-          control while connecting with the Trustroots community.
-        </Text>
-
-        <Text className="text-gray-600 leading-relaxed text-balance text-center">
           Share locations, tips, and stories without relying on centralized
           platforms.
         </Text>

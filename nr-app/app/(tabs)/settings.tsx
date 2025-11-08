@@ -77,7 +77,7 @@ export default function SettingsScreen() {
   ) as boolean;
 
   const notificationSubscriptionsJson = useAppSelector((state) =>
-    JSON.stringify(state.notifications.filters),
+    JSON.stringify(state.notifications),
   );
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -149,6 +149,12 @@ export default function SettingsScreen() {
 
   const inputClassName = "border border-gray-300 rounded px-3 py-2 bg-white";
 
+  const doesNotHaveUsernameOrHasTestFeaturesEnabled =
+    username === "" || areTestFeaturesEnabled;
+  const hasUsernameOrHasTestFeaturesEnabled =
+    (typeof username === "string" && username.length > 0) ||
+    areTestFeaturesEnabled;
+
   return (
     <ScrollView contentContainerClassName="p-safe-offset-4 bg-white">
       <View>
@@ -164,15 +170,14 @@ export default function SettingsScreen() {
 
       <Text variant="h1">Settings</Text>
 
-      {username === "" ||
-        (areTestFeaturesEnabled && (
-          <Button
-            title="Link Your Trustroots.org Profile"
-            onPress={() => setModalVisible(true)}
-          />
-        ))}
+      {doesNotHaveUsernameOrHasTestFeaturesEnabled ? (
+        <Button
+          title="Link Your Trustroots.org Profile"
+          onPress={() => setModalVisible(true)}
+        />
+      ) : null}
 
-      {(username && username.length > 0) || areTestFeaturesEnabled ? (
+      {hasUsernameOrHasTestFeaturesEnabled ? (
         <Section>
           <Text className="font-bold">trustroots.org username:</Text>
           <Text className={inputClassName}>{username}</Text>
@@ -190,7 +195,11 @@ export default function SettingsScreen() {
           <TextInput className={inputClassName} value={mnemonic} />
 
           <Button title="Show nsec" onPress={showNsec} />
+        </Section>
+      ) : null}
 
+      {areTestFeaturesEnabled ? (
+        <Section>
           <Text variant="h2">Import mnemonic</Text>
           <Text>
             If you have a mnemonic and want to import it, enter it into the
@@ -245,11 +254,7 @@ export default function SettingsScreen() {
               }
             }}
           />
-        </Section>
-      ) : null}
 
-      {areTestFeaturesEnabled && (
-        <Section>
           <ToggleSwitch
             label="Enable the experimental plus code map"
             value={enablePlusCodeMapTEMPORARY}
@@ -335,7 +340,7 @@ export default function SettingsScreen() {
 
           <Button title="Simulate Open Event" onPress={centerMapOnPlusCode} />
         </Section>
-      )}
+      ) : null}
 
       <Section>
         <Text variant="h2">Help</Text>

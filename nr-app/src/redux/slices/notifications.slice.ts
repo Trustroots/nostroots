@@ -51,6 +51,14 @@ export const notificationsSlice = createSlice({
         state.tokens = [{ expoPushToken: action.payload }];
       }
     },
+    addExpoPushToken: (state, action: PayloadAction<string>) => {
+      const isNewToken = state.tokens.every(
+        ({ expoPushToken }) => action.payload !== expoPushToken,
+      );
+      if (isNewToken) {
+        state.tokens.concat({ expoPushToken: action.payload });
+      }
+    },
     setData: (
       state,
       action: PayloadAction<Pick<NotificationsState, "filters" | "tokens">>,

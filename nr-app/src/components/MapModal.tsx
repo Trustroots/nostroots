@@ -12,7 +12,6 @@ import {
 } from "@gorhom/bottom-sheet";
 import { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AddNoteForm from "./AddNoteForm";
 import NotesList from "./NotesList";
@@ -63,87 +62,60 @@ export default function MapModal() {
   };
 
   return (
-    <GestureHandlerRootView pointerEvents="box-none" style={styles.root}>
-      <View pointerEvents="box-none" style={styles.provider}>
-        <BottomSheetModalProvider>
-          <BottomSheetModal
-            ref={bottomSheetModalRef}
-            snapPoints={snapPoints}
-            enablePanDownToClose
-            onDismiss={handleDismiss}
-            backdropComponent={() => null}
-            containerStyle={styles.modalContainer}
-            backgroundStyle={styles.modalBackground}
-          >
-            <BottomSheetScrollView
-              style={[styles.sheet, bottomSheetContentStyle]}
-              contentContainerStyle={styles.scrollContent}
-            >
-              <View style={styles.contentStack}>
-                <NotesList
-                  plusCode={selectedPlusCode}
-                  selectedEventId={selectedEvent?.event.id}
-                />
+    <BottomSheetModalProvider>
+      <BottomSheetModal
+        ref={bottomSheetModalRef}
+        snapPoints={snapPoints}
+        enablePanDownToClose
+        onDismiss={handleDismiss}
+        backdropComponent={() => null}
+      >
+        <BottomSheetScrollView
+          className="grow"
+          contentContainerClassName="bg-white px-safe-offset-4 pb-safe rounded-t-3xl"
+        >
+          <View style={styles.contentStack}>
+            <NotesList
+              plusCode={selectedPlusCode}
+              selectedEventId={selectedEvent?.event.id}
+            />
 
-                {!hasPrivateKeyInSecureStorage ? (
-                  <Section>
-                    <Text>
-                      Go to settings and setup your private key to be able to
-                      post onto the map.
-                    </Text>
-                  </Section>
+            {!hasPrivateKeyInSecureStorage ? (
+              <Section>
+                <Text>
+                  Go to settings and setup your private key to be able to post
+                  onto the map.
+                </Text>
+              </Section>
+            ) : (
+              <>
+                {selectedLayer === "trustroots" ? (
+                  <AddNoteForm />
                 ) : (
-                  <>
-                    {selectedLayer === "trustroots" ? (
-                      <AddNoteForm />
-                    ) : (
-                      <View>
-                        <Text>
-                          Choose the trustroots layer to be able to add content
-                        </Text>
-                      </View>
-                    )}
-
-                    {selectedLayer !== "trustroots" ? null : (
-                      <Section>
-                        <NotificationSubscription />
-                      </Section>
-                    )}
-                  </>
+                  <View>
+                    <Text>
+                      Choose the trustroots layer to be able to add content
+                    </Text>
+                  </View>
                 )}
-              </View>
-            </BottomSheetScrollView>
-          </BottomSheetModal>
-        </BottomSheetModalProvider>
-      </View>
-    </GestureHandlerRootView>
+
+                {selectedLayer !== "trustroots" ? null : (
+                  <Section>
+                    <NotificationSubscription />
+                  </Section>
+                )}
+              </>
+            )}
+          </View>
+        </BottomSheetScrollView>
+      </BottomSheetModal>
+    </BottomSheetModalProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  provider: {
-    flex: 1,
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  modalBackground: {
-    backgroundColor: "transparent",
-  },
-  sheet: {
-    flex: 1,
-    backgroundColor: "white",
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-  },
   contentStack: {
     flexDirection: "column",
     gap: 8,
-  },
-  scrollContent: {
-    flexGrow: 1,
   },
 });

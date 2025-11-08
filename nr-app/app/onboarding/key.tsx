@@ -225,7 +225,7 @@ export default function OnboardingKeyScreen() {
               </View>
               <Button
                 size="sm"
-                variant={mnemonicConfirmed ? "secondary" : "outline"}
+                variant={mnemonicConfirmed ? "secondary" : "default"}
                 title={
                   mnemonicConfirmed
                     ? "Saved"

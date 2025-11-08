@@ -32,8 +32,6 @@ export default function MapModal() {
     (state: RootState) => state.map.currentNotificationEvent,
   ) as EventWithMetadata | undefined;
 
-  console.log("#Lz8K48 selectedEvent - mapModal", selectedEvent);
-
   const selectedLayer = useAppSelector(mapSelectors.selectSelectedLayer);
   const hasPrivateKeyInSecureStorage = useAppSelector(
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,

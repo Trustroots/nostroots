@@ -162,8 +162,6 @@ function notificationResponseReceived(
 }
 
 export const openEvent = (plusCode: string, event: Event) => {
-  console.log("#jU7fIj Event", event);
-
   // Disptach an action to show the unverified layer on the map
   store.dispatch(mapActions.enableLayer("unverified"));
 

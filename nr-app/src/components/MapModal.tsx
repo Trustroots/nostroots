@@ -9,10 +9,9 @@ import {
   BottomSheetModal,
   BottomSheetModalProvider,
   BottomSheetScrollView,
-  BottomSheetView,
 } from "@gorhom/bottom-sheet";
 import { useEffect, useMemo, useRef } from "react";
-import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import AddNoteForm from "./AddNoteForm";
@@ -38,20 +37,16 @@ export default function MapModal() {
   );
 
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const { height } = useWindowDimensions();
   const { top, bottom } = useSafeAreaInsets();
-  const fullHeight = Math.max(height - top - bottom, 0);
   const snapPoints = useMemo(() => ["50%", "95%"], []);
   const bottomSheetContentStyle = useMemo(
     () => ({
-      minHeight: fullHeight || height,
       paddingTop: top + 16,
       paddingBottom: bottom + 16,
       paddingHorizontal: 16,
     }),
-    [fullHeight, height, top, bottom],
+    [top, bottom],
   );
-  const scrollContentStyle = useMemo(() => ({ flexGrow: 1 }), []);
 
   useEffect(() => {
     if (showModal) {
@@ -80,44 +75,44 @@ export default function MapModal() {
             containerStyle={styles.modalContainer}
             backgroundStyle={styles.modalBackground}
           >
-            <BottomSheetView style={[styles.sheet, bottomSheetContentStyle]}>
-              <BottomSheetScrollView contentContainerStyle={scrollContentStyle}>
-                <View style={styles.contentStack}>
-                  <NotesList
-                    plusCode={selectedPlusCode}
-                    selectedEventId={selectedEvent?.event.id}
-                  />
+            <BottomSheetScrollView
+              style={[styles.sheet, bottomSheetContentStyle]}
+              contentContainerStyle={styles.scrollContent}
+            >
+              <View style={styles.contentStack}>
+                <NotesList
+                  plusCode={selectedPlusCode}
+                  selectedEventId={selectedEvent?.event.id}
+                />
 
-                  {!hasPrivateKeyInSecureStorage ? (
-                    <Section>
-                      <Text>
-                        Go to settings and setup your private key to be able to
-                        post onto the map.
-                      </Text>
-                    </Section>
-                  ) : (
-                    <>
-                      {selectedLayer === "trustroots" ? (
-                        <AddNoteForm />
-                      ) : (
-                        <View>
-                          <Text>
-                            Choose the trustroots layer to be able to add
-                            content
-                          </Text>
-                        </View>
-                      )}
+                {!hasPrivateKeyInSecureStorage ? (
+                  <Section>
+                    <Text>
+                      Go to settings and setup your private key to be able to
+                      post onto the map.
+                    </Text>
+                  </Section>
+                ) : (
+                  <>
+                    {selectedLayer === "trustroots" ? (
+                      <AddNoteForm />
+                    ) : (
+                      <View>
+                        <Text>
+                          Choose the trustroots layer to be able to add content
+                        </Text>
+                      </View>
+                    )}
 
-                      {selectedLayer !== "trustroots" ? null : (
-                        <Section>
-                          <NotificationSubscription />
-                        </Section>
-                      )}
-                    </>
-                  )}
-                </View>
-              </BottomSheetScrollView>
-            </BottomSheetView>
+                    {selectedLayer !== "trustroots" ? null : (
+                      <Section>
+                        <NotificationSubscription />
+                      </Section>
+                    )}
+                  </>
+                )}
+              </View>
+            </BottomSheetScrollView>
           </BottomSheetModal>
         </BottomSheetModalProvider>
       </View>
@@ -147,5 +142,8 @@ const styles = StyleSheet.create({
   contentStack: {
     flexDirection: "column",
     gap: 8,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
 });

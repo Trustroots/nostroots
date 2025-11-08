@@ -13,6 +13,7 @@ import {
   create10395EventTemplate,
   kind10395ContentDecryptedDecodedSchema,
   NOTIFICATION_SERVER_PUBKEY,
+  NOTIFICATION_SUBSCRIPTION_KIND,
   validate10395EventData,
 } from "@trustroots/nr-common";
 import { nip04 } from "nostr-tools";
@@ -38,13 +39,14 @@ import {
 import { publishEventTemplatePromiseAction } from "../actions/publish.actions";
 import { rehydrated } from "../actions/startup.actions";
 import { startSubscription } from "../actions/subscription.actions";
-import { addEvent } from "../slices/events.slice";
+import { addEvent, eventsSelectors } from "../slices/events.slice";
 import {
   notificationsActions,
   notificationSelectors,
   NotificationsState,
 } from "../slices/notifications.slice";
 import { store } from "../store";
+import { keystoreSelectors, setPublicKeyHex } from "../slices/keystore.slice";
 
 const log = rootLogger.extend("notifications");
 
@@ -266,21 +268,35 @@ export function* notificationSubscriptionsAddEventSaga() {
   );
 }
 
-export function* notificationSubscriptionsStartupSaga(): Generator<
+export function* notificationSubscriptionsStartupSagaEffect(): Generator<
   Effect,
   void,
-  void
+  ReturnType<typeof keystoreSelectors.selectPublicKeyHex>
 > {
-  yield take(rehydrated);
+  const publicKeyHex = yield select(keystoreSelectors.selectPublicKeyHex);
+
+  if (typeof publicKeyHex === "undefined") {
+    return;
+  }
 
   yield put(
     startSubscription({
-      filters: [],
+      filters: [
+        {
+          kinds: [NOTIFICATION_SUBSCRIPTION_KIND],
+          authors: [publicKeyHex],
+        },
+      ],
       id: NOTIFICATION_SUBSCRIPTION_SUBSCRIPTION_ID,
     }),
   );
+}
 
-  // TODO - Get the push token from the device if it is available and set it into state
+export function* notificationSubscriptionsStartupSaga() {
+  yield all([
+    takeEvery(rehydrated, notificationSubscriptionsStartupSagaEffect),
+    takeEvery(setPublicKeyHex, notificationSubscriptionsStartupSagaEffect),
+  ]);
 }
 
 export default function* notificationsSaga() {
@@ -288,6 +304,7 @@ export default function* notificationsSaga() {
     sendNotificationSubscriptionEventSaga(),
     notificationsSubscribeSaga(),
     notificationsUnsubscribeSaga(),
+    notificationSubscriptionsAddEventSaga(),
     notificationSubscriptionsStartupSaga(),
   ]);
 }

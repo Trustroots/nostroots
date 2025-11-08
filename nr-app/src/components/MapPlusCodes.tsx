@@ -209,7 +209,7 @@ export default function MapPlusCodes() {
         // only use google maps on android dev and prod builds
         provider={
           Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
-            Platform.OS !== "android"
+          Platform.OS !== "android"
             ? PROVIDER_DEFAULT
             : PROVIDER_GOOGLE
         }
@@ -251,7 +251,11 @@ export default function MapPlusCodes() {
         style={styles.locationButton}
         onPress={handleLocationPress}
       >
-        <FontAwesome name="location-arrow" size={22} color={Colors.light.tint} />
+        <FontAwesome
+          name="location-arrow"
+          size={22}
+          color={Colors.light.tint}
+        />
       </TouchableOpacity>
     </View>
   );

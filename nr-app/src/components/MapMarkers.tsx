@@ -168,23 +168,23 @@ export function MapMarkers() {
   // Set initial region - use saved location or default to a world view
   const initialRegion: Region =
     currentMapLocation &&
-      typeof currentMapLocation === "object" &&
-      "latitude" in currentMapLocation &&
-      "longitude" in currentMapLocation &&
-      typeof currentMapLocation.latitude === "number" &&
-      typeof currentMapLocation.longitude === "number"
+    typeof currentMapLocation === "object" &&
+    "latitude" in currentMapLocation &&
+    "longitude" in currentMapLocation &&
+    typeof currentMapLocation.latitude === "number" &&
+    typeof currentMapLocation.longitude === "number"
       ? {
-        latitude: currentMapLocation.latitude,
-        longitude: currentMapLocation.longitude,
-        latitudeDelta: 0.0922,
-        longitudeDelta: 0.0421,
-      }
+          latitude: currentMapLocation.latitude,
+          longitude: currentMapLocation.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }
       : {
-        latitude: 37.78825, // Default to San Francisco
-        longitude: -122.4324,
-        latitudeDelta: 50, // Zoomed out to show more of the world
-        longitudeDelta: 50,
-      };
+          latitude: 37.78825, // Default to San Francisco
+          longitude: -122.4324,
+          latitudeDelta: 50, // Zoomed out to show more of the world
+          longitudeDelta: 50,
+        };
 
   return (
     <View style={StyleSheet.absoluteFillObject}>
@@ -198,7 +198,7 @@ export function MapMarkers() {
         // only use google maps on android dev and prod builds
         provider={
           Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
-            Platform.OS !== "android"
+          Platform.OS !== "android"
             ? PROVIDER_DEFAULT
             : PROVIDER_GOOGLE
         }
@@ -233,7 +233,11 @@ export function MapMarkers() {
         style={styles.locationButton}
         onPress={handleLocationPress}
       >
-        <FontAwesome name="location-arrow" size={22} color={Colors.light.tint} />
+        <FontAwesome
+          name="location-arrow"
+          size={22}
+          color={Colors.light.tint}
+        />
       </TouchableOpacity>
     </View>
   );

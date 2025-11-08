@@ -13,7 +13,9 @@ import {
 import {
   Event,
   eventSchema,
+  getFirstTagValueFromEvent,
   getTrustrootsUsernameFromProfileEvent,
+  NOSTR_EXPIRATION_TAG_NAME,
   TRUSTROOTS_PROFILE_KIND,
 } from "@trustroots/nr-common";
 import { Filter, matchFilter } from "nostr-tools";
@@ -162,11 +164,34 @@ export const eventsSlice = createSlice({
         addEventToState(state, event, seenOnRelay);
       });
     },
+    flushExpiredEvents: (
+      state,
+      action: PayloadAction<{ currentTimestampSeconds: number }>,
+    ) => {
+      const { currentTimestampSeconds } = action.payload;
+      const originalEvents = eventsAdapter.getSelectors().selectAll(state);
+      const eventsToKeep = originalEvents.filter((event) => {
+        const expirationString = getFirstTagValueFromEvent(
+          event.event,
+          NOSTR_EXPIRATION_TAG_NAME,
+        );
+        if (typeof expirationString === "string") {
+          const expiration = parseInt(expirationString);
+          if (expiration <= currentTimestampSeconds) {
+            return false;
+          }
+        }
+        return true;
+      });
+      eventsAdapter.setAll(state, eventsToKeep);
+    },
   },
 });
 
 export const { addEvent, addEvents, setAllEventsWithMetadata } =
   eventsSlice.actions;
+
+export const eventsActions = eventsSlice.actions;
 
 const adapterSelectors = eventsAdapter.getSelectors();
 

@@ -2,6 +2,7 @@ import { SerializableError } from "@/utils/error.utils";
 import {
   getCurrentTimestamp,
   getPlusCodeAndPlusCodePrefixTags,
+  NOSTR_EXPIRATION_TAG_NAME,
 } from "@trustroots/nr-common";
 import { nanoid } from "@reduxjs/toolkit";
 import { Event, EventTemplate, VerifiedEvent } from "nostr-tools";
@@ -41,7 +42,10 @@ export function publishNotePromiseAction(
     typeof expirationTimestampSeconds === "undefined"
       ? tags
       : tags.concat([
-          ["expiration", Math.round(expirationTimestampSeconds).toString()],
+          [
+            NOSTR_EXPIRATION_TAG_NAME,
+            Math.round(expirationTimestampSeconds).toString(),
+          ],
         ]);
   const eventTemplate = {
     kind: 30397,

@@ -104,7 +104,7 @@ export default function OnboardingLinkScreen() {
   };
 
   const goNext = () => {
-    router.replace("/(tabs)");
+    router.push("/onboarding/backup-confirm");
   };
 
   return (

@@ -9,6 +9,7 @@ const steps = [
   { id: "identity", label: "Identity" },
   { id: "key", label: "Key" },
   { id: "link", label: "Link" },
+  { id: "backup-confirm", label: "Backup" },
 ];
 
 function useOnboardingProgress() {
@@ -17,8 +18,6 @@ function useOnboardingProgress() {
   // Extract the last non-empty segment from the pathname
   const segments = pathname.split("/").filter(Boolean);
   const lastSegment = segments[segments.length - 1];
-
-  console.log({ lastSegment, pathname });
 
   const currentStepIndex = Math.max(
     0,

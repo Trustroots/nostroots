@@ -6,8 +6,9 @@ import { TextInput, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Text, TextClassContext } from "@/components/ui/text";
-import { useAppDispatch } from "@/redux/hooks";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
+import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import * as Clipboard from "expo-clipboard";
 import { KeyIcon } from "lucide-react-native";
 import { generateSeedWords } from "nip06";
@@ -16,11 +17,13 @@ export default function OnboardingKeyScreen() {
   const router = useRouter();
   const dispatch = useAppDispatch();
 
+  const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
+
   const [currentTab, setCurrentTab] = useState<"existing" | "generate">(
     "generate",
   );
 
-  const [existingKeyInput, setExistingKeyInput] = useState("");
+  const [existingKeyInput, setExistingKeyInput] = useState(npub || "");
   const [keyError, setKeyError] = useState<string | null>(null);
   const [isSavingKey, setIsSavingKey] = useState(false);
 
@@ -161,7 +164,6 @@ export default function OnboardingKeyScreen() {
               className="bg-white rounded-lg p-4 gap-4 w-full"
             >
               <TextInput
-                secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
                 value={existingKeyInput}

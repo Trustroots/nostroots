@@ -88,14 +88,6 @@ function AppContent() {
   const { useNewOnboarding, forceOnboarding, forceWelcome } =
     useAppSelector(selectFeatureFlags);
 
-  console.log({
-    pathname,
-    useNewOnboarding,
-    onboardVisible,
-    forceOnboarding,
-    forceWelcome,
-  });
-
   // Initializes user data and performs NIP-5 verification
   const initUserAndVerify = useCallback(async () => {
     let error = false;

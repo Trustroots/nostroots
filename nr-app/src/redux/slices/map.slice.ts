@@ -1,8 +1,10 @@
+import { mapRefService } from "@/utils/mapRef";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { matchFilter } from "nostr-tools";
 import { BoundingBox, LatLng, Region } from "react-native-maps";
 import { setVisiblePlusCodes } from "../actions/map.actions";
+import { AppDispatch, RootState } from "../store";
 import { eventsSelectors, EventWithMetadata } from "./events.slice";
 import { setSubscriptionHasSeenEOSE } from "./relays.slice";
 
@@ -131,7 +133,7 @@ export const mapSlice = createSlice({
       // This action is handled by the saga
     },
     // Action to trigger map animation to a coordinate
-    animateToCoordinate: (
+    /*animateToCoordinate: (
       state,
       action: PayloadAction<{
         latitude: number;
@@ -142,7 +144,7 @@ export const mapSlice = createSlice({
       }>,
     ) => {
       // This action is handled by the saga
-    },
+    },*/
   },
   extraReducers: (builder) => {
     builder
@@ -212,6 +214,30 @@ const selectEventsForSelectedMapLayer = createSelector(
 );
 
 export const mapActions = mapSlice.actions;
+
+export const animateToRegion =
+  (region: Region, duration?: number) =>
+  (dispatch: AppDispatch, getState: () => RootState) => {
+    mapRefService.animateToRegion(region, duration);
+  };
+
+export const animateToCoordinate =
+  (
+    latitude: number,
+    longitude: number,
+    latitudeDelta?: number,
+    longitudeDelta?: number,
+    duration?: number,
+  ) =>
+  (dispatch: AppDispatch, getState: () => RootState) => {
+    mapRefService.animateToCoordinate(
+      latitude,
+      longitude,
+      latitudeDelta,
+      longitudeDelta,
+      duration,
+    );
+  };
 
 export const mapSelectors = {
   ...mapSliceSelectors,

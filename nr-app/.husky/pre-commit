@@ -1,1 +1,1 @@
-cd nr-app && pnpm lint-fix && pnpm lint
+cd nr-app && pnpm prettier --write . && pnpm lint --fix

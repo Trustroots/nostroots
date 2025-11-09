@@ -8,7 +8,11 @@ import {
   eventsSelectors,
   EventWithMetadata,
 } from "@/redux/slices/events.slice";
-import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
+import {
+  animateToCoordinate,
+  mapActions,
+  mapSelectors,
+} from "@/redux/slices/map.slice";
 import { rootLogger } from "@/utils/logger.utils";
 import { allPlusCodesForRegion } from "@/utils/map.utils";
 import { createSelector } from "@reduxjs/toolkit";
@@ -111,13 +115,13 @@ export default function MapMarkers() {
     ) {
       // Use the new action-based approach
       dispatch(
-        mapActions.animateToCoordinate({
-          latitude: currentMapLocation.latitude,
-          longitude: currentMapLocation.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-          duration: 1000,
-        }),
+        animateToCoordinate(
+          currentMapLocation.latitude,
+          currentMapLocation.longitude,
+          0.0922,
+          0.0421,
+          1000,
+        ),
       );
       // Clear the flag
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
@@ -143,13 +147,13 @@ export default function MapMarkers() {
         }),
       );
       dispatch(
-        mapActions.animateToCoordinate({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
-          duration: 1000,
-        }),
+        animateToCoordinate(
+          location.coords.latitude,
+          location.coords.longitude,
+          0.0922,
+          0.0421,
+          1000,
+        ),
       );
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
     }

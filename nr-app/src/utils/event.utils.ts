@@ -9,11 +9,16 @@ import {
 } from "@trustroots/nr-common";
 import { NostrEvent } from "nostr-tools";
 
-export function isEventForPlusCodeExactly(event: NostrEvent, plusCode: string) {
-  const eventPlusCode = getFirstLabelValueFromEvent(
+export function getPlusCodeFromEvent(event: NostrEvent): string | undefined {
+  const plusCode = getFirstLabelValueFromEvent(
     event,
     OPEN_LOCATION_CODE_LABEL_NAMESPACE,
   );
+  return plusCode;
+}
+
+export function isEventForPlusCodeExactly(event: NostrEvent, plusCode: string) {
+  const eventPlusCode = getPlusCodeFromEvent(event);
   return plusCode === eventPlusCode;
 }
 

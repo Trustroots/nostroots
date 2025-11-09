@@ -9,6 +9,8 @@ export const NOTIFICATION_SUBSCRIPTION_KIND = 10395 as const;
 export const MAP_NOTE_KIND = 30397 as const;
 export const MAP_NOTE_REPOST_KIND = 30398 as const;
 
+export const NOSTR_EXPIRATION_TAG_NAME = "expiration";
+
 export const OPEN_LOCATION_CODE_LABEL_NAMESPACE = "open-location-code" as const;
 export const OPEN_LOCATION_CODE_TAG_NAME = OPEN_LOCATION_CODE_LABEL_NAMESPACE;
 export const OPEN_LOCATION_CODE_PREFIX_LABEL_NAMESPACE =
@@ -26,7 +28,7 @@ export const CONTENT_MAXIMUM_LENGTH = 300;
 export const DEFAULT_RELAY_URL = "wss://relay.trustroots.org";
 
 export const NOTIFICATION_SERVER_PUBKEY =
-  "51340781544c47086eb049b0ac10403d75554bf7531f5934b75194f70d15f5f5" as const;
+  "62ab89bfb4f0e1f4f64653bfef77fcf4e9062cd9585a97d6b1f17ff953e4e032" as const;
 
 export const DEV_PUBKEY =
   "80789235a71a388074abfa5c482e270456d2357425266270f82071cf2b1de74a" as const;

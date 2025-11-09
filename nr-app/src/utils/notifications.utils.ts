@@ -161,7 +161,13 @@ function notificationResponseReceived(
   }
 }
 
-export const openEvent = (plusCode: string, event: Event) => {
+export const openEvent = async (plusCode: string, event: Event) => {
+  // change to the map tab first so the map is mounted/ready
+  router.replace("/");
+
+  // hack - best effort wait for the map to load then animate
+  await new Promise((resolve) => setTimeout(resolve, 100));
+
   // Dispatch an action to show the unverified layer on the map
   store.dispatch(mapActions.enableLayer("unverified"));
 
@@ -196,9 +202,6 @@ export const openEvent = (plusCode: string, event: Event) => {
       }),
     );
   }
-
-  // change to the map tab
-  router.replace("/");
 };
 
 export function setupNotificationHandling() {

@@ -22,7 +22,10 @@
       "environment": "preview",
       "channel": "preview"
     },
-    "production": {}
+    "production": {
+      "autoIncrement": true,
+      "channel": "preview"
+    }
   },
   "submit": {
     "production": {}

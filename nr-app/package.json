@@ -11,10 +11,11 @@
     "test": "jest --watchAll",
     "lint": "eslint .",
     "prepare": "cd .. && husky nr-app/.husky",
-    "build:android": "eas build --platform android --profile development --non-interactive",
-    "build:ios": "eas build --platform ios --profile development --non-interactive",
-    "build:simulator": "eas build --platform ios --profile simulator --non-interactive",
-    "build:android-preview": "eas build --platform android --profile preview --non-interactive"
+    "build:android-development": "eas build --platform android --profile development --non-interactive",
+    "build:ios-development": "eas build --platform ios --profile development --non-interactive",
+    "build:simulator-simulator": "eas build --platform ios --profile simulator --non-interactive",
+    "build:android-preview": "eas build --platform android --profile preview --non-interactive",
+    "build:ios-production": "eas build --platform ios --profile production --non-interactive --auto-submit"
   },
   "pkgx": "facebook.com/watchman",
   "jest": {

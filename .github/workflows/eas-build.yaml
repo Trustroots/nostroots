@@ -9,10 +9,11 @@ on:
         default: 'android'
         type: choice
         options:
-          - android
+          - android-development
           - android-preview
-          - ios
-          - simulator
+          - ios-development
+          - ios-simulator
+          - ios-production
 
 jobs:
   build:

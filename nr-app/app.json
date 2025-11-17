@@ -2,7 +2,7 @@
   "expo": {
     "name": "Nostroots",
     "slug": "nr-app",
-    "version": "0.0.1",
+    "version": "0.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/nostroots-300x300.png",
     "scheme": "myapp",
@@ -16,7 +16,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "org.trustroots.nostroots",
       "config": {
-        "googleMapsApiKey": "AIzaSyDw0KhR3qlPsireu68RvGXmh4nccIqnEQM"
+        "googleMapsApiKey": "AIzaSyDw0KhR3qlPsireu68RvGXmh4nccIqnEQM",
+        "usesNonExemptEncryption": false
       },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "We need your location to show you on the map and find notes near you.",
@@ -57,7 +58,13 @@
           "url": "https://sentry.io/"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow Nostroots to use your location to show you nearby notes."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

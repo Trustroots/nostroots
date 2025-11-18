@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: 'Android dev build (emulator and device), Android preview build, iOS dev build (device), iOS dev build (simulator),'
+        description: 'Android dev build (emulator and device), Android preview build (standalone .apk), iOS dev build (device), iOS dev build (simulator), iOS production build (TestFlight)'
         required: true
         default: 'android'
         type: choice

@@ -85,6 +85,10 @@ export default function SettingsScreen() {
     JSON.stringify(state.notifications),
   );
 
+  const deviceIsRegisteredForNotifications = useAppSelector((state) =>
+    state.notifications.tokens.some((t) => t.expoPushToken === expoPushToken),
+  );
+
   const [modalVisible, setModalVisible] = useState(false);
 
   const centerMapOnPlusCode = async () => {
@@ -160,6 +164,26 @@ export default function SettingsScreen() {
     (typeof username === "string" && username.length > 0) ||
     areTestFeaturesEnabled;
 
+  const handleEnableNotifications = () => {
+    dispatch(notificationsActions.setExpoPushToken(expoPushToken));
+  };
+
+  const handleDisableNotifications = () => {
+    dispatch(notificationsActions.removeExpoPushToken(expoPushToken));
+  };
+
+  const handleResetSubscriptions = async () => {
+    try {
+      dispatch(notificationsActions.removeAllFilters());
+      console.log("#odQ9ry start");
+      await dispatch(sendNotificationSubscriptionEventAction.request());
+      console.log("#odQ9ry finish");
+      Toast.show("All subscriptions removed.");
+    } catch (error) {
+      Toast.show(`#hh2gOl Error: ${error}`);
+    }
+  };
+
   return (
     <ScrollView contentContainerClassName="p-safe-offset-4 bg-white">
       <View>
@@ -202,6 +226,29 @@ export default function SettingsScreen() {
           <Button title="Show nsec" onPress={showNsec} />
         </Section>
       ) : null}
+
+      <Section>
+        <Text variant="h2">Notifications</Text>
+
+        {deviceIsRegisteredForNotifications ? (
+          <Button
+            title="Disable notifications for this device"
+            onPress={handleDisableNotifications}
+            variant="destructive"
+          />
+        ) : (
+          <Button
+            title="Enable notifications for this device"
+            onPress={handleEnableNotifications}
+          />
+        )}
+
+        <Button
+          title="Reset all subscriptions"
+          onPress={handleResetSubscriptions}
+          variant="outline"
+        />
+      </Section>
 
       {areTestFeaturesEnabled ? (
         <Section>
@@ -276,30 +323,14 @@ export default function SettingsScreen() {
           />
 
           <Section>
-            <Text variant="h2">Notifications</Text>
-            <Text className="font-bold">expo push token</Text>
+            <Text variant="h2">Notification Debug</Text>
+            <Text className="font-bold">Expo Push Token</Text>
+
             <TextInput className={inputClassName} value={expoPushToken} />
-            <Button
-              title="Register this device for push notifications"
-              onPress={() => {
-                dispatch(notificationsActions.setExpoPushToken(expoPushToken));
-              }}
-            />
+
             <Button
               title="Reset all subscription filters"
-              onPress={async () => {
-                try {
-                  dispatch(notificationsActions.removeAllFilters());
-                  console.log("#odQ9ry start");
-                  await dispatch(
-                    sendNotificationSubscriptionEventAction.request(),
-                  );
-                  console.log("#odQ9ry finish");
-                  Toast.show("All filters removed");
-                } catch (error) {
-                  Toast.show(`#hh2gOl Error: ${error}`);
-                }
-              }}
+              onPress={handleResetSubscriptions}
             />
 
             <Text>Subscription data</Text>

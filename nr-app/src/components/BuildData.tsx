@@ -1,6 +1,6 @@
 import Constants from "expo-constants";
 import * as Updates from "expo-updates";
-import React, { useMemo } from "react";
+import React from "react";
 import { Platform, StyleSheet, Text, View } from "react-native";
 
 // Or using specific imports:
@@ -11,10 +11,6 @@ export default function BuildData() {
   const creationTime = Updates.createdAt; // Date object when the update was published
   const updateChannel = Updates.channel; // Channel the update came from (e.g., 'production', 'staging')
   const isEmbedded = Updates.isEmbeddedLaunch; // True if running the build-time embedded code
-  const manifestString = useMemo(
-    () => JSON.stringify(Updates.manifest),
-    [Updates],
-  );
 
   // Format the date nicely, only if it exists
   const formattedDate = creationTime
@@ -47,8 +43,6 @@ export default function BuildData() {
           <Text>Update ID (UUID): {updateId || "N/A"}</Text>
         </>
       )}
-
-      <Text>Manifest: {manifestString}</Text>
     </View>
   );
 }

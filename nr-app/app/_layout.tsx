@@ -42,6 +42,7 @@ import {
 import { persistor, store } from "@/redux/store";
 
 import "@/global.css";
+import { useUpdateOnForeground } from "@/hooks/useUpdateOnForeground";
 
 // Construct a new integration instance. This is needed to communicate between the integration and React
 const navigationIntegration = Sentry.reactNavigationIntegration({
@@ -215,6 +216,8 @@ function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
+
+  useUpdateOnForeground();
 
   useEffect(() => {
     colorScheme.set("light");

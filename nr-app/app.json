@@ -83,7 +83,8 @@
     },
     "newArchEnabled": true,
     "updates": {
-      "url": "https://u.expo.dev/a6c7b2e0-f036-44a3-b57c-d05b9d383c30"
+      "url": "https://u.expo.dev/a6c7b2e0-f036-44a3-b57c-d05b9d383c30",
+      "checkAutomatically": false
     },
     "owner": "nostroots"
   }

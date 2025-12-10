@@ -98,7 +98,6 @@
     "@types/react-test-renderer": "^18.0.7",
     "babel-plugin-module-resolver": "^5.0.2",
     "babel-plugin-root-import": "^6.6.0",
-    "eas-cli": "^16.26.0",
     "eslint": "^8.57.0",
     "eslint-config-expo": "^10.0.0",
     "eslint-config-prettier": "^9.1.0",

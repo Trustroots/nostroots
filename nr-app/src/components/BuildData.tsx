@@ -22,7 +22,6 @@ export default function BuildData() {
       <Text style={styles.title}>App Version Info:</Text>
       <View>
         <Text>App Version: {Constants.expoConfig?.version}</Text>
-
         {Platform.OS === "ios" && (
           <Text>Build Number: {Constants.expoConfig?.ios?.buildNumber}</Text>
         )}
@@ -31,6 +30,7 @@ export default function BuildData() {
             Version Code: {Constants.expoConfig?.android?.versionCode}
           </Text>
         )}
+        <Text>Commit ID: {Constants.expoConfig?.extra?.commitId || "N/A"}</Text>
       </View>
 
       <Text>Update Information:</Text>

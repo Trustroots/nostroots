@@ -30,7 +30,7 @@ export default function BuildData() {
             Version Code: {Constants.expoConfig?.android?.versionCode}
           </Text>
         )}
-        <Text>Commit ID: {Constants.expoConfig?.extra?.commitId || "N/A"}</Text>
+        <Text>Commit Id: {Constants.expoConfig?.extra?.commitId || "N/A"}</Text>
       </View>
 
       <Text>Update Information:</Text>

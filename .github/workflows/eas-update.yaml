@@ -16,4 +16,4 @@ jobs:
 
       - name: 🗞️ Send Update
         working-directory: ./nr-app
-        run: eas update --channel preview
+        run: eas update --channel preview --non-interactive

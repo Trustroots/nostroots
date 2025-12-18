@@ -44,6 +44,7 @@ import { persistor, store } from "@/redux/store";
 
 import "@/global.css";
 import { useUpdateOnForeground } from "@/hooks/useUpdateOnForeground";
+import { StatusBar } from "react-native";
 
 // Construct a new integration instance. This is needed to communicate between the integration and React
 const navigationIntegration = Sentry.reactNavigationIntegration({
@@ -194,6 +195,7 @@ function AppContent() {
   return (
     <RootSiblingParent>
       <GestureHandlerRootView>
+        <StatusBar barStyle="dark-content" />
         {welcomeVisible ? (
           <WelcomeScreen onClose={() => setWelcomeVisible(false)} />
         ) : onboardVisible && !useNewOnboarding ? (

@@ -1,5 +1,5 @@
 import { Slot, usePathname } from "expo-router";
-import { ScrollView, View } from "react-native";
+import { StatusBar, View } from "react-native";
 
 import { TextClassContext } from "@/components/ui/text";
 import { cn } from "@/utils/cn.utils";
@@ -66,6 +66,7 @@ function OnboardingHeader() {
 export default function OnboardingLayout() {
   return (
     <View className="flex-1 bg-primary p-safe flex flex-col justify-center">
+      <StatusBar barStyle="light-content" />
       <TextClassContext.Provider value="text-white text-center">
         <OnboardingHeader />
         <KeyboardAwareScrollView

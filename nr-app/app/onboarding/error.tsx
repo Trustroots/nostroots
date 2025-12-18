@@ -18,7 +18,7 @@ export default function OnboardingErrorScreen() {
   };
 
   return (
-    <View className="flex grow flex-col items-center justify-center gap-8 px-6">
+    <>
       <View className="flex items-center gap-6">
         <AlertTriangleIcon size={96} color="#fff" strokeWidth={0.5} />
         <Text variant="h1" className="my-0">
@@ -57,6 +57,6 @@ export default function OnboardingErrorScreen() {
           This app is a work in progress.
         </Text>
       </View>
-    </View>
+    </>
   );
 }

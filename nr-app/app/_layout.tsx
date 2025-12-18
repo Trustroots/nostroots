@@ -4,6 +4,7 @@ import { nip19 } from "nostr-tools";
 
 import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
 import { getNip5PubKey } from "@trustroots/nr-common";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import * as Sentry from "@sentry/react-native";
 import { isRunningInExpoGo } from "expo";
@@ -253,7 +254,9 @@ function RootLayout() {
           value={DefaultTheme}
           // value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
         >
-          <AppContent />
+          <KeyboardProvider>
+            <AppContent />
+          </KeyboardProvider>
           <PortalHost />
         </ThemeProvider>
       </PersistGate>

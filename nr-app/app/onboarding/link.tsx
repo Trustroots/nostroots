@@ -113,7 +113,7 @@ export default function OnboardingLinkScreen() {
   };
 
   return (
-    <View className="flex grow flex-col items-center justify-center gap-8 px-6">
+    <>
       <View className="flex items-center gap-6">
         <LinkIcon size={128} color="#fff" strokeWidth={0.5} />
 
@@ -210,6 +210,6 @@ export default function OnboardingLinkScreen() {
           disabled={linkStatus !== "linked"}
         />
       </View>
-    </View>
+    </>
   );
 }

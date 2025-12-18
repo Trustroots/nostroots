@@ -162,7 +162,7 @@ export default function OnboardingBackupConfirmScreen() {
     !!setupError || isVerifying || success || !input.trim().length;
 
   return (
-    <View className="flex grow flex-col items-center justify-center gap-8 px-6">
+    <>
       <View className="flex items-center gap-6">
         <ShieldCheckIcon size={128} color="#fff" strokeWidth={0.5} />
         <Text variant="h1" className="my-0">
@@ -242,6 +242,6 @@ export default function OnboardingBackupConfirmScreen() {
           disabled={!success}
         />
       </View>
-    </View>
+    </>
   );
 }

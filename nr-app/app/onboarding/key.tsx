@@ -150,7 +150,7 @@ export default function OnboardingKeyScreen() {
       : mnemonicConfirmed;
 
   return (
-    <View className="flex flex-col items-center justify-center gap-8 px-6">
+    <>
       <View className="flex items-center gap-6">
         <KeyIcon size={128} color="#fff" strokeWidth={0.5} />
 
@@ -283,6 +283,6 @@ export default function OnboardingKeyScreen() {
         is your responsibility to back it up and never share it with anyone.
         There is no way to restore your key if you lose it.
       </Text>
-    </View>
+    </>
   );
 }

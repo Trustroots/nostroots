@@ -3,7 +3,7 @@ import { ScrollView, View } from "react-native";
 
 import { TextClassContext } from "@/components/ui/text";
 import { cn } from "@/utils/cn.utils";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 const steps = [
   { id: "identity", label: "Identity" },
@@ -65,13 +65,16 @@ function OnboardingHeader() {
 
 export default function OnboardingLayout() {
   return (
-    <SafeAreaView className="flex-1 bg-primary">
+    <View className="flex-1 bg-primary p-safe flex flex-col justify-center">
       <TextClassContext.Provider value="text-white text-center">
         <OnboardingHeader />
-        <ScrollView contentContainerClassName="grow py-12">
+        <KeyboardAwareScrollView
+          bottomOffset={100}
+          contentContainerClassName="flex grow flex-col items-center justify-center gap-8 px-6 py-12"
+        >
           <Slot />
-        </ScrollView>
+        </KeyboardAwareScrollView>
       </TextClassContext.Provider>
-    </SafeAreaView>
+    </View>
   );
 }

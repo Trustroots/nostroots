@@ -39,16 +39,21 @@ export default function OnboardingLinkScreen() {
     npubFromStore ||
     (publicKeyHex ? nip19.npubEncode(publicKeyHex) : undefined);
 
-  // If somehow no key is present, send user back to key setup.
-  useEffect(() => {
-    // if (!hasKeyInStore || !npub) {
-    //   // Hard guard; ensures "after key step, device must have private key".
-    //   router.replace("/onboarding/key");
-    // }
-  }, [hasKeyInStore, npub, router]);
-
   const openTrustrootsNetworks = () => {
     Linking.openURL("https://www.trustroots.org/profile/edit/networks");
+  };
+
+  const handleCopy = async () => {
+    if (!npub) return;
+    try {
+      await Clipboard.setStringAsync(npub);
+      Toast.show("Copied public key to Clipboard!", {
+        duration: Toast.durations.SHORT,
+        position: Toast.positions.BOTTOM,
+      });
+    } catch (error) {
+      console.error("Failed to copy npub to clipboard", error);
+    }
   };
 
   const verifyAndLink = useCallback(
@@ -128,6 +133,10 @@ export default function OnboardingLinkScreen() {
     };
   }, [linkStatus, npub, trustrootsUsername]);
 
+  useEffect(() => {
+    handleCopy();
+  }, [npub]);
+
   const goBack = () => {
     if (router.canGoBack()) {
       router.back();
@@ -170,18 +179,7 @@ export default function OnboardingLinkScreen() {
           <Text
             className="text-sm bg-white text-black truncate rounded-md p-2"
             numberOfLines={1}
-            onPress={async () => {
-              if (!npub) return;
-              try {
-                await Clipboard.setStringAsync(npub);
-                Toast.show("Copied public key to Clipboard!", {
-                  duration: Toast.durations.SHORT,
-                  position: Toast.positions.BOTTOM,
-                });
-              } catch (error) {
-                console.error("Failed to copy npub to clipboard", error);
-              }
-            }}
+            onPress={handleCopy}
           >
             {npub || "Nostr key not found on this device."}
           </Text>

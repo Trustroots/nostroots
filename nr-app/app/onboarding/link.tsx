@@ -43,12 +43,8 @@ export default function OnboardingLinkScreen() {
     // }
   }, [hasKeyInStore, npub, router]);
 
-  const goToApp = () => {
-    router.replace("/(tabs)");
-  };
-
   const openTrustrootsNetworks = () => {
-    Linking.openURL("https://www.trustroots.org/networks");
+    Linking.openURL("https://www.trustroots.org/profile/edit/networks");
   };
 
   const verifyAndLink = async () => {

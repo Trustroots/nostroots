@@ -268,7 +268,13 @@ export default function OnboardingKeyScreen() {
       </View>
 
       <View className="flex flex-row gap-2">
-        <Button variant="secondary" onPress={goBack} size="lg" title="Back" />
+        <Button
+          variant="outline"
+          textClassName="text-white"
+          onPress={goBack}
+          size="lg"
+          title="Back"
+        />
         <Button
           variant="secondary"
           onPress={goNext}

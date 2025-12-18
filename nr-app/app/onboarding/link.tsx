@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import { nip05, nip19 } from "nostr-tools";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Linking, TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,11 @@ import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { settingsActions } from "@/redux/slices/settings.slice";
 import { createKind10390EventTemplate } from "@trustroots/nr-common";
 import * as Clipboard from "expo-clipboard";
-import { LinkIcon } from "lucide-react-native";
+import {
+  AlertTriangleIcon,
+  LinkIcon,
+  SquareArrowOutUpRight,
+} from "lucide-react-native";
 import Toast from "react-native-root-toast";
 
 export default function OnboardingLinkScreen() {
@@ -47,58 +51,82 @@ export default function OnboardingLinkScreen() {
     Linking.openURL("https://www.trustroots.org/profile/edit/networks");
   };
 
-  const verifyAndLink = async () => {
+  const verifyAndLink = useCallback(
+    async (usernameOverride?: string) => {
+      if (!npub) {
+        setLinkError(
+          "We could not read your Nostr key. Please go back and retry.",
+        );
+        return;
+      }
+
+      const normalizedUsername = (
+        usernameOverride !== undefined ? usernameOverride : trustrootsUsername
+      ).trim();
+
+      if (!normalizedUsername) {
+        setLinkError("Enter your Trustroots username to continue.");
+        return;
+      }
+
+      const identifier = `${normalizedUsername}@trustroots.org`;
+
+      setLinkStatus("verifying");
+      setLinkError(null);
+
+      try {
+        // NIP-05 lookup: confirm Trustroots identifier maps to this pubkey.
+        const profile = await nip05.queryProfile(identifier);
+
+        if (!profile?.pubkey) {
+          throw new Error("No pubkey in NIP-05 profile");
+        }
+
+        const nip05Npub = nip19.npubEncode(profile.pubkey);
+
+        if (nip05Npub !== npub) {
+          throw new Error("NIP-05 npub does not match local key");
+        }
+
+        // Build Kind 10390 event using shared helper.
+        const eventTemplate = createKind10390EventTemplate(normalizedUsername);
+
+        // NOTE: relay URL should come from configuration; placeholder used here.
+        await dispatch(
+          publishEventTemplatePromiseAction.request({ eventTemplate }),
+        );
+
+        dispatch(settingsActions.setUsername(normalizedUsername));
+        setLinkStatus("linked");
+      } catch (error) {
+        setLinkStatus("error");
+        setLinkError(
+          "We could not confirm your Trustroots identity via NIP-05 for this key. " +
+            "Ensure your Trustroots profile is configured and try again.",
+        );
+      }
+    },
+    [dispatch, npub, trustrootsUsername],
+  );
+
+  useEffect(() => {
     if (!npub) {
-      setLinkError(
-        "We could not read your Nostr key. Please go back and retry.",
-      );
       return;
     }
 
     const trimmedUsername = trustrootsUsername.trim();
-    if (!trimmedUsername) {
-      setLinkError("Enter your Trustroots username to continue.");
+    if (!trimmedUsername || linkStatus !== "idle") {
       return;
     }
 
-    const identifier = `${trimmedUsername}@trustroots.org`;
+    const handler = setTimeout(() => {
+      verifyAndLink(trimmedUsername);
+    }, 1000);
 
-    setLinkStatus("verifying");
-    setLinkError(null);
-
-    try {
-      // NIP-05 lookup: confirm Trustroots identifier maps to this pubkey.
-      const profile = await nip05.queryProfile(identifier);
-
-      if (!profile?.pubkey) {
-        throw new Error("No pubkey in NIP-05 profile");
-      }
-
-      const nip05Npub = nip19.npubEncode(profile.pubkey);
-
-      if (nip05Npub !== npub) {
-        throw new Error("NIP-05 npub does not match local key");
-      }
-
-      // Build Kind 10390 event using shared helper.
-      const eventTemplate = createKind10390EventTemplate(trimmedUsername);
-
-      // NOTE: relay URL should come from configuration; placeholder used here.
-      await dispatch(
-        publishEventTemplatePromiseAction.request({ eventTemplate }),
-      );
-
-      dispatch(settingsActions.setUsername(trimmedUsername));
-      setLinkStatus("linked");
-    } catch (error) {
-      console.error("Link verification or publish failed", error);
-      setLinkStatus("error");
-      setLinkError(
-        "We could not confirm your Trustroots identity via NIP-05 for this key. " +
-          "Ensure your Trustroots profile is configured and try again.",
-      );
-    }
-  };
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [linkStatus, npub, trustrootsUsername]);
 
   const goBack = () => {
     if (router.canGoBack()) {
@@ -126,6 +154,13 @@ export default function OnboardingLinkScreen() {
         Now that you have a private key, we’ll link your public key to your
         Trustroots account so others can verify it’s really you.
       </Text>
+
+      {linkError && (
+        <View className="flex flex-row gap-4 items-center bg-red-700 px-3 py-2 rounded-lg">
+          <AlertTriangleIcon color="white" />
+          <Text className="text-xs shrink text-white">{linkError}</Text>
+        </View>
+      )}
 
       <View className="flex gap-6 w-full">
         <View className="flex gap-1 items-start">
@@ -173,15 +208,16 @@ export default function OnboardingLinkScreen() {
 
       <View className="flex w-full gap-2">
         <Button
-          textClassName="text-white"
-          variant="outline"
-          title="Set Up Trustroots Networks"
+          variant="link"
           onPress={openTrustrootsNetworks}
-        />
+          className="-mr-3"
+        >
+          <Text className="text-white">Set Up Trustroots Networks</Text>
+          <SquareArrowOutUpRight size={16} color="white" />
+        </Button>
 
         <Button
-          textClassName="text-white"
-          variant="outline"
+          variant="secondary"
           title={
             linkStatus === "error"
               ? "Try Again"
@@ -192,16 +228,18 @@ export default function OnboardingLinkScreen() {
                   : "Verify"
           }
           disabled={["verifying", "linked"].includes(linkStatus) || !npub}
-          onPress={verifyAndLink}
+          onPress={() => verifyAndLink()}
         />
       </View>
 
-      {linkError && (
-        <Text className="text-xs text-red-500 mt-1">{linkError}</Text>
-      )}
-
       <View className="flex flex-row gap-2">
-        <Button variant="secondary" onPress={goBack} size="lg" title="Back" />
+        <Button
+          variant="outline"
+          textClassName="text-white"
+          onPress={goBack}
+          size="lg"
+          title="Back"
+        />
         <Button
           variant="secondary"
           onPress={goNext}

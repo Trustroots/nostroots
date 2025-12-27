@@ -1,3 +1,5 @@
+// RUN WITH: pnpx tsx spam.ts (Node LTS for WebSockets support needed)
+
 import { finalizeEvent, SimplePool, type EventTemplate } from "nostr-tools";
 import { hexToBytes } from "@noble/hashes/utils";
 

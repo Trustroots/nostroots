@@ -1,0 +1,9 @@
+services:
+  strfry-nostr-relay:
+    image: ghcr.io/hoytech/strfry:latest
+    volumes:
+      - ./strfry.conf:/etc/strfry.conf
+      - ./strfry-db:/app/strfry-db
+      - ./strfry-plugins:/app/strfry-plugins
+    ports:
+      - "7777:7777"

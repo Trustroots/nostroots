@@ -33,23 +33,23 @@ export const tagsIncludingPlusCodeSchema = z
     (tags) => {
       const plusCode = getFirstLabelValueFromTags(
         tags,
-        OPEN_LOCATION_CODE_TAG_NAME
+        OPEN_LOCATION_CODE_TAG_NAME,
       );
       if (typeof plusCode === "undefined" || !isPlusCode(plusCode)) {
         return false;
       }
       return true;
     },
-    { message: "Tags have invalid or missing plus code" }
+    { message: "Tags have invalid or missing plus code" },
   );
 
 export const contentSchema = z
   .string()
   .max(
     CONTENT_MAXIMUM_LENGTH,
-    `content is above max length of ${CONTENT_MAXIMUM_LENGTH}`
+    `content is above max length of ${CONTENT_MAXIMUM_LENGTH}`,
   )
   .min(
     CONTENT_MINIMUM_LENGTH,
-    `content is below min length of ${CONTENT_MINIMUM_LENGTH}`
+    `content is below min length of ${CONTENT_MINIMUM_LENGTH}`,
   );

@@ -7,6 +7,7 @@
   "deno.enablePaths": [
     "./nr-common",
     "./nr-server",
+    "./nr-push/strfry-plugin",
     "./development-utils/nip-46-client"
   ],
   "deno.enable": true,

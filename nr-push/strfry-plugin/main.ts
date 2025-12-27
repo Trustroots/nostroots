@@ -1,20 +1,20 @@
 import * as amqp from "@nashaddams/amqp";
 import { TextLineStream } from "@std/streams";
-import { parseJsonLine } from "./parseLines.ts";
-import { acceptEvent } from "./strfryResponses.ts";
+import { parseJsonLine } from "./src/parseLines.ts";
+import { acceptEvent } from "./src/strfryResponses.ts";
 
-const EMPTY_AMQP_URL = "amqp://insecure:insecure@localhost:5672";
 const EXCHANGE_NAME = "nostrEvents";
 // const QUEUE_NAME = "repost";
 
-const amqpUrlActual = EMPTY_AMQP_URL;
+// TODO Read the URL from env
+const amqpUrl = Deno.env.get("AMQP_URL");
 
-// if (amqpUrlActual === EMPTY_AMQP_URL) {
-//   console.error("#iQCLLj Missing AMQP_URL");
-//   Deno.exit(1);
-// }
+if (typeof amqpUrl === "undefined" || amqpUrl.length === 0) {
+  console.error("#iQCLLj Missing AMQP_URL");
+  Deno.exit(1);
+}
 
-const url = URL.parse(amqpUrlActual);
+const url = URL.parse(amqpUrl);
 
 if (url === null) {
   console.error("#Nmo5gQ Failed to parse AMQP url");

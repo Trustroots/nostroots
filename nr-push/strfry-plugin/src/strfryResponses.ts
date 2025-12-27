@@ -7,7 +7,7 @@ const acceptResponseSchema = z.object({
   action: z.literal("accept"),
 });
 
-type AcceptResponse = z.infer<typeof acceptResponseSchema>;
+export type AcceptResponse = z.infer<typeof acceptResponseSchema>;
 
 const rejectResponseSchema = z.object({
   id: idSchema,
@@ -15,14 +15,14 @@ const rejectResponseSchema = z.object({
   msg: z.string(),
 });
 
-type RejectResponse = z.infer<typeof rejectResponseSchema>;
+export type RejectResponse = z.infer<typeof rejectResponseSchema>;
 
 const responseSchema = z.discriminatedUnion("action", [
   acceptResponseSchema,
   rejectResponseSchema,
 ]);
 
-type Response = z.infer<typeof responseSchema>;
+export type Response = z.infer<typeof responseSchema>;
 
 export function acceptEvent(strfryLine: StrfryLine) {
   const { id } = strfryLine.event;

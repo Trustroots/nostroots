@@ -60,7 +60,7 @@ export default function AddNoteForm() {
           selectedPlusCode.length === 0
         ) {
           Toast.show(
-            "Error: Cannot add note without a selected plus code. #m20awb",
+            "Error: Cannot add note without a selected plus code. #Rjbe0s",
             {
               duration: Toast.durations.LONG,
               position: Toast.positions.TOP,
@@ -82,7 +82,7 @@ export default function AddNoteForm() {
 
         __DEV__ &&
           console.log(
-            "#a9vi49v handleNoteAdd()",
+            "#XmGopY handleNoteAdd()",
             noteContent,
             "at",
             selectedPlusCode,
@@ -107,7 +107,7 @@ export default function AddNoteForm() {
           setNoteContent("");
         } catch (error) {
           Toast.show(
-            `Error: #dxmsa3 ${error instanceof Error ? error.message : "unknown"}`,
+            `Error: #3Rtob2 ${error instanceof Error ? error.message : JSON.stringify(error)}`,
             {
               duration: Toast.durations.LONG,
               position: Toast.positions.TOP,

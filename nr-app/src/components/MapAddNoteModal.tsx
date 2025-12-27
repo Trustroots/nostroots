@@ -93,7 +93,7 @@ export default function MapAddNoteModal() {
           setNoteContent("");
         } catch (error) {
           Toast.show(
-            `Error: #dxmsa3 ${error instanceof Error ? error.message : "unknown"}`,
+            `Error: #dxmsa3 ${error instanceof Error ? error.message : JSON.stringify(error)}`,
             {
               duration: Toast.durations.LONG,
               position: Toast.positions.TOP,

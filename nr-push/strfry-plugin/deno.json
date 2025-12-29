@@ -2,7 +2,7 @@
   "tasks": {
     "cache": "deno cache --lock deno.lock main.ts",
     "run": "deno run --allow-net main.ts",
-    "compile": "deno compile --allow-net main.ts",
+    "compile": "deno compile --allow-net --allow-env x86_64-unknown-linux-gnu --output nostr main.ts",
     "dev": "deno run --watch main.ts"
   },
   "imports": {

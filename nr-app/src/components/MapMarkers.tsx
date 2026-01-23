@@ -93,6 +93,7 @@ export default function MapMarkers() {
   const currentMapLocation = useAppSelector(
     mapSelectors.selectCurrentMapLocation,
   );
+  const savedRegion = useAppSelector(mapSelectors.selectSavedRegion);
   const mapViewRef = useRef<MapView | null>(null);
 
   // Clean up the map ref on unmount
@@ -165,18 +166,21 @@ export default function MapMarkers() {
         __DEV__ && console.log("#rIMmxg Map move completed", region, details);
         const visiblePlusCodes = allPlusCodesForRegion(region);
         dispatch(setVisiblePlusCodes(visiblePlusCodes));
+        // Save the region so it can be restored when the app reopens
+        dispatch(mapActions.setSavedRegion(region));
       },
     [dispatch],
   );
 
-  // Set initial region - use saved location or default to a world view
-  const initialRegion: Region =
-    currentMapLocation &&
-    typeof currentMapLocation === "object" &&
-    "latitude" in currentMapLocation &&
-    "longitude" in currentMapLocation &&
-    typeof currentMapLocation.latitude === "number" &&
-    typeof currentMapLocation.longitude === "number"
+  // Set initial region - prefer saved region, then current location, then default
+  const initialRegion: Region = savedRegion
+    ? savedRegion
+    : currentMapLocation &&
+        typeof currentMapLocation === "object" &&
+        "latitude" in currentMapLocation &&
+        "longitude" in currentMapLocation &&
+        typeof currentMapLocation.latitude === "number" &&
+        typeof currentMapLocation.longitude === "number"
       ? {
           latitude: currentMapLocation.latitude,
           longitude: currentMapLocation.longitude,

@@ -103,6 +103,7 @@ export default function MapPlusCodes() {
   const currentMapLocation = useAppSelector(
     mapSelectors.selectCurrentMapLocation,
   );
+  const savedRegion = useAppSelector(mapSelectors.selectSavedRegion);
 
   const mapViewRef = useRef<MapView>(null);
 
@@ -198,6 +199,8 @@ export default function MapPlusCodes() {
         dispatch(setVisiblePlusCodes(visiblePlusCodes));
         const length = whatLengthOfPlusCodeToShow(region);
         log.debug("#mzWdGm regionChange plusCode length", length);
+        // Save the region so it can be restored when the app reopens
+        dispatch(mapActions.setSavedRegion(region));
       },
     [dispatch],
   );
@@ -210,6 +213,8 @@ export default function MapPlusCodes() {
         rotateEnabled={false}
         pitchEnabled={false}
         onRegionChangeComplete={handleMapRegionChange}
+        // Use saved region if available, otherwise let the map use its default
+        initialRegion={savedRegion}
         // only use google maps on android dev and prod builds
         provider={
           Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||

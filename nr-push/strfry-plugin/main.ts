@@ -45,7 +45,7 @@ const stdin = await Deno.stdin.readable
   .pipeThrough(new TextLineStream());
 
 for await (const jsonLine of stdin) {
-  console.log("#yX8ro8 Got a line", jsonLine);
+  // console.log("#yX8ro8 Got a line", jsonLine);
 
   const strfryLine = parseJsonLine(jsonLine);
 

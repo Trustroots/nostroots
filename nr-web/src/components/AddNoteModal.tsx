@@ -3,7 +3,10 @@
 import { useState, useEffect } from "react";
 import { useNostrStore } from "@/store/nostr";
 import { createMapNote } from "@/lib/events";
-import OpenLocationCode from "open-location-code";
+import { OpenLocationCode } from "open-location-code";
+
+// Create a singleton instance of OpenLocationCode
+const olc = new OpenLocationCode();
 
 interface AddNoteModalProps {
   isOpen: boolean;
@@ -30,7 +33,7 @@ export function AddNoteModal({ isOpen, onClose, location }: AddNoteModalProps) {
 
   if (!isOpen || !location) return null;
 
-  const plusCode = OpenLocationCode.encode(location.lat, location.lng, 10);
+  const plusCode = olc.encode(location.lat, location.lng, 10);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

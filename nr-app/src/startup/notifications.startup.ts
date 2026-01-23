@@ -9,6 +9,8 @@ import { router } from "expo-router";
 import { NostrEvent } from "nostr-tools";
 import Toast from "react-native-root-toast";
 
+let lastHandledResponseId: string | null = null;
+
 function notificationResponseReceived(
   response: Notifications.NotificationResponse,
 ): void {
@@ -42,6 +44,30 @@ function notificationResponseReceived(
 
   if (typeof plusCode === "string") {
     openEvent(plusCode, event);
+  }
+}
+
+function handleNotificationResponse(
+  response: Notifications.NotificationResponse,
+): void {
+  const responseId = response.notification.request.identifier;
+  if (lastHandledResponseId === responseId) {
+    return;
+  }
+  lastHandledResponseId = responseId;
+  notificationResponseReceived(response);
+}
+
+async function handleInitialNotificationResponse(): Promise<void> {
+  try {
+    const response = await Notifications.getLastNotificationResponseAsync();
+    if (response) {
+      handleNotificationResponse(response);
+    }
+  } catch (error) {
+    if (__DEV__) {
+      console.log("#2t3pWw Failed to read initial notification response", error);
+    }
   }
 }
 
@@ -86,7 +112,9 @@ export const openEvent = (plusCode: string, event: NostrEvent) => {
 };
 
 export function setupNotificationHandling() {
-  return Notifications.addNotificationResponseReceivedListener(
-    notificationResponseReceived,
+  const subscription = Notifications.addNotificationResponseReceivedListener(
+    handleNotificationResponse,
   );
+  void handleInitialNotificationResponse();
+  return subscription;
 }

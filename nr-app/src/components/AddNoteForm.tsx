@@ -1,15 +1,13 @@
 import { publishNotePromiseAction } from "@/redux/actions/publish.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
+import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { getCurrentTimestamp } from "@trustroots/nr-common";
 import { useMemo, useState } from "react";
 import {
   Button,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 import Toast from "react-native-root-toast";
@@ -121,54 +119,50 @@ export default function AddNoteForm() {
   );
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-    >
-      <View style={styles.contentContainer}>
-        <Text style={styles.inputLabel}>Add Note to Map</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your note"
-          value={noteContent}
-          onChangeText={setNoteContent}
-          onSubmitEditing={handleAddNote}
-          multiline={true}
-        />
+    <View style={styles.contentContainer}>
+      <Text style={styles.inputLabel}>Add Note to Map</Text>
+      <BottomSheetTextInput
+        style={styles.input}
+        placeholder="Enter your note"
+        value={noteContent}
+        onChangeText={setNoteContent}
+        onSubmitEditing={handleAddNote}
+        multiline={true}
+      />
 
-        <Text>Note expiry:</Text>
-        <Select
-          onValueChange={(selectedOption) => {
-            if (typeof selectedOption !== "undefined") {
-              setNoteExpiry(selectedOption.value);
-            }
-          }}
-          defaultValue={noteExpiryOptions[3]}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select a fruit" />
-          </SelectTrigger>
-          <SelectContent className="w-[180px]">
-            <SelectGroup>
-              <SelectLabel>Note expiry</SelectLabel>
-              {noteExpiryOptions.map(({ label, value }, index) => (
-                <SelectItem label={label} value={value} key={index}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+      <Text>Note expiry:</Text>
+      <Select
+        onValueChange={(selectedOption) => {
+          if (typeof selectedOption !== "undefined") {
+            setNoteExpiry(selectedOption.value);
+          }
+        }}
+        defaultValue={noteExpiryOptions[3]}
+      >
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Select a fruit" />
+        </SelectTrigger>
+        <SelectContent className="w-[180px]">
+          <SelectGroup>
+            <SelectLabel>Note expiry</SelectLabel>
+            {noteExpiryOptions.map(({ label, value }, index) => (
+              <SelectItem label={label} value={value} key={index}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        </SelectContent>
+      </Select>
 
-        <View style={styles.buttonContainer}>
-          <View style={styles.button}>
-            <Button title="Add Note" onPress={handleAddNote} />
-          </View>
-          <View style={styles.button}>
-            <Button title="Cancel" onPress={closeModal} />
-          </View>
+      <View style={styles.buttonContainer}>
+        <View style={styles.button}>
+          <Button title="Add Note" onPress={handleAddNote} />
+        </View>
+        <View style={styles.button}>
+          <Button title="Cancel" onPress={closeModal} />
         </View>
       </View>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

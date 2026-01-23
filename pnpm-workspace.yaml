@@ -1,3 +1,4 @@
 packages:
   - 'nr-app'
   - 'nr-common/build'
+  - 'nr-web'

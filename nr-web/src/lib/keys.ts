@@ -1,5 +1,5 @@
 import { getPublicKey, nip19 } from "nostr-tools";
-import { bytesToHex, hexToBytes } from "@noble/hashes/utils";
+import { bytesToHex } from "@noble/hashes/utils";
 import * as bip39 from "@scure/bip39";
 import { wordlist } from "@scure/bip39/wordlists/english";
 import { HDKey } from "@scure/bip32";
@@ -85,18 +85,4 @@ export function importMnemonic(mnemonic: string): {
     privateKey,
     publicKey,
   };
-}
-
-/**
- * Convert hex private key to nsec
- */
-export function hexToNsec(hex: string): string {
-  return nip19.nsecEncode(hexToBytes(hex));
-}
-
-/**
- * Convert hex public key to npub
- */
-export function hexToNpub(hex: string): string {
-  return nip19.npubEncode(hex);
 }

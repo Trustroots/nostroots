@@ -37,7 +37,6 @@ interface NostrState {
 
   // UI State
   selectedEvent: Event | null;
-  replyingToEvent: Event | null;
 
   // Actions
   connect: () => Promise<void>;
@@ -61,7 +60,6 @@ interface NostrState {
 
   // UI actions
   setSelectedEvent: (event: Event | null) => void;
-  setReplyingToEvent: (event: Event | null) => void;
 }
 
 export const useNostrStore = create<NostrState>()(
@@ -86,7 +84,6 @@ export const useNostrStore = create<NostrState>()(
       },
       developerMode: false,
       selectedEvent: null,
-      replyingToEvent: null,
 
       // Connect to relay
       connect: async () => {
@@ -170,10 +167,13 @@ export const useNostrStore = create<NostrState>()(
 
         await relay.publish(event);
 
-        // Add to local state
-        set((state) => ({
-          events: [...state.events, event],
-        }));
+        // Add to local state only if not already present (avoid race condition with subscription)
+        set((state) => {
+          if (state.events.some((e) => e.id === event.id)) {
+            return state;
+          }
+          return { events: [...state.events, event] };
+        });
       },
 
       // Toggle layer visibility
@@ -220,10 +220,6 @@ export const useNostrStore = create<NostrState>()(
       // UI actions
       setSelectedEvent: (event: Event | null) => {
         set({ selectedEvent: event });
-      },
-
-      setReplyingToEvent: (event: Event | null) => {
-        set({ replyingToEvent: event });
       },
     }),
     {

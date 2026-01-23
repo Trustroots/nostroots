@@ -62,6 +62,9 @@ export function formatDistanceToNow(timestamp: number): string {
 /**
  * Get plus code prefix tags for an event
  * Returns prefixes from 2 characters up to the full code length
+ * 
+ * Plus codes are formatted as: XXXXXXXX+XX (8 chars, +, 2 chars)
+ * Prefixes should be: XX000000+, XXXX0000+, XXXXXX00+, XXXXXXXX+, XXXXXXXX+XX
  */
 export function getPlusCodePrefixes(plusCode: string): string[] {
   const prefixes: string[] = [];
@@ -72,8 +75,11 @@ export function getPlusCodePrefixes(plusCode: string): string[] {
     const prefix = cleanCode.slice(0, len);
     // Add back the + for proper formatting
     if (len <= 8) {
-      prefixes.push(prefix + "000000+".slice(0, 8 - len + 1));
+      // Pad with zeros and add + at position 8
+      const paddedPrefix = prefix + "0".repeat(8 - len) + "+";
+      prefixes.push(paddedPrefix);
     } else {
+      // For codes longer than 8, format as XXXXXXXX+XX
       prefixes.push(
         prefix.slice(0, 8) + "+" + prefix.slice(8)
       );
@@ -81,12 +87,4 @@ export function getPlusCodePrefixes(plusCode: string): string[] {
   }
 
   return prefixes;
-}
-
-/**
- * Truncate a string with ellipsis
- */
-export function truncate(str: string, maxLength: number): string {
-  if (str.length <= maxLength) return str;
-  return str.slice(0, maxLength - 3) + "...";
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNostrStore } from "@/store/nostr";
 import { createMapNote } from "@/lib/events";
 import OpenLocationCode from "open-location-code";
@@ -18,6 +18,15 @@ export function AddNoteModal({ isOpen, onClose, location }: AddNoteModalProps) {
 
   const publishEvent = useNostrStore((state) => state.publishEvent);
   const privateKey = useNostrStore((state) => state.privateKey);
+
+  // Reset state when modal opens or location changes
+  useEffect(() => {
+    if (isOpen) {
+      setContent("");
+      setError(null);
+      setIsSubmitting(false);
+    }
+  }, [isOpen, location]);
 
   if (!isOpen || !location) return null;
 

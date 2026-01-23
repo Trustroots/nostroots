@@ -1,7 +1,8 @@
 import * as amqp from "@nashaddams/amqp";
 import { TextLineStream } from "@std/streams";
 import { parseJsonLine } from "./src/parseLines.ts";
-import { acceptEvent } from "./src/strfryResponses.ts";
+import { acceptEvent, rejectEvent } from "./src/strfryResponses.ts";
+import { whitelistKinds } from "./src/whitelistKinds.ts";
 
 const EXCHANGE_NAME = "nostrEvents";
 // const QUEUE_NAME = "repost";
@@ -39,14 +40,6 @@ await channel.declareExchange({
   type: "fanout",
 });
 
-channel.publish(
-  {
-    exchange: EXCHANGE_NAME,
-  },
-  { contentType: "application/json" },
-  new TextEncoder().encode(JSON.stringify({ foo: "bar" })),
-);
-
 const stdin = await Deno.stdin.readable
   .pipeThrough(new TextDecoderStream())
   .pipeThrough(new TextLineStream());
@@ -60,6 +53,19 @@ for await (const jsonLine of stdin) {
     continue;
   }
 
-  // Accept this line
-  acceptEvent(strfryLine);
+  if (whitelistKinds(strfryLine)) {
+    // Publish every event to
+    channel.publish(
+      {
+        exchange: EXCHANGE_NAME,
+      },
+      { contentType: "application/json" },
+      new TextEncoder().encode(JSON.stringify(strfryLine)),
+    );
+
+    // Accept this line
+    acceptEvent(strfryLine);
+  } else {
+    rejectEvent(strfryLine, "403");
+  }
 }

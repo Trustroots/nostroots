@@ -9,29 +9,33 @@ declare module "open-location-code" {
     longitudeCenter: number;
   }
 
-  function encode(
-    latitude: number,
-    longitude: number,
-    codeLength?: number
-  ): string;
+  class OpenLocationCode {
+    encode(
+      latitude: number,
+      longitude: number,
+      codeLength?: number
+    ): string;
 
-  function decode(code: string): CodeArea;
+    decode(code: string): CodeArea;
 
-  function isFull(code: string): boolean;
+    isFull(code: string): boolean;
 
-  function isShort(code: string): boolean;
+    isShort(code: string): boolean;
 
-  function isValid(code: string): boolean;
+    isValid(code: string): boolean;
 
-  function recoverNearest(
-    shortCode: string,
-    referenceLatitude: number,
-    referenceLongitude: number
-  ): string;
+    recoverNearest(
+      shortCode: string,
+      referenceLatitude: number,
+      referenceLongitude: number
+    ): string;
 
-  function shorten(
-    code: string,
-    latitude: number,
-    longitude: number
-  ): string;
+    shorten(
+      code: string,
+      latitude: number,
+      longitude: number
+    ): string;
+  }
+
+  export { OpenLocationCode };
 }

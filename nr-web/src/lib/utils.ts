@@ -1,5 +1,8 @@
 import { Event } from "nostr-tools";
-import OpenLocationCode from "open-location-code";
+import { OpenLocationCode } from "open-location-code";
+
+// Create a singleton instance of OpenLocationCode
+const olc = new OpenLocationCode();
 
 /**
  * Get location coordinates from a nostr event's plus code tags
@@ -20,11 +23,11 @@ export function getLocationFromEvent(
 
   try {
     // Validate and decode the plus code
-    if (!OpenLocationCode.isFull(plusCode)) {
+    if (!olc.isFull(plusCode)) {
       return null;
     }
 
-    const decoded = OpenLocationCode.decode(plusCode);
+    const decoded = olc.decode(plusCode);
     return {
       lat: decoded.latitudeCenter,
       lng: decoded.longitudeCenter,

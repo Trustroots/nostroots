@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useNostrStore } from "@/store/nostr";
 import { generateKeyPair, importNsec, importMnemonic } from "@/lib/keys";
+import { createProfileEvent } from "@/lib/events";
 import { nip19 } from "nostr-tools";
 import { hexToBytes } from "@noble/hashes/utils";
 
@@ -10,23 +11,34 @@ export default function SettingsPage() {
   const {
     publicKey,
     privateKey,
+    mnemonic,
+    trustrootsUsername,
+    hasCompletedOnboarding,
+    developerMode,
     setKeys,
     clearKeys,
     connectionStatus,
     enabledLayers,
     toggleLayer,
+    toggleDeveloperMode,
+    setTrustrootsUsername,
+    resetOnboarding,
+    publishEvent,
   } = useNostrStore();
 
   const [nsecInput, setNsecInput] = useState("");
   const [mnemonicInput, setMnemonicInput] = useState("");
+  const [usernameInput, setUsernameInput] = useState("");
   const [showPrivateKey, setShowPrivateKey] = useState(false);
+  const [showMnemonic, setShowMnemonic] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
 
   const handleGenerateKeys = () => {
     try {
       const keys = generateKeyPair();
-      setKeys(keys.privateKey, keys.publicKey);
+      setKeys(keys.privateKey, keys.publicKey, keys.mnemonic);
       setSuccess("New keys generated successfully!");
       setError(null);
     } catch {
@@ -51,7 +63,7 @@ export default function SettingsPage() {
   const handleImportMnemonic = () => {
     try {
       const keys = importMnemonic(mnemonicInput.trim());
-      setKeys(keys.privateKey, keys.publicKey);
+      setKeys(keys.privateKey, keys.publicKey, mnemonicInput.trim());
       setMnemonicInput("");
       setSuccess("Mnemonic imported successfully!");
       setError(null);
@@ -65,6 +77,28 @@ export default function SettingsPage() {
     if (confirm("Are you sure you want to clear your keys? Make sure you have backed them up!")) {
       clearKeys();
       setSuccess("Keys cleared");
+    }
+  };
+
+  const handlePublishProfile = async () => {
+    if (!privateKey || !usernameInput.trim()) {
+      setError("Please enter a username");
+      return;
+    }
+
+    setIsPublishing(true);
+    setError(null);
+
+    try {
+      const profileEvent = createProfileEvent(usernameInput.trim(), privateKey);
+      await publishEvent(profileEvent);
+      setTrustrootsUsername(usernameInput.trim());
+      setUsernameInput("");
+      setSuccess("Profile published successfully!");
+    } catch {
+      setError("Failed to publish profile");
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -121,6 +155,75 @@ export default function SettingsPage() {
             </label>
           ))}
         </div>
+      </section>
+
+      {/* Trustroots Profile */}
+      <section className="mb-8 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+        <h2 className="text-xl font-semibold mb-4">Trustroots Profile</h2>
+
+        {trustrootsUsername ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-trustroots to-trustroots-dark flex items-center justify-center text-white font-bold text-xl">
+                {trustrootsUsername[0].toUpperCase()}
+              </div>
+              <div>
+                <p className="font-medium text-gray-900">@{trustrootsUsername}</p>
+                <a
+                  href={`https://www.trustroots.org/profile/${trustrootsUsername}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-trustroots hover:underline"
+                >
+                  View on Trustroots →
+                </a>
+              </div>
+            </div>
+            <button
+              onClick={() => setTrustrootsUsername(null)}
+              className="text-sm text-red-600 hover:text-red-700"
+            >
+              Unlink profile
+            </button>
+          </div>
+        ) : publicKey ? (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Link your Trustroots username to build trust in the community.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Trustroots Username
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={usernameInput}
+                  onChange={(e) => setUsernameInput(e.target.value)}
+                  placeholder="your-username"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+                <button
+                  onClick={handlePublishProfile}
+                  disabled={isPublishing || !usernameInput.trim()}
+                  className="px-4 py-2 bg-trustroots hover:bg-trustroots-dark disabled:bg-gray-300 text-white rounded-lg text-sm"
+                >
+                  {isPublishing ? "Publishing..." : "Link"}
+                </button>
+              </div>
+            </div>
+            <a
+              href="/onboarding"
+              className="text-sm text-trustroots hover:underline"
+            >
+              Or complete the full onboarding →
+            </a>
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500">
+            Set up your identity first to link your Trustroots profile.
+          </p>
+        )}
       </section>
 
       {/* Identity Section */}
@@ -182,6 +285,28 @@ export default function SettingsPage() {
                     className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
                   >
                     {showPrivateKey ? "Hide" : "Show"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {mnemonic && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Recovery Phrase (12 words) - Keep this secret!
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type={showMnemonic ? "text" : "password"}
+                    readOnly
+                    value={mnemonic}
+                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-mono"
+                  />
+                  <button
+                    onClick={() => setShowMnemonic(!showMnemonic)}
+                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm"
+                  >
+                    {showMnemonic ? "Hide" : "Show"}
                   </button>
                 </div>
               </div>
@@ -262,7 +387,7 @@ export default function SettingsPage() {
       </section>
 
       {/* Help Section */}
-      <section className="p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+      <section className="mb-8 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
         <h2 className="text-xl font-semibold mb-4">Help</h2>
 
         <div className="space-y-4 text-gray-600">
@@ -301,6 +426,68 @@ export default function SettingsPage() {
           </div>
         </div>
       </section>
+
+      {/* Developer Mode */}
+      <section className="mb-8 p-6 bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold">Developer Mode</h2>
+            <p className="text-sm text-gray-500">Enable advanced features and debugging</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={developerMode}
+              onChange={toggleDeveloperMode}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-trustroots/20 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-trustroots"></div>
+          </label>
+        </div>
+      </section>
+
+      {/* Developer Options (only shown when developer mode is on) */}
+      {developerMode && (
+        <section className="mb-8 p-6 bg-yellow-50 rounded-lg shadow-sm border border-yellow-200">
+          <h2 className="text-xl font-semibold mb-4 text-yellow-800">
+            🛠️ Developer Options
+          </h2>
+
+          <div className="space-y-4">
+            <div>
+              <h3 className="font-medium text-yellow-800">Onboarding Status</h3>
+              <p className="text-sm text-yellow-700">
+                Completed: {hasCompletedOnboarding ? "Yes" : "No"}
+              </p>
+              <button
+                onClick={resetOnboarding}
+                className="mt-2 px-3 py-1.5 bg-yellow-200 hover:bg-yellow-300 text-yellow-800 rounded-lg text-sm"
+              >
+                Reset Onboarding
+              </button>
+            </div>
+
+            <div>
+              <h3 className="font-medium text-yellow-800">Debug Info</h3>
+              <pre className="mt-2 p-3 bg-yellow-100 rounded-lg text-xs overflow-auto">
+                {JSON.stringify(
+                  {
+                    connectionStatus,
+                    hasPublicKey: !!publicKey,
+                    hasPrivateKey: !!privateKey,
+                    hasMnemonic: !!mnemonic,
+                    trustrootsUsername,
+                    hasCompletedOnboarding,
+                    enabledLayers,
+                  },
+                  null,
+                  2
+                )}
+              </pre>
+            </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

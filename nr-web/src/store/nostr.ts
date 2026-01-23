@@ -10,6 +10,8 @@ import {
 
 type ConnectionStatus = "disconnected" | "connecting" | "connected";
 
+type OnboardingStep = "welcome" | "identity" | "backup" | "link" | "complete";
+
 interface NostrState {
   // Connection
   relay: Relay | null;
@@ -21,17 +23,45 @@ interface NostrState {
   // Identity
   publicKey: string | null;
   privateKey: string | null;
+  mnemonic: string | null;
+  trustrootsUsername: string | null;
+
+  // Onboarding
+  hasCompletedOnboarding: boolean;
+  hasSeenWelcome: boolean;
+  onboardingStep: OnboardingStep;
 
   // Settings
   enabledLayers: Record<string, boolean>;
+  developerMode: boolean;
+
+  // UI State
+  selectedEvent: Event | null;
+  replyingToEvent: Event | null;
 
   // Actions
   connect: () => Promise<void>;
   disconnect: () => void;
-  setKeys: (privateKey: string, publicKey: string) => void;
+  setKeys: (privateKey: string, publicKey: string, mnemonic?: string) => void;
   clearKeys: () => void;
   publishEvent: (event: Event) => Promise<void>;
   toggleLayer: (layer: string) => void;
+  
+  // Onboarding actions
+  setOnboardingStep: (step: OnboardingStep) => void;
+  completeOnboarding: () => void;
+  setHasSeenWelcome: (seen: boolean) => void;
+  resetOnboarding: () => void;
+
+  // Profile actions
+  setTrustrootsUsername: (username: string | null) => void;
+
+  // Settings actions
+  toggleDeveloperMode: () => void;
+
+  // UI actions
+  setSelectedEvent: (event: Event | null) => void;
+  setReplyingToEvent: (event: Event | null) => void;
 }
 
 export const useNostrStore = create<NostrState>()(
@@ -43,12 +73,20 @@ export const useNostrStore = create<NostrState>()(
       events: [],
       publicKey: null,
       privateKey: null,
+      mnemonic: null,
+      trustrootsUsername: null,
+      hasCompletedOnboarding: false,
+      hasSeenWelcome: false,
+      onboardingStep: "welcome",
       enabledLayers: {
         trustroots: true,
         hitchmap: true,
         hitchwiki: true,
         unverified: true,
       },
+      developerMode: false,
+      selectedEvent: null,
+      replyingToEvent: null,
 
       // Connect to relay
       connect: async () => {
@@ -73,7 +111,7 @@ export const useNostrStore = create<NostrState>()(
           // Subscribe to events
           const filters: Filter[] = [
             {
-              kinds: [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND, TRUSTROOTS_PROFILE_KIND, 30399],
+              kinds: [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND, TRUSTROOTS_PROFILE_KIND, 30399, 1],
               limit: 500,
             },
           ];
@@ -113,13 +151,13 @@ export const useNostrStore = create<NostrState>()(
       },
 
       // Set keys
-      setKeys: (privateKey: string, publicKey: string) => {
-        set({ privateKey, publicKey });
+      setKeys: (privateKey: string, publicKey: string, mnemonic?: string) => {
+        set({ privateKey, publicKey, mnemonic: mnemonic || null });
       },
 
       // Clear keys
       clearKeys: () => {
-        set({ privateKey: null, publicKey: null });
+        set({ privateKey: null, publicKey: null, mnemonic: null, trustrootsUsername: null });
       },
 
       // Publish event
@@ -147,14 +185,59 @@ export const useNostrStore = create<NostrState>()(
           },
         }));
       },
+
+      // Onboarding actions
+      setOnboardingStep: (step: OnboardingStep) => {
+        set({ onboardingStep: step });
+      },
+
+      completeOnboarding: () => {
+        set({ hasCompletedOnboarding: true, onboardingStep: "complete" });
+      },
+
+      setHasSeenWelcome: (seen: boolean) => {
+        set({ hasSeenWelcome: seen });
+      },
+
+      resetOnboarding: () => {
+        set({
+          hasCompletedOnboarding: false,
+          hasSeenWelcome: false,
+          onboardingStep: "welcome",
+        });
+      },
+
+      // Profile actions
+      setTrustrootsUsername: (username: string | null) => {
+        set({ trustrootsUsername: username });
+      },
+
+      // Settings actions
+      toggleDeveloperMode: () => {
+        set((state) => ({ developerMode: !state.developerMode }));
+      },
+
+      // UI actions
+      setSelectedEvent: (event: Event | null) => {
+        set({ selectedEvent: event });
+      },
+
+      setReplyingToEvent: (event: Event | null) => {
+        set({ replyingToEvent: event });
+      },
     }),
     {
       name: "nostroots-web-storage",
       partialize: (state) => ({
         publicKey: state.publicKey,
         privateKey: state.privateKey,
+        mnemonic: state.mnemonic,
+        trustrootsUsername: state.trustrootsUsername,
+        hasCompletedOnboarding: state.hasCompletedOnboarding,
+        hasSeenWelcome: state.hasSeenWelcome,
         enabledLayers: state.enabledLayers,
-        // Don't persist events - they should be fetched fresh
+        developerMode: state.developerMode,
+        // Don't persist: events, relay, connectionStatus, UI state
       }),
     }
   )

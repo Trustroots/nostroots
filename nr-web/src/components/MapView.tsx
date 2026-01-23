@@ -5,15 +5,16 @@ import {
   MapContainer,
   TileLayer,
   Marker,
-  Popup,
   useMap,
   useMapEvents,
 } from "react-leaflet";
 import L from "leaflet";
 import { useNostrStore } from "@/store/nostr";
-import { getLocationFromEvent, formatDistanceToNow } from "@/lib/utils";
+import { getLocationFromEvent } from "@/lib/utils";
 import { AddNoteModal } from "./AddNoteModal";
 import { LayerToggle } from "./LayerToggle";
+import { EventDetailModal } from "./EventDetailModal";
+import { Event } from "nostr-tools";
 
 // Fix for default marker icons in Leaflet with Next.js
 const defaultIcon = L.icon({
@@ -77,7 +78,7 @@ function MapClickHandler({
 }) {
   useMapEvents({
     click: () => {
-      // Right click or long press would be better for mobile
+      // Regular click does nothing - use right click to add notes
     },
     contextmenu: (event) => {
       event.originalEvent.preventDefault();
@@ -125,11 +126,35 @@ function LocationButton() {
   );
 }
 
+// Marker component with click handler
+function EventMarker({
+  event,
+  location,
+  layer,
+  onClick,
+}: {
+  event: Event;
+  location: { lat: number; lng: number };
+  layer: string;
+  onClick: (event: Event) => void;
+}) {
+  return (
+    <Marker
+      position={[location.lat, location.lng]}
+      icon={layerIcons[layer] || defaultIcon}
+      eventHandlers={{
+        click: () => onClick(event),
+      }}
+    />
+  );
+}
+
 export default function MapView() {
   const events = useNostrStore((state) => state.events);
   const enabledLayers = useNostrStore((state) => state.enabledLayers);
   const publicKey = useNostrStore((state) => state.publicKey);
   const connect = useNostrStore((state) => state.connect);
+  const setSelectedEvent = useNostrStore((state) => state.setSelectedEvent);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<{
@@ -142,8 +167,9 @@ export default function MapView() {
     connect();
   }, [connect]);
 
-  // Filter events that have location data
+  // Filter events that have location data (exclude kind 1 replies which may not have locations)
   const eventsWithLocation = events
+    .filter((event) => event.kind !== 1) // Exclude text note replies
     .map((event) => {
       const location = getLocationFromEvent(event);
       if (!location) return null;
@@ -183,6 +209,10 @@ export default function MapView() {
     setModalOpen(true);
   };
 
+  const handleMarkerClick = (event: Event) => {
+    setSelectedEvent(event);
+  };
+
   return (
     <div className="relative w-full h-full">
       <MapContainer
@@ -197,42 +227,13 @@ export default function MapView() {
         />
 
         {eventsWithLocation.map(({ event, location, layer }) => (
-          <Marker
+          <EventMarker
             key={event.id}
-            position={[location.lat, location.lng]}
-            icon={layerIcons[layer] || defaultIcon}
-          >
-            <Popup maxWidth={300}>
-              <div className="max-w-[280px]">
-                <p className="text-sm text-gray-800 whitespace-pre-wrap break-words mb-2">
-                  {event.content || <em className="text-gray-400">No content</em>}
-                </p>
-                <div className="text-xs text-gray-500 border-t pt-2">
-                  <p>
-                    {formatDistanceToNow(event.created_at * 1000)}
-                  </p>
-                  <p className="truncate">
-                    By: {event.pubkey.slice(0, 12)}...
-                  </p>
-                  <p className="mt-1">
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded text-xs ${
-                        layer === "trustroots"
-                          ? "bg-green-100 text-green-800"
-                          : layer === "hitchmap"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : layer === "hitchwiki"
-                              ? "bg-amber-100 text-amber-800"
-                              : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {layer}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </Popup>
-          </Marker>
+            event={event}
+            location={location}
+            layer={layer}
+            onClick={handleMarkerClick}
+          />
         ))}
 
         <MapClickHandler onMapClick={handleMapClick} />
@@ -261,6 +262,9 @@ export default function MapView() {
         }}
         location={selectedLocation}
       />
+
+      {/* Event detail modal */}
+      <EventDetailModal />
     </div>
   );
 }

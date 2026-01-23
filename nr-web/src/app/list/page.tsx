@@ -7,8 +7,11 @@ export default function ListPage() {
   const events = useNostrStore((state) => state.events);
   const connectionStatus = useNostrStore((state) => state.connectionStatus);
 
+  // Filter out kind 1 events (text notes/replies) from the list view
+  const filteredEvents = events.filter((event) => event.kind !== 1);
+
   // Group events by kind
-  const groupedEvents = events.reduce(
+  const groupedEvents = filteredEvents.reduce(
     (acc, event) => {
       const kind = event.kind.toString();
       if (!acc[kind]) {
@@ -66,7 +69,7 @@ export default function ListPage() {
 
       <div className="mb-4 p-4 bg-trustroots/10 rounded-lg">
         <p className="text-lg font-medium text-trustroots-dark">
-          Total: {events.length} events
+          Total: {filteredEvents.length} events
         </p>
       </div>
 
@@ -122,7 +125,7 @@ export default function ListPage() {
         </div>
       ))}
 
-      {events.length === 0 && (
+      {filteredEvents.length === 0 && (
         <div className="text-center py-12 text-gray-500">
           <p>No events yet. Waiting for data from relay...</p>
         </div>

@@ -478,7 +478,7 @@
         let map = null;
         let markers = [];
         let events = [];
-        let selectedLocation = null;
+        let selectedPlusCode = null;
         let currentPrivateKey = null;
         let currentPrivateKeyBytes = null;
         let currentPublicKey = null;
@@ -1036,10 +1036,8 @@
                 if (layer && enabledLayers.includes(layer)) {
                     const plusCode = getPlusCodeFromEvent(event);
                     if (plusCode) {
-                        const coords = decodePlusCode(plusCode);
-                        if (coords) {
-                            addMarkerToMap(event, coords, layer);
-                        }
+                        // Pass plus code directly, conversion happens in addMarkerToMap
+                        addMarkerToMap(event, plusCode, layer);
                     }
                 }
             });
@@ -1077,9 +1075,13 @@
             return enabled;
         }
         
-        function addMarkerToMap(event, coords, layerKey) {
+        function addMarkerToMap(event, plusCode, layerKey) {
             const layer = MAP_LAYERS[layerKey];
             if (!layer) return;
+            
+            // Convert plus code to coordinates for map display
+            const coords = decodePlusCode(plusCode);
+            if (!coords) return;
             
             const el = document.createElement('div');
             el.style.width = '12px';
@@ -1146,10 +1148,16 @@
             }
             
             map.on('click', (e) => {
-                selectedLocation = { lat: e.lngLat.lat, lng: e.lngLat.lng };
-                document.getElementById('note-location-info').textContent = 
-                    `Location: ${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`;
-                document.getElementById('add-note-modal').classList.add('active');
+                // Convert clicked coordinates to plus code immediately
+                const plusCode = encodePlusCode(e.lngLat.lat, e.lngLat.lng);
+                if (plusCode) {
+                    selectedPlusCode = plusCode;
+                    document.getElementById('note-location-info').textContent = 
+                        `Plus Code: ${plusCode}`;
+                    document.getElementById('add-note-modal').classList.add('active');
+                } else {
+                    showStatus('Error encoding location to plus code', 'error');
+                }
             });
             
             // Update plus code grid when map moves
@@ -1279,7 +1287,7 @@
                 return;
             }
             
-            if (!selectedLocation) {
+            if (!selectedPlusCode) {
                 showStatus('Please select a location on the map', 'error');
                 return;
             }
@@ -1293,7 +1301,8 @@
             const expirationDays = parseInt(document.getElementById('note-expiration').value) || 7;
             const expiration = Math.floor(Date.now() / 1000) + (expirationDays * 24 * 60 * 60);
             
-            const plusCode = encodePlusCode(selectedLocation.lat, selectedLocation.lng);
+            // Use the selected plus code directly
+            const plusCode = selectedPlusCode;
             const plusCodePrefixes = getPlusCodePrefixes(plusCode, DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH);
             
             try {
@@ -1367,7 +1376,7 @@
             document.getElementById('add-note-modal').classList.remove('active');
             document.getElementById('note-content').value = '';
             document.getElementById('note-expiration').value = '7';
-            selectedLocation = null;
+            selectedPlusCode = null;
         }
         
         function closeViewNoteModal() {

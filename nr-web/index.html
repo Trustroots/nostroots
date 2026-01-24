@@ -1,0 +1,1509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nostroots Web</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    
+    <!-- MapLibre GL CSS -->
+    <link href="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css" rel="stylesheet" />
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+        }
+        
+        .header {
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .tab {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .tab.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .tab:hover:not(.active) {
+            background: #f0f0f0;
+        }
+        
+        .view {
+            display: none;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .view.active {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        #map {
+            width: 100%;
+            height: 100%;
+            min-height: 400px;
+        }
+        
+        .map-container {
+            position: relative;
+            flex: 1;
+            min-height: 400px;
+        }
+        
+        .layer-controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            border-radius: 4px;
+            z-index: 1000;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .layer-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 4px 0;
+        }
+        
+        .list-view {
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        
+        .event-item {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+            color: #666;
+        }
+        
+        .event-content {
+            margin: 0.5rem 0;
+        }
+        
+        .event-tags {
+            font-size: 0.8rem;
+            color: #999;
+            margin-top: 0.5rem;
+        }
+        
+        .settings-view {
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        
+        .settings-section {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .settings-section h2 {
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+        
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+        
+        .status {
+            padding: 0.5rem 1rem;
+            margin: 0.5rem 0;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Nostroots Web</h1>
+        <div class="tabs">
+            <button class="tab active" data-tab="map">Map</button>
+            <button class="tab" data-tab="list">List</button>
+            <button class="tab" data-tab="settings">Settings</button>
+        </div>
+    </div>
+    
+    <!-- Map View -->
+    <div class="view active" id="map-view">
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="layer-controls">
+                <div class="layer-control">
+                    <input type="checkbox" id="layer-trustroots" checked>
+                    <label for="layer-trustroots">Trustroots</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="layer-hitchmap" checked>
+                    <label for="layer-hitchmap">Hitchmap</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="layer-hitchwiki" checked>
+                    <label for="layer-hitchwiki">Hitchwiki</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="layer-timesafari" checked>
+                    <label for="layer-timesafari">Time Safari</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="layer-triphopping" checked>
+                    <label for="layer-triphopping">Trip Hopping</label>
+                </div>
+                <div class="layer-control">
+                    <input type="checkbox" id="layer-unverified" checked>
+                    <label for="layer-unverified">Unverified</label>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- List View -->
+    <div class="view" id="list-view">
+        <div class="list-view">
+            <h2>Events</h2>
+            <div id="events-list"></div>
+        </div>
+    </div>
+    
+    <!-- Settings View -->
+    <div class="view" id="settings-view">
+        <div class="settings-view">
+            <div class="settings-section">
+                <h2>Keys</h2>
+                <div class="form-group">
+                    <label>Public Key (npub)</label>
+                    <input type="text" id="npub-display" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Public Key (hex)</label>
+                    <input type="text" id="pubkey-hex-display" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Import nsec</label>
+                    <input type="text" id="nsec-import" placeholder="nsec1...">
+                    <button class="btn" onclick="importNsec()">Import</button>
+                </div>
+                <button class="btn" onclick="generateKeyPair()">Generate New Key</button>
+            </div>
+            
+            <div class="settings-section">
+                <h2>Relays</h2>
+                <div class="form-group">
+                    <label>Relay URLs (one per line)</label>
+                    <textarea id="relay-urls" rows="3">wss://relay.trustroots.org</textarea>
+                    <button class="btn" onclick="saveRelays()">Save Relays</button>
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h2>Trustroots Profile</h2>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="trustroots-username" placeholder="your-username">
+                    <button class="btn" onclick="linkTrustrootsProfile()">Link Profile</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modals -->
+    <div class="modal" id="onboarding-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Welcome to Nostroots</h2>
+            </div>
+            <p>You need a nostr key to get started. You can either generate a new one or import an existing nsec.</p>
+            <div class="form-group">
+                <label>Import nsec (optional)</label>
+                <input type="text" id="onboarding-nsec" placeholder="nsec1...">
+            </div>
+            <button class="btn" onclick="onboardingGenerate()">Generate New Key</button>
+            <button class="btn btn-secondary" onclick="onboardingImport()">Import nsec</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="add-note-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Add Note</h2>
+                <button class="modal-close" onclick="closeAddNoteModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <label>Content</label>
+                <textarea id="note-content" rows="4" placeholder="Enter your note..."></textarea>
+            </div>
+            <div class="form-group">
+                <label>Expiration (days)</label>
+                <input type="number" id="note-expiration" value="7" min="1" max="365">
+            </div>
+            <div id="note-location-info"></div>
+            <button class="btn" onclick="publishNote()">Publish Note</button>
+        </div>
+    </div>
+    
+    <div class="modal" id="view-note-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Note Details</h2>
+                <button class="modal-close" onclick="closeViewNoteModal()">&times;</button>
+            </div>
+            <div id="note-details"></div>
+        </div>
+    </div>
+    
+    <!-- MapLibre GL JS -->
+    <script src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
+    
+    <script type="module">
+        // Import nostr-tools for crypto operations
+        import { 
+            finalizeEvent, 
+            getPublicKey, 
+            nip19,
+            Relay 
+        } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.10.3/+esm';
+        
+        // NDK is not loaded from CDN due to CORS/MIME type issues
+        // We use nostr-tools Relay directly instead, which works reliably
+        const NDK = null;
+        
+        // Constants from nr-common
+        const MAP_NOTE_KIND = 30397;
+        const MAP_NOTE_REPOST_KIND = 30398;
+        const TRUSTROOTS_PROFILE_KIND = 10390;
+        const DEFAULT_RELAY_URL = 'wss://relay.trustroots.org';
+        const DEFAULT_RELAYS = ['wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
+        const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2;
+        
+        const NOSTROOTS_VALIDATION_PUBKEY = 'f5bc71692fc08ea52c0d1c8bcfb87579584106b5feb4ea542b1b8a95612f257b';
+        const HITCHMAPS_AUTHOR_PUBLIC_KEY = '53055ee011e96a00a705b38253b9cbc6614ccbd37df4dad42ec69bbe608c4209';
+        const HITCHWIKI_AUTHOR_PUBLIC_KEY = '16db5234c1dd8082897bd2d21bbec4b8051d2cd03e24b819aa5232077d443da9';
+        const TIMESAFARI_AUTHOR_PUBLIC_KEY = '76e88d2e653fc3655f8e0b97f6bc85f5468eaffc5d64522b584ce13eedbd8af7';
+        const DEV_PUBKEY = '80789235a71a388074abfa5c482e270456d2357425266270f82071cf2b1de74a';
+        
+        const MAP_LAYERS = {
+            trustroots: {
+                title: 'Trustroots',
+                filter: { authors: [NOSTROOTS_VALIDATION_PUBKEY], kinds: [MAP_NOTE_REPOST_KIND] },
+                kind: 30398,
+                pubkey: NOSTROOTS_VALIDATION_PUBKEY,
+                markerColor: 'green',
+                rectangleColor: 'grey'
+            },
+            hitchmap: {
+                title: 'Hitchmap',
+                filter: { kinds: [30399], authors: [HITCHMAPS_AUTHOR_PUBLIC_KEY] },
+                kind: 30399,
+                pubkey: HITCHMAPS_AUTHOR_PUBLIC_KEY,
+                markerColor: 'yellow',
+                rectangleColor: 'rgba(255, 255, 0, 0.5)'
+            },
+            hitchwiki: {
+                title: 'Hitchwiki',
+                filter: { kinds: [30399], authors: [HITCHWIKI_AUTHOR_PUBLIC_KEY] },
+                kind: 30399,
+                pubkey: HITCHWIKI_AUTHOR_PUBLIC_KEY,
+                markerColor: 'gold',
+                rectangleColor: 'rgba(255, 215, 0, 0.5)'
+            },
+            timesafari: {
+                title: 'Time Safari',
+                filter: { kinds: [30399], authors: [TIMESAFARI_AUTHOR_PUBLIC_KEY] },
+                kind: 30399,
+                pubkey: TIMESAFARI_AUTHOR_PUBLIC_KEY,
+                markerColor: 'blue',
+                rectangleColor: 'rgba(0, 0, 255, 0.5)'
+            },
+            triphopping: {
+                title: 'Trip Hopping',
+                filter: { kinds: [30398], authors: [DEV_PUBKEY] },
+                kind: 30398,
+                pubkey: DEV_PUBKEY,
+                markerColor: 'brown',
+                rectangleColor: 'rgba(0, 0, 255, 0.5)'
+            },
+            unverified: {
+                title: 'Unverified',
+                filter: { kinds: [30397] },
+                kind: 30397,
+                pubkey: '',
+                markerColor: 'red',
+                rectangleColor: 'rgba(255, 0, 0, 0.5)'
+            }
+        };
+        
+        // Global state
+        let ndk = null;
+        let relays = [];
+        let map = null;
+        let markers = [];
+        let events = [];
+        let selectedLocation = null;
+        let currentPrivateKey = null;
+        let currentPrivateKeyBytes = null;
+        let currentPublicKey = null;
+        
+        // Plus Code encoding/decoding using Open Location Code algorithm
+        const PLUS_CODE_ALPHABET = '23456789CFGHJMPQRVWX';
+        const CODE_ALPHABET_LENGTH = PLUS_CODE_ALPHABET.length;
+        const GRID_SIZE = 20;
+        const PAIR_RESOLUTIONS = [20.0, 1.0, 0.05, 0.0025, 0.000125];
+        const LATITUDE_MAX = 90;
+        const LONGITUDE_MAX = 180;
+        
+        function encodePlusCode(latitude, longitude, codeLength = 10) {
+            if (latitude < -LATITUDE_MAX || latitude > LATITUDE_MAX || 
+                longitude < -LONGITUDE_MAX || longitude > LONGITUDE_MAX) {
+                return null;
+            }
+            
+            // Normalize coordinates
+            let lat = latitude + LATITUDE_MAX;
+            let lng = longitude + LONGITUDE_MAX;
+            
+            let code = '';
+            let resolution = 400;
+            
+            // Encode pairs
+            for (let i = 0; i < Math.floor((codeLength - 1) / 2); i++) {
+                if (i < PAIR_RESOLUTIONS.length) {
+                    resolution = PAIR_RESOLUTIONS[i];
+                }
+                
+                const latDigit = Math.floor(lat / resolution);
+                const lngDigit = Math.floor(lng / resolution);
+                
+                code += PLUS_CODE_ALPHABET[latDigit];
+                code += PLUS_CODE_ALPHABET[lngDigit];
+                
+                lat -= latDigit * resolution;
+                lng -= lngDigit * resolution;
+            }
+            
+            // Add separator
+            if (codeLength >= 8) {
+                code = code.substring(0, 8) + '+' + code.substring(8);
+            }
+            
+            return code.substring(0, codeLength);
+        }
+        
+        function decodePlusCode(code) {
+            if (!code || code.length < 8) return null;
+            
+            // Remove separator and pad if needed
+            const cleanCode = code.replace('+', '').toUpperCase();
+            if (cleanCode.length < 8) return null;
+            
+            let lat = -LATITUDE_MAX;
+            let lng = -LONGITUDE_MAX;
+            let resolution = 400;
+            
+            // Decode pairs
+            for (let i = 0; i < Math.min(cleanCode.length, 10); i += 2) {
+                if (i + 1 >= cleanCode.length) break;
+                
+                const latChar = cleanCode[i];
+                const lngChar = cleanCode[i + 1];
+                
+                const latIndex = PLUS_CODE_ALPHABET.indexOf(latChar);
+                const lngIndex = PLUS_CODE_ALPHABET.indexOf(lngChar);
+                
+                if (latIndex === -1 || lngIndex === -1) return null;
+                
+                if (Math.floor(i / 2) < PAIR_RESOLUTIONS.length) {
+                    resolution = PAIR_RESOLUTIONS[Math.floor(i / 2)];
+                }
+                
+                lat += latIndex * resolution;
+                lng += lngIndex * resolution;
+            }
+            
+            // Return center of the code area
+            return { 
+                latitude: lat, 
+                longitude: lng 
+            };
+        }
+        
+        function plusCodeToRectangle(plusCode) {
+            const decoded = decodePlusCode(plusCode);
+            if (!decoded) return null;
+            
+            // Get the resolution for this plus code length
+            const cleanCode = plusCode.replace('+', '').toUpperCase();
+            const pairCount = Math.floor(cleanCode.length / 2);
+            let resolution = 400;
+            if (pairCount > 0 && pairCount <= PAIR_RESOLUTIONS.length) {
+                resolution = PAIR_RESOLUTIONS[pairCount - 1];
+            } else if (pairCount > PAIR_RESOLUTIONS.length) {
+                resolution = PAIR_RESOLUTIONS[PAIR_RESOLUTIONS.length - 1] / Math.pow(GRID_SIZE, pairCount - PAIR_RESOLUTIONS.length);
+            }
+            
+            const halfLatRes = resolution / 2;
+            const halfLngRes = resolution / 2;
+            
+            // Return as [lng, lat] pairs for GeoJSON
+            return [
+                [decoded.longitude - halfLngRes, decoded.latitude - halfLatRes],
+                [decoded.longitude + halfLngRes, decoded.latitude - halfLatRes],
+                [decoded.longitude + halfLngRes, decoded.latitude + halfLatRes],
+                [decoded.longitude - halfLngRes, decoded.latitude + halfLatRes],
+                [decoded.longitude - halfLngRes, decoded.latitude - halfLatRes] // Close the polygon
+            ];
+        }
+        
+        function whatLengthOfPlusCodeToShow(latitudeDelta) {
+            const factor = 1.6;
+            if (latitudeDelta > 20 * factor) {
+                return 2;
+            } else if (latitudeDelta > 1 * factor) {
+                return 4;
+            } else if (latitudeDelta > 0.05 * factor) {
+                return 6;
+            }
+            return 8;
+        }
+        
+        function getAllPlusCodesBetweenTwoPlusCodes(southWest, northEast, length) {
+            const swDecoded = decodePlusCode(southWest);
+            const neDecoded = decodePlusCode(northEast);
+            if (!swDecoded || !neDecoded) return [];
+            
+            // Get the prefix length
+            const prefixLength = length - 2;
+            const swCode = southWest.replace('+', '');
+            const neCode = northEast.replace('+', '');
+            const prefix = swCode.substring(0, prefixLength);
+            
+            // Get row and column indices
+            const swRowChar = swCode[prefixLength];
+            const swColChar = swCode[prefixLength + 1];
+            const neRowChar = neCode[prefixLength];
+            const neColChar = neCode[prefixLength + 1];
+            
+            const swRowIndex = PLUS_CODE_ALPHABET.indexOf(swRowChar);
+            const swColIndex = PLUS_CODE_ALPHABET.indexOf(swColChar);
+            const neRowIndex = PLUS_CODE_ALPHABET.indexOf(neRowChar);
+            const neColIndex = PLUS_CODE_ALPHABET.indexOf(neColChar);
+            
+            if (swRowIndex === -1 || swColIndex === -1 || neRowIndex === -1 || neColIndex === -1) {
+                return [];
+            }
+            
+            const codes = [];
+            for (let row = Math.min(swRowIndex, neRowIndex); row <= Math.max(swRowIndex, neRowIndex); row++) {
+                for (let col = Math.min(swColIndex, neColIndex); col <= Math.max(swColIndex, neColIndex); col++) {
+                    const rowChar = PLUS_CODE_ALPHABET[row];
+                    const colChar = PLUS_CODE_ALPHABET[col];
+                    const code = (prefix + rowChar + colChar).padEnd(8, '0') + '+';
+                    codes.push(code);
+                }
+            }
+            
+            return codes;
+        }
+        
+        function allPlusCodesForRegion(bounds, codeLength) {
+            const sw = encodePlusCode(bounds.south, bounds.west, codeLength);
+            const ne = encodePlusCode(bounds.north, bounds.east, codeLength);
+            if (!sw || !ne) return [];
+            return getAllPlusCodesBetweenTwoPlusCodes(sw, ne, codeLength);
+        }
+        
+        function filterEventsForPlusCode(eventList, plusCode) {
+            const eventsForPlusCodeExactly = [];
+            const eventsWithinPlusCode = [];
+            
+            eventList.forEach(event => {
+                const eventPlusCode = getPlusCodeFromEvent(event);
+                if (!eventPlusCode) return;
+                
+                if (eventPlusCode === plusCode) {
+                    eventsForPlusCodeExactly.push(event);
+                } else if (eventPlusCode.startsWith(plusCode.replace('+', '').substring(0, plusCode.length - 1))) {
+                    eventsWithinPlusCode.push(event);
+                }
+            });
+            
+            return { eventsForPlusCodeExactly, eventsWithinPlusCode };
+        }
+        
+        function getPlusCodePrefixes(plusCode, minimumLength = 2) {
+            const prefixes = [];
+            const cleanCode = plusCode.split('+')[0];
+            const maxLength = Math.min(8, cleanCode.length);
+            
+            for (let len = minimumLength; len <= maxLength; len += 2) {
+                const prefix = cleanCode.substring(0, len).padEnd(8, '0') + '+';
+                prefixes.push(prefix);
+            }
+            
+            return [...new Set(prefixes)];
+        }
+        
+        // Key management
+        function generateKeyPair() {
+            const privateKey = new Uint8Array(32);
+            crypto.getRandomValues(privateKey);
+            const privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('');
+            savePrivateKey(privateKeyHex);
+            loadKeys();
+            showStatus('New key pair generated!', 'success');
+        }
+        
+        async function importNsec() {
+            const nsecInput = document.getElementById('nsec-import').value.trim();
+            if (!nsecInput) {
+                showStatus('Please enter an nsec', 'error');
+                return;
+            }
+            
+            try {
+                const privateKeyHex = decodeNsec(nsecInput);
+                if (privateKeyHex) {
+                    savePrivateKey(privateKeyHex);
+                    loadKeys();
+                    showStatus('nsec imported successfully!', 'success');
+                    document.getElementById('nsec-import').value = '';
+                } else {
+                    showStatus('Invalid nsec format', 'error');
+                }
+            } catch (error) {
+                showStatus('Error importing nsec: ' + error.message, 'error');
+            }
+        }
+        
+        function decodeNsec(nsec) {
+            if (!nsec.startsWith('nsec1')) return null;
+            
+            try {
+                const decoded = nip19.decode(nsec);
+                if (decoded.type === 'nsec') {
+                    const bytes = decoded.data;
+                    return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+                }
+                return null;
+            } catch (error) {
+                console.error('Error decoding nsec:', error);
+                return null;
+            }
+        }
+        
+        function savePrivateKey(privateKeyHex) {
+            localStorage.setItem('nostr_private_key', privateKeyHex);
+            currentPrivateKey = privateKeyHex;
+            
+            // Convert to bytes and derive public key
+            const bytes = new Uint8Array(32);
+            for (let i = 0; i < 32; i++) {
+                bytes[i] = parseInt(privateKeyHex.substring(i * 2, i * 2 + 2), 16);
+            }
+            currentPrivateKeyBytes = bytes;
+            currentPublicKey = getPublicKey(bytes);
+        }
+        
+        function loadKeys() {
+            const privateKeyHex = localStorage.getItem('nostr_private_key');
+            if (privateKeyHex) {
+                savePrivateKey(privateKeyHex); // This will also derive public key
+                updateKeyDisplay();
+            }
+        }
+        
+        function updateKeyDisplay() {
+            if (currentPublicKey) {
+                try {
+                    // nip19.npubEncode expects hex string
+                    const npub = nip19.npubEncode(currentPublicKey);
+                    document.getElementById('npub-display').value = npub;
+                    document.getElementById('pubkey-hex-display').value = currentPublicKey;
+                } catch (error) {
+                    console.error('Error encoding npub:', error);
+                    document.getElementById('npub-display').value = 'Error encoding npub';
+                    document.getElementById('pubkey-hex-display').value = currentPublicKey;
+                }
+            }
+        }
+        
+        // Relay management
+        function getRelayUrls() {
+            const saved = localStorage.getItem('relay_urls');
+            if (saved) {
+                return saved.split('\n').filter(url => url.trim());
+            }
+            return DEFAULT_RELAYS;
+        }
+        
+        function saveRelays() {
+            const urls = document.getElementById('relay-urls').value.split('\n').filter(url => url.trim());
+            localStorage.setItem('relay_urls', urls.join('\n'));
+            showStatus('Relays saved! Reconnecting...', 'info');
+            initializeNDK();
+        }
+        
+        async function initializeNDK() {
+            const relayUrls = getRelayUrls();
+            
+            try {
+                if (NDK) {
+                    // Use NDK if available
+                    ndk = new NDK({
+                        explicitRelayUrls: relayUrls
+                    });
+                    
+                    await ndk.connect();
+                    showStatus('Connected to relays (NDK)', 'success');
+                    
+                    // Start subscribing to events
+                    subscribeToEvents();
+                    subscribeToPlusCodePrefixes();
+                } else {
+                    // Fallback to direct Relay connections
+                    showStatus('Using direct relay connections', 'info');
+                    await initializeRelays(relayUrls);
+                }
+            } catch (error) {
+                console.error('Error initializing NDK:', error);
+                // Fallback to direct relays
+                showStatus('Falling back to direct relay connections', 'info');
+                await initializeRelays(relayUrls);
+            }
+        }
+        
+        async function initializeRelays(relayUrls) {
+            relays = [];
+            
+            for (const url of relayUrls) {
+                try {
+                    const relay = await Relay.connect(url);
+                    relays.push(relay);
+                    console.log(`Connected to ${url}`);
+                    
+                    // Subscribe to events - use broader filter to get all events
+                    const kinds = [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND, 30399];
+                    const sub = relay.subscribe([{ kinds, limit: 100 }], {
+                        onevent: (event) => {
+                            processIncomingEvent(event);
+                        },
+                        oneose: () => {
+                            console.log('EOSE from', url);
+                        }
+                    });
+                    
+                    // Keep subscription alive
+                    setInterval(() => {
+                        if (relay.status === 1) { // OPEN
+                            relay.subscribe([{ kinds, limit: 1 }], {
+                                onevent: () => {},
+                                oneose: () => {}
+                            });
+                        }
+                    }, 30000); // Every 30 seconds
+                } catch (error) {
+                    console.error(`Error connecting to ${url}:`, error);
+                    showStatus(`Error connecting to ${url}`, 'error');
+                }
+            }
+            
+            if (relays.length > 0) {
+                    showStatus(`Connected to ${relays.length} relay(s)`, 'success');
+                    
+                    // Subscribe to plus code prefixes
+                    subscribeToPlusCodePrefixes();
+                }
+            }
+        
+        function subscribeToEvents() {
+            if (ndk) {
+                // Use NDK subscription
+                const kinds = [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND, 30399];
+                
+                const filter = {
+                    kinds: kinds
+                };
+                
+                try {
+                    const subscription = ndk.subscribe(filter, { closeOnEose: false });
+                    
+                    subscription.on('event', (event) => {
+                        // NDK event might have rawEvent() method or be the event itself
+                        const rawEvent = event.rawEvent ? event.rawEvent() : event;
+                        processIncomingEvent(rawEvent);
+                    });
+                } catch (error) {
+                    console.error('Error setting up NDK subscription:', error);
+                    // Fallback to direct relays
+                    const relayUrls = getRelayUrls();
+                    initializeRelays(relayUrls);
+                }
+            }
+            // Direct relay subscriptions are handled in initializeRelays
+        }
+        
+        // Subscribe to plus code prefixes for better event discovery
+        function subscribeToPlusCodePrefixes() {
+            if (!ndk && relays.length === 0) return;
+            
+            // Get current map bounds to determine which plus codes to subscribe to
+            if (!map || !map.loaded()) {
+                // Subscribe to a broad set initially (common areas)
+                const prefixes = ['8C000000+', '8F000000+', '8G000000+', '9C000000+', '9F000000+', '9G000000+'];
+                subscribeToPlusCodes(prefixes);
+            } else {
+                // Subscribe based on current view
+                const bounds = map.getBounds();
+                const regionBounds = {
+                    north: bounds.getNorth(),
+                    south: bounds.getSouth(),
+                    east: bounds.getEast(),
+                    west: bounds.getWest()
+                };
+                const codeLength = 4; // Use 4-character codes for subscription
+                const visiblePlusCodes = allPlusCodesForRegion(regionBounds, codeLength);
+                const prefixes = visiblePlusCodes.map(code => {
+                    const clean = code.replace('+', '').substring(0, 4);
+                    return clean.padEnd(8, '0') + '+';
+                });
+                // Limit to avoid too many subscriptions
+                const limitedPrefixes = prefixes.slice(0, 50);
+                subscribeToPlusCodes(limitedPrefixes);
+            }
+        }
+        
+        function subscribeToPlusCodes(prefixes) {
+            if (prefixes.length === 0) return;
+            
+            const kinds = [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND, 30399];
+            
+            // Create filters for plus code prefixes
+            // Note: NDK and nostr-tools use different filter formats
+            // For nostr-tools, we need to filter by 'l' tag with 'open-location-code-prefix' as the third element
+            // Since we can't directly filter by the third element in nostr-tools, we'll use a broader filter
+            // and filter client-side, or use the prefix values directly
+            const filters = [{
+                kinds: kinds,
+                '#l': prefixes
+            }];
+            
+            if (ndk) {
+                try {
+                    const subscription = ndk.subscribe(filters, { closeOnEose: false });
+                    subscription.on('event', (event) => {
+                        const rawEvent = event.rawEvent ? event.rawEvent() : event;
+                        processIncomingEvent(rawEvent);
+                    });
+                } catch (error) {
+                    console.error('Error subscribing to plus codes:', error);
+                }
+            } else {
+                // Use direct relay subscriptions
+                relays.forEach(relay => {
+                    if (relay.status === 1) { // OPEN
+                        try {
+                            relay.subscribe(filters, {
+                                onevent: (event) => {
+                                    processIncomingEvent(event);
+                                },
+                                oneose: () => {}
+                            });
+                        } catch (error) {
+                            console.error('Error subscribing to relay:', error);
+                        }
+                    }
+                });
+            }
+        }
+        
+        function processIncomingEvent(event) {
+            // Check if event already exists
+            if (events.find(e => e.id === event.id)) {
+                return;
+            }
+            
+            const eventData = {
+                id: event.id,
+                kind: event.kind,
+                pubkey: event.pubkey,
+                content: event.content,
+                created_at: event.created_at,
+                tags: event.tags,
+                sig: event.sig
+            };
+            
+            events.push(eventData);
+            updateEventsList();
+            updateMapMarkers();
+            updatePlusCodeGrid();
+        }
+        
+        function updateEventsList() {
+            const listContainer = document.getElementById('events-list');
+            listContainer.innerHTML = '';
+            
+            const grouped = {};
+            events.forEach(event => {
+                const kind = event.kind.toString();
+                if (!grouped[kind]) grouped[kind] = [];
+                grouped[kind].push(event);
+            });
+            
+            Object.entries(grouped).forEach(([kind, kindEvents]) => {
+                const kindHeader = document.createElement('h3');
+                kindHeader.textContent = `Kind ${kind} (${kindEvents.length} events)`;
+                listContainer.appendChild(kindHeader);
+                
+                kindEvents.forEach(event => {
+                    const item = document.createElement('div');
+                    item.className = 'event-item';
+                    
+                    const header = document.createElement('div');
+                    header.className = 'event-header';
+                    header.innerHTML = `
+                        <span>${new Date(event.created_at * 1000).toLocaleString()}</span>
+                        <span>${event.pubkey.substring(0, 16)}...</span>
+                    `;
+                    
+                    const content = document.createElement('div');
+                    content.className = 'event-content';
+                    content.textContent = event.content;
+                    
+                    const tags = document.createElement('div');
+                    tags.className = 'event-tags';
+                    tags.textContent = `Tags: ${JSON.stringify(event.tags)}`;
+                    
+                    item.appendChild(header);
+                    item.appendChild(content);
+                    item.appendChild(tags);
+                    listContainer.appendChild(item);
+                });
+            });
+        }
+        
+        function updateMapMarkers() {
+            if (!map) return;
+            
+            // Clear existing markers
+            markers.forEach(marker => marker.remove());
+            markers = [];
+            
+            // Get enabled layers
+            const enabledLayers = getEnabledLayers();
+            
+            // Filter events by enabled layers and add markers
+            events.forEach(event => {
+                const layer = getLayerForEvent(event);
+                if (layer && enabledLayers.includes(layer)) {
+                    const plusCode = getPlusCodeFromEvent(event);
+                    if (plusCode) {
+                        const coords = decodePlusCode(plusCode);
+                        if (coords) {
+                            addMarkerToMap(event, coords, layer);
+                        }
+                    }
+                }
+            });
+        }
+        
+        function getPlusCodeFromEvent(event) {
+            // Find plus code in tags
+            for (const tag of event.tags) {
+                if (tag.length >= 3 && tag[0] === 'l' && tag[2] === 'open-location-code') {
+                    return tag[1];
+                }
+            }
+            return null;
+        }
+        
+        function getLayerForEvent(event) {
+            for (const [key, layer] of Object.entries(MAP_LAYERS)) {
+                if (layer.filter.kinds && layer.filter.kinds.includes(event.kind)) {
+                    if (!layer.filter.authors || layer.filter.authors.includes(event.pubkey)) {
+                        return key;
+                    }
+                }
+            }
+            return 'unverified';
+        }
+        
+        function getEnabledLayers() {
+            const enabled = [];
+            Object.keys(MAP_LAYERS).forEach(key => {
+                const checkbox = document.getElementById(`layer-${key}`);
+                if (checkbox && checkbox.checked) {
+                    enabled.push(key);
+                }
+            });
+            return enabled;
+        }
+        
+        function addMarkerToMap(event, coords, layerKey) {
+            const layer = MAP_LAYERS[layerKey];
+            if (!layer) return;
+            
+            const el = document.createElement('div');
+            el.style.width = '12px';
+            el.style.height = '12px';
+            el.style.borderRadius = '50%';
+            el.style.backgroundColor = layer.markerColor;
+            el.style.border = '2px solid white';
+            el.style.cursor = 'pointer';
+            
+            const marker = new maplibregl.Marker(el)
+                .setLngLat([coords.longitude, coords.latitude])
+                .addTo(map);
+            
+            el.addEventListener('click', () => {
+                showNoteDetails(event);
+            });
+            
+            markers.push(marker);
+        }
+        
+        function initializeMap() {
+            try {
+                const mapContainer = document.getElementById('map');
+                if (!mapContainer) {
+                    throw new Error('Map container not found');
+                }
+                
+                map = new maplibregl.Map({
+                    container: 'map',
+                    style: {
+                        version: 8,
+                        sources: {
+                            'osm': {
+                                type: 'raster',
+                                tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                                tileSize: 256,
+                                attribution: '© OpenStreetMap contributors'
+                            }
+                        },
+                        layers: [{
+                            id: 'osm',
+                            type: 'raster',
+                            source: 'osm'
+                        }]
+                    },
+                    center: [0, 0],
+                    zoom: 2
+                });
+                
+                map.on('error', (e) => {
+                    console.error('Map error:', e);
+                    showStatus('Map loading error. Trying fallback style...', 'error');
+                    // Try fallback style
+                    try {
+                        map.setStyle('https://demotiles.maplibre.org/style.json');
+                    } catch (fallbackError) {
+                        console.error('Fallback style also failed:', fallbackError);
+                    }
+                });
+            } catch (error) {
+                console.error('Error initializing map:', error);
+                showStatus('Error initializing map: ' + error.message, 'error');
+                return;
+            }
+            
+            map.on('click', (e) => {
+                selectedLocation = { lat: e.lngLat.lat, lng: e.lngLat.lng };
+                document.getElementById('note-location-info').textContent = 
+                    `Location: ${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}`;
+                document.getElementById('add-note-modal').classList.add('active');
+            });
+            
+            // Update plus code grid when map moves
+            let moveTimeout;
+            map.on('moveend', () => {
+                clearTimeout(moveTimeout);
+                moveTimeout = setTimeout(() => {
+                    updatePlusCodeGrid();
+                    // Re-subscribe to new plus codes in view
+                    subscribeToPlusCodePrefixes();
+                }, 500); // Debounce
+            });
+            
+            map.on('load', () => {
+                // Initialize plus code grid source
+                if (!map.getSource('pluscode-grid')) {
+                    map.addSource('pluscode-grid', {
+                        type: 'geojson',
+                        data: {
+                            type: 'FeatureCollection',
+                            features: []
+                        }
+                    });
+                    
+                    map.addLayer({
+                        id: 'pluscode-grid-fill',
+                        type: 'fill',
+                        source: 'pluscode-grid',
+                        paint: {
+                            'fill-color': [
+                                'interpolate',
+                                ['linear'],
+                                ['get', 'eventCount'],
+                                0, 'rgba(255, 0, 0, 0.1)',
+                                1, 'rgba(255, 0, 0, 0.3)',
+                                5, 'rgba(255, 0, 0, 0.5)',
+                                10, 'rgba(255, 0, 0, 0.7)',
+                                20, 'rgba(255, 0, 0, 0.9)'
+                            ],
+                            'fill-opacity': 0.6
+                        }
+                    });
+                    
+                    map.addLayer({
+                        id: 'pluscode-grid-stroke',
+                        type: 'line',
+                        source: 'pluscode-grid',
+                        paint: {
+                            'line-color': 'rgba(0, 0, 0, 0.5)',
+                            'line-width': 2
+                        }
+                    });
+                }
+                
+                updatePlusCodeGrid();
+            });
+            
+            // Update markers when layers change
+            Object.keys(MAP_LAYERS).forEach(key => {
+                document.getElementById(`layer-${key}`).addEventListener('change', () => {
+                    updateMapMarkers();
+                    updatePlusCodeGrid();
+                });
+            });
+        }
+        
+        function updatePlusCodeGrid() {
+            if (!map || !map.loaded()) return;
+            
+            const bounds = map.getBounds();
+            const latitudeDelta = bounds.getNorth() - bounds.getSouth();
+            const longitudeDelta = bounds.getEast() - bounds.getWest();
+            
+            const codeLength = whatLengthOfPlusCodeToShow(latitudeDelta);
+            
+            const regionBounds = {
+                north: bounds.getNorth(),
+                south: bounds.getSouth(),
+                east: bounds.getEast(),
+                west: bounds.getWest()
+            };
+            
+            const visiblePlusCodes = allPlusCodesForRegion(regionBounds, codeLength);
+            
+            // Get enabled layers
+            const enabledLayers = getEnabledLayers();
+            const filteredEvents = events.filter(event => {
+                const layer = getLayerForEvent(event);
+                return layer && enabledLayers.includes(layer);
+            });
+            
+            const features = visiblePlusCodes.map(plusCode => {
+                const { eventsForPlusCodeExactly, eventsWithinPlusCode } = 
+                    filterEventsForPlusCode(filteredEvents, plusCode);
+                const eventCount = eventsForPlusCodeExactly.length + eventsWithinPlusCode.length;
+                
+                const rectangle = plusCodeToRectangle(plusCode);
+                if (!rectangle) return null;
+                
+                return {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'Polygon',
+                        coordinates: [rectangle]
+                    },
+                    properties: {
+                        plusCode: plusCode,
+                        eventCount: eventCount,
+                        eventCountExactly: eventsForPlusCodeExactly.length,
+                        eventCountWithin: eventsWithinPlusCode.length
+                    }
+                };
+            }).filter(f => f !== null);
+            
+            const source = map.getSource('pluscode-grid');
+            if (source) {
+                source.setData({
+                    type: 'FeatureCollection',
+                    features: features
+                });
+            }
+        }
+        
+        async function publishNote() {
+            if (!currentPrivateKeyBytes) {
+                showStatus('No private key available', 'error');
+                return;
+            }
+            
+            if (!selectedLocation) {
+                showStatus('Please select a location on the map', 'error');
+                return;
+            }
+            
+            const content = document.getElementById('note-content').value.trim();
+            if (!content || content.length < 3) {
+                showStatus('Note content must be at least 3 characters', 'error');
+                return;
+            }
+            
+            const expirationDays = parseInt(document.getElementById('note-expiration').value) || 7;
+            const expiration = Math.floor(Date.now() / 1000) + (expirationDays * 24 * 60 * 60);
+            
+            const plusCode = encodePlusCode(selectedLocation.lat, selectedLocation.lng);
+            const plusCodePrefixes = getPlusCodePrefixes(plusCode, DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH);
+            
+            try {
+                // Create event template
+                const eventTemplate = {
+                    kind: MAP_NOTE_KIND,
+                    content: content,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [
+                        ['expiration', expiration.toString()],
+                        ['L', 'open-location-code'],
+                        ['l', plusCode, 'open-location-code'],
+                        ['L', 'open-location-code-prefix'],
+                        ...plusCodePrefixes.map(prefix => ['l', prefix, 'open-location-code-prefix'])
+                    ]
+                };
+                
+                // Sign event
+                const signedEvent = finalizeEvent(eventTemplate, currentPrivateKeyBytes);
+                
+                // Publish to all relays
+                const relayUrls = getRelayUrls();
+                const publishPromises = relayUrls.map(async (url) => {
+                    try {
+                        const relay = await Relay.connect(url);
+                        await relay.publish(signedEvent);
+                        relay.close();
+                        return true;
+                    } catch (error) {
+                        console.error(`Error publishing to ${url}:`, error);
+                        return false;
+                    }
+                });
+                
+                const results = await Promise.allSettled(publishPromises);
+                const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
+                
+                if (successCount > 0) {
+                    showStatus(`Note published to ${successCount} relay(s)!`, 'success');
+                    // Add to local events
+                    processIncomingEvent(signedEvent);
+                    closeAddNoteModal();
+                } else {
+                    showStatus('Error publishing to relays', 'error');
+                }
+            } catch (error) {
+                console.error('Error publishing note:', error);
+                showStatus('Error publishing note: ' + error.message, 'error');
+            }
+        }
+        
+        function showNoteDetails(event) {
+            const details = document.getElementById('note-details');
+            details.innerHTML = `
+                <div class="event-header">
+                    <span>${new Date(event.created_at * 1000).toLocaleString()}</span>
+                    <span>${event.pubkey.substring(0, 16)}...</span>
+                </div>
+                <div class="event-content" style="margin: 1rem 0;">
+                    ${event.content}
+                </div>
+                <div class="event-tags">
+                    <strong>Tags:</strong><br>
+                    <pre style="font-size: 0.8rem; margin-top: 0.5rem;">${JSON.stringify(event.tags, null, 2)}</pre>
+                </div>
+            `;
+            document.getElementById('view-note-modal').classList.add('active');
+        }
+        
+        function closeAddNoteModal() {
+            document.getElementById('add-note-modal').classList.remove('active');
+            document.getElementById('note-content').value = '';
+            document.getElementById('note-expiration').value = '7';
+            selectedLocation = null;
+        }
+        
+        function closeViewNoteModal() {
+            document.getElementById('view-note-modal').classList.remove('active');
+        }
+        
+        function showStatus(message, type) {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+            
+            // Create status element
+            const status = document.createElement('div');
+            status.className = `status ${type}`;
+            status.textContent = message;
+            
+            // Insert at top of body
+            document.body.insertBefore(status, document.body.firstChild);
+            
+            // Remove after 5 seconds
+            setTimeout(() => {
+                if (status.parentNode) {
+                    status.parentNode.removeChild(status);
+                }
+            }, 5000);
+        }
+        
+        // Tab navigation
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                const tabName = tab.dataset.tab;
+                
+                // Update tabs
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                
+                // Update views
+                document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+                document.getElementById(`${tabName}-view`).classList.add('active');
+            });
+        });
+        
+        // Onboarding
+        function checkOnboarding() {
+            const hasKey = localStorage.getItem('nostr_private_key');
+            if (!hasKey) {
+                document.getElementById('onboarding-modal').classList.add('active');
+            } else {
+                loadKeys();
+            }
+        }
+        
+        function onboardingGenerate() {
+            generateKeyPair();
+            document.getElementById('onboarding-modal').classList.remove('active');
+        }
+        
+        function onboardingImport() {
+            const nsec = document.getElementById('onboarding-nsec').value.trim();
+            if (nsec) {
+                const privateKeyHex = decodeNsec(nsec);
+                if (privateKeyHex) {
+                    savePrivateKey(privateKeyHex);
+                    loadKeys();
+                    document.getElementById('onboarding-modal').classList.remove('active');
+                } else {
+                    showStatus('Invalid nsec', 'error');
+                }
+            } else {
+                showStatus('Please enter an nsec', 'error');
+            }
+        }
+        
+        // Trustroots profile linking
+        async function linkTrustrootsProfile() {
+            const username = document.getElementById('trustroots-username').value.trim();
+            if (!username) {
+                showStatus('Please enter a username', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`https://www.trustroots.org/.well-known/nostr.json?name=${username}`);
+                const data = await response.json();
+                
+                if (data.names && data.names[username]) {
+                    const pubkey = data.names[username];
+                    showStatus(`Profile linked! Pubkey: ${pubkey}`, 'success');
+                } else {
+                    showStatus('Username not found', 'error');
+                }
+            } catch (error) {
+                showStatus('Error linking profile: ' + error.message, 'error');
+            }
+        }
+        
+        // Initialize relay URLs in settings
+        const relayUrlsElement = document.getElementById('relay-urls');
+        if (relayUrlsElement) {
+            relayUrlsElement.value = getRelayUrls().join('\n');
+        }
+        
+        // Plus code grid state
+        let plusCodeGridSource = null;
+        let plusCodeGridLayer = null;
+        
+        // Initialize on load
+        window.addEventListener('load', async () => {
+            // Wait for maplibregl to be available
+            if (typeof maplibregl === 'undefined') {
+                console.error('MapLibre GL not loaded');
+                showStatus('Map library failed to load', 'error');
+                return;
+            }
+            
+            checkOnboarding();
+            
+            // Small delay to ensure DOM is ready
+            setTimeout(() => {
+                initializeMap();
+            }, 100);
+            
+            // Wait a bit for onboarding if needed, then initialize relays
+            setTimeout(async () => {
+                await initializeNDK();
+            }, 1000);
+        });
+        
+        // Make functions available globally
+        window.generateKeyPair = generateKeyPair;
+        window.importNsec = importNsec;
+        window.saveRelays = saveRelays;
+        window.linkTrustrootsProfile = linkTrustrootsProfile;
+        window.publishNote = publishNote;
+        window.closeAddNoteModal = closeAddNoteModal;
+        window.closeViewNoteModal = closeViewNoteModal;
+        window.onboardingGenerate = onboardingGenerate;
+        window.onboardingImport = onboardingImport;
+    </script>
+</body>
+</html>

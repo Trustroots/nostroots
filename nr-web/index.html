@@ -78,6 +78,24 @@
             position: relative;
             flex: 1;
             min-height: 400px;
+            overflow: hidden;
+        }
+        
+        /* Improve map controls styling */
+        .maplibregl-ctrl-group {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .maplibregl-ctrl button {
+            background: transparent;
+        }
+        
+        .maplibregl-ctrl-attrib {
+            background: rgba(255, 255, 255, 0.8);
+            font-size: 0.7rem;
+            padding: 2px 4px;
         }
         
         .layer-controls {
@@ -231,11 +249,27 @@
             color: #666;
         }
         
+        .status-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 0.5rem;
+            pointer-events: none;
+        }
+        
         .status {
             padding: 0.5rem 1rem;
-            margin: 0.5rem 0;
+            margin: 0.25rem 0;
             border-radius: 4px;
             font-size: 0.85rem;
+            max-width: 90%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            pointer-events: auto;
         }
         
         .status.success {
@@ -390,6 +424,9 @@
             <div id="note-details"></div>
         </div>
     </div>
+    
+    <!-- Status Messages Container -->
+    <div id="status-container" class="status-container"></div>
     
     <!-- MapLibre GL JS -->
     <script src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
@@ -1173,12 +1210,40 @@
                 map.on('error', (e) => {
                     console.error('Map error:', e);
                     showStatus('Map loading error. Trying fallback style...', 'error');
-                    // Try fallback style
-                    try {
-                        map.setStyle('https://demotiles.maplibre.org/style.json');
-                    } catch (fallbackError) {
-                        console.error('Fallback style also failed:', fallbackError);
-                    }
+                    // Try fallback styles in order
+                    const fallbackStyles = [
+                        'https://demotiles.maplibre.org/style.json',
+                        {
+                            version: 8,
+                            sources: {
+                                'carto-positron': {
+                                    type: 'raster',
+                                    tiles: ['https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', 'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'],
+                                    tileSize: 256,
+                                    attribution: '© OpenStreetMap contributors © CARTO'
+                                }
+                            },
+                            layers: [{
+                                id: 'carto-positron',
+                                type: 'raster',
+                                source: 'carto-positron'
+                            }]
+                        }
+                    ];
+                    
+                    let fallbackIndex = 0;
+                    const tryFallback = () => {
+                        if (fallbackIndex < fallbackStyles.length) {
+                            try {
+                                map.setStyle(fallbackStyles[fallbackIndex]);
+                            } catch (fallbackError) {
+                                console.error('Fallback style failed:', fallbackError);
+                                fallbackIndex++;
+                                tryFallback();
+                            }
+                        }
+                    };
+                    tryFallback();
                 });
             } catch (error) {
                 console.error('Error initializing map:', error);
@@ -1482,16 +1547,47 @@
             document.getElementById('view-note-modal').classList.remove('active');
         }
         
+        function closeOnboardingModal() {
+            document.getElementById('onboarding-modal').classList.remove('active');
+        }
+        
+        function closeActiveModal() {
+            // Close any active modal
+            const modals = document.querySelectorAll('.modal.active');
+            modals.forEach(modal => {
+                if (modal.id === 'onboarding-modal') {
+                    // Don't allow closing onboarding modal with ESC (user must generate/import key)
+                    return;
+                } else if (modal.id === 'add-note-modal') {
+                    closeAddNoteModal();
+                } else if (modal.id === 'view-note-modal') {
+                    closeViewNoteModal();
+                } else {
+                    // Fallback: just remove active class
+                    modal.classList.remove('active');
+                }
+            });
+        }
+        
         function showStatus(message, type) {
             console.log(`[${type.toUpperCase()}] ${message}`);
+            
+            // Get or create status container
+            let statusContainer = document.getElementById('status-container');
+            if (!statusContainer) {
+                statusContainer = document.createElement('div');
+                statusContainer.id = 'status-container';
+                statusContainer.className = 'status-container';
+                document.body.appendChild(statusContainer);
+            }
             
             // Create status element
             const status = document.createElement('div');
             status.className = `status ${type}`;
             status.textContent = message;
             
-            // Insert at top of body
-            document.body.insertBefore(status, document.body.firstChild);
+            // Append to status container (will appear at top)
+            statusContainer.appendChild(status);
             
             // Remove after 5 seconds
             setTimeout(() => {
@@ -1579,6 +1675,13 @@
         // Plus code grid state
         let plusCodeGridSource = null;
         let plusCodeGridLayer = null;
+        
+        // ESC key handler for closing modals
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' || e.keyCode === 27) {
+                closeActiveModal();
+            }
+        });
         
         // Initialize on load
         window.addEventListener('load', async () => {

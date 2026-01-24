@@ -83,38 +83,69 @@
         
         /* Improve map controls styling */
         .maplibregl-ctrl-group {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 4px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            background: rgba(255, 255, 255, 0.95) !important;
+            border-radius: 8px !important;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15) !important;
+            border: 1px solid rgba(0, 0, 0, 0.1) !important;
+            backdrop-filter: blur(10px);
         }
         
         .maplibregl-ctrl button {
-            background: transparent;
+            background: transparent !important;
+            border: none !important;
+            color: #333 !important;
+        }
+        
+        .maplibregl-ctrl button:hover {
+            background: rgba(0, 0, 0, 0.05) !important;
         }
         
         .maplibregl-ctrl-attrib {
-            background: rgba(255, 255, 255, 0.8);
+            background: rgba(255, 255, 255, 0.9) !important;
             font-size: 0.7rem;
-            padding: 2px 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .maplibregl-ctrl-attrib a {
+            color: #007bff;
         }
         
         .layer-controls {
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 10px;
-            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px;
+            border-radius: 8px;
             z-index: 1000;
             max-height: 400px;
             overflow-y: auto;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
         }
         
         .layer-control {
             display: flex;
             align-items: center;
             gap: 8px;
-            margin: 4px 0;
+            margin: 6px 0;
+            padding: 4px 0;
+        }
+        
+        .layer-control label {
+            cursor: pointer;
+            user-select: none;
+            font-size: 0.9rem;
+        }
+        
+        .layer-control input[type="checkbox"] {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
+            accent-color: #007bff;
         }
         
         .list-view {
@@ -1149,13 +1180,23 @@
             if (!coords) return;
             
             const el = document.createElement('div');
-            el.style.width = '12px';
-            el.style.height = '12px';
+            el.style.width = '14px';
+            el.style.height = '14px';
             el.style.borderRadius = '50%';
             el.style.backgroundColor = layer.markerColor;
             el.style.border = '2px solid white';
             el.style.cursor = 'pointer';
             el.style.zIndex = '1000';
+            el.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.3)';
+            el.style.transition = 'transform 0.2s ease';
+            
+            // Add hover effect
+            el.addEventListener('mouseenter', () => {
+                el.style.transform = 'scale(1.3)';
+            });
+            el.addEventListener('mouseleave', () => {
+                el.style.transform = 'scale(1)';
+            });
             
             // Store event data on the element for click handler
             el.dataset.eventId = event.id;
@@ -1321,8 +1362,8 @@
                         type: 'line',
                         source: 'pluscode-grid',
                         paint: {
-                            'line-color': 'rgba(0, 0, 0, 0.5)',
-                            'line-width': 2
+                            'line-color': 'rgba(0, 0, 0, 0.3)',
+                            'line-width': 1.5
                         }
                     });
                     

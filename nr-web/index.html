@@ -965,6 +965,18 @@
                 return;
             }
             
+            // Only process events with valid kinds (30397, 30398, 30399)
+            const validKinds = [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND, 30399];
+            if (!validKinds.includes(event.kind)) {
+                return;
+            }
+            
+            // Only process events that have a plus code
+            const plusCode = getPlusCodeFromEvent(event);
+            if (!plusCode) {
+                return;
+            }
+            
             const eventData = {
                 id: event.id,
                 kind: event.kind,
@@ -985,8 +997,18 @@
             const listContainer = document.getElementById('events-list');
             listContainer.innerHTML = '';
             
+            // Filter to only show events with plus codes
+            const eventsWithPlusCodes = events.filter(event => {
+                return getPlusCodeFromEvent(event) !== null;
+            });
+            
+            if (eventsWithPlusCodes.length === 0) {
+                listContainer.innerHTML = '<p>No events with plus codes found.</p>';
+                return;
+            }
+            
             const grouped = {};
-            events.forEach(event => {
+            eventsWithPlusCodes.forEach(event => {
                 const kind = event.kind.toString();
                 if (!grouped[kind]) grouped[kind] = [];
                 grouped[kind].push(event);
@@ -998,6 +1020,7 @@
                 listContainer.appendChild(kindHeader);
                 
                 kindEvents.forEach(event => {
+                    const plusCode = getPlusCodeFromEvent(event);
                     const item = document.createElement('div');
                     item.className = 'event-item';
                     
@@ -1006,6 +1029,7 @@
                     header.innerHTML = `
                         <span>${new Date(event.created_at * 1000).toLocaleString()}</span>
                         <span>${event.pubkey.substring(0, 16)}...</span>
+                        ${plusCode ? `<span style="font-family: monospace; color: #007bff;">${plusCode}</span>` : ''}
                     `;
                     
                     const content = document.createElement('div');

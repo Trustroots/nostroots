@@ -605,43 +605,47 @@
             return 8;
         }
         
+        function degreeSizeForPlusCodeLength(length) {
+            // Match nr-app implementation
+            if (length === 2) return 20.0;
+            if (length === 4) return 1.0;
+            if (length === 6) return 0.05;
+            if (length === 8) return 0.0025;
+            // For longer codes, calculate based on grid size
+            return 0.0025 / Math.pow(GRID_SIZE, (length - 8) / 2);
+        }
+        
         function getAllPlusCodesBetweenTwoPlusCodes(southWest, northEast, length) {
+            if (southWest.length > 9 || northEast.length > 9) {
+                console.error('Plus code too long');
+                return [];
+            }
+            
             const swDecoded = decodePlusCode(southWest);
             const neDecoded = decodePlusCode(northEast);
             if (!swDecoded || !neDecoded) return [];
             
-            // Get the prefix length
-            const prefixLength = length - 2;
-            const swCode = southWest.replace('+', '');
-            const neCode = northEast.replace('+', '');
-            const prefix = swCode.substring(0, prefixLength);
+            const latitudeDelta = neDecoded.latitude - swDecoded.latitude;
+            const longitudeDelta = neDecoded.longitude - swDecoded.longitude;
             
-            // Get row and column indices
-            const swRowChar = swCode[prefixLength];
-            const swColChar = swCode[prefixLength + 1];
-            const neRowChar = neCode[prefixLength];
-            const neColChar = neCode[prefixLength + 1];
+            const degreesPerStep = degreeSizeForPlusCodeLength(length);
             
-            const swRowIndex = PLUS_CODE_ALPHABET.indexOf(swRowChar);
-            const swColIndex = PLUS_CODE_ALPHABET.indexOf(swColChar);
-            const neRowIndex = PLUS_CODE_ALPHABET.indexOf(neRowChar);
-            const neColIndex = PLUS_CODE_ALPHABET.indexOf(neColChar);
+            const latitudeSteps = Math.ceil(latitudeDelta / degreesPerStep);
+            const longitudeSteps = Math.ceil(longitudeDelta / degreesPerStep);
             
-            if (swRowIndex === -1 || swColIndex === -1 || neRowIndex === -1 || neColIndex === -1) {
-                return [];
-            }
-            
-            const codes = [];
-            for (let row = Math.min(swRowIndex, neRowIndex); row <= Math.max(swRowIndex, neRowIndex); row++) {
-                for (let col = Math.min(swColIndex, neColIndex); col <= Math.max(swColIndex, neColIndex); col++) {
-                    const rowChar = PLUS_CODE_ALPHABET[row];
-                    const colChar = PLUS_CODE_ALPHABET[col];
-                    const code = (prefix + rowChar + colChar).padEnd(8, '0') + '+';
-                    codes.push(code);
+            const plusCodes = [];
+            for (let latIndex = 0; latIndex < latitudeSteps; latIndex++) {
+                for (let lngIndex = 0; lngIndex < longitudeSteps; lngIndex++) {
+                    const latitude = swDecoded.latitude + latIndex * degreesPerStep;
+                    const longitude = swDecoded.longitude + lngIndex * degreesPerStep;
+                    const plusCode = encodePlusCode(latitude, longitude, length);
+                    if (plusCode) {
+                        plusCodes.push(plusCode);
+                    }
                 }
             }
             
-            return codes;
+            return plusCodes;
         }
         
         function allPlusCodesForRegion(bounds, codeLength) {
@@ -1147,20 +1151,25 @@
                 return;
             }
             
+            // Handle map clicks (but not on plus code polygons - those are handled separately)
             map.on('click', (e) => {
-                // Convert clicked coordinates to plus code immediately
-                const plusCode = encodePlusCode(e.lngLat.lat, e.lngLat.lng);
-                if (plusCode) {
-                    selectedPlusCode = plusCode;
-                    document.getElementById('note-location-info').textContent = 
-                        `Plus Code: ${plusCode}`;
-                    document.getElementById('add-note-modal').classList.add('active');
-                } else {
-                    showStatus('Error encoding location to plus code', 'error');
+                // Only handle if not clicking on a plus code polygon
+                const features = map.queryRenderedFeatures(e.point, { layers: ['pluscode-grid-fill'] });
+                if (features.length === 0) {
+                    // Convert clicked coordinates to plus code immediately
+                    const plusCode = encodePlusCode(e.lngLat.lat, e.lngLat.lng);
+                    if (plusCode) {
+                        selectedPlusCode = plusCode;
+                        document.getElementById('note-location-info').textContent = 
+                            `Plus Code: ${plusCode}`;
+                        document.getElementById('add-note-modal').classList.add('active');
+                    } else {
+                        showStatus('Error encoding location to plus code', 'error');
+                    }
                 }
             });
             
-            // Update plus code grid when map moves
+            // Update plus code grid when map moves or zooms
             let moveTimeout;
             map.on('moveend', () => {
                 clearTimeout(moveTimeout);
@@ -1168,7 +1177,15 @@
                     updatePlusCodeGrid();
                     // Re-subscribe to new plus codes in view
                     subscribeToPlusCodePrefixes();
-                }, 500); // Debounce
+                }, 300); // Debounce
+            });
+            
+            map.on('zoomend', () => {
+                clearTimeout(moveTimeout);
+                moveTimeout = setTimeout(() => {
+                    updatePlusCodeGrid();
+                    subscribeToPlusCodePrefixes();
+                }, 300);
             });
             
             map.on('load', () => {
@@ -1187,17 +1204,8 @@
                         type: 'fill',
                         source: 'pluscode-grid',
                         paint: {
-                            'fill-color': [
-                                'interpolate',
-                                ['linear'],
-                                ['get', 'eventCount'],
-                                0, 'rgba(255, 0, 0, 0.1)',
-                                1, 'rgba(255, 0, 0, 0.3)',
-                                5, 'rgba(255, 0, 0, 0.5)',
-                                10, 'rgba(255, 0, 0, 0.7)',
-                                20, 'rgba(255, 0, 0, 0.9)'
-                            ],
-                            'fill-opacity': 0.6
+                            'fill-color': ['get', 'fillColor'],
+                            'fill-opacity': 1
                         }
                     });
                     
@@ -1209,6 +1217,39 @@
                             'line-color': 'rgba(0, 0, 0, 0.5)',
                             'line-width': 2
                         }
+                    });
+                    
+                    // Make plus code polygons clickable
+                    map.on('click', 'pluscode-grid-fill', (e) => {
+                        if (e.features && e.features.length > 0) {
+                            const plusCode = e.features[0].properties.plusCode;
+                            if (plusCode) {
+                                selectedPlusCode = plusCode;
+                                const eventCount = e.features[0].properties.eventCount || 0;
+                                const eventCountExactly = e.features[0].properties.eventCountExactly || 0;
+                                const eventCountWithin = e.features[0].properties.eventCountWithin || 0;
+                                
+                                // Show info about the plus code
+                                showStatus(
+                                    `Plus Code: ${plusCode} - ${eventCountExactly} exact, ${eventCountWithin} within`,
+                                    'info'
+                                );
+                                
+                                // Optionally open the add note modal with this plus code selected
+                                document.getElementById('note-location-info').textContent = 
+                                    `Plus Code: ${plusCode}`;
+                                document.getElementById('add-note-modal').classList.add('active');
+                            }
+                        }
+                    });
+                    
+                    // Change cursor on hover
+                    map.on('mouseenter', 'pluscode-grid-fill', () => {
+                        map.getCanvas().style.cursor = 'pointer';
+                    });
+                    
+                    map.on('mouseleave', 'pluscode-grid-fill', () => {
+                        map.getCanvas().style.cursor = '';
                     });
                 }
                 
@@ -1233,14 +1274,14 @@
             
             const codeLength = whatLengthOfPlusCodeToShow(latitudeDelta);
             
-            const regionBounds = {
-                north: bounds.getNorth(),
-                south: bounds.getSouth(),
-                east: bounds.getEast(),
-                west: bounds.getWest()
-            };
+            // Get southwest and northeast plus codes
+            const sw = encodePlusCode(bounds.getSouth(), bounds.getWest(), codeLength);
+            const ne = encodePlusCode(bounds.getNorth(), bounds.getEast(), codeLength);
             
-            const visiblePlusCodes = allPlusCodesForRegion(regionBounds, codeLength);
+            if (!sw || !ne) return;
+            
+            // Get all plus codes between southwest and northeast
+            const visiblePlusCodes = getAllPlusCodesBetweenTwoPlusCodes(sw, ne, codeLength);
             
             // Get enabled layers
             const enabledLayers = getEnabledLayers();
@@ -1252,10 +1293,14 @@
             const features = visiblePlusCodes.map(plusCode => {
                 const { eventsForPlusCodeExactly, eventsWithinPlusCode } = 
                     filterEventsForPlusCode(filteredEvents, plusCode);
-                const eventCount = eventsForPlusCodeExactly.length + eventsWithinPlusCode.length;
+                const totalEventCount = eventsForPlusCodeExactly.length + eventsWithinPlusCode.length;
                 
                 const rectangle = plusCodeToRectangle(plusCode);
                 if (!rectangle) return null;
+                
+                // Calculate fill color based on event count (matching nr-app)
+                const redValue = Math.min(255, totalEventCount * 60);
+                const fillColor = `rgba(${redValue}, 0, 0, 0.6)`;
                 
                 return {
                     type: 'Feature',
@@ -1265,9 +1310,10 @@
                     },
                     properties: {
                         plusCode: plusCode,
-                        eventCount: eventCount,
+                        eventCount: totalEventCount,
                         eventCountExactly: eventsForPlusCodeExactly.length,
-                        eventCountWithin: eventsWithinPlusCode.length
+                        eventCountWithin: eventsWithinPlusCode.length,
+                        fillColor: fillColor
                     }
                 };
             }).filter(f => f !== null);

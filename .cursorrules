@@ -1,0 +1,13 @@
+# Cursor Rules for Nostroots
+
+## Committing nr-web Changes
+
+When committing changes that only affect `nr-web`, skip the pre-commit hooks because:
+- `nr-web` is a standalone HTML file and doesn't use the same tooling as `nr-app`
+- The pre-commit hooks run ESLint on `nr-app` which can fail for unrelated reasons
+- See `nr-web/README.md` for more details
+
+Use `--no-verify` flag when committing nr-web changes:
+```bash
+git commit --no-verify -m "Your commit message"
+```

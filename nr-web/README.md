@@ -1,45 +1,143 @@
-# Nostroots Web
+# Nostroots Web App
 
-A web-based version of the Nostroots application that provides map-based interaction with the nostr network. This is a single-page application that allows users to view and interact with location-based notes and events on a map interface.
+A web application that replicates the functionality of the nostroots mobile app, providing a map-based interface for sharing notes on the Nostr network.
 
 ## Features
 
-- Interactive map using MapLibre GL
-- Location-based note viewing and posting
-- Responsive design for mobile and desktop
-- Direct integration with nostr relays
+- **Interactive Map**: View notes from various sources displayed on a Leaflet-based map
+- **Layer Toggles**: Filter notes by source (Trustroots, Hitchmap, Hitchwiki, Unverified)
+- **Note Posting**: Add notes to any location by right-clicking on the map
+- **Event List**: View all events fetched from the relay
+- **Key Management**: Generate new keys or import existing ones (nsec or mnemonic)
+- **Persistent Settings**: Your keys and preferences are stored locally
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ (or use the `.nvmrc` from the root)
+- pnpm (see root `package.json` for version)
+
+### Installation
+
+From the repository root:
+
+```bash
+pnpm install
+```
+
+### Development
+
+```bash
+cd nr-web
+pnpm dev
+```
+
+The app will be available at [http://localhost:3000](http://localhost:3000).
+
+### Build
+
+```bash
+pnpm build
+```
+
+### Lint
+
+```bash
+pnpm lint
+```
+
+## Architecture
+
+### Tech Stack
+
+- **Next.js 15** - React framework with App Router
+- **React 19** - UI library
+- **Leaflet / react-leaflet 5** - Interactive maps
+- **nostr-tools** - Nostr protocol implementation
+- **Zustand** - State management with persistence
+- **Tailwind CSS** - Styling
+
+### Project Structure
+
+```
+nr-web/
+├── src/
+│   ├── app/              # Next.js App Router pages
+│   │   ├── page.tsx      # Map view (home)
+│   │   ├── list/         # Event list view
+│   │   └── settings/     # Settings/identity page
+│   ├── components/       # React components
+│   │   ├── MapView.tsx   # Main map component
+│   │   ├── LayerToggle.tsx
+│   │   ├── AddNoteModal.tsx
+│   │   └── Navigation.tsx
+│   ├── lib/              # Utility functions
+│   │   ├── events.ts     # Event creation helpers
+│   │   ├── keys.ts       # Key management
+│   │   └── utils.ts      # General utilities
+│   ├── store/            # Zustand store
+│   │   └── nostr.ts      # Nostr state management
+│   └── types/            # TypeScript declarations
+├── public/               # Static assets
+└── tailwind.config.ts    # Tailwind configuration
+```
+
+### Key Components
+
+1. **MapView** (`src/components/MapView.tsx`)
+   - Renders the Leaflet map
+   - Displays markers for notes with location data
+   - Handles map interactions (right-click to add note)
+
+2. **Nostr Store** (`src/store/nostr.ts`)
+   - Manages connection to the relay
+   - Stores events and user identity
+   - Persists keys and preferences to localStorage
+
+3. **Event Utilities** (`src/lib/events.ts`)
+   - Creates properly formatted nostr events
+   - Handles Plus Code (Open Location Code) tagging
+
+## Relay Connection
+
+The app connects to `wss://relay.trustroots.org` and subscribes to:
+- Kind 30397 (Map Notes)
+- Kind 30398 (Verified Notes / Reposts)
+- Kind 30399 (External notes from Hitchmap, etc.)
+- Kind 10390 (Trustroots Profiles)
 
 ## Usage
 
-Simply open `index.html` in a web browser. The application is self-contained and can be served from any static file server.
+### Viewing Notes
 
-For local development, you can use any simple HTTP server:
+1. Open the app - it automatically connects to the relay
+2. Use layer toggles (top-left) to filter which sources to display
+3. Click on markers to see note details
 
-```bash
-# Using Python
-python3 -m http.server 8000
+### Adding Notes
 
-# Using Node.js (http-server)
-npx http-server
+1. Go to Settings and set up your identity (generate or import keys)
+2. Right-click anywhere on the map
+3. Enter your note content and publish
 
-# Using PHP
-php -S localhost:8000
-```
+### Managing Keys
 
-Then navigate to `http://localhost:8000` in your browser.
+From the Settings page, you can:
+- Generate new nostr keys
+- Import existing keys via nsec
+- Import via 12-word mnemonic
+- View your public key (npub)
+- Show/hide your private key
 
-## Deployment
+## Relation to Mobile App
 
-This application is deployed to GitHub Pages.
+This web app provides similar functionality to the `nr-app` mobile app:
+- Uses the same relay
+- Uses the same event formats (via `@trustroots/nr-common`)
+- Supports the same map layers
+- Compatible key formats
 
+## Contributing
 
-## Technical Details
-
-The application is built as a single HTML file with embedded CSS and JavaScript. It uses:
-- MapLibre GL for map rendering
-- Nostr protocol for decentralized data storage
-- CSS custom properties for theming
-
-## Development
-
-When committing changes to this directory, you may need to skip pre-commit hooks if linting fails (e.g., `git commit --no-verify`), as the linting configuration may not apply to this standalone HTML file.
+See the main repository README for contribution guidelines.

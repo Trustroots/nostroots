@@ -860,7 +860,7 @@
             <div id="pluscode-notes-content" class="notes-list"></div>
             <div class="notes-actions">
                 <div class="notes-add-form">
-                    <textarea id="note-content-in-modal" rows="2" placeholder="Enter your note..." autofocus></textarea>
+                    <textarea id="note-content-in-modal" rows="1" placeholder="Enter your note..." autofocus></textarea>
                     <div class="notes-add-form-row">
                         <div class="form-group expiration-group">
                             <label>Expiration</label>
@@ -987,12 +987,16 @@
         const MAP_NOTE_KIND = 30397;
         const MAP_NOTE_REPOST_KIND = 30398;
         const TRUSTROOTS_PROFILE_KIND = 10390;
+        const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = "org.trustroots:username";
         const DEFAULT_RELAY_URL = 'wss://relay.trustroots.org';
         const DEFAULT_RELAYS = ['wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
         const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2;
         
         const NOSTROOTS_VALIDATION_PUBKEY = 'f5bc71692fc08ea52c0d1c8bcfb87579584106b5feb4ea542b1b8a95612f257b';
         const DEV_PUBKEY = '80789235a71a388074abfa5c482e270456d2357425266270f82071cf2b1de74a';
+        
+        // Map to store pubkey -> Trustroots username
+        const pubkeyToUsername = new Map();
         
         const MAP_LAYERS = {
             trustroots: {
@@ -1880,8 +1884,8 @@
                     const relay = await Relay.connect(url);
                     relays.push(relay);
                     
-                    // Subscribe to events - only kind 0 (profiles) and kind 30397 (map notes)
-                    const kinds = [0, MAP_NOTE_KIND];
+                    // Subscribe to events - kind 0 (profiles), kind 10390 (Trustroots profiles), and kind 30397 (map notes)
+                    const kinds = [0, TRUSTROOTS_PROFILE_KIND, MAP_NOTE_KIND];
                     
                     // First, do a direct query for kind 30397 events to see how many exist
                     let directQueryCount = 0;
@@ -1906,10 +1910,20 @@
                         }
                     });
                     
+                    // Query for existing kind 10390 profile events to populate username map
+                    const profileQuery = relay.subscribe([{ kinds: [TRUSTROOTS_PROFILE_KIND] }], {
+                        onevent: (event) => {
+                            processIncomingEvent(event);
+                        },
+                        oneose: () => {
+                            profileQuery.close();
+                        }
+                    });
+                    
                     // Keep subscription alive
                     setInterval(() => {
                         if (relay.status === 1) { // OPEN
-                            relay.subscribe([{ kinds: [0, MAP_NOTE_KIND], limit: 1 }], {
+                            relay.subscribe([{ kinds: [0, TRUSTROOTS_PROFILE_KIND, MAP_NOTE_KIND], limit: 1 }], {
                                 onevent: () => {},
                                 oneose: () => {}
                             });
@@ -1931,8 +1945,8 @@
         
         function subscribeToEvents() {
             if (ndk) {
-                // Use NDK subscription - only kind 0 (profiles) and kind 30397 (map notes)
-                const kinds = [0, MAP_NOTE_KIND];
+                // Use NDK subscription - kind 0 (profiles), kind 10390 (Trustroots profiles), and kind 30397 (map notes)
+                const kinds = [0, TRUSTROOTS_PROFILE_KIND, MAP_NOTE_KIND];
                 
                 const filter = {
                     kinds: kinds
@@ -2138,7 +2152,37 @@
         let kind30397EventsProcessed = 0;
         let kind30397EventsRejected = 0;
         
+        // Extract Trustroots username from kind 10390 profile event
+        function getTrustrootsUsernameFromProfileEvent(event) {
+            if (event.kind !== TRUSTROOTS_PROFILE_KIND) {
+                return undefined;
+            }
+            
+            // Look for label tags with the Trustroots username namespace
+            // Format: ["l", value, "org.trustroots:username"]
+            const usernameTag = event.tags.find(tag => 
+                tag.length >= 3 && 
+                tag[0] === "l" && 
+                tag[2] === TRUSTROOTS_USERNAME_LABEL_NAMESPACE
+            );
+            
+            if (usernameTag && usernameTag[1]) {
+                return usernameTag[1];
+            }
+            
+            return undefined;
+        }
+        
         function processIncomingEvent(event) {
+            // Process kind 10390 (Trustroots profile) events to extract usernames
+            if (event.kind === TRUSTROOTS_PROFILE_KIND) {
+                const username = getTrustrootsUsernameFromProfileEvent(event);
+                if (username) {
+                    pubkeyToUsername.set(event.pubkey, username);
+                }
+                return; // Don't process these as map notes
+            }
+            
             // Track all kind 30397 events
             if (event.kind === MAP_NOTE_KIND) {
                 kind30397EventsReceived++;
@@ -2198,19 +2242,15 @@
                     filteredEventsCacheKey = null;
                     rebuildSpatialIndex(); // Rebuild spatial index (synchronous)
                     updateMapMarkers();
-                    // Force grid update - use setTimeout to ensure spatial index is fully ready
+                    // Force grid update immediately - spatial index is already rebuilt synchronously
                     if (map && map.loaded()) {
-                        // Small delay to ensure spatial index is fully populated
-                        setTimeout(() => {
-                            updatePlusCodeGrid();
-                        }, 0);
+                        // Call directly without setTimeout to ensure immediate update
+                        updatePlusCodeGrid();
                     } else {
                         // If map not ready, schedule update for when it is
                         if (map) {
                             map.once('load', () => {
-                                setTimeout(() => {
-                                    updatePlusCodeGrid();
-                                }, 0);
+                                updatePlusCodeGrid();
                             });
                         }
                     }
@@ -2241,19 +2281,15 @@
             rebuildSpatialIndex(); // Rebuild spatial index (synchronous)
             updateEventsList();
             updateMapMarkers();
-            // Force grid update - use setTimeout to ensure spatial index is fully ready
+            // Force grid update immediately - spatial index is already rebuilt synchronously
             if (map && map.loaded()) {
-                // Small delay to ensure spatial index is fully populated
-                setTimeout(() => {
-                    updatePlusCodeGrid();
-                }, 0);
+                // Call directly without setTimeout to ensure immediate update
+                updatePlusCodeGrid();
             } else {
                 // If map not ready, schedule update for when it is
                 if (map) {
                     map.once('load', () => {
-                        setTimeout(() => {
-                            updatePlusCodeGrid();
-                        }, 0);
+                        updatePlusCodeGrid();
                     });
                 }
             }
@@ -2669,8 +2705,9 @@
                 cancelAnimationFrame(gridUpdateAnimationFrame);
             }
             
-            // Use requestAnimationFrame for smooth rendering
-            gridUpdateAnimationFrame = requestAnimationFrame(() => {
+            // Use requestAnimationFrame for smooth rendering, but execute immediately
+            // This ensures the update happens in the next frame
+            const updateGrid = () => {
                 const bounds = map.getBounds();
                 const latitudeDelta = bounds.getNorth() - bounds.getSouth();
                 const longitudeDelta = bounds.getEast() - bounds.getWest();
@@ -2763,27 +2800,18 @@
                 
                 const source = map.getSource('pluscode-grid');
                 if (source) {
-                    // Force update by setting data - this triggers a re-render
-                    const featureCollection = {
+                    // Set the data
+                    source.setData({
                         type: 'FeatureCollection',
                         features: features
-                    };
-                    source.setData(featureCollection);
+                    });
                     
-                    // Force map to repaint by triggering a style update
-                    // This ensures the map actually renders the new data
-                    try {
-                        map.getStyle();
-                        // Trigger a repaint by briefly toggling layer visibility
-                        const fillLayer = map.getLayer('pluscode-grid-fill');
-                        const strokeLayer = map.getLayer('pluscode-grid-stroke');
-                        if (fillLayer && strokeLayer) {
-                            // Force update by setting paint properties (triggers repaint)
-                            map.setPaintProperty('pluscode-grid-fill', 'fill-opacity', 1);
-                        }
-                    } catch (e) {
-                        // Ignore errors, the setData should be enough
-                    }
+                    // Force a re-render by doing a tiny pan that's imperceptible
+                    // This is the most reliable way to force MapLibre to re-render
+                    map.panBy([0.1, 0], { duration: 0 });
+                    setTimeout(() => {
+                        map.panBy([-0.1, 0], { duration: 0 });
+                    }, 1);
                 } else {
                     // Source not ready yet, try again after a short delay
                     setTimeout(() => {
@@ -2796,7 +2824,10 @@
                 }
                 
                 gridUpdateAnimationFrame = null;
-            });
+            };
+            
+            // Schedule the update
+            gridUpdateAnimationFrame = requestAnimationFrame(updateGrid);
         }
         
         async function publishNote() {
@@ -2907,14 +2938,25 @@
                 // Publish to all relays
                 const relayUrls = getRelayUrls();
                 const publishPromises = relayUrls.map(async (url) => {
+                    let relay = null;
                     try {
-                        const relay = await Relay.connect(url);
+                        relay = await Relay.connect(url);
                         await relay.publish(signedEvent);
-                        relay.close();
+                        // Wait a bit for the relay to process and confirm the event
+                        await new Promise(resolve => setTimeout(resolve, 500));
                         return true;
                     } catch (error) {
                         console.error(`Error publishing to ${url}:`, error);
                         return false;
+                    } finally {
+                        // Always close the relay connection, even if there was an error
+                        if (relay) {
+                            try {
+                                relay.close();
+                            } catch (closeError) {
+                                // Ignore errors when closing
+                            }
+                        }
                     }
                 });
                 
@@ -2957,7 +2999,23 @@
                     ${plusCode ? `<span style="font-family: monospace; color: var(--primary);">${plusCode}</span>` : ''}
                 </div>
                 <div class="event-header" style="margin-top: 0.5rem; font-size: 0.85rem;">
-                    <span style="font-family: monospace;">${(() => { try { return nip19.npubEncode(event.pubkey); } catch(e) { return event.pubkey.substring(0, 16) + '...'; } })()}</span>
+                    <span style="font-family: monospace;">${(() => { 
+                        const username = pubkeyToUsername.get(event.pubkey);
+                        if (username) {
+                            try {
+                                const npub = nip19.npubEncode(event.pubkey);
+                                return `@${username} (${npub})`;
+                            } catch(e) {
+                                return `@${username} (${event.pubkey.substring(0, 16)}...)`;
+                            }
+                        } else {
+                            try { 
+                                return nip19.npubEncode(event.pubkey); 
+                            } catch(e) { 
+                                return event.pubkey.substring(0, 16) + '...'; 
+                            }
+                        }
+                    })()}</span>
                 </div>
                 <div class="event-content" style="margin: 1rem 0; padding: 1rem; background: var(--muted); border-radius: calc(var(--radius) - 2px);">
                     ${event.content}
@@ -3089,14 +3147,25 @@
                 // Create new connections for each publish to avoid closed connection errors
                 const relayUrls = getRelayUrls();
                 const publishPromises = relayUrls.map(async (url) => {
+                    let relay = null;
                     try {
-                        const relay = await Relay.connect(url);
+                        relay = await Relay.connect(url);
                         await relay.publish(signedEvent);
-                        relay.close();
+                        // Wait a bit for the relay to process and confirm the event
+                        await new Promise(resolve => setTimeout(resolve, 500));
                         return true;
                     } catch (error) {
                         console.error(`Error publishing to ${url}:`, error);
                         return false;
+                    } finally {
+                        // Always close the relay connection, even if there was an error
+                        if (relay) {
+                            try {
+                                relay.close();
+                            } catch (closeError) {
+                                // Ignore errors when closing
+                            }
+                        }
                     }
                 });
                 
@@ -3138,9 +3207,9 @@
             // Use fast spatial index lookup instead of filtering all events
             const { eventsForPlusCodeExactly, eventsWithinPlusCode } = filterEventsForPlusCodeFast(plusCode);
             
-            // Sort events by created_at (oldest first) and reverse to show oldest at top
-            const sortedExact = [...eventsForPlusCodeExactly].sort((a, b) => a.created_at - b.created_at);
-            const sortedWithin = [...eventsWithinPlusCode].sort((a, b) => a.created_at - b.created_at);
+            // Merge exact matches into within plus code section
+            const allEvents = [...eventsForPlusCodeExactly, ...eventsWithinPlusCode];
+            const sortedAll = [...allEvents].sort((a, b) => a.created_at - b.created_at);
             
             // Update modal title
             document.getElementById('pluscode-notes-title').textContent = 
@@ -3150,44 +3219,24 @@
             const notesContent = document.getElementById('pluscode-notes-content');
             notesContent.innerHTML = '';
             
-            // Exact matches section
-            if (sortedExact.length > 0) {
-                const exactSection = document.createElement('div');
-                exactSection.className = 'notes-section';
+            // Single section for all notes
+            if (sortedAll.length > 0) {
+                const notesSection = document.createElement('div');
+                notesSection.className = 'notes-section';
                 
-                const exactHeader = document.createElement('div');
-                exactHeader.className = 'notes-section-header exact';
-                exactHeader.innerHTML = `${sortedExact.length} exact match${sortedExact.length !== 1 ? 'es' : ''}`;
-                exactSection.appendChild(exactHeader);
+                const notesHeader = document.createElement('div');
+                notesHeader.className = 'notes-section-header within';
+                notesHeader.innerHTML = `${sortedAll.length} note${sortedAll.length !== 1 ? 's' : ''}`;
+                notesSection.appendChild(notesHeader);
                 
-                sortedExact.forEach(event => {
+                sortedAll.forEach(event => {
                     const noteItem = createNoteItem(event);
-                    exactSection.appendChild(noteItem);
+                    notesSection.appendChild(noteItem);
                 });
                 
-                notesContent.appendChild(exactSection);
-            }
-            
-            // Within plus code section
-            if (sortedWithin.length > 0) {
-                const withinSection = document.createElement('div');
-                withinSection.className = 'notes-section';
-                
-                const withinHeader = document.createElement('div');
-                withinHeader.className = 'notes-section-header within';
-                withinHeader.innerHTML = `${sortedWithin.length} within plus code`;
-                withinSection.appendChild(withinHeader);
-                
-                sortedWithin.forEach(event => {
-                    const noteItem = createNoteItem(event);
-                    withinSection.appendChild(noteItem);
-                });
-                
-                notesContent.appendChild(withinSection);
-            }
-            
-            // Show message if no notes
-            if (sortedExact.length === 0 && sortedWithin.length === 0) {
+                notesContent.appendChild(notesSection);
+            } else {
+                // Show message if no notes
                 const noNotes = document.createElement('div');
                 noNotes.className = 'notes-section';
                 noNotes.innerHTML = '<p style="color: var(--muted-foreground); text-align: center; padding: 2rem;">No notes yet for this plus code area.</p>';
@@ -3209,10 +3258,22 @@
                     notesList.scrollTop = notesList.scrollHeight;
                 }
                 
-                // Focus on the textarea
+                // Focus on the textarea and set up keyboard handler
                 const textarea = document.getElementById('note-content-in-modal');
                 if (textarea) {
                     textarea.focus();
+                    // Handle Enter key: submit on Enter, new line on Shift+Enter
+                    // Only set up listener once
+                    if (!textarea.dataset.enterHandlerSetup) {
+                        textarea.addEventListener('keydown', function(e) {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                publishNoteFromModal();
+                            }
+                            // Shift+Enter allows default behavior (new line)
+                        });
+                        textarea.dataset.enterHandlerSetup = 'true';
+                    }
                 }
             }, 150);
         }
@@ -3236,12 +3297,24 @@
             
             const author = document.createElement('span');
             author.className = 'note-author';
-            try {
-                const npub = nip19.npubEncode(event.pubkey);
-                author.textContent = npub.substring(0, 12) + '...';
-                author.title = npub; // Show full npub on hover
-            } catch (error) {
-                author.textContent = event.pubkey.substring(0, 12) + '...';
+            // Show Trustroots username if available, otherwise show npub
+            const username = pubkeyToUsername.get(event.pubkey);
+            if (username) {
+                author.textContent = `@${username}`;
+                try {
+                    const npub = nip19.npubEncode(event.pubkey);
+                    author.title = `@${username} (${npub})`; // Show username and npub on hover
+                } catch (error) {
+                    author.title = `@${username} (${event.pubkey.substring(0, 16)}...)`;
+                }
+            } else {
+                try {
+                    const npub = nip19.npubEncode(event.pubkey);
+                    author.textContent = npub.substring(0, 12) + '...';
+                    author.title = npub; // Show full npub on hover
+                } catch (error) {
+                    author.textContent = event.pubkey.substring(0, 12) + '...';
+                }
             }
             
             metaRow.appendChild(meta);
@@ -3586,14 +3659,25 @@
                         // Publish to all relays
                         const relayUrls = getRelayUrls();
                         const publishPromises = relayUrls.map(async (url) => {
+                            let relay = null;
                             try {
-                                const relay = await Relay.connect(url);
+                                relay = await Relay.connect(url);
                                 await relay.publish(signedEvent);
-                                relay.close();
+                                // Wait a bit for the relay to process and confirm the event
+                                await new Promise(resolve => setTimeout(resolve, 500));
                                 return true;
                             } catch (error) {
                                 console.error(`Error publishing to ${url}:`, error);
                                 return false;
+                            } finally {
+                                // Always close the relay connection, even if there was an error
+                                if (relay) {
+                                    try {
+                                        relay.close();
+                                    } catch (closeError) {
+                                        // Ignore errors when closing
+                                    }
+                                }
                             }
                         });
                         
@@ -3681,18 +3765,35 @@
                 });
             }
             
-            // Small delay to ensure DOM is ready
+            // Small delay to ensure DOM is ready, then initialize map
             setTimeout(() => {
                 initializeMap();
             }, 100);
             
-            // Load cached events first, then initialize relays
-            loadCachedEvents();
+            // Function to load data and connect to relays
+            function loadDataWhenReady() {
+                // Check if map is ready
+                if (map && map.loaded() && map.getSource('pluscode-grid')) {
+                    // Map is ready, load cached events
+                    loadCachedEvents();
+                    
+                    // Force a grid update after loading cached events
+                    setTimeout(() => {
+                        updatePlusCodeGrid();
+                    }, 100);
+                    
+                    // Then connect to relays
+                    setTimeout(async () => {
+                        await initializeNDK();
+                    }, 500);
+                } else {
+                    // Map not ready yet, try again
+                    setTimeout(loadDataWhenReady, 100);
+                }
+            }
             
-            // Wait a bit for onboarding if needed, then initialize relays
-            setTimeout(async () => {
-                await initializeNDK();
-            }, 1000);
+            // Start checking if map is ready after giving it time to initialize
+            setTimeout(loadDataWhenReady, 200);
         });
         
         // Make functions available globally

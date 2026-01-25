@@ -844,25 +844,6 @@
         </div>
     </div>
     
-    <div class="modal" id="add-note-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Add Note</h2>
-                <button class="modal-close" onclick="closeAddNoteModal()">&times;</button>
-            </div>
-            <div class="form-group">
-                <label>Content</label>
-                <textarea id="note-content" rows="4" placeholder="Enter your note..."></textarea>
-            </div>
-            <div class="form-group">
-                <label>Expiration (days)</label>
-                <input type="number" id="note-expiration" value="7" min="1" max="365" onchange="saveExpirationSetting(this.value)">
-            </div>
-            <div id="note-location-info"></div>
-            <button class="btn" onclick="publishNote()">Publish Note</button>
-        </div>
-    </div>
-    
     <div class="modal" id="view-note-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -887,9 +868,11 @@
                         <div class="form-group expiration-group">
                             <label>Expiration</label>
                             <select id="note-expiration-in-modal" onchange="saveExpirationSetting(this.value)">
-                                <option value="1">1 day</option>
-                                <option value="7" selected>7 days</option>
-                                <option value="30">30 days</option>
+                                <option value="31536000">1 year</option>
+                                <option value="2592000">1 month</option>
+                                <option value="604800" selected>1 week</option>
+                                <option value="86400">1 day</option>
+                                <option value="3600">1 hour</option>
                             </select>
                         </div>
                     </div>
@@ -1051,11 +1034,19 @@
         const EVENTS_CACHE_KEY = 'nostroots_events_cache';
         const EVENTS_CACHE_TIMESTAMP_KEY = 'nostroots_events_cache_timestamp';
         const CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-        const EXPIRATION_SETTING_KEY = 'nostroots_expiration_days';
+        const EXPIRATION_SETTING_KEY = 'nostroots_expiration_seconds';
         let cachedFilteredEvents = null;
         let filteredEventsCacheKey = null;
         let localStorageWriteTimeout = null;
         let gridUpdateAnimationFrame = null;
+        
+        // Expiration constants (matching nr-app)
+        const MINUTE_IN_SECONDS = 60;
+        const HOUR_IN_SECONDS = 60 * MINUTE_IN_SECONDS;
+        const DAY_IN_SECONDS = 24 * HOUR_IN_SECONDS;
+        const WEEK_IN_SECONDS = 7 * DAY_IN_SECONDS;
+        const MONTH_IN_SECONDS = 30 * DAY_IN_SECONDS;
+        const YEAR_IN_SECONDS = 365 * DAY_IN_SECONDS;
         
         // Spatial indexing for fast event lookups
         let eventsByPlusCode = new Map(); // Map<plusCode, Set<event>>
@@ -1216,6 +1207,9 @@
             
             const enabledLayers = getEnabledLayers();
             events.forEach(event => {
+                // Skip expired events - they shouldn't be indexed
+                if (isEventExpired(event)) return;
+                
                 const layer = getLayerForEvent(event);
                 if (!layer || !enabledLayers.includes(layer)) return;
                 
@@ -2170,26 +2164,34 @@
             }, 2000); // Write to cache 2 seconds after last event
         }
         
-        // Expiration setting functions
+        // Expiration setting functions (matching nr-app)
         function getExpirationSetting() {
             const saved = localStorage.getItem(EXPIRATION_SETTING_KEY);
             if (saved) {
                 const parsed = parseInt(saved);
-                if (!isNaN(parsed) && parsed >= 1 && parsed <= 365) {
+                // Validate it's one of the allowed values
+                const validValues = [HOUR_IN_SECONDS, DAY_IN_SECONDS, WEEK_IN_SECONDS, MONTH_IN_SECONDS, YEAR_IN_SECONDS];
+                if (!isNaN(parsed) && validValues.includes(parsed)) {
                     return parsed;
                 }
             }
-            return 7; // Default to 7 days
+            return WEEK_IN_SECONDS; // Default to 1 week (matching nr-app)
         }
         
         function saveExpirationSetting(value) {
             const parsed = parseInt(value);
-            if (!isNaN(parsed) && parsed >= 1 && parsed <= 365) {
+            // Validate it's one of the allowed values
+            const validValues = [HOUR_IN_SECONDS, DAY_IN_SECONDS, WEEK_IN_SECONDS, MONTH_IN_SECONDS, YEAR_IN_SECONDS];
+            if (!isNaN(parsed) && validValues.includes(parsed)) {
                 localStorage.setItem(EXPIRATION_SETTING_KEY, parsed.toString());
-                // Sync both expiration inputs
-                document.getElementById('note-expiration').value = parsed;
+                // Sync expiration input
                 document.getElementById('note-expiration-in-modal').value = parsed;
             }
+        }
+        
+        // Get current timestamp (matching nr-app's getCurrentTimestamp)
+        function getCurrentTimestamp() {
+            return Math.round(Date.now() / 1000);
         }
         
         // Track all kind 30397 events for debugging
@@ -2340,6 +2342,128 @@
             }
         }
         
+        // Sync localStorage with relay contents - remove events that no longer exist on relays
+        function syncLocalStorageWithRelays() {
+            if (events.length === 0) {
+                return; // Nothing to sync
+            }
+            
+            console.log('Starting sync: checking which events still exist on relays...');
+            const eventsOnRelays = new Set();
+            let queriesCompleted = 0;
+            const totalRelays = ndk ? 1 : relays.length;
+            
+            if (totalRelays === 0) {
+                console.log('No relays available for sync');
+                return;
+            }
+            
+            // Perform the actual sync - remove events not found on relays
+            const performSync = (eventsOnRelaysSet) => {
+                const initialCount = events.length;
+                const eventsToRemove = [];
+                
+                // Find events that are not on any relay
+                events.forEach((event, index) => {
+                    const storageId = getStorageId(event);
+                    if (!eventsOnRelaysSet.has(storageId)) {
+                        eventsToRemove.push(index);
+                    }
+                });
+                
+                // Remove events in reverse order to maintain indices
+                eventsToRemove.reverse().forEach(index => {
+                    events.splice(index, 1);
+                });
+                
+                const removedCount = eventsToRemove.length;
+                
+                if (removedCount > 0) {
+                    console.log(`Sync complete: Removed ${removedCount} event(s) that no longer exist on relays (${initialCount} -> ${events.length})`);
+                    
+                    // Update cache
+                    saveEventsToCache();
+                    cachedFilteredEvents = null;
+                    filteredEventsCacheKey = null;
+                    
+                    // Rebuild spatial index
+                    rebuildSpatialIndex();
+                    
+                    // Update UI
+                    updateMapMarkers();
+                    if (map && map.loaded()) {
+                        updatePlusCodeGrid();
+                    }
+                } else {
+                    console.log('Sync complete: All events still exist on relays');
+                }
+            };
+            
+            // Query all events from relays
+            if (ndk) {
+                // Use NDK to query all kind 30397 events
+                try {
+                    const filter = { kinds: [MAP_NOTE_KIND] };
+                    const subscription = ndk.subscribe(filter, { closeOnEose: true });
+                    
+                    subscription.on('event', (event) => {
+                        const rawEvent = event.rawEvent ? event.rawEvent() : event;
+                        const storageId = getStorageId(rawEvent);
+                        eventsOnRelays.add(storageId);
+                    });
+                    
+                    subscription.on('eose', () => {
+                        queriesCompleted++;
+                        if (queriesCompleted >= totalRelays) {
+                            performSync(eventsOnRelays);
+                        }
+                    });
+                } catch (error) {
+                    console.error('Error querying events via NDK:', error);
+                    queriesCompleted++;
+                    if (queriesCompleted >= totalRelays) {
+                        performSync(eventsOnRelays);
+                    }
+                }
+            } else {
+                // Query each relay directly
+                for (const relay of relays) {
+                    try {
+                        const query = relay.subscribe([{ kinds: [MAP_NOTE_KIND] }], {
+                            onevent: (event) => {
+                                const storageId = getStorageId(event);
+                                eventsOnRelays.add(storageId);
+                            },
+                            oneose: () => {
+                                query.close();
+                                queriesCompleted++;
+                                if (queriesCompleted >= totalRelays) {
+                                    performSync(eventsOnRelays);
+                                }
+                            }
+                        });
+                        
+                        // Timeout after 30 seconds per relay
+                        setTimeout(() => {
+                            if (query) {
+                                query.close();
+                            }
+                            queriesCompleted++;
+                            if (queriesCompleted >= totalRelays) {
+                                performSync(eventsOnRelays);
+                            }
+                        }, 30000);
+                    } catch (error) {
+                        console.error(`Error querying relay ${relay.url}:`, error);
+                        queriesCompleted++;
+                        if (queriesCompleted >= totalRelays) {
+                            performSync(eventsOnRelays);
+                        }
+                    }
+                }
+            }
+        }
+        
         function escapeHtml(text) {
             if (text == null) return '';
             const div = document.createElement('div');
@@ -2404,18 +2528,68 @@
         }
         
         function isEventExpired(event) {
-            // Check if event has an expiration tag
+            // Check if event has an expiration tag (matching nr-app logic)
             for (const tag of event.tags) {
                 if (tag.length >= 2 && tag[0] === 'expiration') {
                     const expirationTimestamp = parseInt(tag[1]);
                     if (!isNaN(expirationTimestamp)) {
-                        const currentTimestamp = Math.floor(Date.now() / 1000);
+                        const currentTimestamp = getCurrentTimestamp();
                         return expirationTimestamp <= currentTimestamp;
                     }
                 }
             }
             // If no expiration tag, event is not expired
             return false;
+        }
+        
+        // Flush expired events from the events array (matching nr-app's flushExpiredEvents)
+        function flushExpiredEvents() {
+            const currentTimestamp = getCurrentTimestamp();
+            const initialCount = events.length;
+            const eventsToKeep = events.filter(event => {
+                // Check if event has an expiration tag
+                for (const tag of event.tags) {
+                    if (tag.length >= 2 && tag[0] === 'expiration') {
+                        const expirationTimestamp = parseInt(tag[1]);
+                        if (!isNaN(expirationTimestamp)) {
+                            // If expired, don't keep it
+                            if (expirationTimestamp <= currentTimestamp) {
+                                return false;
+                            }
+                        }
+                    }
+                }
+                // If no expiration tag or not expired, keep it
+                return true;
+            });
+            
+            const removedCount = initialCount - eventsToKeep.length;
+            if (removedCount > 0) {
+                events = eventsToKeep;
+                console.log(`Flushed ${removedCount} expired event(s) (${initialCount} -> ${events.length})`);
+                
+                // Update cache
+                saveEventsToCache();
+                cachedFilteredEvents = null;
+                filteredEventsCacheKey = null;
+                
+                // Rebuild spatial index
+                rebuildSpatialIndex();
+                
+                // Update UI
+                updateMapMarkers();
+                if (map && map.loaded()) {
+                    updatePlusCodeGrid();
+                }
+            }
+        }
+        
+        // Start periodic flushing of expired events (matching nr-app: every 10 minutes)
+        function startPeriodicFlushingOfExpiredEvents() {
+            const FLUSH_EXPIRED_EVENTS_EVERY_MILLISECONDS = 10 * 60 * 1000; // 10 minutes
+            setInterval(() => {
+                flushExpiredEvents();
+            }, FLUSH_EXPIRED_EVENTS_EVERY_MILLISECONDS);
         }
         
         function getLayerForEvent(event) {
@@ -2689,10 +2863,7 @@
                     // Convert clicked coordinates to plus code immediately
                     const plusCode = encodePlusCode(e.lngLat.lat, e.lngLat.lng);
                     if (plusCode) {
-                        selectedPlusCode = plusCode;
-                        document.getElementById('note-location-info').textContent = 
-                            `Plus Code: ${plusCode}`;
-                        document.getElementById('add-note-modal').classList.add('active');
+                        showNotesForPlusCode(plusCode);
                     } else {
                         showStatus('Error encoding location to plus code', 'error');
                     }
@@ -2932,181 +3103,6 @@
             gridUpdateAnimationFrame = requestAnimationFrame(updateGrid);
         }
         
-        async function publishNote() {
-            if (!usingNip07 && !currentPrivateKeyBytes) {
-                showStatus('No private key available. Please connect extension or import/generate a key.', 'error');
-                return;
-            }
-            
-            if (!currentPublicKey) {
-                showStatus('No public key available', 'error');
-                return;
-            }
-            
-            if (!selectedPlusCode) {
-                showStatus('Please select a location on the map', 'error');
-                return;
-            }
-            
-            const content = document.getElementById('note-content').value.trim();
-            if (!content || content.length < 3) {
-                showStatus('Note content must be at least 3 characters', 'error');
-                return;
-            }
-            
-            const expirationDays = parseInt(document.getElementById('note-expiration').value) || 7;
-            const expiration = Math.floor(Date.now() / 1000) + (expirationDays * 24 * 60 * 60);
-            
-            // Use the selected plus code directly
-            const plusCode = selectedPlusCode;
-            const plusCodePrefixes = getPlusCodePrefixes(plusCode, DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH);
-            
-            try {
-                // Create event template
-                const eventTemplate = {
-                    kind: MAP_NOTE_KIND,
-                    content: content,
-                    created_at: Math.floor(Date.now() / 1000),
-                    pubkey: currentPublicKey,
-                    tags: [
-                        ['expiration', expiration.toString()],
-                        ['L', 'open-location-code'],
-                        ['l', plusCode, 'open-location-code'],
-                        ['L', 'open-location-code-prefix'],
-                        ...plusCodePrefixes.map(prefix => ['l', prefix, 'open-location-code-prefix'])
-                    ]
-                };
-                
-                let signedEvent;
-                
-                // Sign event using NIP-07 extension or local key
-                // IMPORTANT: With NIP-07, the private key stays in the extension
-                if (usingNip07) {
-                    // Verify extension is still available
-                    if (!nostrProvider) {
-                        // Try to reconnect
-                        const provider = detectNostrExtension();
-                        if (provider) {
-                            nostrProvider = provider;
-                            // Verify we still have the same public key
-                            try {
-                                // Validate getPublicKey is available before calling
-                                if (typeof provider.getPublicKey !== 'function') {
-                                    throw new Error('getPublicKey method not available');
-                                }
-                                const currentPubkey = await provider.getPublicKey();
-                                if (!currentPubkey || typeof currentPubkey !== 'string') {
-                                    throw new Error('Invalid public key returned');
-                                }
-                                if (currentPubkey !== currentPublicKey) {
-                                    showStatus('Extension public key changed. Please reconnect.', 'error');
-                                    usingNip07 = false;
-                                    updateKeyDisplay();
-                                    return;
-                                }
-                            } catch (error) {
-                                console.error('Error verifying extension public key:', error);
-                                showStatus('Extension no longer available. Please reconnect.', 'error');
-                                usingNip07 = false;
-                                nostrProvider = null;
-                                localStorage.removeItem('using_nip07');
-                                updateKeyDisplay();
-                                return;
-                            }
-                        } else {
-                            showStatus('Extension no longer available. Please reconnect or use local keys.', 'error');
-                            usingNip07 = false;
-                            localStorage.removeItem('using_nip07');
-                            updateKeyDisplay();
-                            return;
-                        }
-                    }
-                    
-                    // Use extension's signEvent method - private key never leaves extension
-                    try {
-                        signedEvent = await nostrProvider.signEvent(eventTemplate);
-                    } catch (error) {
-                        showStatus('Extension signing failed: ' + error.message, 'error');
-                        return;
-                    }
-                } else if (currentPrivateKeyBytes) {
-                    // Use local private key (only when NOT using NIP-07)
-                    signedEvent = finalizeEvent(eventTemplate, currentPrivateKeyBytes);
-                } else {
-                    showStatus('No signing method available. Please connect extension or import/generate a key.', 'error');
-                    return;
-                }
-                
-                // Publish to all relays
-                const relayUrls = getRelayUrls();
-                const publishPromises = relayUrls.map(async (url) => {
-                    let relay = null;
-                    try {
-                        relay = await Relay.connect(url);
-                        await relay.publish(signedEvent);
-                        // Wait a bit for the relay to process and confirm the event
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        return { success: true, url };
-                    } catch (error) {
-                        // Only log error if it's not a generic relay rejection
-                        const errorMessage = error?.message || String(error);
-                        if (!errorMessage.includes('relay experienced an error')) {
-                            console.error(`Error publishing to ${url}:`, error);
-                        }
-                        return { success: false, url, error: errorMessage };
-                    } finally {
-                        // Always close the relay connection, even if there was an error
-                        if (relay) {
-                            try {
-                                relay.close();
-                            } catch (closeError) {
-                                // Ignore errors when closing
-                            }
-                        }
-                    }
-                });
-                
-                const results = await Promise.allSettled(publishPromises);
-                const successful = [];
-                const failed = [];
-                
-                results.forEach((result, index) => {
-                    if (result.status === 'fulfilled') {
-                        if (result.value.success) {
-                            successful.push(result.value.url);
-                        } else {
-                            failed.push({ url: result.value.url, error: result.value.error });
-                        }
-                    } else {
-                        failed.push({ url: relayUrls[index], error: result.reason?.message || 'Unknown error' });
-                    }
-                });
-                
-                if (successful.length > 0) {
-                    let statusMessage = `Note published to ${successful.length} relay(s)`;
-                    if (failed.length > 0) {
-                        statusMessage += ` (${failed.length} failed)`;
-                    }
-                    showStatus(statusMessage, 'success');
-                    // Add to local events immediately
-                    processIncomingEvent(signedEvent);
-                    // Ensure grid updates after processing
-                    setTimeout(() => {
-                        if (map && map.loaded()) {
-                            updatePlusCodeGrid();
-                        }
-                    }, 50);
-                    closeAddNoteModal();
-                } else {
-                    const errorDetails = failed.map(f => `${new URL(f.url).hostname}`).join(', ');
-                    showStatus(`Failed to publish to all relays: ${errorDetails}`, 'error');
-                }
-            } catch (error) {
-                console.error('Error publishing note:', error);
-                showStatus('Error publishing note: ' + error.message, 'error');
-            }
-        }
-        
         function showNoteDetails(event) {
             const plusCode = getPlusCodeFromEvent(event);
             const layer = getLayerForEvent(event);
@@ -3154,13 +3150,6 @@
             document.getElementById('view-note-modal').classList.add('active');
         }
         
-        function closeAddNoteModal() {
-            document.getElementById('add-note-modal').classList.remove('active');
-            document.getElementById('note-content').value = '';
-            document.getElementById('note-expiration').value = getExpirationSetting();
-            selectedPlusCode = null;
-        }
-        
         function closeViewNoteModal() {
             document.getElementById('view-note-modal').classList.remove('active');
         }
@@ -3193,8 +3182,8 @@
                 return;
             }
             
-            const expirationDays = parseInt(document.getElementById('note-expiration-in-modal').value) || 7;
-            const expiration = Math.floor(Date.now() / 1000) + (expirationDays * 24 * 60 * 60);
+            const expirationSeconds = parseInt(document.getElementById('note-expiration-in-modal').value) || WEEK_IN_SECONDS;
+            const expiration = getCurrentTimestamp() + expirationSeconds;
             
             // Use the selected plus code directly
             const plusCode = selectedPlusCode;
@@ -3340,24 +3329,28 @@
             }
         }
         
-        function openAddNoteForSelectedPlusCode() {
-            closePlusCodeNotesModal();
-            if (selectedPlusCode) {
-                document.getElementById('note-location-info').textContent = 
-                    `Plus Code: ${selectedPlusCode}`;
-                document.getElementById('add-note-modal').classList.add('active');
-            }
-        }
-        
         function showNotesForPlusCode(plusCode) {
             selectedPlusCode = plusCode;
             
             // Use fast spatial index lookup instead of filtering all events
             const { eventsForPlusCodeExactly, eventsWithinPlusCode } = filterEventsForPlusCodeFast(plusCode);
             
-            // Merge exact matches into within plus code section
-            const allEvents = [...eventsForPlusCodeExactly, ...eventsWithinPlusCode];
-            const sortedAll = [...allEvents].sort((a, b) => a.created_at - b.created_at);
+            // Merge exact matches into within plus code section, avoiding duplicates
+            const allEventsMap = new Map();
+            eventsForPlusCodeExactly.forEach(event => {
+                allEventsMap.set(event.id, event);
+            });
+            eventsWithinPlusCode.forEach(event => {
+                // Only add if not already in exact matches (avoid duplicates)
+                if (!allEventsMap.has(event.id)) {
+                    allEventsMap.set(event.id, event);
+                }
+            });
+            
+            // Filter out expired events
+            const nonExpiredEvents = Array.from(allEventsMap.values()).filter(event => !isEventExpired(event));
+            
+            const sortedAll = [...nonExpiredEvents].sort((a, b) => a.created_at - b.created_at);
             
             // Update modal title
             document.getElementById('pluscode-notes-title').textContent = 
@@ -3499,8 +3492,6 @@
                 if (modal.id === 'onboarding-modal') {
                     // Don't allow closing onboarding modal with ESC (user must generate/import key)
                     return;
-                } else if (modal.id === 'add-note-modal') {
-                    closeAddNoteModal();
                 } else if (modal.id === 'view-note-modal') {
                     closeViewNoteModal();
                 } else if (modal.id === 'pluscode-notes-modal') {
@@ -3928,10 +3919,10 @@
             
             checkOnboarding();
             
-            // Initialize expiration inputs with saved value
+            // Initialize expiration input with saved value
             const savedExpiration = getExpirationSetting();
-            document.getElementById('note-expiration').value = savedExpiration;
-            document.getElementById('note-expiration-in-modal').value = savedExpiration;
+            const expirationSelectModal = document.getElementById('note-expiration-in-modal');
+            if (expirationSelectModal) expirationSelectModal.value = savedExpiration;
             
             // Settings icon button click handler
             const settingsBtn = document.getElementById('settings-icon-btn');
@@ -3947,16 +3938,6 @@
                 settingsModal.addEventListener('click', (e) => {
                     if (e.target.id === 'settings-modal') {
                         closeSettingsModal();
-                    }
-                });
-            }
-            
-            // Close add-note modal when clicking outside
-            const addNoteModal = document.getElementById('add-note-modal');
-            if (addNoteModal) {
-                addNoteModal.addEventListener('click', (e) => {
-                    if (e.target.id === 'add-note-modal') {
-                        closeAddNoteModal();
                     }
                 });
             }
@@ -4001,6 +3982,15 @@
                     // Then connect to relays
                     setTimeout(async () => {
                         await initializeNDK();
+                        
+                        // Start periodic flushing of expired events (matching nr-app)
+                        startPeriodicFlushingOfExpiredEvents();
+                        
+                        // After everything is loaded and displayed, wait a bit then sync localStorage with relays
+                        // This removes events that have been deleted/expired from relays
+                        setTimeout(() => {
+                            syncLocalStorageWithRelays();
+                        }, 60000); // Wait 60 seconds after initialization
                     }, 500);
                 } else {
                     // Map not ready yet, try again
@@ -4019,13 +4009,10 @@
         window.deleteNsec = deleteNsec;
         window.saveRelays = saveRelays;
         window.linkTrustrootsProfile = linkTrustrootsProfile;
-        window.publishNote = publishNote;
         window.publishNoteFromModal = publishNoteFromModal;
-        window.closeAddNoteModal = closeAddNoteModal;
         window.closeViewNoteModal = closeViewNoteModal;
         window.closePlusCodeNotesModal = closePlusCodeNotesModal;
         window.closeSettingsModal = closeSettingsModal;
-        window.openAddNoteForSelectedPlusCode = openAddNoteForSelectedPlusCode;
         window.onboardingGenerate = onboardingGenerate;
         window.onboardingImport = onboardingImport;
         window.onboardingConnectExtension = onboardingConnectExtension;

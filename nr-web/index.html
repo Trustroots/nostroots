@@ -124,6 +124,7 @@
         
         .maplibregl-ctrl-attrib {
             background: var(--card) !important;
+            color: var(--foreground) !important;
             font-size: 0.7rem;
             padding: 4px 8px;
             border-radius: calc(var(--radius) - 2px);
@@ -222,7 +223,7 @@
         /* Floating Settings Button */
         .settings-icon {
             position: fixed;
-            bottom: 20px;
+            top: 20px;
             right: 20px;
             width: 56px;
             height: 56px;
@@ -524,6 +525,8 @@
             max-height: 80vh;
             display: flex;
             flex-direction: column;
+            padding: 0.75rem;
+            margin: 0;
         }
         
         .notes-modal-content .modal-header {
@@ -609,8 +612,13 @@
         .note-content {
             color: var(--foreground);
             line-height: 1.3;
-            margin-bottom: 0.15rem;
             font-size: 0.9rem;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        
+        .event-content {
+            white-space: pre-wrap;
             word-wrap: break-word;
         }
         
@@ -618,7 +626,7 @@
             display: flex;
             align-items: center;
             gap: 0.4rem;
-            margin-top: 0.1rem;
+            margin-bottom: 0.15rem;
         }
         
         .note-meta {
@@ -636,15 +644,14 @@
         }
         
         .notes-actions {
-            margin-top: 0.4rem;
-            padding-top: 0.4rem;
-            border-top: 1px solid var(--border);
+            margin-top: 0.2rem;
+            padding-top: 0.2rem;
         }
         
         .notes-add-form {
             display: flex;
             flex-direction: column;
-            gap: 0.3rem;
+            gap: 0.2rem;
         }
         
         .notes-add-form textarea {
@@ -684,9 +691,26 @@
         
         .notes-add-form-row .form-group.expiration-group label {
             margin-bottom: 0;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             white-space: nowrap;
             color: var(--muted-foreground);
+        }
+        
+        .notes-add-form-row .form-group.expiration-group select {
+            padding: 0.3rem 0.5rem;
+            font-size: 0.8rem;
+            border: 1px solid var(--input);
+            border-radius: 8px;
+            background: var(--background);
+            color: var(--foreground);
+            cursor: pointer;
+            transition: border-color 0.2s ease;
+        }
+        
+        .notes-add-form-row .form-group.expiration-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px hsla(var(--primary), 0.1);
         }
         
         .notes-add-form-row .form-group.expiration-group input {
@@ -859,7 +883,6 @@
             <div id="pluscode-notes-content" class="notes-list"></div>
             <div class="notes-actions">
                 <div class="notes-add-form">
-                    <textarea id="note-content-in-modal" rows="1" placeholder="Type a message... (Enter to send)" autofocus></textarea>
                     <div class="notes-add-form-row">
                         <div class="form-group expiration-group">
                             <label>Expiration</label>
@@ -870,6 +893,7 @@
                             </select>
                         </div>
                     </div>
+                    <textarea id="note-content-in-modal" rows="1" placeholder="Type a message... (Enter to send)" autofocus></textarea>
                 </div>
             </div>
         </div>
@@ -2316,6 +2340,13 @@
             }
         }
         
+        function escapeHtml(text) {
+            if (text == null) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
         function formatDate(timestamp) {
             const date = new Date(timestamp * 1000);
             const year = date.getFullYear();
@@ -2598,8 +2629,53 @@
                 return;
             }
             
+            // Track if map was dragged to prevent opening modal after panning
+            let mapWasDragged = false;
+            let dragStartPos = null;
+            
+            map.on('dragstart', () => {
+                mapWasDragged = false;
+            });
+            
+            map.on('drag', () => {
+                mapWasDragged = true;
+            });
+            
+            map.on('dragend', () => {
+                // Reset after a short delay to allow click event to check the flag
+                setTimeout(() => {
+                    mapWasDragged = false;
+                }, 100);
+            });
+            
+            // Also track mouse events for more reliable detection
+            map.on('mousedown', (e) => {
+                dragStartPos = { x: e.point.x, y: e.point.y };
+                mapWasDragged = false;
+            });
+            
+            map.on('mousemove', (e) => {
+                if (dragStartPos) {
+                    const dx = Math.abs(e.point.x - dragStartPos.x);
+                    const dy = Math.abs(e.point.y - dragStartPos.y);
+                    // If mouse moved more than 5 pixels, consider it a drag
+                    if (dx > 5 || dy > 5) {
+                        mapWasDragged = true;
+                    }
+                }
+            });
+            
+            map.on('mouseup', () => {
+                dragStartPos = null;
+            });
+            
             // Handle map clicks (but not on plus code polygons or markers - those are handled separately)
             map.on('click', (e) => {
+                // Ignore clicks that occurred after dragging/panning
+                if (mapWasDragged) {
+                    return;
+                }
+                
                 // Check if clicking on a marker (markers are HTML elements, not map features)
                 const clickedElement = e.originalEvent.target;
                 if (clickedElement && clickedElement.closest && clickedElement.closest('.maplibregl-marker')) {
@@ -2685,6 +2761,11 @@
                     
                     // Make plus code polygons clickable
                     map.on('click', 'pluscode-grid-fill', (e) => {
+                        // Ignore clicks that occurred after dragging/panning
+                        if (mapWasDragged) {
+                            return;
+                        }
+                        
                         if (e.features && e.features.length > 0) {
                             const plusCode = e.features[0].properties.plusCode;
                             if (plusCode) {
@@ -2965,10 +3046,14 @@
                         await relay.publish(signedEvent);
                         // Wait a bit for the relay to process and confirm the event
                         await new Promise(resolve => setTimeout(resolve, 500));
-                        return true;
+                        return { success: true, url };
                     } catch (error) {
-                        console.error(`Error publishing to ${url}:`, error);
-                        return false;
+                        // Only log error if it's not a generic relay rejection
+                        const errorMessage = error?.message || String(error);
+                        if (!errorMessage.includes('relay experienced an error')) {
+                            console.error(`Error publishing to ${url}:`, error);
+                        }
+                        return { success: false, url, error: errorMessage };
                     } finally {
                         // Always close the relay connection, even if there was an error
                         if (relay) {
@@ -2982,10 +3067,27 @@
                 });
                 
                 const results = await Promise.allSettled(publishPromises);
-                const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
+                const successful = [];
+                const failed = [];
                 
-                if (successCount > 0) {
-                    showStatus(`Note published to ${successCount} relay(s)!`, 'success');
+                results.forEach((result, index) => {
+                    if (result.status === 'fulfilled') {
+                        if (result.value.success) {
+                            successful.push(result.value.url);
+                        } else {
+                            failed.push({ url: result.value.url, error: result.value.error });
+                        }
+                    } else {
+                        failed.push({ url: relayUrls[index], error: result.reason?.message || 'Unknown error' });
+                    }
+                });
+                
+                if (successful.length > 0) {
+                    let statusMessage = `Note published to ${successful.length} relay(s)`;
+                    if (failed.length > 0) {
+                        statusMessage += ` (${failed.length} failed)`;
+                    }
+                    showStatus(statusMessage, 'success');
                     // Add to local events immediately
                     processIncomingEvent(signedEvent);
                     // Ensure grid updates after processing
@@ -2996,7 +3098,8 @@
                     }, 50);
                     closeAddNoteModal();
                 } else {
-                    showStatus('Error publishing to relays', 'error');
+                    const errorDetails = failed.map(f => `${new URL(f.url).hostname}`).join(', ');
+                    showStatus(`Failed to publish to all relays: ${errorDetails}`, 'error');
                 }
             } catch (error) {
                 console.error('Error publishing note:', error);
@@ -3009,41 +3112,43 @@
             const layer = getLayerForEvent(event);
             const layerTitle = layer ? MAP_LAYERS[layer].title : 'Unknown';
             
+            // Get username safely
+            const username = pubkeyToUsername.get(event.pubkey);
+            let authorDisplay = '';
+            if (username) {
+                try {
+                    const npub = nip19.npubEncode(event.pubkey);
+                    authorDisplay = `@${escapeHtml(username)} (${escapeHtml(npub)})`;
+                } catch(e) {
+                    authorDisplay = `@${escapeHtml(username)} (${escapeHtml(event.pubkey.substring(0, 16))}...)`;
+                }
+            } else {
+                try { 
+                    authorDisplay = escapeHtml(nip19.npubEncode(event.pubkey));
+                } catch(e) { 
+                    authorDisplay = escapeHtml(event.pubkey.substring(0, 16)) + '...'; 
+                }
+            }
+            
             const details = document.getElementById('note-details');
             details.innerHTML = `
                 <div class="event-header">
-                    <span><strong>${formatDate(event.created_at)}</strong></span>
-                    <span>Kind: ${event.kind}</span>
+                    <span><strong>${escapeHtml(formatDate(event.created_at))}</strong></span>
+                    <span>Kind: ${escapeHtml(String(event.kind))}</span>
                 </div>
                 <div class="event-header" style="margin-top: 0.5rem;">
-                    <span>Layer: ${layerTitle}</span>
-                    ${plusCode ? `<span style="font-family: monospace; color: var(--primary);">${plusCode}</span>` : ''}
+                    <span>Layer: ${escapeHtml(layerTitle)}</span>
+                    ${plusCode ? `<span style="font-family: monospace; color: var(--primary);">${escapeHtml(plusCode)}</span>` : ''}
                 </div>
                 <div class="event-header" style="margin-top: 0.5rem; font-size: 0.85rem;">
-                    <span style="font-family: monospace;">${(() => { 
-                        const username = pubkeyToUsername.get(event.pubkey);
-                        if (username) {
-                            try {
-                                const npub = nip19.npubEncode(event.pubkey);
-                                return `@${username} (${npub})`;
-                            } catch(e) {
-                                return `@${username} (${event.pubkey.substring(0, 16)}...)`;
-                            }
-                        } else {
-                            try { 
-                                return nip19.npubEncode(event.pubkey); 
-                            } catch(e) { 
-                                return event.pubkey.substring(0, 16) + '...'; 
-                            }
-                        }
-                    })()}</span>
+                    <span style="font-family: monospace;">${authorDisplay}</span>
                 </div>
                 <div class="event-content" style="margin: 1rem 0; padding: 1rem; background: var(--muted); border-radius: calc(var(--radius) - 2px);">
-                    ${event.content}
+                    ${escapeHtml(event.content)}
                 </div>
                 <div class="event-tags" style="margin-top: 1rem;">
                     <strong>Tags:</strong><br>
-                    <pre style="font-size: 0.8rem; margin-top: 0.5rem; background: var(--muted); padding: 0.5rem; border-radius: calc(var(--radius) - 2px); overflow-x: auto; border: 1px solid var(--border);">${JSON.stringify(event.tags, null, 2)}</pre>
+                    <pre style="font-size: 0.8rem; margin-top: 0.5rem; background: var(--muted); padding: 0.5rem; border-radius: calc(var(--radius) - 2px); overflow-x: auto; border: 1px solid var(--border);">${escapeHtml(JSON.stringify(event.tags, null, 2))}</pre>
                 </div>
             `;
             document.getElementById('view-note-modal').classList.add('active');
@@ -3174,10 +3279,14 @@
                         await relay.publish(signedEvent);
                         // Wait a bit for the relay to process and confirm the event
                         await new Promise(resolve => setTimeout(resolve, 500));
-                        return true;
+                        return { success: true, url };
                     } catch (error) {
-                        console.error(`Error publishing to ${url}:`, error);
-                        return false;
+                        // Only log error if it's not a generic relay rejection
+                        const errorMessage = error?.message || String(error);
+                        if (!errorMessage.includes('relay experienced an error')) {
+                            console.error(`Error publishing to ${url}:`, error);
+                        }
+                        return { success: false, url, error: errorMessage };
                     } finally {
                         // Always close the relay connection, even if there was an error
                         if (relay) {
@@ -3191,10 +3300,27 @@
                 });
                 
                 const results = await Promise.allSettled(publishPromises);
-                const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
+                const successful = [];
+                const failed = [];
                 
-                if (successCount > 0) {
-                    showStatus(`Note published to ${successCount} relay(s)!`, 'success');
+                results.forEach((result, index) => {
+                    if (result.status === 'fulfilled') {
+                        if (result.value.success) {
+                            successful.push(result.value.url);
+                        } else {
+                            failed.push({ url: result.value.url, error: result.value.error });
+                        }
+                    } else {
+                        failed.push({ url: relayUrls[index], error: result.reason?.message || 'Unknown error' });
+                    }
+                });
+                
+                if (successful.length > 0) {
+                    let statusMessage = `Note published to ${successful.length} relay(s)`;
+                    if (failed.length > 0) {
+                        statusMessage += ` (${failed.length} failed)`;
+                    }
+                    showStatus(statusMessage, 'success');
                     // Add to local events
                     processIncomingEvent(signedEvent);
                     // Clear form and refresh notes
@@ -3205,7 +3331,8 @@
                         showNotesForPlusCode(selectedPlusCode);
                     }, 100);
                 } else {
-                    showStatus('Error publishing to relays', 'error');
+                    const errorDetails = failed.map(f => `${new URL(f.url).hostname}`).join(', ');
+                    showStatus(`Failed to publish to all relays: ${errorDetails}`, 'error');
                 }
             } catch (error) {
                 console.error('Error publishing note:', error);
@@ -3234,7 +3361,7 @@
             
             // Update modal title
             document.getElementById('pluscode-notes-title').textContent = 
-                `Notes for ${plusCode}`;
+                `${sortedAll.length} note${sortedAll.length !== 1 ? 's' : ''} for ${plusCode}`;
             
             // Build notes content
             const notesContent = document.getElementById('pluscode-notes-content');
@@ -3244,11 +3371,6 @@
             if (sortedAll.length > 0) {
                 const notesSection = document.createElement('div');
                 notesSection.className = 'notes-section';
-                
-                const notesHeader = document.createElement('div');
-                notesHeader.className = 'notes-section-header within';
-                notesHeader.innerHTML = `${sortedAll.length} note${sortedAll.length !== 1 ? 's' : ''}`;
-                notesSection.appendChild(notesHeader);
                 
                 sortedAll.forEach(event => {
                     const noteItem = createNoteItem(event);
@@ -3304,11 +3426,6 @@
             noteItem.className = 'note-item';
             noteItem.style.cursor = 'pointer';
             
-            const content = document.createElement('div');
-            content.className = 'note-content';
-            content.textContent = event.content;
-            noteItem.appendChild(content);
-            
             const metaRow = document.createElement('div');
             metaRow.className = 'note-meta-row';
             
@@ -3341,8 +3458,10 @@
                 }
             }
             
-            // Combine meta, plus code, and author on same line with separators
+            // Combine meta, author, and plus code on same line with pluscode on the right
             metaRow.appendChild(meta);
+            metaRow.appendChild(document.createTextNode(' '));
+            metaRow.appendChild(author);
             if (plusCode) {
                 metaRow.appendChild(document.createTextNode(' '));
                 const plusCodeSpan = document.createElement('span');
@@ -3350,11 +3469,15 @@
                 plusCodeSpan.style.fontFamily = 'monospace';
                 plusCodeSpan.style.color = 'var(--primary)';
                 plusCodeSpan.textContent = plusCode;
+                plusCodeSpan.style.marginLeft = 'auto';
                 metaRow.appendChild(plusCodeSpan);
             }
-            metaRow.appendChild(document.createTextNode(' '));
-            metaRow.appendChild(author);
             noteItem.appendChild(metaRow);
+            
+            const content = document.createElement('div');
+            content.className = 'note-content';
+            content.textContent = event.content;
+            noteItem.appendChild(content);
             
             // Make clickable to show details
             noteItem.addEventListener('click', () => {
@@ -3701,10 +3824,14 @@
                                 await relay.publish(signedEvent);
                                 // Wait a bit for the relay to process and confirm the event
                                 await new Promise(resolve => setTimeout(resolve, 500));
-                                return true;
+                                return { success: true, url };
                             } catch (error) {
-                                console.error(`Error publishing to ${url}:`, error);
-                                return false;
+                                // Only log error if it's not a generic relay rejection
+                                const errorMessage = error?.message || String(error);
+                                if (!errorMessage.includes('relay experienced an error')) {
+                                    console.error(`Error publishing to ${url}:`, error);
+                                }
+                                return { success: false, url, error: errorMessage };
                             } finally {
                                 // Always close the relay connection, even if there was an error
                                 if (relay) {
@@ -3718,10 +3845,27 @@
                         });
                         
                         const results = await Promise.allSettled(publishPromises);
-                        const successCount = results.filter(r => r.status === 'fulfilled' && r.value).length;
+                        const successful = [];
+                        const failed = [];
                         
-                        if (successCount > 0) {
-                            showStatus(`Profile linked! Username ${username} published to ${successCount} relay(s).`, 'success');
+                        results.forEach((result, index) => {
+                            if (result.status === 'fulfilled') {
+                                if (result.value.success) {
+                                    successful.push(result.value.url);
+                                } else {
+                                    failed.push({ url: result.value.url, error: result.value.error });
+                                }
+                            } else {
+                                failed.push({ url: relayUrls[index], error: result.reason?.message || 'Unknown error' });
+                            }
+                        });
+                        
+                        if (successful.length > 0) {
+                            let statusMessage = `Profile linked! Username ${username} published to ${successful.length} relay(s)`;
+                            if (failed.length > 0) {
+                                statusMessage += ` (${failed.length} failed)`;
+                            }
+                            showStatus(statusMessage, 'success');
                             // Mark profile as linked and update UI
                             isProfileLinked = true;
                             usernameFromNostr = true;
@@ -3738,7 +3882,8 @@
                                 usernameIndicator.style.display = 'block';
                             }
                         } else {
-                            showStatus('Profile validated but failed to publish to relays', 'error');
+                            const errorDetails = failed.map(f => `${new URL(f.url).hostname}`).join(', ');
+                            showStatus(`Profile validated but failed to publish to relays: ${errorDetails}`, 'error');
                         }
                     } else {
                         showStatus(`Username ${username} is linked to a different npub. This profile does not belong to you.`, 'error');
@@ -3806,6 +3951,36 @@
                 });
             }
             
+            // Close add-note modal when clicking outside
+            const addNoteModal = document.getElementById('add-note-modal');
+            if (addNoteModal) {
+                addNoteModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'add-note-modal') {
+                        closeAddNoteModal();
+                    }
+                });
+            }
+            
+            // Close view-note modal when clicking outside
+            const viewNoteModal = document.getElementById('view-note-modal');
+            if (viewNoteModal) {
+                viewNoteModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'view-note-modal') {
+                        closeViewNoteModal();
+                    }
+                });
+            }
+            
+            // Close pluscode-notes modal when clicking outside
+            const pluscodeNotesModal = document.getElementById('pluscode-notes-modal');
+            if (pluscodeNotesModal) {
+                pluscodeNotesModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'pluscode-notes-modal') {
+                        closePlusCodeNotesModal();
+                    }
+                });
+            }
+            
             // Small delay to ensure DOM is ready, then initialize map
             setTimeout(() => {
                 initializeMap();
@@ -3849,12 +4024,14 @@
         window.closeAddNoteModal = closeAddNoteModal;
         window.closeViewNoteModal = closeViewNoteModal;
         window.closePlusCodeNotesModal = closePlusCodeNotesModal;
+        window.closeSettingsModal = closeSettingsModal;
         window.openAddNoteForSelectedPlusCode = openAddNoteForSelectedPlusCode;
         window.onboardingGenerate = onboardingGenerate;
         window.onboardingImport = onboardingImport;
         window.onboardingConnectExtension = onboardingConnectExtension;
         window.authenticateWithExtension = authenticateWithExtension;
         window.toggleNip07 = toggleNip07;
+        window.copyPublicKey = copyPublicKey;
     </script>
 </body>
 </html>

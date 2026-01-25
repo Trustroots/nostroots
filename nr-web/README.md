@@ -22,6 +22,17 @@ This web app provides similar functionality to the `nr-app` mobile app:
 
 ## Development Notes
 
+### Testing
+
+Tests are designed to run in Docker by default for consistency and safety. See [tests/README.md](tests/README.md) for details.
+
+**Quick test commands:**
+```bash
+make test          # Run all tests
+make test-watch    # Watch mode
+make test-e2e      # E2E tests only
+```
+
 ### Committing Changes
 
 The repository has pre-commit hooks that run ESLint on the `nr-app` folder. Since `nr-web` is a standalone HTML file and doesn't use the same tooling, you should skip the pre-commit hook when committing changes that only affect `nr-web`:

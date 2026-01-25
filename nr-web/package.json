@@ -1,0 +1,28 @@
+{
+  "name": "@trustroots/nr-web",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "pretest": "bash scripts/check-docker.sh || exit 1",
+    "test": "echo '⚠️  Tests must be run in Docker for consistency.' && echo 'Use: make test' && echo 'Or: docker-compose run --rm tests' && exit 1",
+    "test:docker": "docker-compose run --rm tests",
+    "test:docker:watch": "docker-compose run --rm tests pnpm test:local:watch",
+    "test:docker:ui": "docker-compose run --rm -p 51204:51204 tests pnpm test:local:ui",
+    "test:docker:e2e": "docker-compose run --rm tests pnpm test:local:e2e",
+    "test:docker:all": "docker-compose run --rm tests pnpm test:local:all",
+    "test:local": "vitest run",
+    "test:local:watch": "vitest",
+    "test:local:ui": "vitest --ui",
+    "test:local:coverage": "vitest run --coverage",
+    "test:local:e2e": "playwright test",
+    "test:local:e2e:ui": "playwright test --ui",
+    "test:local:all": "pnpm test:local && pnpm test:local:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@vitest/ui": "^1.0.0",
+    "jsdom": "^23.0.0",
+    "vitest": "^1.0.0"
+  }
+}

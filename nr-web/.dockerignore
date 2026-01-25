@@ -1,0 +1,11 @@
+node_modules
+.playwright
+coverage
+.vitest
+test-results
+playwright-report
+playwright/.cache
+*.log
+.DS_Store
+.git
+.gitignore

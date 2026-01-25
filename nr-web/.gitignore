@@ -38,3 +38,10 @@ next-env.d.ts
 # OS
 .DS_Store
 Thumbs.db
+
+# Test artifacts
+coverage
+.vitest
+test-results
+playwright-report
+playwright/.cache

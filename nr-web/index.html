@@ -404,6 +404,13 @@
             display: block;
         }
         
+        .username-nostr-indicator {
+            font-size: 0.8125rem;
+            color: var(--muted-foreground);
+            margin-top: 0.5rem;
+            font-style: italic;
+        }
+        
         .action-buttons {
             display: flex;
             gap: 0.5rem;
@@ -533,22 +540,22 @@
         }
         
         .notes-list {
-            margin: 0.5rem 0;
+            margin: 0.25rem 0;
             max-height: calc(80vh - 250px);
             overflow-y: auto;
             padding-right: 0.5rem;
         }
         
         .notes-section {
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
         
         .notes-section-header {
-            padding: 0.5rem 0.75rem;
+            padding: 0.35rem 0.6rem;
             border-radius: calc(var(--radius) - 2px);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
             font-weight: 500;
-            font-size: 0.875rem;
+            font-size: 0.8rem;
         }
         
         .notes-section-header.exact {
@@ -582,65 +589,72 @@
         }
         
         .note-item {
-            background: var(--card);
-            padding: 0.4rem 0.6rem;
-            margin-bottom: 0.3rem;
-            border-radius: calc(var(--radius) - 2px);
+            background: var(--muted);
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.25rem;
+            border-radius: 12px;
             border: none;
-            border-left: 2px solid var(--border);
             transition: all 0.2s ease;
+            position: relative;
         }
         
         .note-item:hover {
-            background: var(--muted);
-            border-left-color: var(--primary);
+            background: var(--accent);
+            transform: translateX(2px);
         }
         
         .note-item.selected {
-            border-left-color: var(--destructive);
+            background: var(--accent);
         }
         
         .note-content {
             color: var(--foreground);
-            line-height: 1.3;
-            margin-bottom: 0.2rem;
-            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 0.25rem;
+            font-size: 0.875rem;
+            word-wrap: break-word;
+        }
+        
+        .note-meta-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.2rem;
         }
         
         .note-meta {
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             color: var(--muted-foreground);
-            margin-top: 0.15rem;
             display: inline-block;
-            margin-right: 0.5rem;
         }
         
         .note-author {
             color: var(--muted-foreground);
-            font-size: 0.7rem;
+            font-size: 0.65rem;
             display: inline-block;
             font-family: monospace;
+            opacity: 0.7;
         }
         
         .notes-actions {
-            margin-top: 0.75rem;
-            padding-top: 0.75rem;
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
             border-top: 1px solid var(--border);
         }
         
         .notes-add-form {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.4rem;
         }
         
         .notes-add-form textarea {
-            min-height: 50px;
+            min-height: 44px;
             max-height: 120px;
             resize: vertical;
             padding: 0.5rem 0.75rem;
             border: 1px solid var(--input);
-            border-radius: calc(var(--radius) - 2px);
+            border-radius: 12px;
             font-size: 0.875rem;
             background: var(--background);
             color: var(--foreground);
@@ -657,7 +671,7 @@
         
         .notes-add-form-row {
             display: flex;
-            gap: 0.5rem;
+            gap: 0.4rem;
             align-items: center;
             justify-content: space-between;
         }
@@ -665,23 +679,23 @@
         .notes-add-form-row .form-group.expiration-group {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.4rem;
             margin-bottom: 0;
         }
         
         .notes-add-form-row .form-group.expiration-group label {
             margin-bottom: 0;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             white-space: nowrap;
             color: var(--muted-foreground);
         }
         
         .notes-add-form-row .form-group.expiration-group input {
-            width: 50px;
-            padding: 0.35rem 0.4rem;
-            font-size: 0.875rem;
+            width: 45px;
+            padding: 0.3rem 0.35rem;
+            font-size: 0.8rem;
             border: 1px solid var(--input);
-            border-radius: calc(var(--radius) - 2px);
+            border-radius: 8px;
             background: var(--background);
             color: var(--foreground);
             text-align: center;
@@ -694,9 +708,10 @@
         }
         
         .notes-add-form-row .btn {
-            padding: 0.5rem 1.25rem;
-            font-size: 0.875rem;
+            padding: 0.45rem 1rem;
+            font-size: 0.85rem;
             flex-shrink: 0;
+            border-radius: 12px;
         }
         
         .modal-header {
@@ -891,6 +906,9 @@
                 
                 <div class="key-section-divider" id="key-section-divider" style="display: none;"></div>
                 
+                <!-- NIP-07 Status Indicator -->
+                <div id="nip07-status" class="nip07-status"></div>
+                
                 <!-- Local Key Actions -->
                 <div class="form-group" id="nsec-actions-group" style="display: none;">
                     <div class="action-buttons">
@@ -915,6 +933,9 @@
                 <h2>Trustroots username</h2>
                 <div class="form-group">
                     <input type="text" id="trustroots-username" placeholder="your-username">
+                    <div id="username-nostr-indicator" class="username-nostr-indicator" style="display: none;">
+                        <small>This username is from a Nostr event and cannot be edited here.</small>
+                    </div>
                     <button class="btn" id="link-profile-btn" onclick="linkTrustrootsProfile()">Link Profile</button>
                 </div>
             </div>
@@ -932,6 +953,22 @@
     
     <!-- MapLibre GL JS -->
     <script src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
+    
+    <!-- Suppress WebGL deprecation warning from MapLibre GL -->
+    <script>
+        // Filter out the harmless WebGL deprecation warning from MapLibre GL JS
+        const originalWarn = console.warn;
+        console.warn = function(...args) {
+            const message = args.join(' ');
+            // Suppress the specific WebGL texture upload deprecation warning
+            if (message.includes('texImage') && 
+                (message.includes('Alpha-premult') || message.includes('y-flip'))) {
+                return; // Suppress this specific warning
+            }
+            // Pass through all other warnings
+            originalWarn.apply(console, args);
+        };
+    </script>
     
     <script type="module">
         // Import nostr-tools for crypto operations
@@ -981,6 +1018,8 @@
         let usingNip07 = false;
         let nostrProvider = null;
         let authenticatingWithExtension = false; // Guard to prevent concurrent calls
+        let isProfileLinked = false; // Track if profile is NIP-5 linked
+        let usernameFromNostr = false; // Track if username came from a Nostr event
         
         // Caching and performance optimization state
         const EVENTS_CACHE_KEY = 'nostroots_events_cache';
@@ -1316,28 +1355,16 @@
         
         // NIP-07 Extension Support
         function detectNostrExtension() {
-            console.log('[NIP-07 DEBUG] detectNostrExtension called', {
-                hasWindowNostr: !!window.nostr,
-                hasWebln: !!window.webln,
-                nostrGetPublicKeyType: typeof window.nostr?.getPublicKey,
-                weblnNostrGetPublicKeyType: typeof window.webln?.nostr?.getPublicKey,
-                windowNostrKeys: window.nostr ? Object.keys(window.nostr).slice(0, 10) : [],
-                timestamp: Date.now()
-            });
-            
             // Check for standard window.nostr interface (nos2x, etc.)
             if (window.nostr && typeof window.nostr.getPublicKey === 'function') {
-                console.log('[NIP-07 DEBUG] Returning window.nostr provider');
                 return window.nostr;
             }
             
             // Check for Alby's nostr provider
             if (window.webln && window.webln.nostr && typeof window.webln.nostr.getPublicKey === 'function') {
-                console.log('[NIP-07 DEBUG] Returning window.webln.nostr provider');
                 return window.webln.nostr;
             }
             
-            console.log('[NIP-07 DEBUG] No extension detected');
             return null;
         }
         
@@ -1351,22 +1378,8 @@
         }
         
         async function authenticateWithExtension() {
-            const callId = Math.random().toString(36).substr(2, 9);
-            const callTimestamp = Date.now();
-            const stackTrace = new Error().stack?.split('\n').slice(0, 8).join('\n');
-            
-            console.log('[NIP-07 DEBUG] authenticateWithExtension called', {
-                callId,
-                alreadyInProgress: authenticatingWithExtension,
-                isUserInteraction: !!(window.event?.isTrusted),
-                hasWindowEvent: !!window.event,
-                stackTrace: stackTrace,
-                timestamp: callTimestamp
-            });
-            
             // Prevent concurrent calls
             if (authenticatingWithExtension) {
-                console.log('[NIP-07 DEBUG] NIP-07 authentication already in progress, skipping...', { callId });
                 return false;
             }
             
@@ -1374,17 +1387,9 @@
             
             try {
                 const provider = detectNostrExtension();
-                console.log('[NIP-07 DEBUG] Provider detected', {
-                    callId,
-                    hasProvider: !!provider,
-                    providerType: provider === window.nostr ? 'window.nostr' : provider === window.webln?.nostr ? 'window.webln.nostr' : 'unknown',
-                    providerKeys: provider ? Object.keys(provider).slice(0, 15) : [],
-                    timeSinceCall: Date.now() - callTimestamp
-                });
                 
                 if (!provider) {
                     showStatus('No NIP-07 extension found. Please install nos2x or Alby.', 'error');
-                    document.getElementById('use-nip07').checked = false;
                     authenticatingWithExtension = false;
                     return false;
                 }
@@ -1392,7 +1397,6 @@
                 // Validate that getPublicKey is a function before calling
                 if (!isExtensionReady(provider)) {
                     showStatus('Extension getPublicKey method is not available or not ready', 'error');
-                    document.getElementById('use-nip07').checked = false;
                     authenticatingWithExtension = false;
                     return false;
                 }
@@ -1404,44 +1408,10 @@
                 let callError = null;
                 
                 try {
-                    // Ensure we're calling it correctly - no arguments at all
-                    // Some extensions have bugs and may throw SyntaxError internally
-                    // We'll catch and handle that specifically
-                    const beforeCallTime = Date.now();
-                    console.log('[NIP-07 DEBUG] About to call getPublicKey', {
-                        callId,
-                        timeSinceAuthStart: beforeCallTime - callTimestamp,
-                        providerType: provider === window.nostr ? 'window.nostr' : provider === window.webln?.nostr ? 'window.webln.nostr' : 'unknown',
-                        getPublicKeyType: typeof provider.getPublicKey,
-                        isUserInteraction: !!(window.event?.isTrusted),
-                        documentReadyState: document.readyState,
-                        timestamp: beforeCallTime
-                    });
-                    
                     pubkey = await provider.getPublicKey();
-                    
-                    console.log('[NIP-07 DEBUG] getPublicKey succeeded', {
-                        callId,
-                        hasPubkey: !!pubkey,
-                        pubkeyLength: pubkey?.length,
-                        pubkeyPrefix: pubkey?.substring(0, 10),
-                        timeToComplete: Date.now() - beforeCallTime,
-                        timestamp: Date.now()
-                    });
                 } catch (error) {
                     callError = error;
-                    const errorTime = Date.now();
-                    console.error('[NIP-07 DEBUG] Error calling getPublicKey (first attempt):', {
-                        callId,
-                        errorName: error?.name,
-                        errorMessage: error?.message,
-                        errorStack: error?.stack?.split('\n').slice(0, 5).join('\n'),
-                        errorToString: String(error),
-                        errorType: typeof error,
-                        errorKeys: error ? Object.keys(error).slice(0, 10) : [],
-                        timeToFail: errorTime - callTimestamp,
-                        timestamp: errorTime
-                    });
+                    console.error('Error calling getPublicKey (first attempt):', error);
                     
                     // Check if this is the known SyntaxError from the extension's content script
                     // This is a bug in some extensions where they throw SyntaxError internally
@@ -1452,50 +1422,20 @@
                     
                     if (isSyntaxError) {
                         // This is likely an extension bug - wait longer and retry
-                        console.warn('[NIP-07 DEBUG] Extension SyntaxError detected, waiting longer before retry...', {
-                            callId,
-                            waitTime: 1000,
-                            timestamp: Date.now()
-                        });
                         await new Promise(resolve => setTimeout(resolve, 1000));
                         
                         // Re-check that extension is still available
                         const retryProvider = detectNostrExtension();
-                        console.log('[NIP-07 DEBUG] After wait, checking retry provider', {
-                            callId,
-                            hasRetryProvider: !!retryProvider,
-                            isReady: retryProvider ? isExtensionReady(retryProvider) : false,
-                            timestamp: Date.now()
-                        });
                         
                         if (!retryProvider || !isExtensionReady(retryProvider)) {
                             throw new Error('Extension error: The extension encountered an internal error. Please try refreshing the page, or unlock/restart your extension and try again.');
                         }
                         
                         try {
-                            const retryBeforeCall = Date.now();
-                            console.log('[NIP-07 DEBUG] Retrying getPublicKey call', {
-                                callId,
-                                timeSinceFirstCall: retryBeforeCall - callTimestamp,
-                                timestamp: retryBeforeCall
-                            });
                             pubkey = await retryProvider.getPublicKey();
-                            console.log('[NIP-07 DEBUG] Retry succeeded', {
-                                callId,
-                                hasPubkey: !!pubkey,
-                                pubkeyLength: pubkey?.length,
-                                timeToComplete: Date.now() - retryBeforeCall,
-                                timestamp: Date.now()
-                            });
                             callError = null; // Success on retry
                         } catch (retryError) {
-                            console.error('[NIP-07 DEBUG] Error calling getPublicKey (retry attempt):', {
-                                callId,
-                                errorName: retryError?.name,
-                                errorMessage: retryError?.message,
-                                errorStack: retryError?.stack?.split('\n').slice(0, 5).join('\n'),
-                                timestamp: Date.now()
-                            });
+                            console.error('Error calling getPublicKey (retry attempt):', retryError);
                             // Still failing - provide helpful error message
                             throw new Error('Extension error: The extension is having issues. Please try: 1) Unlock your extension, 2) Refresh this page, or 3) Restart your browser. If the problem persists, the extension may need to be updated.');
                         }
@@ -1528,7 +1468,6 @@
                 // Validate the returned public key
                 if (!pubkey || typeof pubkey !== 'string') {
                     showStatus('Failed to get public key from extension: invalid response', 'error');
-                    document.getElementById('use-nip07').checked = false;
                     authenticatingWithExtension = false;
                     return false;
                 }
@@ -1536,7 +1475,6 @@
                 // Validate it's a valid hex string (64 chars for 32 bytes)
                 if (!/^[0-9a-f]{64}$/i.test(pubkey)) {
                     showStatus('Extension returned invalid public key format', 'error');
-                    document.getElementById('use-nip07').checked = false;
                     authenticatingWithExtension = false;
                     return false;
                 }
@@ -1555,27 +1493,12 @@
                 // Save preference
                 localStorage.setItem('using_nip07', 'true');
                 
-                console.log('[NIP-07 DEBUG] Authentication successful', {
-                    callId,
-                    pubkeyLength: pubkey?.length,
-                    pubkeyPrefix: pubkey?.substring(0, 10),
-                    totalTime: Date.now() - callTimestamp,
-                    timestamp: Date.now()
-                });
-                
                 updateKeyDisplay();
                 showStatus('Connected to NIP-07 extension! Your private key stays secure in the extension.', 'success');
                 authenticatingWithExtension = false;
                 return true;
             } catch (error) {
-                console.error('[NIP-07 DEBUG] Error authenticating with extension (final catch):', {
-                    callId,
-                    errorName: error?.name,
-                    errorMessage: error?.message,
-                    errorStack: error?.stack?.split('\n').slice(0, 5).join('\n'),
-                    totalTime: Date.now() - callTimestamp,
-                    timestamp: Date.now()
-                });
+                console.error('Error authenticating with extension:', error);
                 // Provide more specific error messages
                 let errorMsg = 'Error connecting to extension';
                 if (error.message) {
@@ -1584,7 +1507,6 @@
                     errorMsg += ': ' + error.toString();
                 }
                 showStatus(errorMsg, 'error');
-                document.getElementById('use-nip07').checked = false;
                 usingNip07 = false;
                 nostrProvider = null;
                 authenticatingWithExtension = false;
@@ -1593,24 +1515,9 @@
         }
         
         function toggleNip07() {
-            console.log('[NIP-07 DEBUG] toggleNip07 called', {
-                isUserInteraction: !!(window.event?.isTrusted),
-                hasWindowEvent: !!window.event,
-                checkboxChecked: document.getElementById('use-nip07')?.checked,
-                timestamp: Date.now()
-            });
-            const checkbox = document.getElementById('use-nip07');
-            if (checkbox.checked) {
-                authenticateWithExtension();
-            } else {
-                // Disable NIP-07 - clear extension state
-                usingNip07 = false;
-                nostrProvider = null;
-                currentPublicKey = null;
-                localStorage.removeItem('using_nip07');
-                updateKeyDisplay();
-                showStatus('NIP-07 disabled. You can now use local keys.', 'info');
-            }
+            // This function is kept for compatibility but is no longer called
+            // since the checkbox was removed. NIP-07 is now managed automatically
+            // through authenticateWithExtension() and can be disabled by generating/importing keys.
         }
         
         function checkNip07OnLoad() {
@@ -1648,7 +1555,6 @@
             // Disable NIP-07 when generating new key
             usingNip07 = false;
             nostrProvider = null;
-            document.getElementById('use-nip07').checked = false;
             localStorage.removeItem('using_nip07');
             
             const privateKey = new Uint8Array(32);
@@ -1663,7 +1569,6 @@
             // Disable NIP-07 when importing nsec
             usingNip07 = false;
             nostrProvider = null;
-            document.getElementById('use-nip07').checked = false;
             localStorage.removeItem('using_nip07');
             
             const nsecInput = document.getElementById('nsec-import').value.trim();
@@ -1710,9 +1615,6 @@
                 usingNip07 = false;
                 nostrProvider = null;
                 localStorage.removeItem('using_nip07');
-                if (document.getElementById('use-nip07')) {
-                    document.getElementById('use-nip07').checked = false;
-                }
             }
             
             localStorage.setItem('nostr_private_key', privateKeyHex);
@@ -1808,6 +1710,20 @@
             currentPrivateKey = null;
             currentPrivateKeyBytes = null;
             currentPublicKey = null;
+            isProfileLinked = false;
+            usernameFromNostr = false;
+            
+            // Reset username field
+            const usernameInput = document.getElementById('trustroots-username');
+            const usernameIndicator = document.getElementById('username-nostr-indicator');
+            if (usernameInput) {
+                usernameInput.value = '';
+                usernameInput.disabled = false;
+            }
+            if (usernameIndicator) {
+                usernameIndicator.style.display = 'none';
+            }
+            
             updateKeyDisplay();
             document.getElementById('npub-display').value = '';
             showStatus('Private key deleted', 'success');
@@ -1835,7 +1751,7 @@
                 if (linkProfileBtn) linkProfileBtn.disabled = false;
                 // Show NIP-07 status
                 if (nip07Status) {
-                    nip07Status.textContent = '✓ Connected via extension - private key secure in extension';
+                    nip07Status.textContent = '✓ Using NIP-07 browser extension - private key secure in extension';
                     nip07Status.classList.add('show');
                 }
             } else {
@@ -1876,10 +1792,14 @@
                     if (npubDisplayGroup) npubDisplayGroup.style.display = 'block';
                     if (keySectionDivider) keySectionDivider.style.display = 'block';
                 }
+                // Check if profile is linked when public key changes
+                checkProfileLinked();
             } else {
                 document.getElementById('npub-display').value = '';
                 if (npubDisplayGroup) npubDisplayGroup.style.display = 'none';
                 if (keySectionDivider) keySectionDivider.style.display = 'none';
+                isProfileLinked = false;
+                updateLinkProfileButton();
             }
         }
         
@@ -1907,11 +1827,16 @@
                 cachedFilteredEvents = null; // Invalidate filtered events cache
                 filteredEventsCacheKey = null;
                 rebuildSpatialIndex(); // Build spatial index for cached events
-                console.log(`Loaded ${events.length} events from cache`);
                 // Update UI with cached events
                 if (map && map.loaded()) {
                     updateMapMarkers();
                     updatePlusCodeGrid();
+                } else if (map) {
+                    // Wait for map to load, then update
+                    map.once('load', () => {
+                        updateMapMarkers();
+                        updatePlusCodeGrid();
+                    });
                 }
                 return true;
             }
@@ -1954,7 +1879,6 @@
                 try {
                     const relay = await Relay.connect(url);
                     relays.push(relay);
-                    console.log(`Connected to ${url}`);
                     
                     // Subscribe to events - only kind 0 (profiles) and kind 30397 (map notes)
                     const kinds = [0, MAP_NOTE_KIND];
@@ -1968,7 +1892,6 @@
                             processIncomingEvent(event);
                         },
                         oneose: () => {
-                            console.log(`[30397] Direct query to ${url}: Found ${directQueryCount} kind 30397 events on relay`);
                             directQuery.close();
                         }
                     });
@@ -1979,9 +1902,7 @@
                             processIncomingEvent(event);
                         },
                         oneose: () => {
-                            const kind30397Count = events.filter(e => e.kind === MAP_NOTE_KIND).length;
-                            console.log(`EOSE from ${url} - received ${events.length} total events (${kind30397Count} kind 30397)`);
-                            console.log(`[30397] Summary: Received=${kind30397EventsReceived}, Processed=${kind30397EventsProcessed}, Rejected=${kind30397EventsRejected}, Stored=${kind30397Count}`);
+                            // EOSE received
                         }
                     });
                     
@@ -2105,7 +2026,7 @@
                                     processIncomingEvent(event);
                                 },
                                 oneose: () => {
-                                    console.log('EOSE from plus code subscription');
+                                    // EOSE received
                                 }
                             });
                         } catch (error) {
@@ -2188,13 +2109,11 @@
                 
                 // Check if cache is still valid (within 24 hours)
                 if (age > CACHE_MAX_AGE) {
-                    console.log('Cache expired, age:', Math.floor(age / 1000 / 60), 'minutes');
                     return null;
                 }
                 
                 const cacheData = JSON.parse(cacheDataStr);
                 if (cacheData && cacheData.events && Array.isArray(cacheData.events)) {
-                    console.log(`Loaded ${cacheData.events.length} events from cache (age: ${Math.floor(age / 1000 / 60)} minutes)`);
                     return cacheData.events;
                 }
             } catch (error) {
@@ -2223,10 +2142,6 @@
             // Track all kind 30397 events
             if (event.kind === MAP_NOTE_KIND) {
                 kind30397EventsReceived++;
-                // Only log every 50th event to reduce verbosity
-                if (kind30397EventsReceived % 50 === 0 || kind30397EventsReceived <= 5) {
-                    console.log(`[30397] Received ${kind30397EventsReceived} kind 30397 events so far`);
-                }
             }
             
             // Only process events with valid kinds (0 for profiles, 30397 for map notes)
@@ -2245,12 +2160,6 @@
             if (!plusCode) {
                 if (event.kind === MAP_NOTE_KIND) {
                     kind30397EventsRejected++;
-                    if (kind30397EventsRejected <= 10) {
-                        console.log(`[30397] Rejecting kind 30397 event #${kind30397EventsRejected} - no plus code:`, {
-                            id: event.id.substring(0, 16) + '...',
-                            tags: event.tags.filter(t => t[0] === 'l' || t[0] === 'L').slice(0, 5)
-                        });
-                    }
                 }
                 return;
             }
@@ -2287,9 +2196,24 @@
                     scheduleCacheWrite(); // Schedule cache write (debounced)
                     cachedFilteredEvents = null; // Invalidate cache
                     filteredEventsCacheKey = null;
-                    rebuildSpatialIndex(); // Rebuild spatial index
+                    rebuildSpatialIndex(); // Rebuild spatial index (synchronous)
                     updateMapMarkers();
-                    updatePlusCodeGrid();
+                    // Force grid update - use setTimeout to ensure spatial index is fully ready
+                    if (map && map.loaded()) {
+                        // Small delay to ensure spatial index is fully populated
+                        setTimeout(() => {
+                            updatePlusCodeGrid();
+                        }, 0);
+                    } else {
+                        // If map not ready, schedule update for when it is
+                        if (map) {
+                            map.once('load', () => {
+                                setTimeout(() => {
+                                    updatePlusCodeGrid();
+                                }, 0);
+                            });
+                        }
+                    }
                 }
                 // If not newer, ignore it
                 return;
@@ -2298,10 +2222,6 @@
             // New event, add it
             if (event.kind === MAP_NOTE_KIND) {
                 kind30397EventsProcessed++;
-                // Only log every 50th event to reduce verbosity
-                if (kind30397EventsProcessed % 50 === 0 || kind30397EventsProcessed <= 5) {
-                    console.log(`[30397] Added ${kind30397EventsProcessed} kind 30397 events (Total stored: ${events.filter(e => e.kind === MAP_NOTE_KIND).length + 1}, Received: ${kind30397EventsReceived}, Rejected: ${kind30397EventsRejected})`);
-                }
             }
             
             const eventData = {
@@ -2318,10 +2238,25 @@
             scheduleCacheWrite(); // Schedule cache write (debounced)
             cachedFilteredEvents = null; // Invalidate cache
             filteredEventsCacheKey = null;
-            rebuildSpatialIndex(); // Rebuild spatial index
+            rebuildSpatialIndex(); // Rebuild spatial index (synchronous)
             updateEventsList();
             updateMapMarkers();
-            updatePlusCodeGrid();
+            // Force grid update - use setTimeout to ensure spatial index is fully ready
+            if (map && map.loaded()) {
+                // Small delay to ensure spatial index is fully populated
+                setTimeout(() => {
+                    updatePlusCodeGrid();
+                }, 0);
+            } else {
+                // If map not ready, schedule update for when it is
+                if (map) {
+                    map.once('load', () => {
+                        setTimeout(() => {
+                            updatePlusCodeGrid();
+                        }, 0);
+                    });
+                }
+            }
         }
         
         function formatDate(timestamp) {
@@ -2719,7 +2654,15 @@
         }
         
         function updatePlusCodeGrid() {
-            if (!map || !map.loaded()) return;
+            if (!map || !map.loaded()) {
+                // If map not ready, try again after a short delay
+                setTimeout(() => {
+                    if (map && map.loaded()) {
+                        updatePlusCodeGrid();
+                    }
+                }, 100);
+                return;
+            }
             
             // Cancel any pending animation frame
             if (gridUpdateAnimationFrame) {
@@ -2747,13 +2690,34 @@
                 const allVisiblePlusCodes = getAllPlusCodesBetweenTwoPlusCodes(sw, ne, codeLength);
                 
                 // OPTIMIZATION: Only render plus codes that have events or are adjacent to ones with events
-                // First, collect all plus codes that have events
+                // First, collect all plus codes that have events in the viewport
                 const plusCodesWithEvents = new Set();
                 const features = [];
                 const processedPlusCodes = new Set();
                 
-                // Iterate through all visible plus codes, but prioritize ones with events
-                for (const plusCode of allVisiblePlusCodes) {
+                // First pass: collect all plus codes with events that are in or near the viewport
+                // This ensures we don't miss any plus codes with events
+                eventsByPlusCode.forEach((eventSet, plusCode) => {
+                    if (eventSet.size > 0) {
+                        // Check if this plus code is in the viewport or close to it
+                        const decoded = decodePlusCode(plusCode);
+                        if (decoded) {
+                            const inBounds = decoded.latitude >= bounds.getSouth() && 
+                                          decoded.latitude <= bounds.getNorth() &&
+                                          decoded.longitude >= bounds.getWest() && 
+                                          decoded.longitude <= bounds.getEast();
+                            // Include if in bounds or close (within 2x the code length resolution)
+                            if (inBounds) {
+                                plusCodesWithEvents.add(plusCode);
+                            }
+                        }
+                    }
+                });
+                
+                // Second pass: iterate through visible plus codes and ones with events
+                const allPlusCodesToCheck = new Set([...allVisiblePlusCodes, ...plusCodesWithEvents]);
+                
+                for (const plusCode of allPlusCodesToCheck) {
                     if (processedPlusCodes.has(plusCode)) continue;
                     if (features.length >= MAX_GRID_FEATURES) break; // Limit features
                     
@@ -2799,10 +2763,36 @@
                 
                 const source = map.getSource('pluscode-grid');
                 if (source) {
-                    source.setData({
+                    // Force update by setting data - this triggers a re-render
+                    const featureCollection = {
                         type: 'FeatureCollection',
                         features: features
-                    });
+                    };
+                    source.setData(featureCollection);
+                    
+                    // Force map to repaint by triggering a style update
+                    // This ensures the map actually renders the new data
+                    try {
+                        map.getStyle();
+                        // Trigger a repaint by briefly toggling layer visibility
+                        const fillLayer = map.getLayer('pluscode-grid-fill');
+                        const strokeLayer = map.getLayer('pluscode-grid-stroke');
+                        if (fillLayer && strokeLayer) {
+                            // Force update by setting paint properties (triggers repaint)
+                            map.setPaintProperty('pluscode-grid-fill', 'fill-opacity', 1);
+                        }
+                    } catch (e) {
+                        // Ignore errors, the setData should be enough
+                    }
+                } else {
+                    // Source not ready yet, try again after a short delay
+                    setTimeout(() => {
+                        if (map && map.loaded() && map.getSource('pluscode-grid')) {
+                            updatePlusCodeGrid();
+                        }
+                    }, 100);
+                    gridUpdateAnimationFrame = null;
+                    return;
                 }
                 
                 gridUpdateAnimationFrame = null;
@@ -2933,8 +2923,14 @@
                 
                 if (successCount > 0) {
                     showStatus(`Note published to ${successCount} relay(s)!`, 'success');
-                    // Add to local events
+                    // Add to local events immediately
                     processIncomingEvent(signedEvent);
+                    // Ensure grid updates after processing
+                    setTimeout(() => {
+                        if (map && map.loaded()) {
+                            updatePlusCodeGrid();
+                        }
+                    }, 50);
                     closeAddNoteModal();
                 } else {
                     showStatus('Error publishing to relays', 'error');
@@ -3090,12 +3086,16 @@
                 }
                 
                 // Publish to all configured relays
-                const publishPromises = relays.map(async (relay) => {
+                // Create new connections for each publish to avoid closed connection errors
+                const relayUrls = getRelayUrls();
+                const publishPromises = relayUrls.map(async (url) => {
                     try {
+                        const relay = await Relay.connect(url);
                         await relay.publish(signedEvent);
+                        relay.close();
                         return true;
                     } catch (error) {
-                        console.error(`Error publishing to ${relay.url}:`, error);
+                        console.error(`Error publishing to ${url}:`, error);
                         return false;
                     }
                 });
@@ -3110,8 +3110,10 @@
                     // Clear form and refresh notes
                     document.getElementById('note-content-in-modal').value = '';
                     document.getElementById('note-expiration-in-modal').value = '7';
-                    // Refresh the notes display
-                    showNotesForPlusCode(selectedPlusCode);
+                    // Refresh the notes display after a short delay to ensure grid is updated
+                    setTimeout(() => {
+                        showNotesForPlusCode(selectedPlusCode);
+                    }, 100);
                 } else {
                     showStatus('Error publishing to relays', 'error');
                 }
@@ -3136,6 +3138,10 @@
             // Use fast spatial index lookup instead of filtering all events
             const { eventsForPlusCodeExactly, eventsWithinPlusCode } = filterEventsForPlusCodeFast(plusCode);
             
+            // Sort events by created_at (oldest first) and reverse to show oldest at top
+            const sortedExact = [...eventsForPlusCodeExactly].sort((a, b) => a.created_at - b.created_at);
+            const sortedWithin = [...eventsWithinPlusCode].sort((a, b) => a.created_at - b.created_at);
+            
             // Update modal title
             document.getElementById('pluscode-notes-title').textContent = 
                 `Notes for ${plusCode}`;
@@ -3145,16 +3151,16 @@
             notesContent.innerHTML = '';
             
             // Exact matches section
-            if (eventsForPlusCodeExactly.length > 0) {
+            if (sortedExact.length > 0) {
                 const exactSection = document.createElement('div');
                 exactSection.className = 'notes-section';
                 
                 const exactHeader = document.createElement('div');
                 exactHeader.className = 'notes-section-header exact';
-                exactHeader.innerHTML = `${eventsForPlusCodeExactly.length} exact match${eventsForPlusCodeExactly.length !== 1 ? 'es' : ''}`;
+                exactHeader.innerHTML = `${sortedExact.length} exact match${sortedExact.length !== 1 ? 'es' : ''}`;
                 exactSection.appendChild(exactHeader);
                 
-                eventsForPlusCodeExactly.forEach(event => {
+                sortedExact.forEach(event => {
                     const noteItem = createNoteItem(event);
                     exactSection.appendChild(noteItem);
                 });
@@ -3163,16 +3169,16 @@
             }
             
             // Within plus code section
-            if (eventsWithinPlusCode.length > 0) {
+            if (sortedWithin.length > 0) {
                 const withinSection = document.createElement('div');
                 withinSection.className = 'notes-section';
                 
                 const withinHeader = document.createElement('div');
                 withinHeader.className = 'notes-section-header within';
-                withinHeader.innerHTML = `${eventsWithinPlusCode.length} within plus code`;
+                withinHeader.innerHTML = `${sortedWithin.length} within plus code`;
                 withinSection.appendChild(withinHeader);
                 
-                eventsWithinPlusCode.forEach(event => {
+                sortedWithin.forEach(event => {
                     const noteItem = createNoteItem(event);
                     withinSection.appendChild(noteItem);
                 });
@@ -3181,7 +3187,7 @@
             }
             
             // Show message if no notes
-            if (eventsForPlusCodeExactly.length === 0 && eventsWithinPlusCode.length === 0) {
+            if (sortedExact.length === 0 && sortedWithin.length === 0) {
                 const noNotes = document.createElement('div');
                 noNotes.className = 'notes-section';
                 noNotes.innerHTML = '<p style="color: var(--muted-foreground); text-align: center; padding: 2rem;">No notes yet for this plus code area.</p>';
@@ -3192,16 +3198,23 @@
             document.getElementById('note-content-in-modal').value = '';
             document.getElementById('note-expiration-in-modal').value = '7';
             
-            // Focus on the textarea when modal opens
+            // Show modal
+            document.getElementById('pluscode-notes-modal').classList.add('active');
+            
+            // Scroll to bottom and focus on textarea after modal is shown
             setTimeout(() => {
+                // Scroll notes list to bottom
+                const notesList = document.getElementById('pluscode-notes-content');
+                if (notesList) {
+                    notesList.scrollTop = notesList.scrollHeight;
+                }
+                
+                // Focus on the textarea
                 const textarea = document.getElementById('note-content-in-modal');
                 if (textarea) {
                     textarea.focus();
                 }
-            }, 100);
-            
-            // Show modal
-            document.getElementById('pluscode-notes-modal').classList.add('active');
+            }, 150);
         }
         
         function createNoteItem(event) {
@@ -3215,10 +3228,7 @@
             noteItem.appendChild(content);
             
             const metaRow = document.createElement('div');
-            metaRow.style.display = 'flex';
-            metaRow.style.alignItems = 'center';
-            metaRow.style.gap = '0.5rem';
-            metaRow.style.marginTop = '0.15rem';
+            metaRow.className = 'note-meta-row';
             
             const meta = document.createElement('span');
             meta.className = 'note-meta';
@@ -3228,9 +3238,10 @@
             author.className = 'note-author';
             try {
                 const npub = nip19.npubEncode(event.pubkey);
-                author.textContent = npub;
+                author.textContent = npub.substring(0, 12) + '...';
+                author.title = npub; // Show full npub on hover
             } catch (error) {
-                author.textContent = event.pubkey.substring(0, 16) + '...';
+                author.textContent = event.pubkey.substring(0, 12) + '...';
             }
             
             metaRow.appendChild(meta);
@@ -3273,8 +3284,6 @@
         }
         
         function showStatus(message, type) {
-            console.log(`[${type.toUpperCase()}] ${message}`);
-            
             // Get or create status container
             let statusContainer = document.getElementById('status-container');
             if (!statusContainer) {
@@ -3300,9 +3309,135 @@
             }, 5000);
         }
         
+        // Check if profile is linked (has kind 10390 event)
+        async function checkProfileLinked() {
+            if (!currentPublicKey) {
+                isProfileLinked = false;
+                usernameFromNostr = false;
+                
+                // Enable username field if no public key
+                const usernameInput = document.getElementById('trustroots-username');
+                const usernameIndicator = document.getElementById('username-nostr-indicator');
+                if (usernameInput) {
+                    usernameInput.disabled = false;
+                }
+                if (usernameIndicator) {
+                    usernameIndicator.style.display = 'none';
+                }
+                
+                updateLinkProfileButton();
+                return;
+            }
+            
+            try {
+                const relayUrls = getRelayUrls();
+                let foundLinked = false;
+                let linkedUsername = null;
+                
+                // Check each relay for kind 10390 events
+                const checkPromises = relayUrls.map(async (url) => {
+                    try {
+                        const relay = await Relay.connect(url);
+                        const sub = relay.subscribe([
+                            {
+                                kinds: [TRUSTROOTS_PROFILE_KIND],
+                                authors: [currentPublicKey],
+                                limit: 1
+                            }
+                        ], {
+                            onevent: (event) => {
+                                // Found a kind 10390 event - profile is linked
+                                foundLinked = true;
+                                
+                                // Extract username from event tags
+                                // Look for tag with "l" and namespace "org.trustroots:username"
+                                const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = "org.trustroots:username";
+                                for (const tag of event.tags) {
+                                    if (tag[0] === 'l' && tag[2] === TRUSTROOTS_USERNAME_LABEL_NAMESPACE && tag[1]) {
+                                        linkedUsername = tag[1];
+                                        break;
+                                    }
+                                }
+                            },
+                            oneose: () => {
+                                relay.close();
+                            }
+                        });
+                        
+                        // Wait a bit for events, then close
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        sub.close();
+                        relay.close();
+                    } catch (error) {
+                        console.error(`Error checking profile link on ${url}:`, error);
+                    }
+                });
+                
+                await Promise.allSettled(checkPromises);
+                isProfileLinked = foundLinked;
+                
+                // Update username field if we found a linked username
+                const usernameInput = document.getElementById('trustroots-username');
+                const usernameIndicator = document.getElementById('username-nostr-indicator');
+                
+                if (linkedUsername) {
+                    usernameFromNostr = true;
+                    if (usernameInput) {
+                        usernameInput.value = linkedUsername;
+                        usernameInput.disabled = true;
+                    }
+                    if (usernameIndicator) {
+                        usernameIndicator.style.display = 'block';
+                    }
+                } else {
+                    usernameFromNostr = false;
+                    if (usernameInput) {
+                        usernameInput.disabled = false;
+                    }
+                    if (usernameIndicator) {
+                        usernameIndicator.style.display = 'none';
+                    }
+                }
+                
+                updateLinkProfileButton();
+            } catch (error) {
+                console.error('Error checking profile link:', error);
+                isProfileLinked = false;
+                usernameFromNostr = false;
+                
+                // Enable username field if not from Nostr
+                const usernameInput = document.getElementById('trustroots-username');
+                const usernameIndicator = document.getElementById('username-nostr-indicator');
+                if (usernameInput) {
+                    usernameInput.disabled = false;
+                }
+                if (usernameIndicator) {
+                    usernameIndicator.style.display = 'none';
+                }
+                
+                updateLinkProfileButton();
+            }
+        }
+        
+        // Update link profile button visibility
+        function updateLinkProfileButton() {
+            const linkProfileBtn = document.getElementById('link-profile-btn');
+            if (linkProfileBtn) {
+                if (isProfileLinked) {
+                    linkProfileBtn.style.display = 'none';
+                } else {
+                    linkProfileBtn.style.display = 'block';
+                }
+            }
+        }
+        
         // Settings Modal Functions
         function openSettingsModal() {
             document.getElementById('settings-modal').classList.add('active');
+            // Check if profile is linked when opening settings
+            if (currentPublicKey) {
+                checkProfileLinked();
+            }
         }
         
         function closeSettingsModal() {
@@ -3318,26 +3453,11 @@
             const hasKey = localStorage.getItem('nostr_private_key');
             const wasUsingNip07 = localStorage.getItem('using_nip07') === 'true';
             
-            console.log('[NIP-07 DEBUG] checkOnboarding called', {
-                hasKey: !!hasKey,
-                wasUsingNip07,
-                hasExtension: !!detectNostrExtension(),
-                timestamp: Date.now()
-            });
-            
             // Check if extension is available and user was using it
             if (wasUsingNip07 && detectNostrExtension()) {
                 // Try to reconnect to extension - add longer delay to ensure extension is fully ready
                 // Some extensions need more time to initialize their content scripts
-                console.log('[NIP-07 DEBUG] Auto-reconnecting to extension from checkOnboarding', {
-                    delay: 500,
-                    timestamp: Date.now()
-                });
-                document.getElementById('use-nip07').checked = true;
                 setTimeout(() => {
-                    console.log('[NIP-07 DEBUG] Executing auto-reconnect after delay', {
-                        timestamp: Date.now()
-                    });
                     authenticateWithExtension().then(success => {
                         if (!success) {
                             // If extension connection fails, clear NIP-07 state and show onboarding
@@ -3374,16 +3494,7 @@
         }
         
         async function onboardingConnectExtension() {
-            console.log('[NIP-07 DEBUG] onboardingConnectExtension called', {
-                isUserInteraction: !!(window.event?.isTrusted),
-                hasWindowEvent: !!window.event,
-                timestamp: Date.now()
-            });
             const success = await authenticateWithExtension();
-            console.log('[NIP-07 DEBUG] onboardingConnectExtension result', {
-                success,
-                timestamp: Date.now()
-            });
             if (success) {
                 document.getElementById('onboarding-modal').classList.remove('active');
                 showStatus('Connected via extension! Your private key is secure in the extension.', 'success');
@@ -3491,6 +3602,21 @@
                         
                         if (successCount > 0) {
                             showStatus(`Profile linked! Username ${username} published to ${successCount} relay(s).`, 'success');
+                            // Mark profile as linked and update UI
+                            isProfileLinked = true;
+                            usernameFromNostr = true;
+                            updateLinkProfileButton();
+                            
+                            // Update username field and disable it since it's from Nostr
+                            const usernameInput = document.getElementById('trustroots-username');
+                            const usernameIndicator = document.getElementById('username-nostr-indicator');
+                            if (usernameInput) {
+                                usernameInput.value = username;
+                                usernameInput.disabled = true;
+                            }
+                            if (usernameIndicator) {
+                                usernameIndicator.style.display = 'block';
+                            }
                         } else {
                             showStatus('Profile validated but failed to publish to relays', 'error');
                         }

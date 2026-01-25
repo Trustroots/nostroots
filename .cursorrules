@@ -1,5 +1,10 @@
 # Cursor Rules for Nostroots
 
+## Nostr Standards
+
+When implementing Nostr features, refer to the official NIPs (Nostr Implementation Possibilities) repository:
+- https://github.com/nostr-protocol/nips
+
 ## Committing nr-web Changes
 
 When committing changes that only affect `nr-web`, skip the pre-commit hooks because:

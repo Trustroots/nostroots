@@ -540,22 +540,22 @@
         }
         
         .notes-list {
-            margin: 0.25rem 0;
-            max-height: calc(80vh - 250px);
+            margin: 0.15rem 0;
+            max-height: calc(80vh - 200px);
             overflow-y: auto;
-            padding-right: 0.5rem;
+            padding-right: 0.4rem;
         }
         
         .notes-section {
-            margin-bottom: 0.75rem;
+            margin-bottom: 0.5rem;
         }
         
         .notes-section-header {
-            padding: 0.35rem 0.6rem;
+            padding: 0.25rem 0.5rem;
             border-radius: calc(var(--radius) - 2px);
-            margin-bottom: 0.4rem;
+            margin-bottom: 0.3rem;
             font-weight: 500;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
         }
         
         .notes-section-header.exact {
@@ -590,17 +590,16 @@
         
         .note-item {
             background: var(--muted);
-            padding: 0.5rem 0.75rem;
-            margin-bottom: 0.25rem;
-            border-radius: 12px;
+            padding: 0.4rem 0.6rem;
+            margin-bottom: 0.15rem;
+            border-radius: 8px;
             border: none;
-            transition: all 0.2s ease;
+            transition: background 0.15s ease;
             position: relative;
         }
         
         .note-item:hover {
             background: var(--accent);
-            transform: translateX(2px);
         }
         
         .note-item.selected {
@@ -609,52 +608,52 @@
         
         .note-content {
             color: var(--foreground);
-            line-height: 1.4;
-            margin-bottom: 0.25rem;
-            font-size: 0.875rem;
+            line-height: 1.3;
+            margin-bottom: 0.15rem;
+            font-size: 0.9rem;
             word-wrap: break-word;
         }
         
         .note-meta-row {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            margin-top: 0.2rem;
+            gap: 0.4rem;
+            margin-top: 0.1rem;
         }
         
         .note-meta {
-            font-size: 0.65rem;
+            font-size: 0.7rem;
             color: var(--muted-foreground);
             display: inline-block;
         }
         
         .note-author {
             color: var(--muted-foreground);
-            font-size: 0.65rem;
+            font-size: 0.7rem;
             display: inline-block;
-            font-family: monospace;
-            opacity: 0.7;
+            font-family: inherit;
+            opacity: 0.8;
         }
         
         .notes-actions {
-            margin-top: 0.5rem;
-            padding-top: 0.5rem;
+            margin-top: 0.4rem;
+            padding-top: 0.4rem;
             border-top: 1px solid var(--border);
         }
         
         .notes-add-form {
             display: flex;
             flex-direction: column;
-            gap: 0.4rem;
+            gap: 0.3rem;
         }
         
         .notes-add-form textarea {
-            min-height: 44px;
+            min-height: 40px;
             max-height: 120px;
             resize: vertical;
-            padding: 0.5rem 0.75rem;
+            padding: 0.5rem 0.65rem;
             border: 1px solid var(--input);
-            border-radius: 12px;
+            border-radius: 8px;
             font-size: 0.875rem;
             background: var(--background);
             color: var(--foreground);
@@ -833,7 +832,7 @@
             </div>
             <div class="form-group">
                 <label>Expiration (days)</label>
-                <input type="number" id="note-expiration" value="7" min="1" max="365">
+                <input type="number" id="note-expiration" value="7" min="1" max="365" onchange="saveExpirationSetting(this.value)">
             </div>
             <div id="note-location-info"></div>
             <button class="btn" onclick="publishNote()">Publish Note</button>
@@ -860,17 +859,16 @@
             <div id="pluscode-notes-content" class="notes-list"></div>
             <div class="notes-actions">
                 <div class="notes-add-form">
-                    <textarea id="note-content-in-modal" rows="1" placeholder="Enter your note..." autofocus></textarea>
+                    <textarea id="note-content-in-modal" rows="1" placeholder="Type a message... (Enter to send)" autofocus></textarea>
                     <div class="notes-add-form-row">
                         <div class="form-group expiration-group">
                             <label>Expiration</label>
-                            <select id="note-expiration-in-modal">
+                            <select id="note-expiration-in-modal" onchange="saveExpirationSetting(this.value)">
                                 <option value="1">1 day</option>
                                 <option value="7" selected>7 days</option>
                                 <option value="30">30 days</option>
                             </select>
                         </div>
-                        <button class="btn" onclick="publishNoteFromModal()">Publish</button>
                     </div>
                 </div>
             </div>
@@ -1029,6 +1027,7 @@
         const EVENTS_CACHE_KEY = 'nostroots_events_cache';
         const EVENTS_CACHE_TIMESTAMP_KEY = 'nostroots_events_cache_timestamp';
         const CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        const EXPIRATION_SETTING_KEY = 'nostroots_expiration_days';
         let cachedFilteredEvents = null;
         let filteredEventsCacheKey = null;
         let localStorageWriteTimeout = null;
@@ -2147,6 +2146,28 @@
             }, 2000); // Write to cache 2 seconds after last event
         }
         
+        // Expiration setting functions
+        function getExpirationSetting() {
+            const saved = localStorage.getItem(EXPIRATION_SETTING_KEY);
+            if (saved) {
+                const parsed = parseInt(saved);
+                if (!isNaN(parsed) && parsed >= 1 && parsed <= 365) {
+                    return parsed;
+                }
+            }
+            return 7; // Default to 7 days
+        }
+        
+        function saveExpirationSetting(value) {
+            const parsed = parseInt(value);
+            if (!isNaN(parsed) && parsed >= 1 && parsed <= 365) {
+                localStorage.setItem(EXPIRATION_SETTING_KEY, parsed.toString());
+                // Sync both expiration inputs
+                document.getElementById('note-expiration').value = parsed;
+                document.getElementById('note-expiration-in-modal').value = parsed;
+            }
+        }
+        
         // Track all kind 30397 events for debugging
         let kind30397EventsReceived = 0;
         let kind30397EventsProcessed = 0;
@@ -3031,7 +3052,7 @@
         function closeAddNoteModal() {
             document.getElementById('add-note-modal').classList.remove('active');
             document.getElementById('note-content').value = '';
-            document.getElementById('note-expiration').value = '7';
+            document.getElementById('note-expiration').value = getExpirationSetting();
             selectedPlusCode = null;
         }
         
@@ -3042,7 +3063,7 @@
         function closePlusCodeNotesModal() {
             document.getElementById('pluscode-notes-modal').classList.remove('active');
             document.getElementById('note-content-in-modal').value = '';
-            document.getElementById('note-expiration-in-modal').value = '7';
+            document.getElementById('note-expiration-in-modal').value = getExpirationSetting();
         }
         
         async function publishNoteFromModal() {
@@ -3178,7 +3199,7 @@
                     processIncomingEvent(signedEvent);
                     // Clear form and refresh notes
                     document.getElementById('note-content-in-modal').value = '';
-                    document.getElementById('note-expiration-in-modal').value = '7';
+                    document.getElementById('note-expiration-in-modal').value = getExpirationSetting();
                     // Refresh the notes display after a short delay to ensure grid is updated
                     setTimeout(() => {
                         showNotesForPlusCode(selectedPlusCode);
@@ -3245,7 +3266,7 @@
             
             // Clear form when opening modal
             document.getElementById('note-content-in-modal').value = '';
-            document.getElementById('note-expiration-in-modal').value = '7';
+            document.getElementById('note-expiration-in-modal').value = getExpirationSetting();
             
             // Show modal
             document.getElementById('pluscode-notes-modal').classList.add('active');
@@ -3295,6 +3316,9 @@
             meta.className = 'note-meta';
             meta.textContent = formatDate(event.created_at);
             
+            // Get plus code from event
+            const plusCode = getPlusCodeFromEvent(event);
+            
             const author = document.createElement('span');
             author.className = 'note-author';
             // Show Trustroots username if available, otherwise show npub
@@ -3317,7 +3341,18 @@
                 }
             }
             
+            // Combine meta, plus code, and author on same line with separators
             metaRow.appendChild(meta);
+            if (plusCode) {
+                metaRow.appendChild(document.createTextNode(' '));
+                const plusCodeSpan = document.createElement('span');
+                plusCodeSpan.className = 'note-meta';
+                plusCodeSpan.style.fontFamily = 'monospace';
+                plusCodeSpan.style.color = 'var(--primary)';
+                plusCodeSpan.textContent = plusCode;
+                metaRow.appendChild(plusCodeSpan);
+            }
+            metaRow.appendChild(document.createTextNode(' '));
             metaRow.appendChild(author);
             noteItem.appendChild(metaRow);
             
@@ -3520,6 +3555,7 @@
         // Make functions globally accessible for onclick handlers
         window.openSettingsModal = openSettingsModal;
         window.closeSettingsModal = closeSettingsModal;
+        window.saveExpirationSetting = saveExpirationSetting;
         
         // Onboarding
         function checkOnboarding() {
@@ -3746,6 +3782,11 @@
             checkNip07OnLoad();
             
             checkOnboarding();
+            
+            // Initialize expiration inputs with saved value
+            const savedExpiration = getExpirationSetting();
+            document.getElementById('note-expiration').value = savedExpiration;
+            document.getElementById('note-expiration-in-modal').value = savedExpiration;
             
             // Settings icon button click handler
             const settingsBtn = document.getElementById('settings-icon-btn');

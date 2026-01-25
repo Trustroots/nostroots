@@ -16,3 +16,14 @@ Use `--no-verify` flag when committing nr-web changes:
 ```bash
 git commit --no-verify -m "Your commit message"
 ```
+
+## Committing Workflow Changes
+
+When committing changes that only affect GitHub workflows (`.github/workflows/`), skip the pre-commit hooks because:
+- Workflow files are YAML configuration and don't need ESLint validation
+- The pre-commit hooks run ESLint on `nr-app` which can fail for unrelated reasons
+
+Use `--no-verify` flag when committing workflow changes:
+```bash
+git commit --no-verify -m "Your commit message"
+```

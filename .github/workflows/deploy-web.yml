@@ -8,6 +8,7 @@ on:
     paths:
       - "nr-web/index.html"
       - "nr-web/favicon.*"
+      - "nr-web/robots.txt"
       - ".github/workflows/deploy-web.yml"
 
   # Allow manual trigger

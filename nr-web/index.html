@@ -937,7 +937,7 @@
             <div class="settings-section">
                 <h2>Trustroots username</h2>
                 <div class="form-group">
-                    <input type="text" id="trustroots-username" placeholder="your-username">
+                    <input type="text" id="trustroots-username" placeholder="your-username" onkeydown="if(event.key === 'Enter') linkTrustrootsProfile()">
                     <div id="username-nostr-indicator" class="username-nostr-indicator" style="display: none;">
                         <small>This username is from a Nostr event and cannot be edited here.</small>
                     </div>

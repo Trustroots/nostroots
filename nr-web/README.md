@@ -19,3 +19,13 @@ This web app provides similar functionality to the `nr-app` mobile app:
 - Uses the same (default) relays
 - Uses the same event formats (via `@trustroots/nr-common`)
 - Compatible key formats
+
+## Development Notes
+
+### Committing Changes
+
+The repository has pre-commit hooks that run ESLint on the `nr-app` folder. Since `nr-web` is a standalone HTML file and doesn't use the same tooling, you should skip the pre-commit hook when committing changes that only affect `nr-web`:
+
+```bash
+git commit --no-verify -m "Your commit message"
+```

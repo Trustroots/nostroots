@@ -2,6 +2,8 @@
 
 A vibed web application that replicates the functionality of the nostroots mobile app, providing a map-based interface for sharing notes on the Nostr network.
 
+**Live version:** [https://nos.trustroots.org/](https://nos.trustroots.org/)
+
 It's not a replacement for the app, it's a way to quickly try different things without going through the lengthy process of building and releasing a new version of the app.
 
 This web app provides similar functionality to the `nr-app` mobile app:

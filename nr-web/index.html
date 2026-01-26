@@ -1156,13 +1156,23 @@
         const LATITUDE_MAX = 90;
         const LONGITUDE_MAX = 180;
         
+        // Normalize longitude to -180 to 180 range
+        function normalizeLongitude(lng) {
+            while (lng > LONGITUDE_MAX) lng -= 360;
+            while (lng < -LONGITUDE_MAX) lng += 360;
+            return lng;
+        }
+        
         function encodePlusCode(latitude, longitude, codeLength = 10) {
+            // Normalize longitude to -180 to 180 range (handles map wrapping)
+            longitude = normalizeLongitude(longitude);
+            
             if (latitude < -LATITUDE_MAX || latitude > LATITUDE_MAX || 
                 longitude < -LONGITUDE_MAX || longitude > LONGITUDE_MAX) {
                 return null;
             }
             
-            // Normalize coordinates
+            // Normalize coordinates for encoding
             let lat = latitude + LATITUDE_MAX;
             let lng = longitude + LONGITUDE_MAX;
             
@@ -1359,16 +1369,32 @@
             return { eventsForPlusCodeExactly, eventsWithinPlusCode };
         }
         
-        function whatLengthOfPlusCodeToShow(latitudeDelta) {
-            const factor = 1.6;
-            if (latitudeDelta > 20 * factor) {
-                return 2;
-            } else if (latitudeDelta > 1 * factor) {
-                return 4;
-            } else if (latitudeDelta > 0.05 * factor) {
-                return 6;
+        function whatLengthOfPlusCodeToShow(latitudeDelta, longitudeDelta = latitudeDelta * 2) {
+            // Calculate the best code length based on expected cell count
+            // We want total cells < MAX_GRID_FEATURES to avoid cutoff
+            const maxCells = MAX_GRID_FEATURES * 0.8; // Use 80% of limit for safety margin
+            
+            // Cell sizes for each code length (ordered from finest to coarsest)
+            const codeLengths = [
+                { length: 8, cellSize: 0.0025 },
+                { length: 6, cellSize: 0.05 },
+                { length: 4, cellSize: 1.0 },
+                { length: 2, cellSize: 20.0 }
+            ];
+            
+            // Find the finest resolution that stays under the cell limit
+            for (const { length, cellSize } of codeLengths) {
+                const latSteps = Math.ceil(latitudeDelta / cellSize) + 1;
+                const lngSteps = Math.ceil(longitudeDelta / cellSize) + 1;
+                const totalCells = latSteps * lngSteps;
+                
+                if (totalCells <= maxCells) {
+                    return length;
+                }
             }
-            return 8;
+            
+            // Fallback to coarsest
+            return 2;
         }
         
         function degreeSizeForPlusCodeLength(length) {
@@ -1393,20 +1419,27 @@
                 return [];
             }
             
-            const latitudeDelta = neDecoded.latitude - swDecoded.latitude;
-            const longitudeDelta = neDecoded.longitude - swDecoded.longitude;
+            let latitudeDelta = neDecoded.latitude - swDecoded.latitude;
+            let longitudeDelta = neDecoded.longitude - swDecoded.longitude;
+            
+            // Handle negative longitude delta (when coordinates wrap)
+            if (longitudeDelta < 0) {
+                longitudeDelta += 360;
+            }
             
             const degreesPerStep = degreeSizeForPlusCodeLength(length);
             
             // Use ceil + 1 to ensure we include the NE boundary
-            const latitudeSteps = Math.ceil(latitudeDelta / degreesPerStep) + 1;
-            const longitudeSteps = Math.ceil(longitudeDelta / degreesPerStep) + 1;
+            const latitudeSteps = Math.max(1, Math.ceil(latitudeDelta / degreesPerStep) + 1);
+            const longitudeSteps = Math.max(1, Math.ceil(longitudeDelta / degreesPerStep) + 1);
             
             const plusCodes = [];
             for (let latIndex = 0; latIndex < latitudeSteps; latIndex++) {
                 for (let lngIndex = 0; lngIndex < longitudeSteps; lngIndex++) {
                     const latitude = swDecoded.latitude + latIndex * degreesPerStep;
-                    const longitude = swDecoded.longitude + lngIndex * degreesPerStep;
+                    let longitude = swDecoded.longitude + lngIndex * degreesPerStep;
+                    // Normalize longitude
+                    longitude = normalizeLongitude(longitude);
                     const plusCode = encodePlusCode(latitude, longitude, length);
                     if (plusCode) {
                         plusCodes.push(plusCode);
@@ -2814,25 +2847,23 @@
                               !document.documentElement.hasAttribute('data-theme'));
             
             if (isDarkMode) {
-                // Dark mode: Use CartoDB Dark Matter tiles
+                // Dark mode: Use Stadia Alidade Smooth Dark (brighter labels)
                 return {
                     version: 8,
                     sources: {
-                        'carto-dark': {
+                        'stadia-dark': {
                             type: 'raster',
                             tiles: [
-                                'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                                'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                                'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+                                'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png'
                             ],
                             tileSize: 256,
-                            attribution: '© OpenStreetMap contributors © CARTO'
+                            attribution: '© Stadia Maps © OpenMapTiles © OpenStreetMap contributors'
                         }
                     },
                     layers: [{
-                        id: 'carto-dark',
+                        id: 'stadia-dark',
                         type: 'raster',
-                        source: 'carto-dark'
+                        source: 'stadia-dark'
                     }]
                 };
             } else {
@@ -2902,12 +2933,10 @@
                                 'carto-dark-fallback': {
                                     type: 'raster',
                                     tiles: [
-                                        'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                                        'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                                        'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+                                        'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png'
                                     ],
                                     tileSize: 256,
-                                    attribution: '© OpenStreetMap contributors © CARTO'
+                                    attribution: '© Stadia Maps © OpenMapTiles © OpenStreetMap contributors'
                                 }
                             },
                             layers: [{
@@ -3075,7 +3104,7 @@
                         type: 'line',
                         source: 'pluscode-grid',
                         paint: {
-                            'line-color': 'rgba(0, 0, 0, 0.3)',
+                            'line-color': 'rgba(80, 80, 90, 0.5)',
                             'line-width': 1
                         }
                     });
@@ -3135,11 +3164,19 @@
                 const latitudeDelta = bounds.getNorth() - bounds.getSouth();
                 const longitudeDelta = bounds.getEast() - bounds.getWest();
                 
-                const codeLength = whatLengthOfPlusCodeToShow(latitudeDelta);
+                // Handle world-wrapping: if longitude delta > 360, use full longitude range
+                const worldWrapping = longitudeDelta >= 360;
+                const effectiveLongitudeDelta = worldWrapping ? 360 : longitudeDelta;
+                
+                const codeLength = whatLengthOfPlusCodeToShow(latitudeDelta, effectiveLongitudeDelta);
+                
+                // Get effective bounds for plus code generation
+                const effectiveWest = worldWrapping ? -180 : bounds.getWest();
+                const effectiveEast = worldWrapping ? 180 : bounds.getEast();
                 
                 // Get southwest and northeast plus codes
-                const sw = encodePlusCode(bounds.getSouth(), bounds.getWest(), codeLength);
-                const ne = encodePlusCode(bounds.getNorth(), bounds.getEast(), codeLength);
+                const sw = encodePlusCode(bounds.getSouth(), effectiveWest, codeLength);
+                const ne = encodePlusCode(bounds.getNorth(), effectiveEast, codeLength);
                 
                 if (!sw || !ne) {
                     gridUpdateAnimationFrame = null;
@@ -3187,22 +3224,26 @@
                     const eventCountWithin = eventsWithinPlusCode.length;
                     const totalEventCount = eventCountExactly + eventCountWithin;
                     
-                    // Only render if there are events OR if we haven't hit the limit yet
-                    // This means we show empty cells only if we have room
-                    if (totalEventCount > 0 || features.length < MAX_GRID_FEATURES * 0.3) {
+                    // Render all visible cells (both with and without events) up to the limit
+                    // This ensures complete grid coverage without gaps
+                    {
                         const rectangle = plusCodeToRectangle(plusCode);
                         if (!rectangle) continue;
                         
-                        // Calculate fill color based on event count (matching nr-app exactly)
-                        // If this plus code is selected, use a distinct blue color
+                        // Calculate fill color based on event count
+                        // Colors designed for dark map readability
                         let fillColor;
                         if (selectedPlusCode && plusCode === selectedPlusCode) {
-                            fillColor = `rgba(0, 120, 255, 0.8)`; // Bright blue for selected plus code
+                            fillColor = `rgba(64, 156, 255, 0.7)`; // Soft blue for selected
+                        } else if (totalEventCount > 0) {
+                            // Gradient from dark maroon to brighter red based on event count
+                            const intensity = Math.min(1, totalEventCount / 5);
+                            const r = Math.round(80 + intensity * 100); // 80-180
+                            const g = Math.round(20 + intensity * 20);  // 20-40
+                            const b = Math.round(30 + intensity * 20);  // 30-50
+                            fillColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
                         } else {
-                            const redValue = totalEventCount > 0 ? Math.min(255, totalEventCount * 60) : 0;
-                            fillColor = totalEventCount > 0 
-                                ? `rgba(${redValue}, 0, 0, 0.6)`
-                                : `rgba(200, 200, 200, 0.1)`; // Light gray for empty cells
+                            fillColor = `rgba(60, 60, 70, 0.35)`; // Subtle dark gray for empty
                         }
                         
                         features.push({

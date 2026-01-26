@@ -571,24 +571,25 @@
             border-radius: 50%;
             flex-shrink: 0;
             transition: all 0.3s ease;
+            background: #6b7280; /* Default grey for disconnected */
         }
         
         .relay-status-indicator.connected {
-            background: #10b981;
+            background: #10b981 !important;
             box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
         }
         
         .relay-status-indicator.connecting {
-            background: #f59e0b;
+            background: #f59e0b !important;
             animation: pulse 2s infinite;
         }
         
         .relay-status-indicator.disconnected {
-            background: #6b7280;
+            background: #6b7280 !important;
         }
         
         .relay-status-indicator.error {
-            background: #ef4444;
+            background: #ef4444 !important;
         }
         
         @keyframes pulse {
@@ -1545,15 +1546,16 @@
                 indexedCount++;
             });
             
-            console.log('[rebuildSpatialIndex]', {
-                totalEvents: events.length,
-                indexed: indexedCount,
-                skippedExpired: skippedExpired,
-                skippedDeleted: skippedDeleted,
-                skippedDeletionKind: skippedDeletionKind,
-                skippedNoLayer: skippedNoLayer,
-                skippedNoPlusCode: skippedNoPlusCode
-            });
+            // Debug: Uncomment to see spatial index rebuild stats
+            // console.log('[rebuildSpatialIndex]', {
+            //     totalEvents: events.length,
+            //     indexed: indexedCount,
+            //     skippedExpired: skippedExpired,
+            //     skippedDeleted: skippedDeleted,
+            //     skippedDeletionKind: skippedDeletionKind,
+            //     skippedNoLayer: skippedNoLayer,
+            //     skippedNoPlusCode: skippedNoPlusCode
+            // });
         }
         
         // Fast lookup using spatial index
@@ -2284,7 +2286,8 @@
                 const item = document.createElement('div');
                 item.className = 'relay-item';
                 
-                const statusClass = status.status || 'disconnected';
+                // Ensure status class is always set (connected, connecting, disconnected, or error)
+                const statusClass = (status && status.status) ? status.status : 'disconnected';
                 const statusText = statusClass === 'connected' ? 'Connected' : 
                                   statusClass === 'connecting' ? 'Connecting...' :
                                   statusClass === 'error' ? 'Error' : 'Disconnected';
@@ -2383,7 +2386,7 @@
         
         async function initializeNDK() {
             const relayUrls = getRelayUrls();
-            console.log('[NDK] Connecting to relays:', relayUrls);
+            // Initialize relays
             
             // Initialize status for all relays
             relayUrls.forEach(url => {
@@ -2404,7 +2407,6 @@
                     });
                     
                     await ndk.connect();
-                    console.log('[NDK] Successfully connected to relays');
                     
                     // Update status for all relays (NDK manages connections internally)
                     // Note: NDK doesn't provide per-relay status, so we assume all are connected
@@ -2441,12 +2443,7 @@
                     await initializeRelays(relayUrls);
                 }
             } catch (error) {
-                console.error('[NDK] Error initializing NDK:', error);
-                console.error('[NDK] Error details:', {
-                    message: error.message,
-                    stack: error.stack,
-                    name: error.name
-                });
+                console.error('[NDK] Error initializing NDK:', error.message || error);
                 // Fallback to direct relays
                 showStatus('Falling back to direct relay connections', 'info');
                 await initializeRelays(relayUrls);
@@ -2469,11 +2466,14 @@
             
             for (const url of relayUrls) {
                 try {
-                    console.log(`[Relay] Connecting to ${url}...`);
                     updateRelayStatus(url, 'connecting');
                     const relay = await Relay.connect(url);
                     relays.push(relay);
-                    console.log(`[Relay] Successfully connected to ${url}`);
+                    // Ensure relayWriteEnabled is set before updating status
+                    if (!relayWriteEnabled.has(url)) {
+                        relayWriteEnabled.set(url, true);
+                    }
+                    // Set status to connected immediately after successful connection
                     updateRelayStatus(url, 'connected', relayWriteEnabled.get(url) !== false);
                     
                     // Subscribe to events - kind 0 (profiles), kind 5 (deletions), kind 10390 (Trustroots profiles), and kind 30397 (map notes)
@@ -2495,7 +2495,8 @@
                     // Also subscribe to all kinds to get other events
                     const sub = relay.subscribe([{ kinds }], {
                         onevent: (event) => {
-                            console.log('[Relay] Received event:', event.kind, event.id?.substring(0, 16));
+                            // Debug: Uncomment to see all received events
+                            // console.log('[Relay] Received event:', event.kind, event.id?.substring(0, 16));
                             processIncomingEvent(event);
                         },
                         oneose: () => {
@@ -2513,32 +2514,8 @@
                         }
                     });
                     
-                    // Monitor relay connection status
-                    const checkStatus = () => {
-                        if (relay.status === 1) { // OPEN
-                            updateRelayStatus(url, 'connected', relayWriteEnabled.get(url) !== false);
-                        } else if (relay.status === 0) { // CONNECTING
-                            updateRelayStatus(url, 'connecting');
-                        } else { // CLOSED or ERROR
-                            updateRelayStatus(url, 'disconnected', false);
-                        }
-                    };
-                    
-                    // Check status periodically
-                    const statusInterval = setInterval(checkStatus, 2000);
-                    
-                    // Also check on relay events
-                    relay.on('connect', () => {
-                        updateRelayStatus(url, 'connected', relayWriteEnabled.get(url) !== false);
-                    });
-                    
-                    relay.on('disconnect', () => {
-                        updateRelayStatus(url, 'disconnected', false);
-                    });
-                    
-                    relay.on('error', () => {
-                        updateRelayStatus(url, 'error', false);
-                    });
+                    // Note: nostr-tools Relay doesn't expose a .status property we can check
+                    // Once connected, we trust the connection is good until we get a publish error
                     
                     // Keep subscription alive
                     setInterval(() => {
@@ -2550,14 +2527,8 @@
                         }
                     }, 30000); // Every 30 seconds
                 } catch (error) {
-                    console.error(`[Relay] Error connecting to ${url}:`, error);
-                    console.error(`[Relay] Error details:`, {
-                        message: error.message,
-                        stack: error.stack,
-                        name: error.name
-                    });
+                    console.error(`[Relay] Error connecting to ${url}:`, error.message || error);
                     updateRelayStatus(url, 'error', false);
-                    // Don't show individual error messages - status is shown in relay list
                 }
             }
             
@@ -3005,7 +2976,8 @@
             // New event, add it
             if (event.kind === MAP_NOTE_KIND) {
                 kind30397EventsProcessed++;
-                console.log('[ProcessEvent] New MAP_NOTE_KIND event:', event.id?.substring(0, 16), 'plusCode:', plusCode);
+                // Debug: Uncomment to see new map note events
+                // console.log('[ProcessEvent] New MAP_NOTE_KIND event:', event.id?.substring(0, 16), 'plusCode:', plusCode);
             }
             
             const eventData = {
@@ -3019,16 +2991,19 @@
             };
             
             events.push(eventData);
-            console.log('[ProcessEvent] Event added to array, total events:', events.length);
+            // Debug: Uncomment to see event processing
+            // console.log('[ProcessEvent] Event added to array, total events:', events.length);
             scheduleCacheWrite(); // Schedule cache write (debounced)
             cachedFilteredEvents = null; // Invalidate cache
             filteredEventsCacheKey = null;
             rebuildSpatialIndex(); // Rebuild spatial index (synchronous)
-            console.log('[ProcessEvent] Spatial index rebuilt, continuing to UI updates...');
+            // Debug: Uncomment to see spatial index rebuild
+            // console.log('[ProcessEvent] Spatial index rebuilt, continuing to UI updates...');
             
             try {
                 updateMapMarkers();
-                console.log('[ProcessEvent] updateMapMarkers completed');
+                // Debug: Uncomment to see marker updates
+                // console.log('[ProcessEvent] updateMapMarkers completed');
             } catch (e) {
                 console.error('[ProcessEvent] Error in updateMapMarkers:', e);
             }
@@ -3038,7 +3013,8 @@
                 if (map && map.loaded()) {
                     // Call directly without setTimeout to ensure immediate update
                     updatePlusCodeGrid();
-                    console.log('[ProcessEvent] updatePlusCodeGrid completed');
+                    // Debug: Uncomment to see grid updates
+                    // console.log('[ProcessEvent] updatePlusCodeGrid completed');
                 } else {
                     // If map not ready, schedule update for when it is
                     if (map) {
@@ -3051,7 +3027,8 @@
                 console.error('[ProcessEvent] Error in updatePlusCodeGrid:', e);
             }
             
-            console.log('[ProcessEvent] About to check modal refresh...');
+            // Debug: Uncomment to see modal refresh checks
+            // console.log('[ProcessEvent] About to check modal refresh...');
             
             // If notes modal is open, refresh it to show new events
             // Since events are showing on the map, they're in the spatial index
@@ -5083,26 +5060,46 @@
             const hasKey = localStorage.getItem('nostr_private_key');
             const wasUsingNip07 = localStorage.getItem('using_nip07') === 'true';
             
-            // Check if extension is available and user was using it
-            if (wasUsingNip07 && detectNostrExtension()) {
-                // Try to reconnect to extension - add longer delay to ensure extension is fully ready
-                // Some extensions need more time to initialize their content scripts
-                setTimeout(() => {
-                    authenticateWithExtension().then(success => {
-                        if (!success) {
-                            // If extension connection fails, clear NIP-07 state and show onboarding
-                            usingNip07 = false;
-                            nostrProvider = null;
-                            localStorage.removeItem('using_nip07');
-                            if (!hasKey) {
-                                document.getElementById('onboarding-modal').classList.add('active');
-                                updateKeyDisplay();
-                            } else {
-                                loadKeys();
-                            }
-                        }
-                    }).catch(() => {
-                        // Extension connection failed
+            // If user was using NIP-07, try to reconnect even if extension isn't immediately detected
+            // Extensions may need time to inject content scripts in new tabs
+            if (wasUsingNip07) {
+                const tryReconnect = (attempt = 0, maxAttempts = 5) => {
+                    const provider = detectNostrExtension();
+                    
+                    if (provider) {
+                        // Extension detected, try to authenticate
+                        setTimeout(() => {
+                            authenticateWithExtension().then(success => {
+                                if (!success) {
+                                    // If extension connection fails, clear NIP-07 state and show onboarding
+                                    usingNip07 = false;
+                                    nostrProvider = null;
+                                    localStorage.removeItem('using_nip07');
+                                    if (!hasKey) {
+                                        document.getElementById('onboarding-modal').classList.add('active');
+                                        updateKeyDisplay();
+                                    } else {
+                                        loadKeys();
+                                    }
+                                }
+                            }).catch(() => {
+                                // Extension connection failed
+                                usingNip07 = false;
+                                nostrProvider = null;
+                                localStorage.removeItem('using_nip07');
+                                if (!hasKey) {
+                                    document.getElementById('onboarding-modal').classList.add('active');
+                                    updateKeyDisplay();
+                                } else {
+                                    loadKeys();
+                                }
+                            });
+                        }, 200); // Small delay to ensure extension is ready
+                    } else if (attempt < maxAttempts) {
+                        // Extension not detected yet, retry after a delay
+                        setTimeout(() => tryReconnect(attempt + 1, maxAttempts), 300);
+                    } else {
+                        // Extension not found after retries, clear NIP-07 state
                         usingNip07 = false;
                         nostrProvider = null;
                         localStorage.removeItem('using_nip07');
@@ -5112,8 +5109,11 @@
                         } else {
                             loadKeys();
                         }
-                    });
-                }, 500); // Increased delay to give extension more time
+                    }
+                };
+                
+                // Start reconnection attempt
+                tryReconnect();
             } else if (!hasKey) {
                 document.getElementById('onboarding-modal').classList.add('active');
                 // Ensure display is updated even when there's no key

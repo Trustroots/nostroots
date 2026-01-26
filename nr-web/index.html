@@ -490,6 +490,71 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
         }
         
+        /* Circles Button */
+        .circles-button {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--primary);
+            border-radius: calc(var(--radius) - 2px);
+            background: var(--primary);
+            color: var(--primary-foreground);
+            cursor: pointer;
+            font-size: 1.2rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        
+        .circles-button:hover {
+            background: hsl(167, 81.9%, 35%);
+            border-color: hsl(167, 81.9%, 35%);
+        }
+        
+        .circles-button:active {
+            transform: scale(0.95);
+        }
+        
+        /* Circles List */
+        .circles-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            border: 1px solid var(--border);
+            border-radius: calc(var(--radius) - 2px);
+            background: var(--muted);
+        }
+        
+        .circle-item {
+            padding: 0.5rem 0.75rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: calc(var(--radius) - 2px);
+            cursor: pointer;
+            text-align: center;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        
+        .circle-item:hover {
+            background: var(--accent);
+            border-color: var(--primary);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .circle-item:active {
+            transform: translateY(0);
+        }
+        
+        .notes-add-form-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+        
         .modal {
             display: none;
             position: fixed;
@@ -875,8 +940,29 @@
                                 <option value="3600">1 hour</option>
                             </select>
                         </div>
+                        <button id="circles-button-modal" class="circles-button" title="Select Trustroots Circle" onclick="showCirclesModal()">∞</button>
                     </div>
                     <textarea id="note-content-in-modal" rows="1" placeholder="Type a message... (Enter to send)" autofocus></textarea>
+                    <div id="selected-circle-indicator-modal" style="display: none; margin-top: 4px; font-size: 0.85rem; color: var(--primary);">
+                        <span id="selected-circle-text-modal"></span>
+                        <button onclick="clearSelectedCircle('modal')" style="margin-left: 8px; background: none; border: none; color: var(--muted-foreground); cursor: pointer; font-size: 0.8rem;">✕</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Circles Modal -->
+    <div class="modal" id="circles-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>∞ Trustroots Circles</h2>
+                <button class="modal-close" onclick="hideCirclesModal()">&times;</button>
+            </div>
+            <div class="form-group">
+                <p style="margin-bottom: 16px; color: var(--muted-foreground); font-size: 0.9rem;">Select a circle to add to your note:</p>
+                <div id="circles-list" class="circles-list">
+                    <!-- Circles will be populated here -->
                 </div>
             </div>
         </div>
@@ -1021,6 +1107,7 @@
         let markers = [];
         let events = [];
         let selectedPlusCode = null;
+        let selectedCircle = null; // Selected Trustroots circle slug
         let currentPrivateKey = null;
         let currentPrivateKeyBytes = null;
         let currentPublicKey = null;
@@ -1359,6 +1446,62 @@
             });
             
             return { eventsForPlusCodeExactly, eventsWithinPlusCode };
+        }
+        
+        function getTrustrootsCircles() {
+            return [
+                { slug: 'hitch' },
+                { slug: 'dumpsterdivers' },
+                { slug: 'families' },
+                { slug: 'musicians' },
+                { slug: 'buskers' },
+                { slug: 'veg' },
+                { slug: 'hackers' },
+                { slug: 'lgbtq' },
+                { slug: 'ecoliving' },
+                { slug: 'lindyhoppers' },
+                { slug: 'nomads' },
+                { slug: 'punks' },
+                { slug: 'cyclists' },
+                { slug: 'foodsharing' },
+                { slug: 'yoga' },
+                { slug: 'climbers' },
+                { slug: 'hikers' },
+                { slug: 'sailors' },
+                { slug: 'artists' },
+                { slug: 'rainbowgathering' },
+                { slug: 'slackline' },
+                { slug: 'spirituals' },
+                { slug: 'dancers' },
+                { slug: 'acroyoga' },
+                { slug: 'jugglers' },
+                { slug: 'vanlife' },
+                { slug: 'volunteers' },
+                { slug: 'winemakers' },
+                { slug: 'squatters' },
+                { slug: 'surfers' },
+                { slug: 'skateboarders' },
+                { slug: 'pilgrims' },
+                { slug: 'photographers' },
+                { slug: 'naturists' },
+                { slug: 'motorcyclists' },
+                { slug: 'feminists' },
+                { slug: 'circus' },
+                { slug: 'cooking' },
+                { slug: 'burners' },
+                { slug: 'beerbrewers' },
+                { slug: 'anarchists' },
+                { slug: 'gardeners' },
+                { slug: 'scubadivers' },
+                { slug: 'ravers' },
+                { slug: 'zero-wasters' },
+                { slug: 'activists' },
+                { slug: 'runners' },
+                { slug: 'filmmakers' },
+                { slug: 'books' },
+                { slug: 'cypherpunks' },
+                { slug: 'lightfoot' }
+            ];
         }
         
         function getPlusCodePrefixes(plusCode, minimumLength = 2) {
@@ -3044,10 +3187,16 @@
                         if (!rectangle) continue;
                         
                         // Calculate fill color based on event count (matching nr-app exactly)
-                        const redValue = totalEventCount > 0 ? Math.min(255, totalEventCount * 60) : 0;
-                        const fillColor = totalEventCount > 0 
-                            ? `rgba(${redValue}, 0, 0, 0.6)`
-                            : `rgba(200, 200, 200, 0.1)`; // Light gray for empty cells
+                        // If this plus code is selected, use a distinct blue color
+                        let fillColor;
+                        if (selectedPlusCode && plusCode === selectedPlusCode) {
+                            fillColor = `rgba(0, 120, 255, 0.8)`; // Bright blue for selected plus code
+                        } else {
+                            const redValue = totalEventCount > 0 ? Math.min(255, totalEventCount * 60) : 0;
+                            fillColor = totalEventCount > 0 
+                                ? `rgba(${redValue}, 0, 0, 0.6)`
+                                : `rgba(200, 200, 200, 0.1)`; // Light gray for empty cells
+                        }
                         
                         features.push({
                             type: 'Feature',
@@ -3158,6 +3307,80 @@
             document.getElementById('pluscode-notes-modal').classList.remove('active');
             document.getElementById('note-content-in-modal').value = '';
             document.getElementById('note-expiration-in-modal').value = getExpirationSetting();
+            // Clear selected circle when closing modal
+            clearSelectedCircle('modal');
+            // Clear selected plus code and update grid to remove highlight
+            selectedPlusCode = null;
+            updatePlusCodeGrid();
+        }
+        
+        // Circle selection functions
+        function showCirclesModal() {
+            const modal = document.getElementById('circles-modal');
+            const circlesList = document.getElementById('circles-list');
+            
+            // Clear existing circles
+            circlesList.innerHTML = '';
+            
+            // Get Trustroots circles
+            const circles = getTrustrootsCircles();
+            
+            // Create circle items
+            circles.forEach(circle => {
+                const circleItem = document.createElement('div');
+                circleItem.className = 'circle-item';
+                circleItem.textContent = `#${circle.slug}`;
+                circleItem.title = `#${circle.slug}`;
+                
+                circleItem.addEventListener('click', () => {
+                    selectCircle(circle.slug);
+                    hideCirclesModal();
+                });
+                
+                circlesList.appendChild(circleItem);
+            });
+            
+            // Show modal
+            modal.style.display = 'flex';
+            
+            // Add ESC key listener
+            const escHandler = (e) => {
+                if (e.key === 'Escape') {
+                    hideCirclesModal();
+                    document.removeEventListener('keydown', escHandler);
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+        }
+        
+        function hideCirclesModal() {
+            const modal = document.getElementById('circles-modal');
+            modal.style.display = 'none';
+        }
+        
+        function selectCircle(circleSlug) {
+            selectedCircle = circleSlug;
+            updateCircleIndicator('modal');
+        }
+        
+        function clearSelectedCircle(context) {
+            selectedCircle = null;
+            if (context === 'modal') {
+                updateCircleIndicator('modal');
+            }
+        }
+        
+        function updateCircleIndicator(context) {
+            if (context === 'modal') {
+                const indicator = document.getElementById('selected-circle-indicator-modal');
+                const text = document.getElementById('selected-circle-text-modal');
+                if (selectedCircle) {
+                    indicator.style.display = 'block';
+                    text.textContent = `Circle: #${selectedCircle}`;
+                } else {
+                    indicator.style.display = 'none';
+                }
+            }
         }
         
         async function publishNoteFromModal() {
@@ -3176,10 +3399,20 @@
                 return;
             }
             
-            const content = document.getElementById('note-content-in-modal').value.trim();
+            let content = document.getElementById('note-content-in-modal').value.trim();
             if (!content || content.length < 3) {
                 showStatus('Note content must be at least 3 characters', 'error');
                 return;
+            }
+            
+            // Add circle hashtag to content if circle is selected
+            if (selectedCircle) {
+                const hashtag = `#${selectedCircle}`;
+                const hashtagRegex = /#\w+/g;
+                const existingHashtags = content.match(hashtagRegex) || [];
+                if (!existingHashtags.includes(hashtag)) {
+                    content = content + ' ' + hashtag;
+                }
             }
             
             const expirationSeconds = parseInt(document.getElementById('note-expiration-in-modal').value) || WEEK_IN_SECONDS;
@@ -3190,19 +3423,28 @@
             const plusCodePrefixes = getPlusCodePrefixes(plusCode, DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH);
             
             try {
+                // Build tags array
+                const tags = [
+                    ['expiration', expiration.toString()],
+                    ['L', 'open-location-code'],
+                    ['l', plusCode, 'open-location-code'],
+                    ['L', 'open-location-code-prefix'],
+                    ...plusCodePrefixes.map(prefix => ['l', prefix, 'open-location-code-prefix'])
+                ];
+                
+                // Add circle tags if circle is selected
+                if (selectedCircle) {
+                    tags.push(['L', 'trustroots-circle']);
+                    tags.push(['l', selectedCircle, 'trustroots-circle']);
+                }
+                
                 // Create event template
                 const eventTemplate = {
                     kind: MAP_NOTE_KIND,
                     content: content,
                     created_at: Math.floor(Date.now() / 1000),
                     pubkey: currentPublicKey,
-                    tags: [
-                        ['expiration', expiration.toString()],
-                        ['L', 'open-location-code'],
-                        ['l', plusCode, 'open-location-code'],
-                        ['L', 'open-location-code-prefix'],
-                        ...plusCodePrefixes.map(prefix => ['l', prefix, 'open-location-code-prefix'])
-                    ]
+                    tags: tags
                 };
                 
                 let signedEvent;
@@ -3315,6 +3557,8 @@
                     // Clear form and refresh notes
                     document.getElementById('note-content-in-modal').value = '';
                     document.getElementById('note-expiration-in-modal').value = getExpirationSetting();
+                    // Clear selected circle after posting
+                    clearSelectedCircle('modal');
                     // Refresh the notes display after a short delay to ensure grid is updated
                     setTimeout(() => {
                         showNotesForPlusCode(selectedPlusCode);
@@ -3385,6 +3629,9 @@
             
             // Show modal
             document.getElementById('pluscode-notes-modal').classList.add('active');
+            
+            // Update the grid to highlight the selected plus code
+            updatePlusCodeGrid();
             
             // Scroll to bottom and focus on textarea after modal is shown
             setTimeout(() => {
@@ -3962,6 +4209,27 @@
                 });
             }
             
+            // Close circles modal when clicking outside
+            const circlesModal = document.getElementById('circles-modal');
+            if (circlesModal) {
+                circlesModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'circles-modal') {
+                        hideCirclesModal();
+                    }
+                });
+            }
+            
+            // Add Enter key handler for note textarea
+            const noteContentInModal = document.getElementById('note-content-in-modal');
+            if (noteContentInModal) {
+                noteContentInModal.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        publishNoteFromModal();
+                    }
+                });
+            }
+            
             // Small delay to ensure DOM is ready, then initialize map
             setTimeout(() => {
                 initializeMap();
@@ -4019,6 +4287,9 @@
         window.authenticateWithExtension = authenticateWithExtension;
         window.toggleNip07 = toggleNip07;
         window.copyPublicKey = copyPublicKey;
+        window.showCirclesModal = showCirclesModal;
+        window.hideCirclesModal = hideCirclesModal;
+        window.clearSelectedCircle = clearSelectedCircle;
     </script>
 </body>
 </html>

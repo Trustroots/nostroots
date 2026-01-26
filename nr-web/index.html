@@ -3491,41 +3491,47 @@
                               !document.documentElement.hasAttribute('data-theme'));
             
             if (isDarkMode) {
-                // Dark mode: Use Stadia Alidade Smooth Dark (brighter labels)
+                // Dark mode: Use CARTO Dark Matter tiles (production-friendly, no API key required)
                 return {
                     version: 8,
                     sources: {
-                        'stadia-dark': {
+                        'carto-dark': {
                             type: 'raster',
                             tiles: [
-                                'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png'
+                                'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                                'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+                                'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
                             ],
                             tileSize: 256,
-                            attribution: '© Stadia Maps © OpenMapTiles © OpenStreetMap contributors'
+                            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
                         }
                     },
                     layers: [{
-                        id: 'stadia-dark',
+                        id: 'carto-dark',
                         type: 'raster',
-                        source: 'stadia-dark'
+                        source: 'carto-dark'
                     }]
                 };
             } else {
-                // Light mode: Use OpenStreetMap tiles
+                // Light mode: Use CARTO Voyager tiles (production-friendly, no API key required)
                 return {
                     version: 8,
                     sources: {
-                        'osm': {
+                        'carto-voyager': {
                             type: 'raster',
-                            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                            tiles: [
+                                'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                                'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+                                'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+                            ],
                             tileSize: 256,
-                            attribution: '© OpenStreetMap contributors'
+                            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
                         }
                     },
                     layers: [{
-                        id: 'osm',
+                        id: 'carto-voyager',
                         type: 'raster',
-                        source: 'osm'
+                        source: 'carto-voyager'
                     }]
                 };
             }
@@ -3561,8 +3567,18 @@
                     zoom: savedZoom
                 });
                 
+                // Track if we've already attempted fallback to prevent repeated attempts
+                let fallbackAttempted = false;
+                
                 map.on('error', (e) => {
                     console.error('Map error:', e);
+                    
+                    // Only attempt fallback once
+                    if (fallbackAttempted) {
+                        return;
+                    }
+                    fallbackAttempted = true;
+                    
                     showStatus('Map loading error. Trying fallback style...', 'error');
                     // Try fallback styles in order
                     const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark' || 
@@ -3577,10 +3593,12 @@
                                 'carto-dark-fallback': {
                                     type: 'raster',
                                     tiles: [
-                                        'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png'
+                                        'https://a.basemaps.cartocdn.com/tiles/dark_all/{z}/{x}/{y}.png',
+                                        'https://b.basemaps.cartocdn.com/tiles/dark_all/{z}/{x}/{y}.png',
+                                        'https://c.basemaps.cartocdn.com/tiles/dark_all/{z}/{x}/{y}.png'
                                     ],
                                     tileSize: 256,
-                                    attribution: '© Stadia Maps © OpenMapTiles © OpenStreetMap contributors'
+                                    attribution: '© OpenStreetMap contributors © CARTO'
                                 }
                             },
                             layers: [{

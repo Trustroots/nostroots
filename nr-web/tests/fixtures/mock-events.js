@@ -18,6 +18,17 @@ export function createMockMapNoteEvent(overrides = {}) {
   };
 }
 
+/**
+ * Create a mock map note event with expiration (NIP-40)
+ * @param {number} expirationTimestamp - Unix timestamp when the event expires
+ * @param {object} overrides - Optional overrides for the event
+ */
+export function createMockMapNoteEventWithExpiration(expirationTimestamp, overrides = {}) {
+  const event = createMockMapNoteEvent(overrides);
+  event.tags.push(['expiration', expirationTimestamp.toString()]);
+  return event;
+}
+
 export function createMockProfileEvent(overrides = {}) {
   return {
     id: 'test-profile-id-' + Date.now(),
@@ -45,6 +56,21 @@ export function createMockRepostEvent(overrides = {}) {
       ['l', 'CC000000+', 'open-location-code'],
     ],
     content: '',
+    sig: 'test-signature',
+    ...overrides,
+  };
+}
+
+export function createMockDeletionEvent(eventId, pubkey = 'test-pubkey', overrides = {}) {
+  return {
+    id: 'test-deletion-id-' + Date.now(),
+    kind: 5,
+    pubkey: pubkey,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ['e', eventId],
+    ],
+    content: 'Deleted by user',
     sig: 'test-signature',
     ...overrides,
   };

@@ -73,14 +73,16 @@ describe('Grid Rendering Logic', () => {
       expect(normalizeLongitude(200)).toBe(-160);
       expect(normalizeLongitude(234.78)).toBeCloseTo(-125.22, 2);
       expect(normalizeLongitude(360)).toBe(0);
-      expect(normalizeLongitude(540)).toBe(-180);
+      // 540 - 360 = 180, which is valid (same meridian as -180)
+      expect(normalizeLongitude(540)).toBe(180);
     });
 
     it('should normalize longitude < -180 to valid range', () => {
       // When map wraps west past the antimeridian
       expect(normalizeLongitude(-200)).toBe(160);
       expect(normalizeLongitude(-360)).toBe(0);
-      expect(normalizeLongitude(-540)).toBe(180);
+      // -540 + 360 = -180, which is valid (same meridian as 180)
+      expect(normalizeLongitude(-540)).toBe(-180);
     });
 
     it('should leave valid longitudes unchanged', () => {

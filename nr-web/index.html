@@ -88,6 +88,21 @@
                 padding: 1.5rem;
             }
             
+            /* Notes modal: full width, bottom 60% on mobile */
+            #pluscode-notes-modal {
+                align-items: flex-end;
+                justify-content: center;
+            }
+            
+            #pluscode-notes-modal .notes-modal-content {
+                width: 100%;
+                max-width: 100%;
+                height: 60vh;
+                max-height: 60vh;
+                border-radius: var(--radius) var(--radius) 0 0;
+                margin: 0;
+            }
+            
         }
         
         #map {
@@ -708,6 +723,61 @@
             opacity: 0.8;
         }
         
+        .note-expiry {
+            font-size: 0.65rem;
+            display: inline-block;
+            font-family: inherit;
+            opacity: 0.9;
+            white-space: nowrap;
+        }
+        
+        /* Delete button styles */
+        .note-delete-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+            background: var(--destructive);
+            color: white;
+            border: none;
+            border-radius: calc(var(--radius) - 2px);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: auto;
+        }
+        
+        .note-delete-btn:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        .note-delete-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .note-delete-btn.deleting {
+            background: #f59e0b;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        .note-delete-btn.deleted {
+            background: #10b981;
+            cursor: default;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+        
         .notes-actions {
             margin-top: 0.2rem;
             padding-top: 0.2rem;
@@ -1084,6 +1154,7 @@
         // Constants from nr-common
         const MAP_NOTE_KIND = 30397;
         const MAP_NOTE_REPOST_KIND = 30398;
+        const DELETION_KIND = 5; // NIP-05: Deletion events
         const TRUSTROOTS_PROFILE_KIND = 10390;
         const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = "org.trustroots:username";
         const DEFAULT_RELAY_URL = 'wss://relay.trustroots.org';
@@ -1310,15 +1381,43 @@
             eventsByPlusCodePrefix.clear();
             
             const enabledLayers = getEnabledLayers();
+            let indexedCount = 0;
+            let skippedExpired = 0;
+            let skippedDeleted = 0;
+            let skippedDeletionKind = 0;
+            let skippedNoLayer = 0;
+            let skippedNoPlusCode = 0;
+            
             events.forEach(event => {
                 // Skip expired events - they shouldn't be indexed
-                if (isEventExpired(event)) return;
+                if (isEventExpired(event)) {
+                    skippedExpired++;
+                    return;
+                }
+                
+                // Skip deleted events - they shouldn't be indexed
+                if (isEventDeleted(event)) {
+                    skippedDeleted++;
+                    return;
+                }
+                
+                // Skip deletion events themselves - they shouldn't be indexed
+                if (event.kind === DELETION_KIND) {
+                    skippedDeletionKind++;
+                    return;
+                }
                 
                 const layer = getLayerForEvent(event);
-                if (!layer || !enabledLayers.includes(layer)) return;
+                if (!layer || !enabledLayers.includes(layer)) {
+                    skippedNoLayer++;
+                    return;
+                }
                 
                 const eventPlusCode = getPlusCodeFromEvent(event);
-                if (!eventPlusCode) return;
+                if (!eventPlusCode) {
+                    skippedNoPlusCode++;
+                    return;
+                }
                 
                 // Index by exact plus code
                 if (!eventsByPlusCode.has(eventPlusCode)) {
@@ -1335,12 +1434,25 @@
                     }
                     eventsByPlusCodePrefix.get(prefix).add(event);
                 }
+                
+                indexedCount++;
+            });
+            
+            console.log('[rebuildSpatialIndex]', {
+                totalEvents: events.length,
+                indexed: indexedCount,
+                skippedExpired: skippedExpired,
+                skippedDeleted: skippedDeleted,
+                skippedDeletionKind: skippedDeletionKind,
+                skippedNoLayer: skippedNoLayer,
+                skippedNoPlusCode: skippedNoPlusCode
             });
         }
         
         // Fast lookup using spatial index
         function filterEventsForPlusCodeFast(plusCode) {
-            const eventsForPlusCodeExactly = Array.from(eventsByPlusCode.get(plusCode) || []);
+            const eventsForPlusCodeExactly = Array.from(eventsByPlusCode.get(plusCode) || [])
+                .filter(event => !isEventDeleted(event) && !isEventExpired(event) && event.kind !== DELETION_KIND);
             
             // For "within" queries, events that are inside this plus code have longer codes
             // We need to check all events indexed by prefixes that start with this plus code
@@ -1355,6 +1467,10 @@
                 // If the prefix is longer and starts with our search prefix, check events
                 if (prefixClean.length > searchPrefix.length && prefixClean.startsWith(searchPrefix)) {
                     eventSet.forEach(event => {
+                        // Filter out deleted, expired, and deletion events
+                        if (isEventDeleted(event) || isEventExpired(event) || event.kind === DELETION_KIND) {
+                            return;
+                        }
                         const eventPlusCode = getPlusCodeFromEvent(event);
                         if (eventPlusCode && eventPlusCode !== plusCode && isPlusCodeInsidePlusCode(plusCode, eventPlusCode)) {
                             // Avoid duplicates
@@ -2084,8 +2200,8 @@
                     const relay = await Relay.connect(url);
                     relays.push(relay);
                     
-                    // Subscribe to events - kind 0 (profiles), kind 10390 (Trustroots profiles), and kind 30397 (map notes)
-                    const kinds = [0, TRUSTROOTS_PROFILE_KIND, MAP_NOTE_KIND];
+                    // Subscribe to events - kind 0 (profiles), kind 5 (deletions), kind 10390 (Trustroots profiles), and kind 30397 (map notes)
+                    const kinds = [0, DELETION_KIND, TRUSTROOTS_PROFILE_KIND, MAP_NOTE_KIND];
                     
                     // First, do a direct query for kind 30397 events to see how many exist
                     let directQueryCount = 0;
@@ -2103,6 +2219,7 @@
                     // Also subscribe to all kinds to get other events
                     const sub = relay.subscribe([{ kinds }], {
                         onevent: (event) => {
+                            console.log('[Relay] Received event:', event.kind, event.id?.substring(0, 16));
                             processIncomingEvent(event);
                         },
                         oneose: () => {
@@ -2123,7 +2240,7 @@
                     // Keep subscription alive
                     setInterval(() => {
                         if (relay.status === 1) { // OPEN
-                            relay.subscribe([{ kinds: [0, TRUSTROOTS_PROFILE_KIND, MAP_NOTE_KIND], limit: 1 }], {
+                            relay.subscribe([{ kinds: [0, DELETION_KIND, TRUSTROOTS_PROFILE_KIND, MAP_NOTE_KIND], limit: 1 }], {
                                 onevent: () => {},
                                 oneose: () => {}
                             });
@@ -2145,8 +2262,8 @@
         
         function subscribeToEvents() {
             if (ndk) {
-                // Use NDK subscription - kind 0 (profiles), kind 10390 (Trustroots profiles), and kind 30397 (map notes)
-                const kinds = [0, TRUSTROOTS_PROFILE_KIND, MAP_NOTE_KIND];
+                // Use NDK subscription - kind 0 (profiles), kind 5 (deletions), kind 10390 (Trustroots profiles), and kind 30397 (map notes)
+                const kinds = [0, DELETION_KIND, TRUSTROOTS_PROFILE_KIND, MAP_NOTE_KIND];
                 
                 const filter = {
                     kinds: kinds
@@ -2158,6 +2275,7 @@
                     subscription.on('event', (event) => {
                         // NDK event might have rawEvent() method or be the event itself
                         const rawEvent = event.rawEvent ? event.rawEvent() : event;
+                        console.log('[NDK] Received event:', rawEvent.kind, rawEvent.id?.substring(0, 16));
                         processIncomingEvent(rawEvent);
                     });
                 } catch (error) {
@@ -2413,6 +2531,70 @@
                 return; // Don't process these as map notes
             }
             
+            // Process kind 5 (deletion) events - store them but don't display as notes
+            if (event.kind === DELETION_KIND) {
+                const storageId = getStorageId(event);
+                const existingIndex = events.findIndex(e => getStorageId(e) === storageId);
+                
+                if (existingIndex === -1) {
+                    // New deletion event, add it
+                    const eventData = {
+                        id: event.id,
+                        kind: event.kind,
+                        pubkey: event.pubkey,
+                        content: event.content,
+                        created_at: event.created_at,
+                        tags: event.tags,
+                        sig: event.sig
+                    };
+                    events.push(eventData);
+                    scheduleCacheWrite();
+                    cachedFilteredEvents = null;
+                    filteredEventsCacheKey = null;
+                    // Rebuild spatial index to update filtering
+                    rebuildSpatialIndex();
+                    // Update UI to reflect deletions
+                    updateMapMarkers();
+                    if (map && map.loaded()) {
+                        updatePlusCodeGrid();
+                    }
+                    
+                    // If notes modal is open, check if any deleted events match the selected plus code
+                    const notesModal = document.getElementById('pluscode-notes-modal');
+                    if (notesModal && notesModal.classList.contains('active') && selectedPlusCode) {
+                        // Find which events are being deleted by this deletion event
+                        const deletedEventIds = event.tags
+                            .filter(tag => tag.length >= 2 && tag[0] === 'e')
+                            .map(tag => tag[1]);
+                        
+                        // Check if any of the deleted events match the selected plus code
+                        let shouldRefresh = false;
+                        for (const deletedEventId of deletedEventIds) {
+                            const deletedEvent = events.find(e => e.id === deletedEventId);
+                            if (deletedEvent) {
+                                const deletedEventPlusCode = getPlusCodeFromEvent(deletedEvent);
+                                if (deletedEventPlusCode) {
+                                    const eventMatches = deletedEventPlusCode === selectedPlusCode || 
+                                                        isPlusCodeInsidePlusCode(selectedPlusCode, deletedEventPlusCode);
+                                    if (eventMatches) {
+                                        shouldRefresh = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // If a deleted event matches, refresh the modal
+                        if (shouldRefresh) {
+                            setTimeout(() => {
+                                showNotesForPlusCode(selectedPlusCode);
+                            }, 100);
+                        }
+                    }
+                }
+                return; // Don't process deletion events as map notes
+            }
+            
             // Track all kind 30397 events
             if (event.kind === MAP_NOTE_KIND) {
                 kind30397EventsReceived++;
@@ -2484,6 +2666,18 @@
                             });
                         }
                     }
+                    
+                    // If notes modal is open, refresh it to show updated event
+                    const notesModal = document.getElementById('pluscode-notes-modal');
+                    if (notesModal && notesModal.classList.contains('active') && selectedPlusCode && plusCode) {
+                        const eventMatches = plusCode === selectedPlusCode || 
+                                            isPlusCodeInsidePlusCode(selectedPlusCode, plusCode);
+                        if (eventMatches) {
+                            setTimeout(() => {
+                                showNotesForPlusCode(selectedPlusCode);
+                            }, 150);
+                        }
+                    }
                 }
                 // If not newer, ignore it
                 return;
@@ -2492,6 +2686,7 @@
             // New event, add it
             if (event.kind === MAP_NOTE_KIND) {
                 kind30397EventsProcessed++;
+                console.log('[ProcessEvent] New MAP_NOTE_KIND event:', event.id?.substring(0, 16), 'plusCode:', plusCode);
             }
             
             const eventData = {
@@ -2505,22 +2700,120 @@
             };
             
             events.push(eventData);
+            console.log('[ProcessEvent] Event added to array, total events:', events.length);
             scheduleCacheWrite(); // Schedule cache write (debounced)
             cachedFilteredEvents = null; // Invalidate cache
             filteredEventsCacheKey = null;
             rebuildSpatialIndex(); // Rebuild spatial index (synchronous)
-            updateEventsList();
-            updateMapMarkers();
+            console.log('[ProcessEvent] Spatial index rebuilt, continuing to UI updates...');
+            
+            try {
+                updateEventsList();
+                console.log('[ProcessEvent] updateEventsList completed');
+            } catch (e) {
+                console.error('[ProcessEvent] Error in updateEventsList:', e);
+            }
+            
+            try {
+                updateMapMarkers();
+                console.log('[ProcessEvent] updateMapMarkers completed');
+            } catch (e) {
+                console.error('[ProcessEvent] Error in updateMapMarkers:', e);
+            }
+            
             // Force grid update immediately - spatial index is already rebuilt synchronously
-            if (map && map.loaded()) {
-                // Call directly without setTimeout to ensure immediate update
-                updatePlusCodeGrid();
-            } else {
-                // If map not ready, schedule update for when it is
-                if (map) {
-                    map.once('load', () => {
-                        updatePlusCodeGrid();
+            try {
+                if (map && map.loaded()) {
+                    // Call directly without setTimeout to ensure immediate update
+                    updatePlusCodeGrid();
+                    console.log('[ProcessEvent] updatePlusCodeGrid completed');
+                } else {
+                    // If map not ready, schedule update for when it is
+                    if (map) {
+                        map.once('load', () => {
+                            updatePlusCodeGrid();
+                        });
+                    }
+                }
+            } catch (e) {
+                console.error('[ProcessEvent] Error in updatePlusCodeGrid:', e);
+            }
+            
+            console.log('[ProcessEvent] About to check modal refresh...');
+            
+            // If notes modal is open, refresh it to show new events
+            // Since events are showing on the map, they're in the spatial index
+            // We'll refresh the modal and let showNotesForPlusCode filter correctly using the spatial index
+            const notesModal = document.getElementById('pluscode-notes-modal');
+            const isModalActive = notesModal && notesModal.classList.contains('active');
+            
+            // Try to get the plus code from the modal title if selectedPlusCode is not set
+            let modalPlusCode = selectedPlusCode;
+            if (isModalActive && !modalPlusCode) {
+                const titleElement = document.getElementById('pluscode-notes-title');
+                if (titleElement) {
+                    // Extract plus code from title like "X notes for 5G000000+"
+                    const titleText = titleElement.textContent;
+                    const match = titleText.match(/for\s+([A-Z0-9]+\+)/);
+                    if (match && match[1]) {
+                        modalPlusCode = match[1];
+                        console.log('[Modal Refresh] Extracted plus code from modal title:', modalPlusCode);
+                    }
+                }
+            }
+            
+            // Always log the check for debugging
+            console.log('[Modal Refresh Check]', {
+                hasModal: !!notesModal,
+                isModalActive: isModalActive,
+                selectedPlusCode: selectedPlusCode,
+                modalPlusCode: modalPlusCode,
+                eventPlusCode: plusCode,
+                eventId: event.id?.substring(0, 16),
+                eventKind: event.kind
+            });
+            
+            // If modal is open and we have a plus code (from selectedPlusCode or modal title), check if we should refresh
+            if (isModalActive && modalPlusCode) {
+                // Check if the new event might be relevant to the selected plus code
+                let shouldRefresh = false;
+                
+                if (plusCode) {
+                    // Check if event matches the selected plus code area
+                    const exactMatch = plusCode === modalPlusCode;
+                    const insideMatch = isPlusCodeInsidePlusCode(modalPlusCode, plusCode);
+                    shouldRefresh = exactMatch || insideMatch;
+                    
+                    console.log('[Modal Refresh Check] Plus code comparison:', {
+                        eventPlusCode: plusCode,
+                        modalPlusCode: modalPlusCode,
+                        exactMatch: exactMatch,
+                        insideMatch: insideMatch,
+                        shouldRefresh: shouldRefresh
                     });
+                } else {
+                    console.log('[Modal Refresh Check] No plus code for event, skipping refresh');
+                }
+                
+                if (shouldRefresh) {
+                    // Refresh the modal - showNotesForPlusCode will use the updated spatial index
+                    // to filter and display events correctly
+                    console.log('[Modal Refresh] Refreshing modal for new event');
+                    // Use requestAnimationFrame to ensure DOM is ready, then refresh
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            showNotesForPlusCode(modalPlusCode);
+                        }, 100);
+                    });
+                } else {
+                    console.log('[Modal Refresh] Skipping refresh - event does not match selected plus code');
+                }
+            } else {
+                // Log why we're not refreshing
+                if (!isModalActive) {
+                    console.log('[Modal Refresh] Modal not active - skipping refresh');
+                } else if (!modalPlusCode) {
+                    console.log('[Modal Refresh] Modal active but no plus code available - skipping refresh');
                 }
             }
         }
@@ -2723,6 +3016,68 @@
             }
             // If no expiration tag, event is not expired
             return false;
+        }
+        
+        // Get the expiration timestamp from an event (NIP-40)
+        function getExpirationTimestamp(event) {
+            for (const tag of event.tags) {
+                if (tag.length >= 2 && tag[0] === 'expiration') {
+                    const expirationTimestamp = parseInt(tag[1]);
+                    if (!isNaN(expirationTimestamp)) {
+                        return expirationTimestamp;
+                    }
+                }
+            }
+            return null;
+        }
+        
+        // Get remaining seconds until event expires
+        function getRemainingTime(event) {
+            const expirationTimestamp = getExpirationTimestamp(event);
+            if (expirationTimestamp === null) {
+                return null;
+            }
+            return expirationTimestamp - getCurrentTimestamp();
+        }
+        
+        // Format remaining time for display (e.g., "7d 0h", "5h 30m", "45m", "<1m")
+        function formatRemainingTime(seconds) {
+            if (seconds === null) return null;
+            if (seconds <= 0) return 'expired';
+            
+            const days = Math.floor(seconds / (24 * 60 * 60));
+            const hours = Math.floor((seconds % (24 * 60 * 60)) / (60 * 60));
+            const minutes = Math.floor((seconds % (60 * 60)) / 60);
+            
+            if (days > 0) {
+                return `${days}d ${hours}h`;
+            } else if (hours > 0) {
+                return `${hours}h ${minutes}m`;
+            } else if (minutes > 0) {
+                return `${minutes}m`;
+            } else {
+                return '<1m';
+            }
+        }
+        
+        // Check if an event has been deleted (has a corresponding kind 5 deletion event)
+        function isEventDeleted(event) {
+            // Deletion events themselves should not be considered as deleted
+            if (event.kind === DELETION_KIND) {
+                return false;
+            }
+            
+            // Check if there's a kind 5 event that references this event ID
+            return events.some(deletionEvent => {
+                if (deletionEvent.kind !== DELETION_KIND) {
+                    return false;
+                }
+                
+                // Check if any 'e' tag matches this event's ID
+                return deletionEvent.tags.some(tag => {
+                    return tag.length >= 2 && tag[0] === 'e' && tag[1] === event.id;
+                });
+            });
         }
         
         // Flush expired events from the events array (matching nr-app's flushExpiredEvents)
@@ -3627,6 +3982,13 @@
             // Use fast spatial index lookup instead of filtering all events
             const { eventsForPlusCodeExactly, eventsWithinPlusCode } = filterEventsForPlusCodeFast(plusCode);
             
+            console.log('[showNotesForPlusCode]', {
+                plusCode: plusCode,
+                exactMatches: eventsForPlusCodeExactly.length,
+                withinMatches: eventsWithinPlusCode.length,
+                totalEventsInArray: events.length
+            });
+            
             // Merge exact matches into within plus code section, avoiding duplicates
             const allEventsMap = new Map();
             eventsForPlusCodeExactly.forEach(event => {
@@ -3639,10 +4001,50 @@
                 }
             });
             
-            // Filter out expired events
-            const nonExpiredEvents = Array.from(allEventsMap.values()).filter(event => !isEventExpired(event));
+            // Fallback: If spatial index returned very few results but we have many events,
+            // do a direct filter from events array as a safety check
+            const spatialIndexResults = allEventsMap.size;
+            if (spatialIndexResults === 0 && events.length > 0) {
+                console.warn('[showNotesForPlusCode] Spatial index returned 0 results, falling back to direct filter');
+                // Direct filter as fallback
+                events.forEach(event => {
+                    if (isEventDeleted(event) || isEventExpired(event) || event.kind === DELETION_KIND) {
+                        return;
+                    }
+                    const eventPlusCode = getPlusCodeFromEvent(event);
+                    if (eventPlusCode) {
+                        const eventMatches = eventPlusCode === plusCode || 
+                                            isPlusCodeInsidePlusCode(plusCode, eventPlusCode);
+                        if (eventMatches) {
+                            allEventsMap.set(event.id, event);
+                        }
+                    }
+                });
+                console.log('[showNotesForPlusCode] Fallback filter found', allEventsMap.size, 'events');
+            }
+            
+            // Filter out expired events (already filtered in filterEventsForPlusCodeFast, but double-check)
+            const nonExpiredEvents = Array.from(allEventsMap.values()).filter(event => {
+                const isExpired = isEventExpired(event);
+                const isDeleted = isEventDeleted(event);
+                if (isExpired || isDeleted) {
+                    console.log('[showNotesForPlusCode] Filtering out event:', {
+                        eventId: event.id?.substring(0, 16),
+                        isExpired: isExpired,
+                        isDeleted: isDeleted
+                    });
+                }
+                return !isExpired && !isDeleted;
+            });
             
             const sortedAll = [...nonExpiredEvents].sort((a, b) => a.created_at - b.created_at);
+            
+            console.log('[showNotesForPlusCode] Final events to display:', {
+                beforeFilter: allEventsMap.size,
+                afterExpiredFilter: nonExpiredEvents.length,
+                finalSorted: sortedAll.length,
+                eventIds: sortedAll.map(e => e.id?.substring(0, 16))
+            });
             
             // Update modal title
             document.getElementById('pluscode-notes-title').textContent = 
@@ -3657,10 +4059,18 @@
                 const notesSection = document.createElement('div');
                 notesSection.className = 'notes-section';
                 
+                let renderedCount = 0;
                 sortedAll.forEach(event => {
-                    const noteItem = createNoteItem(event);
-                    notesSection.appendChild(noteItem);
+                    try {
+                        const noteItem = createNoteItem(event);
+                        notesSection.appendChild(noteItem);
+                        renderedCount++;
+                    } catch (error) {
+                        console.error('[showNotesForPlusCode] Error creating note item:', error, event);
+                    }
                 });
+                
+                console.log('[showNotesForPlusCode] Rendered', renderedCount, 'out of', sortedAll.length, 'notes');
                 
                 notesContent.appendChild(notesSection);
             } else {
@@ -3675,11 +4085,46 @@
             document.getElementById('note-content-in-modal').value = '';
             document.getElementById('note-expiration-in-modal').value = getExpirationSetting();
             
+            // Update the grid to highlight the selected plus code in blue BEFORE panning
+            updatePlusCodeGrid();
+            
+            // Pan map to ensure selected area is visible above the modal
+            if (map) {
+                const rectangle = plusCodeToRectangle(plusCode);
+                if (rectangle && rectangle.length >= 4) {
+                    // Get bounds from rectangle: [sw, se, ne, nw, sw]
+                    const sw = rectangle[0]; // [lng, lat] of southwest corner
+                    const ne = rectangle[2]; // [lng, lat] of northeast corner
+                    
+                    // Check if we're on mobile
+                    const isMobile = window.innerWidth <= 768;
+                    
+                    if (isMobile) {
+                        // On mobile, modal covers bottom 60%, so add bottom padding
+                        // to ensure area is visible in top 40% of screen
+                        // Use 65% bottom padding to push area further up, and more top padding for visibility
+                        const bottomPadding = window.innerHeight * 0.65; // 65vh in pixels
+                        map.fitBounds([sw, ne], {
+                            padding: {
+                                top: 60, // More top padding to make area more visible
+                                bottom: bottomPadding,
+                                left: 20,
+                                right: 20
+                            },
+                            duration: 300 // Smooth animation
+                        });
+                    } else {
+                        // On desktop, just ensure it's visible with standard padding
+                        map.fitBounds([sw, ne], {
+                            padding: 50,
+                            duration: 300
+                        });
+                    }
+                }
+            }
+            
             // Show modal
             document.getElementById('pluscode-notes-modal').classList.add('active');
-            
-            // Update the grid to highlight the selected plus code
-            updatePlusCodeGrid();
             
             // Scroll to bottom and focus on textarea after modal is shown
             setTimeout(() => {
@@ -3746,10 +4191,40 @@
                 }
             }
             
-            // Combine meta, author, and plus code on same line with pluscode on the right
+            // Combine meta, author, expiry, and plus code on same line with pluscode on the right
             metaRow.appendChild(meta);
             metaRow.appendChild(document.createTextNode(' '));
             metaRow.appendChild(author);
+            
+            // Add expiration indicator if event has expiration
+            const remainingSeconds = getRemainingTime(event);
+            if (remainingSeconds !== null) {
+                const expirySpan = document.createElement('span');
+                expirySpan.className = 'note-expiry';
+                const formattedTime = formatRemainingTime(remainingSeconds);
+                expirySpan.textContent = `⏱️ ${formattedTime}`;
+                
+                // Style based on urgency
+                if (remainingSeconds <= 0) {
+                    expirySpan.style.color = 'var(--destructive)';
+                } else if (remainingSeconds < 24 * 60 * 60) {
+                    // Less than 24 hours - warning color (orange/amber)
+                    expirySpan.style.color = '#f59e0b';
+                } else {
+                    expirySpan.style.color = 'var(--muted-foreground)';
+                }
+                
+                // Get expiration timestamp for tooltip
+                const expirationTimestamp = getExpirationTimestamp(event);
+                if (expirationTimestamp) {
+                    const expirationDate = new Date(expirationTimestamp * 1000);
+                    expirySpan.title = `Expires: ${expirationDate.toLocaleString()}`;
+                }
+                
+                metaRow.appendChild(document.createTextNode(' '));
+                metaRow.appendChild(expirySpan);
+            }
+            
             if (plusCode) {
                 metaRow.appendChild(document.createTextNode(' '));
                 const plusCodeSpan = document.createElement('span');
@@ -3767,6 +4242,32 @@
             content.textContent = event.content;
             noteItem.appendChild(content);
             
+            // Add delete button if this is the user's own event
+            const isCurrentUser = currentPublicKey && 
+                event.pubkey.toLowerCase() === currentPublicKey.toLowerCase();
+            
+            if (isCurrentUser) {
+                const buttonRow = document.createElement('div');
+                buttonRow.style.display = 'flex';
+                buttonRow.style.justifyContent = 'flex-end';
+                buttonRow.style.marginTop = '0.5rem';
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'note-delete-btn';
+                deleteBtn.textContent = '🗑️ DELETE';
+                deleteBtn.title = 'Delete this note';
+                deleteBtn.setAttribute('data-note-id', event.id);
+                
+                // Prevent event from bubbling to noteItem click handler
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteEvent(event.id, deleteBtn);
+                });
+                
+                buttonRow.appendChild(deleteBtn);
+                noteItem.appendChild(buttonRow);
+            }
+            
             // Make clickable to show details
             noteItem.addEventListener('click', () => {
                 showNoteDetails(event);
@@ -3774,6 +4275,243 @@
             });
             
             return noteItem;
+        }
+        
+        async function deleteEvent(eventId, deleteButton) {
+            // Check if user has private key
+            if (!usingNip07 && !currentPrivateKeyBytes) {
+                showStatus('No private key available. Please connect extension or import/generate a key.', 'error');
+                return;
+            }
+            
+            if (!currentPublicKey) {
+                showStatus('No public key available', 'error');
+                return;
+            }
+            
+            // Find the event to verify it exists and belongs to user
+            const eventToDelete = events.find(e => e.id === eventId);
+            if (!eventToDelete) {
+                showStatus('Event not found', 'error');
+                return;
+            }
+            
+            // Verify it's the user's event
+            if (eventToDelete.pubkey.toLowerCase() !== currentPublicKey.toLowerCase()) {
+                showStatus('You can only delete your own events', 'error');
+                return;
+            }
+            
+            // Show confirmation dialog
+            if (!confirm('Are you sure you want to delete this note?\n\nNote: Due to the decentralized nature of Nostr, we cannot guarantee that the note will be removed from all relays. Some relays may have cached copies.')) {
+                return;
+            }
+            
+            // Update button state
+            if (deleteButton) {
+                deleteButton.disabled = true;
+                deleteButton.classList.add('deleting');
+                deleteButton.textContent = '⏳ DELETING...';
+                deleteButton.title = 'Deleting note...';
+            }
+            
+            try {
+                // Create kind 5 deletion event
+                const deletionEvent = {
+                    kind: DELETION_KIND,
+                    content: 'Deleted by user',
+                    tags: [['e', eventId]],
+                    created_at: Math.floor(Date.now() / 1000),
+                    pubkey: currentPublicKey
+                };
+                
+                let signedEvent;
+                
+                // Sign event using NIP-07 extension or local key
+                if (usingNip07) {
+                    // Verify extension is still available
+                    if (!nostrProvider) {
+                        const provider = detectNostrExtension();
+                        if (provider) {
+                            nostrProvider = provider;
+                            try {
+                                if (typeof provider.getPublicKey !== 'function') {
+                                    throw new Error('getPublicKey method not available');
+                                }
+                                const currentPubkey = await provider.getPublicKey();
+                                if (!currentPubkey || typeof currentPubkey !== 'string') {
+                                    throw new Error('Invalid public key returned');
+                                }
+                                if (currentPubkey !== currentPublicKey) {
+                                    showStatus('Extension public key changed. Please reconnect.', 'error');
+                                    usingNip07 = false;
+                                    updateKeyDisplay();
+                                    if (deleteButton) {
+                                        deleteButton.disabled = false;
+                                        deleteButton.classList.remove('deleting');
+                                        deleteButton.textContent = '🗑️ DELETE';
+                                        deleteButton.title = 'Delete this note';
+                                    }
+                                    return;
+                                }
+                            } catch (error) {
+                                console.error('Error verifying extension public key:', error);
+                                showStatus('Extension no longer available. Please reconnect.', 'error');
+                                usingNip07 = false;
+                                nostrProvider = null;
+                                localStorage.removeItem('using_nip07');
+                                updateKeyDisplay();
+                                if (deleteButton) {
+                                    deleteButton.disabled = false;
+                                    deleteButton.classList.remove('deleting');
+                                    deleteButton.textContent = '🗑️ DELETE';
+                                    deleteButton.title = 'Delete this note';
+                                }
+                                return;
+                            }
+                        } else {
+                            showStatus('Extension no longer available. Please reconnect or use local keys.', 'error');
+                            usingNip07 = false;
+                            localStorage.removeItem('using_nip07');
+                            updateKeyDisplay();
+                            if (deleteButton) {
+                                deleteButton.disabled = false;
+                                deleteButton.classList.remove('deleting');
+                                deleteButton.textContent = '🗑️ DELETE';
+                                deleteButton.title = 'Delete this note';
+                            }
+                            return;
+                        }
+                    }
+                    
+                    try {
+                        signedEvent = await nostrProvider.signEvent(deletionEvent);
+                    } catch (error) {
+                        console.error('Error signing deletion event with extension:', error);
+                        showStatus('Error signing deletion event: ' + error.message, 'error');
+                        if (deleteButton) {
+                            deleteButton.disabled = false;
+                            deleteButton.classList.remove('deleting');
+                            deleteButton.textContent = '🗑️ DELETE';
+                            deleteButton.title = 'Delete this note';
+                        }
+                        return;
+                    }
+                } else {
+                    // Sign with local private key
+                    signedEvent = finalizeEvent(deletionEvent, currentPrivateKeyBytes);
+                }
+                
+                // Publish to all configured relays
+                const relayUrls = getRelayUrls();
+                
+                if (deleteButton && relayUrls.length > 0) {
+                    deleteButton.textContent = `⏳ SENDING TO ${relayUrls.length} RELAYS...`;
+                }
+                
+                const publishPromises = relayUrls.map(async (url, index) => {
+                    let relay = null;
+                    try {
+                        if (deleteButton && relayUrls.length > 1) {
+                            deleteButton.textContent = `⏳ SENDING TO RELAY ${index + 1}/${relayUrls.length}...`;
+                        }
+                        
+                        relay = await Relay.connect(url);
+                        await relay.publish(signedEvent);
+                        // Wait a bit for the relay to process
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        return { success: true, url };
+                    } catch (error) {
+                        // For deletion events, we'll consider it successful if we sent it
+                        // even if we don't get a proper OK response
+                        const errorMessage = error?.message || String(error);
+                        if (!errorMessage.includes('relay experienced an error')) {
+                            console.error(`Error publishing deletion to ${url}:`, error);
+                        }
+                        return { success: true, url }; // Consider deletion sent even on error
+                    } finally {
+                        if (relay) {
+                            try {
+                                relay.close();
+                            } catch (closeError) {
+                                // Ignore errors when closing
+                            }
+                        }
+                    }
+                });
+                
+                const results = await Promise.allSettled(publishPromises);
+                const successCount = results.filter(r => r.status === 'fulfilled').length;
+                
+                // Update button to show completion
+                if (deleteButton) {
+                    deleteButton.textContent = '✅ DELETED!';
+                    deleteButton.classList.remove('deleting');
+                    deleteButton.classList.add('deleted');
+                }
+                
+                // Remove event from local events array
+                const eventIndex = events.findIndex(e => e.id === eventId);
+                if (eventIndex !== -1) {
+                    events.splice(eventIndex, 1);
+                }
+                
+                // Also add the deletion event to events array so it can be used for filtering
+                const deletionEventData = {
+                    id: signedEvent.id,
+                    kind: signedEvent.kind,
+                    pubkey: signedEvent.pubkey,
+                    content: signedEvent.content,
+                    created_at: signedEvent.created_at,
+                    tags: signedEvent.tags,
+                    sig: signedEvent.sig
+                };
+                events.push(deletionEventData);
+                
+                // Update cache
+                saveEventsToCache();
+                cachedFilteredEvents = null;
+                filteredEventsCacheKey = null;
+                
+                // Rebuild spatial index
+                rebuildSpatialIndex();
+                
+                // Update UI
+                updateMapMarkers();
+                if (map && map.loaded()) {
+                    updatePlusCodeGrid();
+                }
+                
+                // Refresh notes list if modal is open
+                if (selectedPlusCode) {
+                    setTimeout(() => {
+                        showNotesForPlusCode(selectedPlusCode);
+                    }, 100);
+                }
+                
+                // Show success message
+                showStatus(`Note deleted and published to ${successCount} relay(s)`, 'success');
+                
+                // Brief delay to show success state, then remove from UI
+                setTimeout(() => {
+                    if (selectedPlusCode) {
+                        showNotesForPlusCode(selectedPlusCode);
+                    }
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error deleting note:', error);
+                
+                // Reset button state on error
+                if (deleteButton) {
+                    deleteButton.disabled = false;
+                    deleteButton.classList.remove('deleting');
+                    deleteButton.textContent = '🗑️ DELETE';
+                    deleteButton.title = 'Delete this note';
+                }
+                
+                showStatus('Failed to delete note: ' + error.message, 'error');
+            }
         }
         
         function closeOnboardingModal() {

@@ -63,9 +63,9 @@ function formatRemainingTime(seconds) {
   const minutes = Math.floor((seconds % (60 * 60)) / 60);
   
   if (days > 0) {
-    return `${days}d ${hours}h`;
+    return `${days}d`;
   } else if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+    return `${hours}h`;
   } else if (minutes > 0) {
     return `${minutes}m`;
   } else {
@@ -206,12 +206,12 @@ describe('Event Expiration (NIP-40)', () => {
 
     it('should format days and hours correctly', () => {
       const threeDaysTwoHours = 3 * 24 * 60 * 60 + 2 * 60 * 60;
-      expect(formatRemainingTime(threeDaysTwoHours)).toBe('3d 2h');
+      expect(formatRemainingTime(threeDaysTwoHours)).toBe('3d');
     });
 
     it('should format hours and minutes correctly when less than a day', () => {
       const fiveHoursThirtyMinutes = 5 * 60 * 60 + 30 * 60;
-      expect(formatRemainingTime(fiveHoursThirtyMinutes)).toBe('5h 30m');
+      expect(formatRemainingTime(fiveHoursThirtyMinutes)).toBe('5h');
     });
 
     it('should format minutes only when less than an hour', () => {
@@ -226,12 +226,12 @@ describe('Event Expiration (NIP-40)', () => {
 
     it('should handle exactly 1 day', () => {
       const oneDay = 24 * 60 * 60;
-      expect(formatRemainingTime(oneDay)).toBe('1d 0h');
+      expect(formatRemainingTime(oneDay)).toBe('1d');
     });
 
     it('should handle exactly 1 hour', () => {
       const oneHour = 60 * 60;
-      expect(formatRemainingTime(oneHour)).toBe('1h 0m');
+      expect(formatRemainingTime(oneHour)).toBe('1h');
     });
 
     it('should handle exactly 1 minute', () => {
@@ -241,7 +241,7 @@ describe('Event Expiration (NIP-40)', () => {
 
     it('should handle 7 days (typical default expiration)', () => {
       const sevenDays = 7 * 24 * 60 * 60;
-      expect(formatRemainingTime(sevenDays)).toBe('7d 0h');
+      expect(formatRemainingTime(sevenDays)).toBe('7d');
     });
   });
 

@@ -3040,7 +3040,7 @@
             return expirationTimestamp - getCurrentTimestamp();
         }
         
-        // Format remaining time for display (e.g., "7d 0h", "5h 30m", "45m", "<1m")
+        // Format remaining time for display (e.g., "7d", "5h", "45m", "<1m")
         function formatRemainingTime(seconds) {
             if (seconds === null) return null;
             if (seconds <= 0) return 'expired';
@@ -3050,9 +3050,9 @@
             const minutes = Math.floor((seconds % (60 * 60)) / 60);
             
             if (days > 0) {
-                return `${days}d ${hours}h`;
+                return `${days}d`;
             } else if (hours > 0) {
-                return `${hours}h ${minutes}m`;
+                return `${hours}h`;
             } else if (minutes > 0) {
                 return `${minutes}m`;
             } else {
@@ -5076,6 +5076,14 @@
         window.showCirclesModal = showCirclesModal;
         window.hideCirclesModal = hideCirclesModal;
         window.clearSelectedCircle = clearSelectedCircle;
+        
+        // Expiration-related functions (NIP-40)
+        window.isEventExpired = isEventExpired;
+        window.getExpirationTimestamp = getExpirationTimestamp;
+        window.getRemainingTime = getRemainingTime;
+        window.formatRemainingTime = formatRemainingTime;
+        window.flushExpiredEvents = flushExpiredEvents;
+        window.createNoteItem = createNoteItem;
     </script>
 </body>
 </html>

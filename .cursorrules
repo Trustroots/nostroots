@@ -17,6 +17,11 @@ Use `--no-verify` flag when committing nr-web changes:
 git commit --no-verify -m "Your commit message"
 ```
 
+When committing changes to `nr-web/index.html`, be more verbose about what changed:
+- Changes to `nr-web/index.html` can often be derived from changes in the test files
+- Include specific details about what functionality was added, modified, or fixed
+- Reference related test files to provide context about the changes
+
 ## Committing Workflow Changes
 
 When committing changes that only affect GitHub workflows (`.github/workflows/`), skip the pre-commit hooks because:

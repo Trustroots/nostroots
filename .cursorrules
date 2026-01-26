@@ -27,3 +27,13 @@ Use `--no-verify` flag when committing workflow changes:
 ```bash
 git commit --no-verify -m "Your commit message"
 ```
+
+## Testing in nr-web
+
+When making changes to `nr-web`:
+- Add new tests if it makes sense (e.g., for new features, bug fixes, or edge cases)
+- Run the tests after making changes using Docker:
+  ```bash
+  make test
+  ```
+  This ensures that changes don't break existing functionality and that new features are properly tested.

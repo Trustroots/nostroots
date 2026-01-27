@@ -111,6 +111,11 @@
             min-height: 400px;
         }
         
+        /* Improve map panning performance and smoothness */
+        .maplibregl-canvas {
+            will-change: transform;
+        }
+        
         .map-container {
             position: relative;
             flex: 1;
@@ -1294,6 +1299,8 @@
         let events = [];
         let selectedPlusCode = null;
         let selectedCircle = null; // Selected Trustroots circle slug
+        let isDragging = false; // Track dragging state to prevent grid updates during drag
+        let pendingGridUpdate = false; // Track if grid update is needed after drag ends
         let currentPrivateKey = null;
         let currentPrivateKeyBytes = null;
         let currentPublicKey = null;
@@ -3564,7 +3571,13 @@
                     container: 'map',
                     style: getMapStyle(),
                     center: savedCenter,
-                    zoom: savedZoom
+                    zoom: savedZoom,
+                    renderWorldCopies: false, // Improve performance
+                    antialias: true, // Smoother rendering
+                    fadeDuration: 0, // Instant transitions for smoother panning
+                    dragPan: true, // Explicitly enable panning
+                    boxZoom: true,
+                    doubleClickZoom: true
                 });
                 
                 // Track if we've already attempted fallback to prevent repeated attempts
@@ -3650,6 +3663,16 @@
             
             map.on('dragstart', () => {
                 mapWasDragged = false;
+                isDragging = true;
+                // Cancel any pending grid updates during drag
+                if (gridUpdateAnimationFrame) {
+                    cancelAnimationFrame(gridUpdateAnimationFrame);
+                    gridUpdateAnimationFrame = null;
+                }
+                // Change cursor to grabbing during pan
+                if (map.getCanvas()) {
+                    map.getCanvas().style.cursor = 'grabbing';
+                }
             });
             
             map.on('drag', () => {
@@ -3657,16 +3680,40 @@
             });
             
             map.on('dragend', () => {
+                isDragging = false;
+                // Reset cursor to default after panning
+                if (map.getCanvas()) {
+                    map.getCanvas().style.cursor = 'default';
+                }
                 // Reset after a short delay to allow click event to check the flag
                 setTimeout(() => {
                     mapWasDragged = false;
                 }, 100);
+                // Trigger grid update after dragging is complete
+                if (pendingGridUpdate) {
+                    pendingGridUpdate = false;
+                    // Use a longer delay to ensure smooth drag completion
+                    setTimeout(() => {
+                        if (!isDragging) {
+                            updatePlusCodeGrid();
+                        }
+                    }, 100);
+                }
             });
             
             // Also track mouse events for more reliable detection
             map.on('mousedown', (e) => {
+                // Only track if not clicking on a marker or control
+                const target = e.originalEvent.target;
+                if (target && (target.closest && (target.closest('.maplibregl-marker') || target.closest('.maplibregl-ctrl')))) {
+                    return;
+                }
                 dragStartPos = { x: e.point.x, y: e.point.y };
                 mapWasDragged = false;
+                // Change cursor to grabbing when mouse is pressed
+                if (map.getCanvas()) {
+                    map.getCanvas().style.cursor = 'grabbing';
+                }
             });
             
             map.on('mousemove', (e) => {
@@ -3682,6 +3729,10 @@
             
             map.on('mouseup', () => {
                 dragStartPos = null;
+                // Reset cursor to default when mouse is released
+                if (map.getCanvas() && !isDragging) {
+                    map.getCanvas().style.cursor = 'default';
+                }
             });
             
             // Handle map clicks (but not on plus code polygons or markers - those are handled separately)
@@ -3720,11 +3771,19 @@
                 localStorage.setItem('map_center', JSON.stringify([center.lng, center.lat]));
                 localStorage.setItem('map_zoom', zoom.toString());
                 
+                // Don't update grid during active dragging - wait for dragend
+                if (isDragging) {
+                    pendingGridUpdate = true;
+                    return;
+                }
+                
                 clearTimeout(moveTimeout);
                 moveTimeout = setTimeout(() => {
-                    updatePlusCodeGrid();
-                    // Re-subscribe to new plus codes in view
-                    subscribeToPlusCodePrefixes();
+                    if (!isDragging) {
+                        updatePlusCodeGrid();
+                        // Re-subscribe to new plus codes in view
+                        subscribeToPlusCodePrefixes();
+                    }
                 }, 500); // Increased debounce for better performance
             });
             
@@ -3741,6 +3800,13 @@
             });
             
             map.on('load', () => {
+                // Ensure map is interactive and set initial cursor
+                if (map.getCanvas()) {
+                    map.getCanvas().style.cursor = 'default';
+                    // Ensure pointer events are enabled for dragging
+                    map.getCanvas().style.pointerEvents = 'auto';
+                }
+                
                 // Initialize plus code grid source
                 if (!map.getSource('pluscode-grid')) {
                     map.addSource('pluscode-grid', {
@@ -3787,13 +3853,18 @@
                         }
                     });
                     
-                    // Change cursor on hover
+                    // Change cursor on hover over plus codes
                     map.on('mouseenter', 'pluscode-grid-fill', () => {
-                        map.getCanvas().style.cursor = 'pointer';
+                        if (map.getCanvas()) {
+                            map.getCanvas().style.cursor = 'pointer';
+                        }
                     });
                     
                     map.on('mouseleave', 'pluscode-grid-fill', () => {
-                        map.getCanvas().style.cursor = '';
+                        // Reset to default cursor when not hovering over plus code
+                        if (map.getCanvas() && !dragStartPos) {
+                            map.getCanvas().style.cursor = 'default';
+                        }
                     });
                 }
                 
@@ -3811,6 +3882,12 @@
                         updatePlusCodeGrid();
                     }
                 }, 100);
+                return;
+            }
+            
+            // Don't update grid during active dragging
+            if (isDragging) {
+                pendingGridUpdate = true;
                 return;
             }
             
@@ -3938,12 +4015,17 @@
                         features: features
                     });
                     
-                    // Force a re-render by doing a tiny pan that's imperceptible
-                    // This is the most reliable way to force MapLibre to re-render
-                    map.panBy([0.1, 0], { duration: 0 });
-                    setTimeout(() => {
-                        map.panBy([-0.1, 0], { duration: 0 });
-                    }, 1);
+                    // Only force re-render if not dragging (the panBy hack can interfere with dragging)
+                    if (!isDragging) {
+                        // Force a re-render by doing a tiny pan that's imperceptible
+                        // This is the most reliable way to force MapLibre to re-render
+                        map.panBy([0.1, 0], { duration: 0 });
+                        setTimeout(() => {
+                            if (!isDragging) {
+                                map.panBy([-0.1, 0], { duration: 0 });
+                            }
+                        }, 1);
+                    }
                 } else {
                     // Source not ready yet, try again after a short delay
                     setTimeout(() => {
@@ -4811,7 +4893,7 @@
                 }
                 
                 // Show success message
-                showStatus(`Note deleted and published to ${successCount} relay(s)`, 'success');
+                showStatus(`Note deleted on ${successCount} relays`, 'success');
                 
                 // Brief delay to show success state, then remove from UI
                 setTimeout(() => {

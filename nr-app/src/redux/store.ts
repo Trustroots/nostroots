@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { combineSlices, configureStore } from "@reduxjs/toolkit";
-import { persistReducer, persistStore } from "redux-persist";
+import { persistReducer, persistStore, createTransform } from "redux-persist";
 import createSagaMiddleware from "redux-saga";
 import { promiseMiddleware } from "redux-saga-promise-actions";
 
@@ -32,10 +32,33 @@ const rootReducer = combineSlices(
   settingsSlice,
 );
 
+// Transform to only persist specific fields from the map slice
+// We only want to persist savedRegion (map position) and selectedLayer (user preference)
+// We don't want to persist transient state like modal open states
+const mapTransform = createTransform(
+  // transform state on its way to being serialized and persisted
+  (inboundState: any, key) => {
+    if (key === "map") {
+      return {
+        savedRegion: inboundState.savedRegion,
+        selectedLayer: inboundState.selectedLayer,
+      };
+    }
+    return inboundState;
+  },
+  // transform state being rehydrated
+  (outboundState: any, _key) => {
+    return outboundState;
+  },
+  // define which reducers this transform gets called for
+  { whitelist: ["map"] },
+);
+
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
-  whitelist: ["events", "keystore", "notifications", "settings"], // Only persist these reducers
+  whitelist: ["events", "keystore", "map", "notifications", "settings"], // Only persist these reducers
+  transforms: [mapTransform],
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

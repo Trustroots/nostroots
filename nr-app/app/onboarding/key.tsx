@@ -1,11 +1,12 @@
 import { useRouter } from "expo-router";
 import { nip19 } from "nostr-tools";
 import React, { useCallback, useEffect, useState } from "react";
-import { TextInput, View } from "react-native";
+import { View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Text, TextClassContext } from "@/components/ui/text";
+import { KeyInput } from "@/components/KeyInput";
 import {
   getHasPrivateKeyInSecureStorage,
   getPrivateKeyHexFromSecureStorage,
@@ -13,9 +14,8 @@ import {
 import { useAppDispatch } from "@/redux/hooks";
 import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
 import { bytesToHex } from "@noble/hashes/utils";
-import * as Clipboard from "expo-clipboard";
 import { KeyIcon } from "lucide-react-native";
-import { generateSeedWords, getBech32PrivateKey } from "nip06";
+import { getBech32PrivateKey } from "nip06";
 import Toast from "react-native-root-toast";
 
 export default function OnboardingKeyScreen() {
@@ -26,20 +26,17 @@ export default function OnboardingKeyScreen() {
     "generate",
   );
 
-  const [showKey, setShowKey] = useState<boolean>(false);
   const [existingKeyInput, setExistingKeyInput] = useState<string>("");
   const [existingKeyStatus, setExistingKeyStatus] = useState<
     "idle" | "saving" | "saved"
   >("idle");
   const [keyError, setKeyError] = useState<string | null>(null);
 
-  const [mnemonic, setMnemonic] = useState("Loading...");
+  const [mnemonic, setMnemonic] = useState("");
   const [mnemonicConfirmed, setMnemonicConfirmed] = useState(false);
   const [mnemonicError, setMnemonicError] = useState<string | null>(null);
 
   useEffect(() => {
-    setMnemonic(generateSeedWords().mnemonic);
-
     (async () => {
       const hasKeyFromStorage = await getHasPrivateKeyInSecureStorage();
       if (hasKeyFromStorage) {
@@ -51,26 +48,9 @@ export default function OnboardingKeyScreen() {
     })();
   }, []);
 
-  const handleCopy = async (value: string) => {
-    try {
-      await Clipboard.setStringAsync(value);
-      Toast.show("Copied to Clipboard!", {
-        duration: Toast.durations.SHORT,
-        position: Toast.positions.BOTTOM,
-      });
-    } catch (error) {
-      console.error("Failed to copy mnemonic to clipboard", error);
-    }
-  };
-
   const handleRegenerateMnemonic = () => {
-    setMnemonic(generateSeedWords().mnemonic);
     setMnemonicConfirmed(false);
     setMnemonicError(null);
-  };
-
-  const handleShow = () => {
-    setShowKey(!showKey);
   };
 
   const saveExistingKey = async () => {
@@ -183,36 +163,17 @@ export default function OnboardingKeyScreen() {
           <TextClassContext.Provider value="text-black">
             <TabsContent
               value="existing"
-              className="bg-white rounded-lg p-4 gap-4 w-full"
+              className="bg-white rounded-lg p-4 gap-2 w-full"
             >
-              <TextInput
-                secureTextEntry={!showKey}
-                autoCapitalize="none"
-                autoCorrect={false}
-                value={existingKeyInput}
-                onChangeText={setExistingKeyInput}
-                placeholder="Paste your secret key"
-                className="border border-gray-200 rounded-lg p-3 text-sm"
-              />
               {keyError && (
                 <Text className="text-xs text-red-500">{keyError}</Text>
               )}
-              <View className="flex flex-row gap-2">
-                <Button
-                  className="w-1/2"
-                  size="sm"
-                  variant="outline"
-                  title="Copy"
-                  onPress={() => handleCopy(existingKeyInput)}
-                />
-                <Button
-                  className="flex-1"
-                  size="sm"
-                  variant="outline"
-                  title={showKey ? "Hide" : "Show"}
-                  onPress={handleShow}
-                />
-              </View>
+              <KeyInput
+                value={existingKeyInput}
+                onChangeText={setExistingKeyInput}
+                placeholder="Paste your secret key"
+                disabled={existingKeyStatus === "saving"}
+              />
               <Button
                 size="lg"
                 title={
@@ -230,38 +191,28 @@ export default function OnboardingKeyScreen() {
               value="generate"
               className="bg-white rounded-lg p-4 gap-2"
             >
-              <Text className="text-sm font-mono border border-gray-200 rounded-md p-3">
-                {mnemonic}
-              </Text>
-              <View className="flex flex-row gap-2">
-                <Button
-                  className="w-1/2"
-                  size="sm"
-                  variant="outline"
-                  title="Copy"
-                  onPress={() => handleCopy(mnemonic)}
-                />
-                <Button
-                  className="flex-1"
-                  size="sm"
-                  variant="outline"
-                  title="Regenerate"
-                  onPress={handleRegenerateMnemonic}
-                />
-              </View>
+              {mnemonicError && (
+                <Text className="text-xs text-red-500">{mnemonicError}</Text>
+              )}
+              <KeyInput
+                value={mnemonic}
+                onChangeText={setMnemonic}
+                placeholder=""
+                disabled={false}
+                generateMode={true}
+                showRegenerateButton={true}
+                onRegenerate={handleRegenerateMnemonic}
+              />
               <Button
-                size="sm"
-                variant={mnemonicConfirmed ? "secondary" : "default"}
+                size="lg"
                 title={
                   mnemonicConfirmed
                     ? "Saved"
                     : "I have saved these words safely"
                 }
+                disabled={mnemonicConfirmed}
                 onPress={() => setMnemonicConfirmed(true)}
               />
-              {mnemonicError && (
-                <Text className="text-xs text-red-500">{mnemonicError}</Text>
-              )}
             </TabsContent>
           </TextClassContext.Provider>
         </Tabs>

@@ -1,9 +1,15 @@
 import { Filter } from "nostr-tools";
-import { MapLayer, NOSTROOTS_VALIDATION_PUBKEY } from "@trustroots/nr-common";
-import { isHexKey } from "@trustroots/nr-common";
+import {
+  MapLayer,
+  NOSTROOTS_VALIDATION_PUBKEY,
+  MAP_NOTE_KIND,
+  isHexKey,
+} from "@trustroots/nr-common";
 import { current, isDraft, WritableDraft } from "@reduxjs/toolkit";
 
 // TODO - Move these into `nr-common` (they depend on nostr-tools)
+
+const ONE_WEEK_IN_SECONDS = 7 * 24 * 60 * 60;
 
 export function getTrustrootsMapFilter(): Filter {
   const filter = {
@@ -59,6 +65,12 @@ export function filterForMapLayerConfig(layerConfig: MapLayer): Filter {
     ...authorFilter,
     kinds: [layerConfig.kind],
   };
+
+  // Only fetch unverified events from the last week
+  if (layerConfig.kind === MAP_NOTE_KIND) {
+    filter.since = Math.floor(Date.now() / 1000) - ONE_WEEK_IN_SECONDS;
+  }
+
   return filter;
 }
 

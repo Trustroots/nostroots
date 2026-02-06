@@ -6,7 +6,7 @@ import {
   MAP_LAYERS,
   MapLayer,
 } from "@trustroots/nr-common";
-import { NostrEvent } from "nostr-tools";
+import { matchFilter, NostrEvent } from "nostr-tools";
 import OpenLocationCode from "open-location-code-typescript";
 import { BoundingBox, Region } from "react-native-maps";
 import { urlJoin } from "url-join-ts";
@@ -428,4 +428,14 @@ export function filterEventsForPlusCode(
       isEventWithinThisPlusCode(eventWithMetadata.event, plusCode),
   );
   return { eventsForPlusCodeExactly, eventsWithinPlusCode };
+}
+
+export function getLayerForEvent(event: NostrEvent): MAP_LAYER_KEY {
+  for (const [key, layer] of Object.entries(MAP_LAYERS)) {
+    if (matchFilter(layer.filter, event)) {
+      return key as MAP_LAYER_KEY;
+    }
+  }
+  // Default to trustroots if no match found
+  return "trustroots";
 }

@@ -2,7 +2,7 @@ import { addEvent } from "@/redux/slices/events.slice";
 import { mapActions } from "@/redux/slices/map.slice";
 import { store } from "@/redux/store";
 import { getPlusCodeFromEvent } from "@/utils/event.utils";
-import { plusCodeToCoordinates } from "@/utils/map.utils";
+import { getLayerForEvent, plusCodeToCoordinates } from "@/utils/map.utils";
 import { EventJSONNotificationDataSchema } from "@trustroots/nr-common";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
@@ -46,8 +46,9 @@ function notificationResponseReceived(
 }
 
 export const openEvent = (plusCode: string, event: NostrEvent) => {
-  // Disptach an action to show the unverified layer on the map
-  store.dispatch(mapActions.enableLayer("unverified"));
+  // Dispatch an action to show the correct layer for this event on the map
+  const layer = getLayerForEvent(event);
+  store.dispatch(mapActions.enableLayer(layer));
 
   // a layer to the map.
   store.dispatch(addEvent({ event, fromRelay: "notification" }));

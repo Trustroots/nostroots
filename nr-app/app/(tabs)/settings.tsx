@@ -8,6 +8,7 @@ import { Modal, ScrollView, Switch, TextInput, View } from "react-native";
 
 import BuildData from "@/components/BuildData";
 import OnboardModal from "@/components/OnboardModal";
+import { KeyInput } from "@/components/KeyInput";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
 import {
@@ -69,8 +70,8 @@ export default function SettingsScreen() {
 
   const [nsec, setNsec] = useState("");
   const [mnemonic, setMnemonic] = useState("");
-  const [mnemonicInput, setMnemonicInput] = useState("");
-  const [nsecInput, setNsecInput] = useState("");
+  const [keyInput, setKeyInput] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub) as string;
   const publicKeyHex = useAppSelector(
@@ -184,6 +185,47 @@ export default function SettingsScreen() {
     }
   };
 
+  const handleImportKey = async () => {
+    try {
+      const trimmedInput = keyInput.trim();
+
+      if (!trimmedInput) {
+        Toast.show("Please enter a key", {
+          duration: Toast.durations.SHORT,
+        });
+        return;
+      }
+
+      setIsImporting(true);
+
+      if (trimmedInput.startsWith("nsec")) {
+        const decoded = nip19.decode(trimmedInput);
+        if (decoded.type === "nsec") {
+          const privateKeyHex = bytesToHex(decoded.data);
+          await dispatch(setPrivateKeyPromiseAction.request({ privateKeyHex }));
+        }
+      } else {
+        await dispatch(
+          setPrivateKeyPromiseAction.request({
+            mnemonic: trimmedInput,
+          }),
+        );
+      }
+
+      setKeyInput("");
+      Toast.show("Key imported successfully", {
+        duration: Toast.durations.SHORT,
+        position: Toast.positions.BOTTOM,
+      });
+    } catch (error) {
+      Toast.show(`#Y012R5 Error: ${error}`, {
+        duration: Toast.durations.LONG,
+      });
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
   return (
     <ScrollView contentContainerClassName="p-safe-offset-4 bg-white">
       <View>
@@ -250,63 +292,30 @@ export default function SettingsScreen() {
         />
       </Section>
 
+      <Section>
+        <Text variant="h2">Import Key</Text>
+        <Text variant="p">
+          If you have an existing Nostr key, import it here to enable posting.
+          You can paste either an nsec key or a 12-word mnemonic phrase.
+        </Text>
+
+        <View className="bg-gray-50 rounded-lg p-4 gap-4 mt-4">
+          <KeyInput
+            value={keyInput}
+            onChangeText={setKeyInput}
+            disabled={isImporting}
+          />
+          <Button
+            size="lg"
+            title={isImporting ? "Importing..." : "Import Key"}
+            onPress={handleImportKey}
+            disabled={isImporting}
+          />
+        </View>
+      </Section>
+
       {areTestFeaturesEnabled ? (
         <Section>
-          <Text variant="h2">Import mnemonic</Text>
-          <Text>
-            If you have a mnemonic and want to import it, enter it into the
-            field below and use the "Import mnemonic" button.
-          </Text>
-          <TextInput
-            className={inputClassName}
-            value={mnemonicInput}
-            onChangeText={(t) => setMnemonicInput(t)}
-          />
-          <Button
-            title="Import mnemonic"
-            onPress={async () => {
-              try {
-                await dispatch(
-                  setPrivateKeyPromiseAction.request({
-                    mnemonic: mnemonicInput,
-                  }),
-                );
-              } catch (error) {
-                Toast.show(`#wkoJ8d ERROR: ${error}`);
-              }
-            }}
-          />
-
-          <Text variant="h2">Import nsec</Text>
-          <Text>
-            If you have an nsec and want to import it, enter it into the field
-            below and use the "Import nsec" button.
-          </Text>
-          <TextInput
-            className={inputClassName}
-            value={nsecInput}
-            onChangeText={setNsecInput}
-          />
-          <Button
-            title="Import nsec"
-            onPress={async () => {
-              try {
-                const decoded = nip19.decode(nsecInput);
-                console.log("#ccz7WL Got decoded");
-                if (decoded.type === "nsec") {
-                  const privateKeyHex = bytesToHex(decoded.data);
-                  console.log("#ccz7WL Got hex string");
-                  await dispatch(
-                    setPrivateKeyPromiseAction.request({ privateKeyHex }),
-                  );
-                  Toast.show("Nsec imported successfully");
-                }
-              } catch (error) {
-                Toast.show(`#5qG7nO ERROR: ${error}`);
-              }
-            }}
-          />
-
           <ToggleSwitch
             label="Enable the experimental plus code map"
             value={enablePlusCodeMapTEMPORARY}

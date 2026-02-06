@@ -2,6 +2,7 @@ import {
   filterForMapLayerConfig,
   getTrustrootsMapFilter,
 } from "@/common/utils";
+import { getMapProvider } from "@/constants/Map";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
@@ -17,16 +18,13 @@ import { rootLogger } from "@/utils/logger.utils";
 import { allPlusCodesForRegion } from "@/utils/map.utils";
 import { createSelector } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
-import Constants, { ExecutionEnvironment } from "expo-constants";
 import { matchFilter } from "nostr-tools";
 import { Fragment, useEffect, useMemo, useRef } from "react";
-import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import MapView, {
   BoundingBox,
   Details,
   LongPressEvent,
-  PROVIDER_DEFAULT,
-  PROVIDER_GOOGLE,
   Region,
 } from "react-native-maps";
 import { mapRefService } from "../utils/mapRef";
@@ -199,13 +197,7 @@ export default function MapMarkers() {
         pitchEnabled={false}
         onLongPress={handleMapLongPress}
         onRegionChangeComplete={handleMapRegionChange}
-        // only use google maps on android dev and prod builds
-        provider={
-          Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
-          Platform.OS !== "android"
-            ? PROVIDER_DEFAULT
-            : PROVIDER_GOOGLE
-        }
+        provider={getMapProvider()}
         ref={mapViewRef}
         onMapReady={async () => {
           if (mapViewRef.current === null) {

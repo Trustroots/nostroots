@@ -1,3 +1,4 @@
+import { getMapProvider } from "@/constants/Map";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
@@ -16,16 +17,9 @@ import {
   regionToBoundingBox,
 } from "@/utils/map.utils";
 import { mapRefService } from "@/utils/mapRef";
-import Constants, { ExecutionEnvironment } from "expo-constants";
 import { useEffect, useMemo, useRef } from "react";
-import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
-import MapView, {
-  Details,
-  Polygon,
-  PROVIDER_DEFAULT,
-  PROVIDER_GOOGLE,
-  Region,
-} from "react-native-maps";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import MapView, { Details, Polygon, Region } from "react-native-maps";
 // @ts-ignore
 import { getCurrentLocation } from "@/utils/location";
 import { FontAwesome } from "@expo/vector-icons";
@@ -210,13 +204,7 @@ export default function MapPlusCodes() {
         rotateEnabled={false}
         pitchEnabled={false}
         onRegionChangeComplete={handleMapRegionChange}
-        // only use google maps on android dev and prod builds
-        provider={
-          Constants.executionEnvironment === ExecutionEnvironment.StoreClient ||
-          Platform.OS !== "android"
-            ? PROVIDER_DEFAULT
-            : PROVIDER_GOOGLE
-        }
+        provider={getMapProvider()}
         onMapReady={async (event) => {
           if (mapViewRef.current === null) {
             log.error("#SHtaWM mapViewRef is null");

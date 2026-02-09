@@ -149,46 +149,65 @@ export default function OnboardingLinkScreen() {
     router.push("/onboarding/backup-confirm");
   };
 
+  // StepCard component
+  interface StepCardProps {
+    stepNumber: number;
+    title: string;
+    children: React.ReactNode;
+  }
+
+  const StepCard = ({ stepNumber, title, children }: StepCardProps) => (
+    <View className="bg-white rounded-xl p-4 w-full gap-3">
+      <View className="flex flex-row items-center gap-2">
+        <View className="bg-primary rounded w-6 h-6 items-center justify-center">
+          <Text className="text-primary-foreground font-bold text-sm">
+            {stepNumber}.
+          </Text>
+        </View>
+        <Text className="font-bold text-black">{title}</Text>
+      </View>
+      {children}
+    </View>
+  );
+
   return (
     <>
       <View className="flex items-center gap-6">
         <LinkIcon size={128} color="#fff" strokeWidth={0.5} />
 
         <Text variant="h1" className="my-0">
-          Link With Your Trustroots Account
+          Connect to Trustroots
         </Text>
       </View>
 
-      <Text variant="p">
-        Now that you have a private key, we’ll link your public key to your
-        Trustroots account so others can verify it’s really you.
-      </Text>
-
-      {linkError && (
-        <View className="flex flex-row gap-4 items-center bg-red-700 px-3 py-2 rounded-lg">
-          <AlertTriangleIcon color="white" />
-          <Text className="text-xs shrink text-white">{linkError}</Text>
-        </View>
-      )}
+      <Text variant="p">To verify your identity, follow these steps:</Text>
 
       <View className="flex gap-6 w-full">
-        <View className="flex gap-1 items-start">
-          <Text variant="small" className="font-bold">
-            Your Nostr Public Key (Click to Copy)
+        <StepCard stepNumber={1} title="Copy Your Public Key">
+          <Text className="text-sm text-gray-600 mb-2 text-left">
+            Tap on it to copy it to clipboard.
           </Text>
           <Text
-            className="text-sm bg-white text-black truncate rounded-md p-2"
+            className="text-sm bg-gray-100 text-black rounded-md p-3 w-full text-left"
             numberOfLines={1}
             onPress={handleCopy}
           >
             {npub || "Nostr key not found on this device."}
           </Text>
-        </View>
+        </StepCard>
 
-        <View className="flex gap-2 items-start w-full">
-          <Text variant="small" className="font-bold">
-            Trustroots Account
+        <StepCard stepNumber={2} title="Add to Trustroots Profile">
+          <Text className="text-sm text-gray-600 mb-2 text-left">
+            Log in to Trustroots, then scroll to the bottom of your Networks
+            page and paste your public key there.
           </Text>
+          <Button onPress={openTrustrootsNetworks} className="w-full">
+            <Text>Open Trustroots Networks</Text>
+            <SquareArrowOutUpRight size={16} color="white" />
+          </Button>
+        </StepCard>
+
+        <StepCard stepNumber={3} title="Verify Connection">
           <TextInput
             autoCapitalize="none"
             autoCorrect={false}
@@ -199,36 +218,31 @@ export default function OnboardingLinkScreen() {
               setLinkStatus("idle");
             }}
             placeholder="Enter your Trustroots username"
-            className="w-full bg-white text-black rounded-md p-2 text-sm"
+            className="w-full bg-gray-100 text-black rounded-md p-3 text-sm mb-2 text-left"
           />
+          <Button
+            title={
+              linkStatus === "error"
+                ? "Try Again"
+                : linkStatus === "verifying"
+                  ? "Verifying via NIP-05..."
+                  : linkStatus === "linked"
+                    ? "Linked"
+                    : "Verify"
+            }
+            disabled={["verifying", "linked"].includes(linkStatus) || !npub}
+            onPress={() => verifyAndLink()}
+            className="w-full"
+          />
+        </StepCard>
+      </View>
+
+      {linkError && (
+        <View className="flex flex-row gap-4 items-center bg-red-700 px-3 py-2 rounded-lg">
+          <AlertTriangleIcon color="white" />
+          <Text className="text-xs shrink text-white">{linkError}</Text>
         </View>
-      </View>
-
-      <View className="flex w-full gap-2">
-        <Button
-          variant="link"
-          onPress={openTrustrootsNetworks}
-          className="-mr-3"
-        >
-          <Text className="text-white">Set Up Trustroots Networks</Text>
-          <SquareArrowOutUpRight size={16} color="white" />
-        </Button>
-
-        <Button
-          variant="secondary"
-          title={
-            linkStatus === "error"
-              ? "Try Again"
-              : linkStatus === "verifying"
-                ? "Verifying via NIP-05..."
-                : linkStatus === "linked"
-                  ? "Linked"
-                  : "Verify"
-          }
-          disabled={["verifying", "linked"].includes(linkStatus) || !npub}
-          onPress={() => verifyAndLink()}
-        />
-      </View>
+      )}
 
       <View className="flex flex-row gap-2">
         <Button

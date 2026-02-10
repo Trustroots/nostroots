@@ -1,5 +1,4 @@
 import { Text } from "@/components/ui/text";
-import { bytesToHex } from "@noble/hashes/utils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { getBech32PrivateKey } from "nip06";
@@ -22,7 +21,6 @@ import {
 } from "@/nostr/keystore.nostr";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
 import { sendNotificationSubscriptionEventAction } from "@/redux/sagas/notifications.saga";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
@@ -33,9 +31,9 @@ import {
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
 import { getFirstLabelValueFromEvent } from "@trustroots/nr-common";
-import { nip19 } from "nostr-tools";
 import Toast from "react-native-root-toast";
 import { openEvent } from "@/startup/notifications.startup";
+import { useKeyImport } from "@/hooks/useKeyImport";
 
 const ToggleSwitch = ({
   value,
@@ -57,6 +55,7 @@ const ToggleSwitch = ({
 export default function SettingsScreen() {
   const dispatch = useAppDispatch();
   const { expoPushToken } = useNotifications();
+  const { importKey, isImporting } = useKeyImport();
 
   const username = useAppSelector(settingsSelectors.selectUsername) as string;
 
@@ -71,7 +70,6 @@ export default function SettingsScreen() {
   const [nsec, setNsec] = useState("");
   const [mnemonic, setMnemonic] = useState("");
   const [keyInput, setKeyInput] = useState("");
-  const [isImporting, setIsImporting] = useState(false);
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub) as string;
   const publicKeyHex = useAppSelector(
@@ -186,43 +184,21 @@ export default function SettingsScreen() {
   };
 
   const handleImportKey = async () => {
-    try {
-      const trimmedInput = keyInput.trim();
+    const success = await importKey(keyInput);
 
-      if (!trimmedInput) {
-        Toast.show("Please enter a key", {
-          duration: Toast.durations.SHORT,
-        });
-        return;
-      }
-
-      setIsImporting(true);
-
-      if (trimmedInput.startsWith("nsec")) {
-        const decoded = nip19.decode(trimmedInput);
-        if (decoded.type === "nsec") {
-          const privateKeyHex = bytesToHex(decoded.data);
-          await dispatch(setPrivateKeyPromiseAction.request({ privateKeyHex }));
-        }
-      } else {
-        await dispatch(
-          setPrivateKeyPromiseAction.request({
-            mnemonic: trimmedInput,
-          }),
-        );
-      }
-
+    if (success) {
       setKeyInput("");
       Toast.show("Key imported successfully", {
         duration: Toast.durations.SHORT,
         position: Toast.positions.BOTTOM,
       });
-    } catch (error) {
-      Toast.show(`#Y012R5 Error: ${error}`, {
-        duration: Toast.durations.LONG,
-      });
-    } finally {
-      setIsImporting(false);
+    } else {
+      Toast.show(
+        "Failed to import key. Please check your input and try again.",
+        {
+          duration: Toast.durations.LONG,
+        },
+      );
     }
   };
 

@@ -270,6 +270,36 @@
             transform: scale(0.95);
         }
         
+        /* Floating Keys Button */
+        .keys-icon {
+            position: fixed;
+            top: 20px;
+            right: 86px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .keys-icon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        }
+        
+        .keys-icon:active {
+            transform: scale(0.95);
+        }
+        
         .settings-section {
             background: var(--card);
             padding: 1.25rem;
@@ -411,14 +441,16 @@
         }
         
         .nip07-status {
-            font-size: 0.8125rem;
-            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            padding: 0.375rem 0.625rem;
             border-radius: calc(var(--radius) - 2px);
             margin-top: 0.75rem;
+            margin-bottom: 0;
             display: none;
             background: hsla(167, 81.9%, 39%, 0.1);
             color: var(--primary);
             border: 1px solid hsla(167, 81.9%, 39%, 0.2);
+            line-height: 1.4;
         }
         
         .nip07-status.show {
@@ -430,6 +462,34 @@
             color: var(--muted-foreground);
             margin-top: 0.5rem;
             font-style: italic;
+        }
+        
+        .keys-option-section {
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--card);
+            padding: 1.25rem;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .keys-option-section:hover {
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .keys-option-content {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .keys-option-description {
+            font-size: 0.8125rem;
+            color: var(--muted-foreground);
+            margin-top: 0.75rem;
+            margin-bottom: 0;
+            text-align: center;
+            line-height: 1.5;
         }
         
         .action-buttons {
@@ -1055,6 +1115,11 @@
             background: var(--primary);
             color: var(--primary-foreground);
         }
+        
+        .status-event-actions { margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+        .status-event-actions button { padding: 0.25rem 0.5rem; font-size: 0.8rem; cursor: pointer; border: 1px solid rgba(255,255,255,0.5); background: rgba(255,255,255,0.15); color: inherit; border-radius: 4px; }
+        .status-event-actions button:hover { background: rgba(255,255,255,0.25); }
+        .status-event-pre { margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.2); border-radius: 4px; font-size: 0.7rem; white-space: pre-wrap; word-break: break-all; max-height: 12rem; overflow: auto; text-align: left; }
     </style>
 </head>
 <body>
@@ -1069,28 +1134,6 @@
     
     
     <!-- Modals -->
-    <div class="modal" id="onboarding-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Welcome to Nostroots</h2>
-            </div>
-            <p>You need a nostr key to get started. <strong>Recommended:</strong> Use a browser extension (your private key stays secure in the extension).</p>
-            <div class="form-group" id="onboarding-nip07-section" style="display: none;">
-                <button class="btn" onclick="onboardingConnectExtension()" style="width: 100%; margin-bottom: 0.5rem;">Connect Browser Extension (nos2x, Alby)</button>
-                <p style="font-size: 0.75rem; color: var(--muted-foreground); margin-top: 0.5rem; text-align: center;">
-                    Your private key never leaves the extension
-                </p>
-            </div>
-            <div style="text-align: center; margin: 1rem 0; color: var(--muted-foreground);">or</div>
-            <div class="form-group">
-                <label>Import nsec (optional)</label>
-                <input type="text" id="onboarding-nsec" placeholder="nsec1...">
-            </div>
-            <button class="btn" onclick="onboardingGenerate()">Generate New Key</button>
-            <button class="btn btn-secondary" onclick="onboardingImport()">Import nsec</button>
-        </div>
-    </div>
-    
     <div class="modal" id="view-note-modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -1153,18 +1196,62 @@
     <!-- Status Messages Container -->
     <div id="status-container" class="status-container"></div>
     
+    <!-- Floating Keys Button -->
+    <button class="keys-icon" id="keys-icon-btn" title="Keys">🔑</button>
+    
     <!-- Floating Settings Button -->
     <button class="settings-icon" id="settings-icon-btn" title="Settings">⚙️</button>
     
-    <!-- Settings Modal -->
-    <div class="modal" id="settings-modal">
+    <!-- Keys Modal -->
+    <div class="modal" id="keys-modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Settings</h2>
-                <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
-            </div>
-            <div class="settings-section">
                 <h2>Keys</h2>
+                <button class="modal-close" id="keys-modal-close-btn" onclick="closeKeysModal()">&times;</button>
+            </div>
+            
+            <!-- Welcome message (only shown when no key is set) -->
+            <div id="keys-welcome-section" style="display: none; margin-bottom: 2rem;">
+                <h2 style="margin-bottom: 0.5rem;">Welcome to Nostroots</h2>
+                <p style="color: var(--muted-foreground); margin: 0;">You need a nostr key to get started. Choose one of the options below:</p>
+            </div>
+            
+            <!-- Option 1: NIP-07 Browser Extension (only shown when no key) -->
+            <div class="keys-option-section" id="keys-nip07-section" style="display: none;">
+                <div class="keys-option-content">
+                    <button class="btn" onclick="onboardingConnectExtension()" style="width: 100%;">Connect Browser Extension (NIP-07)</button>
+                    <p class="keys-option-description">
+                        Your private key never leaves the extension (nos2x, Alby)
+                    </p>
+                </div>
+            </div>
+            
+            <!-- Option 2: Import nsec or mnemonic (only shown when no key) -->
+            <div class="keys-option-section" id="keys-import-section" style="display: none;">
+                <div class="keys-option-content">
+                    <textarea id="onboarding-import" placeholder="Enter nsec1... or mnemonic phrase (12 or 24 words)..." style="width: 100%; min-height: 80px; margin-bottom: 0.75rem; font-family: monospace; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); background: var(--input); color: var(--foreground);"></textarea>
+                    <button class="btn btn-secondary" onclick="onboardingImport()" style="width: 100%;">Import</button>
+                </div>
+            </div>
+            
+            <!-- Option 3: Generate New Key (only shown when no key) -->
+            <div class="keys-option-section" id="keys-generate-section" style="display: none;">
+                <div class="keys-option-content">
+                    <button class="btn" onclick="onboardingGenerate()" style="width: 100%;">Generate New Key</button>
+                </div>
+            </div>
+            
+            <!-- Keys section (only shown when key is set) -->
+            <div class="settings-section" id="keys-manage-section" style="display: none;">
+                <h2>Keys</h2>
+                
+                <!-- Local Key Actions (above npub) -->
+                <div class="form-group" id="nsec-actions-group" style="display: none;">
+                    <div class="action-buttons">
+                        <button class="btn" onclick="exportNsec()">Export nsec</button>
+                        <button class="btn btn-danger" onclick="deleteNsec()">Delete Key</button>
+                    </div>
+                </div>
                 
                 <!-- Public Key Display -->
                 <div class="form-group" id="npub-display-group" style="display: none;">
@@ -1182,12 +1269,12 @@
                 <!-- NIP-07 Status Indicator -->
                 <div id="nip07-status" class="nip07-status"></div>
                 
-                <!-- Local Key Actions -->
-                <div class="form-group" id="nsec-actions-group" style="display: none;">
-                    <div class="action-buttons">
-                        <button class="btn" onclick="exportNsec()">Export nsec</button>
-                        <button class="btn btn-danger" onclick="deleteNsec()">Delete Key</button>
-                    </div>
+                <!-- Update Trustroots Profile button (below NIP-07 status) -->
+                <div class="form-group" id="update-trustroots-profile-group" style="display: none; margin-top: 0.75rem;">
+                    <button class="btn btn-secondary" onclick="updateTrustrootsProfile()" style="width: 100%;">
+                        <span style="margin-right: 0.5rem;">🌐</span>
+                        Update Trustroots Profile
+                    </button>
                 </div>
                 
                 <!-- Import/Generate Section -->
@@ -1202,17 +1289,26 @@
                 </div>
             </div>
             
-            <div class="settings-section">
+            <!-- Trustroots username section (only shown when key is set) -->
+            <div class="settings-section" id="keys-trustroots-section" style="display: none;">
                 <h2>Trustroots username</h2>
                 <div class="form-group">
                     <input type="text" id="trustroots-username" placeholder="your-username" onkeydown="if(event.key === 'Enter') linkTrustrootsProfile()">
                     <div id="username-nostr-indicator" class="username-nostr-indicator" style="display: none;">
                         <small>This username is from a Nostr event and cannot be edited here.</small>
                     </div>
-                    <button class="btn" id="link-profile-btn" onclick="linkTrustrootsProfile()">Link Profile</button>
                 </div>
             </div>
-            
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Settings</h2>
+                <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
+            </div>
             <div class="settings-section">
                 <h2>Relays</h2>
                 <div id="relays-list" class="relays-list"></div>
@@ -1260,6 +1356,9 @@
             Relay 
         } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.10.3/+esm';
         
+        // Import BIP39 for mnemonic support
+        import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm';
+        
         // NDK is not loaded from CDN due to CORS/MIME type issues
         // We use nostr-tools Relay directly instead, which works reliably
         const NDK = null;
@@ -1273,6 +1372,47 @@
         const DEFAULT_RELAY_URL = 'wss://relay.trustroots.org';
         const DEFAULT_RELAYS = ['wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
         const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2;
+        
+        /** Normalize relay error message for display (e.g. "Error: error: internal error" -> "internal error"). */
+        function formatRelayError(errorStr) {
+            if (!errorStr || typeof errorStr !== 'string') return '';
+            const s = errorStr.replace(/^Error:\s*/i, '').trim();
+            return s.replace(/^error:\s*/i, '').trim() || s;
+        }
+        /** If any failure is a relay "internal error", return a short user hint. */
+        function getRelayPublishFailureHint(failed) {
+            const hasInternalError = failed.some(f => (f.error || '').toLowerCase().includes('internal error'));
+            return hasInternalError
+                ? ' Try again in a moment—relay errors are often temporary.'
+                : '';
+        }
+        
+        const RELAY_PUBLISH_RETRIES = 2;
+        const RELAY_PUBLISH_RETRY_DELAY_MS = 1500;
+        
+        /** Publish event to one relay with retries. Returns { success, url, error }. */
+        async function publishToRelayWithRetries(url, signedEvent) {
+            let lastError = null;
+            for (let attempt = 0; attempt <= RELAY_PUBLISH_RETRIES; attempt++) {
+                let relay = null;
+                try {
+                    relay = await Relay.connect(url);
+                    await relay.publish(signedEvent);
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    return { success: true, url };
+                } catch (error) {
+                    lastError = error?.message || String(error);
+                    if (attempt < RELAY_PUBLISH_RETRIES) {
+                        await new Promise(resolve => setTimeout(resolve, RELAY_PUBLISH_RETRY_DELAY_MS));
+                    }
+                } finally {
+                    if (relay) {
+                        try { relay.close(); } catch (_) {}
+                    }
+                }
+            }
+            return { success: false, url, error: lastError };
+        }
         
         const NOSTROOTS_VALIDATION_PUBKEY = 'f5bc71692fc08ea52c0d1c8bcfb87579584106b5feb4ea542b1b8a95612f257b';
         const DEV_PUBKEY = '80789235a71a388074abfa5c482e270456d2357425266270f82071cf2b1de74a';
@@ -1963,17 +2103,15 @@
                 // Check if extension is available
                 const provider = detectNostrExtension();
                 const nip07Section = document.getElementById('nip07-section');
-                const onboardingNip07Section = document.getElementById('onboarding-nip07-section');
+                // Note: onboarding-nip07-section is now always visible in the new UI, so we don't hide/show it
                 
                 if (provider) {
                     if (nip07Section) nip07Section.style.display = 'block';
-                    if (onboardingNip07Section) onboardingNip07Section.style.display = 'block';
                     
                     // Note: We don't auto-reconnect here to avoid conflicts with checkOnboarding()
                     // The checkOnboarding() function will handle reconnection if needed
                 } else {
                     if (nip07Section) nip07Section.style.display = 'none';
-                    if (onboardingNip07Section) onboardingNip07Section.style.display = 'none';
                     
                     // If extension was previously used but is now unavailable, clear preference
                     const wasUsingNip07 = localStorage.getItem('using_nip07') === 'true';
@@ -2165,7 +2303,7 @@
             showStatus('Private key deleted', 'success');
             
             // Show onboarding modal again
-            document.getElementById('onboarding-modal').classList.add('active');
+            openKeysModal();
         }
         
         function updateKeyDisplay() {
@@ -2174,8 +2312,8 @@
             const noNsecActionsGroup = document.getElementById('no-nsec-actions-group');
             const generateKeyBtn = document.getElementById('generate-key-btn');
             const generateKeyGroup = document.getElementById('generate-key-group');
-            const linkProfileBtn = document.getElementById('link-profile-btn');
             const nip07Status = document.getElementById('nip07-status');
+            const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
             
             if (usingNip07) {
                 // Using NIP-07 - hide nsec actions, show that we're using extension
@@ -2183,11 +2321,9 @@
                 if (nsecActionsGroup) nsecActionsGroup.style.display = 'none';
                 if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'none';
                 if (generateKeyGroup) generateKeyGroup.style.display = 'none';
-                // Enable link profile button when using NIP-07 (extension provides signing)
-                if (linkProfileBtn) linkProfileBtn.disabled = false;
                 // Show NIP-07 status
                 if (nip07Status) {
-                    nip07Status.textContent = '✓ Using NIP-07 browser extension - private key secure in extension';
+                    nip07Status.textContent = '✓ Using NIP-07 extension - private key secure';
                     nip07Status.classList.add('show');
                 }
             } else {
@@ -2199,19 +2335,15 @@
                     if (nsecActionsGroup) nsecActionsGroup.style.display = 'block';
                     if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'none';
                     if (generateKeyGroup) generateKeyGroup.style.display = 'none';
-                    // Enable link profile button when we have nsec
-                    if (linkProfileBtn) linkProfileBtn.disabled = false;
                 } else {
                     // Show import/generate buttons, hide export/delete
                     if (nsecActionsGroup) nsecActionsGroup.style.display = 'none';
                     if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'block';
                     if (generateKeyGroup) generateKeyGroup.style.display = 'block';
-                    // Disable link profile button when there's no nsec
-                    if (linkProfileBtn) linkProfileBtn.disabled = true;
                 }
             }
             
-            // Show/hide public key field based on whether we have a public key
+            // Show/hide public key field and update button based on whether we have a public key
             const npubDisplayGroup = document.getElementById('npub-display-group');
             const keySectionDivider = document.getElementById('key-section-divider');
             
@@ -2222,11 +2354,15 @@
                     document.getElementById('npub-display').value = npub;
                     if (npubDisplayGroup) npubDisplayGroup.style.display = 'block';
                     if (keySectionDivider) keySectionDivider.style.display = 'block';
+                    // Only show update button if profile is not linked
+                    if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = isProfileLinked ? 'none' : 'block';
                 } catch (error) {
                     console.error('Error encoding npub:', error);
                     document.getElementById('npub-display').value = 'Error encoding npub';
                     if (npubDisplayGroup) npubDisplayGroup.style.display = 'block';
                     if (keySectionDivider) keySectionDivider.style.display = 'block';
+                    // Only show update button if profile is not linked
+                    if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = isProfileLinked ? 'none' : 'block';
                 }
                 // Check if profile is linked when public key changes
                 checkProfileLinked();
@@ -2234,6 +2370,7 @@
                 document.getElementById('npub-display').value = '';
                 if (npubDisplayGroup) npubDisplayGroup.style.display = 'none';
                 if (keySectionDivider) keySectionDivider.style.display = 'none';
+                if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = 'none';
                 isProfileLinked = false;
                 updateLinkProfileButton();
             }
@@ -2313,16 +2450,19 @@
         
         function addRelay() {
             const input = document.getElementById('new-relay-url');
-            const url = input.value.trim();
+            let url = input.value.trim();
             
             if (!url) {
                 showStatus('Please enter a relay URL', 'error');
                 return;
             }
-            
+            // Normalize: if user entered host:port (e.g. localhost:7777), use ws:// so local relays work
             if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
-                showStatus('Relay URL must start with ws:// or wss://', 'error');
-                return;
+                if (url.includes('://')) {
+                    showStatus('Relay URL must start with ws:// or wss://', 'error');
+                    return;
+                }
+                url = 'ws://' + url;
             }
             
             const urls = getRelayUrls();
@@ -4239,6 +4379,13 @@
                     tags: tags
                 };
                 
+                // Basic validation before signing
+                if (!eventTemplate.kind || !eventTemplate.content || !eventTemplate.tags || !Array.isArray(eventTemplate.tags)) {
+                    showStatus('Invalid event structure. Please try again.', 'error');
+                    console.error('Invalid event template:', eventTemplate);
+                    return;
+                }
+                
                 let signedEvent;
                 
                 // Sign event using NIP-07 extension or local key
@@ -4292,6 +4439,13 @@
                     signedEvent = finalizeEvent(eventTemplate, currentPrivateKeyBytes);
                 }
                 
+                // Validate signed event before publishing
+                if (!signedEvent || !signedEvent.id || !signedEvent.sig || !signedEvent.pubkey) {
+                    showStatus('Event signing failed. Please try again.', 'error');
+                    console.error('Invalid signed event:', signedEvent);
+                    return;
+                }
+                
                 // Publish to all configured relays (only those with Post enabled)
                 // Create new connections for each publish to avoid closed connection errors
                 const relayUrls = getRelayUrls().filter(url => relayWriteEnabled.get(url) !== false);
@@ -4301,48 +4455,10 @@
                     return;
                 }
                 
-                const publishPromises = relayUrls.map(async (url) => {
-                    let relay = null;
-                    try {
-                        relay = await Relay.connect(url);
-                        await relay.publish(signedEvent);
-                        // Wait a bit for the relay to process and confirm the event
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        return { success: true, url };
-                    } catch (error) {
-                        // Only log error if it's not a generic relay rejection
-                        const errorMessage = error?.message || String(error);
-                        if (!errorMessage.includes('relay experienced an error')) {
-                            console.error(`Error publishing to ${url}:`, error);
-                        }
-                        return { success: false, url, error: errorMessage };
-                    } finally {
-                        // Always close the relay connection, even if there was an error
-                        if (relay) {
-                            try {
-                                relay.close();
-                            } catch (closeError) {
-                                // Ignore errors when closing
-                            }
-                        }
-                    }
-                });
-                
-                const results = await Promise.allSettled(publishPromises);
-                const successful = [];
-                const failed = [];
-                
-                results.forEach((result, index) => {
-                    if (result.status === 'fulfilled') {
-                        if (result.value.success) {
-                            successful.push(result.value.url);
-                        } else {
-                            failed.push({ url: result.value.url, error: result.value.error });
-                        }
-                    } else {
-                        failed.push({ url: relayUrls[index], error: result.reason?.message || 'Unknown error' });
-                    }
-                });
+                const publishPromises = relayUrls.map(url => publishToRelayWithRetries(url, signedEvent));
+                const results = await Promise.all(publishPromises);
+                const successful = results.filter(r => r.success);
+                const failed = results.filter(r => !r.success).map(r => ({ url: r.url, error: r.error }));
                 
                 if (successful.length > 0) {
                     let statusMessage = `Note published to ${successful.length} relay(s)`;
@@ -4363,8 +4479,13 @@
                         showNotesForPlusCode(selectedPlusCode);
                     }, 100);
                 } else {
-                    const errorDetails = failed.map(f => `${new URL(f.url).hostname}`).join(', ');
-                    showStatus(`Failed to publish to all relays: ${errorDetails}`, 'error');
+                    const errorDetails = failed.map(f => {
+                        const hostname = new URL(f.url).hostname;
+                        const errorMsg = f.error ? ` (${formatRelayError(f.error)})` : '';
+                        return `${hostname}${errorMsg}`;
+                    }).join(', ');
+                    const hint = getRelayPublishFailureHint(failed);
+                    showStatus(`Failed to publish to all relays: ${errorDetails}.${hint}`, 'error', { eventPayload: signedEvent });
                 }
             } catch (error) {
                 console.error('Error publishing note:', error);
@@ -4825,13 +4946,19 @@
                         await new Promise(resolve => setTimeout(resolve, 500));
                         return { success: true, url };
                     } catch (error) {
-                        // For deletion events, we'll consider it successful if we sent it
-                        // even if we don't get a proper OK response
                         const errorMessage = error?.message || String(error);
-                        if (!errorMessage.includes('relay experienced an error')) {
-                            console.error(`Error publishing deletion to ${url}:`, error);
-                        }
-                        return { success: true, url }; // Consider deletion sent even on error
+                        console.error(`Error publishing deletion to ${url}:`, error);
+                        
+                        // For deletion events, we'll consider it successful if we sent it
+                        // even if we don't get a proper OK response (unless it's a clear rejection)
+                        const isClearRejection = errorMessage.includes('blocked') || 
+                                                errorMessage.includes('not allowed');
+                        
+                        return { 
+                            success: !isClearRejection, 
+                            url, 
+                            error: isClearRejection ? `Relay rejected: ${errorMessage}` : errorMessage 
+                        };
                     } finally {
                         if (relay) {
                             try {
@@ -4917,21 +5044,27 @@
             }
         }
         
-        function closeOnboardingModal() {
-            document.getElementById('onboarding-modal').classList.remove('active');
-        }
-        
         function closeActiveModal() {
             // Close any active modal
             const modals = document.querySelectorAll('.modal.active');
             modals.forEach(modal => {
-                if (modal.id === 'onboarding-modal') {
-                    // Don't allow closing onboarding modal with ESC (user must generate/import key)
-                    return;
+                if (modal.id === 'keys-modal') {
+                    // Don't allow closing keys modal with ESC when no key is set (user must generate/import key)
+                    const hasKey = !!(currentPublicKey || currentPrivateKey || usingNip07);
+                    if (!hasKey) {
+                        return;
+                    }
+                    closeKeysModal();
                 } else if (modal.id === 'view-note-modal') {
                     closeViewNoteModal();
                 } else if (modal.id === 'pluscode-notes-modal') {
                     closePlusCodeNotesModal();
+                } else if (modal.id === 'keys-modal') {
+                    // Don't allow closing keys modal with ESC when no key is set or profile not linked
+                    const hasKey = !!(currentPublicKey || currentPrivateKey || usingNip07);
+                    if (hasKey && isProfileLinked) {
+                        closeKeysModal();
+                    }
                 } else if (modal.id === 'settings-modal') {
                     closeSettingsModal();
                 } else {
@@ -4941,8 +5074,8 @@
             });
         }
         
-        function showStatus(message, type) {
-            // Get or create status container
+        function showStatus(message, type, options) {
+            options = options || {};
             let statusContainer = document.getElementById('status-container');
             if (!statusContainer) {
                 statusContainer = document.createElement('div');
@@ -4951,20 +5084,47 @@
                 document.body.appendChild(statusContainer);
             }
             
-            // Create status element
             const status = document.createElement('div');
             status.className = `status ${type}`;
-            status.textContent = message;
             
-            // Append to status container (will appear at top)
+            const msgEl = document.createElement('div');
+            msgEl.textContent = message;
+            status.appendChild(msgEl);
+            
+            if (options.eventPayload) {
+                const json = JSON.stringify(options.eventPayload, null, 2);
+                const actions = document.createElement('div');
+                actions.className = 'status-event-actions';
+                const copyBtn = document.createElement('button');
+                copyBtn.textContent = 'Copy event JSON';
+                copyBtn.type = 'button';
+                copyBtn.addEventListener('click', () => {
+                    navigator.clipboard.writeText(json).then(() => { copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy event JSON'; }, 1500); }).catch(() => { copyBtn.textContent = 'Copy failed'; });
+                });
+                const showBtn = document.createElement('button');
+                showBtn.textContent = 'Show event data';
+                showBtn.type = 'button';
+                const pre = document.createElement('pre');
+                pre.className = 'status-event-pre';
+                pre.textContent = json;
+                pre.style.display = 'none';
+                showBtn.addEventListener('click', () => {
+                    const visible = pre.style.display !== 'none';
+                    pre.style.display = visible ? 'none' : 'block';
+                    showBtn.textContent = visible ? 'Show event data' : 'Hide event data';
+                });
+                actions.appendChild(copyBtn);
+                actions.appendChild(showBtn);
+                status.appendChild(actions);
+                status.appendChild(pre);
+            }
+            
             statusContainer.appendChild(status);
             
-            // Remove after 5 seconds
+            const hideMs = options.eventPayload ? 15000 : 5000;
             setTimeout(() => {
-                if (status.parentNode) {
-                    status.parentNode.removeChild(status);
-                }
-            }, 5000);
+                if (status.parentNode) status.parentNode.removeChild(status);
+            }, hideMs);
         }
         
         // Check if profile is linked (has kind 10390 event)
@@ -5103,6 +5263,18 @@
                 }
                 
                 updateLinkProfileButton();
+                
+                // Update close button visibility based on profile link status
+                const closeBtn = document.getElementById('keys-modal-close-btn');
+                if (closeBtn) {
+                    closeBtn.style.display = isProfileLinked ? 'block' : 'none';
+                }
+                
+                // Update "Update Trustroots Profile" button visibility - hide if profile is linked
+                const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
+                if (updateTrustrootsGroup) {
+                    updateTrustrootsGroup.style.display = isProfileLinked ? 'none' : 'block';
+                }
             } catch (error) {
                 console.error('Error checking profile link:', error);
                 isProfileLinked = false;
@@ -5119,28 +5291,102 @@
                 }
                 
                 updateLinkProfileButton();
+                
+                // Update close button visibility - hide if profile not linked
+                const closeBtn = document.getElementById('keys-modal-close-btn');
+                if (closeBtn) {
+                    closeBtn.style.display = 'none';
+                }
+                
+                // Show "Update Trustroots Profile" button if profile is not linked
+                const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
+                if (updateTrustrootsGroup && currentPublicKey) {
+                    updateTrustrootsGroup.style.display = 'block';
+                }
             }
         }
         
         // Update link profile button visibility
         function updateLinkProfileButton() {
-            const linkProfileBtn = document.getElementById('link-profile-btn');
-            if (linkProfileBtn) {
-                if (isProfileLinked) {
-                    linkProfileBtn.style.display = 'none';
-                } else {
-                    linkProfileBtn.style.display = 'block';
-                }
-            }
+            // Link Profile button has been removed, this function is kept for compatibility
+            // but no longer does anything
         }
         
         // Settings Modal Functions
+        function openKeysModal() {
+            document.getElementById('keys-modal').classList.add('active');
+            
+            // Check if we have a key
+            const hasKey = !!(currentPublicKey || currentPrivateKey || usingNip07);
+            
+            // Show welcome section and onboarding options when no key
+            const welcomeSection = document.getElementById('keys-welcome-section');
+            const nip07Section = document.getElementById('keys-nip07-section');
+            const importSection = document.getElementById('keys-import-section');
+            const generateSection = document.getElementById('keys-generate-section');
+            
+            // Show keys management section when key exists
+            const manageSection = document.getElementById('keys-manage-section');
+            const trustrootsSection = document.getElementById('keys-trustroots-section');
+            
+            // Get close button
+            const closeBtn = document.getElementById('keys-modal-close-btn');
+            
+            if (!hasKey) {
+                // No key - show welcome and onboarding options, hide close button
+                if (welcomeSection) welcomeSection.style.display = 'block';
+                if (importSection) importSection.style.display = 'block';
+                if (generateSection) generateSection.style.display = 'block';
+                if (manageSection) manageSection.style.display = 'none';
+                if (trustrootsSection) trustrootsSection.style.display = 'none';
+                if (closeBtn) closeBtn.style.display = 'none';
+                
+                // Check if NIP-07 extension is available and show the section
+                // Check immediately and also after a short delay to catch extensions that load late
+                const checkNip07 = () => {
+                    const provider = detectNostrExtension();
+                    if (nip07Section) {
+                        nip07Section.style.display = provider ? 'block' : 'none';
+                    }
+                };
+                
+                // Check immediately
+                checkNip07();
+                
+                // Also check after a short delay in case extension loads late
+                setTimeout(checkNip07, 300);
+            } else {
+                // Has key - show keys management and trustroots section
+                if (welcomeSection) welcomeSection.style.display = 'none';
+                if (nip07Section) nip07Section.style.display = 'none';
+                if (importSection) importSection.style.display = 'none';
+                if (generateSection) generateSection.style.display = 'none';
+                if (manageSection) manageSection.style.display = 'block';
+                if (trustrootsSection) trustrootsSection.style.display = 'block';
+                
+                // Update key display when opening keys modal
+                updateKeyDisplay();
+                // Check if profile is linked when opening keys modal
+                checkProfileLinked().then(() => {
+                    // Update close button visibility after checking profile link
+                    if (closeBtn) {
+                        closeBtn.style.display = isProfileLinked ? 'block' : 'none';
+                    }
+                });
+            }
+        }
+        
+        function closeKeysModal() {
+            // Don't allow closing if no key is set or if profile is not linked
+            const hasKey = !!(currentPublicKey || currentPrivateKey || usingNip07);
+            if (!hasKey || !isProfileLinked) {
+                return;
+            }
+            document.getElementById('keys-modal').classList.remove('active');
+        }
+        
         function openSettingsModal() {
             document.getElementById('settings-modal').classList.add('active');
-            // Check if profile is linked when opening settings
-            if (currentPublicKey) {
-                checkProfileLinked();
-            }
         }
         
         function closeSettingsModal() {
@@ -5148,8 +5394,12 @@
         }
         
         // Make functions globally accessible for onclick handlers
+        window.openKeysModal = openKeysModal;
+        window.closeKeysModal = closeKeysModal;
         window.openSettingsModal = openSettingsModal;
         window.closeSettingsModal = closeSettingsModal;
+        window.openKeysModal = openKeysModal;
+        window.closeKeysModal = closeKeysModal;
         window.saveExpirationSetting = saveExpirationSetting;
         window.addRelay = addRelay;
         window.removeRelay = removeRelay;
@@ -5176,7 +5426,7 @@
                                     nostrProvider = null;
                                     localStorage.removeItem('using_nip07');
                                     if (!hasKey) {
-                                        document.getElementById('onboarding-modal').classList.add('active');
+                                        openKeysModal();
                                         updateKeyDisplay();
                                     } else {
                                         loadKeys();
@@ -5188,7 +5438,7 @@
                                 nostrProvider = null;
                                 localStorage.removeItem('using_nip07');
                                 if (!hasKey) {
-                                    document.getElementById('onboarding-modal').classList.add('active');
+                                    openKeysModal();
                                     updateKeyDisplay();
                                 } else {
                                     loadKeys();
@@ -5204,7 +5454,7 @@
                         nostrProvider = null;
                         localStorage.removeItem('using_nip07');
                         if (!hasKey) {
-                            document.getElementById('onboarding-modal').classList.add('active');
+                            openKeysModal();
                             updateKeyDisplay();
                         } else {
                             loadKeys();
@@ -5215,7 +5465,7 @@
                 // Start reconnection attempt
                 tryReconnect();
             } else if (!hasKey) {
-                document.getElementById('onboarding-modal').classList.add('active');
+                openKeysModal();
                 // Ensure display is updated even when there's no key
                 updateKeyDisplay();
             } else {
@@ -5226,33 +5476,105 @@
         async function onboardingConnectExtension() {
             const success = await authenticateWithExtension();
             if (success) {
-                document.getElementById('onboarding-modal').classList.remove('active');
+                // Small delay to ensure state is updated before refreshing modal
+                await new Promise(resolve => setTimeout(resolve, 100));
+                // Refresh the keys modal to show the management section
+                openKeysModal();
                 showStatus('Connected via extension! Your private key is secure in the extension.', 'success');
             } else {
                 // authenticateWithExtension already shows specific error messages,
                 // so we don't need to show a generic one here
-                // The onboarding modal will remain open so user can try other options
+                // The keys modal will remain open so user can try other options
             }
         }
         
         function onboardingGenerate() {
             generateKeyPair();
-            document.getElementById('onboarding-modal').classList.remove('active');
+            // Refresh the keys modal to show the management section
+            openKeysModal();
         }
         
-        function onboardingImport() {
-            const nsec = document.getElementById('onboarding-nsec').value.trim();
-            if (nsec) {
-                const privateKeyHex = decodeNsec(nsec);
+        async function onboardingImport() {
+            const input = document.getElementById('onboarding-import').value.trim();
+            if (!input) {
+                showStatus('Please enter an nsec or mnemonic phrase', 'error');
+                return;
+            }
+            
+            // Detect if input is nsec (starts with nsec1) or mnemonic (multiple words)
+            if (input.startsWith('nsec1')) {
+                // Try to import as nsec
+                const privateKeyHex = decodeNsec(input);
                 if (privateKeyHex) {
                     savePrivateKey(privateKeyHex);
                     loadKeys();
-                    document.getElementById('onboarding-modal').classList.remove('active');
+                    // Refresh the keys modal to show the management section
+                    openKeysModal();
+                    showStatus('nsec imported successfully!', 'success');
                 } else {
                     showStatus('Invalid nsec', 'error');
                 }
             } else {
-                showStatus('Please enter an nsec', 'error');
+                // Try to import as mnemonic
+                try {
+                    // Validate mnemonic (using English wordlist by default)
+                    if (!validateMnemonic(input, wordlists.english)) {
+                        showStatus('Invalid mnemonic phrase. Please check your words.', 'error');
+                        return;
+                    }
+                    
+                    // Convert mnemonic to seed
+                    const seed = mnemonicToSeedSync(input);
+                    
+                    // For Nostr, we use the first 32 bytes of the seed as the private key
+                    // This is a common approach, though not standardized
+                    const privateKeyBytes = seed.slice(0, 32);
+                    const privateKeyHex = Array.from(privateKeyBytes)
+                        .map(b => b.toString(16).padStart(2, '0'))
+                        .join('');
+                    
+                    savePrivateKey(privateKeyHex);
+                    loadKeys();
+                    // Refresh the keys modal to show the management section
+                    openKeysModal();
+                    showStatus('Mnemonic imported successfully!', 'success');
+                } catch (error) {
+                    console.error('Error importing mnemonic:', error);
+                    showStatus('Error importing mnemonic: ' + (error.message || 'Unknown error'), 'error');
+                }
+            }
+        }
+        
+        // Update Trustroots Profile - copy npub and open Trustroots profile edit page
+        async function updateTrustrootsProfile() {
+            if (!currentPublicKey) {
+                showStatus('No public key available', 'error');
+                return;
+            }
+            
+            try {
+                // Get npub from display or generate it
+                const npubDisplay = document.getElementById('npub-display');
+                let npub;
+                
+                if (npubDisplay && npubDisplay.value) {
+                    npub = npubDisplay.value;
+                } else {
+                    // Generate npub if not in display
+                    npub = nip19.npubEncode(currentPublicKey);
+                }
+                
+                // Copy to clipboard
+                await navigator.clipboard.writeText(npub);
+                
+                // Show alert first
+                alert('Your npub has been copied to the clipboard. Please paste this npub into the Nostr field on Trustroots.');
+                
+                // Open Trustroots profile edit page in new tab
+                window.open('https://www.trustroots.org/profile/edit/networks', '_blank');
+            } catch (error) {
+                console.error('Error updating Trustroots profile:', error);
+                showStatus('Error copying public key: ' + (error.message || 'Unknown error'), 'error');
             }
         }
         
@@ -5321,48 +5643,10 @@
                             return;
                         }
                         
-                        const publishPromises = relayUrls.map(async (url) => {
-                            let relay = null;
-                            try {
-                                relay = await Relay.connect(url);
-                                await relay.publish(signedEvent);
-                                // Wait a bit for the relay to process and confirm the event
-                                await new Promise(resolve => setTimeout(resolve, 500));
-                                return { success: true, url };
-                            } catch (error) {
-                                // Only log error if it's not a generic relay rejection
-                                const errorMessage = error?.message || String(error);
-                                if (!errorMessage.includes('relay experienced an error')) {
-                                    console.error(`Error publishing to ${url}:`, error);
-                                }
-                                return { success: false, url, error: errorMessage };
-                            } finally {
-                                // Always close the relay connection, even if there was an error
-                                if (relay) {
-                                    try {
-                                        relay.close();
-                                    } catch (closeError) {
-                                        // Ignore errors when closing
-                                    }
-                                }
-                            }
-                        });
-                        
-                        const results = await Promise.allSettled(publishPromises);
-                        const successful = [];
-                        const failed = [];
-                        
-                        results.forEach((result, index) => {
-                            if (result.status === 'fulfilled') {
-                                if (result.value.success) {
-                                    successful.push(result.value.url);
-                                } else {
-                                    failed.push({ url: result.value.url, error: result.value.error });
-                                }
-                            } else {
-                                failed.push({ url: relayUrls[index], error: result.reason?.message || 'Unknown error' });
-                            }
-                        });
+                        const publishPromises = relayUrls.map(url => publishToRelayWithRetries(url, signedEvent));
+                        const results = await Promise.all(publishPromises);
+                        const successful = results.filter(r => r.success);
+                        const failed = results.filter(r => !r.success).map(r => ({ url: r.url, error: r.error }));
                         
                         if (successful.length > 0) {
                             let statusMessage = `Profile linked! Username ${username} published to ${successful.length} relay(s)`;
@@ -5386,9 +5670,26 @@
                             if (usernameIndicator) {
                                 usernameIndicator.style.display = 'block';
                             }
+                            
+                            // Update close button visibility now that profile is linked
+                            const closeBtn = document.getElementById('keys-modal-close-btn');
+                            if (closeBtn) {
+                                closeBtn.style.display = 'block';
+                            }
+                            
+                            // Hide "Update Trustroots Profile" button now that profile is linked
+                            const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
+                            if (updateTrustrootsGroup) {
+                                updateTrustrootsGroup.style.display = 'none';
+                            }
                         } else {
-                            const errorDetails = failed.map(f => `${new URL(f.url).hostname}`).join(', ');
-                            showStatus(`Profile validated but failed to publish to relays: ${errorDetails}`, 'error');
+                            const errorDetails = failed.map(f => {
+                                const hostname = new URL(f.url).hostname;
+                                const errorMsg = f.error ? ` (${formatRelayError(f.error)})` : '';
+                                return `${hostname}${errorMsg}`;
+                            }).join(', ');
+                            const hint = getRelayPublishFailureHint(failed);
+                            showStatus(`Profile validated but failed to publish to relays: ${errorDetails}.${hint}`, 'error', { eventPayload: signedEvent });
                         }
                     } else {
                         showStatus(`Username ${username} is linked to a different npub. This profile does not belong to you.`, 'error');
@@ -5468,11 +5769,32 @@
             // Initialize relay list
             initializeRelayList();
             
+            // Keys icon button click handler
+            const keysBtn = document.getElementById('keys-icon-btn');
+            if (keysBtn) {
+                keysBtn.addEventListener('click', () => {
+                    openKeysModal();
+                });
+            }
+            
             // Settings icon button click handler
             const settingsBtn = document.getElementById('settings-icon-btn');
             if (settingsBtn) {
                 settingsBtn.addEventListener('click', () => {
                     openSettingsModal();
+                });
+            }
+            
+            // Close keys modal when clicking outside (only if key is set and profile is linked)
+            const keysModal = document.getElementById('keys-modal');
+            if (keysModal) {
+                keysModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'keys-modal') {
+                        const hasKey = !!(currentPublicKey || currentPrivateKey || usingNip07);
+                        if (hasKey && isProfileLinked) {
+                            closeKeysModal();
+                        }
+                    }
                 });
             }
             
@@ -5516,16 +5838,8 @@
                 });
             }
             
-            // Add Enter key handler for note textarea
-            const noteContentInModal = document.getElementById('note-content-in-modal');
-            if (noteContentInModal) {
-                noteContentInModal.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        publishNoteFromModal();
-                    }
-                });
-            }
+            // Note: Enter key handler for note textarea is set up in showNotesForPlusCode()
+            // with proper deduplication via enterHandlerSetup flag
             
             // Small delay to ensure DOM is ready, then initialize map
             setTimeout(() => {
@@ -5574,10 +5888,13 @@
         window.deleteNsec = deleteNsec;
         window.saveRelays = saveRelays;
         window.linkTrustrootsProfile = linkTrustrootsProfile;
+        window.updateTrustrootsProfile = updateTrustrootsProfile;
         window.publishNoteFromModal = publishNoteFromModal;
         window.closeViewNoteModal = closeViewNoteModal;
         window.closePlusCodeNotesModal = closePlusCodeNotesModal;
         window.closeSettingsModal = closeSettingsModal;
+        window.openKeysModal = openKeysModal;
+        window.closeKeysModal = closeKeysModal;
         window.onboardingGenerate = onboardingGenerate;
         window.onboardingImport = onboardingImport;
         window.onboardingConnectExtension = onboardingConnectExtension;

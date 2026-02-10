@@ -44,11 +44,11 @@ describe('Key Management', () => {
     });
 
     it('has onboarding elements', () => {
-      const onboardingNsec = document.getElementById('onboarding-nsec');
-      const onboardingModal = document.getElementById('onboarding-modal');
+      const onboardingImport = document.getElementById('onboarding-import');
+      const keysModal = document.getElementById('keys-modal');
       
-      expect(onboardingNsec).toBeTruthy();
-      expect(onboardingModal).toBeTruthy();
+      expect(onboardingImport).toBeTruthy();
+      expect(keysModal).toBeTruthy();
     });
   });
 

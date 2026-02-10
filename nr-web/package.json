@@ -15,8 +15,8 @@
     "test:local:watch": "vitest",
     "test:local:ui": "vitest --ui",
     "test:local:coverage": "vitest run --coverage",
-    "test:local:e2e": "playwright test",
-    "test:local:e2e:ui": "playwright test --ui",
+    "test:local:e2e": "npx playwright test",
+    "test:local:e2e:ui": "npx playwright test --ui",
     "test:local:all": "pnpm test:local && pnpm test:local:e2e"
   },
   "devDependencies": {

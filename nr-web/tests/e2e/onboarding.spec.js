@@ -10,12 +10,12 @@ test.describe('Onboarding Flow', () => {
     await page.reload();
   });
 
-  test('onboarding modal appears when no key exists', async ({ page }) => {
+  test('keys modal appears when no key exists', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    const onboardingModal = page.locator('#onboarding-modal');
-    await expect(onboardingModal).toBeVisible();
+    const keysModal = page.locator('#keys-modal');
+    await expect(keysModal).toBeVisible();
   });
 
   test('can generate new key from onboarding', async ({ page }) => {
@@ -27,9 +27,9 @@ test.describe('Onboarding Flow', () => {
     await expect(generateBtn).toBeVisible();
     await generateBtn.click();
     
-    // Wait for modal to close (onboarding should complete)
-    const onboardingModal = page.locator('#onboarding-modal');
-    await expect(onboardingModal).not.toBeVisible({ timeout: 5000 });
+    // Wait for welcome section to disappear (key was generated)
+    const welcomeSection = page.locator('#keys-welcome-section');
+    await expect(welcomeSection).not.toBeVisible({ timeout: 5000 });
     
     // Verify key was created (check localStorage)
     const hasKey = await page.evaluate(() => {
@@ -46,12 +46,12 @@ test.describe('Onboarding Flow', () => {
     await expect(importBtn).toBeVisible();
   });
 
-  test('onboarding has nsec input field', async ({ page }) => {
+  test('onboarding has import input field', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    const nsecInput = page.locator('#onboarding-nsec');
-    await expect(nsecInput).toBeVisible();
+    const importInput = page.locator('#onboarding-import');
+    await expect(importInput).toBeVisible();
   });
 
   test('onboarding shows NIP-07 option when available', async ({ page }) => {
@@ -70,22 +70,22 @@ test.describe('Onboarding Flow', () => {
     await page.waitForLoadState('networkidle');
     
     // NIP-07 section might be visible or hidden depending on detection
-    const nip07Section = page.locator('#onboarding-nip07-section');
+    const nip07Section = page.locator('#keys-nip07-section');
     // Just verify it exists, visibility depends on extension detection timing
     await expect(nip07Section).toBeAttached();
   });
 
-  test('onboarding modal cannot be closed with ESC', async ({ page }) => {
+  test('keys modal cannot be closed with ESC when no key exists', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
-    const onboardingModal = page.locator('#onboarding-modal');
-    await expect(onboardingModal).toBeVisible();
+    const keysModal = page.locator('#keys-modal');
+    await expect(keysModal).toBeVisible();
     
     // Try to close with ESC
     await page.keyboard.press('Escape');
     
-    // Modal should still be visible (onboarding must be completed)
-    await expect(onboardingModal).toBeVisible();
+    // Modal should still be visible (user must set up keys first)
+    await expect(keysModal).toBeVisible();
   });
 });

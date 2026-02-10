@@ -5,7 +5,7 @@ services:
       dockerfile: nr-web/Dockerfile
     volumes:
       # Mount source code for development (allows code changes without rebuild)
-      - ../nr-web:/app/nr-web
+      - .:/app/nr-web
       # Mount node_modules from container to avoid permission issues
       - test-node-modules:/app/nr-web/node_modules
     working_dir: /app/nr-web

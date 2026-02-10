@@ -1,0 +1,15 @@
+services:
+  strfry:
+    build: .
+    platform: linux/amd64
+    container_name: 5strfry
+    environment:
+      ALLOWLIST_PATH: /app/allowlist/allowlist.json
+      TRUSTROOTS_NIP05_DOMAIN: trustroots.org
+    volumes:
+      - ./strfry.conf:/app/strfry.conf
+      - ./strfry-db:/app/strfry-db
+      - ./allowlist:/app/allowlist
+    ports:
+      - "7777:7777"
+    working_dir: /app

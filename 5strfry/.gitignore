@@ -1,0 +1,6 @@
+# Allowlist is populated at runtime; do not commit
+allowlist/allowlist.json
+
+# Ignore LMDB database files (runtime data)
+strfry-db/*.mdb
+strfry-db/lock.mdb

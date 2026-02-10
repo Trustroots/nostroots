@@ -27,9 +27,12 @@ describe('Relay Management', () => {
 
   describe('Relay settings UI', () => {
     it('has relay settings form elements', () => {
-      const relayUrlsTextarea = document.getElementById('relay-urls');
-      expect(relayUrlsTextarea).toBeTruthy();
-      expect(relayUrlsTextarea.tagName).toBe('TEXTAREA');
+      const relaysList = document.getElementById('relays-list');
+      expect(relaysList).toBeTruthy();
+      
+      const newRelayInput = document.getElementById('new-relay-url');
+      expect(newRelayInput).toBeTruthy();
+      expect(newRelayInput.tagName).toBe('INPUT');
     });
   });
 

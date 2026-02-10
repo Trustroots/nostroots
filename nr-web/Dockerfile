@@ -1,6 +1,6 @@
 FROM node:20-slim
 
-WORKDIR /app
+WORKDIR /app/nr-web
 
 # Install system dependencies for Playwright
 RUN apt-get update && apt-get install -y \
@@ -23,29 +23,17 @@ RUN apt-get update && apt-get install -y \
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy package files from monorepo root
-COPY package.json pnpm-lock.yaml* ./
-COPY pnpm-workspace.yaml ./
+# Copy nr-web package.json and install dependencies directly (not as workspace)
+COPY nr-web/package.json ./
 
-# Copy nr-web package.json
-COPY nr-web/package.json ./nr-web/
-
-# Install dependencies
-# Skip postinstall scripts since patch-package is for nr-app, not nr-web tests
-# If lockfile is outdated, it will be updated during install
-# In CI environments, ensure lockfile is up to date before building
-RUN pnpm install --frozen-lockfile --ignore-scripts || ( \
-      echo "⚠️  Lockfile outdated. Updating..." && \
-      pnpm install --no-frozen-lockfile --ignore-scripts \
-    )
+# Install dependencies directly in nr-web (not as pnpm workspace)
+RUN pnpm install --ignore-scripts
 
 # Install Playwright browsers (Chromium only for smaller image)
-RUN cd nr-web && npx playwright install chromium --with-deps
+RUN npx playwright install chromium --with-deps
 
 # Copy test files and source (will be overridden by volume mount in docker-compose)
-COPY nr-web/ ./nr-web/
-
-WORKDIR /app/nr-web
+COPY nr-web/ ./
 
 # Default command runs all tests
 CMD ["pnpm", "test:local:all"]

@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 describe('Modal Behavior', () => {
   beforeEach(() => {
     // Reset modal states
-    const modals = ['settings-modal', 'onboarding-modal', 'view-note-modal', 'pluscode-notes-modal', 'add-note-modal'];
+    const modals = ['settings-modal', 'keys-modal', 'view-note-modal', 'pluscode-notes-modal', 'circles-modal'];
     modals.forEach(id => {
       const modal = document.getElementById(id);
       if (modal) {
@@ -31,14 +31,14 @@ describe('Modal Behavior', () => {
     });
   });
 
-  describe('Onboarding Modal', () => {
-    it('onboarding modal element exists', () => {
-      const modal = document.getElementById('onboarding-modal');
+  describe('Keys Modal', () => {
+    it('keys modal element exists', () => {
+      const modal = document.getElementById('keys-modal');
       expect(modal).toBeTruthy();
     });
 
     it('has key generation options', () => {
-      const modal = document.getElementById('onboarding-modal');
+      const modal = document.getElementById('keys-modal');
       const generateBtn = modal?.querySelector('button[onclick*="onboardingGenerate"]');
       const importBtn = modal?.querySelector('button[onclick*="onboardingImport"]');
       
@@ -47,7 +47,7 @@ describe('Modal Behavior', () => {
     });
 
     it('has NIP-07 section', () => {
-      const nip07Section = document.getElementById('onboarding-nip07-section');
+      const nip07Section = document.getElementById('keys-nip07-section');
       expect(nip07Section).toBeTruthy();
     });
   });
@@ -74,7 +74,7 @@ describe('Modal Behavior', () => {
 
   describe('Modal structure', () => {
     it('all modals have modal-content wrapper', () => {
-      const modals = ['settings-modal', 'onboarding-modal', 'view-note-modal'];
+      const modals = ['settings-modal', 'keys-modal', 'view-note-modal'];
       modals.forEach(id => {
         const modal = document.getElementById(id);
         const content = modal?.querySelector('.modal-content');

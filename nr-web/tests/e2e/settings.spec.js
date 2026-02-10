@@ -18,6 +18,16 @@ test.describe('Settings Management', () => {
         await page.waitForTimeout(1000); // Wait for key generation
       }
     }
+    
+    // Close keys modal using JavaScript (clicking doesn't work because modal intercepts pointer events)
+    await page.evaluate(() => {
+      const keysModal = document.getElementById('keys-modal');
+      if (keysModal) {
+        keysModal.classList.remove('active');
+        keysModal.style.display = 'none';
+      }
+    });
+    await page.waitForTimeout(200);
   });
 
   test('can open settings modal', async ({ page }) => {
@@ -33,7 +43,7 @@ test.describe('Settings Management', () => {
     }
   });
 
-  test('settings modal has key management section', async ({ page }) => {
+  test('settings modal has relays section', async ({ page }) => {
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
@@ -41,21 +51,19 @@ test.describe('Settings Management', () => {
       const settingsModal = page.locator('#settings-modal');
       await expect(settingsModal).toBeVisible();
       
-      // Check for key-related elements
-      const npubDisplay = page.locator('#npub-display');
-      const generateBtn = page.locator('button:has-text("Generate New Key")');
+      // Check for relay-related elements (relays are now in settings modal)
+      const relaysList = page.locator('#relays-list');
+      const newRelayInput = page.locator('#new-relay-url');
       
-      // At least one should be present
-      const hasNpub = await npubDisplay.isVisible().catch(() => false);
-      const hasGenerate = await generateBtn.isVisible().catch(() => false);
-      
-      expect(hasNpub || hasGenerate).toBe(true);
+      // Both should be present
+      await expect(relaysList).toBeAttached();
+      await expect(newRelayInput).toBeAttached();
     } else {
       test.skip();
     }
   });
 
-  test('can modify relay URLs', async ({ page }) => {
+  test('can add new relay URL', async ({ page }) => {
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
@@ -63,12 +71,13 @@ test.describe('Settings Management', () => {
       const settingsModal = page.locator('#settings-modal');
       await expect(settingsModal).toBeVisible();
       
-      const relayTextarea = page.locator('#relay-urls');
-      if (await relayTextarea.isVisible()) {
-        const testRelays = 'wss://test-relay1.com\nwss://test-relay2.com';
-        await relayTextarea.fill(testRelays);
+      // New relay input field (relays are now added individually)
+      const newRelayInput = page.locator('#new-relay-url');
+      if (await newRelayInput.isVisible()) {
+        const testRelay = 'wss://test-relay1.com';
+        await newRelayInput.fill(testRelay);
         
-        const value = await relayTextarea.inputValue();
+        const value = await newRelayInput.inputValue();
         expect(value).toContain('test-relay1.com');
       }
     } else {
@@ -76,19 +85,21 @@ test.describe('Settings Management', () => {
     }
   });
 
-  test('settings modal has username linking section', async ({ page }) => {
-    const settingsBtn = page.locator('#settings-icon-btn');
-    if (await settingsBtn.isVisible()) {
-      await settingsBtn.click();
-      
-      const settingsModal = page.locator('#settings-modal');
-      await expect(settingsModal).toBeVisible();
-      
-      const usernameInput = page.locator('#trustroots-username');
-      await expect(usernameInput).toBeAttached();
-    } else {
-      test.skip();
-    }
+  test('keys modal has username linking section', async ({ page }) => {
+    // Username input is now in the keys modal - reopen it
+    await page.evaluate(() => {
+      const keysModal = document.getElementById('keys-modal');
+      if (keysModal) {
+        keysModal.classList.add('active');
+        keysModal.style.display = 'flex';
+      }
+    });
+    
+    const keysModal = page.locator('#keys-modal');
+    await expect(keysModal).toBeVisible();
+    
+    const usernameInput = page.locator('#trustroots-username');
+    await expect(usernameInput).toBeAttached();
   });
 
   test('can close settings modal', async ({ page }) => {

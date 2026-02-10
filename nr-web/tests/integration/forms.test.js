@@ -25,29 +25,35 @@ describe('Form Interactions', () => {
       expect(button).toBeTruthy();
     });
 
-    it('onboarding nsec input exists', () => {
-      const input = document.getElementById('onboarding-nsec');
-      expect(input).toBeTruthy();
+    it('onboarding import textarea exists', () => {
+      const textarea = document.getElementById('onboarding-import');
+      expect(textarea).toBeTruthy();
+      expect(textarea.tagName).toBe('TEXTAREA');
     });
   });
 
   describe('Relay Settings Form', () => {
-    it('relay URLs textarea exists', () => {
-      const textarea = document.getElementById('relay-urls');
-      expect(textarea).toBeTruthy();
-      expect(textarea.tagName).toBe('TEXTAREA');
+    it('relays list container exists', () => {
+      const container = document.getElementById('relays-list');
+      expect(container).toBeTruthy();
     });
 
-    it('can set and get relay URLs', () => {
-      const textarea = document.getElementById('relay-urls');
-      const testUrls = 'wss://relay1.com\nwss://relay2.com';
-      textarea.value = testUrls;
-      expect(textarea.value).toBe(testUrls);
+    it('new relay URL input exists', () => {
+      const input = document.getElementById('new-relay-url');
+      expect(input).toBeTruthy();
+      expect(input.tagName).toBe('INPUT');
     });
 
-    it('has save button', () => {
-      const textarea = document.getElementById('relay-urls');
-      const button = textarea?.parentElement?.querySelector('button[onclick*="saveRelays"]');
+    it('can set and get new relay URL input', () => {
+      const input = document.getElementById('new-relay-url');
+      const testUrl = 'wss://relay1.com';
+      input.value = testUrl;
+      expect(input.value).toBe(testUrl);
+    });
+
+    it('has add relay button', () => {
+      const input = document.getElementById('new-relay-url');
+      const button = input?.parentElement?.querySelector('button[onclick*="addRelay"]');
       expect(button).toBeTruthy();
     });
   });
@@ -66,9 +72,10 @@ describe('Form Interactions', () => {
       expect(input.value).toBe(testUsername);
     });
 
-    it('has link profile button', () => {
-      const button = document.getElementById('link-profile-btn');
-      expect(button).toBeTruthy();
+    it('username input triggers link on Enter', () => {
+      const input = document.getElementById('trustroots-username');
+      // Link profile button was removed, but Enter key on username input triggers linkTrustrootsProfile
+      expect(input.getAttribute('onkeydown')).toContain('linkTrustrootsProfile');
     });
 
     it('has username indicator element', () => {

@@ -23,11 +23,11 @@ RUN apt-get update && apt-get install -y \
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy nr-web package.json and install dependencies directly (not as workspace)
-COPY nr-web/package.json ./
+# Copy nr-web package.json and lockfile (nr-web is a standalone pnpm project)
+COPY nr-web/package.json nr-web/pnpm-lock.yaml nr-web/pnpm-workspace.yaml ./
 
-# Install dependencies directly in nr-web (not as pnpm workspace)
-RUN pnpm install --ignore-scripts
+# Install dependencies from lockfile (reproducible)
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Install Playwright browsers (Chromium only for smaller image)
 RUN npx playwright install chromium --with-deps

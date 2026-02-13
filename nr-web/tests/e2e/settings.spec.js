@@ -102,6 +102,23 @@ test.describe('Settings Management', () => {
     await expect(usernameInput).toBeAttached();
   });
 
+  test('settings modal has notifications section', async ({ page }) => {
+    const settingsBtn = page.locator('#settings-icon-btn');
+    if (await settingsBtn.isVisible()) {
+      await settingsBtn.click();
+
+      const settingsModal = page.locator('#settings-modal');
+      await expect(settingsModal).toBeVisible();
+
+      const notificationsSection = page.locator('#settings-notifications-section');
+      await expect(notificationsSection).toBeAttached();
+      await expect(notificationsSection).toContainText('Notifications');
+      await expect(notificationsSection).toContainText('Permission:');
+    } else {
+      test.skip();
+    }
+  });
+
   test('can close settings modal', async ({ page }) => {
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {

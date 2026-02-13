@@ -1151,6 +1151,7 @@
                 <h2 id="pluscode-notes-title">Notes</h2>
                 <button class="modal-close" onclick="closePlusCodeNotesModal()">&times;</button>
             </div>
+            <div id="notification-subscribe-block" class="notification-subscribe-block" style="display: none; padding: 0.5rem 0; border-bottom: 1px solid var(--border); margin-bottom: 0.5rem; font-size: 0.9rem;"></div>
             <div id="pluscode-notes-content" class="notes-list"></div>
             <div class="notes-actions">
                 <div class="notes-add-form">
@@ -1318,6 +1319,9 @@
                         <button class="btn" onclick="addRelay()">Add Relay</button>
                     </div>
                 </div>
+            </div>
+            <div class="settings-section" id="settings-notifications-section">
+                <!-- Filled by renderSettingsNotificationsSection() -->
             </div>
             
             <a href="https://github.com/Trustroots/nostroots/tree/main/nr-web" target="_blank" rel="noopener noreferrer" class="github-icon-link">
@@ -2507,6 +2511,140 @@
             initializeNDK();
         }
         
+        // Browser notifications (only work while this tab is open).
+        // Nostr: we use the same map-note stream as the map (kind 30397). Subscribed plus codes
+        // are stored only in localStorage. When a new 30397 event arrives and its plus code
+        // matches a subscribed area, we show a browser Notification. No kind 10395, no server.
+        // nr-app differs: it publishes kind 10395 (encrypted for the notification server) with
+        // push tokens + Nostr filters; the server subscribes to kind 30398 (reposts) per filter
+        // and sends push when matching events appear. So nr-web = same notes, local-only UI;
+        // nr-app = 10395 + push server + 30398 filters for delivery when app is closed.
+        const NOTIFICATION_PLUS_CODES_KEY = 'notification_plus_codes';
+        const NOTIFICATIONS_ENABLED_KEY = 'notifications_enabled';
+        let pendingNotificationPlusCode = null;
+        
+        function getNotificationPlusCodes() {
+            try {
+                const raw = localStorage.getItem(NOTIFICATION_PLUS_CODES_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch {
+                return [];
+            }
+        }
+        
+        function saveNotificationPlusCodes(codes) {
+            localStorage.setItem(NOTIFICATION_PLUS_CODES_KEY, JSON.stringify(codes));
+        }
+        
+        function addNotificationPlusCode(plusCode) {
+            const codes = getNotificationPlusCodes();
+            if (codes.includes(plusCode)) return;
+            saveNotificationPlusCodes([...codes, plusCode]);
+        }
+        
+        function removeNotificationPlusCode(plusCode) {
+            saveNotificationPlusCodes(getNotificationPlusCodes().filter(c => c !== plusCode));
+        }
+        
+        function isSubscribedToPlusCode(plusCode) {
+            const codes = getNotificationPlusCodes();
+            const exact = codes.includes(plusCode);
+            const parentMatch = codes.some(sub => isPlusCodeInsidePlusCode(sub, plusCode));
+            return { exact, parentMatch };
+        }
+        
+        function isNotificationsEnabled() {
+            return localStorage.getItem(NOTIFICATIONS_ENABLED_KEY) === 'true';
+        }
+        
+        function setNotificationsEnabled(enabled) {
+            localStorage.setItem(NOTIFICATIONS_ENABLED_KEY, enabled ? 'true' : 'false');
+        }
+        
+        function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                renderSettingsNotificationsSection();
+                return;
+            }
+            if (Notification.permission === 'granted') {
+                setNotificationsEnabled(true);
+                renderSettingsNotificationsSection();
+                return;
+            }
+            const promise = Notification.requestPermission();
+            const onResult = (p) => {
+                setNotificationsEnabled(p === 'granted');
+                renderSettingsNotificationsSection();
+            };
+            if (promise && typeof promise.then === 'function') {
+                promise.then(onResult).catch(() => renderSettingsNotificationsSection());
+            } else {
+                onResult(Notification.permission);
+            }
+        }
+        
+        function showNoteNotification(event, plusCode) {
+            if (!('Notification' in window) || Notification.permission !== 'granted') return;
+            if (!isNotificationsEnabled()) return;
+            const subscribed = getNotificationPlusCodes();
+            if (subscribed.length === 0) return;
+            const matches = subscribed.some(sub => sub === plusCode || isPlusCodeInsidePlusCode(sub, plusCode));
+            if (!matches) return;
+            if (document.visibilityState === 'visible') return;
+            
+            const username = pubkeyToUsername.get(event.pubkey) || (event.pubkey || '').substring(0, 12) + '…';
+            const body = (event.content || '').slice(0, 80) + ((event.content || '').length > 80 ? '…' : '');
+            const n = new Notification('New note at ' + (plusCode || 'map'), {
+                body: username + (body ? ': ' + body : ''),
+                icon: 'favicon.ico',
+                tag: 'nostroots-note-' + (plusCode || 'map')
+            });
+            n.onclick = () => {
+                pendingNotificationPlusCode = plusCode;
+                window.focus();
+                n.close();
+            };
+        }
+        
+        function renderSettingsNotificationsSection() {
+            const el = document.getElementById('settings-notifications-section');
+            if (!el) return;
+            const perm = typeof Notification !== 'undefined' ? Notification.permission : 'denied';
+            const enabled = isNotificationsEnabled();
+            const count = getNotificationPlusCodes().length;
+            el.innerHTML = `
+                <h2>Notifications</h2>
+                <p class="notifications-tab-notice" style="color: var(--muted-foreground); font-size: 0.875rem; margin-bottom: 0.75rem;">
+                    Notifications only work while this tab is open. You won't get alerts when the tab is closed.
+                </p>
+                <p style="font-size: 0.875rem; margin-bottom: 0.5rem;">Permission: ${perm}. Subscribed areas: ${count}.</p>
+                ${perm === 'default' ? '<p style="font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--muted-foreground);">Click Enable to allow this site to show notifications.</p>' : ''}
+                ${perm === 'denied' ? '<p style="font-size: 0.875rem; margin-bottom: 0.5rem; color: var(--muted-foreground);">Notifications are blocked. Use your browser’s site settings (e.g. lock or info icon in the address bar) to allow notifications, then refresh.</p>' : ''}
+                ${perm !== 'granted' ? `
+                    <button class="btn" onclick="requestNotificationPermission()">Enable notifications</button>
+                ` : `
+                    ${enabled ? '<button class="btn" style="margin-right: 0.5rem;" onclick="setNotificationsEnabled(false); renderSettingsNotificationsSection();">Disable notifications</button>' : '<button class="btn" onclick="setNotificationsEnabled(true); renderSettingsNotificationsSection();">Turn notifications on</button>'}
+                `}
+            `;
+        }
+        
+        function renderNotificationSubscribeBlock(plusCode) {
+            const block = document.getElementById('notification-subscribe-block');
+            if (!block || !plusCode) return;
+            const { exact, parentMatch } = isSubscribedToPlusCode(plusCode);
+            const plusCodeAttr = (plusCode || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            if (exact) {
+                block.innerHTML = `<button class="btn" onclick="removeNotificationPlusCode('${plusCodeAttr}'); renderNotificationSubscribeBlock('${plusCodeAttr}'); showNotesForPlusCode('${plusCodeAttr}');">Unsubscribe</button>`;
+                block.style.display = '';
+            } else if (parentMatch) {
+                block.innerHTML = '<span style="font-size: 0.8rem; color: var(--muted-foreground);">Subscribed via parent area</span>';
+                block.style.display = '';
+            } else {
+                block.innerHTML = `<button class="btn" onclick="addNotificationPlusCode('${plusCodeAttr}'); renderNotificationSubscribeBlock('${plusCodeAttr}'); showNotesForPlusCode('${plusCodeAttr}');">Subscribe</button>`;
+                block.style.display = '';
+            }
+        }
+        
         // Load cached events on initialization
         function loadCachedEvents() {
             const cachedEvents = loadEventsFromCache();
@@ -3251,6 +3389,12 @@
                 } else if (!modalPlusCode) {
                     console.log('[Modal Refresh] Modal active but no plus code available - skipping refresh');
                 }
+            }
+            
+            try {
+                showNoteNotification(event, plusCode);
+            } catch (e) {
+                console.error('[ProcessEvent] showNoteNotification error:', e);
             }
         }
         
@@ -4567,6 +4711,8 @@
             document.getElementById('pluscode-notes-title').textContent = 
                 `${sortedAll.length} note${sortedAll.length !== 1 ? 's' : ''} for ${plusCode}`;
             
+            renderNotificationSubscribeBlock(plusCode);
+            
             // Build notes content
             const notesContent = document.getElementById('pluscode-notes-content');
             notesContent.innerHTML = '';
@@ -5387,6 +5533,7 @@
         
         function openSettingsModal() {
             document.getElementById('settings-modal').classList.add('active');
+            renderSettingsNotificationsSection();
         }
         
         function closeSettingsModal() {
@@ -5404,6 +5551,13 @@
         window.addRelay = addRelay;
         window.removeRelay = removeRelay;
         window.setRelayWriteEnabled = setRelayWriteEnabled;
+        window.addNotificationPlusCode = addNotificationPlusCode;
+        window.removeNotificationPlusCode = removeNotificationPlusCode;
+        window.renderNotificationSubscribeBlock = renderNotificationSubscribeBlock;
+        window.showNotesForPlusCode = showNotesForPlusCode;
+        window.requestNotificationPermission = requestNotificationPermission;
+        window.setNotificationsEnabled = setNotificationsEnabled;
+        window.renderSettingsNotificationsSection = renderSettingsNotificationsSection;
         
         // Onboarding
         function checkOnboarding() {
@@ -5784,6 +5938,15 @@
                     openSettingsModal();
                 });
             }
+            
+            // When user focuses the window after clicking a notification, open the notes modal for that plus code
+            window.addEventListener('focus', () => {
+                if (pendingNotificationPlusCode) {
+                    const plusCode = pendingNotificationPlusCode;
+                    pendingNotificationPlusCode = null;
+                    showNotesForPlusCode(plusCode);
+                }
+            });
             
             // Close keys modal when clicking outside (only if key is set and profile is linked)
             const keysModal = document.getElementById('keys-modal');

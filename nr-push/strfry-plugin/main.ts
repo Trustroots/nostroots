@@ -1,6 +1,6 @@
 import * as amqp from "@nashaddams/amqp";
 import { TextLineStream } from "@std/streams";
-import { parseJsonLine } from "./src/parseLines.ts";
+import { parseJsonLine, type StrfryLine } from "./src/parseLines.ts";
 import { acceptEvent, rejectEvent } from "./src/strfryResponses.ts";
 import { whitelistKinds } from "./src/whitelistKinds.ts";
 
@@ -45,25 +45,38 @@ const stdin = await Deno.stdin.readable
   .pipeThrough(new TextLineStream());
 
 for await (const jsonLine of stdin) {
-  // console.log("#yX8ro8 Got a line", jsonLine);
-
   const strfryLine = parseJsonLine(jsonLine);
 
   if (typeof strfryLine === "undefined") {
+    // Must respond or strfry reports "internal error". Try to reject with event id if present.
+    try {
+      const o = JSON.parse(jsonLine);
+      const id = o?.event?.id;
+      if (typeof id === "string") {
+        rejectEvent(
+          { event: { id }, receivedAt: 0, sourceType: "", sourceInfo: "" } as StrfryLine,
+          "invalid event",
+        );
+      }
+    } catch {
+      // No valid id to reject; strfry may still timeout for this line
+    }
     continue;
   }
 
   if (whitelistKinds(strfryLine)) {
-    // Publish every event to
-    channel.publish(
-      {
-        exchange: EXCHANGE_NAME,
-      },
-      { contentType: "application/json" },
-      new TextEncoder().encode(JSON.stringify(strfryLine)),
-    );
-
-    // Accept this line
+    try {
+      channel.publish(
+        {
+          exchange: EXCHANGE_NAME,
+        },
+        { contentType: "application/json" },
+        new TextEncoder().encode(JSON.stringify(strfryLine)),
+      );
+    } catch (err) {
+      console.error("#AMQP publish failed", err);
+      // Still accept the event so the relay keeps working; AMQP is best-effort.
+    }
     acceptEvent(strfryLine);
   } else {
     rejectEvent(strfryLine, "403");

@@ -3,5 +3,5 @@ WORKDIR /build
 COPY go.mod main.go ./
 RUN CGO_ENABLED=0 GOOS=linux go build -o nr-relay main.go
 
-FROM ghcr.io/trustroots/strfry:master
+FROM ghcr.io/hoytech/strfry:latest
 COPY --from=builder /build/nr-relay /usr/local/bin/nr-relay

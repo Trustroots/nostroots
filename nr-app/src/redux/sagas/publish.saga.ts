@@ -63,7 +63,8 @@ export function* publishEventTemplateSagaEffect(
     yield put(publishEventTemplatePromiseAction.success(payload));
     resolvePromiseAction(action, payload);
   } catch (error) {
-    if (__DEV__) console.error("#oUtVSG Got error", error);
+    if (__DEV__)
+      console.error("#oUtVSG Got error while publishing event", error);
     const serializableError = getSerializableError(error);
     yield put(publishEventTemplatePromiseAction.failure(serializableError));
     rejectPromiseAction(action, error);

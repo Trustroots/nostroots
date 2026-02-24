@@ -3,7 +3,7 @@ FROM scratch AS build-nr-common
 WORKDIR /app
 COPY --from=nr-common . /app/nr-common
 
-FROM denoland/deno:2.1.1
+FROM denoland/deno:2.6.6
 
 WORKDIR /app
 

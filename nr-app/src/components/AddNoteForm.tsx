@@ -4,8 +4,9 @@ import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { getCurrentTimestamp } from "@trustroots/nr-common";
 import { useMemo, useState } from "react";
-import { Button, StyleSheet, Text, View } from "react-native";
+import { View } from "react-native";
 import Toast from "react-native-root-toast";
+import { Button } from "./ui/button";
 import {
   Select,
   SelectContent,
@@ -15,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { Text } from "./ui/text";
 
 const MINUTE_IN_SECONDS = 60;
 const HOUR_IN_SECONDS = 60 * MINUTE_IN_SECONDS;
@@ -121,102 +123,53 @@ export default function AddNoteForm() {
   );
 
   return (
-    <View style={styles.contentContainer}>
-      <Text style={styles.inputLabel}>Add Note to Map</Text>
+    <View className="w-full bg-card p-4 rounded-lg items-center gap-3">
+      <Text variant="h4">Add Note to Map</Text>
       <BottomSheetTextInput
-        style={styles.input}
+        className="w-full h-20 p-3 bg-background border border-border rounded-md text-foreground"
         placeholder="Enter your note"
+        placeholderTextColor="#9ca3af"
         value={noteContent}
         onChangeText={setNoteContent}
         onSubmitEditing={handleAddNote}
         multiline={true}
       />
 
-      <Text>Note expiry:</Text>
-      <Select
-        onValueChange={(selectedOption) => {
-          if (typeof selectedOption !== "undefined") {
-            setNoteExpiry(selectedOption.value);
-          }
-        }}
-        defaultValue={noteExpiryOptions[3]}
-      >
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Select a fruit" />
-        </SelectTrigger>
-        <SelectContent className="w-[180px]">
-          <SelectGroup>
-            <SelectLabel>Note expiry</SelectLabel>
-            {noteExpiryOptions.map(({ label, value }, index) => (
-              <SelectItem label={label} value={value} key={index}>
-                {label}
-              </SelectItem>
-            ))}
-          </SelectGroup>
-        </SelectContent>
-      </Select>
+      <View className="w-full gap-2">
+        <Text variant="small">Note expiry:</Text>
+        <Select
+          onValueChange={(selectedOption) => {
+            if (typeof selectedOption !== "undefined") {
+              setNoteExpiry(selectedOption.value);
+            }
+          }}
+          defaultValue={noteExpiryOptions[2]}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select expiry" />
+          </SelectTrigger>
+          <SelectContent className="w-[200px]">
+            <SelectGroup>
+              <SelectLabel>Note expiry</SelectLabel>
+              {noteExpiryOptions.map(({ label, value }, index) => (
+                <SelectItem label={label} value={value} key={index}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      </View>
 
-      <View style={styles.buttonContainer}>
-        <View style={styles.button}>
-          <Button title="Add Note" onPress={handleAddNote} />
-        </View>
-        <View style={styles.button}>
-          <Button title="Cancel" onPress={closeModal} />
-        </View>
+      <View className="w-full flex-row justify-center gap-4 mt-2">
+        <Button title="Add Note" onPress={handleAddNote} className="flex-1" />
+        <Button
+          title="Cancel"
+          variant="outline"
+          onPress={closeModal}
+          className="flex-1"
+        />
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  contentContainer: {
-    width: "95%",
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  layerToggle: {
-    color: "rgba(255,255,255,1)",
-    backgroundColor: "rgba(10, 10, 0, 0.2)",
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  input: {
-    width: "100%",
-    height: 80,
-    padding: 10,
-    backgroundColor: "white",
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-  },
-  marker: {
-    width: 200,
-  },
-  picker: {
-    width: "100%",
-    backgroundColor: "white",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  pickerItem: {
-    color: "black",
-  },
-  buttonContainer: {
-    width: "100%",
-    display: "flex",
-    flexDirection: "row",
-    justifyContent: "center",
-  },
-  button: {
-    width: "40%",
-    marginHorizontal: 10,
-  },
-});

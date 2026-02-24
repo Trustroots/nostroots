@@ -130,10 +130,10 @@ export default function OnboardingKeyScreen() {
             </TabsTrigger>
           </TabsList>
 
-          <TextClassContext.Provider value="text-black">
+          <TextClassContext.Provider value="text-foreground">
             <TabsContent
               value="existing"
-              className="bg-white rounded-lg p-4 gap-2 w-full"
+              className="bg-card rounded-lg p-4 gap-2 w-full"
             >
               {importError && (
                 <Text className="text-xs text-red-500">{importError}</Text>
@@ -155,7 +155,7 @@ export default function OnboardingKeyScreen() {
             </TabsContent>
             <TabsContent
               value="generate"
-              className="bg-white rounded-lg p-4 gap-2"
+              className="bg-card rounded-lg p-4 gap-2"
             >
               {mnemonicError && (
                 <Text className="text-xs text-red-500">{mnemonicError}</Text>

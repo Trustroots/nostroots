@@ -1,19 +1,22 @@
+import { useRouter } from "expo-router";
 import React from "react";
-
 import { View } from "react-native";
-import { Button } from "./ui/button";
-import { Text } from "./ui/text";
 
-interface WelcomeScreenProps {
-  onClose: () => void;
-}
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 
-const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onClose }) => {
+export default function WelcomeScreen() {
+  const router = useRouter();
+
+  const handleGetStarted = () => {
+    router.replace("/onboarding");
+  };
+
   return (
-    <View className="absolute inset-0 p-safe-offset-6 bg-white flex justify-center items-center gap-6">
+    <View className="absolute inset-0 p-safe-offset-6 bg-background flex justify-center items-center gap-6">
       <Text
         variant="h1"
-        className="text-3xl font-bold text-gray-900 text-center mb-0"
+        className="text-3xl font-bold text-foreground text-center mb-0"
       >
         Welcome to Nostroots
       </Text>
@@ -21,12 +24,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onClose }) => {
       <View className="w-1/2 h-1 bg-primary" />
 
       <View className="flex gap-4 max-w-sm">
-        <Text className="text-gray-600 leading-relaxed text-balance text-center">
+        <Text className="text-muted-foreground leading-relaxed text-balance text-center">
           Connect with travelers and locals through shared map notes and
           experiences.
         </Text>
 
-        <Text className="text-gray-600 leading-relaxed text-balance text-center">
+        <Text className="text-muted-foreground leading-relaxed text-balance text-center">
           Share locations, tips, and stories without relying on centralized
           platforms.
         </Text>
@@ -34,7 +37,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onClose }) => {
 
       <View className="w-full max-w-xs">
         <Button
-          onPress={onClose}
+          onPress={handleGetStarted}
           title="Get Started"
           size="lg"
           textClassName="uppercase"
@@ -46,6 +49,4 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onClose }) => {
       </Text>
     </View>
   );
-};
-
-export default WelcomeScreen;
+}

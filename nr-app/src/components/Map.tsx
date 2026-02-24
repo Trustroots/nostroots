@@ -66,7 +66,7 @@ const styles = StyleSheet.create({
   mapContainer: {
     flex: 1,
   },
-  toggleWrapper: { position: "absolute", top: 40, left: 10, zIndex: 1 },
+  toggleWrapper: { position: "absolute", top: 40, left: 10 },
   toggleContainer: {
     flexDirection: "row",
     alignItems: "center",

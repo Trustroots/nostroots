@@ -66,7 +66,7 @@ export function KeyInput({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          className="border border-gray-300 rounded-lg p-3 pr-12 text-sm bg-white"
+          className="border border-border rounded-lg p-3 pr-12 text-sm bg-background"
           editable={!disabled}
         />
         <Pressable

@@ -4,6 +4,7 @@ import {
   BottomSheetScrollView,
   BottomSheetView,
 } from "@gorhom/bottom-sheet";
+import { useColorScheme } from "nativewind";
 import { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,6 +20,7 @@ import { Text } from "./ui/text";
 /** @todo I think this should be merged to be more DRY with MapModal? */
 export default function HalfMapEventModal() {
   const dispatch = useDispatch();
+  const { colorScheme } = useColorScheme();
   const showHalfMapEventModal = useSelector(
     (state: RootState) => state.map.isHalfMapEventModalOpen,
   );
@@ -34,10 +36,7 @@ export default function HalfMapEventModal() {
     () => [fullHeight * 0.5 || height * 0.5, fullHeight || height],
     [fullHeight, height],
   );
-  const bottomSheetContentStyle = useMemo(
-    () => ({ minHeight: fullHeight || height }),
-    [fullHeight, height],
-  );
+  const isDark = colorScheme === "dark";
 
   useEffect(() => {
     if (showHalfMapEventModal) {
@@ -61,8 +60,12 @@ export default function HalfMapEventModal() {
         enablePanDownToClose
         onDismiss={handleDismiss}
         backdropComponent={() => null}
+        backgroundStyle={{ backgroundColor: isDark ? "#0a0a0a" : "#ffffff" }}
+        handleIndicatorStyle={{
+          backgroundColor: isDark ? "#525252" : "#d1d5db",
+        }}
       >
-        <BottomSheetView className="grow bg-white px-safe-offset-4 pb-safe rounded-t-3xl">
+        <BottomSheetView className="grow bg-background px-safe-offset-4 pb-safe rounded-t-3xl">
           {selectedEvent ? (
             <View className="flex-1">
               <BottomSheetScrollView
@@ -70,7 +73,7 @@ export default function HalfMapEventModal() {
               >
                 <View className="space-y-4">
                   {/* Divider */}
-                  <Text className="text-xs text-gray-500">
+                  <Text className="text-xs text-muted-foreground">
                     {getKindName(selectedEvent.event.kind)} -
                     {new Date(
                       selectedEvent.event.created_at * 1000,
@@ -82,7 +85,7 @@ export default function HalfMapEventModal() {
                   </Text>
 
                   {/* Divider */}
-                  <View className="my-4 h-px bg-gray-200" />
+                  <View className="my-4 h-px bg-border" />
 
                   {/* Content */}
                   <Text className="text-base">
@@ -92,11 +95,11 @@ export default function HalfMapEventModal() {
               </BottomSheetScrollView>
 
               {/* Footer */}
-              <View className="mt-4 space-y-2 border-t border-gray-200 pt-4">
+              <View className="mt-4 space-y-2 border-t border-border pt-4">
                 <Text
                   selectable
                   numberOfLines={1}
-                  className="flex-shrink text-sm text-gray-500"
+                  className="flex-shrink text-sm text-muted-foreground"
                 >
                   <Text className="text-sm font-bold">Author: </Text>
                   {selectedEvent.event.pubkey}...
@@ -105,7 +108,7 @@ export default function HalfMapEventModal() {
                 <Text
                   selectable
                   numberOfLines={1}
-                  className="text-sm text-gray-500"
+                  className="text-sm text-muted-foreground"
                 >
                   <Text className="text-sm font-bold">ID: </Text>
                   {selectedEvent.event.id}
@@ -113,7 +116,7 @@ export default function HalfMapEventModal() {
                 <Text
                   selectable
                   numberOfLines={1}
-                  className="text-sm text-gray-500"
+                  className="text-sm text-muted-foreground"
                 >
                   <Text className="text-sm font-bold">Signature: </Text>
                   {selectedEvent.event.sig}

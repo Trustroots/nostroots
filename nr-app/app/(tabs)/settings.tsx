@@ -3,10 +3,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { getBech32PrivateKey } from "nip06";
 import { useState } from "react";
-import { Modal, ScrollView, Switch, TextInput, View } from "react-native";
+import { ScrollView, Switch, TextInput, View } from "react-native";
 
 import BuildData from "@/components/BuildData";
-import OnboardModal from "@/components/OnboardModal";
 import { KeyInput } from "@/components/KeyInput";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
@@ -26,6 +25,7 @@ import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { notificationsActions } from "@/redux/slices/notifications.slice";
 import {
+  ColorSchemePreference,
   selectFeatureFlags,
   settingsActions,
   settingsSelectors,
@@ -46,11 +46,45 @@ const ToggleSwitch = ({
 }) => {
   return (
     <View className="flex flex-row gap-2 items-center">
-      <Switch value={value} onChange={onToggle} />
+      <Switch
+        value={value}
+        onChange={onToggle}
+        trackColor={{ false: "#767577", true: "#0d9488" }}
+      />
       <Text variant="small">{label}</Text>
     </View>
   );
 };
+
+const APPEARANCE_OPTIONS: { value: ColorSchemePreference; label: string }[] = [
+  { value: "system", label: "System" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
+
+function AppearanceSection() {
+  const dispatch = useAppDispatch();
+  const colorScheme = useAppSelector(settingsSelectors.selectColorScheme);
+
+  return (
+    <Section>
+      <Text variant="h2">Appearance</Text>
+      <View className="flex flex-row gap-2">
+        {APPEARANCE_OPTIONS.map((option) => (
+          <Button
+            key={option.value}
+            variant={colorScheme === option.value ? "default" : "outline"}
+            size="sm"
+            title={option.label}
+            onPress={() =>
+              dispatch(settingsActions.setColorScheme(option.value))
+            }
+          />
+        ))}
+      </View>
+    </Section>
+  );
+}
 
 export default function SettingsScreen() {
   const dispatch = useAppDispatch();
@@ -63,8 +97,8 @@ export default function SettingsScreen() {
     settingsSelectors.selectAreTestFeaturesEnabled,
   ) as boolean;
 
-  // Onboarding configuration and debug flags.
-  const { useNewOnboarding, useSkipOnboarding, forceOnboarding, forceWelcome } =
+  // Onboarding configuration flags.
+  const { useSkipOnboarding, forceOnboarding, forceWelcome } =
     useAppSelector(selectFeatureFlags);
 
   const [nsec, setNsec] = useState("");
@@ -87,8 +121,6 @@ export default function SettingsScreen() {
   const deviceIsRegisteredForNotifications = useAppSelector((state) =>
     state.notifications.tokens.some((t) => t.expoPushToken === expoPushToken),
   );
-
-  const [modalVisible, setModalVisible] = useState(false);
 
   const centerMapOnPlusCode = async () => {
     const testEventData = {
@@ -155,10 +187,8 @@ export default function SettingsScreen() {
     }
   };
 
-  const inputClassName = "border border-gray-300 rounded px-3 py-2 bg-white";
+  const inputClassName = "border border-border rounded px-3 py-2 bg-background";
 
-  const doesNotHaveUsernameOrHasTestFeaturesEnabled =
-    username === "" || areTestFeaturesEnabled;
   const hasUsernameOrHasTestFeaturesEnabled =
     (typeof username === "string" && username.length > 0) ||
     areTestFeaturesEnabled;
@@ -203,26 +233,8 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView contentContainerClassName="p-safe-offset-4 bg-white">
-      <View>
-        <Modal
-          animationType="slide"
-          transparent={false}
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <OnboardModal setModalVisible={setModalVisible} />
-        </Modal>
-      </View>
-
+    <ScrollView contentContainerClassName="p-safe-offset-4 bg-background">
       <Text variant="h1">Settings</Text>
-
-      {doesNotHaveUsernameOrHasTestFeaturesEnabled ? (
-        <Button
-          title="Link Your Trustroots.org Profile"
-          onPress={() => setModalVisible(true)}
-        />
-      ) : null}
 
       {hasUsernameOrHasTestFeaturesEnabled ? (
         <Section>
@@ -275,7 +287,7 @@ export default function SettingsScreen() {
           You can paste either an nsec key or a 12-word mnemonic phrase.
         </Text>
 
-        <View className="bg-gray-50 rounded-lg p-4 gap-4 mt-4">
+        <View className="bg-muted rounded-lg p-4 gap-4 mt-4">
           <KeyInput
             value={keyInput}
             onChangeText={setKeyInput}
@@ -421,6 +433,8 @@ export default function SettingsScreen() {
         </Text>
       </Section>
 
+      <AppearanceSection />
+
       <Section>
         <ToggleSwitch
           label="Developer Mode"
@@ -436,15 +450,7 @@ export default function SettingsScreen() {
           <Text variant="h2">Onboarding / Welcome Flags</Text>
 
           <ToggleSwitch
-            label="Use new onboarding flow"
-            value={useNewOnboarding}
-            onToggle={() => {
-              dispatch(settingsActions.setUseNewOnboarding(!useNewOnboarding));
-            }}
-          />
-
-          <ToggleSwitch
-            label="Allow skipping new onboarding flow"
+            label="Allow skipping onboarding flow"
             value={useSkipOnboarding}
             onToggle={() => {
               dispatch(

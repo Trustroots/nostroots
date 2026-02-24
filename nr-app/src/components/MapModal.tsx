@@ -10,6 +10,7 @@ import {
   BottomSheetModalProvider,
   BottomSheetScrollView,
 } from "@gorhom/bottom-sheet";
+import { useColorScheme } from "nativewind";
 import { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,6 +22,7 @@ import { Text } from "./ui/text";
 
 export default function MapModal() {
   const dispatch = useAppDispatch();
+  const { colorScheme } = useColorScheme();
   const showModal = useAppSelector(mapSelectors.selectIsMapModalOpen);
   const selectedPlusCode = useAppSelector(
     mapSelectors.selectSelectedPlusCode,
@@ -38,6 +40,7 @@ export default function MapModal() {
   const bottomSheetModalRef = useRef<BottomSheetModal>(null);
   const { top, bottom } = useSafeAreaInsets();
   const snapPoints = useMemo(() => ["50%", "95%"], []);
+  const isDark = colorScheme === "dark";
   const bottomSheetContentStyle = useMemo(
     () => ({
       paddingTop: top + 16,
@@ -69,10 +72,14 @@ export default function MapModal() {
         enablePanDownToClose
         onDismiss={handleDismiss}
         backdropComponent={() => null}
+        backgroundStyle={{ backgroundColor: isDark ? "#0a0a0a" : "#ffffff" }}
+        handleIndicatorStyle={{
+          backgroundColor: isDark ? "#525252" : "#d1d5db",
+        }}
       >
         <BottomSheetScrollView
           className="grow"
-          contentContainerClassName="bg-white px-safe-offset-4 pb-safe rounded-t-3xl"
+          contentContainerClassName="bg-background px-safe-offset-4 pb-safe rounded-t-3xl"
         >
           <View style={styles.contentStack}>
             <NotesList

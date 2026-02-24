@@ -30,7 +30,7 @@ export default function OnboardingIdentityScreen() {
         <IdCardLanyardIcon size={128} color="#fff" strokeWidth={0.5} />
 
         <Text variant="h1" className="my-0">
-          Your Key Is Your Identity
+          Your Key Is Your Identity{" "}
         </Text>
       </View>
 

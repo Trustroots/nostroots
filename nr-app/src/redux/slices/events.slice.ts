@@ -15,6 +15,7 @@ import {
   eventSchema,
   getFirstTagValueFromEvent,
   getTrustrootsUsernameFromProfileEvent,
+  MAP_NOTE_REPOST_KIND,
   NOSTR_EXPIRATION_TAG_NAME,
   TRUSTROOTS_PROFILE_KIND,
 } from "@trustroots/nr-common";
@@ -246,10 +247,25 @@ const selectTrustrootsUsernameFactory = (authorPublicKey?: string) =>
     },
   );
 
+const selectMapNotes = createSelector([selectAll], (events) =>
+  events.filter((event) => event.event.kind === MAP_NOTE_REPOST_KIND),
+);
+
+const selectEventsSortedByTimeFactory = (order: "newest" | "oldest") =>
+  createSelector([selectAll], (events) =>
+    [...events].sort((a, b) =>
+      order === "newest"
+        ? b.event.created_at - a.event.created_at
+        : a.event.created_at - b.event.created_at,
+    ),
+  );
+
 export const eventsSelectors = {
   selectAll,
   selectEventsForPlusCodeExactlyFactory,
   selectEventsWithinPlusCodeFactory,
   selectAuthorProfileEventFactory,
   selectTrustrootsUsernameFactory,
+  selectMapNotes,
+  selectEventsSortedByTimeFactory,
 };

@@ -9,7 +9,7 @@ export default function TabFourScreen() {
   const [connectURI, setConnectURI] = useState("");
 
   return (
-    <ScrollView contentContainerClassName="p-safe-offset-4 bg-white h-full">
+    <ScrollView contentContainerClassName="p-safe-offset-4 bg-background h-full">
       <Text variant="h1">NIP-46 Connect</Text>
       <Text variant="muted">nostrconnect:// url</Text>
       <TextInput

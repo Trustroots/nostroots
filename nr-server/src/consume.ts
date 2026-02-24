@@ -1,11 +1,9 @@
 import { amqp, nanoid, nrCommon } from "../deps.ts";
-const { eventSchema } = nrCommon;
+const { eventSchema, AMQP_EXCHANGE_NAME, AMQP_EXCHANGE_TYPE, AMQP_RELAY_INGEST_QUEUE_NAME } =
+  nrCommon;
 import { getRelayPool } from "./relays.ts";
 import { processEventFactoryFactory } from "./validation/repost.ts";
 import { log } from "./log.ts";
-
-const exchangeName = "nostrEvents";
-const queueName = "repost";
 
 const EMPTY_AMQP_URL = "amqp://insecure:insecure@localhost:5672";
 
@@ -49,23 +47,23 @@ export async function consume(
     await channel.qos({ prefetchCount: 1 });
 
     await channel.declareExchange({
-      exchange: exchangeName,
+      exchange: AMQP_EXCHANGE_NAME,
       durable: true,
-      type: "fanout",
+      type: AMQP_EXCHANGE_TYPE,
     });
 
     await channel.declareQueue({
-      queue: queueName,
+      queue: AMQP_RELAY_INGEST_QUEUE_NAME,
       durable: true,
     });
 
     await channel.bindQueue({
-      exchange: exchangeName,
-      queue: queueName,
+      exchange: AMQP_EXCHANGE_NAME,
+      queue: AMQP_RELAY_INGEST_QUEUE_NAME,
     });
 
     channel.consume(
-      { queue: queueName },
+      { queue: AMQP_RELAY_INGEST_QUEUE_NAME },
       async function processQueueItem(args, _props, data) {
         const id = createId();
         try {

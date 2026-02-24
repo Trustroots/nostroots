@@ -25,6 +25,10 @@ export const TRUSTROOTS_USERNAME_MIN_LENGTH = 3;
 export const CONTENT_MINIMUM_LENGTH = 3;
 export const CONTENT_MAXIMUM_LENGTH = 300;
 
+export const AMQP_EXCHANGE_NAME = "nostrEvents" as const;
+export const AMQP_EXCHANGE_TYPE = "fanout" as const;
+export const AMQP_RELAY_INGEST_QUEUE_NAME = "repost" as const;
+
 export const DEFAULT_RELAY_URL = "wss://relay.trustroots.org";
 
 export const NOTIFICATION_SERVER_PUBKEY =

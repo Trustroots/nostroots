@@ -16,7 +16,6 @@ export function parseJsonLine(input: string) {
     const strfryLine = stryfrLineSchema.parse(parsedInput);
     return strfryLine;
   } catch (error) {
-    // TODO Figure out if we can safely `console.error` or if that messes with strfry
     const errorMessage =
       error instanceof Error ? error.message : JSON.stringify(error);
     console.error(`#XfMojS Error parsing line ${errorMessage}: ${input}`);

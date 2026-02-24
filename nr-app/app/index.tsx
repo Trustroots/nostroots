@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { nip19 } from "nostr-tools";
 
 import LoadingScreen from "@/components/LoadingModal";
+import { ROUTES } from "@/constants/routes";
 import { getPublicKeyHexFromSecureStorage } from "@/nostr/keystore.nostr";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
@@ -106,12 +107,16 @@ export default function IndexRoute() {
   const showOnboarding = !username || !npub || nip5Error || forceOnboarding;
 
   if (showWelcome) {
-    return <Redirect href="/welcome" />;
+    return <Redirect href={ROUTES.WELCOME} />;
   }
 
   if (showOnboarding) {
-    return <Redirect href={nip5Error ? "/onboarding/error" : "/onboarding"} />;
+    return (
+      <Redirect
+        href={nip5Error ? ROUTES.ONBOARDING_ERROR : ROUTES.ONBOARDING}
+      />
+    );
   }
 
-  return <Redirect href="/(tabs)" />;
+  return <Redirect href={ROUTES.HOME} />;
 }

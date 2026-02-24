@@ -3,7 +3,9 @@ import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { settingsSelectors } from "@/redux/slices/settings.slice";
 import { MAP_LAYER_KEY, MAP_LAYERS, MapLayer } from "@trustroots/nr-common";
 import React, { useMemo } from "react";
-import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
+import { FlatList, Switch, View } from "react-native";
+
+import { Text } from "@/components/ui/text";
 import HalfMapEventModal from "./HalfMapEventModal";
 import MapAddNoteModal from "./MapAddNoteModal";
 import MapModal from "./MapModal";
@@ -19,15 +21,11 @@ export default function Map() {
   );
   const dispatch = useAppDispatch();
 
-  // __DEV__ && console.log("#iNicG9 Map.tsx / render()", Date.now());
-
   // Filter MAP_LAYERS based on areTestFeaturesEnabled
   const filteredMapLayers = useMemo(() => {
     if (areTestFeaturesEnabled) {
-      // If test features are enabled, show all layers
       return Object.entries(MAP_LAYERS) as [MAP_LAYER_KEY, MapLayer][];
     } else {
-      // If test features are disabled, filter out certain layers
       return Object.entries(MAP_LAYERS).filter(([key]) => {
         return !TEST_FEATURE_LAYERS.includes(key as MAP_LAYER_KEY);
       }) as [MAP_LAYER_KEY, MapLayer][];
@@ -35,50 +33,32 @@ export default function Map() {
   }, [areTestFeaturesEnabled]);
 
   return (
-    <View style={styles.mapContainer}>
-      <MapPlusCodes />
+    <>
+      <View className="flex-1">
+        <MapPlusCodes />
 
-      <View style={styles.toggleWrapper}>
-        <FlatList
-          data={filteredMapLayers}
-          keyExtractor={([key]) => key}
-          renderItem={({ item: [key, config] }) => (
-            <View style={styles.toggleContainer}>
-              <Switch
-                value={enabledLayers[key]}
-                onValueChange={() => void dispatch(mapActions.toggleLayer(key))}
-              />
-              <Text style={styles.layerToggle}> {config.title} </Text>
-            </View>
-          )}
-        />
+        <View className="absolute top-16 left-2.5">
+          <FlatList
+            data={filteredMapLayers}
+            keyExtractor={([key]) => key}
+            renderItem={({ item: [key, config] }) => (
+              <View className="flex-row items-center p-2.5 bg-black/30">
+                <Switch
+                  value={enabledLayers[key]}
+                  onValueChange={() =>
+                    void dispatch(mapActions.toggleLayer(key))
+                  }
+                />
+                <Text className="text-white bg-black/20"> {config.title} </Text>
+              </View>
+            )}
+          />
+        </View>
       </View>
-
       {/* This should be removed and deleted once the plus code map goes live */}
       <MapAddNoteModal />
       <MapModal />
       <HalfMapEventModal />
-    </View>
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  mapContainer: {
-    flex: 1,
-  },
-  toggleWrapper: { position: "absolute", top: 40, left: 10 },
-  toggleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 10,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
-  },
-  map: {
-    width: "100%",
-    height: "100%",
-  },
-  layerToggle: {
-    color: "rgba(255,255,255,1)",
-    backgroundColor: "rgba(10, 10, 0, 0.2)",
-  },
-});

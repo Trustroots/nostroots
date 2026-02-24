@@ -34,6 +34,7 @@ import { getFirstLabelValueFromEvent } from "@trustroots/nr-common";
 import Toast from "react-native-root-toast";
 import { openEvent } from "@/startup/notifications.startup";
 import { useKeyImport } from "@/hooks/useKeyImport";
+import { Stack } from "expo-router";
 
 const ToggleSwitch = ({
   value,
@@ -233,9 +234,12 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView contentContainerClassName="p-safe-offset-4 bg-background">
-      <Text variant="h1">Settings</Text>
-
+    <ScrollView contentContainerClassName="px-safe-offset-4 pb-safe-offset-6 bg-background">
+      <Stack.Screen
+        options={{
+          title: "Settings",
+        }}
+      />
       {hasUsernameOrHasTestFeaturesEnabled ? (
         <Section>
           <Text className="font-bold">trustroots.org username:</Text>

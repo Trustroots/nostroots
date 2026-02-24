@@ -6,7 +6,6 @@ import React, { useMemo } from "react";
 import { FlatList, StyleSheet, Switch, Text, View } from "react-native";
 import HalfMapEventModal from "./HalfMapEventModal";
 import MapAddNoteModal from "./MapAddNoteModal";
-import { MapMarkers } from "./MapMarkers";
 import MapModal from "./MapModal";
 import MapPlusCodes from "./MapPlusCodes";
 
@@ -17,9 +16,6 @@ export default function Map() {
   const enabledLayers = useAppSelector(mapSelectors.selectEnabledLayers);
   const areTestFeaturesEnabled = useAppSelector(
     settingsSelectors.selectAreTestFeaturesEnabled,
-  );
-  const enablePlusCodeMapTEMPORARY = useAppSelector(
-    mapSelectors.selectEnablePlusCodeMapTEMPORARY,
   );
   const dispatch = useAppDispatch();
 
@@ -40,7 +36,7 @@ export default function Map() {
 
   return (
     <View style={styles.mapContainer}>
-      {enablePlusCodeMapTEMPORARY ? <MapPlusCodes /> : <MapMarkers />}
+      <MapPlusCodes />
 
       <View style={styles.toggleWrapper}>
         <FlatList

@@ -292,14 +292,6 @@ export default function SettingsScreen() {
 
       {areTestFeaturesEnabled ? (
         <Section>
-          <ToggleSwitch
-            label="Enable the experimental plus code map"
-            value={enablePlusCodeMapTEMPORARY}
-            onToggle={() => {
-              dispatch(mapActions.togglePlusCodeMapTEMPORARY());
-            }}
-          />
-
           <BuildData />
           <Text className="font-bold">relays</Text>
           <TextInput

@@ -1,1 +1,6 @@
-cd nr-app && pnpm prettier --write . && pnpm lint --fix
+# Only run lint-staged if staged files include nr-app changes
+STAGED_NR_APP=$(git diff --cached --name-only --diff-filter=ACMR | grep '^nr-app/' || true)
+
+if [ -n "$STAGED_NR_APP" ]; then
+  cd nr-app && pnpm lint-staged
+fi

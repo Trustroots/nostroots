@@ -3,10 +3,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { getBech32PrivateKey } from "nip06";
 import { useState } from "react";
-import { Modal, ScrollView, Switch, TextInput, View } from "react-native";
+import { ScrollView, Switch, TextInput, View } from "react-native";
 
 import BuildData from "@/components/BuildData";
-import OnboardModal from "@/components/OnboardModal";
 import { KeyInput } from "@/components/KeyInput";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
@@ -98,8 +97,8 @@ export default function SettingsScreen() {
     settingsSelectors.selectAreTestFeaturesEnabled,
   ) as boolean;
 
-  // Onboarding configuration and debug flags.
-  const { useNewOnboarding, useSkipOnboarding, forceOnboarding, forceWelcome } =
+  // Onboarding configuration flags.
+  const { useSkipOnboarding, forceOnboarding, forceWelcome } =
     useAppSelector(selectFeatureFlags);
 
   const [nsec, setNsec] = useState("");
@@ -122,8 +121,6 @@ export default function SettingsScreen() {
   const deviceIsRegisteredForNotifications = useAppSelector((state) =>
     state.notifications.tokens.some((t) => t.expoPushToken === expoPushToken),
   );
-
-  const [modalVisible, setModalVisible] = useState(false);
 
   const centerMapOnPlusCode = async () => {
     const testEventData = {
@@ -192,8 +189,6 @@ export default function SettingsScreen() {
 
   const inputClassName = "border border-border rounded px-3 py-2 bg-background";
 
-  const doesNotHaveUsernameOrHasTestFeaturesEnabled =
-    username === "" || areTestFeaturesEnabled;
   const hasUsernameOrHasTestFeaturesEnabled =
     (typeof username === "string" && username.length > 0) ||
     areTestFeaturesEnabled;
@@ -239,25 +234,7 @@ export default function SettingsScreen() {
 
   return (
     <ScrollView contentContainerClassName="p-safe-offset-4 bg-background">
-      <View>
-        <Modal
-          animationType="slide"
-          transparent={false}
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <OnboardModal setModalVisible={setModalVisible} />
-        </Modal>
-      </View>
-
       <Text variant="h1">Settings</Text>
-
-      {doesNotHaveUsernameOrHasTestFeaturesEnabled ? (
-        <Button
-          title="Link Your Trustroots.org Profile"
-          onPress={() => setModalVisible(true)}
-        />
-      ) : null}
 
       {hasUsernameOrHasTestFeaturesEnabled ? (
         <Section>
@@ -481,15 +458,7 @@ export default function SettingsScreen() {
           <Text variant="h2">Onboarding / Welcome Flags</Text>
 
           <ToggleSwitch
-            label="Use new onboarding flow"
-            value={useNewOnboarding}
-            onToggle={() => {
-              dispatch(settingsActions.setUseNewOnboarding(!useNewOnboarding));
-            }}
-          />
-
-          <ToggleSwitch
-            label="Allow skipping new onboarding flow"
+            label="Allow skipping onboarding flow"
             value={useSkipOnboarding}
             onToggle={() => {
               dispatch(

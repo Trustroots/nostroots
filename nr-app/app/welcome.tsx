@@ -1,14 +1,17 @@
+import { useRouter } from "expo-router";
 import React from "react";
-
 import { View } from "react-native";
-import { Button } from "./ui/button";
-import { Text } from "./ui/text";
 
-interface WelcomeScreenProps {
-  onClose: () => void;
-}
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
 
-const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onClose }) => {
+export default function WelcomeScreen() {
+  const router = useRouter();
+
+  const handleGetStarted = () => {
+    router.replace("/onboarding");
+  };
+
   return (
     <View className="absolute inset-0 p-safe-offset-6 bg-background flex justify-center items-center gap-6">
       <Text
@@ -34,7 +37,7 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onClose }) => {
 
       <View className="w-full max-w-xs">
         <Button
-          onPress={onClose}
+          onPress={handleGetStarted}
           title="Get Started"
           size="lg"
           textClassName="uppercase"
@@ -46,6 +49,4 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onClose }) => {
       </Text>
     </View>
   );
-};
-
-export default WelcomeScreen;
+}

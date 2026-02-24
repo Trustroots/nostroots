@@ -84,13 +84,20 @@ export default function AddNoteForm() {
           );
 
         try {
+          // time out after 5s
+          const timeout = setTimeout(() => {
+            throw new Error("Note publishing timed out.");
+          }, 5000);
+
           await dispatch(
-            publishNotePromiseAction(
+            await publishNotePromiseAction(
               noteContent,
               selectedPlusCode,
               expirationTimestampSeconds,
             ),
           );
+
+          clearTimeout(timeout);
 
           Toast.show("Note added successfully", {
             duration: Toast.durations.LONG,

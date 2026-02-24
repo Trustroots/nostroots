@@ -24,23 +24,21 @@ const responseSchema = z.discriminatedUnion("action", [
 
 export type Response = z.infer<typeof responseSchema>;
 
-export function acceptEvent(strfryLine: StrfryLine) {
+export function acceptEvent(strfryLine: StrfryLine): string {
   const { id } = strfryLine.event;
   const response: AcceptResponse = {
     id,
     action: "accept",
   };
-  const responseLine = JSON.stringify(response);
-  console.log(responseLine);
+  return JSON.stringify(response);
 }
 
-export function rejectEvent(strfryLine: StrfryLine, message: string) {
+export function rejectEvent(strfryLine: StrfryLine, message: string): string {
   const { id } = strfryLine.event;
   const response: RejectResponse = {
     id,
     action: "reject",
     msg: message,
   };
-  const responseLine = JSON.stringify(response);
-  console.log(responseLine);
+  return JSON.stringify(response);
 }

@@ -221,36 +221,33 @@ export default function MapPlusCodes() {
           handleMapRegionChange(region, {});
         }}
       >
-        {true &&
-          (plusCodesWithState as any[]).map(
-            (plusCodeWithState: any, index: any) => {
-              const isSelected =
-                selectedPlusCode?.startsWith(plusCodeWithState.plusCode) ||
-                plusCodeWithState.plusCode.startsWith(selectedPlusCode ?? "");
-              const shouldShowSelected = isMapModalOpen && isSelected;
-              return (
-                <Polygon
-                  key={index}
-                  coordinates={plusCodeToRectangle(plusCodeWithState.plusCode)}
-                  fillColor={
-                    shouldShowSelected
-                      ? "rgba(0, 90, 120, 0.6)" // Darker teal tint for selected cell
-                      : `rgba(${Math.min(255, (plusCodeWithState.eventCountForThisPlusCodeExactly + plusCodeWithState.eventCountWithinThisPlusCode) * 60).toString()}, 0, 0, 0.6)`
-                  }
-                  strokeColor="rgba(0, 0, 0, 0.5)"
-                  strokeWidth={2}
-                  tappable={true}
-                  onPress={() => {
-                    dispatch(
-                      mapActions.setSelectedPlusCode(
-                        plusCodeWithState.plusCode,
-                      ),
-                    );
-                  }}
-                />
-              );
-            },
-          )}
+        {(plusCodesWithState as any[]).map(
+          (plusCodeWithState: any, index: any) => {
+            const isSelected =
+              selectedPlusCode?.startsWith(plusCodeWithState.plusCode) ||
+              plusCodeWithState.plusCode.startsWith(selectedPlusCode ?? "");
+            const shouldShowSelected = isMapModalOpen && isSelected;
+            return (
+              <Polygon
+                key={index}
+                coordinates={plusCodeToRectangle(plusCodeWithState.plusCode)}
+                fillColor={
+                  shouldShowSelected
+                    ? "rgba(0, 90, 120, 0.6)" // Darker teal tint for selected cell
+                    : `rgba(${Math.min(255, (plusCodeWithState.eventCountForThisPlusCodeExactly + plusCodeWithState.eventCountWithinThisPlusCode) * 60).toString()}, 0, 0, 0.6)`
+                }
+                strokeColor="rgba(0, 0, 0, 0.5)"
+                strokeWidth={2}
+                tappable={true}
+                onPress={() => {
+                  dispatch(
+                    mapActions.setSelectedPlusCode(plusCodeWithState.plusCode),
+                  );
+                }}
+              />
+            );
+          },
+        )}
       </MapView>
       <TouchableOpacity
         style={styles.locationButton}

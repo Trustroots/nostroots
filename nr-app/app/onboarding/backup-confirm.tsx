@@ -194,7 +194,7 @@ export default function OnboardingBackupConfirmScreen() {
           autoCapitalize="none"
           autoCorrect={false}
           multiline
-          className="w-full bg-white text-black rounded-md p-3 text-sm min-h-[72px]"
+          className="w-full bg-card text-foreground rounded-md p-3 text-sm min-h-[72px]"
         />
 
         {error && <Text className="text-xs text-red-500 mt-1">{error}</Text>}

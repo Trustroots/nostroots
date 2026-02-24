@@ -1,6 +1,8 @@
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "../store";
 
+export type ColorSchemePreference = "system" | "light" | "dark";
+
 type SettingsState = {
   username: string | null;
   hasBeenOpenedBefore: boolean;
@@ -10,6 +12,7 @@ type SettingsState = {
   useSkipOnboarding: boolean;
   forceOnboarding: boolean;
   forceWelcome: boolean;
+  colorScheme: ColorSchemePreference;
 };
 
 const initialState: SettingsState = {
@@ -21,6 +24,7 @@ const initialState: SettingsState = {
   useSkipOnboarding: true,
   forceOnboarding: false,
   forceWelcome: false,
+  colorScheme: "system",
 };
 
 export const settingsSlice = createSlice({
@@ -51,12 +55,16 @@ export const settingsSlice = createSlice({
     setUseSkipOnboarding: (state, action: PayloadAction<boolean>) => {
       state.useSkipOnboarding = action.payload;
     },
+    setColorScheme: (state, action: PayloadAction<ColorSchemePreference>) => {
+      state.colorScheme = action.payload;
+    },
   },
   selectors: {
     selectAreTestFeaturesEnabled: (state) => state.areTestFeaturesEnabled,
     selectUsername: (state) => state.username,
     selectHasBeenOpenedBefore: (state) => state.hasBeenOpenedBefore,
     selectIsDataLoaded: (state) => state.isDataLoaded,
+    selectColorScheme: (state) => state.colorScheme,
   },
 });
 

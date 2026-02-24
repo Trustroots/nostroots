@@ -10,10 +10,10 @@ interface WelcomeScreenProps {
 
 const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onClose }) => {
   return (
-    <View className="absolute inset-0 p-safe-offset-6 bg-white flex justify-center items-center gap-6">
+    <View className="absolute inset-0 p-safe-offset-6 bg-background flex justify-center items-center gap-6">
       <Text
         variant="h1"
-        className="text-3xl font-bold text-gray-900 text-center mb-0"
+        className="text-3xl font-bold text-foreground text-center mb-0"
       >
         Welcome to Nostroots
       </Text>
@@ -21,12 +21,12 @@ const WelcomeScreen: React.FC<WelcomeScreenProps> = ({ onClose }) => {
       <View className="w-1/2 h-1 bg-primary" />
 
       <View className="flex gap-4 max-w-sm">
-        <Text className="text-gray-600 leading-relaxed text-balance text-center">
+        <Text className="text-muted-foreground leading-relaxed text-balance text-center">
           Connect with travelers and locals through shared map notes and
           experiences.
         </Text>
 
-        <Text className="text-gray-600 leading-relaxed text-balance text-center">
+        <Text className="text-muted-foreground leading-relaxed text-balance text-center">
           Share locations, tips, and stories without relying on centralized
           platforms.
         </Text>

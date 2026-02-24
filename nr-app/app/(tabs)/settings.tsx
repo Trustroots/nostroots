@@ -26,6 +26,7 @@ import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { notificationsActions } from "@/redux/slices/notifications.slice";
 import {
+  ColorSchemePreference,
   selectFeatureFlags,
   settingsActions,
   settingsSelectors,
@@ -46,11 +47,45 @@ const ToggleSwitch = ({
 }) => {
   return (
     <View className="flex flex-row gap-2 items-center">
-      <Switch value={value} onChange={onToggle} />
+      <Switch
+        value={value}
+        onChange={onToggle}
+        trackColor={{ false: "#767577", true: "#0d9488" }}
+      />
       <Text variant="small">{label}</Text>
     </View>
   );
 };
+
+const APPEARANCE_OPTIONS: { value: ColorSchemePreference; label: string }[] = [
+  { value: "system", label: "System" },
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
+
+function AppearanceSection() {
+  const dispatch = useAppDispatch();
+  const colorScheme = useAppSelector(settingsSelectors.selectColorScheme);
+
+  return (
+    <Section>
+      <Text variant="h2">Appearance</Text>
+      <View className="flex flex-row gap-2">
+        {APPEARANCE_OPTIONS.map((option) => (
+          <Button
+            key={option.value}
+            variant={colorScheme === option.value ? "default" : "outline"}
+            size="sm"
+            title={option.label}
+            onPress={() =>
+              dispatch(settingsActions.setColorScheme(option.value))
+            }
+          />
+        ))}
+      </View>
+    </Section>
+  );
+}
 
 export default function SettingsScreen() {
   const dispatch = useAppDispatch();
@@ -155,7 +190,7 @@ export default function SettingsScreen() {
     }
   };
 
-  const inputClassName = "border border-gray-300 rounded px-3 py-2 bg-white";
+  const inputClassName = "border border-border rounded px-3 py-2 bg-background";
 
   const doesNotHaveUsernameOrHasTestFeaturesEnabled =
     username === "" || areTestFeaturesEnabled;
@@ -203,7 +238,7 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView contentContainerClassName="p-safe-offset-4 bg-white">
+    <ScrollView contentContainerClassName="p-safe-offset-4 bg-background">
       <View>
         <Modal
           animationType="slide"
@@ -275,7 +310,7 @@ export default function SettingsScreen() {
           You can paste either an nsec key or a 12-word mnemonic phrase.
         </Text>
 
-        <View className="bg-gray-50 rounded-lg p-4 gap-4 mt-4">
+        <View className="bg-muted rounded-lg p-4 gap-4 mt-4">
           <KeyInput
             value={keyInput}
             onChangeText={setKeyInput}
@@ -428,6 +463,8 @@ export default function SettingsScreen() {
           database and thus the official organization irrelevant.
         </Text>
       </Section>
+
+      <AppearanceSection />
 
       <Section>
         <ToggleSwitch

@@ -157,14 +157,14 @@ export default function OnboardingLinkScreen() {
   }
 
   const StepCard = ({ stepNumber, title, children }: StepCardProps) => (
-    <View className="bg-white rounded-xl p-4 w-full gap-3">
+    <View className="bg-card rounded-xl p-4 w-full gap-3">
       <View className="flex flex-row items-center gap-2">
         <View className="bg-primary rounded w-6 h-6 items-center justify-center">
           <Text className="text-primary-foreground font-bold text-sm">
             {stepNumber}.
           </Text>
         </View>
-        <Text className="font-bold text-black">{title}</Text>
+        <Text className="font-bold text-foreground">{title}</Text>
       </View>
       {children}
     </View>
@@ -184,11 +184,11 @@ export default function OnboardingLinkScreen() {
 
       <View className="flex gap-6 w-full">
         <StepCard stepNumber={1} title="Copy Your Public Key">
-          <Text className="text-sm text-gray-600 mb-2 text-left">
+          <Text className="text-sm text-muted-foreground mb-2 text-left">
             Tap on it to copy it to clipboard.
           </Text>
           <Text
-            className="text-sm bg-gray-100 text-black rounded-md p-3 w-full text-left"
+            className="text-sm bg-muted text-foreground rounded-md p-3 w-full text-left"
             numberOfLines={1}
             onPress={handleCopy}
           >
@@ -197,7 +197,7 @@ export default function OnboardingLinkScreen() {
         </StepCard>
 
         <StepCard stepNumber={2} title="Add to Trustroots Profile">
-          <Text className="text-sm text-gray-600 mb-2 text-left">
+          <Text className="text-sm text-muted-foreground mb-2 text-left">
             Log in to Trustroots, then scroll to the bottom of your Networks
             page and paste your public key there.
           </Text>
@@ -218,7 +218,7 @@ export default function OnboardingLinkScreen() {
               setLinkStatus("idle");
             }}
             placeholder="Enter your Trustroots username"
-            className="w-full bg-gray-100 text-black rounded-md p-3 text-sm mb-2 text-left"
+            className="w-full bg-muted text-foreground rounded-md p-3 text-sm mb-2 text-left"
           />
           <Button
             title={

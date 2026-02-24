@@ -99,7 +99,7 @@ export default function ListScreen() {
           className="flex-row items-center gap-1"
         >
           <Icon as={ArrowDownUp} size={16} className="text-foreground" />
-          <Text className="text-sm">
+          <Text className="text-sm text-foreground">
             {sortOrder === "newest" ? "Newest" : "Oldest"}
           </Text>
         </Button>
@@ -119,7 +119,7 @@ export default function ListScreen() {
           description="Notes will appear here once they are created"
         />
       }
-      contentContainerClassName="p-safe-offset-4 bg-white"
+      contentContainerClassName="p-safe-offset-4 bg-background"
       contentContainerStyle={{ flexGrow: 1 }}
       ItemSeparatorComponent={() => <View className="h-4" />}
     />

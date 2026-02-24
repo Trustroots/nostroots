@@ -2,7 +2,11 @@ import { getPublicKeyHexFromSecureStorage } from "@/nostr/keystore.nostr";
 
 import { nip19 } from "nostr-tools";
 
-import { DefaultTheme, ThemeProvider } from "@react-navigation/native";
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
 import { getNip5PubKey } from "@trustroots/nr-common";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
@@ -32,7 +36,10 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import OnboardModal from "@/components/OnboardModal";
 import WelcomeScreen from "@/components/WelcomeModal";
-import { colorScheme } from "nativewind";
+import {
+  colorScheme as nativewindColorScheme,
+  useColorScheme,
+} from "nativewind";
 
 import {
   selectFeatureFlags,
@@ -79,6 +86,28 @@ function AppContent() {
   const [nip5Error, setNip5Error] = useState<boolean | string | null>(null);
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
+
+  // Sync color scheme preference from Redux to nativewind
+  // Force light mode on certain routes
+  const { colorScheme } = useColorScheme();
+  const colorSchemePreference = useAppSelector(
+    settingsSelectors.selectColorScheme,
+  );
+
+  const FORCE_LIGHT_MODE_ROUTES = ["/onboarding"];
+  const forceLightMode =
+    FORCE_LIGHT_MODE_ROUTES.some((route) => pathname?.startsWith(route)) &&
+    !welcomeVisible;
+
+  useEffect(() => {
+    if (forceLightMode) {
+      nativewindColorScheme.set("light");
+    } else if (colorSchemePreference === "system") {
+      nativewindColorScheme.set("system");
+    } else {
+      nativewindColorScheme.set(colorSchemePreference);
+    }
+  }, [colorSchemePreference, forceLightMode]);
 
   const username = useAppSelector(settingsSelectors.selectUsername);
   const hasBeenOpenedBefore = useAppSelector(
@@ -195,7 +224,9 @@ function AppContent() {
   return (
     <RootSiblingParent>
       <GestureHandlerRootView>
-        <StatusBar barStyle="dark-content" />
+        <StatusBar
+          barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
+        />
         {welcomeVisible ? (
           <WelcomeScreen onClose={() => setWelcomeVisible(false)} />
         ) : onboardVisible && !useNewOnboarding ? (
@@ -216,6 +247,7 @@ function AppContent() {
 }
 
 function RootLayout() {
+  const { colorScheme } = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
@@ -223,8 +255,6 @@ function RootLayout() {
   useUpdateOnForeground();
 
   useEffect(() => {
-    colorScheme.set("light");
-
     const subscription = setupNotificationHandling();
 
     if (loaded) {
@@ -253,8 +283,7 @@ function RootLayout() {
         }}
       >
         <ThemeProvider
-          value={DefaultTheme}
-          // value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
         >
           <KeyboardProvider>
             <AppContent />

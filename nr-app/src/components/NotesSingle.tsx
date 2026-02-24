@@ -48,13 +48,13 @@ export default function NotesSingle({
 
   return (
     <Section
-      className={`px-4 pb-4 bg-white rounded-lg border ${isSelected ? "border-red-500" : "border-gray-200"}`}
+      className={`px-4 pb-4 bg-card rounded-lg border ${isSelected ? "border-red-500" : "border-border"}`}
     >
       <Text variant="p">{eventWithMetadata.event.content}</Text>
       <View className="mb-2">
         <NoteAuthorInfo authorPublicKey={authorPublicKey} />
       </View>
-      <Text variant="muted" className="text-xs text-gray-500 font-mono">
+      <Text variant="muted" className="text-xs font-mono">
         ID: {eventWithMetadata.event.id.slice(0, 24)}...
       </Text>
     </Section>

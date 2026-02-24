@@ -19,14 +19,12 @@ type stdinEvent struct {
 }
 
 func main() {
-	log.SetPrefix("#nr-relay ")
-
 	url := os.Getenv("PLUGIN_HTTP_URL")
 	if url == "" {
-		log.Fatal("PLUGIN_HTTP_URL is not set")
+		log.Fatal("#fxQ0Fy PLUGIN_HTTP_URL is not set")
 	}
 
-	log.Printf("Forwarding stdin to %s", url)
+	log.Printf("#jHN6QB Forwarding stdin to %s", url)
 
 	client := &http.Client{Timeout: 5 * time.Second}
 
@@ -35,7 +33,7 @@ func main() {
 
 	for scanner.Scan() {
 		line := scanner.Bytes()
-		log.Printf("Received %d bytes from stdin", len(line))
+		log.Printf("#IKJf6Y Received %d bytes from stdin", len(line))
 
 		// Extract event.id for error fallback responses.
 		var parsed stdinEvent
@@ -44,7 +42,7 @@ func main() {
 
 		resp, err := client.Post(url, "application/json", bytes.NewReader(line))
 		if err != nil {
-			log.Printf("HTTP request failed: %s", err)
+			log.Printf("#LnpdBc HTTP request failed: %s", err)
 			writeReject(eventID, fmt.Sprintf("error: HTTP request failed: %s", err))
 			continue
 		}
@@ -53,24 +51,24 @@ func main() {
 		resp.Body.Close()
 
 		if err != nil {
-			log.Printf("Failed to read response body: %s", err)
+			log.Printf("#T89wto Failed to read response body: %s", err)
 			writeReject(eventID, fmt.Sprintf("error: failed to read response body: %s", err))
 			continue
 		}
 
 		if resp.StatusCode != http.StatusOK {
-			log.Printf("HTTP %d: %s", resp.StatusCode, string(body))
+			log.Printf("#SbhERA HTTP %d: %s", resp.StatusCode, string(body))
 			writeReject(eventID, fmt.Sprintf("error: HTTP %d", resp.StatusCode))
 			continue
 		}
 
 		os.Stdout.Write(body)
 		os.Stdout.Write([]byte("\n"))
-		log.Printf("Forwarded response for event %s", eventID)
+		log.Printf("#ON8Dt9 Forwarded response for event %s", eventID)
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Printf("Error reading from stdin: %s", err)
+		log.Printf("#8n0W2n Error reading from stdin: %s", err)
 	}
 }
 
@@ -83,5 +81,5 @@ func writeReject(eventID, msg string) {
 	out, _ := json.Marshal(response)
 	os.Stdout.Write(out)
 	os.Stdout.Write([]byte("\n"))
-	log.Printf("Wrote reject for event %s: %s", eventID, msg)
+	log.Printf("#kX1OvU Wrote reject for event %s: %s", eventID, msg)
 }

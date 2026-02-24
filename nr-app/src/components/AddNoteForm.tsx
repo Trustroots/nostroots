@@ -4,12 +4,7 @@ import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
 import { getCurrentTimestamp } from "@trustroots/nr-common";
 import { useMemo, useState } from "react";
-import {
-  Button,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Button, StyleSheet, Text, View } from "react-native";
 import Toast from "react-native-root-toast";
 import {
   Select,

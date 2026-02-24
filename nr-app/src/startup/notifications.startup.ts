@@ -66,7 +66,10 @@ async function handleInitialNotificationResponse(): Promise<void> {
     }
   } catch (error) {
     if (__DEV__) {
-      console.log("#2t3pWw Failed to read initial notification response", error);
+      console.log(
+        "#2t3pWw Failed to read initial notification response",
+        error,
+      );
     }
   }
 }

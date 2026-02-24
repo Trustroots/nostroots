@@ -24,7 +24,7 @@ eas build:run --profile development --platform android --latest # android
 eas build:run --platform ios --profile simulator --latest # ios
 ```
 
-NOTE: The following error means that the builds on eas have expired. You can log into GitHub, go to [this page](https://github.com/Trustroots/nostroots/actions/workflows/eas-build.yaml), click "Run workflow", and choose `android-development` or `ios-development`.
+NOTE: The following error means that the builds on eas have expired. You can log into GitHub, go to [this page](https://github.com/Trustroots/nostroots/actions/workflows/eas-build.yaml), click "Run workflow", and choose `android-development` or `ios-simulator` (or `ios-development` if you want to run it on your actual iPhone).
 
 ```
 Artifacts for the latest build have expired and are no longer available, or this is not a simulator/emulator build.

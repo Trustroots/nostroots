@@ -6,6 +6,7 @@ import { TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { ROUTES } from "@/constants/routes";
 import {
   getHasPrivateKeyHexInSecureStorage,
   getHasPrivateKeyMnemonicInSecureStorage,
@@ -148,7 +149,7 @@ export default function OnboardingBackupConfirmScreen() {
     if (!success) return;
     setInput("");
     setError(null);
-    router.replace("/(tabs)");
+    router.replace(ROUTES.HOME);
   };
 
   const handleBack = () => {

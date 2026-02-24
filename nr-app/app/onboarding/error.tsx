@@ -4,6 +4,7 @@ import { View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { ROUTES } from "@/constants/routes";
 import { AlertTriangleIcon } from "lucide-react-native";
 
 export default function OnboardingErrorScreen() {
@@ -14,7 +15,7 @@ export default function OnboardingErrorScreen() {
   };
 
   const handleClose = () => {
-    router.replace("/(tabs)");
+    router.replace(ROUTES.HOME);
   };
 
   return (

@@ -4,6 +4,7 @@ import { ScrollView, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { ROUTES } from "@/constants/routes";
 import { IdCardLanyardIcon } from "lucide-react-native";
 import { selectFeatureFlags } from "@/redux/slices/settings.slice";
 import { useAppSelector } from "@/redux/hooks";
@@ -21,7 +22,7 @@ export default function OnboardingIdentityScreen() {
   };
 
   const goSkip = () => {
-    router.push("/(tabs)");
+    router.push(ROUTES.HOME);
   };
 
   return (

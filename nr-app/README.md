@@ -15,7 +15,7 @@ If you want to use a development build, you can switch to that by
 pressing `s`. Open an emulator or simulator with this build using the
 commands available.
 
-## Run a development build
+## Install a development build
 
 You will want to run a development build on an emulator/simulator on your laptop. Run the correct command for your platform:
 
@@ -24,7 +24,7 @@ eas build:run --profile development --platform android --latest # android
 eas build:run --platform ios --profile simulator --latest # ios
 ```
 
-NOTE: The following error means that the builds on eas have expired. You can log into GitHub, go to [this page](https://github.com/Trustroots/nostroots/actions/workflows/eas-build.yaml), click "Run workflow", and choose `android-development` or `ios-simulator` (or `ios-development` if you want to run it on your actual iPhone).
+NOTE: The following error means that the builds on eas have expired. You can log into GitHub, go to [this page](https://github.com/Trustroots/nostroots/actions/workflows/eas-build.yaml), click "Run workflow", and choose `android-development` or `ios-simulator` (or `ios-development` if you want to run it on your actual iPhone). Afterwards, use `pnpm run start` and select development build and the simulator or device you installed the development build on.
 
 ```
 Artifacts for the latest build have expired and are no longer available, or this is not a simulator/emulator build.

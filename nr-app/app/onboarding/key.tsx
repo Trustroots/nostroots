@@ -122,11 +122,11 @@ export default function OnboardingKeyScreen() {
           }
         >
           <TabsList>
-            <TabsTrigger value="existing">
-              <Text>Import</Text>
-            </TabsTrigger>
             <TabsTrigger value="generate">
               <Text>Generate</Text>
+            </TabsTrigger>
+            <TabsTrigger value="existing">
+              <Text>Import</Text>
             </TabsTrigger>
           </TabsList>
 

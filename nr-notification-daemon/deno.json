@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "run": "deno run --allow-net --allow-env main.ts",
+    "dev": "deno run --allow-net --allow-env --watch main.ts"
+  },
+  "imports": {
+    "@trustroots/nr-common": "../nr-common/mod.ts",
+    "@nashaddams/amqp": "jsr:@nashaddams/amqp@1.1.0",
+    "zod": "npm:zod@^3.25.76"
+  }
+}

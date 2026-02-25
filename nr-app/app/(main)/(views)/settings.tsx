@@ -234,11 +234,15 @@ export default function SettingsScreen() {
   };
 
   const handleImportKey = async () => {
-    const success = await importKey(keyInput);
+    const result = await importKey(keyInput);
 
-    if (success) {
+    if (result.success) {
       setKeyInput("");
-      Toast.show("Key imported successfully", {
+      const message =
+        result.type === "mnemonic"
+          ? "Mnemonic imported successfully"
+          : "Key imported successfully";
+      Toast.show(message, {
         duration: Toast.durations.SHORT,
         position: Toast.positions.BOTTOM,
       });

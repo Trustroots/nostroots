@@ -9,13 +9,6 @@ function truncateContent(s: string, max: number): string {
   return runes.slice(0, max).join("") + "...";
 }
 
-function plusCodeFromTags(event: NostrEvent): string {
-  const tag = event.tags.find(
-    (tag) => tag.length >= 2 && (tag[0] === "#l" || tag[0] === "l"),
-  );
-  return tag?.[1] ?? "unknown";
-}
-
 interface ExpoPushMessage {
   readonly to: string;
   readonly title: string;
@@ -39,10 +32,7 @@ export async function sendPushNotifications(
   expoAccessToken: string,
   username?: string,
 ): Promise<void> {
-  const plusCode = plusCodeFromTags(event);
-  const title = username
-    ? `${username} in ${plusCode}`
-    : `New note in ${plusCode}`;
+  const title = `${username ?? "Somebody"} posted on the map`;
   const body = truncateContent(event.content, 80);
   const eventJson = JSON.stringify(event);
 

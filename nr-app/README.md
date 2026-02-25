@@ -62,3 +62,13 @@ macOS notes:
 
 iOS development only works if you're running macOS and you need to
 install XCode.
+
+### Metro Dev Container
+
+`.devcontainer/metro/devcontainer.json` sets up a vscode docker container to run the Metro bundler on.
+
+In the local (non-docker container) run the expo command to get the simulator:
+
+```bash
+REACT_NATIVE_PACKAGER_HOSTNAME=localhost SENTRY_DISABLE_AUTO_UPLOAD=true npx expo run:ios --no-bundler
+```

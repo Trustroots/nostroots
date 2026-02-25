@@ -16,7 +16,7 @@ function getEnvString(key: string, fallback?: string): string {
 export const config = {
   privateKey: getEnvString("PRIVATEKEY"),
   expoAccessToken: getEnvString("EXPOACCESSTOKEN"),
-  strfryUrl: getEnvString("STRFRY_URL", "ws://localhost:7777"),
-  amqpUrl: getEnvString("AMQP_URL", "amqp://guest:guest@localhost:5672/"),
-  rabbitmqQueue: getEnvString("RABBITMQ_QUEUE", "nostr_events"),
+  strfryUrl: getEnvString("STRFRY_URL"),
+  amqpUrl: getEnvString("AMQP_URL"),
+  rabbitmqQueue: getEnvString("RABBITMQ_QUEUE"),
 };

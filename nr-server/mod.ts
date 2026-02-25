@@ -3,6 +3,12 @@ import { consume } from "./src/consume.ts";
 import { log } from "./src/log.ts";
 import { subscribeAndRepost } from "./src/subscribe.ts";
 
+const HEALTH_PORT = 8082;
+Deno.serve({ port: HEALTH_PORT }, () =>
+  new Response(JSON.stringify({ status: "ok", service: "nr-server" }),
+    { headers: { "content-type": "application/json" } })
+);
+
 function getOrCreatePrivateKey(maybePrivateKeyNsec?: string) {
   if (typeof maybePrivateKeyNsec === "string") {
     const decoded = nostrTools.nip19.decode(maybePrivateKeyNsec);

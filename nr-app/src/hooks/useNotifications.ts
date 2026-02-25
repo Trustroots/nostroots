@@ -21,6 +21,12 @@ function handleRegistrationError(errorMessage: string) {
   throw new Error(errorMessage);
 }
 
+async function ensureNotificationPermission() {
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status === "granted") return status;
+  return (await Notifications.requestPermissionsAsync()).status;
+}
+
 export async function registerForPushNotificationsAsync() {
   match(Platform.OS).with("android", () => {
     Notifications.setNotificationChannelAsync("default", {
@@ -42,15 +48,8 @@ export async function registerForPushNotificationsAsync() {
     return handleRegistrationError("Project ID not found");
   }
 
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== "granted") {
+  const status = await ensureNotificationPermission();
+  if (status !== "granted") {
     return handleRegistrationError(
       "Permission not granted to get push token for push notification!",
     );
@@ -62,7 +61,6 @@ export async function registerForPushNotificationsAsync() {
         projectId,
       })
     ).data;
-    console.log(pushTokenString);
     return pushTokenString;
   } catch (e: unknown) {
     handleRegistrationError(`${e}`);

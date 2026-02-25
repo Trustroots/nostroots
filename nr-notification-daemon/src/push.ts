@@ -37,9 +37,12 @@ export async function sendPushNotifications(
   tokens: readonly PushToken[],
   event: NostrEvent,
   expoAccessToken: string,
+  username?: string,
 ): Promise<void> {
   const plusCode = plusCodeFromTags(event);
-  const title = `New note in plus code ${plusCode}`;
+  const title = username
+    ? `${username} in ${plusCode}`
+    : `New note in ${plusCode}`;
   const body = truncateContent(event.content, 80);
   const eventJson = JSON.stringify(event);
 

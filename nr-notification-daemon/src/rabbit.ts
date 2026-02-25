@@ -26,6 +26,7 @@ export async function consumeFromRabbit(
   privateKey: string,
   publicKey: string,
   expoAccessToken: string,
+  relayUrl: string,
   store: SubscriptionStore,
 ): Promise<void> {
   const url = URL.parse(amqpUrl);
@@ -92,7 +93,7 @@ export async function consumeFromRabbit(
           console.log(
             `Parsed Nostr Event: ID=${event.id} Kind=${event.kind} PubKey=${event.pubkey} Source=${wrapper.sourceInfo}`,
           );
-          await matchAndNotify(event, store, expoAccessToken);
+          await matchAndNotify(event, store, expoAccessToken, relayUrl);
         }
 
         await channel.ack({ deliveryTag: args.deliveryTag });

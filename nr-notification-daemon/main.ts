@@ -23,5 +23,6 @@ await consumeFromRabbit(
   config.privateKey,
   publicKey,
   config.expoAccessToken,
+  config.strfryUrl,
   store,
 );

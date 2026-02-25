@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { useAppSelector } from "@/redux/hooks";
+import { settingsSelectors } from "@/redux/slices/settings.slice";
 
 const PRIMARY_COLOR = "#12a585";
 
@@ -28,6 +30,9 @@ export default function MapLayout() {
 
   const isMapActive = pathname === "/" || pathname === "/index";
   const isListActive = pathname === "/list";
+  const areTestFeaturesEnabled = useAppSelector(
+    settingsSelectors.selectAreTestFeaturesEnabled,
+  );
 
   return (
     <View className="flex-1">
@@ -38,13 +43,15 @@ export default function MapLayout() {
         className="absolute right-2.5 flex-row gap-2 z-10"
         style={{ top: insets.top + 10 }}
       >
-        <Pressable
-          onPress={() => router.push(ROUTES.CONNECT)}
-          className="w-11 h-11 rounded-full items-center justify-center"
-          style={{ backgroundColor: overlayBgColor }}
-        >
-          <Ionicons name="key-outline" size={22} color={overlayIconColor} />
-        </Pressable>
+        {areTestFeaturesEnabled && (
+          <Pressable
+            onPress={() => router.push(ROUTES.CONNECT)}
+            className="w-11 h-11 rounded-full items-center justify-center"
+            style={{ backgroundColor: overlayBgColor }}
+          >
+            <Ionicons name="key-outline" size={22} color={overlayIconColor} />
+          </Pressable>
+        )}
         <Pressable
           onPress={() => router.push(ROUTES.SETTINGS)}
           className="w-11 h-11 rounded-full items-center justify-center"

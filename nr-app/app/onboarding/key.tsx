@@ -2,19 +2,20 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 
+import { KeyInput } from "@/components/KeyInput";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Text, TextClassContext } from "@/components/ui/text";
-import { KeyInput } from "@/components/KeyInput";
+import { useKeyImport } from "@/hooks/useKeyImport";
 import {
   getHasPrivateKeyInSecureStorage,
   getPrivateKeyHexFromSecureStorage,
 } from "@/nostr/keystore.nostr";
 import { useAppDispatch } from "@/redux/hooks";
 import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
+import { settingsActions } from "@/redux/slices/settings.slice";
 import { KeyIcon } from "lucide-react-native";
 import { getBech32PrivateKey } from "nip06";
-import { useKeyImport } from "@/hooks/useKeyImport";
 
 export default function OnboardingKeyScreen() {
   const router = useRouter();
@@ -59,6 +60,7 @@ export default function OnboardingKeyScreen() {
     const success = await importKey(existingKeyInput);
     if (success) {
       setKeySaved(true);
+      dispatch(settingsActions.setKeyWasImported(true));
     }
   };
 
@@ -70,6 +72,7 @@ export default function OnboardingKeyScreen() {
 
     try {
       dispatch(setPrivateKeyPromiseAction.request({ mnemonic }));
+      dispatch(settingsActions.setKeyWasImported(false));
     } catch (error) {
       console.error("Failed to save mnemonic", error);
       setMnemonicError("We could not set up this key. Please try again.");
@@ -146,9 +149,7 @@ export default function OnboardingKeyScreen() {
               />
               <Button
                 size="lg"
-                title={
-                  keySaved ? "Saved" : isImporting ? "Saving..." : "Save Key"
-                }
+                title={keySaved ? "Saved" : isImporting ? "Saving..." : "Save"}
                 disabled={isImporting || keySaved}
                 onPress={saveExistingKey}
               />

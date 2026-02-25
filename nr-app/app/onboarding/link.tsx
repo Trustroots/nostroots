@@ -5,10 +5,14 @@ import { Linking, TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { ROUTES } from "@/constants/routes";
 import { publishEventTemplatePromiseAction } from "@/redux/actions/publish.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
-import { settingsActions } from "@/redux/slices/settings.slice";
+import {
+  settingsActions,
+  settingsSelectors,
+} from "@/redux/slices/settings.slice";
 import { createKind10390EventTemplate } from "@trustroots/nr-common";
 import * as Clipboard from "expo-clipboard";
 import {
@@ -44,9 +48,7 @@ export default function OnboardingLinkScreen() {
 
   const npubFromStore = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
   const publicKeyHex = useAppSelector(keystoreSelectors.selectPublicKeyHex);
-  const hasKeyInStore = useAppSelector(
-    keystoreSelectors.selectHasPrivateKeyInSecureStorage,
-  );
+  const keyWasImported = useAppSelector(settingsSelectors.selectKeyWasImported);
 
   const [trustrootsUsername, setTrustrootsUsername] = useState("");
   const [linkStatus, setLinkStatus] = useState<
@@ -166,7 +168,11 @@ export default function OnboardingLinkScreen() {
   };
 
   const goNext = () => {
-    router.push("/onboarding/backup-confirm");
+    if (keyWasImported) {
+      router.replace(ROUTES.HOME);
+    } else {
+      router.push("/onboarding/backup-confirm");
+    }
   };
 
   return (

@@ -12,6 +12,7 @@ type SettingsState = {
   forceOnboarding: boolean;
   forceWelcome: boolean;
   colorScheme: ColorSchemePreference;
+  keyWasImported: boolean;
 };
 
 const initialState: SettingsState = {
@@ -23,6 +24,7 @@ const initialState: SettingsState = {
   forceOnboarding: false,
   forceWelcome: false,
   colorScheme: "system",
+  keyWasImported: false,
 };
 
 export const settingsSlice = createSlice({
@@ -53,6 +55,9 @@ export const settingsSlice = createSlice({
     setColorScheme: (state, action: PayloadAction<ColorSchemePreference>) => {
       state.colorScheme = action.payload;
     },
+    setKeyWasImported: (state, action: PayloadAction<boolean>) => {
+      state.keyWasImported = action.payload;
+    },
   },
   selectors: {
     selectAreTestFeaturesEnabled: (state) => state.areTestFeaturesEnabled,
@@ -60,6 +65,7 @@ export const settingsSlice = createSlice({
     selectHasBeenOpenedBefore: (state) => state.hasBeenOpenedBefore,
     selectIsDataLoaded: (state) => state.isDataLoaded,
     selectColorScheme: (state) => state.colorScheme,
+    selectKeyWasImported: (state) => state.keyWasImported,
   },
 });
 

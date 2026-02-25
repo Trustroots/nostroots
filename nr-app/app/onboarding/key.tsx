@@ -146,6 +146,7 @@ export default function OnboardingKeyScreen() {
                 onChangeText={setExistingKeyInput}
                 placeholder="Paste your nsec or mnemonic"
                 disabled={isImporting}
+                showPasteButton={true}
               />
               <Button
                 size="lg"
@@ -169,6 +170,7 @@ export default function OnboardingKeyScreen() {
                 generateMode={true}
                 showRegenerateButton={true}
                 onRegenerate={handleRegenerateMnemonic}
+                showCopyButton={true}
               />
               <Button
                 size="lg"

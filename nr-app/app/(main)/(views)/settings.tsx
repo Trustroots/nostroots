@@ -329,6 +329,7 @@ export default function SettingsScreen() {
             value={keyInput}
             onChangeText={handleKeyInputChange}
             disabled={isImporting}
+            showPasteButton={true}
           />
           <Button
             size="lg"

@@ -76,6 +76,7 @@ export default function MapModal() {
         handleIndicatorStyle={{
           backgroundColor: isDark ? "#525252" : "#d1d5db",
         }}
+        containerStyle={{ zIndex: 100 }}
       >
         <BottomSheetScrollView
           className="grow"

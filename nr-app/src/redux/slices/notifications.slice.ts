@@ -43,20 +43,13 @@ export const notificationsSlice = createSlice({
     removeAllFilters: (state) => {
       state.filters = [];
     },
-    setExpoPushToken: (state, action: PayloadAction<string>) => {
-      const isNewToken = state.tokens.every(
-        ({ expoPushToken }) => action.payload !== expoPushToken,
-      );
-      if (isNewToken) {
-        state.tokens = [{ expoPushToken: action.payload }];
-      }
-    },
     addExpoPushToken: (state, action: PayloadAction<string>) => {
       const isNewToken = state.tokens.every(
         ({ expoPushToken }) => action.payload !== expoPushToken,
       );
+
       if (isNewToken) {
-        state.tokens.concat({ expoPushToken: action.payload });
+        state.tokens = state.tokens.concat({ expoPushToken: action.payload });
       }
     },
     removeExpoPushToken: (state, action: PayloadAction<string>) => {
@@ -80,7 +73,7 @@ export const notificationsSlice = createSlice({
     // add support for multiple tokens in the future, and the note schema allows
     // for that.
     selectExpoPushToken: (state) => {
-      if (state.tokens.length === 1) {
+      if (state.tokens.length > 0) {
         return state.tokens[0].expoPushToken;
       }
     },

@@ -17,7 +17,7 @@ import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 
 import { rehydrated } from "@/redux/actions/startup.actions";
-import { setupNotificationHandling } from "@/startup/notifications.startup";
+import { setupNotificationHandling } from "@/services/notifications.service";
 import { PortalHost } from "@rn-primitives/portal";
 import { SENTRY_DSN } from "@trustroots/nr-common";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -105,14 +105,14 @@ function RootLayout() {
 
   useEffect(() => {
     const subscription = setupNotificationHandling();
-
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-
     return () => {
       subscription.remove();
     };
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    SplashScreen.hideAsync();
   }, [loaded]);
 
   if (!loaded) {

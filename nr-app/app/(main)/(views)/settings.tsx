@@ -111,10 +111,6 @@ export default function SettingsScreen() {
     keystoreSelectors.selectPublicKeyHex,
   ) as string;
 
-  const enablePlusCodeMapTEMPORARY = useAppSelector(
-    mapSelectors.selectEnablePlusCodeMapTEMPORARY,
-  ) as boolean;
-
   const notificationSubscriptionsJson = useAppSelector((state) =>
     JSON.stringify(state.notifications),
   );

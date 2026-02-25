@@ -24,7 +24,6 @@ interface MapState {
   centerMapOnHalfModal: boolean;
   currentNotificationEvent?: EventWithMetadata;
   selectedLayer: MAP_LAYER_KEY;
-  enablePlusCodeMapTEMPORARY: boolean;
 }
 
 const initialState: MapState = {
@@ -40,7 +39,6 @@ const initialState: MapState = {
   currentNotificationEvent: undefined,
   selectedPlusCode: "",
   selectedLayer: "trustroots",
-  enablePlusCodeMapTEMPORARY: true,
 };
 
 export const mapSlice = createSlice({
@@ -122,9 +120,6 @@ export const mapSlice = createSlice({
     ) => {
       state.boundingBox = action.payload;
     },
-    togglePlusCodeMapTEMPORARY: (state) => {
-      state.enablePlusCodeMapTEMPORARY = !state.enablePlusCodeMapTEMPORARY;
-    },
     // Action to trigger map animation - handled by saga
     animateToRegion: (
       state,
@@ -180,8 +175,6 @@ export const mapSlice = createSlice({
     selectIsHalfMapEventModalOpen: (state) => state.isHalfMapEventModalOpen,
     selectIsAddNoteModalOpen: (state) => state.isAddNoteModalOpen,
     selectBoundingBox: (state) => state.boundingBox,
-    selectEnablePlusCodeMapTEMPORARY: (state) =>
-      state.enablePlusCodeMapTEMPORARY,
     selectEnabledLayerKeys: createSelector(
       (state: MapState) => state,
       (state: MapState) => [state.selectedLayer],

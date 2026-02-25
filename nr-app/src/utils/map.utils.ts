@@ -324,15 +324,21 @@ export function getEventLinkUrl(event: NostrEvent, layerConfig?: MapLayer) {
   return url;
 }
 
+// add padding
+// use key rather than index for drawing
+// make sure that some timeout error for pulling events once doesn't kill the polygon foever
+// default should be drawing a polygon
+
 export function regionToBoundingBox(region: Region) {
+  const padding = region.latitudeDelta * 0.5; // Add 50% padding to ensure we cover the entire visible area
   const boundingBox = {
     northEast: {
-      latitude: region.latitude + region.latitudeDelta / 2,
-      longitude: region.longitude + region.longitudeDelta / 2,
+      latitude: region.latitude + region.latitudeDelta / 2 + padding,
+      longitude: region.longitude + region.longitudeDelta / 2 + padding,
     },
     southWest: {
-      latitude: region.latitude - region.latitudeDelta / 2,
-      longitude: region.longitude - region.longitudeDelta / 2,
+      latitude: region.latitude - region.latitudeDelta / 2 - padding,
+      longitude: region.longitude - region.longitudeDelta / 2 - padding,
     },
   };
   return boundingBox;

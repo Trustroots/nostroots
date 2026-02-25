@@ -1,0 +1,27 @@
+{
+  "name": "Nostroots Metro",
+  "image": "node:20.18.1",
+  "workspaceFolder": "/app",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
+  "forwardPorts": [8081],
+  "portsAttributes": {
+    "8081": {
+      "label": "Metro Bundler",
+      "onAutoForward": "notify"
+    }
+  },
+  "containerEnv": {
+    "EXPO_USE_METRO_WORKSPACE_ROOT": "1",
+    "EXPO_NO_DOTENV": "1"
+  },
+  "postCreateCommand": "corepack enable && corepack prepare pnpm@9.14.2 --activate && pnpm install --frozen-lockfile",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "remoteUser": "root"
+}

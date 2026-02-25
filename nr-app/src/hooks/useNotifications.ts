@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
-import Constants from "expo-constants";
 import { Platform } from "react-native";
+import { getExpoProjectId } from "@/utils/expo.utils";
+import { match } from "ts-pattern";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -20,49 +21,49 @@ function handleRegistrationError(errorMessage: string) {
   throw new Error(errorMessage);
 }
 
-async function registerForPushNotificationsAsync() {
-  if (Platform.OS === "android") {
+async function ensureNotificationPermission() {
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status === "granted") return status;
+  return (await Notifications.requestPermissionsAsync()).status;
+}
+
+export async function registerForPushNotificationsAsync() {
+  match(Platform.OS).with("android", () => {
     Notifications.setNotificationChannelAsync("default", {
       name: "default",
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
       lightColor: "#FF231F7C",
     });
+  });
+
+  if (!Device.isDevice) {
+    return handleRegistrationError(
+      "Must use physical device for push notifications",
+    );
   }
 
-  if (Device.isDevice) {
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== "granted") {
-      handleRegistrationError(
-        "Permission not granted to get push token for push notification!",
-      );
-      return;
-    }
-    const projectId =
-      Constants?.expoConfig?.extra?.eas?.projectId ??
-      Constants?.easConfig?.projectId;
-    if (!projectId) {
-      handleRegistrationError("Project ID not found");
-    }
-    try {
-      const pushTokenString = (
-        await Notifications.getExpoPushTokenAsync({
-          projectId,
-        })
-      ).data;
-      console.log(pushTokenString);
-      return pushTokenString;
-    } catch (e: unknown) {
-      handleRegistrationError(`${e}`);
-    }
-  } else {
-    handleRegistrationError("Must use physical device for push notifications");
+  const projectId = getExpoProjectId();
+  if (!projectId) {
+    return handleRegistrationError("Project ID not found");
+  }
+
+  const status = await ensureNotificationPermission();
+  if (status !== "granted") {
+    return handleRegistrationError(
+      "Permission not granted to get push token for push notification!",
+    );
+  }
+
+  try {
+    const pushTokenString = (
+      await Notifications.getExpoPushTokenAsync({
+        projectId,
+      })
+    ).data;
+    return pushTokenString;
+  } catch (e: unknown) {
+    handleRegistrationError(`${e}`);
   }
 }
 

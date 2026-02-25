@@ -86,6 +86,7 @@
     "reselect": "^5.1.1",
     "tailwind-merge": "^3.3.1",
     "tailwindcss-animate": "^1.0.7",
+    "ts-pattern": "^5.9.0",
     "url-join-ts": "^1.0.5",
     "utils": "link:@noble/hashes/utils",
     "zod": "^3.25.76"

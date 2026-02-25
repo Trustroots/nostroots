@@ -49,6 +49,15 @@ export const HITCHWIKI_AUTHOR_PUBLIC_KEY =
 export const TIMESAFARI_AUTHOR_PUBLIC_KEY =
   "76e88d2e653fc3655f8e0b97f6bc85f5468eaffc5d64522b584ce13eedbd8af7" as const;
 
+export const E2E_TEST_AUTHOR_PUBLIC_KEY =
+  "eb0314566e34ab24fba09db284932468eea0f98831fe111fe24b8001cfab45ed" as const;
+
+// Public keys that bypass Trustroots profile validation
+export const VALIDATION_BYPASS_PUBLIC_KEYS = [
+  HITCHMAPS_AUTHOR_PUBLIC_KEY,
+  E2E_TEST_AUTHOR_PUBLIC_KEY,
+] as const;
+
 // cross-env DSN id - use for native + server
 export const SENTRY_DSN =
   "https://ea370f9e4aba87f6e69a479f2d41bc23@o4508806276841472.ingest.de.sentry.io/4508806292176976" as const;
@@ -152,4 +161,4 @@ export type MAP_LAYER_KEY = keyof typeof MAP_LAYERS;
 export const PLUS_CODE_TAG_KEY = "l" as const;
 export const LABEL_NAMESPACE_TAG = "L" as const;
 export const DEFAULT_RELAYS = [DEFAULT_RELAY_URL] as const;
-export const DEV_RELAYS = ["ws://localhost:7000"];
+export const DEV_RELAYS = ["ws://nr-relay:7777"];

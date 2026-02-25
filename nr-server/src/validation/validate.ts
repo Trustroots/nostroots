@@ -6,7 +6,7 @@ const {
   getFirstLabelValueFromEvent,
   TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
   getNip5PubKey,
-  HITCHMAPS_AUTHOR_PUBLIC_KEY,
+  VALIDATION_BYPASS_PUBLIC_KEYS,
   TRUSTROOTS_USERNAME_MIN_LENGTH,
 } = nrCommon;
 import { log } from "../log.ts";
@@ -119,8 +119,8 @@ export async function validateEvent(
     return false;
   }
 
-  // Automatically validate all hitchmap notes without checking for kind zero
-  if (event.pubkey === HITCHMAPS_AUTHOR_PUBLIC_KEY) {
+  // Automatically validate events from trusted sources (hitchmaps, e2e tests, etc.)
+  if (VALIDATION_BYPASS_PUBLIC_KEYS.includes(event.pubkey)) {
     return true;
   }
 

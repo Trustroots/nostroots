@@ -1,10 +1,12 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { mapRefService } from "@/utils/mapRef";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { matchFilter } from "nostr-tools";
 import { BoundingBox, LatLng, Region } from "react-native-maps";
+import { persistReducer } from "redux-persist";
 import { setVisiblePlusCodes } from "../actions/map.actions";
-import { AppDispatch, RootState } from "../store";
+import type { AppDispatch, RootState } from "../store";
 import { eventsSelectors, EventWithMetadata } from "./events.slice";
 import { setSubscriptionHasSeenEOSE } from "./relays.slice";
 
@@ -24,6 +26,7 @@ interface MapState {
   centerMapOnHalfModal: boolean;
   currentNotificationEvent?: EventWithMetadata;
   selectedLayer: MAP_LAYER_KEY;
+  savedRegion?: Region;
 }
 
 const initialState: MapState = {
@@ -39,6 +42,7 @@ const initialState: MapState = {
   currentNotificationEvent: undefined,
   selectedPlusCode: "",
   selectedLayer: "trustroots",
+  savedRegion: undefined,
 };
 
 export const mapSlice = createSlice({
@@ -120,6 +124,9 @@ export const mapSlice = createSlice({
     ) => {
       state.boundingBox = action.payload;
     },
+    setSavedRegion: (state, action: PayloadAction<Region>) => {
+      state.savedRegion = action.payload;
+    },
     // Action to trigger map animation - handled by saga
     animateToRegion: (
       state,
@@ -185,6 +192,7 @@ export const mapSlice = createSlice({
     selectCenterMapOnHalfModal: (state: MapState) => state.centerMapOnHalfModal,
     selectCurrentNotificationEvent: (state: MapState) =>
       state.currentNotificationEvent,
+    selectSavedRegion: (state: MapState) => state.savedRegion,
   },
 });
 
@@ -236,4 +244,18 @@ export const mapSelectors = {
   ...mapSliceSelectors,
   selectEnabledLayerKeys,
   selectEventsForSelectedMapLayer,
+};
+
+// Nested persist config for map slice
+// Only persist user preferences and saved map position, not transient UI state
+const mapPersistConfig = {
+  key: "map",
+  storage: AsyncStorage,
+  whitelist: ["savedRegion", "selectedLayer"],
+};
+
+// Slice-like wrapper for combineSlices compatibility
+export const persistedMapSlice = {
+  reducerPath: "map" as const,
+  reducer: persistReducer(mapPersistConfig, mapSlice.reducer),
 };

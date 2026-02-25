@@ -18,7 +18,7 @@
     "postinstall": "patch-package",
     "test": "pnpm test:app && pnpm test:common",
     "test:watch": "pnpm --filter nr-app test",
-    "test:app": "pnpm --filter nr-app test -- --watchAll=false",
+    "test:app": "pnpm --filter nr-app test",
     "test:common": "cd nr-common && deno task test",
     "test:web": "cd nr-web && pnpm test:local"
   }

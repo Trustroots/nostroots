@@ -1,5 +1,5 @@
-import { matchFilter } from "npm:nostr-tools@2.10.4";
-import type { NostrEvent } from "npm:nostr-tools@2.10.4";
+import { matchFilter } from "nostr-tools";
+import type { NostrEvent } from "nostr-tools";
 import type { SubscriptionStore } from "./subscriptionStore.ts";
 import { sendPushNotifications } from "./push.ts";
 
@@ -22,7 +22,7 @@ export async function matchAndNotify(
   console.log(`Event matched ${matchingPairs.length} filters`);
 
   await Promise.all(
-    matchingPairs.map(async ({ filter, pubkey }) => {
+    matchingPairs.map(async ({ pubkey }) => {
       console.log(
         `Filter matched event kind ${event.kind} for pubkey ${pubkey}`,
       );

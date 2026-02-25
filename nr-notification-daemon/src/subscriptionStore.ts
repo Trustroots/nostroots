@@ -1,4 +1,4 @@
-import type { Filter } from "npm:nostr-tools@2.10.4";
+import type { Filter } from "nostr-tools";
 
 export type PushToken = string;
 

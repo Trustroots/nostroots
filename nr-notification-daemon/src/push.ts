@@ -1,4 +1,4 @@
-import type { NostrEvent } from "npm:nostr-tools@2.10.4";
+import type { NostrEvent } from "nostr-tools";
 import type { PushToken } from "./subscriptionStore.ts";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";

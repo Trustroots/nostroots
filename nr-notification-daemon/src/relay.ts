@@ -1,6 +1,6 @@
-import { Relay } from "npm:nostr-tools@2.10.4/relay";
+import { Relay } from "nostr-tools/relay";
 import { NOTIFICATION_SUBSCRIPTION_KIND } from "@trustroots/nr-common";
-import type { NostrEvent } from "npm:nostr-tools@2.10.4";
+import type { NostrEvent } from "nostr-tools";
 import type { SubscriptionStore } from "./subscriptionStore.ts";
 import {
   decryptAndParseSubscription,

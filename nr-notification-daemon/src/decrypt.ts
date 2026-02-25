@@ -1,6 +1,6 @@
-import { nip04 } from "npm:nostr-tools@2.10.4";
+import { nip04 } from "nostr-tools";
 import { kind10395ContentDecryptedDecodedSchema } from "@trustroots/nr-common";
-import type { Filter, NostrEvent } from "npm:nostr-tools@2.10.4";
+import type { Filter, NostrEvent } from "nostr-tools";
 import type { PushToken } from "./subscriptionStore.ts";
 
 export interface DecryptedSubscription {

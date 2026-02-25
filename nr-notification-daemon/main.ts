@@ -1,5 +1,5 @@
-import { getPublicKey } from "npm:nostr-tools@2.10.4/pure";
-import { hexToBytes } from "npm:@noble/hashes@1.7.1/utils";
+import { getPublicKey } from "nostr-tools/pure";
+import { hexToBytes } from "@noble/hashes/utils";
 import { SubscriptionStore } from "./src/subscriptionStore.ts";
 import { loadSubscriptionsFromRelay } from "./src/relay.ts";
 import { consumeFromRabbit } from "./src/rabbit.ts";

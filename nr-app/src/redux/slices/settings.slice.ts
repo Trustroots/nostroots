@@ -13,6 +13,7 @@ type SettingsState = {
   forceWelcome: boolean;
   colorScheme: ColorSchemePreference;
   keyWasImported: boolean;
+  hasAcknowledgedExperimentalLayers: boolean;
 };
 
 const initialState: SettingsState = {
@@ -25,6 +26,7 @@ const initialState: SettingsState = {
   forceWelcome: false,
   colorScheme: "system",
   keyWasImported: false,
+  hasAcknowledgedExperimentalLayers: false,
 };
 
 export const settingsSlice = createSlice({
@@ -58,6 +60,12 @@ export const settingsSlice = createSlice({
     setKeyWasImported: (state, action: PayloadAction<boolean>) => {
       state.keyWasImported = action.payload;
     },
+    setHasAcknowledgedExperimentalLayers: (
+      state,
+      action: PayloadAction<boolean>,
+    ) => {
+      state.hasAcknowledgedExperimentalLayers = action.payload;
+    },
   },
   selectors: {
     selectAreTestFeaturesEnabled: (state) => state.areTestFeaturesEnabled,
@@ -66,6 +74,8 @@ export const settingsSlice = createSlice({
     selectIsDataLoaded: (state) => state.isDataLoaded,
     selectColorScheme: (state) => state.colorScheme,
     selectKeyWasImported: (state) => state.keyWasImported,
+    selectHasAcknowledgedExperimentalLayers: (state) =>
+      state.hasAcknowledgedExperimentalLayers,
   },
 });
 

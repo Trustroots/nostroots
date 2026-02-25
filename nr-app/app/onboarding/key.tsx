@@ -57,8 +57,8 @@ export default function OnboardingKeyScreen() {
 
   const saveExistingKey = async () => {
     clearError();
-    const success = await importKey(existingKeyInput);
-    if (success) {
+    const result = await importKey(existingKeyInput);
+    if (result.success) {
       setKeySaved(true);
       dispatch(settingsActions.setKeyWasImported(true));
     }

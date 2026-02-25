@@ -48,7 +48,12 @@ export default function MapLayerSelector() {
     setIsOpen(false);
   };
 
-  const iconColor = isDark ? DARK_INACTIVE_COLOR : "#ffffff";
+  // Overlay button colors (the main selector pill)
+  const overlayBgColor = isDark
+    ? "rgba(0, 0, 0, 0.6)"
+    : "rgba(255, 255, 255, 0.9)";
+  const overlayTextColor = isDark ? "#ffffff" : "#374151";
+
   const activeBgColor = isDark ? DARK_ACTIVE_BG : LIGHT_ACTIVE_BG;
   const activeTextColor = PRIMARY_COLOR;
   const inactiveTextColor = isDark ? DARK_INACTIVE_COLOR : LIGHT_INACTIVE_COLOR;
@@ -60,14 +65,17 @@ export default function MapLayerSelector() {
       pointerEvents="box-none"
     >
       <Pressable
-        className="flex-row items-center gap-2 self-start rounded-full bg-black/50 px-3 py-2"
+        className="flex-row items-center gap-2 self-start rounded-full px-3 py-2"
+        style={{ backgroundColor: overlayBgColor }}
         onPress={() => setIsOpen(!isOpen)}
       >
-        <Text className="text-white font-medium">{selectedLayerTitle}</Text>
+        <Text className="font-medium" style={{ color: overlayTextColor }}>
+          {selectedLayerTitle}
+        </Text>
         <Ionicons
           name={isOpen ? "chevron-up" : "chevron-down"}
           size={16}
-          color={iconColor}
+          color={overlayTextColor}
         />
       </Pressable>
 

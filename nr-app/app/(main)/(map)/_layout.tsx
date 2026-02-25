@@ -16,8 +16,15 @@ export default function MapLayout() {
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
 
-  const inactiveColor = colorScheme === "dark" ? "#9BA1A6" : "#687076";
-  const activeBgColor = colorScheme === "dark" ? "#1a3330" : "#e6f7f4";
+  const isDark = colorScheme === "dark";
+  const inactiveColor = isDark ? "#9BA1A6" : "#687076";
+  const activeBgColor = isDark ? "#1a3330" : "#e6f7f4";
+
+  // Overlay button colors
+  const overlayBgColor = isDark
+    ? "rgba(0, 0, 0, 0.6)"
+    : "rgba(255, 255, 255, 0.9)";
+  const overlayIconColor = isDark ? "#ffffff" : "#374151";
 
   const isMapActive = pathname === "/" || pathname === "/index";
   const isListActive = pathname === "/list";
@@ -33,15 +40,21 @@ export default function MapLayout() {
       >
         <Pressable
           onPress={() => router.push(ROUTES.CONNECT)}
-          className="w-11 h-11 rounded-full bg-black/50 items-center justify-center"
+          className="w-11 h-11 rounded-full items-center justify-center"
+          style={{ backgroundColor: overlayBgColor }}
         >
-          <Ionicons name="key-outline" size={22} color="#ffffff" />
+          <Ionicons name="key-outline" size={22} color={overlayIconColor} />
         </Pressable>
         <Pressable
           onPress={() => router.push(ROUTES.SETTINGS)}
-          className="w-11 h-11 rounded-full bg-black/50 items-center justify-center"
+          className="w-11 h-11 rounded-full items-center justify-center"
+          style={{ backgroundColor: overlayBgColor }}
         >
-          <Ionicons name="settings-outline" size={22} color="#ffffff" />
+          <Ionicons
+            name="settings-outline"
+            size={22}
+            color={overlayIconColor}
+          />
         </Pressable>
       </View>
 

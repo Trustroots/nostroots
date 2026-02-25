@@ -13,28 +13,33 @@ import {
   SECURE_STORE_PRIVATE_KEY_HEX_KEY,
   SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
 } from "@/constants";
-import { useNotifications } from "@/hooks/useNotifications";
+import { useKeyImport } from "@/hooks/useKeyImport";
 import {
   getPrivateKeyHexFromSecureStorage,
   getPrivateKeyMnemonicFromSecureStorage,
 } from "@/nostr/keystore.nostr";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
+import {
+  registerDevice,
+  unregisterDevice,
+} from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { sendNotificationSubscriptionEventAction } from "@/redux/sagas/notifications.saga";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
-import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
-import { notificationsActions } from "@/redux/slices/notifications.slice";
+import {
+  notificationsActions,
+  notificationSelectors,
+} from "@/redux/slices/notifications.slice";
 import {
   ColorSchemePreference,
   selectFeatureFlags,
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
+import { navigateToEvent } from "@/utils/map.utils";
 import { getFirstLabelValueFromEvent } from "@trustroots/nr-common";
-import Toast from "react-native-root-toast";
-import { openEvent } from "@/startup/notifications.startup";
-import { useKeyImport } from "@/hooks/useKeyImport";
 import { Stack } from "expo-router";
+import Toast from "react-native-root-toast";
 
 const ToggleSwitch = ({
   value,
@@ -89,7 +94,9 @@ function AppearanceSection() {
 
 export default function SettingsScreen() {
   const dispatch = useAppDispatch();
-  const { expoPushToken } = useNotifications();
+  const expoPushToken = useAppSelector(
+    notificationSelectors.selectExpoPushToken,
+  );
   const { importKey, isImporting } = useKeyImport();
 
   const username = useAppSelector(settingsSelectors.selectUsername) as string;
@@ -161,7 +168,7 @@ export default function SettingsScreen() {
     const plusCode = getFirstLabelValueFromEvent(event, "open-location-code");
 
     if (plusCode) {
-      openEvent(plusCode, event);
+      navigateToEvent(plusCode, event);
     }
   };
 
@@ -190,20 +197,36 @@ export default function SettingsScreen() {
     (typeof username === "string" && username.length > 0) ||
     areTestFeaturesEnabled;
 
-  const handleEnableNotifications = () => {
-    dispatch(notificationsActions.setExpoPushToken(expoPushToken));
+  const handleEnableNotifications = async () => {
+    try {
+      await dispatch(registerDevice());
+      Toast.show("Notifications enabled", {
+        duration: Toast.durations.SHORT,
+      });
+    } catch (error) {
+      Toast.show(`#eN1vKp Error: ${error}`, {
+        duration: Toast.durations.LONG,
+      });
+    }
   };
 
-  const handleDisableNotifications = () => {
-    dispatch(notificationsActions.removeExpoPushToken(expoPushToken));
+  const handleDisableNotifications = async () => {
+    try {
+      await dispatch(unregisterDevice());
+      Toast.show("Notifications disabled", {
+        duration: Toast.durations.SHORT,
+      });
+    } catch (error) {
+      Toast.show(`#dN1vKp Error: ${error}`, {
+        duration: Toast.durations.LONG,
+      });
+    }
   };
 
   const handleResetSubscriptions = async () => {
     try {
       dispatch(notificationsActions.removeAllFilters());
-      console.log("#odQ9ry start");
       await dispatch(sendNotificationSubscriptionEventAction.request());
-      console.log("#odQ9ry finish");
       Toast.show("All subscriptions removed.");
     } catch (error) {
       Toast.show(`#hh2gOl Error: ${error}`);
@@ -315,7 +338,10 @@ export default function SettingsScreen() {
             <Text variant="h2">Notification Debug</Text>
             <Text className="font-bold">Expo Push Token</Text>
 
-            <TextInput className={inputClassName} value={expoPushToken} />
+            <TextInput
+              className={inputClassName}
+              value={expoPushToken ?? "Not registered"}
+            />
 
             <Button
               title="Reset all subscription filters"

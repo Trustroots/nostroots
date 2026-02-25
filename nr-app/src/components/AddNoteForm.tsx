@@ -1,11 +1,18 @@
 import { publishNotePromiseAction } from "@/redux/actions/publish.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
+import { notificationSelectors } from "@/redux/slices/notifications.slice";
+import {
+  doesFilterMatchParentPlusCode,
+  doesFilterMatchPlusCodeExactly,
+} from "@/utils/notifications.utils";
 import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
-import { getCurrentTimestamp } from "@trustroots/nr-common";
-import { useMemo, useState } from "react";
+import { getCurrentTimestamp, PlusCode } from "@trustroots/nr-common";
+import { useCallback, useMemo, useState } from "react";
 import { View } from "react-native";
 import Toast from "react-native-root-toast";
+import { createSelector } from "reselect";
+import SubscriptionPrompt from "./SubscriptionPrompt";
 import { Button } from "./ui/button";
 import {
   Select,
@@ -33,6 +40,26 @@ const noteExpiryOptions = [
   { label: "1 hour", value: HOUR_IN_SECONDS.toString() },
 ];
 
+type FormState = "editing" | "success-prompt" | "subscribing";
+
+const selectIsSubscribedToPlusCode = createSelector(
+  [
+    notificationSelectors.selectFilters,
+    (_state: unknown, plusCode: string) => plusCode,
+  ],
+  (filters, plusCode) => {
+    const isExactMatch = filters.some(({ filter }) =>
+      doesFilterMatchPlusCodeExactly(filter, plusCode),
+    );
+    const isParentMatch =
+      !isExactMatch &&
+      filters.some(({ filter }) =>
+        doesFilterMatchParentPlusCode(filter, plusCode),
+      );
+    return isExactMatch || isParentMatch;
+  },
+);
+
 export default function AddNoteForm() {
   const dispatch = useAppDispatch();
   const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
@@ -41,11 +68,21 @@ export default function AddNoteForm() {
   const [noteExpiry, setNoteExpiry] = useState<string>(
     WEEK_IN_SECONDS.toString(),
   );
-
-  const closeModal = useMemo(
-    () => () => dispatch(mapActions.closeAddNoteModal()),
-    [dispatch],
+  const [formState, setFormState] = useState<FormState>("editing");
+  const [publishedPlusCode, setPublishedPlusCode] = useState<PlusCode | null>(
+    null,
   );
+
+  const isSubscribed = useAppSelector((state) =>
+    selectIsSubscribedToPlusCode(state, selectedPlusCode),
+  );
+
+  const closeModal = useCallback(() => {
+    dispatch(mapActions.closeAddNoteModal());
+    // Reset form state when closing
+    setFormState("editing");
+    setPublishedPlusCode(null);
+  }, [dispatch]);
 
   const handleAddNote = useMemo(
     () =>
@@ -61,6 +98,7 @@ export default function AddNoteForm() {
               position: Toast.positions.TOP,
             },
           );
+          return;
         }
 
         // validate note content. Must be longer than 3 chars
@@ -107,6 +145,13 @@ export default function AddNoteForm() {
           });
 
           setNoteContent("");
+
+          // If not subscribed, show the subscription prompt
+          if (!isSubscribed) {
+            setPublishedPlusCode(selectedPlusCode);
+            setFormState("success-prompt");
+            return;
+          }
         } catch (error) {
           Toast.show(
             `Error: #3Rtob2 ${error instanceof Error ? error.message : JSON.stringify(error)}`,
@@ -117,10 +162,28 @@ export default function AddNoteForm() {
           );
         }
 
-        dispatch(mapActions.closeAddNoteModal());
+        closeModal();
       },
-    [selectedPlusCode, noteContent, dispatch, noteExpiry],
+    [
+      selectedPlusCode,
+      noteContent,
+      dispatch,
+      noteExpiry,
+      isSubscribed,
+      closeModal,
+    ],
   );
+
+  // Show subscription prompt after successful publish
+  if (formState === "success-prompt" && publishedPlusCode) {
+    return (
+      <SubscriptionPrompt
+        plusCode={publishedPlusCode}
+        onSubscribe={closeModal}
+        onSkip={closeModal}
+      />
+    );
+  }
 
   return (
     <View className="w-full bg-card p-4 rounded-lg items-center gap-3">

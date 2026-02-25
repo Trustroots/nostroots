@@ -13,7 +13,6 @@ import {
   doesFilterMatchParentPlusCode,
   doesFilterMatchPlusCodeExactly,
 } from "@/utils/notifications.utils";
-import { useRouter } from "expo-router";
 
 const notificationSubscriptionSelector = createSelector(
   [notificationSelectors.selectFilters, mapSelectors.selectSelectedPlusCode],
@@ -31,7 +30,6 @@ const notificationSubscriptionSelector = createSelector(
 );
 
 export default function NotificationSubscription() {
-  const router = useRouter();
   const dispatch = useAppDispatch();
   const { selectedPlusCode, isExactMatch, isParentMatch } = useAppSelector(
     notificationSubscriptionSelector,
@@ -53,10 +51,9 @@ export default function NotificationSubscription() {
                   duration: Toast.durations.LONG,
                 });
               } catch (error) {
-                Toast.show(`#Y0WER5 Error: ${error}`);
-                if (String(error).endsWith("missing-push-token")) {
-                  router.push("/settings");
-                }
+                Toast.show(`#Y0WER5 Error: ${error}`, {
+                  duration: Toast.durations.LONG,
+                });
               }
             }}
           />

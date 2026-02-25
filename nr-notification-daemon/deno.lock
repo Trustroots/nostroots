@@ -92,6 +92,8 @@
   "workspace": {
     "dependencies": [
       "jsr:@nashaddams/amqp@1.1.0",
+      "npm:@noble/hashes@1.7.1",
+      "npm:nostr-tools@2.10.4",
       "npm:zod@^3.25.76"
     ]
   }

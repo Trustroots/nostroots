@@ -3,35 +3,25 @@ import { hexToBytes } from "@noble/hashes/utils";
 import { SubscriptionStore } from "./src/subscriptionStore.ts";
 import { loadSubscriptionsFromRelay } from "./src/relay.ts";
 import { consumeFromRabbit } from "./src/rabbit.ts";
+import { config } from "./src/config.ts";
 
-const privateKey = Deno.env.get("PRIVATEKEY");
-if (!privateKey) {
-  console.error("PRIVATEKEY not found in env. Exiting.");
-  Deno.exit(1);
-}
-
-const expoAccessToken = Deno.env.get("EXPOACCESSTOKEN");
-if (!expoAccessToken) {
-  console.error("EXPOACCESSTOKEN not found in env. Exiting.");
-  Deno.exit(1);
-}
-
-const strfryUrl = Deno.env.get("STRFRY_URL") ?? "ws://localhost:7777";
-const amqpUrl = Deno.env.get("AMQP_URL") ?? "amqp://guest:guest@localhost:5672/";
-const queueName = Deno.env.get("RABBITMQ_QUEUE") ?? "nostr_events";
-
-const publicKey = getPublicKey(hexToBytes(privateKey));
+const publicKey = getPublicKey(hexToBytes(config.privateKey));
 console.log(`Derived public key: ${publicKey}`);
 
 const store = new SubscriptionStore();
 
-await loadSubscriptionsFromRelay(strfryUrl, privateKey, publicKey, store);
+await loadSubscriptionsFromRelay(
+  config.strfryUrl,
+  config.privateKey,
+  publicKey,
+  store,
+);
 
 await consumeFromRabbit(
-  amqpUrl,
-  queueName,
-  privateKey,
+  config.amqpUrl,
+  config.rabbitmqQueue,
+  config.privateKey,
   publicKey,
-  expoAccessToken,
+  config.expoAccessToken,
   store,
 );

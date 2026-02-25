@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nostroots Web</title>
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- MapLibre GL CSS -->
     <link href="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css" rel="stylesheet" />
@@ -17,48 +20,56 @@
         }
         
         :root {
-            --background: hsl(0, 0%, 100%);
-            --foreground: hsl(0, 0%, 3.9%);
-            --card: hsl(0, 0%, 100%);
-            --card-foreground: hsl(0, 0%, 3.9%);
-            --primary: hsl(167, 81.9%, 39%);
-            --primary-foreground: hsl(0, 0%, 98%);
-            --secondary: hsl(0, 0%, 96.1%);
-            --secondary-foreground: hsl(0, 0%, 9%);
-            --muted: hsl(0, 0%, 96.1%);
-            --muted-foreground: hsl(0, 0%, 45.1%);
-            --accent: hsl(0, 0%, 96.1%);
-            --accent-foreground: hsl(0, 0%, 9%);
-            --destructive: hsl(0, 100%, 50%);
-            --border: hsl(0, 0%, 89.8%);
-            --input: hsl(0, 0%, 89.8%);
-            --ring: hsl(0, 0%, 63%);
-            --radius: 0.625rem;
+            /* Sticker + notes.trustroots.org: cream, teal-green, moss, terracotta */
+            --background: hsl(40, 28%, 96%);
+            --foreground: hsl(168, 25%, 18%);
+            --card: hsl(45, 22%, 98%);
+            --card-foreground: hsl(168, 25%, 18%);
+            --primary: hsl(168, 48%, 32%);
+            --primary-foreground: hsl(45, 30%, 98%);
+            --secondary: hsl(88, 18%, 92%);
+            --secondary-foreground: hsl(168, 25%, 20%);
+            --muted: hsl(40, 20%, 93%);
+            --muted-foreground: hsl(168, 15%, 38%);
+            --accent: hsl(24, 38%, 94%);
+            --accent-foreground: hsl(168, 25%, 16%);
+            --terracotta: hsl(24, 38%, 48%);
+            --destructive: hsl(12, 48%, 48%);
+            --border: hsl(168, 20%, 80%);
+            --border-outer: hsl(168, 45%, 28%);
+            --input: hsl(40, 20%, 91%);
+            --ring: hsl(168, 45%, 35%);
+            --radius: 0.875rem;
+            --radius-lg: 1.25rem;
+            --header-green: #12b591;
+            --header-green-dark: #0e9a7b;
         }
         
-        /* Dark mode theme - default */
+        /* Dark mode theme - default (warm, cozy dark) */
         [data-theme="dark"],
         :root:not([data-theme="light"]) {
-            --background: hsl(0, 0%, 3.9%);
-            --foreground: hsl(0, 0%, 98%);
-            --card: hsl(0, 0%, 7%);
-            --card-foreground: hsl(0, 0%, 98%);
-            --primary: hsl(167, 81.9%, 39%);
-            --primary-foreground: hsl(0, 0%, 98%);
-            --secondary: hsl(0, 0%, 14.9%);
-            --secondary-foreground: hsl(0, 0%, 98%);
-            --muted: hsl(0, 0%, 14.9%);
-            --muted-foreground: hsl(0, 0%, 63.9%);
-            --accent: hsl(0, 0%, 14.9%);
-            --accent-foreground: hsl(0, 0%, 98%);
-            --destructive: hsl(0, 100%, 50%);
-            --border: hsl(0, 0%, 14.9%);
-            --input: hsl(0, 0%, 14.9%);
-            --ring: hsl(0, 0%, 83.1%);
+            --background: hsl(30, 14%, 11%);
+            --foreground: hsl(40, 28%, 92%);
+            --card: hsl(30, 12%, 15%);
+            --card-foreground: hsl(40, 28%, 92%);
+            --primary: hsl(88, 22%, 42%);
+            --primary-foreground: hsl(30, 14%, 11%);
+            --secondary: hsl(30, 12%, 22%);
+            --secondary-foreground: hsl(40, 28%, 92%);
+            --muted: hsl(30, 10%, 20%);
+            --muted-foreground: hsl(40, 15%, 62%);
+            --accent: hsl(24, 25%, 22%);
+            --accent-foreground: hsl(40, 28%, 92%);
+            --terracotta: hsl(24, 38%, 52%);
+            --destructive: hsl(12, 45%, 52%);
+            --border: hsl(30, 12%, 24%);
+            --border-outer: hsl(88, 18%, 35%);
+            --input: hsl(30, 12%, 20%);
+            --ring: hsl(88, 22%, 45%);
         }
         
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -68,17 +79,137 @@
             padding: 0;
             overflow: hidden;
         }
+        /* Paper-like subtle texture overlay */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+        h1, h2, .modal-header h2 {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 600;
+        }
         
+        /* Header from notes.trustroots.org */
+        .app-header {
+            flex-shrink: 0;
+            background: var(--header-green);
+            min-height: 56px;
+            padding: 0 1rem;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            position: relative;
+            overflow: hidden;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+        .app-header .vines {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        .app-header .vines img {
+            width: 100%;
+            min-height: 100%;
+            object-fit: cover;
+            opacity: 0.15;
+        }
+        .app-header-inner {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.6rem 1.25rem;
+            position: relative;
+            z-index: 1;
+            min-width: 0;
+        }
+        .app-header-logo {
+            height: 32px;
+            width: auto;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .app-header h1 {
+            color: #fff;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 1.7rem;
+            font-weight: 700;
+            font-style: italic;
+            letter-spacing: 0.03em;
+            text-transform: none;
+            margin: 0;
+            padding: 0;
+        }
+        .app-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+        }
         .view {
             display: flex;
             flex-direction: column;
             flex: 1;
             overflow: hidden;
+            min-height: 0;
+        }
+        
+        /* Bottom mycelium strip (notes.trustroots.org style) */
+        .mycelium-bottom {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 140px;
+            pointer-events: none;
+            z-index: 5;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .mycelium-bottom img {
+            width: 100%;
+            min-width: 600px;
             height: 100%;
+            object-fit: cover;
+            object-position: center bottom;
+            opacity: 0.22;
         }
         
         /* Mobile-first responsive adjustments */
         @media (max-width: 768px) {
+            .app-header {
+                padding: 0 0.75rem;
+            }
+            .app-header-inner {
+                justify-content: flex-start;
+            }
+            .app-header h1 {
+                font-size: 1.35rem;
+            }
+            .app-header-logo {
+                height: 28px;
+            }
+            .mycelium-bottom {
+                height: 100px;
+            }
+            .mycelium-bottom img {
+                min-width: 100%;
+            }
             .layer-controls {
                 max-width: calc(100vw - 20px);
             }
@@ -164,13 +295,13 @@
             background: var(--card);
             backdrop-filter: blur(10px);
             padding: 12px;
-            border-radius: var(--radius);
+            border-radius: var(--radius-lg);
             z-index: 1000;
             max-height: 400px;
             overflow-y: auto;
             min-width: 180px;
-            border: 1px solid var(--border);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            border: 2px solid var(--border-outer, var(--border));
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
         }
         
         .layer-control {
@@ -240,63 +371,29 @@
             box-shadow: 0 0 1px rgba(0, 0, 0, 0.2);
         }
         
-        /* Floating Settings Button */
-        .settings-icon {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            width: 56px;
-            height: 56px;
+        /* Header action buttons (keys, settings) - inside header */
+        .app-header-actions .settings-icon,
+        .app-header-actions .keys-icon {
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
-            background: var(--primary);
-            color: var(--primary-foreground);
-            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: 1000;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            font-size: 1.25rem;
+            transition: transform 0.2s ease, background 0.2s ease;
         }
-        
-        .settings-icon:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+        .app-header-actions .settings-icon:hover,
+        .app-header-actions .keys-icon:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
         }
-        
-        .settings-icon:active {
-            transform: scale(0.95);
-        }
-        
-        /* Floating Keys Button */
-        .keys-icon {
-            position: fixed;
-            top: 20px;
-            right: 86px;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: var(--primary);
-            color: var(--primary-foreground);
-            border: none;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            z-index: 1000;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        
-        .keys-icon:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
-        }
-        
-        .keys-icon:active {
+        .app-header-actions .settings-icon:active,
+        .app-header-actions .keys-icon:active {
             transform: scale(0.95);
         }
         
@@ -344,7 +441,7 @@
         .form-group textarea:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px hsla(var(--primary), 0.1);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
         }
         
         .form-group input[readonly] {
@@ -524,12 +621,12 @@
         }
         
         .btn:hover {
-            background: hsl(167, 81.9%, 35%);
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+            filter: brightness(1.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
         }
         
         .btn:active {
-            background: hsl(167, 81.9%, 32%);
+            filter: brightness(0.95);
         }
         
         .btn-secondary {
@@ -547,16 +644,16 @@
         }
         
         .btn.btn-danger {
-            background: #ef4444 !important;
+            background: var(--destructive) !important;
             color: white !important;
         }
         
         .btn.btn-danger:hover {
-            background: #dc2626 !important;
+            filter: brightness(1.1);
         }
         
         .btn.btn-danger:active {
-            background: #b91c1c !important;
+            filter: brightness(0.95);
         }
         
         .btn:disabled {
@@ -585,8 +682,8 @@
         }
         
         .circles-button:hover {
-            background: hsl(167, 81.9%, 35%);
-            border-color: hsl(167, 81.9%, 35%);
+            filter: brightness(1.1);
+            border-color: var(--primary);
         }
         
         .circles-button:active {
@@ -640,8 +737,8 @@
         }
         
         .relay-status-indicator.connected {
-            background: #10b981 !important;
-            box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+            background: var(--primary) !important;
+            box-shadow: 0 0 8px rgba(88, 125, 99, 0.4);
         }
         
         .relay-status-indicator.connecting {
@@ -654,7 +751,7 @@
         }
         
         .relay-status-indicator.error {
-            background: #ef4444 !important;
+            background: var(--destructive) !important;
         }
         
         @keyframes pulse {
@@ -683,16 +780,16 @@
         .relay-delete-btn {
             padding: 0.375rem 0.75rem;
             background: transparent;
-            border: 1px solid #ef4444;
+            border: 1px solid var(--destructive);
             border-radius: calc(var(--radius) - 2px);
-            color: #ef4444;
+            color: var(--destructive);
             font-size: 0.8125rem;
             cursor: pointer;
             transition: all 0.2s ease;
         }
         
         .relay-delete-btn:hover {
-            background: #ef4444;
+            background: var(--destructive);
             color: white;
         }
         
@@ -746,14 +843,25 @@
         .modal-content {
             background: var(--card);
             padding: 2rem;
-            border-radius: var(--radius);
+            border-radius: var(--radius-lg);
             max-width: 500px;
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--border);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border: 2px solid var(--border-outer, var(--border));
             position: relative;
+        }
+        .modal-content::after {
+            content: "";
+            position: absolute;
+            bottom: 0.75rem;
+            right: 0.75rem;
+            width: 80px;
+            height: 80px;
+            background: url("https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/mushroom-single.png") no-repeat center/contain;
+            opacity: 0.12;
+            pointer-events: none;
         }
         
         #settings-modal .github-icon-link {
@@ -784,6 +892,33 @@
         
         .notes-modal-content .modal-header {
             flex-shrink: 0;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.75rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+        .notes-modal-content .modal-header::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: -1px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent 0%, var(--primary) 15%, var(--terracotta) 50%, var(--primary) 85%, transparent 100%);
+            opacity: 0.4;
+            border-radius: 0 0 2px 2px;
+        }
+        .modal-header-title-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .notes-mushroom-icon {
+            width: 22px;
+            height: 22px;
+            flex-shrink: 0;
+            color: var(--terracotta);
+            opacity: 0.9;
         }
         
         .notes-modal-content .notes-list {
@@ -815,27 +950,29 @@
         }
         
         .notes-section-header.exact {
-            background: rgba(59, 130, 246, 0.15);
-            color: hsl(217, 91%, 60%);
-            border-left: 4px solid rgb(59, 130, 246);
+            background: rgba(166, 124, 91, 0.2);
+            color: hsl(24, 38%, 42%);
+            border-left: 4px solid rgb(166, 124, 91);
         }
         
         [data-theme="dark"] .notes-section-header.exact,
         :root:not([data-theme="light"]) .notes-section-header.exact {
-            background: rgba(59, 130, 246, 0.2);
-            color: hsl(217, 91%, 70%);
+            background: rgba(166, 124, 91, 0.25);
+            color: hsl(24, 38%, 58%);
+            border-left: 4px solid rgb(180, 140, 108);
         }
         
         .notes-section-header.within {
-            background: rgba(34, 197, 94, 0.15);
-            color: hsl(142, 71%, 45%);
-            border-left: 4px solid rgb(34, 197, 94);
+            background: rgba(107, 138, 82, 0.2);
+            color: hsl(88, 22%, 38%);
+            border-left: 4px solid rgb(107, 138, 82);
         }
         
         [data-theme="dark"] .notes-section-header.within,
         :root:not([data-theme="light"]) .notes-section-header.within {
-            background: rgba(34, 197, 94, 0.2);
-            color: hsl(142, 71%, 55%);
+            background: rgba(107, 138, 82, 0.25);
+            color: hsl(88, 22%, 52%);
+            border-left: 4px solid rgb(120, 150, 95);
         }
         
         .notes-section-header code {
@@ -936,7 +1073,7 @@
         }
         
         .note-delete-btn.deleted {
-            color: #10b981;
+            color: hsl(88, 22%, 42%);
             opacity: 1;
             cursor: default;
         }
@@ -979,7 +1116,7 @@
         .notes-add-form textarea:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px hsla(var(--primary), 0.1);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
         }
         
         .notes-add-form-row {
@@ -1017,7 +1154,7 @@
         .notes-add-form-row .form-group.expiration-group select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px hsla(var(--primary), 0.1);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
         }
         
         .notes-add-form-row .form-group.expiration-group input {
@@ -1034,7 +1171,7 @@
         .notes-add-form-row .form-group.expiration-group input:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px hsla(var(--primary), 0.1);
+            box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
         }
         
         .notes-add-form-row .btn {
@@ -1079,7 +1216,7 @@
         
         .status-container {
             position: fixed;
-            top: 0;
+            top: 56px; /* below header (header min-height) */
             left: 0;
             right: 0;
             z-index: 3000;
@@ -1102,7 +1239,7 @@
         }
         
         .status.success {
-            background: hsl(142, 76%, 36%);
+            background: hsl(88, 22%, 42%);
             color: hsl(0, 0%, 98%);
         }
         
@@ -1123,7 +1260,19 @@
     </style>
 </head>
 <body>
-    <!-- Header removed - navigation moved to bottom -->
+    <header class="app-header" aria-label="Brand">
+        <div class="vines">
+            <img src="https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/vines-top.png" alt="" width="1200" height="400">
+        </div>
+        <div class="app-header-inner">
+            <img src="https://notes.trustroots.org/logo.svg" alt="Trustroots" class="app-header-logo" width="140" height="32">
+            <h1>Nostroots</h1>
+        </div>
+        <div class="app-header-actions">
+            <button class="keys-icon" id="keys-icon-btn" title="Keys">🔑</button>
+            <button class="settings-icon" id="settings-icon-btn" title="Settings">⚙️</button>
+        </div>
+    </header>
     
     <!-- Map View -->
     <div class="view active" id="map-view">
@@ -1132,6 +1281,10 @@
         </div>
     </div>
     
+    <!-- Bottom mycelium decoration -->
+    <div class="mycelium-bottom" aria-hidden="true">
+        <img src="https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/mycelium-roots.svg" alt="">
+    </div>
     
     <!-- Modals -->
     <div class="modal" id="view-note-modal">
@@ -1148,7 +1301,14 @@
     <div class="modal" id="pluscode-notes-modal">
         <div class="modal-content notes-modal-content">
             <div class="modal-header">
-                <h2 id="pluscode-notes-title">Notes</h2>
+                <div class="modal-header-title-row">
+                    <svg class="notes-mushroom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true">
+                        <ellipse cx="12" cy="10" rx="6" ry="4"/>
+                        <path d="M8 10v8h8v-8"/>
+                        <path d="M6 8q6 0 12 0" stroke-dasharray="2 1.5" opacity="0.6"/>
+                    </svg>
+                    <h2 id="pluscode-notes-title">Notes</h2>
+                </div>
                 <div id="notification-subscribe-block" class="notification-subscribe-block" style="display: none; padding: 0 0.5rem; font-size: 0.9rem;"></div>
                 <button class="modal-close" onclick="closePlusCodeNotesModal()">&times;</button>
             </div>
@@ -1196,12 +1356,6 @@
     
     <!-- Status Messages Container -->
     <div id="status-container" class="status-container"></div>
-    
-    <!-- Floating Keys Button -->
-    <button class="keys-icon" id="keys-icon-btn" title="Keys">🔑</button>
-    
-    <!-- Floating Settings Button -->
-    <button class="settings-icon" id="settings-icon-btn" title="Settings">⚙️</button>
     
     <!-- Keys Modal -->
     <div class="modal" id="keys-modal">
@@ -1443,6 +1597,41 @@
         let events = [];
         let selectedPlusCode = null;
         let selectedCircle = null; // Selected Trustroots circle slug
+
+        function getHashRoute() {
+            const h = location.hash.slice(1);
+            if (!h) return '';
+            try { return decodeURIComponent(h); } catch (_) { return h; }
+        }
+        function setHashRoute(route) {
+            const encoded = route ? encodeURIComponent(route).replace(/%2B/g, '+') : '';
+            const want = encoded ? '#' + encoded : '';
+            if (location.hash !== want) location.hash = want;
+        }
+        function applyHashToState() {
+            const route = getHashRoute();
+            if (route === 'keys') {
+                document.getElementById('settings-modal').classList.remove('active');
+                closePlusCodeNotesModal(true);
+                openKeysModal();
+                return;
+            }
+            if (route === 'settings') {
+                document.getElementById('keys-modal').classList.remove('active');
+                closePlusCodeNotesModal(true);
+                openSettingsModal();
+                return;
+            }
+            if (route) {
+                document.getElementById('keys-modal').classList.remove('active');
+                document.getElementById('settings-modal').classList.remove('active');
+                showNotesForPlusCode(route);
+                return;
+            }
+            document.getElementById('keys-modal').classList.remove('active');
+            document.getElementById('settings-modal').classList.remove('active');
+            closePlusCodeNotesModal();
+        }
         let isDragging = false; // Track dragging state to prevent grid updates during drag
         let pendingGridUpdate = false; // Track if grid update is needed after drag ends
         let currentPrivateKey = null;
@@ -4257,13 +4446,13 @@
                         // Colors designed for dark map readability
                         let fillColor;
                         if (selectedPlusCode && plusCode === selectedPlusCode) {
-                            fillColor = `rgba(64, 156, 255, 0.7)`; // Soft blue for selected
+                            fillColor = `rgba(107, 138, 82, 0.7)`; // Moss green for selected (sticker palette)
                         } else if (totalEventCount > 0) {
-                            // Gradient from dark maroon to brighter red based on event count
+                            // Gradient from dark brown to terracotta based on event count (sticker palette)
                             const intensity = Math.min(1, totalEventCount / 5);
-                            const r = Math.round(80 + intensity * 100); // 80-180
-                            const g = Math.round(20 + intensity * 20);  // 20-40
-                            const b = Math.round(30 + intensity * 20);  // 30-50
+                            const r = Math.round(80 + intensity * 86);   // 80-166
+                            const g = Math.round(60 + intensity * 64);   // 60-124
+                            const b = Math.round(50 + intensity * 41);   // 50-91
                             fillColor = `rgba(${r}, ${g}, ${b}, 0.6)`;
                         } else {
                             fillColor = `rgba(60, 60, 70, 0.35)`; // Subtle dark gray for empty
@@ -4379,7 +4568,7 @@
             document.getElementById('view-note-modal').classList.remove('active');
         }
         
-        function closePlusCodeNotesModal() {
+        function closePlusCodeNotesModal(skipHashUpdate) {
             document.getElementById('pluscode-notes-modal').classList.remove('active');
             document.getElementById('note-content-in-modal').value = '';
             document.getElementById('note-expiration-in-modal').value = getExpirationSetting();
@@ -4387,6 +4576,7 @@
             clearSelectedCircle('modal');
             // Clear selected plus code and update grid to remove highlight
             selectedPlusCode = null;
+            if (!skipHashUpdate) setHashRoute('');
             updatePlusCodeGrid();
         }
         
@@ -4748,7 +4938,7 @@
             document.getElementById('note-content-in-modal').value = '';
             document.getElementById('note-expiration-in-modal').value = getExpirationSetting();
             
-            // Update the grid to highlight the selected plus code in blue BEFORE panning
+            // Update the grid to highlight the selected plus code (moss green) BEFORE panning
             updatePlusCodeGrid();
             
             // Pan map to ensure selected area is visible above the modal
@@ -4788,7 +4978,8 @@
             
             // Show modal
             document.getElementById('pluscode-notes-modal').classList.add('active');
-            
+            setHashRoute(plusCode);
+
             // Scroll to bottom and focus on textarea after modal is shown
             setTimeout(() => {
                 // Scroll notes list to bottom
@@ -5195,26 +5386,14 @@
             const modals = document.querySelectorAll('.modal.active');
             modals.forEach(modal => {
                 if (modal.id === 'keys-modal') {
-                    // Don't allow closing keys modal with ESC when no key is set (user must generate/import key)
-                    const hasKey = !!(currentPublicKey || currentPrivateKey || usingNip07);
-                    if (!hasKey) {
-                        return;
-                    }
                     closeKeysModal();
                 } else if (modal.id === 'view-note-modal') {
                     closeViewNoteModal();
                 } else if (modal.id === 'pluscode-notes-modal') {
                     closePlusCodeNotesModal();
-                } else if (modal.id === 'keys-modal') {
-                    // Don't allow closing keys modal with ESC when no key is set or profile not linked
-                    const hasKey = !!(currentPublicKey || currentPrivateKey || usingNip07);
-                    if (hasKey && isProfileLinked) {
-                        closeKeysModal();
-                    }
                 } else if (modal.id === 'settings-modal') {
                     closeSettingsModal();
                 } else {
-                    // Fallback: just remove active class
                     modal.classList.remove('active');
                 }
             });
@@ -5410,12 +5589,6 @@
                 
                 updateLinkProfileButton();
                 
-                // Update close button visibility based on profile link status
-                const closeBtn = document.getElementById('keys-modal-close-btn');
-                if (closeBtn) {
-                    closeBtn.style.display = isProfileLinked ? 'block' : 'none';
-                }
-                
                 // Update "Update Trustroots Profile" button visibility - hide if profile is linked
                 const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
                 if (updateTrustrootsGroup) {
@@ -5438,12 +5611,6 @@
                 
                 updateLinkProfileButton();
                 
-                // Update close button visibility - hide if profile not linked
-                const closeBtn = document.getElementById('keys-modal-close-btn');
-                if (closeBtn) {
-                    closeBtn.style.display = 'none';
-                }
-                
                 // Show "Update Trustroots Profile" button if profile is not linked
                 const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
                 if (updateTrustrootsGroup && currentPublicKey) {
@@ -5460,7 +5627,9 @@
         
         // Settings Modal Functions
         function openKeysModal() {
+            document.getElementById('settings-modal').classList.remove('active');
             document.getElementById('keys-modal').classList.add('active');
+            setHashRoute('keys');
             
             // Check if we have a key
             const hasKey = !!(currentPublicKey || currentPrivateKey || usingNip07);
@@ -5475,17 +5644,13 @@
             const manageSection = document.getElementById('keys-manage-section');
             const trustrootsSection = document.getElementById('keys-trustroots-section');
             
-            // Get close button
-            const closeBtn = document.getElementById('keys-modal-close-btn');
-            
             if (!hasKey) {
-                // No key - show welcome and onboarding options, hide close button
+                // No key - show welcome and onboarding options
                 if (welcomeSection) welcomeSection.style.display = 'block';
                 if (importSection) importSection.style.display = 'block';
                 if (generateSection) generateSection.style.display = 'block';
                 if (manageSection) manageSection.style.display = 'none';
                 if (trustrootsSection) trustrootsSection.style.display = 'none';
-                if (closeBtn) closeBtn.style.display = 'none';
                 
                 // Check if NIP-07 extension is available and show the section
                 // Check immediately and also after a short delay to catch extensions that load late
@@ -5512,32 +5677,25 @@
                 
                 // Update key display when opening keys modal
                 updateKeyDisplay();
-                // Check if profile is linked when opening keys modal
-                checkProfileLinked().then(() => {
-                    // Update close button visibility after checking profile link
-                    if (closeBtn) {
-                        closeBtn.style.display = isProfileLinked ? 'block' : 'none';
-                    }
-                });
+                checkProfileLinked();
             }
         }
         
         function closeKeysModal() {
-            // Don't allow closing if no key is set or if profile is not linked
-            const hasKey = !!(currentPublicKey || currentPrivateKey || usingNip07);
-            if (!hasKey || !isProfileLinked) {
-                return;
-            }
             document.getElementById('keys-modal').classList.remove('active');
+            setHashRoute(selectedPlusCode || '');
         }
-        
+
         function openSettingsModal() {
+            document.getElementById('keys-modal').classList.remove('active');
             document.getElementById('settings-modal').classList.add('active');
+            setHashRoute('settings');
             renderSettingsNotificationsSection();
         }
-        
+
         function closeSettingsModal() {
             document.getElementById('settings-modal').classList.remove('active');
+            setHashRoute(selectedPlusCode || '');
         }
         
         // Make functions globally accessible for onclick handlers
@@ -5825,12 +5983,6 @@
                                 usernameIndicator.style.display = 'block';
                             }
                             
-                            // Update close button visibility now that profile is linked
-                            const closeBtn = document.getElementById('keys-modal-close-btn');
-                            if (closeBtn) {
-                                closeBtn.style.display = 'block';
-                            }
-                            
                             // Hide "Update Trustroots Profile" button now that profile is linked
                             const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
                             if (updateTrustrootsGroup) {
@@ -5948,15 +6100,12 @@
                 }
             });
             
-            // Close keys modal when clicking outside (only if key is set and profile is linked)
+            // Close keys modal when clicking outside
             const keysModal = document.getElementById('keys-modal');
             if (keysModal) {
                 keysModal.addEventListener('click', (e) => {
                     if (e.target.id === 'keys-modal') {
-                        const hasKey = !!(currentPublicKey || currentPrivateKey || usingNip07);
-                        if (hasKey && isProfileLinked) {
-                            closeKeysModal();
-                        }
+                        closeKeysModal();
                     }
                 });
             }
@@ -6042,6 +6191,9 @@
             
             // Start checking if map is ready after giving it time to initialize
             setTimeout(loadDataWhenReady, 200);
+
+            window.addEventListener('hashchange', applyHashToState);
+            applyHashToState();
         });
         
         // Make functions available globally

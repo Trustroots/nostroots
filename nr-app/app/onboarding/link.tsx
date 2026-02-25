@@ -18,6 +18,26 @@ import {
 } from "lucide-react-native";
 import Toast from "react-native-root-toast";
 
+interface StepCardProps {
+  stepNumber: number;
+  title: string;
+  children: React.ReactNode;
+}
+
+const StepCard = ({ stepNumber, title, children }: StepCardProps) => (
+  <View className="bg-card rounded-xl p-4 w-full gap-3">
+    <View className="flex flex-row items-center gap-2">
+      <View className="bg-primary rounded w-6 h-6 items-center justify-center">
+        <Text className="text-primary-foreground font-bold text-sm">
+          {stepNumber}.
+        </Text>
+      </View>
+      <Text className="font-bold text-foreground">{title}</Text>
+    </View>
+    {children}
+  </View>
+);
+
 export default function OnboardingLinkScreen() {
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -148,27 +168,6 @@ export default function OnboardingLinkScreen() {
   const goNext = () => {
     router.push("/onboarding/backup-confirm");
   };
-
-  // StepCard component
-  interface StepCardProps {
-    stepNumber: number;
-    title: string;
-    children: React.ReactNode;
-  }
-
-  const StepCard = ({ stepNumber, title, children }: StepCardProps) => (
-    <View className="bg-card rounded-xl p-4 w-full gap-3">
-      <View className="flex flex-row items-center gap-2">
-        <View className="bg-primary rounded w-6 h-6 items-center justify-center">
-          <Text className="text-primary-foreground font-bold text-sm">
-            {stepNumber}.
-          </Text>
-        </View>
-        <Text className="font-bold text-foreground">{title}</Text>
-      </View>
-      {children}
-    </View>
-  );
 
   return (
     <>

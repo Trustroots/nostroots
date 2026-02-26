@@ -1,0 +1,79 @@
+{
+  "folders": [
+    {
+      "path": ".",
+      "name": "root"
+    },
+    {
+      "path": "nr-common"
+    },
+    {
+      "path": "nr-server"
+    },
+    {
+      "path": "nr-relay-to-rabbit"
+    },
+    {
+      "path": "nr-monitor"
+    },
+    {
+      "path": "nr-notification-daemon"
+    },
+    {
+      "path": "nr-app"
+    },
+    {
+      "path": "nr-web"
+    },
+    {
+      "path": "nr-relay"
+    },
+    {
+      "path": "nr-push"
+    },
+    {
+      "path": "development-utils/local-relay",
+      "name": "local-relay"
+    },
+    {
+      "path": "development-utils/nip-46-client",
+      "name": "nip-46-client"
+    }
+  ],
+  "settings": {
+    "deno.enable": false,
+    "deno.enablePaths": [
+      "./nr-common",
+      "./nr-server",
+      "./nr-relay-to-rabbit",
+      "./nr-monitor",
+      "./nr-notification-daemon",
+      "./development-utils/local-relay",
+      "./development-utils/nip-46-client"
+    ],
+    "search.exclude": {
+      "**/nr-common/build": true
+    },
+    "eslint.workingDirectories": [
+      {
+        "mode": "auto"
+      }
+    ],
+    "eslint.validate": [
+      "javascript",
+      "javascriptreact",
+      "typescript",
+      "typescriptreact"
+    ],
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit"
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "denoland.vscode-deno",
+      "dbaeumer.vscode-eslint",
+      "golang.go"
+    ]
+  }
+}

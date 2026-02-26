@@ -4,6 +4,7 @@ import { log } from "../log.ts";
 
 const {
   DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH,
+  MAP_NOTE_KIND,
   MAP_NOTE_REPOST_KIND,
   OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
   OPEN_LOCATION_CODE_TAG_NAME,
@@ -134,9 +135,9 @@ export function processEventFactoryFactory(
         : "";
     log.debug(`#C1NJbQ${logId} Got event`, event);
 
-    if (event.kind === MAP_NOTE_REPOST_KIND) {
+    if (event.kind !== MAP_NOTE_KIND) {
       log.info(
-        `#WAKKJk${logId} Skipping kind ${MAP_NOTE_REPOST_KIND} event with ID ${event.id}`
+        `#WAKKJk${logId} Ignoring kind ${event.kind} event with ID ${event.id}`
       );
       return;
     }

@@ -1,4 +1,4 @@
-import { ServiceConfig } from "./config.ts";
+import { config, ServiceConfig } from "./config.ts";
 
 export type ServiceStatus = "ok" | "error";
 
@@ -12,7 +12,10 @@ export async function checkService(
   service: ServiceConfig,
 ): Promise<ServiceResult> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    config.healthCheckTimeoutMs,
+  );
 
   try {
     const response = await fetch(service.url, {

@@ -28,6 +28,10 @@ export const config = {
   telegramBot: getEnvRequired("TELEGRAM_BOT"),
   telegramChat: getEnvRequired("TELEGRAM_CHAT"),
   checkIntervalMs: parseInt(getEnvOptional("CHECK_INTERVAL_MS") ?? "60000", 10),
+  healthCheckTimeoutMs: parseInt(
+    getEnvOptional("HEALTH_CHECK_TIMEOUT_MS") ?? "5000",
+    10,
+  ),
 
   services: [
     {

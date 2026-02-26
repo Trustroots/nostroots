@@ -6,6 +6,7 @@ import {
   MAP_NOTE_REPOST_KIND,
   NOSTROOTS_VALIDATION_PUBKEY,
   E2E_TEST_AUTHOR_PUBLIC_KEY,
+  NOSTR_EXPIRATION_TAG_NAME,
 } from "@trustroots/nr-common";
 
 export interface E2EResult {
@@ -22,6 +23,7 @@ function generateTestDTag(): string {
 
 function createTestEvent(secretKey: Uint8Array, dTag: string): Event {
   const created_at = Math.floor(Date.now() / 1000);
+  const expiration = created_at + 300; // Expire after 5 minutes
   const timestamp = new Date().toISOString();
 
   const eventTemplate = {
@@ -32,6 +34,7 @@ function createTestEvent(secretKey: Uint8Array, dTag: string): Event {
       ["t", "e2e-healthcheck"],
       ["L", "open-location-code"],
       ["l", "5Q000000+", "open-location-code"], // Middle of Pacific Ocean
+      [NOSTR_EXPIRATION_TAG_NAME, expiration.toString()],
     ],
     content: `Automated healthcheck for Nostroots validation pipeline. Test run at ${timestamp}. Please ignore this message.`,
   };

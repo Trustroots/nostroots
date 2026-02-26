@@ -1,0 +1,13 @@
+{
+  "tasks": {
+    "run": "deno run --allow-net --allow-env main.ts",
+    "dev": "deno run --allow-net --allow-env --watch main.ts",
+    "check": "deno run --allow-net --allow-env main.ts --check-once"
+  },
+  "imports": {
+    "@trustroots/nr-common": "../nr-common/mod.ts",
+    "zod": "npm:zod@^3.25.76",
+    "nostr-tools/pure": "npm:nostr-tools@2.10.4/pure",
+    "@noble/hashes/utils": "npm:@noble/hashes@1.7.1/utils"
+  }
+}

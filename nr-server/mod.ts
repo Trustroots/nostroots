@@ -3,6 +3,15 @@ import { consume } from "./src/consume.ts";
 import { log } from "./src/log.ts";
 import { subscribeAndRepost } from "./src/subscribe.ts";
 
+const HEALTH_PORT = 80;
+Deno.serve(
+  { port: HEALTH_PORT },
+  () =>
+    new Response(JSON.stringify({ status: "ok", service: "nr-server" }), {
+      headers: { "content-type": "application/json" },
+    }),
+);
+
 function getOrCreatePrivateKey(maybePrivateKeyNsec?: string) {
   if (typeof maybePrivateKeyNsec === "string") {
     const decoded = nostrTools.nip19.decode(maybePrivateKeyNsec);
@@ -22,19 +31,19 @@ await new cliffy.Command()
   .globalEnv("IS_DEV", "Set to true to run in development mode")
   .globalEnv(
     "PRIVATE_KEY_NSEC=<value:string>",
-    "Specify the private key in nsec format"
+    "Specify the private key in nsec format",
   )
   .env(
     "MAX_AGE_MINUTES=<value:number>",
-    "How many minutes into the past to check for events to validate"
+    "How many minutes into the past to check for events to validate",
   )
   .env(
     "SUBSCRIBE=<subscribe:boolean>",
-    "Subscribe to relays to fetch events instead of using AMQP."
+    "Subscribe to relays to fetch events instead of using AMQP.",
   )
   .env(
     "AMQP_URL=<amqpUrl:string>",
-    "The URL to connect to AMQP, like amqp://insecure:insecure@localhost:5672"
+    "The URL to connect to AMQP, like amqp://insecure:insecure@localhost:5672",
   )
   .action((options) => {
     const { isDev } = options;
@@ -42,7 +51,7 @@ await new cliffy.Command()
     const maxAgeMinutes = options.maxAgeMinutes;
 
     log.debug(
-      `#PnFUPS Startup isDev ${isDev} and subscribe ${options.subscribe}`
+      `#PnFUPS Startup isDev ${isDev} and subscribe ${options.subscribe}`,
     );
 
     if (options.subscribe) {

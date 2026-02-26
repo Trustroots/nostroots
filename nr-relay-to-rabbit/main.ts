@@ -38,6 +38,13 @@ await channel.declareExchange({
 console.error("#kR7mXp Listening on port 80");
 
 Deno.serve({ port: 80 }, async (request) => {
+  if (request.method === "GET" && new URL(request.url).pathname === "/health") {
+    return new Response(
+      JSON.stringify({ status: "ok", service: "nr-relay-to-rabbit" }),
+      { headers: { "content-type": "application/json" } }
+    );
+  }
+
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }

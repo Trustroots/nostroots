@@ -21,4 +21,7 @@ RUN deno cache main.ts
 
 EXPOSE 80
 
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=30s \
+  CMD deno eval "const r = await fetch('http://localhost:80/health'); Deno.exit(r.ok ? 0 : 1)"
+
 CMD ["run", "--allow-net", "--allow-env", "main.ts"]

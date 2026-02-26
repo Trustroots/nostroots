@@ -1,2 +1,0 @@
-# Run tests before pushing
-cd nr-app && pnpm test

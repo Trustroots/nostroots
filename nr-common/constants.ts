@@ -50,7 +50,7 @@ export const TIMESAFARI_AUTHOR_PUBLIC_KEY =
   "76e88d2e653fc3655f8e0b97f6bc85f5468eaffc5d64522b584ce13eedbd8af7" as const;
 
 export const E2E_TEST_AUTHOR_PUBLIC_KEY =
-  "eb0314566e34ab24fba09db284932468eea0f98831fe111fe24b8001cfab45ed" as const;
+  "fb745245a3bcf0fb57e35020feb577ee4f30f7e7ba761d956407a4be4ad6d69d" as const;
 
 // Public keys that bypass Trustroots profile validation
 export const VALIDATION_BYPASS_PUBLIC_KEYS = [

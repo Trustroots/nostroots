@@ -6,10 +6,9 @@ export const EVENT_DELETION_KIND = 5;
 export const TRUSTROOTS_PROFILE_KIND = 10390;
 export const NOTIFICATION_SUBSCRIPTION_KIND = 10395;
 export const SERVER_MESSAGE_KIND = 20398;
-export const SERVER_MESSAGE_TYPE_TAG_NAME = "serverMessageType";
-export const SERVER_MESSAGE_TYPES = ["error", "info"];
 export const MAP_NOTE_KIND = 30397;
 export const MAP_NOTE_REPOST_KIND = 30398;
+export const THIRD_PARTY_EVENT_KIND = 30399;
 // All event kinds accepted by the relay. Must be kept in sync with the kinds
 // defined above. Standard Nostr kinds (0, 5) are included as well.
 export const ACCEPTED_KINDS = [
@@ -17,12 +16,13 @@ export const ACCEPTED_KINDS = [
     EVENT_DELETION_KIND,
     TRUSTROOTS_PROFILE_KIND,
     NOTIFICATION_SUBSCRIPTION_KIND,
-    10398,
     SERVER_MESSAGE_KIND,
     MAP_NOTE_KIND,
     MAP_NOTE_REPOST_KIND,
-    30399,
+    THIRD_PARTY_EVENT_KIND,
 ];
+export const SERVER_MESSAGE_TYPE_TAG_NAME = "serverMessageType";
+export const SERVER_MESSAGE_TYPES = ["error", "info"];
 export const NOSTR_EXPIRATION_TAG_NAME = "expiration";
 export const OPEN_LOCATION_CODE_LABEL_NAMESPACE = "open-location-code";
 export const OPEN_LOCATION_CODE_TAG_NAME = OPEN_LOCATION_CODE_LABEL_NAMESPACE;

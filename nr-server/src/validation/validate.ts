@@ -105,6 +105,10 @@ async function getTrustrootsUsernameFromProfile(
   }
 }
 
+export type ValidationResult =
+  | { valid: true }
+  | { valid: false; reason: string };
+
 /**
  * Does this event meet our requirements for automated validation?
  *
@@ -114,14 +118,14 @@ async function getTrustrootsUsernameFromProfile(
 export async function validateEvent(
   relayPool: nostrify.NPool,
   event: nostrify.NostrEvent
-) {
+): Promise<ValidationResult> {
   if (event.kind !== MAP_NOTE_KIND) {
-    return false;
+    return { valid: false, reason: `Event kind ${event.kind} is not supported.` };
   }
 
   // Automatically validate events from trusted sources (hitchmaps, e2e tests, etc.)
   if (VALIDATION_BYPASS_PUBLIC_KEYS.includes(event.pubkey)) {
-    return true;
+    return { valid: true };
   }
 
   const trustrootsUsername = await getTrustrootsUsernameFromProfile(
@@ -137,7 +141,10 @@ export async function validateEvent(
       "#Kmf59M Skipping event with no trustrootsUsername from profile",
       { event }
     );
-    return false;
+    return {
+      valid: false,
+      reason: "No Trustroots username found in your Nostr profile.",
+    };
   }
 
   log.debug(`#yUtER5 Checking username ${trustrootsUsername}`);
@@ -146,14 +153,20 @@ export async function validateEvent(
 
   if (typeof nip5PubKey !== "string") {
     log.debug("#b0gWmE Failed to get string nip5 pubkey", { event });
-    return false;
+    return {
+      valid: false,
+      reason: `NIP-05 verification failed for username "${trustrootsUsername}".`,
+    };
   }
 
   if (event.pubkey !== nip5PubKey) {
     log.debug("#dtKr5H Event failed nip5 validation", { event });
-    return false;
+    return {
+      valid: false,
+      reason: `NIP-05 public key mismatch for username "${trustrootsUsername}".`,
+    };
   }
 
   log.debug("#lpglLu Event passed validation", event);
-  return true;
+  return { valid: true };
 }

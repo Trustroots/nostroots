@@ -57,6 +57,31 @@ export declare const kindSpecificEventSchema: z.ZodDiscriminatedUnion<"kind", [z
     pubkey: z.ZodString;
     sig: z.ZodString;
 } & {
+    kind: z.ZodLiteral<20398>;
+    content: z.ZodString;
+    tags: z.ZodEffects<z.ZodEffects<z.ZodEffects<z.ZodArray<z.ZodArray<z.ZodString, "many">, "many">, string[][], string[][]>, string[][], string[][]>, string[][], string[][]>;
+}, "strict", z.ZodTypeAny, {
+    kind: 20398;
+    created_at: number;
+    tags: string[][];
+    content: string;
+    id: string;
+    pubkey: string;
+    sig: string;
+}, {
+    kind: 20398;
+    created_at: number;
+    tags: string[][];
+    content: string;
+    id: string;
+    pubkey: string;
+    sig: string;
+}>, z.ZodObject<{
+    created_at: z.ZodNumber;
+    id: z.ZodString;
+    pubkey: z.ZodString;
+    sig: z.ZodString;
+} & {
     kind: z.ZodLiteral<30397>;
     tags: z.ZodEffects<z.ZodArray<z.ZodArray<z.ZodString, "many">, "many">, string[][], string[][]>;
     content: z.ZodString;
@@ -148,6 +173,31 @@ export declare const eventSchema: z.ZodUnion<[z.ZodDiscriminatedUnion<"kind", [z
     sig: string;
 }, {
     kind: 10395;
+    created_at: number;
+    tags: string[][];
+    content: string;
+    id: string;
+    pubkey: string;
+    sig: string;
+}>, z.ZodObject<{
+    created_at: z.ZodNumber;
+    id: z.ZodString;
+    pubkey: z.ZodString;
+    sig: z.ZodString;
+} & {
+    kind: z.ZodLiteral<20398>;
+    content: z.ZodString;
+    tags: z.ZodEffects<z.ZodEffects<z.ZodEffects<z.ZodArray<z.ZodArray<z.ZodString, "many">, "many">, string[][], string[][]>, string[][], string[][]>, string[][], string[][]>;
+}, "strict", z.ZodTypeAny, {
+    kind: 20398;
+    created_at: number;
+    tags: string[][];
+    content: string;
+    id: string;
+    pubkey: string;
+    sig: string;
+}, {
+    kind: 20398;
     created_at: number;
     tags: string[][];
     content: string;

@@ -1,0 +1,48 @@
+name: Test
+
+on:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore pnpm installation
+        id: pnpm-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/setup-pnpm
+          key: pnpm-bin-${{ runner.os }}-${{ runner.arch }}
+
+      - name: Add cached pnpm to PATH
+        if: steps.pnpm-cache.outputs.cache-hit == 'true'
+        run: |
+          PNPM_HOME=~/.cache/setup-pnpm/node_modules/.bin
+          echo "$PNPM_HOME" >> "$GITHUB_PATH"
+          echo "PNPM_HOME=$PNPM_HOME" >> "$GITHUB_ENV"
+
+      - name: Setup pnpm (cache miss)
+        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          dest: ~/.cache/setup-pnpm
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run tests
+        run: pnpm test

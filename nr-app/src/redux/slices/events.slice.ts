@@ -15,6 +15,7 @@ import {
   eventSchema,
   getFirstTagValueFromEvent,
   getTrustrootsUsernameFromProfileEvent,
+  isEphemeralKind,
   MAP_NOTE_REPOST_KIND,
   NOSTR_EXPIRATION_TAG_NAME,
   TRUSTROOTS_PROFILE_KIND,
@@ -82,6 +83,12 @@ function addEventToState(
   event: Event,
   seenOnRelay: string,
 ) {
+  // Skip ephemeral events (kind 20000-29999) — they are handled by sagas
+  // directly and should not be persisted in the store.
+  if (isEphemeralKind(event.kind)) {
+    return;
+  }
+
   // Skip events which don't pass validation
   const validationResult = eventSchema.safeParse(event);
   if (!validationResult.success) {

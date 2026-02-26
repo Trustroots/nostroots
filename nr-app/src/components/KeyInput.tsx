@@ -1,7 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import * as Clipboard from "expo-clipboard";
-import { CopyIcon, EyeIcon, EyeOffIcon } from "lucide-react-native";
+import {
+  ClipboardPasteIcon,
+  CopyIcon,
+  EyeIcon,
+  EyeOffIcon,
+} from "lucide-react-native";
 import { useState, useEffect } from "react";
 import { TextInput, View, Pressable } from "react-native";
 import Toast from "react-native-root-toast";
@@ -15,6 +20,8 @@ interface KeyInputProps {
   showRegenerateButton?: boolean;
   generateMode?: boolean;
   onRegenerate?: (newValue: string) => void;
+  showCopyButton?: boolean;
+  showPasteButton?: boolean;
 }
 
 export function KeyInput({
@@ -25,6 +32,8 @@ export function KeyInput({
   showRegenerateButton = false,
   generateMode = false,
   onRegenerate,
+  showCopyButton = false,
+  showPasteButton = false,
 }: KeyInputProps) {
   const [showKey, setShowKey] = useState(false);
 
@@ -45,6 +54,21 @@ export function KeyInput({
       });
     } catch (error) {
       console.error("Failed to copy to clipboard", error);
+    }
+  };
+
+  const handlePaste = async () => {
+    try {
+      const text = await Clipboard.getStringAsync();
+      if (text) {
+        onChangeText(text);
+        Toast.show("Pasted from Clipboard!", {
+          duration: Toast.durations.SHORT,
+          position: Toast.positions.BOTTOM,
+        });
+      }
+    } catch (error) {
+      console.error("Failed to paste from clipboard", error);
     }
   };
 
@@ -82,29 +106,47 @@ export function KeyInput({
         </Pressable>
       </View>
 
-      <View className="flex flex-row gap-2">
-        <Button
-          className={showRegenerateButton && onRegenerate ? "w-1/2" : "flex-1"}
-          size="sm"
-          variant="outline"
-          onPress={handleCopy}
-          disabled={disabled}
-        >
-          <CopyIcon size={16} color="#000" />
-          <Text className="text-sm">Copy</Text>
-        </Button>
-        {showRegenerateButton ? (
-          <Button
-            className="flex-1"
-            size="sm"
-            variant="outline"
-            onPress={handleRegenerate}
-            disabled={disabled}
-          >
-            <Text className="text-sm">Regenerate</Text>
-          </Button>
-        ) : null}
-      </View>
+      {(showCopyButton || showPasteButton || showRegenerateButton) && (
+        <View className="flex flex-row gap-2">
+          {showCopyButton && (
+            <Button
+              className={
+                showRegenerateButton && onRegenerate ? "w-1/2" : "flex-1"
+              }
+              size="sm"
+              variant="outline"
+              onPress={handleCopy}
+              disabled={disabled}
+            >
+              <CopyIcon size={16} color="#000" />
+              <Text className="text-sm">Copy</Text>
+            </Button>
+          )}
+          {showPasteButton && (
+            <Button
+              className="flex-1"
+              size="sm"
+              variant="outline"
+              onPress={handlePaste}
+              disabled={disabled}
+            >
+              <ClipboardPasteIcon size={16} color="#000" />
+              <Text className="text-sm">Paste</Text>
+            </Button>
+          )}
+          {showRegenerateButton ? (
+            <Button
+              className="flex-1"
+              size="sm"
+              variant="outline"
+              onPress={handleRegenerate}
+              disabled={disabled}
+            >
+              <Text className="text-sm">Regenerate</Text>
+            </Button>
+          ) : null}
+        </View>
+      )}
     </View>
   );
 }

@@ -40,6 +40,7 @@ import { navigateToEvent } from "@/utils/map.utils";
 import { getFirstLabelValueFromEvent } from "@trustroots/nr-common";
 import { Stack } from "expo-router";
 import Toast from "react-native-root-toast";
+import { match } from "ts-pattern";
 
 const ToggleSwitch = ({
   value,
@@ -112,6 +113,9 @@ export default function SettingsScreen() {
   const [nsec, setNsec] = useState("");
   const [mnemonic, setMnemonic] = useState("");
   const [keyInput, setKeyInput] = useState("");
+  const [importStatus, setImportStatus] = useState<"idle" | "saved" | "failed">(
+    "idle",
+  );
 
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub) as string;
   const publicKeyHex = useAppSelector(
@@ -233,16 +237,26 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleImportKey = async () => {
-    const success = await importKey(keyInput);
+  const handleKeyInputChange = (text: string) => {
+    setKeyInput(text);
+    setImportStatus("idle");
+  };
 
-    if (success) {
-      setKeyInput("");
-      Toast.show("Key imported successfully", {
+  const handleImportKey = async () => {
+    const result = await importKey(keyInput);
+
+    if (result.success) {
+      setImportStatus("saved");
+      const message =
+        result.type === "mnemonic"
+          ? "Mnemonic imported successfully"
+          : "Key imported successfully";
+      Toast.show(message, {
         duration: Toast.durations.SHORT,
         position: Toast.positions.BOTTOM,
       });
     } else {
+      setImportStatus("failed");
       Toast.show(
         "Failed to import key. Please check your input and try again.",
         {
@@ -313,14 +327,20 @@ export default function SettingsScreen() {
         <View className="bg-muted rounded-lg p-4 gap-4 mt-4">
           <KeyInput
             value={keyInput}
-            onChangeText={setKeyInput}
+            onChangeText={handleKeyInputChange}
             disabled={isImporting}
+            showPasteButton={true}
           />
           <Button
             size="lg"
-            title={isImporting ? "Importing..." : "Import Key"}
+            variant={importStatus === "failed" ? "destructive" : "default"}
+            title={match({ isImporting, importStatus })
+              .with({ isImporting: true }, () => "Importing...")
+              .with({ importStatus: "saved" }, () => "Saved")
+              .with({ importStatus: "failed" }, () => "Failed - Retry")
+              .otherwise(() => "Import Key")}
             onPress={handleImportKey}
-            disabled={isImporting}
+            disabled={isImporting || importStatus === "saved"}
           />
         </View>
       </Section>

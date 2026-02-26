@@ -54,12 +54,16 @@ function parseKeyInput(input: string): KeyImportResult {
   };
 }
 
+export type ImportKeyResult =
+  | { success: true; type: "nsec" | "mnemonic" }
+  | { success: false; type: null };
+
 export function useKeyImport() {
   const dispatch = useAppDispatch();
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const importKey = async (input: string): Promise<boolean> => {
+  const importKey = async (input: string): Promise<ImportKeyResult> => {
     setError(null);
 
     try {
@@ -82,7 +86,7 @@ export function useKeyImport() {
       }
 
       setIsImporting(false);
-      return true;
+      return { success: true, type: result.type };
     } catch (err) {
       console.error("Failed to import key", err);
       const errorMessage =
@@ -91,7 +95,7 @@ export function useKeyImport() {
           : "We could not save this key. Please check and try again.";
       setError(errorMessage);
       setIsImporting(false);
-      return false;
+      return { success: false, type: null };
     }
   };
 

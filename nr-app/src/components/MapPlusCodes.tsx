@@ -99,6 +99,7 @@ export default function MapPlusCodes() {
   const currentMapLocation = useAppSelector(
     mapSelectors.selectCurrentMapLocation,
   );
+  const savedRegion = useAppSelector(mapSelectors.selectSavedRegion);
 
   const mapViewRef = useRef<MapView>(null);
 
@@ -111,16 +112,7 @@ export default function MapPlusCodes() {
 
   // Handle centering map on current location when flag is set
   useEffect(() => {
-    if (
-      centerMapOnCurrentLocation &&
-      currentMapLocation &&
-      typeof currentMapLocation === "object" &&
-      "latitude" in currentMapLocation &&
-      "longitude" in currentMapLocation &&
-      typeof currentMapLocation.latitude === "number" &&
-      typeof currentMapLocation.longitude === "number"
-    ) {
-      // Use the new action-based approach
+    if (centerMapOnCurrentLocation && currentMapLocation) {
       dispatch(
         animateToCoordinate(
           currentMapLocation.latitude,
@@ -130,24 +122,15 @@ export default function MapPlusCodes() {
           1000,
         ),
       );
-      // Clear the flag
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
     }
   }, [centerMapOnCurrentLocation, currentMapLocation, dispatch]);
 
   // Handle centering map for half modal
   useEffect(() => {
-    if (
-      centerMapOnHalfModal &&
-      currentMapLocation &&
-      typeof currentMapLocation === "object" &&
-      "latitude" in currentMapLocation &&
-      "longitude" in currentMapLocation &&
-      typeof currentMapLocation.latitude === "number" &&
-      typeof currentMapLocation.longitude === "number"
-    ) {
+    if (centerMapOnHalfModal && currentMapLocation) {
       // Adjust center point for half modal
-      const adjustedLatitude = currentMapLocation.latitude - 0.02; // Adjust as needed
+      const adjustedLatitude = currentMapLocation.latitude - 0.02;
       dispatch(
         animateToCoordinate(
           adjustedLatitude,
@@ -157,7 +140,6 @@ export default function MapPlusCodes() {
           1000,
         ),
       );
-      // Clear the flag
       dispatch(mapActions.centerMapOnHalfModalComplete());
     }
   }, [centerMapOnHalfModal, currentMapLocation, dispatch]);
@@ -194,6 +176,8 @@ export default function MapPlusCodes() {
         dispatch(setVisiblePlusCodes(visiblePlusCodes));
         const length = whatLengthOfPlusCodeToShow(region);
         log.debug("#mzWdGm regionChange plusCode length", length);
+        // Save the region so it can be restored when the app reopens
+        dispatch(mapActions.setSavedRegion(region));
       },
     [dispatch],
   );
@@ -206,6 +190,7 @@ export default function MapPlusCodes() {
         rotateEnabled={false}
         pitchEnabled={false}
         onRegionChangeComplete={handleMapRegionChange}
+        initialRegion={savedRegion}
         provider={getMapProvider()}
         onMapReady={async (event) => {
           if (mapViewRef.current === null) {

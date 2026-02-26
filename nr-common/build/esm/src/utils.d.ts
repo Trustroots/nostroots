@@ -1,5 +1,6 @@
 import { NostrEvent } from "nostr-tools/core";
 import type { Event } from "./base.schema.js";
+export declare function isEphemeralKind(kind: number): boolean;
 export declare function isHex(s: string): boolean;
 export declare function isHexKey(key: string): boolean;
 export declare function isPlusCode(code: string): boolean;

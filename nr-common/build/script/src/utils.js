@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.isEphemeralKind = isEphemeralKind;
 exports.isHex = isHex;
 exports.isHexKey = isHexKey;
 exports.isPlusCode = isPlusCode;
@@ -28,6 +29,9 @@ function last(items) {
 function unique(items) {
     const dedupedItems = items.filter((item, index) => items.indexOf(item) === index);
     return dedupedItems;
+}
+function isEphemeralKind(kind) {
+    return kind >= 20e3 && kind < 30e3;
 }
 function isHex(s) {
     return s.split("").every((c) => "0123456789abcdef".split("").includes(c));

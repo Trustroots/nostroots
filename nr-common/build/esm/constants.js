@@ -1,9 +1,28 @@
 export const PACKAGE_VERSION = "0.0.1";
 export const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2;
+// When adding a new kind, also add it to ACCEPTED_KINDS below.
+export const NOSTR_USER_METADATA_KIND = 0;
+export const EVENT_DELETION_KIND = 5;
 export const TRUSTROOTS_PROFILE_KIND = 10390;
 export const NOTIFICATION_SUBSCRIPTION_KIND = 10395;
+export const SERVER_MESSAGE_KIND = 20398;
+export const SERVER_MESSAGE_TYPE_TAG_NAME = "serverMessageType";
+export const SERVER_MESSAGE_TYPES = ["error", "info"];
 export const MAP_NOTE_KIND = 30397;
 export const MAP_NOTE_REPOST_KIND = 30398;
+// All event kinds accepted by the relay. Must be kept in sync with the kinds
+// defined above. Standard Nostr kinds (0, 5) are included as well.
+export const ACCEPTED_KINDS = [
+    NOSTR_USER_METADATA_KIND,
+    EVENT_DELETION_KIND,
+    TRUSTROOTS_PROFILE_KIND,
+    NOTIFICATION_SUBSCRIPTION_KIND,
+    10398,
+    SERVER_MESSAGE_KIND,
+    MAP_NOTE_KIND,
+    MAP_NOTE_REPOST_KIND,
+    30399,
+];
 export const NOSTR_EXPIRATION_TAG_NAME = "expiration";
 export const OPEN_LOCATION_CODE_LABEL_NAMESPACE = "open-location-code";
 export const OPEN_LOCATION_CODE_TAG_NAME = OPEN_LOCATION_CODE_LABEL_NAMESPACE;
@@ -14,6 +33,9 @@ export const TRUSTROOTS_PICTURE_LABEL_NAMESPACE = "org.trustroots:picture";
 export const TRUSTROOTS_USERNAME_MIN_LENGTH = 3;
 export const CONTENT_MINIMUM_LENGTH = 3;
 export const CONTENT_MAXIMUM_LENGTH = 300;
+export const AMQP_EXCHANGE_NAME = "nostrEvents";
+export const AMQP_EXCHANGE_TYPE = "fanout";
+export const AMQP_RELAY_INGEST_QUEUE_NAME = "repost";
 export const DEFAULT_RELAY_URL = "wss://relay.trustroots.org";
 export const NOTIFICATION_SERVER_PUBKEY = "62ab89bfb4f0e1f4f64653bfef77fcf4e9062cd9585a97d6b1f17ff953e4e032";
 export const DEV_PUBKEY = "80789235a71a388074abfa5c482e270456d2357425266270f82071cf2b1de74a";

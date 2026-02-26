@@ -21,6 +21,7 @@ __exportStar(require("./src/base.schema.js"), exports);
 __exportStar(require("./src/utils.js"), exports);
 __exportStar(require("./src/10390.schema.js"), exports);
 __exportStar(require("./src/10395.schema.js"), exports);
+__exportStar(require("./src/20398.schema.js"), exports);
 __exportStar(require("./src/30397.schema.js"), exports);
 __exportStar(require("./src/30398.schema.js"), exports);
 __exportStar(require("./src/event.schema.js"), exports);

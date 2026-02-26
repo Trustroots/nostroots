@@ -4,6 +4,7 @@ import mapSaga from "./map.saga";
 import notificationsSaga from "./notifications.saga";
 import publishSaga from "./publish.saga";
 import subscriptionSaga from "./subscriptions.saga";
+import serverMessagesSaga from "./serverMessages.saga";
 import { eventsSaga } from "./events.saga";
 
 export default function* rootSaga() {
@@ -14,5 +15,6 @@ export default function* rootSaga() {
     notificationsSaga(),
     publishSaga(),
     subscriptionSaga(),
+    serverMessagesSaga(),
   ]);
 }

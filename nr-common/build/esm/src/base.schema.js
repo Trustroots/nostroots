@@ -7,8 +7,9 @@ export const baseEventTemplateSchema = z.object({
     tags: z.string().array().array(),
     content: z.string(),
 });
+export const idSchema = z.string().length(64);
 export const finalizedEventFields = z.object({
-    id: z.string().length(64),
+    id: idSchema,
     pubkey: z.string().length(64),
     sig: z.string(),
 });

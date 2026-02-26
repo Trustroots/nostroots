@@ -8,7 +8,8 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "jest --watchAll",
+    "test": "jest",
+    "test:watch": "jest --watchAll",
     "lint": "eslint .",
     "prepare": "cd .. && husky nr-app/.husky",
     "build:android-development": "eas build --platform android --profile development --non-interactive",
@@ -19,7 +20,13 @@
   },
   "pkgx": "facebook.com/watchman",
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "./jest.setup.ts"
+    ],
+    "transformIgnorePatterns": [
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|nativewind|@trustroots/nr-common|@reduxjs/toolkit|immer|redux-persist|redux-devtools-expo-dev-plugin)"
+    ]
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
@@ -98,7 +105,6 @@
     "@react-native/assets-registry": "^0.75.2",
     "@types/jest": "^29.5.12",
     "@types/react": "~19.1.17",
-    "@types/react-test-renderer": "^18.0.7",
     "babel-plugin-module-resolver": "^5.0.2",
     "babel-plugin-root-import": "^6.6.0",
     "eslint": "^8.57.0",
@@ -115,7 +121,7 @@
     "patch-package": "^8.0.1",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.5.11",
-    "react-test-renderer": "18.2.0",
+    "@testing-library/react-native": "^13.1.0",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.3"

@@ -5,6 +5,8 @@
   "imports": {
     // "@babel/runtime": "npm:@babel/runtime@^7.26.0",
     "@deno/dnt": "jsr:@deno/dnt@^0.41.3",
+    "nostr-tools": "npm:nostr-tools@2.10.4",
+    "nostr-tools/core": "npm:nostr-tools@2.10.4/core",
     "zod": "npm:zod@^3.25.76",
   },
   "tasks": {

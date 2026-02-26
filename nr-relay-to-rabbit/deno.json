@@ -6,6 +6,8 @@
   "imports": {
     "@trustroots/nr-common": "../nr-common/mod.ts",
     "@nashaddams/amqp": "jsr:@nashaddams/amqp@1.1.0",
+    "nostr-tools": "npm:nostr-tools@2.10.4",
+    "nostr-tools/core": "npm:nostr-tools@2.10.4/core",
     "zod": "npm:zod@^3.25.76",
     "@std/log": "jsr:@std/log@0.224.5"
   }

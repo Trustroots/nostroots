@@ -1,4 +1,4 @@
-import { NostrEvent } from "npm:nostr-tools@2.10.4/core";
+import { NostrEvent } from "nostr-tools/core";
 import {
   DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH,
   OPEN_LOCATION_CODE_PREFIX_TAG_NAME,

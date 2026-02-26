@@ -1,4 +1,4 @@
-import { Filter } from "npm:nostr-tools@2.10.4";
+import { Filter } from "nostr-tools";
 
 export const PACKAGE_VERSION = "0.0.1";
 

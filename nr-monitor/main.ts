@@ -49,6 +49,13 @@ async function runOnce(): Promise<void> {
 }
 
 async function runLoop(): Promise<void> {
+  if (config.startupDelayMs > 0) {
+    console.log(
+      `#Ab1Cd2 Waiting ${config.startupDelayMs}ms before starting health monitor...`,
+    );
+    await new Promise((resolve) => setTimeout(resolve, config.startupDelayMs));
+  }
+
   console.log(
     `#De3Fg4 Starting health monitor with ${config.checkIntervalMs}ms interval`,
   );

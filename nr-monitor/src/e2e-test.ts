@@ -91,7 +91,6 @@ export async function runE2ETest(
           kinds: [MAP_NOTE_REPOST_KIND],
           authors: [NOSTROOTS_VALIDATION_PUBKEY],
           "#d": [expectedRepostDTag],
-          since: Math.floor(Date.now() / 1000) - 60,
         },
       ],
       {

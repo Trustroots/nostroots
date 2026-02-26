@@ -9,7 +9,6 @@ export const newQueue = newQueueImport;
 export * as logPackage from "jsr:@std/log@0.224.5";
 export * as async from "jsr:@std/async@1.0.3";
 export * as expect from "jsr:@std/expect@1.0.13";
-export * as amqp from "jsr:@nashaddams/amqp@1.1.0";
 export * as nanoid from "jsr:@sitnik/nanoid@5.1.5";
 import { z } from "zod";
 export { z };

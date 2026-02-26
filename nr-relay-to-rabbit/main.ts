@@ -1,5 +1,5 @@
-import * as amqp from "@nashaddams/amqp";
 import { AMQP_EXCHANGE_NAME, AMQP_EXCHANGE_TYPE } from "@trustroots/nr-common";
+import { connectWithRetry } from "@trustroots/amqp";
 import { parseJsonLine } from "./src/parseLines.ts";
 import { acceptEvent, rejectEvent } from "./src/strfryResponses.ts";
 import { whitelistKinds } from "./src/whitelistKinds.ts";
@@ -11,19 +11,7 @@ if (typeof amqpUrl === "undefined" || amqpUrl.length === 0) {
   Deno.exit(1);
 }
 
-const url = URL.parse(amqpUrl);
-
-if (url === null) {
-  console.error("#Nmo5gQ Failed to parse AMQP url");
-  Deno.exit(1);
-}
-
-const connection = await amqp.connect({
-  hostname: url.hostname,
-  port: parseInt(url.port),
-  username: url.username,
-  password: url.password,
-});
+const connection = await connectWithRetry(amqpUrl);
 
 const channel = await connection.openChannel();
 

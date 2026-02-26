@@ -1,19 +1,11 @@
-import { z } from "zod";
-import { eventSchema } from "@trustroots/nr-common";
+import { rabbitMessageSchema, type RabbitMessage } from "@trustroots/amqp";
 
-export const stryfrLineSchema = z.object({
-  type: z.literal("new"),
-  event: eventSchema,
-  receivedAt: z.number().int(),
-  sourceType: z.string(),
-  sourceInfo: z.string(),
-});
-export type StrfryLine = z.infer<typeof stryfrLineSchema>;
+export type StrfryLine = RabbitMessage;
 
 export function parseJsonLine(input: string) {
   try {
     const parsedInput = JSON.parse(input);
-    const strfryLine = stryfrLineSchema.parse(parsedInput);
+    const strfryLine = rabbitMessageSchema.parse(parsedInput);
     return strfryLine;
   } catch (error) {
     const errorMessage =

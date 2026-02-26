@@ -1,6 +1,11 @@
-import { amqp, nanoid, nrCommon } from "../deps.ts";
-const { eventSchema, AMQP_EXCHANGE_NAME, AMQP_EXCHANGE_TYPE, AMQP_RELAY_INGEST_QUEUE_NAME } =
-  nrCommon;
+import { nanoid, nrCommon } from "../deps.ts";
+const {
+  eventSchema,
+  AMQP_EXCHANGE_NAME,
+  AMQP_EXCHANGE_TYPE,
+  AMQP_RELAY_INGEST_QUEUE_NAME,
+} = nrCommon;
+import { connectWithRetry } from "@trustroots/amqp";
 import { getRelayPool } from "./relays.ts";
 import { processEventFactoryFactory } from "./validation/repost.ts";
 import { log } from "./log.ts";
@@ -8,13 +13,13 @@ import { log } from "./log.ts";
 const EMPTY_AMQP_URL = "amqp://insecure:insecure@localhost:5672";
 
 const createId = nanoid.customAlphabet(
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
 );
 
 export async function consume(
   privateKey: Uint8Array,
   isDev: true | undefined,
-  amqpUrl?: string
+  amqpUrl?: string,
 ) {
   const relayPool = await getRelayPool(isDev);
   const processEventFactory = processEventFactoryFactory(relayPool, privateKey);
@@ -28,20 +33,11 @@ export async function consume(
     log.debug(`#nxcSXE Using the empty AMQP url`);
   }
 
-  const url = URL.parse(amqpUrlActual);
-
-  if (url === null) {
-    throw new Error("#jwBa1l-failed-to-parse-amqp-url");
-  }
-
   try {
-    const connection = await amqp.connect({
-      hostname: url.hostname,
-      port: parseInt(url.port),
-      username: url.username,
-      password: url.password,
-    });
+    const connection = await connectWithRetry(amqpUrlActual);
     const channel = await connection.openChannel();
+
+    log.debug(`#Lm8Sn3 Connected to RabbitMQ successfully`);
 
     // Fetch only 1 message at a time
     await channel.qos({ prefetchCount: 1 });
@@ -93,7 +89,7 @@ export async function consume(
         } catch (error) {
           console.error(`#Y5y2oB Error in channel.consume ${id}`, error);
         }
-      }
+      },
     );
   } catch (error) {
     log.error(`#s9QMqm consume() failed with error`, error);

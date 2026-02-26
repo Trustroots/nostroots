@@ -1,0 +1,11 @@
+{
+  "name": "@trustroots/amqp",
+  "version": "0.0.1",
+  "exports": "./mod.ts",
+  "imports": {
+    "@nashaddams/amqp": "jsr:@nashaddams/amqp@^1.1.0",
+    "@trustroots/nr-common": "../../nr-common/mod.ts",
+    "zod": "npm:zod@^3.25.76"
+  },
+  "license": "AGPL-3.0-or-later"
+}

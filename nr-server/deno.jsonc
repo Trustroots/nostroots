@@ -6,5 +6,6 @@
   "imports": {
     "zod": "npm:zod@^3.23.8",
     "@trustroots/nr-common": "../nr-common/mod.ts",
+    "@trustroots/amqp": "../packages/amqp/mod.ts"
   },
 }

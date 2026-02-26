@@ -1,24 +1,15 @@
-import * as amqp from "@nashaddams/amqp";
 import {
   AMQP_EXCHANGE_NAME,
   AMQP_EXCHANGE_TYPE,
   NOTIFICATION_SUBSCRIPTION_KIND,
 } from "@trustroots/nr-common";
-import type { NostrEvent } from "nostr-tools";
+import { connectWithRetry, type RabbitMessage } from "@trustroots/amqp";
 import type { SubscriptionStore } from "./subscriptionStore.ts";
 import {
   decryptAndParseSubscription,
   isEncryptedForDaemon,
 } from "./decrypt.ts";
 import { matchAndNotify } from "./matching.ts";
-
-interface RabbitMessage {
-  readonly type: "new";
-  readonly event: NostrEvent;
-  readonly receivedAt: number;
-  readonly sourceType: string;
-  readonly sourceInfo: string;
-}
 
 export async function consumeFromRabbit(
   amqpUrl: string,
@@ -29,17 +20,7 @@ export async function consumeFromRabbit(
   relayUrl: string,
   store: SubscriptionStore,
 ): Promise<void> {
-  const url = URL.parse(amqpUrl);
-  if (!url) {
-    throw new Error(`Failed to parse AMQP URL: ${amqpUrl}`);
-  }
-
-  const connection = await amqp.connect({
-    hostname: url.hostname,
-    port: parseInt(url.port),
-    username: url.username,
-    password: url.password,
-  });
+  const connection = await connectWithRetry(amqpUrl);
 
   const channel = await connection.openChannel();
   await channel.qos({ prefetchCount: 1 });

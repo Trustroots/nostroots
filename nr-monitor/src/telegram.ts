@@ -107,7 +107,7 @@ async function callTelegram<M extends keyof TelegramMethods>(
   });
 
   if (!response.ok) {
-    console.error(`Telegram ${method} failed: ${response.status}`);
+    console.error(`#Lm7No8 Telegram ${method} failed: ${response.status}`);
     return { ok: false, description: `HTTP ${response.status}` };
   }
 

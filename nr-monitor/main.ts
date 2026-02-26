@@ -23,16 +23,16 @@ async function runChecks(): Promise<StatusReport> {
 
 function logStatus(report: StatusReport): void {
   for (const service of report.services) {
-    console.log(`  ${service.displayName}: ${service.status}`);
+    console.log(`#Gh2Jk3   ${service.displayName}: ${service.status}`);
   }
   const duration = report.e2e.durationMs
     ? ` (${report.e2e.durationMs}ms)`
     : "";
-  console.log(`  E2E Pipeline: ${report.e2e.status}${duration}`);
+  console.log(`#Mn4Pq5   E2E Pipeline: ${report.e2e.status}${duration}`);
 }
 
 async function runOnce(): Promise<void> {
-  console.log(`[${new Date().toISOString()}] Running health checks...`);
+  console.log(`#Rs6Tu7 [${new Date().toISOString()}] Running health checks...`);
 
   const report = await runChecks();
   const statusChanged = updateState(report);
@@ -40,9 +40,9 @@ async function runOnce(): Promise<void> {
   logStatus(report);
 
   if (statusChanged) {
-    console.log("Status changed, sending new notification...");
+    console.log("#Vw8Xy9 Status changed, sending new notification...");
   } else {
-    console.log("No status change, updating existing message...");
+    console.log("#Za1Bc2 No status change, updating existing message...");
   }
 
   await sendStatusUpdate(formatStatusMessage(report), statusChanged);
@@ -50,14 +50,14 @@ async function runOnce(): Promise<void> {
 
 async function runLoop(): Promise<void> {
   console.log(
-    `Starting health monitor with ${config.checkIntervalMs}ms interval`,
+    `#De3Fg4 Starting health monitor with ${config.checkIntervalMs}ms interval`,
   );
 
   while (true) {
     try {
       await runOnce();
     } catch (error) {
-      console.error("Error during health check:", error);
+      console.error("#Hi5Jk6 Error during health check:", error);
     }
 
     await new Promise((resolve) => setTimeout(resolve, config.checkIntervalMs));

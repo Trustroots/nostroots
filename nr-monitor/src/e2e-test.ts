@@ -58,28 +58,28 @@ export async function runE2ETest(
   const testEvent = createTestEvent(secretKey, dTag);
   const expectedRepostDTag = `${testEvent.pubkey}:${MAP_NOTE_KIND}:${dTag}`;
 
-  console.log(`[E2E] Publishing test event with d tag: ${dTag}`);
-  console.log(`[E2E] Expected repost d tag: ${expectedRepostDTag}`);
-  console.log(`[E2E] Event ID: ${testEvent.id}`);
+  console.log(`#Kj8Tv1 Publishing test event with d tag: ${dTag}`);
+  console.log(`#Lm3Wq2 Expected repost d tag: ${expectedRepostDTag}`);
+  console.log(`#Np6Xr3 Event ID: ${testEvent.id}`);
 
   let relay: Relay;
   try {
     relay = await Relay.connect(relayWsUrl);
   } catch (error) {
-    console.error(`[E2E] Failed to connect:`, error);
+    console.error(`#Qr9Ys4 Failed to connect:`, error);
     return {
       status: "error",
       error: error instanceof Error ? error.message : String(error),
     };
   }
 
-  console.log(`[E2E] Connected to ${relayWsUrl}`);
+  console.log(`#St2Zt5 Connected to ${relayWsUrl}`);
   const publishTime = Date.now();
 
   return new Promise<E2EResult>((resolve) => {
     const timeout = setTimeout(() => {
       console.log(
-        `[E2E] Timeout after ${timeoutSeconds} seconds - no repost received`,
+        `#Uv5Au6 Timeout after ${timeoutSeconds} seconds - no repost received`,
       );
       relay.close();
       resolve({ status: "error", error: "Timeout waiting for repost" });
@@ -97,7 +97,7 @@ export async function runE2ETest(
       {
         onevent(event) {
           console.log(
-            `[E2E] Received event kind ${event.kind} from ${event.pubkey.substring(0, 8)}...`,
+            `#Wx8Bv7 Received event kind ${event.kind} from ${event.pubkey.substring(0, 8)}...`,
           );
 
           if (
@@ -108,7 +108,7 @@ export async function runE2ETest(
             if (eventDTag === expectedRepostDTag) {
               const durationMs = Date.now() - publishTime;
               console.log(
-                `[E2E] Received matching repost! Event ID: ${event.id}`,
+                `#Yz1Cw8 Received matching repost! Event ID: ${event.id}`,
               );
               clearTimeout(timeout);
               sub.close();
@@ -118,11 +118,11 @@ export async function runE2ETest(
           }
         },
         oneose() {
-          console.log(`[E2E] End of stored events, publishing test event...`);
+          console.log(`#Ab4Dx9 End of stored events, publishing test event...`);
           relay.publish(testEvent).then(
-            () => console.log(`[E2E] Event published successfully`),
+            () => console.log(`#Cd7Ey0 Event published successfully`),
             (err) => {
-              console.log(`[E2E] Event rejected: ${err}`);
+              console.log(`#Ef0Fz1 Event rejected: ${err}`);
               clearTimeout(timeout);
               sub.close();
               relay.close();

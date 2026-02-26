@@ -5,10 +5,10 @@ import { log } from "./src/log.ts";
 import { consumeFromRabbit } from "./src/rabbit.ts";
 import { loadSubscriptionsFromRelay } from "./src/relay.ts";
 import { SubscriptionStore } from "./src/subscriptionStore.ts";
+import { serializeArg } from "@trustroots/nr-common";
 
-const HEALTH_PORT = 80;
-Deno.serve(
-  { port: HEALTH_PORT },
+const healthCheckServer = Deno.serve(
+  {},
   () =>
     new Response(
       JSON.stringify({ status: "ok", service: "nr-notification-daemon" }),
@@ -21,19 +21,25 @@ log.info(`Derived public key: ${publicKey}`);
 
 const store = new SubscriptionStore();
 
-await loadSubscriptionsFromRelay(
-  config.strfryUrl,
-  config.privateKey,
-  publicKey,
-  store,
-);
+try {
+  await loadSubscriptionsFromRelay(
+    config.strfryUrl,
+    config.privateKey,
+    publicKey,
+    store,
+  );
 
-await consumeFromRabbit(
-  config.amqpUrl,
-  config.rabbitmqQueue,
-  config.privateKey,
-  publicKey,
-  config.expoAccessToken,
-  config.strfryUrl,
-  store,
-);
+  await consumeFromRabbit(
+    config.amqpUrl,
+    config.rabbitmqQueue,
+    config.privateKey,
+    publicKey,
+    config.expoAccessToken,
+    config.strfryUrl,
+    store,
+  );
+} catch (error) {
+  console.error(`#HqVOjF Fatal error, shutting down ${serializeArg(error)}`);
+} finally {
+  healthCheckServer.shutdown();
+}

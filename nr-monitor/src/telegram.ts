@@ -60,7 +60,8 @@ export function formatStatusMessage(report: StatusReport): string {
       : "unknown";
     lines.push(`Test event posted and validated in ${duration}.`);
   } else {
-    lines.push("Test event validation <b>FAILED</b>.");
+    const reason = report.e2e.error ? `: ${report.e2e.error}` : "";
+    lines.push(`Test event validation <b>FAILED</b>${reason}`);
   }
 
   lines.push("");

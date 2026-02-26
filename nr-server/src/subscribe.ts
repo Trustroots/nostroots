@@ -42,11 +42,7 @@ export async function subscribeAndRepost(
   let signal: AbortSignal;
 
   async function _subscribe() {
-    console.log(
-      `#okwpth (Re)starting subscriptions, last message received at ${lastReceivedMessageTimestamp} (${new Date(
-        lastReceivedMessageTimestamp * 1000
-      ).toLocaleString()})`
-    );
+    log.info(`#okwpth (Re)starting subscriptions, last message received at ${lastReceivedMessageTimestamp} (${new Date(lastReceivedMessageTimestamp * 1000).toLocaleString()})`);
     if (lastReceivedMessageTimestamp)
       maxAgeMinutes =
         (Math.floor(Date.now() / 1000) - lastReceivedMessageTimestamp) / 60 + 1;
@@ -66,7 +62,7 @@ export async function subscribeAndRepost(
 
     try {
       for await (const msg of subscription) {
-        console.log("#uFKk4A Got msg", msg);
+        log.debug("#uFKk4A Got msg", msg);
 
         if (msg[0] === "EVENT") {
           const event = msg[2];
@@ -81,7 +77,7 @@ export async function subscribeAndRepost(
         }
       }
     } catch (e) {
-      console.log("#YPKaR3 got error", typeof e, e);
+      log.error("#YPKaR3 got error", typeof e, e);
     }
   }
 

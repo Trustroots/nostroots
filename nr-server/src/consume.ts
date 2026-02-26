@@ -68,12 +68,12 @@ export async function consume(
         const id = createId();
         try {
           const ack = async () => {
-            console.log(`#zQ5dXu ${id} sending ack`);
+            log.debug(`#zQ5dXu ${id} sending ack`);
             await channel.ack({ deliveryTag: args.deliveryTag });
           };
 
           const text = new TextDecoder().decode(data);
-          console.log(`#QXP3Bz Got event body for ${id}`, args, text);
+          log.debug(`#QXP3Bz Got event body for ${id}`, args, text);
 
           const strfryMessage = JSON.parse(text);
           const { event: unvalidatedEvent } = strfryMessage;
@@ -91,7 +91,7 @@ export async function consume(
 
           await ack();
         } catch (error) {
-          console.error(`#Y5y2oB Error in channel.consume ${id}`, error);
+          log.error(`#Y5y2oB Error in channel.consume ${id}`, error);
         }
       }
     );

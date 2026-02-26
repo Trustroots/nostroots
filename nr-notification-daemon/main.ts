@@ -5,10 +5,14 @@ import { loadSubscriptionsFromRelay } from "./src/relay.ts";
 import { consumeFromRabbit } from "./src/rabbit.ts";
 import { config } from "./src/config.ts";
 
-const HEALTH_PORT = 8081;
-Deno.serve({ port: HEALTH_PORT }, () =>
-  new Response(JSON.stringify({ status: "ok", service: "nr-notification-daemon" }),
-    { headers: { "content-type": "application/json" } })
+const HEALTH_PORT = 80;
+Deno.serve(
+  { port: HEALTH_PORT },
+  () =>
+    new Response(
+      JSON.stringify({ status: "ok", service: "nr-notification-daemon" }),
+      { headers: { "content-type": "application/json" } },
+    ),
 );
 
 const publicKey = getPublicKey(hexToBytes(config.privateKey));

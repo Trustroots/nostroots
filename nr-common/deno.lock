@@ -219,7 +219,14 @@
   "workspace": {
     "dependencies": [
       "jsr:@deno/dnt@~0.41.3",
+      "npm:nostr-tools@2.10.4",
       "npm:zod@^3.25.76"
-    ]
+    ],
+    "packageJson": {
+      "dependencies": [
+        "npm:nostr-tools@2.10.4",
+        "npm:zod@^3.25.76"
+      ]
+    }
   }
 }

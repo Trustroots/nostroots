@@ -2,6 +2,7 @@
   "version": "5",
   "specifiers": {
     "jsr:@nashaddams/amqp@1.1.0": "1.1.0",
+    "jsr:@nashaddams/amqp@^1.1.0": "1.1.0",
     "jsr:@std/bytes@^1.0.2": "1.0.6",
     "jsr:@std/io@0.225.0": "0.225.0",
     "npm:@noble/hashes@1.7.1": "1.7.1",

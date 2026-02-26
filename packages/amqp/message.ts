@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "npm:zod@^3.25.76";
 import { eventSchema } from "@trustroots/nr-common";
 
 export const rabbitMessageSchema = z.object({

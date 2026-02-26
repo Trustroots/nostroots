@@ -1,4 +1,4 @@
-import * as amqp from "@nashaddams/amqp";
+import * as amqp from "jsr:@nashaddams/amqp@^1.1.0";
 
 export { rabbitMessageSchema, type RabbitMessage } from "./message.ts";
 

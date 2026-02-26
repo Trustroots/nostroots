@@ -1,0 +1,11 @@
+{
+  "nodeModulesDir": "auto",
+  "workspace": [
+    "./nr-common",
+    "./nr-server",
+    "./nr-relay-to-rabbit",
+    "./nr-notification-daemon",
+    "./nr-monitor",
+    "./packages/amqp"
+  ]
+}

@@ -5,19 +5,34 @@
       "name": "root"
     },
     {
-      "path": "nr-common"
+      "path": "nr-common",
+      "settings": {
+        "deno.enable": true
+      }
     },
     {
-      "path": "nr-server"
+      "path": "nr-server",
+      "settings": {
+        "deno.enable": true
+      }
     },
     {
-      "path": "nr-relay-to-rabbit"
+      "path": "nr-relay-to-rabbit",
+      "settings": {
+        "deno.enable": true
+      }
     },
     {
-      "path": "nr-monitor"
+      "path": "nr-monitor",
+      "settings": {
+        "deno.enable": true
+      }
     },
     {
-      "path": "nr-notification-daemon"
+      "path": "nr-notification-daemon",
+      "settings": {
+        "deno.enable": true
+      }
     },
     {
       "path": "nr-app"
@@ -33,24 +48,20 @@
     },
     {
       "path": "development-utils/local-relay",
-      "name": "local-relay"
+      "name": "local-relay",
+      "settings": {
+        "deno.enable": true
+      }
     },
     {
       "path": "development-utils/nip-46-client",
-      "name": "nip-46-client"
+      "name": "nip-46-client",
+      "settings": {
+        "deno.enable": true
+      }
     }
   ],
   "settings": {
-    "deno.enable": false,
-    "deno.enablePaths": [
-      "./nr-common",
-      "./nr-server",
-      "./nr-relay-to-rabbit",
-      "./nr-monitor",
-      "./nr-notification-daemon",
-      "./development-utils/local-relay",
-      "./development-utils/nip-46-client"
-    ],
     "search.exclude": {
       "**/nr-common/build": true
     },

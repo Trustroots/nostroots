@@ -56,7 +56,9 @@ export function formatStatusMessage(report: StatusReport): string {
 
   if (report.e2e.status === "ok") {
     const duration = report.e2e.durationMs
-      ? `${(report.e2e.durationMs / 1000).toFixed(1)}s`
+      ? report.e2e.durationMs >= 1000
+        ? `${(report.e2e.durationMs / 1000).toFixed(1)}s`
+        : `${report.e2e.durationMs}ms`
       : "unknown";
     lines.push(`Test event posted and validated in ${duration}.`);
   } else {

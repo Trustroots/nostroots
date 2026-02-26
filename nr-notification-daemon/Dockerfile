@@ -20,6 +20,6 @@ COPY src/ src/
 RUN deno cache main.ts
 
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 --start-period=60s \
-  CMD deno eval "const r = await fetch('http://localhost:8081/health'); Deno.exit(r.ok ? 0 : 1)"
+  CMD deno eval "const r = await fetch('http://localhost:80/health'); Deno.exit(r.ok ? 0 : 1)"
 
 CMD ["run", "--allow-net", "--allow-env", "main.ts"]

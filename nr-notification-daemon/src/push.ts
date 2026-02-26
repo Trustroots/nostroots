@@ -1,4 +1,5 @@
 import type { NostrEvent } from "nostr-tools";
+import { log } from "./log.ts";
 import type { PushToken } from "./subscriptionStore.ts";
 
 const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
@@ -59,9 +60,7 @@ export async function sendPushNotifications(
     });
 
     if (!response.ok) {
-      console.error(
-        `Expo Push API error: ${response.status} ${response.statusText}`,
-      );
+      log.error(`Expo Push API error: ${response.status} ${response.statusText}`);
       return;
     }
 
@@ -70,12 +69,12 @@ export async function sendPushNotifications(
 
     tickets.forEach((ticket, i) => {
       if (ticket.status === "ok") {
-        console.log(`Sent push to ${tokens[i]}`);
+        log.info(`Sent push to ${tokens[i]}`);
       } else {
-        console.error(`Failed to send to ${tokens[i]}: ${ticket.message}`);
+        log.error(`Failed to send to ${tokens[i]}: ${ticket.message}`);
       }
     });
   } catch (error) {
-    console.error("Expo push error:", error);
+    log.error("Expo push error:", error);
   }
 }

@@ -5,12 +5,13 @@ import {
   NOTIFICATION_SUBSCRIPTION_KIND,
 } from "@trustroots/nr-common";
 import type { NostrEvent } from "nostr-tools";
-import type { SubscriptionStore } from "./subscriptionStore.ts";
 import {
   decryptAndParseSubscription,
   isEncryptedForDaemon,
 } from "./decrypt.ts";
+import { log } from "./log.ts";
 import { matchAndNotify } from "./matching.ts";
+import type { SubscriptionStore } from "./subscriptionStore.ts";
 
 interface RabbitMessage {
   readonly type: "new";
@@ -60,24 +61,20 @@ export async function consumeFromRabbit(
     queue: queueName,
   });
 
-  console.log(
-    `RabbitMQ setup complete. Consuming from queue: ${queueName} with ${store.totalFilterCount} filters`,
-  );
+  log.info(`RabbitMQ setup complete. Consuming from queue: ${queueName} with ${store.totalFilterCount} filters`);
 
   await channel.consume(
     { queue: queueName },
     async (args, _props, data) => {
       try {
         const text = new TextDecoder().decode(data);
-        console.log(`Received message: ${text}`);
+        log.debug(`Received message: ${text}`);
 
         const wrapper: RabbitMessage = JSON.parse(text);
         const event = wrapper.event;
 
         if (event.kind === NOTIFICATION_SUBSCRIPTION_KIND) {
-          console.log(
-            `Received new appData message from pubkey: ${event.pubkey}`,
-          );
+          log.info(`Received new appData message from pubkey: ${event.pubkey}`);
 
           if (isEncryptedForDaemon(event, publicKey)) {
             const result = await decryptAndParseSubscription(
@@ -90,15 +87,13 @@ export async function consumeFromRabbit(
             }
           }
         } else {
-          console.log(
-            `Parsed Nostr Event: ID=${event.id} Kind=${event.kind} PubKey=${event.pubkey} Source=${wrapper.sourceInfo}`,
-          );
+          log.debug(`Parsed Nostr Event: ID=${event.id} Kind=${event.kind} PubKey=${event.pubkey} Source=${wrapper.sourceInfo}`);
           await matchAndNotify(event, store, expoAccessToken, relayUrl);
         }
 
         await channel.ack({ deliveryTag: args.deliveryTag });
       } catch (error) {
-        console.error("Error processing message:", error);
+        log.error("Error processing message:", error);
         await channel.nack({ deliveryTag: args.deliveryTag, requeue: true });
       }
     },

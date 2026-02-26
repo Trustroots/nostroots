@@ -8,6 +8,7 @@ import {
   E2E_TEST_AUTHOR_PUBLIC_KEY,
   NOSTR_EXPIRATION_TAG_NAME,
 } from "@trustroots/nr-common";
+import { log } from "./log.ts";
 
 export interface E2EResult {
   status: "ok" | "error";
@@ -61,29 +62,27 @@ export async function runE2ETest(
   const testEvent = createTestEvent(secretKey, dTag);
   const expectedRepostDTag = `${testEvent.pubkey}:${MAP_NOTE_KIND}:${dTag}`;
 
-  console.log(`#Kj8Tv1 Publishing test event with d tag: ${dTag}`);
-  console.log(`#Lm3Wq2 Expected repost d tag: ${expectedRepostDTag}`);
-  console.log(`#Np6Xr3 Event ID: ${testEvent.id}`);
+  log.debug(`#Kj8Tv1 Publishing test event with d tag: ${dTag}`);
+  log.debug(`#Lm3Wq2 Expected repost d tag: ${expectedRepostDTag}`);
+  log.debug(`#Np6Xr3 Event ID: ${testEvent.id}`);
 
   let relay: Relay;
   try {
     relay = await Relay.connect(relayWsUrl);
   } catch (error) {
-    console.error(`#Qr9Ys4 Failed to connect:`, error);
+    log.error(`#Qr9Ys4 Failed to connect:`, error);
     return {
       status: "error",
       error: error instanceof Error ? error.message : String(error),
     };
   }
 
-  console.log(`#St2Zt5 Connected to ${relayWsUrl}`);
+  log.info(`#St2Zt5 Connected to ${relayWsUrl}`);
   const publishTime = Date.now();
 
   return new Promise<E2EResult>((resolve) => {
     const timeout = setTimeout(() => {
-      console.log(
-        `#Uv5Au6 Timeout after ${timeoutSeconds} seconds - no repost received`,
-      );
+      log.error(`#Uv5Au6 Timeout after ${timeoutSeconds} seconds - no repost received`);
       relay.close();
       resolve({ status: "error", error: "Timeout waiting for repost" });
     }, timeoutSeconds * 1000);
@@ -98,9 +97,7 @@ export async function runE2ETest(
       ],
       {
         onevent(event) {
-          console.log(
-            `#Wx8Bv7 Received event kind ${event.kind} from ${event.pubkey.substring(0, 8)}...`,
-          );
+          log.debug(`#Wx8Bv7 Received event kind ${event.kind} from ${event.pubkey.substring(0, 8)}...`);
 
           if (
             event.kind === MAP_NOTE_REPOST_KIND &&
@@ -109,9 +106,7 @@ export async function runE2ETest(
             const eventDTag = event.tags.find((t) => t[0] === "d")?.[1];
             if (eventDTag === expectedRepostDTag) {
               const durationMs = Date.now() - publishTime;
-              console.log(
-                `#Yz1Cw8 Received matching repost! Event ID: ${event.id}`,
-              );
+              log.info(`#Yz1Cw8 Received matching repost! Event ID: ${event.id}`);
               clearTimeout(timeout);
               sub.close();
               relay.close();
@@ -120,11 +115,11 @@ export async function runE2ETest(
           }
         },
         oneose() {
-          console.log(`#Ab4Dx9 End of stored events, publishing test event...`);
+          log.info(`#Ab4Dx9 End of stored events, publishing test event...`);
           relay.publish(testEvent).then(
-            () => console.log(`#Cd7Ey0 Event published successfully`),
+            () => log.info(`#Cd7Ey0 Event published successfully`),
             (err) => {
-              console.log(`#Ef0Fz1 Event rejected: ${err}`);
+              log.error(`#Ef0Fz1 Event rejected: ${err}`);
               clearTimeout(timeout);
               sub.close();
               relay.close();

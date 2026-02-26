@@ -1,6 +1,7 @@
 import { nip04 } from "nostr-tools";
 import { kind10395ContentDecryptedDecodedSchema } from "@trustroots/nr-common";
 import type { Filter, NostrEvent } from "nostr-tools";
+import { log } from "./log.ts";
 import type { PushToken } from "./subscriptionStore.ts";
 
 export interface DecryptedSubscription {
@@ -14,15 +15,15 @@ export function isEncryptedForDaemon(
 ): boolean {
   const pTags = event.tags.filter((tag) => tag[0] === "p");
   if (pTags.length === 0) {
-    console.log(`No p tag on event ${event.id}`);
+    log.debug(`No p tag on event ${event.id}`);
     return false;
   }
   if (pTags[0][1] !== daemonPubkey) {
-    console.log(`First p tag is not for me (was: ${pTags[0][1]})`);
+    log.debug(`First p tag is not for me (was: ${pTags[0][1]})`);
     return false;
   }
   if (!event.content.includes("?iv=")) {
-    console.log(`No iv marker on event ${event.id}`);
+    log.debug(`No iv marker on event ${event.id}`);
     return false;
   }
   return true;
@@ -42,16 +43,11 @@ export async function decryptAndParseSubscription(
       (t) => t.expoPushToken,
     );
 
-    console.log(
-      `Decrypted subscription from ${event.pubkey}: ${filters.length} filters, ${tokens.length} tokens`,
-    );
+    log.info(`Decrypted subscription from ${event.pubkey}: ${filters.length} filters, ${tokens.length} tokens`);
 
     return { filters, tokens };
   } catch (error) {
-    console.error(
-      `Failed to decrypt/parse subscription from ${event.pubkey}:`,
-      error,
-    );
+    log.error(`Failed to decrypt/parse subscription from ${event.pubkey}:`, error);
     return undefined;
   }
 }

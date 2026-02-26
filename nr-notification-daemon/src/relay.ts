@@ -1,11 +1,12 @@
 import { Relay } from "nostr-tools/relay";
 import { NOTIFICATION_SUBSCRIPTION_KIND } from "@trustroots/nr-common";
 import type { NostrEvent } from "nostr-tools";
-import type { SubscriptionStore } from "./subscriptionStore.ts";
 import {
   decryptAndParseSubscription,
   isEncryptedForDaemon,
 } from "./decrypt.ts";
+import { log } from "./log.ts";
+import type { SubscriptionStore } from "./subscriptionStore.ts";
 
 export async function loadSubscriptionsFromRelay(
   relayUrl: string,
@@ -13,7 +14,7 @@ export async function loadSubscriptionsFromRelay(
   publicKey: string,
   store: SubscriptionStore,
 ): Promise<void> {
-  console.log(`#uWfe4I Connecting to relay: ${relayUrl}`);
+  log.info(`#uWfe4I Connecting to relay: ${relayUrl}`);
   const relay = await Relay.connect(relayUrl);
 
   try {
@@ -22,7 +23,7 @@ export async function loadSubscriptionsFromRelay(
         [{ kinds: [NOTIFICATION_SUBSCRIPTION_KIND] }],
         {
           async onevent(event: NostrEvent) {
-            console.log(`#nob1Wi Got stored event: ${event.id}`);
+            log.debug(`#nob1Wi Got stored event: ${event.id}`);
             if (!isEncryptedForDaemon(event, publicKey)) {
               return;
             }
@@ -36,7 +37,7 @@ export async function loadSubscriptionsFromRelay(
             }
           },
           oneose() {
-            console.log("#07CfoY Finished reading stored events");
+            log.info("#07CfoY Finished reading stored events");
             sub.close();
             resolve();
           },
@@ -51,9 +52,7 @@ export async function loadSubscriptionsFromRelay(
       }, 30000);
     });
 
-    console.log(
-      `#yXyIJX Loaded initial subscriptions from relay: ${store.pubkeyCount} pubkeys`,
-    );
+    log.info(`#yXyIJX Loaded initial subscriptions from relay: ${store.pubkeyCount} pubkeys`);
   } finally {
     relay.close();
   }

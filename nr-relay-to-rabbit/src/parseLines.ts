@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { eventSchema } from "@trustroots/nr-common";
+import { log } from "./log.ts";
 
 export const stryfrLineSchema = z.object({
   type: z.literal("new"),
@@ -18,6 +19,6 @@ export function parseJsonLine(input: string) {
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : JSON.stringify(error);
-    console.error(`#XfMojS Error parsing line ${errorMessage}: ${input}`);
+    log.error(`#XfMojS Error parsing line ${errorMessage}: ${input}`);
   }
 }

@@ -1,4 +1,5 @@
 import type { Filter } from "nostr-tools";
+import { log } from "./log.ts";
 
 export type PushToken = string;
 
@@ -17,19 +18,15 @@ export class SubscriptionStore {
     const count = filters.length;
 
     if (exists) {
-      console.log(
-        `Updating filters from existing pubkey ${pubkey}. Count: ${count}.`,
-      );
+      log.debug(`Updating filters from existing pubkey ${pubkey}. Count: ${count}.`);
     } else {
-      console.log(
-        `Received filters from new pubkey ${pubkey}. Count: ${count}.`,
-      );
+      log.info(`Received filters from new pubkey ${pubkey}. Count: ${count}.`);
     }
   }
 
   updateTokens(pubkey: string, tokens: readonly PushToken[]): void {
     if (tokens.length === 0) {
-      console.log("No tokens found. Skipping.");
+      log.debug("No tokens found. Skipping.");
       return;
     }
 
@@ -38,13 +35,9 @@ export class SubscriptionStore {
     const count = tokens.length;
 
     if (exists) {
-      console.log(
-        `Updating push tokens from existing pubkey ${pubkey}. Count: ${count}.`,
-      );
+      log.debug(`Updating push tokens from existing pubkey ${pubkey}. Count: ${count}.`);
     } else {
-      console.log(
-        `Received push tokens from new pubkey ${pubkey}. Count: ${count}.`,
-      );
+      log.info(`Received push tokens from new pubkey ${pubkey}. Count: ${count}.`);
     }
   }
 

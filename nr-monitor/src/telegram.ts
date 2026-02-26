@@ -1,6 +1,7 @@
 import { config } from "./config.ts";
 import { ServiceResult } from "./health-check.ts";
 import { E2EResult } from "./e2e-test.ts";
+import { log } from "./log.ts";
 
 export interface StatusReport {
   services: ServiceResult[];
@@ -107,7 +108,7 @@ async function callTelegram<M extends keyof TelegramMethods>(
   });
 
   if (!response.ok) {
-    console.error(`#Lm7No8 Telegram ${method} failed: ${response.status}`);
+    log.error(`#Lm7No8 Telegram ${method} failed: ${response.status}`);
     return { ok: false, description: `HTTP ${response.status}` };
   }
 

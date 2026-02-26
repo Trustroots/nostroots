@@ -10,6 +10,7 @@
     "nostr-tools": "npm:nostr-tools@2.10.4",
     "nostr-tools/pure": "npm:nostr-tools@2.10.4/pure",
     "nostr-tools/relay": "npm:nostr-tools@2.10.4/relay",
-    "@noble/hashes/utils": "npm:@noble/hashes@1.7.1/utils"
+    "@noble/hashes/utils": "npm:@noble/hashes@1.7.1/utils",
+    "@std/log": "jsr:@std/log@0.224.5"
   }
 }

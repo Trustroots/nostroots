@@ -1,5 +1,5 @@
-import { logPackage, nrCommon } from "../deps.ts";
-const { serializeArg } = nrCommon;
+import * as logPackage from "@std/log";
+import { serializeArg } from "@trustroots/nr-common";
 
 logPackage.setup({
   handlers: {

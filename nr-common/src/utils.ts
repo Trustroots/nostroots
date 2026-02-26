@@ -21,6 +21,13 @@ function unique<T>(items: T[]): T[] {
   return dedupedItems;
 }
 
+export function serializeArg(arg: unknown): string {
+  if (arg instanceof Error) {
+    return JSON.stringify({ message: arg.message, stack: arg.stack });
+  }
+  return JSON.stringify(arg);
+}
+
 export function isEphemeralKind(kind: number): boolean {
   return kind >= 20e3 && kind < 30e3;
 }
@@ -284,7 +291,7 @@ export async function getNip5PubKey(
     };
 
     if (error) {
-      console.warn(`NIP-5 error for ${trustrootsUsername}:`, error);
+      console.warn(`NIP-5 error for ${trustrootsUsername}: ${serializeArg(error)}`);
       return;
     }
 
@@ -295,7 +302,7 @@ export async function getNip5PubKey(
     const nip5PubKey = names[trustrootsUsername];
     return nip5PubKey;
   } catch (e: unknown) {
-    console.warn(`Could not get nip5 key for ${trustrootsUsername}`, e);
+    console.warn(`Could not get nip5 key for ${trustrootsUsername} ${serializeArg(e)}`);
     return;
   }
 }

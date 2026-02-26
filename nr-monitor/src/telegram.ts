@@ -40,45 +40,49 @@ let lastMessageId: number | null = null;
 export function formatStatusMessage(report: StatusReport): string {
   const lines: string[] = [];
 
-  const upCount = report.services.filter((s) => s.status === "ok").length;
-  const downCount = report.services.length - upCount;
+  // Header with timestamp
+  const now = new Date();
+  const formatted = now.toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+  });
 
-  lines.push("<b>Nostroots Status Update</b>");
-  lines.push(`${upCount} up, ${downCount} down`);
+  lines.push(`📡 <b>Nostroots Status</b> — ${formatted} UTC`);
   lines.push("");
 
+  // Services
   for (const service of report.services) {
-    const statusText = service.status === "ok" ? "<b>UP</b>" : "<b>DOWN</b>";
-    lines.push(`- ${service.displayName}: ${statusText}`);
+    const icon = service.status === "ok" ? "🟢" : "🔴";
+    lines.push(`${icon} ${service.displayName}`);
   }
 
-  lines.push("");
-
+  // E2E test as a service
   if (report.e2e.status === "ok") {
     const duration = report.e2e.durationMs
       ? report.e2e.durationMs >= 1000
         ? `${(report.e2e.durationMs / 1000).toFixed(1)}s`
         : `${report.e2e.durationMs}ms`
-      : "unknown";
-    lines.push(`Test event posted and validated in ${duration}.`);
+      : "";
+    const durationSuffix = duration ? ` — ${duration}` : "";
+    lines.push(`🟢 E2E Test${durationSuffix}`);
   } else {
-    const reason = report.e2e.error ? `: ${report.e2e.error}` : "";
-    lines.push(`Test event validation <b>FAILED</b>${reason}`);
+    const reason = report.e2e.error ? ` — ${report.e2e.error}` : "";
+    lines.push(`🔴 E2E Test${reason}`);
   }
 
+  // Footer with operational count
+  const serviceUpCount = report.services.filter(
+    (s) => s.status === "ok",
+  ).length;
+  const e2eUp = report.e2e.status === "ok" ? 1 : 0;
+  const totalUp = serviceUpCount + e2eUp;
+  const total = report.services.length + 1;
+
   lines.push("");
-  const now = new Date();
-  const formatted = now.toLocaleString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    timeZone: "UTC",
-    timeZoneName: "short",
-  });
-  lines.push(`<i>${formatted}</i>`);
+  lines.push(`── ${totalUp}/${total} operational ──`);
 
   return lines.join("\n");
 }

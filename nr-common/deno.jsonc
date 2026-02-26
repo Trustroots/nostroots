@@ -2,6 +2,7 @@
   "name": "@trustroots/nr-common",
   "version": "0.0.1",
   "exports": "./mod.ts",
+  "nodeModulesDir": "none",
   "imports": {
     // "@babel/runtime": "npm:@babel/runtime@^7.26.0",
     "@deno/dnt": "jsr:@deno/dnt@^0.41.3",

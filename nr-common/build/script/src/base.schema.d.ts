@@ -15,6 +15,7 @@ export declare const baseEventTemplateSchema: z.ZodObject<{
     tags: string[][];
     content: string;
 }>;
+export declare const idSchema: z.ZodString;
 export declare const finalizedEventFields: z.ZodObject<{
     id: z.ZodString;
     pubkey: z.ZodString;

@@ -4,10 +4,31 @@ export const PACKAGE_VERSION = "0.0.1";
 
 export const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2 as const;
 
+// When adding a new kind, also add it to ACCEPTED_KINDS below.
+export const NOSTR_USER_METADATA_KIND = 0 as const;
+export const EVENT_DELETION_KIND = 5 as const;
 export const TRUSTROOTS_PROFILE_KIND = 10390 as const;
 export const NOTIFICATION_SUBSCRIPTION_KIND = 10395 as const;
+export const SERVER_MESSAGE_KIND = 20398 as const;
 export const MAP_NOTE_KIND = 30397 as const;
 export const MAP_NOTE_REPOST_KIND = 30398 as const;
+export const THIRD_PARTY_EVENT_KIND = 30399 as const;
+
+// All event kinds accepted by the relay. Must be kept in sync with the kinds
+// defined above. Standard Nostr kinds (0, 5) are included as well.
+export const ACCEPTED_KINDS = [
+  NOSTR_USER_METADATA_KIND,
+  EVENT_DELETION_KIND,
+  TRUSTROOTS_PROFILE_KIND,
+  NOTIFICATION_SUBSCRIPTION_KIND,
+  SERVER_MESSAGE_KIND,
+  MAP_NOTE_KIND,
+  MAP_NOTE_REPOST_KIND,
+  THIRD_PARTY_EVENT_KIND,
+];
+
+export const SERVER_MESSAGE_TYPE_TAG_NAME = "serverMessageType" as const;
+export const SERVER_MESSAGE_TYPES = ["error", "info"] as const;
 
 export const NOSTR_EXPIRATION_TAG_NAME = "expiration";
 

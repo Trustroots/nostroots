@@ -7,6 +7,8 @@ const {
   MAP_NOTE_REPOST_KIND,
   OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
   OPEN_LOCATION_CODE_TAG_NAME,
+  SERVER_MESSAGE_KIND,
+  SERVER_MESSAGE_TYPE_TAG_NAME,
   createLabelTags,
   getAllPlusCodePrefixes,
   getFirstLabelValueFromEvent,
@@ -94,6 +96,30 @@ function deriveContent(event: nostrify.NostrEvent): string {
   return event.content;
 }
 
+async function publishServerMessage(
+  relayPool: nostrify.NPool,
+  privateKey: Uint8Array,
+  rejectedEvent: nostrify.NostrEvent,
+  reason: string
+) {
+  const signer = new NSecSigner(privateKey);
+  const eventTemplate = {
+    kind: SERVER_MESSAGE_KIND,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ["p", rejectedEvent.pubkey],
+      ["e", rejectedEvent.id],
+      [SERVER_MESSAGE_TYPE_TAG_NAME, "error"],
+    ],
+    content: reason,
+  };
+  const signedEvent = await signer.signEvent(eventTemplate);
+  await publishEvent(relayPool, signedEvent);
+  log.info(
+    `#eR7vKp Published server message for rejected event ${rejectedEvent.id}`
+  );
+}
+
 export function processEventFactoryFactory(
   relayPool: nostrify.NPool,
   privateKey: Uint8Array
@@ -112,11 +138,24 @@ export function processEventFactoryFactory(
       log.info(
         `#WAKKJk${logId} Skipping kind ${MAP_NOTE_REPOST_KIND} event with ID ${event.id}`
       );
+      return;
     }
 
-    const isEventValid = await validateEvent(relayPool, event);
-    if (!isEventValid) {
-      log.info(`#u0Prc5${logId} Discarding invalid event ${event.id}`);
+    const validationResult = await validateEvent(relayPool, event);
+    if (!validationResult.valid) {
+      log.info(
+        `#u0Prc5${logId} Discarding invalid event ${event.id}: ${validationResult.reason}`
+      );
+      try {
+        await publishServerMessage(
+          relayPool,
+          privateKey,
+          event,
+          validationResult.reason
+        );
+      } catch (error) {
+        log.error(`#pE8rTm${logId} Failed to publish server message`, error);
+      }
       return;
     }
     const repostedEvent = await generateRepostedEvent(event, privateKey);

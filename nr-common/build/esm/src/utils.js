@@ -7,6 +7,9 @@ function unique(items) {
     const dedupedItems = items.filter((item, index) => items.indexOf(item) === index);
     return dedupedItems;
 }
+export function isEphemeralKind(kind) {
+    return kind >= 20e3 && kind < 30e3;
+}
 export function isHex(s) {
     return s.split("").every((c) => "0123456789abcdef".split("").includes(c));
 }

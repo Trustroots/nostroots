@@ -67,7 +67,18 @@ export function formatStatusMessage(report: StatusReport): string {
   }
 
   lines.push("");
-  lines.push(`<i>Last check: ${new Date().toISOString()}</i>`);
+  const now = new Date();
+  const formatted = now.toLocaleString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  });
+  lines.push(`<i>${formatted}</i>`);
 
   return lines.join("\n");
 }

@@ -57,7 +57,7 @@ export async function checkService(
     lastResult = await checkServiceOnce(service);
     if (lastResult.status === "ok") return lastResult;
     if (attempt < MAX_ATTEMPTS) {
-      log.info(
+      log.warn(
         `#hC5nT3 ${service.name} attempt ${attempt}/${MAX_ATTEMPTS} failed, retrying...`,
       );
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));

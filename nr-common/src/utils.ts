@@ -28,10 +28,6 @@ export function serializeArg(arg: unknown): string {
   return JSON.stringify(arg);
 }
 
-export function isEphemeralKind(kind: number): boolean {
-  return kind >= 20e3 && kind < 30e3;
-}
-
 export function isHex(s: string): boolean {
   return s.split("").every((c) => "0123456789abcdef".split("").includes(c));
 }

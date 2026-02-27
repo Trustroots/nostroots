@@ -1,0 +1,115 @@
+<!-- Keys Modal (shared by index.html and chat.html) -->
+<div class="modal" id="keys-modal" onclick="if(event.target===this)typeof closeKeysModal==='function'&&closeKeysModal()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Keys</h2>
+            <button class="modal-close" id="keys-modal-close-btn" onclick="closeKeysModal()" type="button">&times;</button>
+        </div>
+
+        <!-- Welcome message (only shown when no key is set) -->
+        <div id="keys-welcome-section" style="display: none; margin-bottom: 2rem;">
+            <h2 style="margin-bottom: 0.5rem;">Welcome to Nostroots</h2>
+            <p style="color: var(--muted-foreground); margin: 0;">You need a nostr key to get started. Choose one of the options below:</p>
+        </div>
+
+        <!-- Import nsec or mnemonic (only shown when no key) -->
+        <div class="keys-option-section" id="keys-import-section" style="display: none;">
+            <div class="keys-option-content">
+                <textarea id="onboarding-import" placeholder="Enter nsec1... or mnemonic phrase (12 or 24 words)..." style="width: 100%; min-height: 80px; margin-bottom: 0.75rem; font-family: monospace; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); background: var(--input); color: var(--foreground);"></textarea>
+                <button class="btn btn-secondary" onclick="onboardingImport()" type="button" style="width: 100%;">Import</button>
+            </div>
+        </div>
+
+        <!-- Generate New Key (only shown when no key) -->
+        <div class="keys-option-section" id="keys-generate-section" style="display: none;">
+            <div class="keys-option-content">
+                <button class="btn" onclick="onboardingGenerate()" type="button" style="width: 100%;">Generate New Key</button>
+            </div>
+        </div>
+
+        <!-- Keys section (only shown when key is set) -->
+        <div class="settings-section" id="keys-manage-section" style="display: none;">
+            <h2>Keys</h2>
+
+            <!-- Local Key Actions (above npub) -->
+            <div class="form-group" id="nsec-actions-group" style="display: none;">
+                <div class="action-buttons">
+                    <button class="btn" onclick="exportNsec()" type="button">Export nsec</button>
+                    <button class="btn btn-danger" onclick="deleteNsec()" type="button">Delete Key</button>
+                </div>
+            </div>
+
+            <!-- Public Key Display -->
+            <div class="form-group" id="npub-display-group" style="display: none;">
+                <label>Public Key (npub)</label>
+                <div class="key-input-wrapper">
+                    <input type="text" id="npub-display" readonly>
+                    <button class="copy-btn" id="copy-npub-btn" onclick="copyPublicKey()" title="Copy to clipboard" type="button">
+                        <span id="copy-npub-text">📋</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="key-section-divider" id="key-section-divider" style="display: none;"></div>
+
+            <!-- Update Trustroots Profile button -->
+            <div class="form-group" id="update-trustroots-profile-group" style="display: none; margin-top: 0.75rem;">
+                <button class="btn btn-secondary" onclick="updateTrustrootsProfile()" type="button" style="width: 100%;">
+                    <span style="margin-right: 0.5rem;">🌐</span>
+                    Update Trustroots Profile
+                </button>
+            </div>
+
+            <!-- Import/Generate Section -->
+            <div class="form-group" id="no-nsec-actions-group">
+                <label>Import nsec</label>
+                <input type="text" id="nsec-import" placeholder="nsec1...">
+                <button class="btn" onclick="importNsec()" type="button" style="margin-top: 0.5rem;">Import</button>
+            </div>
+
+            <div class="form-group" id="generate-key-group">
+                <button class="btn" id="generate-key-btn" onclick="generateKeyPair()" type="button">Generate New Key</button>
+            </div>
+        </div>
+
+        <!-- Trustroots username section (only shown when key is set) -->
+        <div class="settings-section" id="keys-trustroots-section" style="display: none;">
+            <h2>Trustroots username</h2>
+            <div class="form-group">
+                <input type="text" id="trustroots-username" placeholder="your-username" onkeydown="if(event.key === 'Enter') linkTrustrootsProfile()">
+                <div id="username-nostr-indicator" class="username-nostr-indicator" style="display: none;">
+                    <small>This username is from a Nostr event and cannot be edited here.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal (shared by index.html and chat.html) -->
+<div class="modal" id="settings-modal" onclick="if(event.target===this)typeof closeSettingsModal==='function'&&closeSettingsModal()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Settings</h2>
+            <button class="modal-close" onclick="closeSettingsModal()" type="button">&times;</button>
+        </div>
+        <div class="settings-section">
+            <h2>Relays</h2>
+            <div id="relays-list" class="relays-list"></div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="new-relay-url" placeholder="wss://relay.example.com" style="flex: 1;" onkeydown="if(event.key === 'Enter') addRelay()">
+                    <button class="btn" onclick="addRelay()" type="button">Add Relay</button>
+                </div>
+            </div>
+        </div>
+        <div class="settings-section" id="settings-notifications-section">
+            <!-- Filled by renderSettingsNotificationsSection() when present -->
+        </div>
+
+        <a href="https://github.com/Trustroots/nostroots/tree/main/nr-web" target="_blank" rel="noopener noreferrer" class="github-icon-link">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+        </a>
+    </div>
+</div>

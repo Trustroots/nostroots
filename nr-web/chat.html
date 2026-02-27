@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="common.css">
+    <link rel="stylesheet" href="modals.css">
     <link rel="stylesheet" href="chat.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -96,19 +97,6 @@
         .btn-secondary { background: var(--secondary); color: var(--secondary-foreground); }
         .btn-danger { background: var(--destructive); color: #fff; }
         .btn-danger:hover { filter: brightness(1.1); }
-        .nip07-status {
-            font-size: 0.75rem;
-            padding: 0.375rem 0.625rem;
-            border-radius: calc(var(--radius) - 2px);
-            margin-top: 0.5rem;
-            margin-bottom: 0.5rem;
-            display: none;
-            background: color-mix(in srgb, var(--primary) 18%, transparent);
-            color: var(--primary);
-            border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
-            line-height: 1.4;
-        }
-        .nip07-status.show { display: block; }
         .username-nostr-indicator { font-size: 0.8125rem; color: var(--muted-foreground); margin-top: 0.5rem; font-style: italic; }
         .settings-section {
             background: var(--card);
@@ -279,10 +267,17 @@
             opacity: 0.85;
             margin-top: 2px;
             display: flex;
+            align-items: baseline;
             justify-content: flex-end;
             gap: 0.35rem;
+            white-space: nowrap;
         }
         .message .meta .time { opacity: 0.75; }
+        .message-nip-pill {
+            font-size: inherit;
+            opacity: 0.5;
+            white-space: nowrap;
+        }
         .message-row { display: flex; align-items: center; gap: 0.25rem; width: 100%; }
         .message-row.self { align-self: flex-end; justify-content: flex-end; }
         .message-row.other { justify-content: flex-start; }
@@ -297,14 +292,16 @@
             background: transparent;
             color: var(--muted-foreground);
             cursor: pointer;
-            opacity: 0.6;
+            opacity: 0;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            transition: opacity 0.15s ease;
         }
-        .message-delete:hover { opacity: 1; background: var(--muted); color: var(--destructive, #dc2626); }
-        .message-wrap.self .message-delete { color: var(--primary-foreground); opacity: 0.7; }
-        .message-wrap.self .message-delete:hover { background: rgba(255,255,255,0.2); color: var(--primary-foreground); }
+        .message-row:hover .message-delete { opacity: 0.6; }
+        .message-delete:hover { opacity: 1 !important; background: var(--muted); color: var(--destructive, #dc2626); }
+        .message-row.self .message-delete { color: var(--muted-foreground); }
+        .message-row.self .message-delete:hover { background: var(--muted); color: var(--destructive, #dc2626); }
         .message-pluscode {
             margin-top: 0.35rem;
             font-size: 0.75rem;
@@ -322,15 +319,24 @@
         .message.self .message-pluscode a { color: var(--primary-foreground); background: rgba(255,255,255,0.2); }
         .message-pluscode a:hover { text-decoration: underline; }
         .compose {
-            padding: 0.75rem 1rem;
+            padding: 0.3rem 0.5rem 0.4rem;
             border-top: 1px solid var(--border);
             display: flex;
-            gap: 0.5rem;
+            flex-direction: column;
             flex-shrink: 0;
         }
-        .compose input, .compose textarea {
+        .compose-input-row {
+            display: flex;
+            align-items: flex-end;
+            gap: 0.4rem;
+        }
+        .compose-input-row .compose-input-cell {
             flex: 1;
-            padding: 0.5rem 0.75rem;
+            min-width: 0;
+        }
+        .compose input, .compose textarea {
+            width: 100%;
+            padding: 0.35rem 0.5rem;
             border: 1px solid var(--border);
             border-radius: calc(var(--radius) - 2px);
             background: var(--input);
@@ -339,7 +345,26 @@
         }
         .compose textarea {
             resize: vertical;
-            min-height: 2.5rem;
+            min-height: 2.25rem;
+        }
+        .compose-options {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.1rem;
+            flex-shrink: 0;
+        }
+        .compose-options label {
+            font-size: 0.7rem;
+            color: var(--muted-foreground);
+        }
+        .compose-options select {
+            padding: 0.25rem 0.4rem;
+            border: 1px solid var(--border);
+            border-radius: calc(var(--radius) - 2px);
+            background: var(--input);
+            color: var(--foreground);
+            font-size: 0.8125rem;
         }
         .empty-state {
             flex: 1;
@@ -464,11 +489,34 @@
         }
         .participant-chip .remove-btn:hover { color: var(--destructive); }
 
+        .thread-header .back-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--foreground);
+            cursor: pointer;
+            padding: 0.25rem;
+            margin-right: 0.25rem;
+            font-size: 1.1rem;
+            line-height: 1;
+            border-radius: calc(var(--radius) - 2px);
+        }
+        .thread-header .back-btn:hover { background: var(--muted); }
+
         @media (max-width: 768px) {
             .mycelium-bottom { height: 100px; }
             .mycelium-bottom img { min-width: 100%; }
-            .main { flex-direction: column; }
-            .sidebar { width: 100%; max-height: 40%; }
+            .sidebar { width: 100%; flex-shrink: 1; }
+            .thread-area { display: none; }
+
+            body.chat-open .sidebar { display: none; }
+            body.chat-open .thread-area { display: flex; }
+            body.chat-open .thread-header .back-btn { display: flex; }
+
+            .thread-messages { padding: 0.75rem 0.5rem; }
+            .message-row .message-wrap { max-width: 100%; }
+            .message-wrap { max-width: 100%; }
+            .message .meta .author { display: none; }
         }
     </style>
     <script src="common.js"></script>
@@ -485,12 +533,13 @@
     <main class="main">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <button type="button" class="btn" onclick="openNewDmModal()" style="width:100%;">New conversation</button>
+                <button type="button" class="btn" onclick="openNewDmModal()" style="width:100%; display:flex; justify-content:center; align-items:center;" title="New conversation" aria-label="New conversation"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
             </div>
             <div class="conv-list" id="conv-list"></div>
         </aside>
         <section class="thread-area">
             <div class="thread-header" id="thread-header" style="display:none;">
+                <button type="button" class="back-btn" id="thread-back-btn" title="Back to conversations" aria-label="Back to conversations"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button>
                 <span class="enc-icon" id="thread-enc-icon" title=""></span>
                 <span class="enc-label" id="thread-enc-label"></span>
                 <span id="thread-title"></span>
@@ -498,78 +547,26 @@
             <div class="thread-messages" id="thread-messages"></div>
             <div class="empty-state" id="empty-state">Select a conversation or start a new one.</div>
             <div class="compose" id="compose" style="display:none;">
-                <textarea id="compose-input" placeholder="Type a message..." rows="2" onkeydown="if(event.key==='Enter'){if(!event.shiftKey){event.preventDefault();sendMessage();}}"></textarea>
-                <button type="button" class="btn" onclick="sendMessage()">Send</button>
+                <div class="compose-input-row">
+                    <div class="compose-input-cell">
+                        <textarea id="compose-input" placeholder="Type a message..." rows="2" onkeydown="if(event.key==='Enter'){if(!event.shiftKey){event.preventDefault();sendMessage();}}"></textarea>
+                    </div>
+                    <div class="compose-options" id="compose-note-duration" style="display:none;">
+                        <select id="compose-expiry" aria-label="Expiry">
+                            <option value="3600">1 Hour</option>
+                            <option value="86400">24 Hours</option>
+                            <option value="604800">7 Days</option>
+                            <option value="2592000" selected>30 Days</option>
+                            <option value="">Permanent</option>
+                        </select>
+                        <label for="compose-expiry">EXPIRY</label>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
 
-    <div id="auth-modal" class="modal" onclick="if(event.target===this)closeAuthModal()">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="auth-modal-title">Keys</h2>
-                <button type="button" class="modal-close" onclick="closeAuthModal()">&times;</button>
-            </div>
-            <div id="auth-connected-section" style="display:none;">
-                <div class="settings-section">
-                    <h2>Keys</h2>
-                    <div class="form-group">
-                        <label>Public Key (npub)</label>
-                        <div class="key-input-wrapper">
-                            <input type="text" id="auth-npub-display" readonly>
-                            <button type="button" class="copy-btn" id="auth-copy-npub-btn" onclick="copyPublicKey()" title="Copy to clipboard">
-                                <span id="auth-copy-npub-text">📋</span>
-                            </button>
-                        </div>
-                    </div>
-                    <div id="auth-nip05-wrap" class="form-group" style="display:none;">
-                        <label>NIP-05</label>
-                        <input type="text" id="auth-nip05-display" readonly class="nip05-input">
-                    </div>
-                    <div id="auth-nip07-status" class="nip07-status">✓ Using NIP-07 extension - private key secure</div>
-                    <div class="form-group" id="auth-update-trustroots-wrap" style="margin-top: 0.75rem;">
-                        <button type="button" class="btn btn-secondary" id="auth-update-trustroots-btn" onclick="updateTrustrootsProfile()" style="width:100%;">Update Trustroots Profile</button>
-                    </div>
-                    <button type="button" class="btn btn-danger" style="margin-top: 0.75rem;" onclick="disconnect(); closeAuthModal();">Disconnect</button>
-                </div>
-                <div id="auth-trustroots-section" class="settings-section">
-                    <h2>Trustroots username</h2>
-                    <div class="form-group">
-                        <input type="text" id="trustroots-username" placeholder="your-username" style="width:100%;" onkeydown="if(event.key==='Enter')linkTrustrootsProfile()">
-                        <div id="username-nostr-indicator" class="username-nostr-indicator" style="display:none;"><small>This username is from a Nostr event and cannot be edited here.</small></div>
-                        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                            <button type="button" class="btn btn-secondary" onclick="linkTrustrootsProfile()">Link profile</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div id="auth-connect-section">
-                <div class="form-group">
-                    <button type="button" class="btn" onclick="connectNip07()">Connect browser extension (NIP-07)</button>
-                </div>
-                <div class="form-group">
-                    <label>Or paste nsec / hex key</label>
-                    <input type="password" id="nsec-input" placeholder="nsec1... or hex">
-                    <button type="button" class="btn btn-secondary" style="margin-top:0.5rem;" onclick="importKey()">Use this key</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div id="relays-modal" class="modal" onclick="if(event.target===this)closeRelaysModal()">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Relays</h2>
-                <button type="button" class="modal-close" onclick="closeRelaysModal()">&times;</button>
-            </div>
-            <div class="settings-section">
-                <div class="relays-list" id="relays-list"></div>
-                <div class="form-group" style="margin-top:1rem; display:flex; gap:0.5rem;">
-                    <input type="text" id="new-relay-url" placeholder="wss://relay.example.com" style="flex:1;" onkeydown="if(event.key==='Enter')addRelay()">
-                    <button type="button" class="btn" onclick="addRelay()">Add Relay</button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Keys and Settings modals injected by common.js from modals-keys-settings.html -->
     <div id="new-dm-modal" class="modal">
         <div class="modal-content">
             <h2>New conversation</h2>
@@ -694,8 +691,6 @@
         let currentPublicKey = null;
         let currentSecretKeyHex = null;
         let currentSecretKeyBytes = null;
-        let usingNip07 = false;
-        let nostrProvider = null;
         let authenticatingWithExtension = false;
         let pool = null;
         let relays = [];
@@ -728,7 +723,8 @@
                         pubkey: ev.pubkey,
                         content: ev.content ?? '',
                         created_at: ev.created_at,
-                        raw: ev.raw ? { tags: ev.raw.tags || [] } : {}
+                        raw: ev.raw ? { tags: ev.raw.tags || [] } : {},
+                        ...(ev.nip ? { nip: ev.nip } : {})
                     }));
                     convArr.push({ type: c.type, id, members: c.members || [], events });
                 }
@@ -770,7 +766,8 @@
                             pubkey: ev.pubkey,
                             content: ev.content ?? '',
                             created_at: ev.created_at,
-                            raw: ev.raw && ev.raw.tags ? { tags: ev.raw.tags } : {}
+                            raw: ev.raw && ev.raw.tags ? { tags: ev.raw.tags } : {},
+                            ...(ev.nip ? { nip: ev.nip } : {})
                         }));
                     conversations.set(c.id, { type: c.type, id: c.id, members: c.members || [], events });
                 }
@@ -809,18 +806,20 @@
         }
         function applyHashToState() {
             const route = getHashRoute();
+            const keysEl = document.getElementById('keys-modal');
+            const settingsEl = document.getElementById('settings-modal');
             if (route === 'keys') {
-                document.getElementById('relays-modal').classList.remove('active');
-                openAuthModal();
+                if (settingsEl) settingsEl.classList.remove('active');
+                openKeysModal();
                 return;
             }
             if (route === 'settings') {
-                document.getElementById('auth-modal').classList.remove('active');
-                openRelaysModal();
+                if (keysEl) keysEl.classList.remove('active');
+                openSettingsModal();
                 return;
             }
-            document.getElementById('auth-modal').classList.remove('active');
-            document.getElementById('relays-modal').classList.remove('active');
+            if (keysEl) keysEl.classList.remove('active');
+            if (settingsEl) settingsEl.classList.remove('active');
             if (!route) {
                 selectConversation(GLOBAL_CHANNEL_SLUG);
                 return;
@@ -839,6 +838,7 @@
                     selectConversation(route);
                 } else {
                     selectedConversationId = null;
+                    document.body.classList.remove('chat-open');
                     renderConvList();
                     renderThread();
                     document.getElementById('empty-state').style.display = 'block';
@@ -967,61 +967,15 @@
             return null;
         }
 
-        // NIP-07: use shared common.js (NrNip07), with fallback if old common.js is cached
-        function isUsingNip07FromStorage() {
-            return (typeof NrNip07 !== 'undefined' && typeof NrNip07.isUsingNip07FromStorage === 'function')
-                ? NrNip07.isUsingNip07FromStorage() : localStorage.getItem('using_nip07') === 'true';
-        }
-        function setUsingNip07InStorage(use) {
-            if (typeof NrNip07 !== 'undefined' && typeof NrNip07.setUsingNip07InStorage === 'function') {
-                NrNip07.setUsingNip07InStorage(use);
-            } else if (use) localStorage.setItem('using_nip07', 'true');
-            else localStorage.removeItem('using_nip07');
-        }
-        function loadKeysFromStorage(retryAttempt) {
+        function loadKeysFromStorage() {
+            localStorage.removeItem('using_nip07');
             const hex = localStorage.getItem('nostr_private_key');
-            const nip07 = isUsingNip07FromStorage();
-            const provider = window.NrNip07 ? NrNip07.detectNostrExtension() : null;
-            if (nip07 && provider && NrNip07.isExtensionReady(provider)) {
-                usingNip07 = true;
-                nostrProvider = provider;
-                (async () => {
-                    const pk = await NrNip07.getPublicKeyFromExtension(nostrProvider);
-                    if (pk) {
-                        currentPublicKey = pk;
-                        currentSecretKeyHex = null;
-                        currentSecretKeyBytes = null;
-                        loadChatFromCache(); // NIP-04 DMs and channels so they show immediately
-                        updateUI();
-                        startSubscriptions();
-                        return;
-                    }
-                    usingNip07 = false;
-                    nostrProvider = null;
-                    setUsingNip07InStorage(false);
-                    updateUI();
-                })();
-                return;
-            }
-            // Extension not ready yet: retry up to 5 times (like index.html)
-            if (nip07 && (retryAttempt ?? 0) < 5) {
-                setTimeout(() => loadKeysFromStorage((retryAttempt ?? 0) + 1), 300);
-                return;
-            }
-            if (nip07 && (retryAttempt ?? 0) >= 5) {
-                usingNip07 = false;
-                nostrProvider = null;
-                setUsingNip07InStorage(false);
-                updateUI();
-            }
             if (hex && hex.length === 64 && /^[0-9a-f]+$/i.test(hex)) {
                 currentSecretKeyHex = hex;
                 currentSecretKeyBytes = new Uint8Array(32);
                 for (let i = 0; i < 32; i++) currentSecretKeyBytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
                 currentPublicKey = getPublicKey(currentSecretKeyBytes);
-                usingNip07 = false;
-                nostrProvider = null;
-                loadChatFromCache(); // NIP-04 DMs and channels so they show immediately
+                loadChatFromCache();
                 updateUI();
                 startSubscriptions();
             }
@@ -1029,81 +983,40 @@
 
         function savePrivateKey(hex) {
             localStorage.setItem('nostr_private_key', hex);
-            setUsingNip07InStorage(false);
             currentSecretKeyHex = hex;
             currentSecretKeyBytes = new Uint8Array(32);
             for (let i = 0; i < 32; i++) currentSecretKeyBytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
             currentPublicKey = getPublicKey(currentSecretKeyBytes);
-            usingNip07 = false;
-            nostrProvider = null;
-        }
-
-        async function connectNip07() {
-            if (authenticatingWithExtension) return;
-            authenticatingWithExtension = true;
-            try {
-                const provider = NrNip07.detectNostrExtension();
-                if (!provider) {
-                    showStatus('No NIP-07 extension found. Please install nos2x or Alby.', 'error');
-                    authenticatingWithExtension = false;
-                    return;
-                }
-                if (!NrNip07.isExtensionReady(provider)) {
-                    showStatus('Extension getPublicKey method is not available or not ready', 'error');
-                    authenticatingWithExtension = false;
-                    return;
-                }
-                const pubkey = await NrNip07.getPublicKeyFromExtension(provider);
-                if (!pubkey) {
-                    showStatus('Failed to get valid public key from extension.', 'error');
-                    authenticatingWithExtension = false;
-                    return;
-                }
-                currentPublicKey = pubkey;
-                currentSecretKeyHex = null;
-                currentSecretKeyBytes = null;
-                nostrProvider = provider;
-                usingNip07 = true;
-                setUsingNip07InStorage(true);
-                localStorage.removeItem('nostr_private_key');
-                closeAuthModal();
-                updateUI();
-                startSubscriptions();
-                showStatus((NrNip07 && NrNip07.NIP07_CONNECT_SUCCESS_MESSAGE) || 'Connected to NIP-07 extension! Your private key stays secure in the extension.', 'success');
-            } catch (e) {
-                showStatus('Extension error: ' + (e?.message || String(e)), 'error');
-            } finally {
-                authenticatingWithExtension = false;
-            }
         }
 
         function importKey() {
-            const raw = document.getElementById('nsec-input')?.value?.trim() || '';
-            const hex = decodeNsec(raw);
+            const raw = (document.getElementById('nsec-import') || document.getElementById('onboarding-import'))?.value?.trim() || '';
+            const hex = decodeNsec(raw) || (raw.length === 64 && /^[0-9a-f]+$/i.test(raw) ? raw : null);
             if (!hex) {
                 showStatus('Invalid nsec or hex key.', 'error');
                 return;
             }
             savePrivateKey(hex);
-            document.getElementById('nsec-input').value = '';
-            closeAuthModal();
+            const nsecImport = document.getElementById('nsec-import');
+            const onboardingImport = document.getElementById('onboarding-import');
+            if (nsecImport) nsecImport.value = '';
+            if (onboardingImport) onboardingImport.value = '';
+            closeKeysModal();
             updateUI();
             startSubscriptions();
             showStatus('Key imported. Shared with map app.', 'success');
+            openKeysModal();
         }
 
         function disconnect() {
             currentPublicKey = null;
             currentSecretKeyHex = null;
             currentSecretKeyBytes = null;
-            usingNip07 = false;
-            nostrProvider = null;
             isProfileLinked = false;
             usernameFromNostr = false;
             currentUserNip05 = '';
             setTrustrootsUI('');
             localStorage.removeItem('nostr_private_key');
-            setUsingNip07InStorage(false);
             conversations.clear();
             selectedConversationId = null;
             if (pool) {
@@ -1151,31 +1064,10 @@
         function updateUI() {
             const hasKey = !!currentPublicKey;
             setHeaderIdentity();
-            document.getElementById('keys-icon-btn').title = hasKey ? 'Keys' : 'Connect';
-            const authConnected = document.getElementById('auth-connected-section');
-            const authConnect = document.getElementById('auth-connect-section');
-            const authTitle = document.getElementById('auth-modal-title');
-            const npubDisplay = document.getElementById('auth-npub-display');
-            const nip07Status = document.getElementById('auth-nip07-status');
-            if (hasKey) {
-                authConnected.style.display = 'block';
-                authConnect.style.display = 'none';
-                authTitle.textContent = 'Keys';
-                const npubStr = getDisplayNpub() || (currentPublicKey ? hexToNpub(currentPublicKey) : '');
-                if (npubDisplay) npubDisplay.value = npubStr;
-                if (nip07Status) {
-                    if (usingNip07) {
-                        nip07Status.textContent = (NrNip07 && NrNip07.NIP07_STATUS_MESSAGE) || '✓ Using NIP-07 extension – private key stays in extension';
-                        nip07Status.classList.add('show');
-                    } else {
-                        nip07Status.classList.remove('show');
-                    }
-                }
-            } else {
-                authConnected.style.display = 'none';
-                authConnect.style.display = 'block';
-                authTitle.textContent = 'Connect';
-                if (nip07Status) nip07Status.classList.remove('show');
+            const keysBtn = document.getElementById('keys-icon-btn');
+            if (keysBtn) keysBtn.title = hasKey ? 'Keys' : 'Connect';
+            if (document.getElementById('keys-modal')) {
+                updateKeyDisplay();
             }
             if (hasKey) {
                 renderRelaysList();
@@ -1183,86 +1075,191 @@
             }
         }
 
-        function openAuthModal() {
-            const npubEl = document.getElementById('auth-npub-display');
-            const nip07El = document.getElementById('auth-nip07-status');
-            function setNpubDisplay(npub) {
-                if (npubEl) npubEl.value = npub || '';
-            }
-            setNpubDisplay(getDisplayNpub());
-            if (nip07El) {
-                if (usingNip07) {
-                    nip07El.textContent = (NrNip07 && NrNip07.NIP07_STATUS_MESSAGE) || '✓ Using NIP-07 extension – private key stays in extension';
-                    nip07El.classList.add('show');
-                    // Use currentPublicKey for display; do not call extension getPublicKey() here (avoids repeated calls)
-                    if (!npubEl?.value && currentPublicKey) setNpubDisplay(hexToNpub(currentPublicKey));
-                } else {
-                    nip07El.classList.remove('show');
-                }
-            }
-            if (currentPublicKey) {
-                checkProfileLinked();
-                updateAuthNip05Display();
-                if (!currentUserNip05) {
-                    const r = relays?.length ? relays : (getRelayUrls().length ? getRelayUrls() : DEFAULT_RELAYS);
-                    if (r.length) {
-                        if (!pool) pool = new SimplePool();
-                        pool.subscribe(r, { kinds: [0], authors: [currentPublicKey], limit: 1 }, { onevent(event) {
-                            if (event.pubkey !== currentPublicKey || !event.content) return;
-                            try {
-                                const profile = JSON.parse(event.content);
-                                const nip05 = (profile.nip05 || '').trim();
-                                if (nip05) {
-                                    currentUserNip05 = nip05;
-                                    pubkeyToNip05.set(currentPublicKey, nip05);
-                                    scheduleChatCacheWrite();
-                                    updateAuthNip05Display();
-                                }
-                            } catch (_) {}
-                        } });
-                    }
-                }
+        function openKeysModal() {
+            const keysEl = document.getElementById('keys-modal');
+            if (!keysEl) return;
+            const hasKey = !!(currentPublicKey || currentSecretKeyHex);
+            const welcomeSection = document.getElementById('keys-welcome-section');
+            const importSection = document.getElementById('keys-import-section');
+            const generateSection = document.getElementById('keys-generate-section');
+            const manageSection = document.getElementById('keys-manage-section');
+            const trustrootsSection = document.getElementById('keys-trustroots-section');
+            if (!hasKey) {
+                if (welcomeSection) welcomeSection.style.display = 'block';
+                if (importSection) importSection.style.display = 'block';
+                if (generateSection) generateSection.style.display = 'block';
+                if (manageSection) manageSection.style.display = 'none';
+                if (trustrootsSection) trustrootsSection.style.display = 'none';
             } else {
-                updateAuthNip05Display();
+                if (welcomeSection) welcomeSection.style.display = 'none';
+                if (importSection) importSection.style.display = 'none';
+                if (generateSection) generateSection.style.display = 'none';
+                if (manageSection) manageSection.style.display = 'block';
+                if (trustrootsSection) trustrootsSection.style.display = 'block';
+                updateKeyDisplay();
+                checkProfileLinked();
             }
-            document.getElementById('auth-modal').classList.add('active');
+            keysEl.classList.add('active');
             setHashRoute('keys');
         }
-        function closeAuthModal() {
-            document.getElementById('auth-modal').classList.remove('active');
+        function closeKeysModal() {
+            const el = document.getElementById('keys-modal');
+            if (el) el.classList.remove('active');
             setHashRoute(selectedConversationId || '');
         }
 
-        function updateAuthNip05Display() {
-            const wrap = document.getElementById('auth-nip05-wrap');
-            const input = document.getElementById('auth-nip05-display');
-            if (wrap && input) {
-                if (currentUserNip05) {
-                    wrap.style.display = 'block';
-                    input.value = currentUserNip05;
-                } else {
-                    wrap.style.display = 'none';
-                    input.value = '';
-                }
+        function openSettingsModal() {
+            const keysEl = document.getElementById('keys-modal');
+            const settingsEl = document.getElementById('settings-modal');
+            if (keysEl) keysEl.classList.remove('active');
+            if (settingsEl) settingsEl.classList.add('active');
+            setHashRoute('settings');
+            renderRelaysList();
+            if (typeof renderSettingsNotificationsSection === 'function') renderSettingsNotificationsSection();
+        }
+        function closeSettingsModal() {
+            const el = document.getElementById('settings-modal');
+            if (el) el.classList.remove('active');
+            setHashRoute(selectedConversationId || '');
+        }
+
+        function updateKeyDisplay() {
+            const hasNsec = !!currentSecretKeyHex;
+            const nsecActionsGroup = document.getElementById('nsec-actions-group');
+            const noNsecActionsGroup = document.getElementById('no-nsec-actions-group');
+            const generateKeyGroup = document.getElementById('generate-key-group');
+            const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
+            const npubDisplayGroup = document.getElementById('npub-display-group');
+            const keySectionDivider = document.getElementById('key-section-divider');
+            const npubDisplay = document.getElementById('npub-display');
+            if (hasNsec) {
+                if (nsecActionsGroup) nsecActionsGroup.style.display = 'block';
+                if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'none';
+                if (generateKeyGroup) generateKeyGroup.style.display = 'none';
+            } else {
+                if (nsecActionsGroup) nsecActionsGroup.style.display = 'none';
+                if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'block';
+                if (generateKeyGroup) generateKeyGroup.style.display = 'block';
             }
+            if (currentPublicKey) {
+                try {
+                    const npub = nip19.npubEncode(currentPublicKey);
+                    if (npubDisplay) npubDisplay.value = npub;
+                    if (npubDisplayGroup) npubDisplayGroup.style.display = 'block';
+                    if (keySectionDivider) keySectionDivider.style.display = 'block';
+                    if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = isProfileLinked ? 'none' : 'block';
+                } catch (_) {
+                    if (npubDisplay) npubDisplay.value = 'Error encoding npub';
+                    if (npubDisplayGroup) npubDisplayGroup.style.display = 'block';
+                    if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = isProfileLinked ? 'none' : 'block';
+                }
+                checkProfileLinked();
+            } else {
+                if (npubDisplay) npubDisplay.value = '';
+                if (npubDisplayGroup) npubDisplayGroup.style.display = 'none';
+                if (keySectionDivider) keySectionDivider.style.display = 'none';
+                if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = 'none';
+            }
+            const keysBtn = document.getElementById('keys-icon-btn');
+            if (keysBtn) keysBtn.title = currentPublicKey ? 'Keys' : 'Connect';
             setHeaderIdentity();
         }
 
+        function renderSettingsNotificationsSection() { /* no-op on chat */ }
+
+        function onboardingImport() {
+            const input = document.getElementById('onboarding-import');
+            const raw = (input?.value || '').trim();
+            if (!raw) {
+                showStatus('Please enter nsec or hex key.', 'error');
+                return;
+            }
+            const hex = decodeNsec(raw) || (raw.length === 64 && /^[0-9a-f]+$/i.test(raw) ? raw : null);
+            if (!hex) {
+                showStatus('Invalid nsec or hex. For mnemonic, use the Map page.', 'error');
+                return;
+            }
+            savePrivateKey(hex);
+            if (input) input.value = '';
+            loadKeysFromStorage(0);
+            updateUI();
+            startSubscriptions();
+            showStatus('Key imported.', 'success');
+            openKeysModal();
+        }
+        function onboardingGenerate() {
+            generateKeyPair();
+            openKeysModal();
+        }
+        function importNsec() {
+            const el = document.getElementById('nsec-import');
+            const raw = (el?.value || '').trim();
+            if (!raw) {
+                showStatus('Please enter an nsec', 'error');
+                return;
+            }
+            const hex = decodeNsec(raw) || (raw.length === 64 && /^[0-9a-f]+$/i.test(raw) ? raw : null);
+            if (!hex) {
+                showStatus('Invalid nsec format', 'error');
+                return;
+            }
+            savePrivateKey(hex);
+            if (el) el.value = '';
+            loadKeysFromStorage(0);
+            updateKeyDisplay();
+            openKeysModal();
+            showStatus('nsec imported successfully!', 'success');
+        }
+        function generateKeyPair() {
+            const privateKey = new Uint8Array(32);
+            crypto.getRandomValues(privateKey);
+            const privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('');
+            savePrivateKey(privateKeyHex);
+            loadKeysFromStorage(0);
+            updateUI();
+            startSubscriptions();
+            showStatus('New key pair generated!', 'success');
+        }
+        function exportNsec() {
+            if (!currentSecretKeyHex) {
+                showStatus('No private key to export', 'error');
+                return;
+            }
+            try {
+                const bytes = new Uint8Array(32);
+                for (let i = 0; i < 32; i++) bytes[i] = parseInt(currentSecretKeyHex.substring(i * 2, i * 2 + 2), 16);
+                const nsec = nip19.nsecEncode(bytes);
+                navigator.clipboard.writeText(nsec).then(() => showStatus('nsec copied to clipboard!', 'success')).catch(() => {
+                    prompt('Your nsec (copy this):', nsec);
+                    showStatus('nsec displayed', 'info');
+                });
+            } catch (e) {
+                showStatus('Error exporting nsec: ' + (e && e.message), 'error');
+            }
+        }
+        function deleteNsec() {
+            if (!confirm('Delete your private key? You will need to import or generate a new key.')) return;
+            disconnect();
+            updateKeyDisplay();
+            openKeysModal();
+            showStatus('Private key deleted', 'success');
+        }
+
         function copyPublicKey() {
-            const npubEl = document.getElementById('auth-npub-display');
-            const copyBtn = document.getElementById('auth-copy-npub-btn');
-            const copyText = document.getElementById('auth-copy-npub-text');
+            const npubEl = document.getElementById('npub-display');
+            const copyBtn = document.getElementById('copy-npub-btn');
+            const copyText = document.getElementById('copy-npub-text');
             if (!npubEl || !npubEl.value) {
                 showStatus('No public key to copy', 'error');
                 return;
             }
             navigator.clipboard.writeText(npubEl.value).then(() => {
-                const original = copyText.textContent;
-                copyText.textContent = '✓';
+                const original = copyText ? copyText.textContent : '📋';
+                if (copyText) copyText.textContent = '✓';
                 if (copyBtn) copyBtn.classList.add('copied');
                 showStatus('Public key copied to clipboard', 'success');
                 setTimeout(() => {
-                    copyText.textContent = original;
+                    if (copyText) copyText.textContent = original;
                     if (copyBtn) copyBtn.classList.remove('copied');
                 }, 2000);
             }).catch(() => showStatus('Failed to copy', 'error'));
@@ -1339,16 +1336,6 @@
             input.value = '';
             showStatus('Added: ' + raw, 'success');
         }
-        function openRelaysModal() {
-            document.getElementById('relays-modal').classList.add('active');
-            renderRelaysList();
-            setHashRoute('settings');
-        }
-        function closeRelaysModal() {
-            document.getElementById('relays-modal').classList.remove('active');
-            setHashRoute(selectedConversationId || '');
-        }
-
         function getOrCreateConversation(type, id, members) {
             let c = conversations.get(id);
             if (!c) {
@@ -1362,78 +1349,73 @@
         function getConversationKey(theirPubkey) {
             if (!currentSecretKeyBytes) return null;
             try {
-                const key = nip44.v2.getConversationKey(currentSecretKeyBytes, theirPubkey);
+                const key = nip44.getConversationKey(currentSecretKeyBytes, theirPubkey);
                 return key;
             } catch (_) {}
             return null;
         }
 
-        /** Encrypt DM content for a peer. Uses local key or NIP-07 extension (nip44 then nip04). */
+        /** Encrypt DM content for a peer. Prefers NIP-44 (then NIP-04 fallback). Returns { cipher, nip } or null. */
         async function encryptKind4(peerPubkey, plaintext) {
-            if (currentSecretKeyBytes) {
-                const key = getConversationKey(peerPubkey);
-                if (key) {
-                    try {
-                        return nip44.v2.encrypt(plaintext, key);
-                    } catch (_) {}
-                }
+            if (!currentSecretKeyBytes) return null;
+            const key = getConversationKey(peerPubkey);
+            if (key) {
                 try {
-                    return nip04.encrypt(currentSecretKeyBytes, peerPubkey, plaintext);
-                } catch (_) {}
-                return null;
-            }
-            if (usingNip07 && nostrProvider) {
-                try {
-                    if (typeof nostrProvider.nip44?.encrypt === 'function') {
-                        const cipher = await nostrProvider.nip44.encrypt(peerPubkey, plaintext);
-                        if (cipher != null && typeof cipher === 'string') return cipher;
-                    }
-                } catch (_) {}
-                try {
-                    if (typeof nostrProvider.nip04?.encrypt === 'function') {
-                        const cipher = await nostrProvider.nip04.encrypt(peerPubkey, plaintext);
-                        if (cipher != null && typeof cipher === 'string') return cipher;
-                    }
+                    const cipher = nip44.v2.encrypt(plaintext, key);
+                    return { cipher, nip: 'nip44' };
                 } catch (_) {}
             }
+            try {
+                const cipher = nip04.encrypt(currentSecretKeyBytes, peerPubkey, plaintext);
+                return { cipher, nip: 'nip4' };
+            } catch (_) {}
             return null;
         }
 
-        /** NIP-07: only one decrypt in flight to avoid flooding consent dialogs. */
-        let nip07DecryptTail = Promise.resolve();
+        function looksLikeNip04(content) {
+            return typeof content === 'string' && content.includes('?iv=');
+        }
+
+        async function decryptPendingForConversation(conv) {
+            if (!conv || !conv._pendingEncrypted || !conv._pendingEncrypted.length) return;
+            if (conv._decryptingPending) return;
+            conv._decryptingPending = true;
+            try {
+                while (conv._pendingEncrypted.length) {
+                    const event = conv._pendingEncrypted.shift();
+                    if (conv.events.some(e => e.id === event.id)) continue;
+                    const other = event.tags.find(t => t[0] === 'p')?.[1];
+                    const peer = other && other !== currentPublicKey ? other : event.pubkey;
+                    const authorPubkey = event.pubkey === currentPublicKey ? peer : event.pubkey;
+                    let plain = await decryptKind4(event.content, authorPubkey);
+                    if (plain == null) plain = '[could not decrypt]';
+                    eventAuthorById.set(event.id, event.pubkey);
+                    const dmNip = looksLikeNip04(event.content) ? 'nip4' : 'nip44';
+                    conv.events.push({ id: event.id, pubkey: event.pubkey, content: plain, created_at: event.created_at, raw: event, nip: dmNip });
+                    conv.events.sort((a, b) => a.created_at - b.created_at);
+                    scheduleChatCacheWrite();
+                    if (selectedConversationId === conv.id) scheduleRender('thread');
+                }
+                scheduleRender('convList');
+            } finally {
+                conv._decryptingPending = false;
+            }
+        }
 
         async function decryptKind4(content, authorPubkey) {
-            if (currentSecretKeyBytes) {
+            if (!currentSecretKeyBytes) return null;
+            const isNip04Content = looksLikeNip04(content);
+            if (!isNip04Content) {
                 const key = getConversationKey(authorPubkey);
                 if (key) {
                     try {
                         return nip44.v2.decrypt(content, key);
                     } catch (_) {}
                 }
-                try {
-                    return nip04.decrypt(currentSecretKeyBytes, authorPubkey, content);
-                } catch (_) {}
             }
-            if (usingNip07 && nostrProvider) {
-                const runDecrypt = async () => {
-                    try {
-                        if (typeof nostrProvider.nip44?.decrypt === 'function') {
-                            const plain = await nostrProvider.nip44.decrypt(authorPubkey, content);
-                            if (plain != null && typeof plain === 'string') return plain;
-                        }
-                    } catch (_) {}
-                    try {
-                        if (typeof nostrProvider.nip04?.decrypt === 'function') {
-                            const plain = await nostrProvider.nip04.decrypt(authorPubkey, content);
-                            if (plain != null && typeof plain === 'string') return plain;
-                        }
-                    } catch (_) {}
-                    return null;
-                };
-                const prev = nip07DecryptTail;
-                nip07DecryptTail = prev.then(() => runDecrypt(), () => runDecrypt());
-                return nip07DecryptTail;
-            }
+            try {
+                return nip04.decrypt(currentSecretKeyBytes, authorPubkey, content);
+            } catch (_) {}
             return null;
         }
 
@@ -1558,11 +1540,13 @@
                 const convId = peer;
                 const conv = getOrCreateConversation('dm', convId, [peer]);
                 if (conv.events.some(e => e.id === event.id)) return;
+
                 const authorPubkey = event.pubkey === currentPublicKey ? peer : event.pubkey;
                 let plain = await decryptKind4(event.content, authorPubkey);
                 if (plain == null) plain = '[could not decrypt]';
                 eventAuthorById.set(event.id, event.pubkey);
-                conv.events.push({ id: event.id, pubkey: event.pubkey, content: plain, created_at: event.created_at, raw: event });
+                const dmNip = looksLikeNip04(event.content) ? 'nip4' : 'nip44';
+                conv.events.push({ id: event.id, pubkey: event.pubkey, content: plain, created_at: event.created_at, raw: event, nip: dmNip });
                 conv.events.sort((a, b) => a.created_at - b.created_at);
                 scheduleChatCacheWrite();
                 scheduleRender('convList');
@@ -1575,12 +1559,12 @@
                 if (!currentSecretKeyBytes) return;
                 try {
                     const wrapPubkey = wrapEvent.pubkey;
-                    const key = nip44.v2.getConversationKey(currentSecretKeyBytes, wrapPubkey);
+                    const key = nip44.getConversationKey(currentSecretKeyBytes, wrapPubkey);
                     const innerJson = nip44.v2.decrypt(wrapEvent.content, key);
                     const seal = JSON.parse(innerJson);
                     if (seal.kind !== 13) return;
                     if (NrBlocklist && NrBlocklist.isBlocked(wrapPubkey)) return;
-                    const sealKey = nip44.v2.getConversationKey(currentSecretKeyBytes, seal.pubkey);
+                    const sealKey = nip44.getConversationKey(currentSecretKeyBytes, seal.pubkey);
                     const rumorJson = nip44.v2.decrypt(seal.content, sealKey);
                     const rumor = JSON.parse(rumorJson);
                     if (rumor.kind !== 14) return;
@@ -1593,7 +1577,7 @@
                     const existing = conv.events.some(e => e.id === rumor.id);
                     if (!existing) {
                         eventAuthorById.set(rumor.id, rumor.pubkey);
-                        conv.events.push({ id: rumor.id, pubkey: rumor.pubkey, content: rumor.content || '', created_at: rumor.created_at, raw: rumor });
+                        conv.events.push({ id: rumor.id, pubkey: rumor.pubkey, content: rumor.content || '', created_at: rumor.created_at, raw: rumor, nip: 'nip17' });
                         conv.events.sort((a, b) => a.created_at - b.created_at);
                         scheduleChatCacheWrite();
                         scheduleRender('convList');
@@ -1873,14 +1857,18 @@
         function selectConversation(id) {
             selectedConversationId = id;
             setHashRoute(id || '');
-            document.getElementById('auth-modal').classList.remove('active');
-            document.getElementById('relays-modal').classList.remove('active');
+            const keysEl = document.getElementById('keys-modal');
+            const settingsEl = document.getElementById('settings-modal');
+            if (keysEl) keysEl.classList.remove('active');
+            if (settingsEl) settingsEl.classList.remove('active');
             const conv = conversations.get(id);
-            // Immediate UI update so the switch feels instant
+            document.body.classList.toggle('chat-open', !!conv);
             const list = document.getElementById('conv-list');
             if (list) list.querySelectorAll('.conv-item').forEach(el => el.classList.toggle('selected', el.dataset.convId === id));
             document.getElementById('empty-state').style.display = conv ? 'none' : 'block';
             document.getElementById('compose').style.display = conv ? 'flex' : 'none';
+            const opts = document.getElementById('compose-note-duration');
+            if (opts) opts.style.display = conv?.type === 'channel' ? 'flex' : 'none';
             document.getElementById('thread-header').style.display = conv ? 'flex' : 'none';
             if (conv) {
                 const isEnc = conv.type === 'dm' || conv.type === 'group';
@@ -1888,6 +1876,7 @@
                 document.getElementById('thread-enc-icon').title = isEnc ? 'Encrypted' : 'Unencrypted (public)';
                 document.getElementById('thread-enc-label').textContent = isEnc ? 'Encrypted' : 'Unencrypted';
                 document.getElementById('thread-title').textContent = conv.type === 'channel' ? (conv.id === GLOBAL_CHANNEL_SLUG ? 'Global' : '#' + conv.id) : (conv.type === 'group' ? `Group (${conv.members.length})` : (getDisplayNameShort(conv.id) || getDisplayName(conv.id) || conv.id));
+                if (conv._pendingEncrypted?.length) decryptPendingForConversation(conv);
             }
             const container = document.getElementById('thread-messages');
             if (container) container.innerHTML = '';
@@ -1902,7 +1891,12 @@
             });
         }
 
+        function goBackToList() {
+            document.body.classList.remove('chat-open');
+        }
+
         function showThreadEmpty() {
+            document.body.classList.remove('chat-open');
             document.getElementById('empty-state').style.display = 'block';
             document.getElementById('compose').style.display = 'none';
             document.getElementById('thread-header').style.display = 'none';
@@ -1960,6 +1954,12 @@
                     meta.innerHTML = `<span class="author"${authorTitle ? ` title="${authorTitle}"` : ''}>${authorLabel}</span><span class="time">${timeStr}</span>`;
                 } else {
                     meta.innerHTML = `<span class="time">${timeStr}</span>`;
+                }
+                if ((conv.type === 'dm' || conv.type === 'group') && ev.nip) {
+                    const pill = document.createElement('span');
+                    pill.className = 'message-nip-pill';
+                    pill.textContent = ev.nip;
+                    meta.appendChild(pill);
                 }
                 div.appendChild(meta);
                 wrap.appendChild(div);
@@ -2026,42 +2026,20 @@
         }
 
         async function signEvent(template) {
-            if (usingNip07) {
-                if (!nostrProvider) {
-                    const provider = NrNip07.detectNostrExtension();
-                    if (!provider) {
-                        showStatus('Extension no longer available. Please reconnect.', 'error');
-                        usingNip07 = false;
-                        setUsingNip07InStorage(false);
-                        updateUI();
-                        throw new Error('Extension no longer available');
-                    }
-                    const pk = await NrNip07.getPublicKeyFromExtension(provider);
-                    if (!pk || pk !== currentPublicKey) {
-                        showStatus(pk ? 'Extension public key changed. Please reconnect.' : 'Extension no longer available. Please reconnect.', 'error');
-                        usingNip07 = false;
-                        nostrProvider = null;
-                        setUsingNip07InStorage(false);
-                        updateUI();
-                        throw new Error('Extension no longer available');
-                    }
-                    nostrProvider = provider;
-                }
-                try {
-                    const signed = await nostrProvider.signEvent(template);
-                    // Some extensions return an event without tags; nostr-tools serialization expects tags to be an array.
-                    if (!Array.isArray(signed.tags)) signed.tags = Array.isArray(template.tags) ? [...template.tags] : [];
-                    return signed;
-                } catch (e) {
-                    console.error('Error signing with extension:', e);
-                    showStatus('Error signing: ' + (e?.message || String(e)), 'error');
-                    throw e;
-                }
-            }
             if (currentSecretKeyBytes) {
                 return finalizeEvent(template, currentSecretKeyBytes);
             }
             throw new Error('No key to sign');
+        }
+
+        /** Returns Unix timestamp (seconds) for note expiration, or null for permanent. NIP-40. */
+        function getComposeExpiration() {
+            const sel = document.getElementById('compose-expiry');
+            const val = sel?.value;
+            if (!val) return null;
+            const sec = parseInt(val, 10);
+            if (!Number.isFinite(sec) || sec <= 0) return null;
+            return Math.floor(Date.now() / 1000) + sec;
         }
 
         async function sendMessage() {
@@ -2073,14 +2051,14 @@
 
             if (conv.type === 'dm') {
                 const peer = conv.id;
-                const cipher = await encryptKind4(peer, text);
-                if (!cipher) {
-                    showStatus('Cannot encrypt: no secret key. Use extension (NIP-07) or import key.', 'error');
+                const result = await encryptKind4(peer, text);
+                if (!result) {
+                    showStatus('Cannot encrypt: no secret key. Please import or generate a key.', 'error');
                     return;
                 }
                 const template = {
                     kind: 4,
-                    content: cipher,
+                    content: result.cipher,
                     tags: [['p', peer]],
                     created_at: Math.floor(Date.now() / 1000),
                     pubkey: currentPublicKey
@@ -2089,7 +2067,7 @@
                 signEvent(template).then(signed => {
                     pool.publish(relays, signed);
                     eventAuthorById.set(signed.id, currentPublicKey);
-                    conv.events.push({ id: signed.id, pubkey: currentPublicKey, content: text, created_at: template.created_at, raw: signed });
+                    conv.events.push({ id: signed.id, pubkey: currentPublicKey, content: text, created_at: template.created_at, raw: signed, nip: result.nip });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
                     scheduleChatCacheWrite();
                     input.value = '';
@@ -2112,7 +2090,7 @@
                 (async () => {
                     for (const memberPubkey of membersToSend) {
                         try {
-                            const sealContent = nip44.v2.encrypt(JSON.stringify(rumor), nip44.v2.getConversationKey(currentSecretKeyBytes, memberPubkey));
+                            const sealContent = nip44.v2.encrypt(JSON.stringify(rumor), nip44.getConversationKey(currentSecretKeyBytes, memberPubkey));
                             const seal = await signEvent({
                                 kind: 13,
                                 content: sealContent,
@@ -2121,7 +2099,7 @@
                                 pubkey: currentPublicKey
                             });
                             const ephem = generateSecretKey();
-                            const wrapContent = nip44.v2.encrypt(JSON.stringify(seal), nip44.v2.getConversationKey(ephem, memberPubkey));
+                            const wrapContent = nip44.v2.encrypt(JSON.stringify(seal), nip44.getConversationKey(ephem, memberPubkey));
                             const wrap = finalizeEvent({
                                 kind: 1059,
                                 content: wrapContent,
@@ -2133,7 +2111,7 @@
                         } catch (_) {}
                     }
                     eventAuthorById.set(rumor.id, currentPublicKey);
-                    conv.events.push({ id: rumor.id, pubkey: currentPublicKey, content: text, created_at: rumor.created_at, raw: rumor });
+                    conv.events.push({ id: rumor.id, pubkey: currentPublicKey, content: text, created_at: rumor.created_at, raw: rumor, nip: 'nip17' });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
                     scheduleChatCacheWrite();
                     document.getElementById('compose-input').value = '';
@@ -2145,10 +2123,12 @@
 
             if (conv.type === 'channel') {
                 const slug = conv.id;
+                const exp = getComposeExpiration();
                 const tags = [
                     ['L', TRUSTROOTS_CIRCLE_LABEL],
                     ['l', slug, TRUSTROOTS_CIRCLE_LABEL]
                 ];
+                if (exp) tags.push(['expiration', String(exp)]);
                 const template = {
                     kind: MAP_NOTE_KIND,
                     content: text,
@@ -2204,22 +2184,36 @@
         }
 
         // Expose handlers and attach to header buttons (header is filled by common.js on DOMContentLoaded)
-        window.connectNip07 = connectNip07;
         window.importKey = importKey;
-        window.openAuthModal = openAuthModal;
-        window.closeAuthModal = closeAuthModal;
-        window.openRelaysModal = openRelaysModal;
+        window.openKeysModal = openKeysModal;
+        window.closeKeysModal = closeKeysModal;
+        window.onboardingImport = onboardingImport;
+        window.onboardingGenerate = onboardingGenerate;
+        window.exportNsec = exportNsec;
+        window.deleteNsec = deleteNsec;
+        window.importNsec = importNsec;
+        window.generateKeyPair = generateKeyPair;
+        window.openSettingsModal = openSettingsModal;
+        window.closeSettingsModal = closeSettingsModal;
         function attachHeaderButtons() {
-            const keysBtn = document.getElementById('keys-icon-btn');
-            const settingsBtn = document.getElementById('settings-icon-btn');
-            if (keysBtn) keysBtn.addEventListener('click', openAuthModal);
-            if (settingsBtn) settingsBtn.addEventListener('click', openRelaysModal);
+            const header = document.getElementById('app-header');
+            if (!header) return;
+            header.addEventListener('click', function (e) {
+                if (e.target.closest('#keys-icon-btn')) {
+                    e.preventDefault();
+                    openKeysModal();
+                } else if (e.target.closest('#settings-icon-btn')) {
+                    e.preventDefault();
+                    openSettingsModal();
+                }
+            });
         }
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', attachHeaderButtons);
         } else {
             attachHeaderButtons();
         }
+        document.getElementById('thread-back-btn')?.addEventListener('click', goBackToList);
         window.addRelay = addRelay;
         window.removeRelay = removeRelay;
         window.openNewDmModal = openNewDmModal;
@@ -2234,7 +2228,6 @@
         window.linkTrustrootsProfile = linkTrustrootsProfile;
         window.updateTrustrootsProfile = updateTrustrootsProfile;
         window.copyPublicKey = copyPublicKey;
-        window.closeRelaysModal = closeRelaysModal;
         window.openDeleteConfirmModal = openDeleteConfirmModal;
         window.closeDeleteConfirmModal = closeDeleteConfirmModal;
         window.confirmDeleteMessage = confirmDeleteMessage;
@@ -2244,19 +2237,18 @@
             const active = document.querySelector('.modal.active');
             if (!active) return;
             e.preventDefault();
-            if (active.id === 'auth-modal') closeAuthModal();
-            else if (active.id === 'relays-modal') closeRelaysModal();
+            if (active.id === 'keys-modal') closeKeysModal();
+            else if (active.id === 'settings-modal') closeSettingsModal();
             else if (active.id === 'new-dm-modal') closeNewDmModal();
             else if (active.id === 'new-group-modal') closeNewGroupModal();
             else if (active.id === 'delete-confirm-modal') closeDeleteConfirmModal();
         }, true);
 
         window.addEventListener('hashchange', applyHashToState);
+        document.addEventListener('nostroots-modals-injected', applyHashToState);
 
         startPublicSubscriptions();
-
-        // loadKeysFromStorage(0) retries up to 5 times when NIP-07 was used (like index.html)
-        loadKeysFromStorage(0);
+        loadKeysFromStorage();
         if (!currentPublicKey) updateUI();
         applyHashToState();
     </script>

@@ -12,6 +12,7 @@
     <!-- MapLibre GL CSS -->
     <link href="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css" rel="stylesheet" />
     <link rel="stylesheet" href="common.css">
+    <link rel="stylesheet" href="modals.css">
     <link rel="stylesheet" href="index.css">
     <script src="common.js"></script>
     <style type="text/template-removed">
@@ -378,7 +379,7 @@
         .app-header-actions .keys-icon {
             width: 44px;
             height: 44px;
-            border-radius: 50%;
+            border-radius: 0.875rem;
             background: rgba(255, 255, 255, 0.2);
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -493,67 +494,6 @@
         
         .copy-btn.copied {
             color: var(--primary);
-        }
-        
-        .nip07-card {
-            background: var(--muted);
-            border: 1px solid var(--border);
-            border-radius: calc(var(--radius) - 2px);
-            padding: 1rem;
-            margin-top: 0.5rem;
-        }
-        
-        .nip07-header {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            margin-bottom: 0.75rem;
-        }
-        
-        .nip07-header label {
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.875rem;
-            color: var(--foreground);
-        }
-        
-        .nip07-header input[type="checkbox"] {
-            width: auto;
-            margin: 0;
-            cursor: pointer;
-        }
-        
-        .nip07-description {
-            font-size: 0.8125rem;
-            color: var(--muted-foreground);
-            line-height: 1.5;
-            margin-bottom: 0.75rem;
-        }
-        
-        .nip07-description strong {
-            color: var(--foreground);
-            font-weight: 600;
-        }
-        
-        .nip07-status {
-            font-size: 0.75rem;
-            padding: 0.375rem 0.625rem;
-            border-radius: calc(var(--radius) - 2px);
-            margin-top: 0.75rem;
-            margin-bottom: 0;
-            display: none;
-            background: hsla(167, 81.9%, 39%, 0.1);
-            color: var(--primary);
-            border: 1px solid hsla(167, 81.9%, 39%, 0.2);
-            line-height: 1.4;
-        }
-        
-        .nip07-status.show {
-            display: block;
         }
         
         .username-nostr-indicator {
@@ -1347,135 +1287,8 @@
     <!-- Status Messages Container -->
     <div id="status-container" class="status-container"></div>
     
-    <!-- Keys Modal -->
-    <div class="modal" id="keys-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Keys</h2>
-                <button class="modal-close" id="keys-modal-close-btn" onclick="closeKeysModal()">&times;</button>
-            </div>
-            
-            <!-- Welcome message (only shown when no key is set) -->
-            <div id="keys-welcome-section" style="display: none; margin-bottom: 2rem;">
-                <h2 style="margin-bottom: 0.5rem;">Welcome to Nostroots</h2>
-                <p style="color: var(--muted-foreground); margin: 0;">You need a nostr key to get started. Choose one of the options below:</p>
-            </div>
-            
-            <!-- Option 1: NIP-07 Browser Extension (only shown when no key) -->
-            <div class="keys-option-section" id="keys-nip07-section" style="display: none;">
-                <div class="keys-option-content">
-                    <button class="btn" onclick="onboardingConnectExtension()" style="width: 100%;">Connect Browser Extension (NIP-07)</button>
-                    <p class="keys-option-description">
-                        Your private key never leaves the extension (nos2x, Alby)
-                    </p>
-                </div>
-            </div>
-            
-            <!-- Option 2: Import nsec or mnemonic (only shown when no key) -->
-            <div class="keys-option-section" id="keys-import-section" style="display: none;">
-                <div class="keys-option-content">
-                    <textarea id="onboarding-import" placeholder="Enter nsec1... or mnemonic phrase (12 or 24 words)..." style="width: 100%; min-height: 80px; margin-bottom: 0.75rem; font-family: monospace; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); background: var(--input); color: var(--foreground);"></textarea>
-                    <button class="btn btn-secondary" onclick="onboardingImport()" style="width: 100%;">Import</button>
-                </div>
-            </div>
-            
-            <!-- Option 3: Generate New Key (only shown when no key) -->
-            <div class="keys-option-section" id="keys-generate-section" style="display: none;">
-                <div class="keys-option-content">
-                    <button class="btn" onclick="onboardingGenerate()" style="width: 100%;">Generate New Key</button>
-                </div>
-            </div>
-            
-            <!-- Keys section (only shown when key is set) -->
-            <div class="settings-section" id="keys-manage-section" style="display: none;">
-                <h2>Keys</h2>
-                
-                <!-- Local Key Actions (above npub) -->
-                <div class="form-group" id="nsec-actions-group" style="display: none;">
-                    <div class="action-buttons">
-                        <button class="btn" onclick="exportNsec()">Export nsec</button>
-                        <button class="btn btn-danger" onclick="deleteNsec()">Delete Key</button>
-                    </div>
-                </div>
-                
-                <!-- Public Key Display -->
-                <div class="form-group" id="npub-display-group" style="display: none;">
-                    <label>Public Key (npub)</label>
-                    <div class="key-input-wrapper">
-                        <input type="text" id="npub-display" readonly>
-                        <button class="copy-btn" id="copy-npub-btn" onclick="copyPublicKey()" title="Copy to clipboard">
-                            <span id="copy-npub-text">📋</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="key-section-divider" id="key-section-divider" style="display: none;"></div>
-                
-                <!-- NIP-07 Status Indicator -->
-                <div id="nip07-status" class="nip07-status"></div>
-                
-                <!-- Update Trustroots Profile button (below NIP-07 status) -->
-                <div class="form-group" id="update-trustroots-profile-group" style="display: none; margin-top: 0.75rem;">
-                    <button class="btn btn-secondary" onclick="updateTrustrootsProfile()" style="width: 100%;">
-                        <span style="margin-right: 0.5rem;">🌐</span>
-                        Update Trustroots Profile
-                    </button>
-                </div>
-                
-                <!-- Import/Generate Section -->
-                <div class="form-group" id="no-nsec-actions-group">
-                    <label>Import nsec</label>
-                    <input type="text" id="nsec-import" placeholder="nsec1...">
-                    <button class="btn" onclick="importNsec()" style="margin-top: 0.5rem;">Import</button>
-                </div>
-                
-                <div class="form-group" id="generate-key-group">
-                    <button class="btn" id="generate-key-btn" onclick="generateKeyPair()">Generate New Key</button>
-                </div>
-            </div>
-            
-            <!-- Trustroots username section (only shown when key is set) -->
-            <div class="settings-section" id="keys-trustroots-section" style="display: none;">
-                <h2>Trustroots username</h2>
-                <div class="form-group">
-                    <input type="text" id="trustroots-username" placeholder="your-username" onkeydown="if(event.key === 'Enter') linkTrustrootsProfile()">
-                    <div id="username-nostr-indicator" class="username-nostr-indicator" style="display: none;">
-                        <small>This username is from a Nostr event and cannot be edited here.</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Settings Modal -->
-    <div class="modal" id="settings-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Settings</h2>
-                <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
-            </div>
-            <div class="settings-section">
-                <h2>Relays</h2>
-                <div id="relays-list" class="relays-list"></div>
-                <div class="form-group" style="margin-top: 1rem;">
-                    <div style="display: flex; gap: 0.5rem;">
-                        <input type="text" id="new-relay-url" placeholder="wss://relay.example.com" style="flex: 1;" onkeydown="if(event.key === 'Enter') addRelay()">
-                        <button class="btn" onclick="addRelay()">Add Relay</button>
-                    </div>
-                </div>
-            </div>
-            <div class="settings-section" id="settings-notifications-section">
-                <!-- Filled by renderSettingsNotificationsSection() -->
-            </div>
-            
-            <a href="https://github.com/Trustroots/nostroots/tree/main/nr-web" target="_blank" rel="noopener noreferrer" class="github-icon-link">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                </svg>
-            </a>
-        </div>
-    </div>
-    
+    <!-- Keys and Settings modals injected by common.js from modals-keys-settings.html -->
+
     <!-- MapLibre GL JS -->
     <script src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
     
@@ -1612,26 +1425,28 @@
         }
         function applyHashToState() {
             const route = getHashRoute();
+            const keysEl = document.getElementById('keys-modal');
+            const settingsEl = document.getElementById('settings-modal');
             if (route === 'keys') {
-                document.getElementById('settings-modal').classList.remove('active');
+                if (settingsEl) settingsEl.classList.remove('active');
                 closePlusCodeNotesModal(true);
                 openKeysModal();
                 return;
             }
             if (route === 'settings') {
-                document.getElementById('keys-modal').classList.remove('active');
+                if (keysEl) keysEl.classList.remove('active');
                 closePlusCodeNotesModal(true);
                 openSettingsModal();
                 return;
             }
             if (route) {
-                document.getElementById('keys-modal').classList.remove('active');
-                document.getElementById('settings-modal').classList.remove('active');
+                if (keysEl) keysEl.classList.remove('active');
+                if (settingsEl) settingsEl.classList.remove('active');
                 showNotesForPlusCode(route);
                 return;
             }
-            document.getElementById('keys-modal').classList.remove('active');
-            document.getElementById('settings-modal').classList.remove('active');
+            if (keysEl) keysEl.classList.remove('active');
+            if (settingsEl) settingsEl.classList.remove('active');
             closePlusCodeNotesModal();
         }
         let isDragging = false; // Track dragging state to prevent grid updates during drag
@@ -1639,8 +1454,6 @@
         let currentPrivateKey = null;
         let currentPrivateKeyBytes = null;
         let currentPublicKey = null;
-        let usingNip07 = false;
-        let nostrProvider = null;
         let authenticatingWithExtension = false; // Guard to prevent concurrent calls
         let isProfileLinked = false; // Track if profile is NIP-5 linked
         let usernameFromNostr = false; // Track if username came from a Nostr event
@@ -2124,114 +1937,8 @@
             return [...new Set(prefixes)];
         }
         
-        // NIP-07: use shared common.js (NrNip07), with fallback if old common.js is cached
-        function isUsingNip07FromStorage() {
-            return (typeof NrNip07 !== 'undefined' && typeof NrNip07.isUsingNip07FromStorage === 'function')
-                ? NrNip07.isUsingNip07FromStorage() : localStorage.getItem('using_nip07') === 'true';
-        }
-        function setUsingNip07InStorage(use) {
-            if (typeof NrNip07 !== 'undefined' && typeof NrNip07.setUsingNip07InStorage === 'function') {
-                NrNip07.setUsingNip07InStorage(use);
-            } else if (use) localStorage.setItem('using_nip07', 'true');
-            else localStorage.removeItem('using_nip07');
-        }
-        async function authenticateWithExtension(opts) {
-            const silent = opts && opts.silent === true;
-            if (authenticatingWithExtension) return false;
-            authenticatingWithExtension = true;
-            try {
-                const provider = NrNip07.detectNostrExtension();
-                if (!provider) {
-                    showStatus('No NIP-07 extension found. Please install nos2x or Alby.', 'error');
-                    authenticatingWithExtension = false;
-                    return false;
-                }
-                if (!NrNip07.isExtensionReady(provider)) {
-                    showStatus('Extension getPublicKey method is not available or not ready', 'error');
-                    authenticatingWithExtension = false;
-                    return false;
-                }
-                const pubkey = await NrNip07.getPublicKeyFromExtension(provider);
-                if (!pubkey) {
-                    showStatus('Failed to get public key from extension.', 'error');
-                    authenticatingWithExtension = false;
-                    return false;
-                }
-                // IMPORTANT: With NIP-07, the private key NEVER leaves the extension
-                // We explicitly clear any local private keys and only store the public key
-                currentPrivateKey = null;
-                currentPrivateKeyBytes = null;
-                localStorage.removeItem('nostr_private_key');
-                
-                // Store provider and public key only
-                nostrProvider = provider;
-                currentPublicKey = pubkey;
-                usingNip07 = true;
-                
-                // Save preference
-                setUsingNip07InStorage(true);
-                
-                updateKeyDisplay();
-                if (!silent) {
-                    showStatus((NrNip07 && NrNip07.NIP07_CONNECT_SUCCESS_MESSAGE) || 'Connected to NIP-07 extension! Your private key stays secure in the extension.', 'success');
-                }
-                authenticatingWithExtension = false;
-                return true;
-            } catch (error) {
-                console.error('Error authenticating with extension:', error);
-                // Provide more specific error messages
-                let errorMsg = 'Error connecting to extension';
-                if (error.message) {
-                    errorMsg += ': ' + error.message;
-                } else if (error.toString && error.toString() !== '[object Object]') {
-                    errorMsg += ': ' + error.toString();
-                }
-                showStatus(errorMsg, 'error');
-                usingNip07 = false;
-                nostrProvider = null;
-                authenticatingWithExtension = false;
-                return false;
-            }
-        }
-        
-        function toggleNip07() {
-            // This function is kept for compatibility but is no longer called
-            // since the checkbox was removed. NIP-07 is now managed automatically
-            // through authenticateWithExtension() and can be disabled by generating/importing keys.
-        }
-        
-        function checkNip07OnLoad() {
-            setTimeout(() => {
-                const provider = NrNip07.detectNostrExtension();
-                const nip07Section = document.getElementById('nip07-section');
-                // Note: onboarding-nip07-section is now always visible in the new UI, so we don't hide/show it
-                
-                if (provider) {
-                    if (nip07Section) nip07Section.style.display = 'block';
-                    
-                    // Note: We don't auto-reconnect here to avoid conflicts with checkOnboarding()
-                    // The checkOnboarding() function will handle reconnection if needed
-                } else {
-                    if (nip07Section) nip07Section.style.display = 'none';
-                    
-                    // If extension was previously used but is now unavailable, clear preference
-                    const wasUsingNip07 = isUsingNip07FromStorage();
-                    if (wasUsingNip07) {
-                        setUsingNip07InStorage(false);
-                        usingNip07 = false;
-                        nostrProvider = null;
-                    }
-                }
-            }, 200);
-        }
-        
         // Key management
         function generateKeyPair() {
-            // Disable NIP-07 when generating new key
-            usingNip07 = false;
-            nostrProvider = null;
-            setUsingNip07InStorage(false);
-            
             const privateKey = new Uint8Array(32);
             crypto.getRandomValues(privateKey);
             const privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -2241,11 +1948,6 @@
         }
         
         async function importNsec() {
-            // Disable NIP-07 when importing nsec
-            usingNip07 = false;
-            nostrProvider = null;
-            setUsingNip07InStorage(false);
-            
             const nsecInput = document.getElementById('nsec-import').value.trim();
             if (!nsecInput) {
                 showStatus('Please enter an nsec', 'error');
@@ -2284,14 +1986,6 @@
         }
         
         function savePrivateKey(privateKeyHex) {
-            // When saving a local private key, disable NIP-07
-            // NIP-07 and local keys are mutually exclusive
-            if (usingNip07) {
-                usingNip07 = false;
-                nostrProvider = null;
-                setUsingNip07InStorage(false);
-            }
-            
             localStorage.setItem('nostr_private_key', privateKeyHex);
             currentPrivateKey = privateKeyHex;
             
@@ -2371,12 +2065,6 @@
         }
         
         function deleteNsec() {
-            // This function only applies to local keys, not NIP-07
-            if (usingNip07) {
-                showStatus('Cannot delete extension key. Disable NIP-07 first if you want to use local keys.', 'error');
-                return;
-            }
-            
             if (!confirm('Are you sure you want to delete your private key? This action cannot be undone. You will need to import or generate a new key to continue using the app.')) {
                 return;
             }
@@ -2413,35 +2101,16 @@
             const noNsecActionsGroup = document.getElementById('no-nsec-actions-group');
             const generateKeyBtn = document.getElementById('generate-key-btn');
             const generateKeyGroup = document.getElementById('generate-key-group');
-            const nip07Status = document.getElementById('nip07-status');
             const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
             
-            if (usingNip07) {
-                // Using NIP-07 - hide nsec actions, show that we're using extension
-                // IMPORTANT: With NIP-07, we never have access to the private key
-                if (nsecActionsGroup) nsecActionsGroup.style.display = 'none';
+            if (hasNsec) {
+                if (nsecActionsGroup) nsecActionsGroup.style.display = 'block';
                 if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'none';
                 if (generateKeyGroup) generateKeyGroup.style.display = 'none';
-                // Show NIP-07 status
-                if (nip07Status) {
-                    nip07Status.textContent = (NrNip07 && NrNip07.NIP07_STATUS_MESSAGE) || '✓ Using NIP-07 extension – private key stays in extension';
-                    nip07Status.classList.add('show');
-                }
             } else {
-                // Not using NIP-07 - show/hide based on whether we have local keys
-                if (nip07Status) nip07Status.classList.remove('show');
-                
-                if (hasNsec) {
-                    // Show export/delete buttons, hide import/generate
-                    if (nsecActionsGroup) nsecActionsGroup.style.display = 'block';
-                    if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'none';
-                    if (generateKeyGroup) generateKeyGroup.style.display = 'none';
-                } else {
-                    // Show import/generate buttons, hide export/delete
-                    if (nsecActionsGroup) nsecActionsGroup.style.display = 'none';
-                    if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'block';
-                    if (generateKeyGroup) generateKeyGroup.style.display = 'block';
-                }
+                if (nsecActionsGroup) nsecActionsGroup.style.display = 'none';
+                if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'block';
+                if (generateKeyGroup) generateKeyGroup.style.display = 'block';
             }
             
             // Show/hide public key field and update button based on whether we have a public key
@@ -2452,14 +2121,16 @@
                 try {
                     // nip19.npubEncode expects hex string
                     const npub = nip19.npubEncode(currentPublicKey);
-                    document.getElementById('npub-display').value = npub;
+                    const npubEl = document.getElementById('npub-display');
+                    if (npubEl) npubEl.value = npub;
                     if (npubDisplayGroup) npubDisplayGroup.style.display = 'block';
                     if (keySectionDivider) keySectionDivider.style.display = 'block';
                     // Only show update button if profile is not linked
                     if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = isProfileLinked ? 'none' : 'block';
                 } catch (error) {
                     console.error('Error encoding npub:', error);
-                    document.getElementById('npub-display').value = 'Error encoding npub';
+                    const npubElErr = document.getElementById('npub-display');
+                    if (npubElErr) npubElErr.value = 'Error encoding npub';
                     if (npubDisplayGroup) npubDisplayGroup.style.display = 'block';
                     if (keySectionDivider) keySectionDivider.style.display = 'block';
                     // Only show update button if profile is not linked
@@ -2468,14 +2139,16 @@
                 // Check if profile is linked when public key changes
                 checkProfileLinked();
             } else {
-                document.getElementById('npub-display').value = '';
+                const npubElClear = document.getElementById('npub-display');
+                if (npubElClear) npubElClear.value = '';
                 if (npubDisplayGroup) npubDisplayGroup.style.display = 'none';
                 if (keySectionDivider) keySectionDivider.style.display = 'none';
                 if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = 'none';
                 isProfileLinked = false;
                 updateLinkProfileButton();
             }
-            document.getElementById('keys-icon-btn').title = currentPublicKey ? 'Keys' : 'Connect';
+            const keysIconBtn = document.getElementById('keys-icon-btn');
+            if (keysIconBtn) keysIconBtn.title = currentPublicKey ? 'Keys' : 'Connect';
             setHeaderIdentity();
         }
         
@@ -3926,16 +3599,14 @@
                               !document.documentElement.hasAttribute('data-theme'));
             
             if (isDarkMode) {
-                // Dark mode: Use CARTO Dark Matter tiles (production-friendly, no API key required)
+                // Dark mode: Use CARTO Dark Matter tiles (official tiles.basemaps.cartocdn.com host)
                 return {
                     version: 8,
                     sources: {
                         'carto-dark': {
                             type: 'raster',
                             tiles: [
-                                'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                                'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-                                'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+                                'https://tiles.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
                             ],
                             tileSize: 256,
                             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
@@ -3948,16 +3619,14 @@
                     }]
                 };
             } else {
-                // Light mode: Use CARTO Voyager tiles (production-friendly, no API key required)
+                // Light mode: Use CARTO Voyager tiles (official tiles.basemaps.cartocdn.com host)
                 return {
                     version: 8,
                     sources: {
                         'carto-voyager': {
                             type: 'raster',
                             tiles: [
-                                'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                                'https://b.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
-                                'https://c.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+                                'https://tiles.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
                             ],
                             tileSize: 256,
                             attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
@@ -4034,9 +3703,7 @@
                                 'carto-dark-fallback': {
                                     type: 'raster',
                                     tiles: [
-                                        'https://a.basemaps.cartocdn.com/tiles/dark_all/{z}/{x}/{y}.png',
-                                        'https://b.basemaps.cartocdn.com/tiles/dark_all/{z}/{x}/{y}.png',
-                                        'https://c.basemaps.cartocdn.com/tiles/dark_all/{z}/{x}/{y}.png'
+                                        'https://tiles.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
                                     ],
                                     tileSize: 256,
                                     attribution: '© OpenStreetMap contributors © CARTO'
@@ -4052,7 +3719,7 @@
                             sources: {
                                 'carto-positron': {
                                     type: 'raster',
-                                    tiles: ['https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', 'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', 'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'],
+                                    tiles: ['https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'],
                                     tileSize: 256,
                                     attribution: '© OpenStreetMap contributors © CARTO'
                                 }
@@ -4228,13 +3895,17 @@
             });
             
             map.on('load', () => {
+                // Resize so canvas matches container (fixes blank map when flex layout settles after init)
+                map.resize();
+                setTimeout(() => map.resize(), 150);
+
                 // Ensure map is interactive and set initial cursor
                 if (map.getCanvas()) {
                     map.getCanvas().style.cursor = 'default';
                     // Ensure pointer events are enabled for dragging
                     map.getCanvas().style.pointerEvents = 'auto';
                 }
-                
+
                 // Initialize plus code grid source
                 if (!map.getSource('pluscode-grid')) {
                     map.addSource('pluscode-grid', {
@@ -4554,8 +4225,8 @@
         }
         
         async function publishNoteFromModal() {
-            if (!usingNip07 && !currentPrivateKeyBytes) {
-                showStatus('No private key available. Please connect extension or import/generate a key.', 'error');
+            if (!currentPrivateKeyBytes) {
+                showStatus('No private key available. Please import or generate a key.', 'error');
                 return;
             }
             
@@ -4625,41 +4296,7 @@
                 }
                 
                 let signedEvent;
-                
-                // Sign event using NIP-07 extension or local key
-                if (usingNip07) {
-                    // Verify extension is still available
-                    if (!nostrProvider) {
-                        const provider = NrNip07.detectNostrExtension();
-                        if (!provider) {
-                            showStatus('Extension no longer available. Please reconnect or use local keys.', 'error');
-                            usingNip07 = false;
-                            setUsingNip07InStorage(false);
-                            updateKeyDisplay();
-                            return;
-                        }
-                        const currentPubkey = await NrNip07.getPublicKeyFromExtension(provider);
-                        if (!currentPubkey || currentPubkey !== currentPublicKey) {
-                            showStatus(currentPubkey ? 'Extension public key changed. Please reconnect.' : 'Extension no longer available. Please reconnect.', 'error');
-                            usingNip07 = false;
-                            nostrProvider = null;
-                            setUsingNip07InStorage(false);
-                            updateKeyDisplay();
-                            return;
-                        }
-                        nostrProvider = provider;
-                    }
-                    try {
-                        signedEvent = await nostrProvider.signEvent(eventTemplate);
-                    } catch (error) {
-                        console.error('Error signing event with extension:', error);
-                        showStatus('Error signing event: ' + error.message, 'error');
-                        return;
-                    }
-                } else {
-                    // Sign with local private key
-                    signedEvent = finalizeEvent(eventTemplate, currentPrivateKeyBytes);
-                }
+                signedEvent = finalizeEvent(eventTemplate, currentPrivateKeyBytes);
                 
                 // Validate signed event before publishing
                 if (!signedEvent || !signedEvent.id || !signedEvent.sig || !signedEvent.pubkey) {
@@ -5013,9 +4650,8 @@
         }
         
         async function deleteEvent(eventId, deleteButton) {
-            // Check if user has private key
-            if (!usingNip07 && !currentPrivateKeyBytes) {
-                showStatus('No private key available. Please connect extension or import/generate a key.', 'error');
+            if (!currentPrivateKeyBytes) {
+                showStatus('No private key available. Please import or generate a key.', 'error');
                 return;
             }
             
@@ -5061,59 +4697,7 @@
                 };
                 
                 let signedEvent;
-                
-                // Sign event using NIP-07 extension or local key
-                if (usingNip07) {
-                    // Verify extension is still available
-                    if (!nostrProvider) {
-                        const provider = NrNip07.detectNostrExtension();
-                        if (!provider) {
-                            showStatus('Extension no longer available. Please reconnect or use local keys.', 'error');
-                            usingNip07 = false;
-                            setUsingNip07InStorage(false);
-                            updateKeyDisplay();
-                            if (deleteButton) {
-                                deleteButton.disabled = false;
-                                deleteButton.classList.remove('deleting');
-                                deleteButton.textContent = '🗑️ DELETE';
-                                deleteButton.title = 'Delete this note';
-                            }
-                            return;
-                        }
-                        const currentPubkey = await NrNip07.getPublicKeyFromExtension(provider);
-                        if (!currentPubkey || currentPubkey !== currentPublicKey) {
-                            showStatus(currentPubkey ? 'Extension public key changed. Please reconnect.' : 'Extension no longer available. Please reconnect.', 'error');
-                            usingNip07 = false;
-                            nostrProvider = null;
-                            setUsingNip07InStorage(false);
-                            updateKeyDisplay();
-                            if (deleteButton) {
-                                deleteButton.disabled = false;
-                                deleteButton.classList.remove('deleting');
-                                deleteButton.textContent = '🗑️ DELETE';
-                                deleteButton.title = 'Delete this note';
-                            }
-                            return;
-                        }
-                        nostrProvider = provider;
-                    }
-                    try {
-                        signedEvent = await nostrProvider.signEvent(deletionEvent);
-                    } catch (error) {
-                        console.error('Error signing deletion event with extension:', error);
-                        showStatus('Error signing deletion event: ' + error.message, 'error');
-                        if (deleteButton) {
-                            deleteButton.disabled = false;
-                            deleteButton.classList.remove('deleting');
-                            deleteButton.textContent = '🗑️ DELETE';
-                            deleteButton.title = 'Delete this note';
-                        }
-                        return;
-                    }
-                } else {
-                    // Sign with local private key
-                    signedEvent = finalizeEvent(deletionEvent, currentPrivateKeyBytes);
-                }
+                signedEvent = finalizeEvent(deletionEvent, currentPrivateKeyBytes);
                 
                 // Publish to all configured relays
                 const relayUrls = getRelayUrls();
@@ -5481,51 +5065,31 @@
             // but no longer does anything
         }
         
-        // Settings Modal Functions
+        // Settings Modal Functions (modals injected by common.js)
         function openKeysModal() {
-            document.getElementById('settings-modal').classList.remove('active');
-            document.getElementById('keys-modal').classList.add('active');
+            const keysEl = document.getElementById('keys-modal');
+            const settingsEl = document.getElementById('settings-modal');
+            if (settingsEl) settingsEl.classList.remove('active');
+            if (keysEl) keysEl.classList.add('active');
             setHashRoute('keys');
             
             // Check if we have a key
-            const hasKey = !!(currentPublicKey || currentPrivateKey || usingNip07);
+            const hasKey = !!(currentPublicKey || currentPrivateKey);
             
-            // Show welcome section and onboarding options when no key
             const welcomeSection = document.getElementById('keys-welcome-section');
-            const nip07Section = document.getElementById('keys-nip07-section');
             const importSection = document.getElementById('keys-import-section');
             const generateSection = document.getElementById('keys-generate-section');
-            
-            // Show keys management section when key exists
             const manageSection = document.getElementById('keys-manage-section');
             const trustrootsSection = document.getElementById('keys-trustroots-section');
             
             if (!hasKey) {
-                // No key - show welcome and onboarding options
                 if (welcomeSection) welcomeSection.style.display = 'block';
                 if (importSection) importSection.style.display = 'block';
                 if (generateSection) generateSection.style.display = 'block';
                 if (manageSection) manageSection.style.display = 'none';
                 if (trustrootsSection) trustrootsSection.style.display = 'none';
-                
-                // Check if NIP-07 extension is available and show the section
-                // Check immediately and also after a short delay to catch extensions that load late
-                const checkNip07 = () => {
-                    const provider = NrNip07.detectNostrExtension();
-                    if (nip07Section) {
-                        nip07Section.style.display = provider ? 'block' : 'none';
-                    }
-                };
-                
-                // Check immediately
-                checkNip07();
-                
-                // Also check after a short delay in case extension loads late
-                setTimeout(checkNip07, 300);
             } else {
-                // Has key - show keys management and trustroots section
                 if (welcomeSection) welcomeSection.style.display = 'none';
-                if (nip07Section) nip07Section.style.display = 'none';
                 if (importSection) importSection.style.display = 'none';
                 if (generateSection) generateSection.style.display = 'none';
                 if (manageSection) manageSection.style.display = 'block';
@@ -5538,19 +5102,23 @@
         }
         
         function closeKeysModal() {
-            document.getElementById('keys-modal').classList.remove('active');
+            const el = document.getElementById('keys-modal');
+            if (el) el.classList.remove('active');
             setHashRoute(selectedPlusCode || '');
         }
 
         function openSettingsModal() {
-            document.getElementById('keys-modal').classList.remove('active');
-            document.getElementById('settings-modal').classList.add('active');
+            const keysEl = document.getElementById('keys-modal');
+            const settingsEl = document.getElementById('settings-modal');
+            if (keysEl) keysEl.classList.remove('active');
+            if (settingsEl) settingsEl.classList.add('active');
             setHashRoute('settings');
             renderSettingsNotificationsSection();
         }
 
         function closeSettingsModal() {
-            document.getElementById('settings-modal').classList.remove('active');
+            const el = document.getElementById('settings-modal');
+            if (el) el.classList.remove('active');
             setHashRoute(selectedPlusCode || '');
         }
         
@@ -5576,83 +5144,12 @@
         // Onboarding
         function checkOnboarding() {
             const hasKey = localStorage.getItem('nostr_private_key');
-            const wasUsingNip07 = isUsingNip07FromStorage();
-            
-            // If user was using NIP-07, try to reconnect even if extension isn't immediately detected
-            // Extensions may need time to inject content scripts in new tabs
-            if (wasUsingNip07) {
-                const tryReconnect = (attempt = 0, maxAttempts = 5) => {
-                    const provider = NrNip07.detectNostrExtension();
-                    
-                    if (provider) {
-                        // Extension detected, try to authenticate
-                        setTimeout(() => {
-                            authenticateWithExtension({ silent: true }).then(success => {
-                                if (!success) {
-                                    // If extension connection fails, clear NIP-07 state and show onboarding
-                                    usingNip07 = false;
-                                    nostrProvider = null;
-                                    setUsingNip07InStorage(false);
-                                    if (!hasKey) {
-                                        openKeysModal();
-                                        updateKeyDisplay();
-                                    } else {
-                                        loadKeys();
-                                    }
-                                }
-                            }).catch(() => {
-                                // Extension connection failed
-                                usingNip07 = false;
-                                nostrProvider = null;
-                                setUsingNip07InStorage(false);
-                                if (!hasKey) {
-                                    openKeysModal();
-                                    updateKeyDisplay();
-                                } else {
-                                    loadKeys();
-                                }
-                            });
-                        }, 200); // Small delay to ensure extension is ready
-                    } else if (attempt < maxAttempts) {
-                        // Extension not detected yet, retry after a delay
-                        setTimeout(() => tryReconnect(attempt + 1, maxAttempts), 300);
-                    } else {
-                        // Extension not found after retries, clear NIP-07 state
-                        usingNip07 = false;
-                        nostrProvider = null;
-                        setUsingNip07InStorage(false);
-                        if (!hasKey) {
-                            openKeysModal();
-                            updateKeyDisplay();
-                        } else {
-                            loadKeys();
-                        }
-                    }
-                };
-                
-                // Start reconnection attempt
-                tryReconnect();
-            } else if (!hasKey) {
+            localStorage.removeItem('using_nip07');
+            if (!hasKey) {
                 openKeysModal();
-                // Ensure display is updated even when there's no key
                 updateKeyDisplay();
             } else {
                 loadKeys();
-            }
-        }
-        
-        async function onboardingConnectExtension() {
-            const success = await authenticateWithExtension();
-            if (success) {
-                // Small delay to ensure state is updated before refreshing modal
-                await new Promise(resolve => setTimeout(resolve, 100));
-                // Refresh the keys modal to show the management section
-                openKeysModal();
-                showStatus('Connected via extension! Your private key is secure in the extension.', 'success');
-            } else {
-                // authenticateWithExtension already shows specific error messages,
-                // so we don't need to show a generic one here
-                // The keys modal will remain open so user can try other options
             }
         }
         
@@ -5788,18 +5285,10 @@
                         
                         let signedEvent;
                         
-                        // Sign the event
-                        if (usingNip07 && nostrProvider) {
-                            try {
-                                signedEvent = await nostrProvider.signEvent(eventTemplate);
-                            } catch (error) {
-                                showStatus('Extension signing failed: ' + error.message, 'error');
-                                return;
-                            }
-                        } else if (currentPrivateKeyBytes) {
+                        if (currentPrivateKeyBytes) {
                             signedEvent = finalizeEvent(eventTemplate, currentPrivateKeyBytes);
                         } else {
-                            showStatus('No signing method available. Please connect extension or import/generate a key.', 'error');
+                            showStatus('No signing method available. Please import or generate a key.', 'error');
                             return;
                         }
                         
@@ -5911,7 +5400,7 @@
         
         // Initialize on load
         window.addEventListener('load', async () => {
-            // If user switched from chat/map via the header link, suppress connection toasts (NIP-07 + relays)
+            // If user switched from chat/map via the header link, suppress connection toasts
             if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('nostroots_switching_page')) {
                 sessionStorage.removeItem('nostroots_switching_page');
                 window._nostrootsSuppressConnectionToasts = true;
@@ -5923,11 +5412,6 @@
                 return;
             }
             
-            // Check for NIP-07 extension availability
-            checkNip07OnLoad();
-            
-            checkOnboarding();
-            
             // Initialize expiration input with saved value
             const savedExpiration = getExpirationSetting();
             const expirationSelectModal = document.getElementById('note-expiration-in-modal');
@@ -5936,7 +5420,7 @@
             // Initialize relay list
             initializeRelayList();
             
-            // Keys icon button click handler
+            // Keys icon button click handler (in header, injected synchronously)
             const keysBtn = document.getElementById('keys-icon-btn');
             if (keysBtn) {
                 keysBtn.addEventListener('click', () => {
@@ -5944,7 +5428,7 @@
                 });
             }
             
-            // Settings icon button click handler
+            // Settings icon button click handler (in header, injected synchronously)
             const settingsBtn = document.getElementById('settings-icon-btn');
             if (settingsBtn) {
                 settingsBtn.addEventListener('click', () => {
@@ -5961,24 +5445,34 @@
                 }
             });
             
-            // Close keys modal when clicking outside
-            const keysModal = document.getElementById('keys-modal');
-            if (keysModal) {
-                keysModal.addEventListener('click', (e) => {
-                    if (e.target.id === 'keys-modal') {
-                        closeKeysModal();
-                    }
-                });
+            // Modals are loaded asynchronously from modals-keys-settings.html.
+            // Defer onboarding and modal click handlers until the DOM is ready.
+            function onModalsReady() {
+                checkOnboarding();
+                
+                const keysModal = document.getElementById('keys-modal');
+                if (keysModal) {
+                    keysModal.addEventListener('click', (e) => {
+                        if (e.target.id === 'keys-modal') {
+                            closeKeysModal();
+                        }
+                    });
+                }
+                
+                const settingsModal = document.getElementById('settings-modal');
+                if (settingsModal) {
+                    settingsModal.addEventListener('click', (e) => {
+                        if (e.target.id === 'settings-modal') {
+                            closeSettingsModal();
+                        }
+                    });
+                }
             }
             
-            // Close settings modal when clicking outside
-            const settingsModal = document.getElementById('settings-modal');
-            if (settingsModal) {
-                settingsModal.addEventListener('click', (e) => {
-                    if (e.target.id === 'settings-modal') {
-                        closeSettingsModal();
-                    }
-                });
+            if (document.getElementById('keys-modal')) {
+                onModalsReady();
+            } else {
+                document.addEventListener('nostroots-modals-injected', onModalsReady, { once: true });
             }
             
             // Close pluscode-notes modal when clicking outside
@@ -6044,6 +5538,7 @@
             setTimeout(loadDataWhenReady, 200);
 
             window.addEventListener('hashchange', applyHashToState);
+            document.addEventListener('nostroots-modals-injected', applyHashToState);
             applyHashToState();
         });
         
@@ -6062,9 +5557,6 @@
         window.closeKeysModal = closeKeysModal;
         window.onboardingGenerate = onboardingGenerate;
         window.onboardingImport = onboardingImport;
-        window.onboardingConnectExtension = onboardingConnectExtension;
-        window.authenticateWithExtension = authenticateWithExtension;
-        window.toggleNip07 = toggleNip07;
         window.copyPublicKey = copyPublicKey;
         window.showCirclesModal = showCirclesModal;
         window.hideCirclesModal = hideCirclesModal;

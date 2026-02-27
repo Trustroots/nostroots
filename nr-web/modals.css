@@ -1,0 +1,327 @@
+/**
+ * Shared styles for Keys and Settings modals (index.html + chat.html).
+ * These modals are injected from modals-keys-settings.html via common.js.
+ */
+
+/* Keys + Settings modal overlay and content */
+#keys-modal,
+#settings-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+
+#keys-modal.active,
+#settings-modal.active {
+    display: flex;
+}
+
+#keys-modal .modal-content,
+#settings-modal .modal-content {
+    background: var(--card);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    border: 2px solid var(--border-outer, var(--border));
+    position: relative;
+}
+
+#keys-modal .modal-content::after,
+#settings-modal .modal-content::after {
+    content: "";
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    width: 80px;
+    height: 80px;
+    background: url("https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/mushroom-single.png") no-repeat center/contain;
+    opacity: 0.12;
+    pointer-events: none;
+}
+
+#keys-modal .modal-header,
+#settings-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+#keys-modal .modal-header h2,
+#settings-modal .modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+#keys-modal .modal-close,
+#settings-modal .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: calc(var(--radius) - 2px);
+    transition: all 0.2s ease;
+}
+
+#keys-modal .modal-close:hover,
+#settings-modal .modal-close:hover {
+    background: var(--accent);
+    color: var(--foreground);
+}
+
+#settings-modal .github-icon-link {
+    display: block;
+    text-align: right;
+    margin-top: 1rem;
+    color: var(--foreground);
+    opacity: 0.5;
+    transition: opacity 0.2s;
+}
+
+#settings-modal .github-icon-link svg {
+    vertical-align: middle;
+}
+
+#settings-modal .github-icon-link:hover {
+    opacity: 1;
+}
+
+/* Keys modal: onboarding options */
+.keys-option-section {
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    padding: 1.25rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.keys-option-section:hover {
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.keys-option-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.keys-option-description {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    margin-top: 0.75rem;
+    margin-bottom: 0;
+    text-align: center;
+    line-height: 1.5;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.action-buttons .btn {
+    flex: 1;
+    min-width: 120px;
+}
+
+.key-section-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 1.25rem 0;
+}
+
+/* Settings section blocks inside modals */
+#keys-modal .settings-section,
+#settings-modal .settings-section {
+    background: var(--card);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--border);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+#keys-modal .settings-section h2,
+#settings-modal .settings-section h2 {
+    margin-bottom: 1rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+/* Form groups inside keys/settings modals */
+#keys-modal .form-group,
+#settings-modal .form-group {
+    margin-bottom: 1rem;
+}
+
+#keys-modal .form-group label,
+#settings-modal .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--foreground);
+}
+
+#keys-modal .form-group input,
+#keys-modal .form-group textarea,
+#settings-modal .form-group input,
+#settings-modal .form-group textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--input);
+    border-radius: calc(var(--radius) - 2px);
+    font-size: 0.875rem;
+    background: var(--background);
+    color: var(--foreground);
+}
+
+#keys-modal .key-input-wrapper,
+#settings-modal .key-input-wrapper {
+    position: relative;
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+#keys-modal .key-input-wrapper input {
+    flex: 1;
+    padding-right: 3rem;
+}
+
+#keys-modal .key-input-wrapper input[readonly],
+#settings-modal .key-input-wrapper input[readonly] {
+    background: var(--muted);
+    cursor: default;
+}
+
+#keys-modal .copy-btn,
+#settings-modal .copy-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: calc(var(--radius) - 2px);
+    font-size: 0.75rem;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+#keys-modal .copy-btn:hover,
+#settings-modal .copy-btn:hover {
+    background: var(--secondary);
+    color: var(--foreground);
+}
+
+#keys-modal .copy-btn.copied,
+#settings-modal .copy-btn.copied {
+    color: var(--primary);
+}
+
+#keys-modal .username-nostr-indicator,
+#settings-modal .username-nostr-indicator {
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    margin-top: 0.5rem;
+    font-style: italic;
+}
+
+/* Relays list (settings modal) */
+#settings-modal .relays-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+#settings-modal .relay-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    transition: all 0.2s ease;
+}
+
+#settings-modal .relay-item:hover {
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.relay-status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+    background: #6b7280;
+}
+
+.relay-status-indicator.connected {
+    background: var(--primary) !important;
+    box-shadow: 0 0 8px rgba(88, 125, 99, 0.4);
+}
+
+.relay-status-indicator.connecting {
+    background: #f59e0b !important;
+    animation: modals-pulse 2s infinite;
+}
+
+.relay-status-indicator.disconnected {
+    background: #6b7280 !important;
+}
+
+.relay-status-indicator.error {
+    background: var(--destructive) !important;
+}
+
+@keyframes modals-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.relay-url {
+    flex: 1;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: var(--foreground);
+    word-break: break-all;
+}
+
+.relay-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}

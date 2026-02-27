@@ -3,14 +3,19 @@ import { StatusReport } from "./telegram.ts";
 type ServiceStatus = "ok" | "error";
 type State = Record<string, ServiceStatus>;
 
-let currentState: State = {};
+let currentState: State | undefined;
 
 export function updateState(report: StatusReport): boolean {
+  const isFirstRun = currentState === undefined;
+  if (isFirstRun) {
+    currentState = {};
+  }
+
   let changed = false;
 
   for (const service of report.services) {
     const prev = currentState[service.name];
-    if (prev !== undefined && prev !== service.status) {
+    if (prev !== service.status) {
       changed = true;
     }
     currentState[service.name] = service.status;
@@ -19,7 +24,7 @@ export function updateState(report: StatusReport): boolean {
   for (const ping of report.pings) {
     const key = `${ping.name}-ping`;
     const prev = currentState[key];
-    if (prev !== undefined && prev !== ping.status) {
+    if (prev !== ping.status) {
       changed = true;
     }
     currentState[key] = ping.status;

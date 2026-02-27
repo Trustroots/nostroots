@@ -8,7 +8,10 @@ import { SubscriptionStore } from "./src/subscriptionStore.ts";
 import { serializeArg } from "@trustroots/nr-common";
 
 const healthCheckServer = Deno.serve(
-  { port: 80 },
+  {
+    port: 80,
+    hostname: "0.0.0.0",
+  },
   () =>
     new Response(
       JSON.stringify({ status: "ok", service: "nr-notification-daemon" }),

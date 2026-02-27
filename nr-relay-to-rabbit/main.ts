@@ -38,11 +38,11 @@ await channel.declareExchange({
 
 log.info("#kR7mXp Listening on port 80");
 
-Deno.serve({ port: 80 }, async (request) => {
+Deno.serve({ port: 80, hostname: "0.0.0.0" }, async (request) => {
   if (request.method === "GET" && new URL(request.url).pathname === "/health") {
     return new Response(
       JSON.stringify({ status: "ok", service: "nr-relay-to-rabbit" }),
-      { headers: { "content-type": "application/json" } }
+      { headers: { "content-type": "application/json" } },
     );
   }
 
@@ -61,7 +61,9 @@ Deno.serve({ port: 80 }, async (request) => {
 
   if (!whitelistKinds(strfryLine)) {
     const response = rejectEvent(strfryLine, "403");
-    log.info(`#fJ9pLs Rejected event ${strfryLine.event.id} (kind ${strfryLine.event.kind})`);
+    log.info(
+      `#fJ9pLs Rejected event ${strfryLine.event.id} (kind ${strfryLine.event.kind})`,
+    );
     return new Response(response, {
       headers: { "content-type": "application/json" },
     });

@@ -38,7 +38,7 @@ await new cliffy.Command()
   )
   .action(async (options) => {
     const healthCheckServer = Deno.serve(
-      { port: 80 },
+      { port: 80, hostname: "0.0.0.0" },
       () =>
         new Response(JSON.stringify({ status: "ok", service: "nr-server" }), {
           headers: { "content-type": "application/json" },

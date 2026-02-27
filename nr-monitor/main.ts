@@ -5,7 +5,7 @@ import { log } from "./src/log.ts";
 import { updateState } from "./src/state.ts";
 import {
   formatStatusMessage,
-  sendStatusUpdate,
+  sendTelegramMessage,
   StatusReport,
 } from "./src/telegram.ts";
 
@@ -43,12 +43,9 @@ async function runOnce(): Promise<void> {
   logStatus(report);
 
   if (statusChanged) {
-    log.info("#Vw8Xy9 Status changed, sending new notification...");
-  } else {
-    log.info("#Za1Bc2 No status change, updating existing message...");
+    log.info("#Vw8Xy9 Status changed, sending Telegram notification...");
+    await sendTelegramMessage(formatStatusMessage(report));
   }
-
-  await sendStatusUpdate(formatStatusMessage(report), statusChanged);
 }
 
 async function runLoop(): Promise<void> {

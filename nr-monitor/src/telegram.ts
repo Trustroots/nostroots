@@ -8,36 +8,6 @@ export interface StatusReport {
   nrServerPing: NrServerPingResult;
 }
 
-interface TelegramMessage {
-  message_id: number;
-}
-
-interface TelegramMethods {
-  sendMessage: {
-    params: {
-      chat_id: string;
-      text: string;
-      parse_mode?: "HTML" | "Markdown" | "MarkdownV2";
-    };
-    result: TelegramMessage;
-  };
-  editMessageText: {
-    params: {
-      chat_id: string;
-      message_id: number;
-      text: string;
-      parse_mode?: "HTML" | "Markdown" | "MarkdownV2";
-    };
-    result: TelegramMessage;
-  };
-}
-
-type TelegramResponse<T> =
-  | { ok: true; result: T }
-  | { ok: false; description: string };
-
-let lastMessageId: number | null = null;
-
 export function formatStatusMessage(report: StatusReport): string {
   const lines: string[] = [];
 
@@ -94,57 +64,20 @@ export function formatStatusMessage(report: StatusReport): string {
   return lines.join("\n");
 }
 
-async function callTelegram<M extends keyof TelegramMethods>(
-  method: M,
-  params: TelegramMethods[M]["params"],
-): Promise<TelegramResponse<TelegramMethods[M]["result"]>> {
-  const url = `https://api.telegram.org/bot${config.telegramBot}/${method}`;
-
-  const stringParams: Record<string, string> = {};
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined) {
-      stringParams[key] = String(value);
-    }
-  }
+export async function sendTelegramMessage(message: string) {
+  const url = `https://api.telegram.org/bot${config.telegramBot}/sendMessage`;
 
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams(stringParams),
+    body: new URLSearchParams({
+      chat_id: config.telegramChat,
+      text: message,
+      parse_mode: "HTML",
+    }),
   });
 
   if (!response.ok) {
-    log.error(`#Lm7No8 Telegram ${method} failed: ${response.status}`);
-    return { ok: false, description: `HTTP ${response.status}` };
+    log.error(`#Lm7No8 Telegram sendMessage failed: ${response.status}`);
   }
-
-  return await response.json();
-}
-
-export async function sendStatusUpdate(
-  message: string,
-  statusChanged: boolean,
-) {
-  // Edit existing message if no change
-  if (!statusChanged && lastMessageId !== null) {
-    return await callTelegram("editMessageText", {
-      chat_id: config.telegramChat,
-      message_id: lastMessageId,
-      text: message,
-      parse_mode: "HTML",
-    });
-  }
-
-  // Send new message on status change or first run
-  const result = await callTelegram("sendMessage", {
-    chat_id: config.telegramChat,
-    text: message,
-    parse_mode: "HTML",
-  });
-
-  if (result.ok && result.result) {
-    lastMessageId = result.result.message_id;
-  }
-
-  return result;
 }

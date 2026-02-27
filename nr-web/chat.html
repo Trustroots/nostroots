@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="common.css">
+    <link rel="stylesheet" href="chat.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -336,6 +337,10 @@
             color: var(--foreground);
             font-size: 0.9rem;
         }
+        .compose textarea {
+            resize: vertical;
+            min-height: 2.5rem;
+        }
         .empty-state {
             flex: 1;
             display: flex;
@@ -469,20 +474,13 @@
     <script src="common.js"></script>
 </head>
 <body>
-    <header class="app-header" aria-label="Brand">
-        <div class="vines">
-            <img src="https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/vines-top.png" alt="" width="1200" height="400">
-        </div>
-        <div class="app-header-inner">
-            <img src="https://notes.trustroots.org/logo.svg" alt="Trustroots" class="app-header-logo" width="140" height="32">
-            <h1>Nostroots Chat</h1>
-            <a href="index.html" class="app-header-nav-link" title="Map" aria-label="Open Map" onclick="sessionStorage.setItem('nostroots_switching_page','1')">🌐</a>
-        </div>
-        <div class="app-header-actions">
-            <span class="header-identity empty" id="header-identity" title=""></span>
-            <button type="button" class="keys-icon" id="keys-icon-btn" title="Keys" onclick="openAuthModal()">🔑</button>
-            <button type="button" class="settings-icon" id="settings-icon-btn" title="Relays" onclick="openRelaysModal()">⚙️</button>
-        </div>
+    <header class="app-header" id="app-header"
+        data-page-title="Nostroots Chat"
+        data-nav-href="index.html"
+        data-nav-title="Map"
+        data-nav-aria-label="Open Map"
+        data-nav-icon="🌐"
+        data-settings-title="Relays">
     </header>
     <main class="main">
         <aside class="sidebar">
@@ -500,7 +498,7 @@
             <div class="thread-messages" id="thread-messages"></div>
             <div class="empty-state" id="empty-state">Select a conversation or start a new one.</div>
             <div class="compose" id="compose" style="display:none;">
-                <input type="text" id="compose-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMessage()">
+                <textarea id="compose-input" placeholder="Type a message..." rows="2" onkeydown="if(event.key==='Enter'){if(!event.shiftKey){event.preventDefault();sendMessage();}}"></textarea>
                 <button type="button" class="btn" onclick="sendMessage()">Send</button>
             </div>
         </section>
@@ -646,6 +644,18 @@
         const TRUSTROOTS_CIRCLE_LABEL = 'trustroots-circle';
         const GLOBAL_CHANNEL_SLUG = 'global';
 
+        // Decode blocklist npubs to hex (shared blocklist in common.js)
+        if (typeof NrBlocklist !== 'undefined' && NrBlocklist.BLOCKLIST_NPUBS && nip19) {
+            const blocklistHex = NrBlocklist.BLOCKLIST_NPUBS.map((n) => {
+                try {
+                    const d = nip19.decode(n);
+                    if (d.type === 'npub') return Array.from(d.data).map(b => b.toString(16).padStart(2, '0')).join('');
+                } catch (_) {}
+                return null;
+            }).filter(Boolean);
+            NrBlocklist.setBlocklistHex(blocklistHex);
+        }
+
         function isPlusCodeChannelId(id) {
             // OLC alphabet plus '0' for padded/prefix codes (e.g. 9F000000+)
             return typeof id === 'string' && id !== GLOBAL_CHANNEL_SLUG && /^[023456789CFGHJMPQRVWX]{4,}\+?$/i.test(id.replace(/\s/g, ''));
@@ -701,7 +711,8 @@
         /** event id pending delete confirmation */
         let pendingDeleteEventId = null;
 
-        // Chat cache (conversations, profiles, deletions) in localStorage
+        // Chat cache (conversations, profiles, deletions) in localStorage.
+        // Includes NIP-04 DMs and NIP-44 group messages (decrypted content) so they load faster on next visit.
         const CHAT_CACHE_KEY_PREFIX = 'nostroots_chat_cache_';
         const CHAT_CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
         const CHAT_CACHE_MAX_EVENTS_PER_CONV = 500;
@@ -750,20 +761,24 @@
                 const data = JSON.parse(raw);
                 if (!data || !data.timestamp || (Date.now() - data.timestamp > CHAT_CACHE_MAX_AGE)) return false;
                 conversations.clear();
+                const isBlocked = (NrBlocklist && NrBlocklist.isBlocked) ? (hex) => NrBlocklist.isBlocked(hex) : () => false;
                 for (const c of data.conversations || []) {
-                    const events = (c.events || []).map(ev => ({
-                        id: ev.id,
-                        pubkey: ev.pubkey,
-                        content: ev.content ?? '',
-                        created_at: ev.created_at,
-                        raw: ev.raw && ev.raw.tags ? { tags: ev.raw.tags } : {}
-                    }));
+                    const events = (c.events || [])
+                        .filter(ev => !isBlocked(ev.pubkey))
+                        .map(ev => ({
+                            id: ev.id,
+                            pubkey: ev.pubkey,
+                            content: ev.content ?? '',
+                            created_at: ev.created_at,
+                            raw: ev.raw && ev.raw.tags ? { tags: ev.raw.tags } : {}
+                        }));
                     conversations.set(c.id, { type: c.type, id: c.id, members: c.members || [], events });
                 }
                 pubkeyToUsername.clear();
                 for (const [k, v] of (data.pubkeyToUsername || [])) pubkeyToUsername.set(k, v);
                 pubkeyToNip05.clear();
                 for (const [k, v] of (data.pubkeyToNip05 || [])) pubkeyToNip05.set(k, v);
+                if (currentPublicKey) currentUserNip05 = pubkeyToNip05.get(currentPublicKey) || '';
                 deletedEventIds.clear();
                 for (const id of (data.deletedEventIds || [])) deletedEventIds.add(id);
                 eventAuthorById.clear();
@@ -976,6 +991,7 @@
                         currentPublicKey = pk;
                         currentSecretKeyHex = null;
                         currentSecretKeyBytes = null;
+                        loadChatFromCache(); // NIP-04 DMs and channels so they show immediately
                         updateUI();
                         startSubscriptions();
                         return;
@@ -1005,6 +1021,7 @@
                 currentPublicKey = getPublicKey(currentSecretKeyBytes);
                 usingNip07 = false;
                 nostrProvider = null;
+                loadChatFromCache(); // NIP-04 DMs and channels so they show immediately
                 updateUI();
                 startSubscriptions();
             }
@@ -1100,7 +1117,8 @@
 
         function setHeaderIdentity() {
             const el = document.getElementById('header-identity');
-            if (!el) return;
+            const btn = document.getElementById('keys-icon-btn');
+            if (!el || !btn) return;
             const hasKey = !!currentPublicKey;
             const nip5 = currentUserNip05 || (currentPublicKey ? pubkeyToNip05.get(currentPublicKey) : '');
             const trUsername = currentPublicKey ? pubkeyToUsername.get(currentPublicKey) : null;
@@ -1110,8 +1128,10 @@
                 el.title = '';
                 el.classList.add('empty');
                 el.classList.remove('nip5');
+                btn.classList.remove('has-identity');
                 return;
             }
+            btn.classList.add('has-identity');
             el.classList.remove('empty');
             if (nip5) {
                 el.textContent = nip5;
@@ -1194,6 +1214,8 @@
                                 const nip05 = (profile.nip05 || '').trim();
                                 if (nip05) {
                                     currentUserNip05 = nip05;
+                                    pubkeyToNip05.set(currentPublicKey, nip05);
+                                    scheduleChatCacheWrite();
                                     updateAuthNip05Display();
                                 }
                             } catch (_) {}
@@ -1430,6 +1452,7 @@
                 const circleTag = (event.tags || []).find(t => t.length >= 3 && (t[0] === 'l' || t[0] === 'L') && t[2] === TRUSTROOTS_CIRCLE_LABEL);
                 const slug = circleTag?.[1];
 
+                if (NrBlocklist && NrBlocklist.isBlocked(event.pubkey)) return;
                 const targetSlug = slug || GLOBAL_CHANNEL_SLUG;
                 const conv = getOrCreateConversation('channel', targetSlug, []);
                 const existing = conv.events.some(e => e.id === event.id);
@@ -1438,8 +1461,8 @@
                     conv.events.push({ id: event.id, pubkey: event.pubkey, content: event.content || '', created_at: event.created_at, raw: event });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
                     scheduleChatCacheWrite();
-                    renderConvList();
-                    if (selectedConversationId === targetSlug) renderThread();
+                    scheduleRender('convList');
+                    if (selectedConversationId === targetSlug) scheduleRender('thread');
                 }
 
                 if (slug && slug !== GLOBAL_CHANNEL_SLUG) {
@@ -1450,7 +1473,7 @@
                         globalConv.events.push({ id: event.id, pubkey: event.pubkey, content: event.content || '', created_at: event.created_at, raw: event });
                         globalConv.events.sort((a, b) => a.created_at - b.created_at);
                         scheduleChatCacheWrite();
-                        if (selectedConversationId === GLOBAL_CHANNEL_SLUG) renderThread();
+                        if (selectedConversationId === GLOBAL_CHANNEL_SLUG) scheduleRender('thread');
                     }
                 }
             }
@@ -1465,8 +1488,7 @@
                     if (eventAuthorById.get(eid) === event.pubkey) deletedEventIds.add(eid);
                 });
                 scheduleChatCacheWrite();
-                renderConvList();
-                if (selectedConversationId) renderThread();
+                scheduleRender('both');
             } });
 
             pool.subscribe(relays, { kinds: [TRUSTROOTS_PROFILE_KIND] }, { onevent(event) {
@@ -1474,8 +1496,7 @@
                 if (username) {
                     pubkeyToUsername.set(event.pubkey, username);
                     scheduleChatCacheWrite();
-                    renderConvList();
-                    if (selectedConversationId) renderThread();
+                    scheduleRender('both');
                 }
             } });
 
@@ -1484,8 +1505,7 @@
                 if (username && !pubkeyToUsername.has(event.pubkey)) {
                     pubkeyToUsername.set(event.pubkey, username);
                     scheduleChatCacheWrite();
-                    renderConvList();
-                    if (selectedConversationId) renderThread();
+                    scheduleRender('both');
                 }
                 if (event.content) {
                     try {
@@ -1498,8 +1518,7 @@
                                 updateAuthNip05Display();
                             }
                             scheduleChatCacheWrite();
-                            renderConvList();
-                            if (selectedConversationId) renderThread();
+                            scheduleRender('both');
                         }
                     } catch (_) {}
                 }
@@ -1514,8 +1533,9 @@
             const relayList = Array.isArray(relays) && relays.length ? relays : DEFAULT_RELAYS;
             if (!currentPublicKey || !relayList.length) return;
 
-            // Restore from cache so UI shows immediately while relays stream
+            // Restore NIP-04 (DM) and channel conversations from cache so UI shows immediately while relays stream
             if (loadChatFromCache()) {
+                setHeaderIdentity();
                 renderConvList();
                 if (selectedConversationId) renderThread();
             }
@@ -1531,8 +1551,10 @@
             }
 
             const onDmEvent = async (event) => {
+                if (NrBlocklist && NrBlocklist.isBlocked(event.pubkey)) return;
                 const other = event.tags.find(t => t[0] === 'p')?.[1];
                 const peer = other && other !== currentPublicKey ? other : event.pubkey;
+                if (NrBlocklist && NrBlocklist.isBlocked(peer)) return;
                 const convId = peer;
                 const conv = getOrCreateConversation('dm', convId, [peer]);
                 if (conv.events.some(e => e.id === event.id)) return;
@@ -1543,8 +1565,8 @@
                 conv.events.push({ id: event.id, pubkey: event.pubkey, content: plain, created_at: event.created_at, raw: event });
                 conv.events.sort((a, b) => a.created_at - b.created_at);
                 scheduleChatCacheWrite();
-                renderConvList();
-                if (selectedConversationId === convId) renderThread();
+                scheduleRender('convList');
+                if (selectedConversationId === convId) scheduleRender('thread');
             };
             pool.subscribe(relayList, { kinds: [4], '#p': [currentPublicKey] }, { onevent: onDmEvent });
             pool.subscribe(relayList, { kinds: [4], authors: [currentPublicKey] }, { onevent: onDmEvent });
@@ -1557,11 +1579,13 @@
                     const innerJson = nip44.v2.decrypt(wrapEvent.content, key);
                     const seal = JSON.parse(innerJson);
                     if (seal.kind !== 13) return;
+                    if (NrBlocklist && NrBlocklist.isBlocked(wrapPubkey)) return;
                     const sealKey = nip44.v2.getConversationKey(currentSecretKeyBytes, seal.pubkey);
                     const rumorJson = nip44.v2.decrypt(seal.content, sealKey);
                     const rumor = JSON.parse(rumorJson);
                     if (rumor.kind !== 14) return;
                     if (rumor.pubkey !== seal.pubkey) return;
+                    if (NrBlocklist && NrBlocklist.isBlocked(rumor.pubkey)) return;
                     const pTags = (rumor.tags || []).filter(t => t[0] === 'p').map(t => t[1]);
                     const members = [rumor.pubkey, ...pTags].filter((x, i, a) => a.indexOf(x) === i).sort();
                     const groupId = members.join(',');
@@ -1572,8 +1596,8 @@
                         conv.events.push({ id: rumor.id, pubkey: rumor.pubkey, content: rumor.content || '', created_at: rumor.created_at, raw: rumor });
                         conv.events.sort((a, b) => a.created_at - b.created_at);
                         scheduleChatCacheWrite();
-                        renderConvList();
-                        if (selectedConversationId === groupId) renderThread();
+                        scheduleRender('convList');
+                        if (selectedConversationId === groupId) scheduleRender('thread');
                     }
                 } catch (_) {}
             } });
@@ -1788,6 +1812,21 @@
             return parts.slice(0, 8).join(', ');
         }
 
+        let _renderRafId = null;
+        let _renderDirty = { convList: false, thread: false };
+        function scheduleRender(what) {
+            if (what === 'convList' || what === 'both') _renderDirty.convList = true;
+            if (what === 'thread' || what === 'both') _renderDirty.thread = true;
+            if (_renderRafId) return;
+            _renderRafId = requestAnimationFrame(() => {
+                _renderRafId = null;
+                const d = _renderDirty;
+                _renderDirty = { convList: false, thread: false };
+                if (d.convList) renderConvList();
+                if (d.thread) renderThread();
+            });
+        }
+
         function renderConvList() {
             const list = document.getElementById('conv-list');
             if (!list) return;
@@ -1818,6 +1857,7 @@
                 if (type === 'channel' && events.length) tagsLine = getChannelTagsSummary(events);
                 const item = document.createElement('div');
                 item.className = 'conv-item' + (selectedConversationId === id ? ' selected' : '');
+                item.dataset.convId = id;
                 const safeLabel = (function escape(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); })(label);
                 const safeTags = (function escape(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); })(tagsLine);
                 if (tagsLine) {
@@ -1835,9 +1875,10 @@
             setHashRoute(id || '');
             document.getElementById('auth-modal').classList.remove('active');
             document.getElementById('relays-modal').classList.remove('active');
-            renderConvList();
-            renderThread();
             const conv = conversations.get(id);
+            // Immediate UI update so the switch feels instant
+            const list = document.getElementById('conv-list');
+            if (list) list.querySelectorAll('.conv-item').forEach(el => el.classList.toggle('selected', el.dataset.convId === id));
             document.getElementById('empty-state').style.display = conv ? 'none' : 'block';
             document.getElementById('compose').style.display = conv ? 'flex' : 'none';
             document.getElementById('thread-header').style.display = conv ? 'flex' : 'none';
@@ -1848,6 +1889,17 @@
                 document.getElementById('thread-enc-label').textContent = isEnc ? 'Encrypted' : 'Unencrypted';
                 document.getElementById('thread-title').textContent = conv.type === 'channel' ? (conv.id === GLOBAL_CHANNEL_SLUG ? 'Global' : '#' + conv.id) : (conv.type === 'group' ? `Group (${conv.members.length})` : (getDisplayNameShort(conv.id) || getDisplayName(conv.id) || conv.id));
             }
+            const container = document.getElementById('thread-messages');
+            if (container) container.innerHTML = '';
+            // Defer heavy DOM work so the browser can paint the selection and header first
+            requestAnimationFrame(() => {
+                renderConvList();
+                renderThread();
+                if (conv) {
+                    const input = document.getElementById('compose-input');
+                    if (input) input.focus();
+                }
+            });
         }
 
         function showThreadEmpty() {
@@ -1951,6 +2003,10 @@
             }
             if (peer === currentPublicKey) {
                 showStatus('Cannot message yourself.', 'error');
+                return;
+            }
+            if (NrBlocklist && NrBlocklist.isBlocked(peer)) {
+                showStatus('This user is blocked.', 'error');
                 return;
             }
             getOrCreateConversation('dm', peer, [peer]);
@@ -2147,12 +2203,23 @@
             }).catch(e => showStatus('Delete failed: ' + (e.message || e), 'error'));
         }
 
-        // Expose handlers for inline onclick (module scope is not global)
+        // Expose handlers and attach to header buttons (header is filled by common.js on DOMContentLoaded)
         window.connectNip07 = connectNip07;
         window.importKey = importKey;
         window.openAuthModal = openAuthModal;
         window.closeAuthModal = closeAuthModal;
         window.openRelaysModal = openRelaysModal;
+        function attachHeaderButtons() {
+            const keysBtn = document.getElementById('keys-icon-btn');
+            const settingsBtn = document.getElementById('settings-icon-btn');
+            if (keysBtn) keysBtn.addEventListener('click', openAuthModal);
+            if (settingsBtn) settingsBtn.addEventListener('click', openRelaysModal);
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', attachHeaderButtons);
+        } else {
+            attachHeaderButtons();
+        }
         window.addRelay = addRelay;
         window.removeRelay = removeRelay;
         window.openNewDmModal = openNewDmModal;

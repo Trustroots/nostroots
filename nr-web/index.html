@@ -1008,10 +1008,13 @@
             word-wrap: break-word;
             white-space: pre-wrap;
         }
-        
-        .event-content {
-            white-space: pre-wrap;
-            word-wrap: break-word;
+
+        .hashtag-link {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        .hashtag-link:hover {
+            text-decoration: underline;
         }
         
         .note-meta-row {
@@ -1262,20 +1265,13 @@
     </style>
 </head>
 <body>
-    <header class="app-header" aria-label="Brand">
-        <div class="vines">
-            <img src="https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/vines-top.png" alt="" width="1200" height="400">
-        </div>
-        <div class="app-header-inner">
-            <img src="https://notes.trustroots.org/logo.svg" alt="Trustroots" class="app-header-logo" width="140" height="32">
-            <h1>Nostroots Map</h1>
-            <a href="chat.html" class="app-header-nav-link" title="Chat" aria-label="Open Chat" onclick="sessionStorage.setItem('nostroots_switching_page','1')">💬</a>
-        </div>
-        <div class="app-header-actions">
-            <span class="header-identity empty" id="header-identity" title=""></span>
-            <button class="keys-icon" id="keys-icon-btn" title="Keys">🔑</button>
-            <button class="settings-icon" id="settings-icon-btn" title="Settings">⚙️</button>
-        </div>
+    <header class="app-header" id="app-header"
+        data-page-title="Nostroots Map"
+        data-nav-href="chat.html"
+        data-nav-title="Chat"
+        data-nav-aria-label="Open Chat"
+        data-nav-icon="💬"
+        data-settings-title="Settings">
     </header>
     
     <!-- Map View -->
@@ -1291,16 +1287,6 @@
     </div>
     
     <!-- Modals -->
-    <div class="modal" id="view-note-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Note Details</h2>
-                <button class="modal-close" onclick="closeViewNoteModal()">&times;</button>
-            </div>
-            <div id="note-details"></div>
-        </div>
-    </div>
-    
     <!-- Plus Code Notes Modal -->
     <div class="modal" id="pluscode-notes-modal">
         <div class="modal-content notes-modal-content">
@@ -1534,7 +1520,19 @@
         const DEFAULT_RELAY_URL = 'wss://relay.trustroots.org';
         const DEFAULT_RELAYS = ['wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
         const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2;
-        
+
+        // Decode blocklist npubs to hex (shared blocklist in common.js)
+        if (typeof NrBlocklist !== 'undefined' && NrBlocklist.BLOCKLIST_NPUBS && nip19) {
+            const blocklistHex = NrBlocklist.BLOCKLIST_NPUBS.map((n) => {
+                try {
+                    const d = nip19.decode(n);
+                    if (d.type === 'npub') return Array.from(d.data).map(b => b.toString(16).padStart(2, '0')).join('');
+                } catch (_) {}
+                return null;
+            }).filter(Boolean);
+            NrBlocklist.setBlocklistHex(blocklistHex);
+        }
+
         /** Normalize relay error message for display (e.g. "Error: error: internal error" -> "internal error"). */
         function formatRelayError(errorStr) {
             if (!errorStr || typeof errorStr !== 'string') return '';
@@ -2483,15 +2481,18 @@
         
         function setHeaderIdentity() {
             const el = document.getElementById('header-identity');
-            if (!el) return;
+            const btn = document.getElementById('keys-icon-btn');
+            if (!el || !btn) return;
             const hasKey = !!currentPublicKey;
             if (!hasKey) {
                 el.textContent = '';
                 el.title = '';
                 el.classList.add('empty');
                 el.classList.remove('nip5');
+                btn.classList.remove('has-identity');
                 return;
             }
+            btn.classList.add('has-identity');
             let npubStr = '';
             try { npubStr = nip19.npubEncode(currentPublicKey); } catch (_) {}
             const trUsername = document.getElementById('trustroots-username')?.value?.trim() || pubkeyToUsername.get(currentPublicKey) || null;
@@ -3155,7 +3156,11 @@
                 
                 const cacheData = JSON.parse(cacheDataStr);
                 if (cacheData && cacheData.events && Array.isArray(cacheData.events)) {
-                    return cacheData.events;
+                    const events = cacheData.events;
+                    if (NrBlocklist && NrBlocklist.isBlocked) {
+                        return events.filter((e) => !NrBlocklist.isBlocked(e.pubkey));
+                    }
+                    return events;
                 }
             } catch (error) {
                 console.warn('Failed to load events from cache:', error);
@@ -3231,6 +3236,7 @@
         }
         
         function processIncomingEvent(event) {
+            if (NrBlocklist && NrBlocklist.isBlocked(event.pubkey)) return;
             // Process kind 10390 (Trustroots profile) events to extract usernames
             if (event.kind === TRUSTROOTS_PROFILE_KIND) {
                 const username = getTrustrootsUsernameFromProfileEvent(event);
@@ -3659,6 +3665,10 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function linkifyHashtags(html) {
+            return html.replace(/#(\w+)/g, '<a href="chat.html#$1" class="hashtag-link">#$1</a>');
         }
         
         function formatDate(timestamp) {
@@ -4462,57 +4472,6 @@
             gridUpdateAnimationFrame = requestAnimationFrame(updateGrid);
         }
         
-        function showNoteDetails(event) {
-            const plusCode = getPlusCodeFromEvent(event);
-            const layer = getLayerForEvent(event);
-            const layerTitle = layer ? MAP_LAYERS[layer].title : 'Unknown';
-            
-            // Get username safely
-            const username = pubkeyToUsername.get(event.pubkey);
-            let authorDisplay = '';
-            if (username) {
-                try {
-                    const npub = nip19.npubEncode(event.pubkey);
-                    authorDisplay = `@${escapeHtml(username)} (${escapeHtml(npub)})`;
-                } catch(e) {
-                    authorDisplay = `@${escapeHtml(username)} (${escapeHtml(event.pubkey.substring(0, 16))}...)`;
-                }
-            } else {
-                try { 
-                    authorDisplay = escapeHtml(nip19.npubEncode(event.pubkey));
-                } catch(e) { 
-                    authorDisplay = escapeHtml(event.pubkey.substring(0, 16)) + '...'; 
-                }
-            }
-            
-            const details = document.getElementById('note-details');
-            details.innerHTML = `
-                <div class="event-header">
-                    <span><strong>${escapeHtml(formatDate(event.created_at))}</strong></span>
-                    <span>Kind: ${escapeHtml(String(event.kind))}</span>
-                </div>
-                <div class="event-header" style="margin-top: 0.5rem;">
-                    <span>Layer: ${escapeHtml(layerTitle)}</span>
-                    ${plusCode ? `<span style="font-family: monospace; color: var(--primary);">${escapeHtml(plusCode)}</span>` : ''}
-                </div>
-                <div class="event-header" style="margin-top: 0.5rem; font-size: 0.85rem;">
-                    <span style="font-family: monospace;">${authorDisplay}</span>
-                </div>
-                <div class="event-content" style="margin: 1rem 0; padding: 1rem; background: var(--muted); border-radius: calc(var(--radius) - 2px);">
-                    ${escapeHtml(event.content)}
-                </div>
-                <div class="event-tags" style="margin-top: 1rem;">
-                    <strong>Tags:</strong><br>
-                    <pre style="font-size: 0.8rem; margin-top: 0.5rem; background: var(--muted); padding: 0.5rem; border-radius: calc(var(--radius) - 2px); overflow-x: auto; border: 1px solid var(--border);">${escapeHtml(JSON.stringify(event.tags, null, 2))}</pre>
-                </div>
-            `;
-            document.getElementById('view-note-modal').classList.add('active');
-        }
-        
-        function closeViewNoteModal() {
-            document.getElementById('view-note-modal').classList.remove('active');
-        }
-        
         function closePlusCodeNotesModal(skipHashUpdate) {
             document.getElementById('pluscode-notes-modal').classList.remove('active');
             document.getElementById('note-content-in-modal').value = '';
@@ -4940,7 +4899,6 @@
         function createNoteItem(event) {
             const noteItem = document.createElement('div');
             noteItem.className = 'note-item';
-            noteItem.style.cursor = 'pointer';
             
             const metaRow = document.createElement('div');
             metaRow.className = 'note-meta-row';
@@ -5027,9 +4985,7 @@
                 deleteBtn.title = 'Delete this note';
                 deleteBtn.setAttribute('data-note-id', event.id);
                 
-                // Prevent event from bubbling to noteItem click handler
-                deleteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
+                deleteBtn.addEventListener('click', () => {
                     deleteEvent(event.id, deleteBtn);
                 });
                 
@@ -5050,14 +5006,8 @@
             
             const content = document.createElement('div');
             content.className = 'note-content';
-            content.textContent = event.content;
+            content.innerHTML = linkifyHashtags(escapeHtml(event.content));
             noteItem.appendChild(content);
-            
-            // Make clickable to show details
-            noteItem.addEventListener('click', () => {
-                showNoteDetails(event);
-                closePlusCodeNotesModal();
-            });
             
             return noteItem;
         }
@@ -5294,8 +5244,6 @@
             modals.forEach(modal => {
                 if (modal.id === 'keys-modal') {
                     closeKeysModal();
-                } else if (modal.id === 'view-note-modal') {
-                    closeViewNoteModal();
                 } else if (modal.id === 'pluscode-notes-modal') {
                     closePlusCodeNotesModal();
                 } else if (modal.id === 'settings-modal') {
@@ -6033,16 +5981,6 @@
                 });
             }
             
-            // Close view-note modal when clicking outside
-            const viewNoteModal = document.getElementById('view-note-modal');
-            if (viewNoteModal) {
-                viewNoteModal.addEventListener('click', (e) => {
-                    if (e.target.id === 'view-note-modal') {
-                        closeViewNoteModal();
-                    }
-                });
-            }
-            
             // Close pluscode-notes modal when clicking outside
             const pluscodeNotesModal = document.getElementById('pluscode-notes-modal');
             if (pluscodeNotesModal) {
@@ -6118,7 +6056,6 @@
         window.linkTrustrootsProfile = linkTrustrootsProfile;
         window.updateTrustrootsProfile = updateTrustrootsProfile;
         window.publishNoteFromModal = publishNoteFromModal;
-        window.closeViewNoteModal = closeViewNoteModal;
         window.closePlusCodeNotesModal = closePlusCodeNotesModal;
         window.closeSettingsModal = closeSettingsModal;
         window.openKeysModal = openKeysModal;

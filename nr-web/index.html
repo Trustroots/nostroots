@@ -1268,9 +1268,11 @@
         </div>
         <div class="app-header-inner">
             <img src="https://notes.trustroots.org/logo.svg" alt="Trustroots" class="app-header-logo" width="140" height="32">
-            <h1>Nostroots</h1>
+            <h1>Nostroots Map</h1>
+            <a href="chat.html" class="app-header-nav-link" title="Chat" aria-label="Open Chat" onclick="sessionStorage.setItem('nostroots_switching_page','1')">💬</a>
         </div>
         <div class="app-header-actions">
+            <span class="header-identity empty" id="header-identity" title=""></span>
             <button class="keys-icon" id="keys-icon-btn" title="Keys">🔑</button>
             <button class="settings-icon" id="settings-icon-btn" title="Settings">⚙️</button>
         </div>
@@ -2124,8 +2126,19 @@
             return [...new Set(prefixes)];
         }
         
-        // NIP-07: use shared common.js (NrNip07)
-        async function authenticateWithExtension() {
+        // NIP-07: use shared common.js (NrNip07), with fallback if old common.js is cached
+        function isUsingNip07FromStorage() {
+            return (typeof NrNip07 !== 'undefined' && typeof NrNip07.isUsingNip07FromStorage === 'function')
+                ? NrNip07.isUsingNip07FromStorage() : localStorage.getItem('using_nip07') === 'true';
+        }
+        function setUsingNip07InStorage(use) {
+            if (typeof NrNip07 !== 'undefined' && typeof NrNip07.setUsingNip07InStorage === 'function') {
+                NrNip07.setUsingNip07InStorage(use);
+            } else if (use) localStorage.setItem('using_nip07', 'true');
+            else localStorage.removeItem('using_nip07');
+        }
+        async function authenticateWithExtension(opts) {
+            const silent = opts && opts.silent === true;
             if (authenticatingWithExtension) return false;
             authenticatingWithExtension = true;
             try {
@@ -2158,10 +2171,12 @@
                 usingNip07 = true;
                 
                 // Save preference
-                localStorage.setItem('using_nip07', 'true');
+                setUsingNip07InStorage(true);
                 
                 updateKeyDisplay();
-                showStatus('Connected to NIP-07 extension! Your private key stays secure in the extension.', 'success');
+                if (!silent) {
+                    showStatus((NrNip07 && NrNip07.NIP07_CONNECT_SUCCESS_MESSAGE) || 'Connected to NIP-07 extension! Your private key stays secure in the extension.', 'success');
+                }
                 authenticatingWithExtension = false;
                 return true;
             } catch (error) {
@@ -2202,9 +2217,9 @@
                     if (nip07Section) nip07Section.style.display = 'none';
                     
                     // If extension was previously used but is now unavailable, clear preference
-                    const wasUsingNip07 = localStorage.getItem('using_nip07') === 'true';
+                    const wasUsingNip07 = isUsingNip07FromStorage();
                     if (wasUsingNip07) {
-                        localStorage.removeItem('using_nip07');
+                        setUsingNip07InStorage(false);
                         usingNip07 = false;
                         nostrProvider = null;
                     }
@@ -2217,7 +2232,7 @@
             // Disable NIP-07 when generating new key
             usingNip07 = false;
             nostrProvider = null;
-            localStorage.removeItem('using_nip07');
+            setUsingNip07InStorage(false);
             
             const privateKey = new Uint8Array(32);
             crypto.getRandomValues(privateKey);
@@ -2231,7 +2246,7 @@
             // Disable NIP-07 when importing nsec
             usingNip07 = false;
             nostrProvider = null;
-            localStorage.removeItem('using_nip07');
+            setUsingNip07InStorage(false);
             
             const nsecInput = document.getElementById('nsec-import').value.trim();
             if (!nsecInput) {
@@ -2276,7 +2291,7 @@
             if (usingNip07) {
                 usingNip07 = false;
                 nostrProvider = null;
-                localStorage.removeItem('using_nip07');
+                setUsingNip07InStorage(false);
             }
             
             localStorage.setItem('nostr_private_key', privateKeyHex);
@@ -2411,7 +2426,7 @@
                 if (generateKeyGroup) generateKeyGroup.style.display = 'none';
                 // Show NIP-07 status
                 if (nip07Status) {
-                    nip07Status.textContent = '✓ Using NIP-07 extension - private key secure';
+                    nip07Status.textContent = (NrNip07 && NrNip07.NIP07_STATUS_MESSAGE) || '✓ Using NIP-07 extension – private key stays in extension';
                     nip07Status.classList.add('show');
                 }
             } else {
@@ -2461,6 +2476,34 @@
                 if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = 'none';
                 isProfileLinked = false;
                 updateLinkProfileButton();
+            }
+            document.getElementById('keys-icon-btn').title = currentPublicKey ? 'Keys' : 'Connect';
+            setHeaderIdentity();
+        }
+        
+        function setHeaderIdentity() {
+            const el = document.getElementById('header-identity');
+            if (!el) return;
+            const hasKey = !!currentPublicKey;
+            if (!hasKey) {
+                el.textContent = '';
+                el.title = '';
+                el.classList.add('empty');
+                el.classList.remove('nip5');
+                return;
+            }
+            let npubStr = '';
+            try { npubStr = nip19.npubEncode(currentPublicKey); } catch (_) {}
+            const trUsername = document.getElementById('trustroots-username')?.value?.trim() || pubkeyToUsername.get(currentPublicKey) || null;
+            el.classList.remove('empty');
+            if (trUsername) {
+                el.textContent = trUsername + '@trustroots.org';
+                el.title = el.textContent + (npubStr ? '\n' + npubStr : '');
+                el.classList.remove('nip5');
+            } else {
+                el.textContent = npubStr ? (npubStr.slice(0, 12) + '…' + npubStr.slice(-8)) : '';
+                el.title = npubStr || '';
+                el.classList.remove('nip5');
             }
         }
         
@@ -2737,6 +2780,11 @@
                 cachedFilteredEvents = null; // Invalidate filtered events cache
                 filteredEventsCacheKey = null;
                 rebuildSpatialIndex(); // Build spatial index for cached events
+                // If plus-code modal was opened from hash before events loaded, refresh it now
+                const notesModal = document.getElementById('pluscode-notes-modal');
+                if (notesModal && notesModal.classList.contains('active') && selectedPlusCode) {
+                    showNotesForPlusCode(selectedPlusCode);
+                }
                 // Update UI with cached events
                 if (map && map.loaded()) {
                     updateMapMarkers();
@@ -2798,9 +2846,9 @@
                     });
                     
                     if (connectedCount > 0) {
-                        showStatus(`Connected to ${connectedCount} relay(s) (NDK)`, 'success');
+                        if (!window._nostrootsSuppressConnectionToasts) showStatus(`Connected to ${connectedCount} relay(s) (NDK)`, 'success');
                     } else {
-                        showStatus('Connecting to relays (NDK)...', 'info');
+                        if (!window._nostrootsSuppressConnectionToasts) showStatus('Connecting to relays (NDK)...', 'info');
                     }
                     
                     // Start subscribing to events
@@ -2808,13 +2856,13 @@
                     subscribeToPlusCodePrefixes();
                 } else {
                     // Fallback to direct Relay connections
-                    showStatus('Using direct relay connections', 'info');
+                    if (!window._nostrootsSuppressConnectionToasts) showStatus('Using direct relay connections', 'info');
                     await initializeRelays(relayUrls);
                 }
             } catch (error) {
                 console.error('[NDK] Error initializing NDK:', error.message || error);
                 // Fallback to direct relays
-                showStatus('Falling back to direct relay connections', 'info');
+                if (!window._nostrootsSuppressConnectionToasts) showStatus('Falling back to direct relay connections', 'info');
                 await initializeRelays(relayUrls);
             }
         }
@@ -2907,15 +2955,17 @@
             const failedCount = totalCount - connectedCount;
             
             if (connectedCount > 0) {
-                if (failedCount > 0) {
-                    showStatus(`Connected to ${connectedCount} of ${totalCount} relay(s)`, 'success');
-                } else {
-                    showStatus(`Connected to ${connectedCount} relay(s)`, 'success');
+                if (!window._nostrootsSuppressConnectionToasts) {
+                    if (failedCount > 0) {
+                        showStatus(`Connected to ${connectedCount} of ${totalCount} relay(s)`, 'success');
+                    } else {
+                        showStatus(`Connected to ${connectedCount} relay(s)`, 'success');
+                    }
                 }
                 // Subscribe to plus code prefixes
                 subscribeToPlusCodePrefixes();
             } else {
-                showStatus(`Failed to connect to any relays`, 'error');
+                if (!window._nostrootsSuppressConnectionToasts) showStatus(`Failed to connect to any relays`, 'error');
             }
         }
         
@@ -4625,7 +4675,7 @@
                         if (!provider) {
                             showStatus('Extension no longer available. Please reconnect or use local keys.', 'error');
                             usingNip07 = false;
-                            localStorage.removeItem('using_nip07');
+                            setUsingNip07InStorage(false);
                             updateKeyDisplay();
                             return;
                         }
@@ -4634,7 +4684,7 @@
                             showStatus(currentPubkey ? 'Extension public key changed. Please reconnect.' : 'Extension no longer available. Please reconnect.', 'error');
                             usingNip07 = false;
                             nostrProvider = null;
-                            localStorage.removeItem('using_nip07');
+                            setUsingNip07InStorage(false);
                             updateKeyDisplay();
                             return;
                         }
@@ -5070,7 +5120,7 @@
                         if (!provider) {
                             showStatus('Extension no longer available. Please reconnect or use local keys.', 'error');
                             usingNip07 = false;
-                            localStorage.removeItem('using_nip07');
+                            setUsingNip07InStorage(false);
                             updateKeyDisplay();
                             if (deleteButton) {
                                 deleteButton.disabled = false;
@@ -5085,7 +5135,7 @@
                             showStatus(currentPubkey ? 'Extension public key changed. Please reconnect.' : 'Extension no longer available. Please reconnect.', 'error');
                             usingNip07 = false;
                             nostrProvider = null;
-                            localStorage.removeItem('using_nip07');
+                            setUsingNip07InStorage(false);
                             updateKeyDisplay();
                             if (deleteButton) {
                                 deleteButton.disabled = false;
@@ -5445,6 +5495,7 @@
                 }
                 
                 updateLinkProfileButton();
+                setHeaderIdentity();
                 
                 // Update "Update Trustroots Profile" button visibility - hide if profile is linked
                 const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
@@ -5577,7 +5628,7 @@
         // Onboarding
         function checkOnboarding() {
             const hasKey = localStorage.getItem('nostr_private_key');
-            const wasUsingNip07 = localStorage.getItem('using_nip07') === 'true';
+            const wasUsingNip07 = isUsingNip07FromStorage();
             
             // If user was using NIP-07, try to reconnect even if extension isn't immediately detected
             // Extensions may need time to inject content scripts in new tabs
@@ -5588,12 +5639,12 @@
                     if (provider) {
                         // Extension detected, try to authenticate
                         setTimeout(() => {
-                            authenticateWithExtension().then(success => {
+                            authenticateWithExtension({ silent: true }).then(success => {
                                 if (!success) {
                                     // If extension connection fails, clear NIP-07 state and show onboarding
                                     usingNip07 = false;
                                     nostrProvider = null;
-                                    localStorage.removeItem('using_nip07');
+                                    setUsingNip07InStorage(false);
                                     if (!hasKey) {
                                         openKeysModal();
                                         updateKeyDisplay();
@@ -5605,7 +5656,7 @@
                                 // Extension connection failed
                                 usingNip07 = false;
                                 nostrProvider = null;
-                                localStorage.removeItem('using_nip07');
+                                setUsingNip07InStorage(false);
                                 if (!hasKey) {
                                     openKeysModal();
                                     updateKeyDisplay();
@@ -5621,7 +5672,7 @@
                         // Extension not found after retries, clear NIP-07 state
                         usingNip07 = false;
                         nostrProvider = null;
-                        localStorage.removeItem('using_nip07');
+                        setUsingNip07InStorage(false);
                         if (!hasKey) {
                             openKeysModal();
                             updateKeyDisplay();
@@ -5912,6 +5963,11 @@
         
         // Initialize on load
         window.addEventListener('load', async () => {
+            // If user switched from chat/map via the header link, suppress connection toasts (NIP-07 + relays)
+            if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('nostroots_switching_page')) {
+                sessionStorage.removeItem('nostroots_switching_page');
+                window._nostrootsSuppressConnectionToasts = true;
+            }
             // Wait for maplibregl to be available
             if (typeof maplibregl === 'undefined') {
                 console.error('MapLibre GL not loaded');

@@ -61,9 +61,29 @@
         });
     }
 
+    var NIP07_STORAGE_KEY = 'using_nip07';
+    var NIP07_STATUS_MESSAGE = '✓ Using NIP-07 extension – private key stays in extension';
+    var NIP07_CONNECT_SUCCESS_MESSAGE = 'Connected to NIP-07 extension! Your private key stays secure in the extension.';
+
+    function isUsingNip07FromStorage() {
+        if (typeof global.localStorage === 'undefined') return false;
+        return global.localStorage.getItem(NIP07_STORAGE_KEY) === 'true';
+    }
+
+    function setUsingNip07InStorage(use) {
+        if (typeof global.localStorage === 'undefined') return;
+        if (use) global.localStorage.setItem(NIP07_STORAGE_KEY, 'true');
+        else global.localStorage.removeItem(NIP07_STORAGE_KEY);
+    }
+
     global.NrNip07 = {
         detectNostrExtension: detectNostrExtension,
         isExtensionReady: isExtensionReady,
-        getPublicKeyFromExtension: getPublicKeyFromExtension
+        getPublicKeyFromExtension: getPublicKeyFromExtension,
+        NIP07_STORAGE_KEY: NIP07_STORAGE_KEY,
+        NIP07_STATUS_MESSAGE: NIP07_STATUS_MESSAGE,
+        NIP07_CONNECT_SUCCESS_MESSAGE: NIP07_CONNECT_SUCCESS_MESSAGE,
+        isUsingNip07FromStorage: isUsingNip07FromStorage,
+        setUsingNip07InStorage: setUsingNip07InStorage
     };
-})(typeof globalThis !== 'undefined' ? globalThis : this);
+})(typeof window !== 'undefined' ? window : typeof globalThis !== 'undefined' ? globalThis : this);

@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="common.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -80,114 +81,6 @@
         h1, h2, .modal-header h2 {
             font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
             font-weight: 600;
-        }
-        /* Header from notes.trustroots.org */
-        .app-header {
-            flex-shrink: 0;
-            background: var(--header-green);
-            min-height: 56px;
-            padding: 0 1rem;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: space-between;
-            gap: 0.75rem;
-            position: relative;
-            overflow: hidden;
-            border: none;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            z-index: 100;
-        }
-        .app-header .vines {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-        }
-        .app-header .vines img {
-            width: 100%;
-            min-height: 100%;
-            object-fit: cover;
-            opacity: 0.15;
-        }
-        .app-header-inner {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 0.75rem 1rem;
-            position: relative;
-            z-index: 1;
-            min-width: 0;
-        }
-        .app-header-logo {
-            height: 32px;
-            width: auto;
-            position: relative;
-            flex-shrink: 0;
-        }
-        .app-header h1 {
-            color: #fff;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 1.65rem;
-            font-weight: 700;
-            font-style: italic;
-            letter-spacing: 0.02em;
-            text-transform: none;
-            margin: 0;
-            padding: 0;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-        }
-        .app-header-actions {
-            display: flex;
-            align-items: center;
-            gap: 0.625rem;
-            position: relative;
-            z-index: 1;
-            flex-shrink: 0;
-        }
-        .header-identity {
-            font-size: 0.8125rem;
-            color: rgba(255, 255, 255, 0.95);
-            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            padding: 0.375rem 0.75rem;
-            margin-right: 0.25rem;
-            background: rgba(255, 255, 255, 0.18);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            border-radius: 999px;
-            font-weight: 500;
-        }
-        .header-identity.nip5 { font-weight: 600; }
-        .header-identity.empty { display: none; }
-        .app-header-actions .settings-icon,
-        .app-header-actions .keys-icon {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.15rem;
-            transition: transform 0.2s ease, background 0.2s ease;
-        }
-        .app-header-actions .settings-icon:hover,
-        .app-header-actions .keys-icon:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.05);
-        }
-        .app-header-actions .settings-icon:active,
-        .app-header-actions .keys-icon:active {
-            transform: scale(0.95);
         }
         .btn {
             padding: 0.5rem 1rem;
@@ -389,6 +282,28 @@
             gap: 0.35rem;
         }
         .message .meta .time { opacity: 0.75; }
+        .message-row { display: flex; align-items: center; gap: 0.25rem; width: 100%; }
+        .message-row.self { align-self: flex-end; justify-content: flex-end; }
+        .message-row.other { justify-content: flex-start; }
+        .message-row .message-wrap { flex: 0 1 auto; min-width: 0; max-width: 85%; }
+        .message-delete {
+            flex-shrink: 0;
+            width: 1.25rem;
+            height: 1.25rem;
+            padding: 0.15rem;
+            border: none;
+            border-radius: calc(var(--radius) - 2px);
+            background: transparent;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            opacity: 0.6;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .message-delete:hover { opacity: 1; background: var(--muted); color: var(--destructive, #dc2626); }
+        .message-wrap.self .message-delete { color: var(--primary-foreground); opacity: 0.7; }
+        .message-wrap.self .message-delete:hover { background: rgba(255,255,255,0.2); color: var(--primary-foreground); }
         .message-pluscode {
             margin-top: 0.35rem;
             font-size: 0.75rem;
@@ -500,6 +415,9 @@
             border-radius: calc(var(--radius) - 2px);
         }
         .modal-close:hover { background: var(--accent); color: var(--foreground); }
+        .modal-body { margin-bottom: 1.25rem; color: var(--muted-foreground); font-size: 0.9rem; line-height: 1.5; }
+        .modal-body strong { color: var(--foreground); }
+        .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
         .settings-section {
             background: var(--card);
             padding: 1.25rem;
@@ -542,11 +460,6 @@
         .participant-chip .remove-btn:hover { color: var(--destructive); }
 
         @media (max-width: 768px) {
-            .app-header { padding: 0 0.75rem; }
-            .app-header-inner { justify-content: flex-start; }
-            .app-header h1 { font-size: 1.35rem; }
-            .app-header-logo { height: 28px; }
-            .header-identity { max-width: 120px; font-size: 0.75rem; padding: 0.3rem 0.5rem; }
             .mycelium-bottom { height: 100px; }
             .mycelium-bottom img { min-width: 100%; }
             .main { flex-direction: column; }
@@ -563,6 +476,7 @@
         <div class="app-header-inner">
             <img src="https://notes.trustroots.org/logo.svg" alt="Trustroots" class="app-header-logo" width="140" height="32">
             <h1>Nostroots Chat</h1>
+            <a href="index.html" class="app-header-nav-link" title="Map" aria-label="Open Map" onclick="sessionStorage.setItem('nostroots_switching_page','1')">🌐</a>
         </div>
         <div class="app-header-actions">
             <span class="header-identity empty" id="header-identity" title=""></span>
@@ -684,6 +598,19 @@
             <button type="button" class="btn btn-secondary" onclick="closeNewGroupModal()">Cancel</button>
         </div>
     </div>
+    <div id="delete-confirm-modal" class="modal" onclick="if(event.target===this)closeDeleteConfirmModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Delete message?</h2>
+                <button type="button" class="modal-close" onclick="closeDeleteConfirmModal()" aria-label="Close">&times;</button>
+            </div>
+            <p class="modal-body">This will request deletion of the message from relays. <strong>Deletion cannot be guaranteed</strong>—relays and other clients may keep or have already stored the message.</p>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeDeleteConfirmModal()">Cancel</button>
+                <button type="button" class="btn btn-danger" id="delete-confirm-btn" onclick="confirmDeleteMessage()">Delete</button>
+            </div>
+        </div>
+    </div>
     <!-- Bottom mycelium decoration -->
     <div class="mycelium-bottom" aria-hidden="true">
         <img src="https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/mycelium-roots.svg" alt="">
@@ -705,6 +632,10 @@
         // nostr-tools may access window.printer.maybe for debug; avoid ReferenceError
         if (typeof window !== 'undefined' && !window.printer) {
             window.printer = { maybe: function () {} };
+        }
+        // Consume "switching page" flag so it doesn't persist (set by Map/Chat nav link on the other page)
+        if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('nostroots_switching_page')) {
+            sessionStorage.removeItem('nostroots_switching_page');
         }
 
         const MAP_NOTE_KIND = 30397;
@@ -763,6 +694,93 @@
         let relayUrlsForList = [];
         /** New group modal: list of { hex, label } for added members */
         let groupModalMembers = [];
+        /** NIP-09: event IDs requested for deletion (kind 5). We hide events when deletion pubkey matches author. */
+        const deletedEventIds = new Set();
+        /** event id -> pubkey (author) for NIP-09 validation */
+        const eventAuthorById = new Map();
+        /** event id pending delete confirmation */
+        let pendingDeleteEventId = null;
+
+        // Chat cache (conversations, profiles, deletions) in localStorage
+        const CHAT_CACHE_KEY_PREFIX = 'nostroots_chat_cache_';
+        const CHAT_CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
+        const CHAT_CACHE_MAX_EVENTS_PER_CONV = 500;
+        let chatCacheWriteTimeout = null;
+
+        function saveChatToCache() {
+            if (!currentPublicKey || typeof localStorage === 'undefined') return;
+            try {
+                const convArr = [];
+                for (const [id, c] of conversations.entries()) {
+                    const events = (c.events || []).slice(-CHAT_CACHE_MAX_EVENTS_PER_CONV).map(ev => ({
+                        id: ev.id,
+                        pubkey: ev.pubkey,
+                        content: ev.content ?? '',
+                        created_at: ev.created_at,
+                        raw: ev.raw ? { tags: ev.raw.tags || [] } : {}
+                    }));
+                    convArr.push({ type: c.type, id, members: c.members || [], events });
+                }
+                const cacheData = {
+                    conversations: convArr,
+                    pubkeyToUsername: Array.from(pubkeyToUsername.entries()),
+                    pubkeyToNip05: Array.from(pubkeyToNip05.entries()),
+                    deletedEventIds: Array.from(deletedEventIds),
+                    eventAuthorById: Array.from(eventAuthorById.entries()),
+                    timestamp: Date.now()
+                };
+                const key = CHAT_CACHE_KEY_PREFIX + currentPublicKey;
+                localStorage.setItem(key, JSON.stringify(cacheData));
+            } catch (e) {
+                if (e.name === 'QuotaExceededError') {
+                    try {
+                        const key = CHAT_CACHE_KEY_PREFIX + currentPublicKey;
+                        localStorage.removeItem(key);
+                    } catch (_) {}
+                }
+            }
+        }
+
+        function loadChatFromCache() {
+            if (!currentPublicKey || typeof localStorage === 'undefined') return false;
+            try {
+                const key = CHAT_CACHE_KEY_PREFIX + currentPublicKey;
+                const raw = localStorage.getItem(key);
+                if (!raw) return false;
+                const data = JSON.parse(raw);
+                if (!data || !data.timestamp || (Date.now() - data.timestamp > CHAT_CACHE_MAX_AGE)) return false;
+                conversations.clear();
+                for (const c of data.conversations || []) {
+                    const events = (c.events || []).map(ev => ({
+                        id: ev.id,
+                        pubkey: ev.pubkey,
+                        content: ev.content ?? '',
+                        created_at: ev.created_at,
+                        raw: ev.raw && ev.raw.tags ? { tags: ev.raw.tags } : {}
+                    }));
+                    conversations.set(c.id, { type: c.type, id: c.id, members: c.members || [], events });
+                }
+                pubkeyToUsername.clear();
+                for (const [k, v] of (data.pubkeyToUsername || [])) pubkeyToUsername.set(k, v);
+                pubkeyToNip05.clear();
+                for (const [k, v] of (data.pubkeyToNip05 || [])) pubkeyToNip05.set(k, v);
+                deletedEventIds.clear();
+                for (const id of (data.deletedEventIds || [])) deletedEventIds.add(id);
+                eventAuthorById.clear();
+                for (const [k, v] of (data.eventAuthorById || [])) eventAuthorById.set(k, v);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function scheduleChatCacheWrite() {
+            if (chatCacheWriteTimeout) clearTimeout(chatCacheWriteTimeout);
+            chatCacheWriteTimeout = setTimeout(() => {
+                saveChatToCache();
+                chatCacheWriteTimeout = null;
+            }, 2000);
+        }
 
         function getHashRoute() {
             const h = location.hash.slice(1);
@@ -798,6 +816,10 @@
             }
             if (route && !conversations.has(route)) {
                 if (isPlusCodeChannelId(route)) {
+                    location.href = 'index.html#' + encodeURIComponent(route).replace(/%2B/g, '+');
+                    return;
+                }
+                if (/^[a-zA-Z0-9_-]+$/.test(route) && route !== 'keys' && route !== 'settings' && route !== GLOBAL_CHANNEL_SLUG) {
                     getOrCreateConversation('channel', route, []);
                     selectConversation(route);
                 } else {
@@ -930,10 +952,20 @@
             return null;
         }
 
-        // NIP-07: use shared common.js (NrNip07)
+        // NIP-07: use shared common.js (NrNip07), with fallback if old common.js is cached
+        function isUsingNip07FromStorage() {
+            return (typeof NrNip07 !== 'undefined' && typeof NrNip07.isUsingNip07FromStorage === 'function')
+                ? NrNip07.isUsingNip07FromStorage() : localStorage.getItem('using_nip07') === 'true';
+        }
+        function setUsingNip07InStorage(use) {
+            if (typeof NrNip07 !== 'undefined' && typeof NrNip07.setUsingNip07InStorage === 'function') {
+                NrNip07.setUsingNip07InStorage(use);
+            } else if (use) localStorage.setItem('using_nip07', 'true');
+            else localStorage.removeItem('using_nip07');
+        }
         function loadKeysFromStorage(retryAttempt) {
             const hex = localStorage.getItem('nostr_private_key');
-            const nip07 = localStorage.getItem('using_nip07') === 'true';
+            const nip07 = isUsingNip07FromStorage();
             const provider = window.NrNip07 ? NrNip07.detectNostrExtension() : null;
             if (nip07 && provider && NrNip07.isExtensionReady(provider)) {
                 usingNip07 = true;
@@ -950,7 +982,7 @@
                     }
                     usingNip07 = false;
                     nostrProvider = null;
-                    localStorage.removeItem('using_nip07');
+                    setUsingNip07InStorage(false);
                     updateUI();
                 })();
                 return;
@@ -963,7 +995,7 @@
             if (nip07 && (retryAttempt ?? 0) >= 5) {
                 usingNip07 = false;
                 nostrProvider = null;
-                localStorage.removeItem('using_nip07');
+                setUsingNip07InStorage(false);
                 updateUI();
             }
             if (hex && hex.length === 64 && /^[0-9a-f]+$/i.test(hex)) {
@@ -980,7 +1012,7 @@
 
         function savePrivateKey(hex) {
             localStorage.setItem('nostr_private_key', hex);
-            localStorage.removeItem('using_nip07');
+            setUsingNip07InStorage(false);
             currentSecretKeyHex = hex;
             currentSecretKeyBytes = new Uint8Array(32);
             for (let i = 0; i < 32; i++) currentSecretKeyBytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
@@ -1015,12 +1047,12 @@
                 currentSecretKeyBytes = null;
                 nostrProvider = provider;
                 usingNip07 = true;
-                localStorage.setItem('using_nip07', 'true');
+                setUsingNip07InStorage(true);
                 localStorage.removeItem('nostr_private_key');
                 closeAuthModal();
                 updateUI();
                 startSubscriptions();
-                showStatus('Connected to NIP-07 extension! Your private key stays secure in the extension.', 'success');
+                showStatus((NrNip07 && NrNip07.NIP07_CONNECT_SUCCESS_MESSAGE) || 'Connected to NIP-07 extension! Your private key stays secure in the extension.', 'success');
             } catch (e) {
                 showStatus('Extension error: ' + (e?.message || String(e)), 'error');
             } finally {
@@ -1054,7 +1086,7 @@
             currentUserNip05 = '';
             setTrustrootsUI('');
             localStorage.removeItem('nostr_private_key');
-            localStorage.removeItem('using_nip07');
+            setUsingNip07InStorage(false);
             conversations.clear();
             selectedConversationId = null;
             if (pool) {
@@ -1113,7 +1145,7 @@
                 if (npubDisplay) npubDisplay.value = npubStr;
                 if (nip07Status) {
                     if (usingNip07) {
-                        nip07Status.textContent = '✓ Using NIP-07 extension – private key stays in extension';
+                        nip07Status.textContent = (NrNip07 && NrNip07.NIP07_STATUS_MESSAGE) || '✓ Using NIP-07 extension – private key stays in extension';
                         nip07Status.classList.add('show');
                     } else {
                         nip07Status.classList.remove('show');
@@ -1140,7 +1172,7 @@
             setNpubDisplay(getDisplayNpub());
             if (nip07El) {
                 if (usingNip07) {
-                    nip07El.textContent = '✓ Using NIP-07 extension - private key secure';
+                    nip07El.textContent = (NrNip07 && NrNip07.NIP07_STATUS_MESSAGE) || '✓ Using NIP-07 extension – private key stays in extension';
                     nip07El.classList.add('show');
                     // Use currentPublicKey for display; do not call extension getPublicKey() here (avoids repeated calls)
                     if (!npubEl?.value && currentPublicKey) setNpubDisplay(hexToNpub(currentPublicKey));
@@ -1397,14 +1429,15 @@
             function onChannelEvent(event) {
                 const circleTag = (event.tags || []).find(t => t.length >= 3 && (t[0] === 'l' || t[0] === 'L') && t[2] === TRUSTROOTS_CIRCLE_LABEL);
                 const slug = circleTag?.[1];
-                const pluscode = getPluscodeFromEvent(event);
 
                 const targetSlug = slug || GLOBAL_CHANNEL_SLUG;
                 const conv = getOrCreateConversation('channel', targetSlug, []);
                 const existing = conv.events.some(e => e.id === event.id);
                 if (!existing) {
+                    eventAuthorById.set(event.id, event.pubkey);
                     conv.events.push({ id: event.id, pubkey: event.pubkey, content: event.content || '', created_at: event.created_at, raw: event });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
+                    scheduleChatCacheWrite();
                     renderConvList();
                     if (selectedConversationId === targetSlug) renderThread();
                 }
@@ -1413,20 +1446,11 @@
                     const globalConv = getOrCreateConversation('channel', GLOBAL_CHANNEL_SLUG, []);
                     const existsInGlobal = globalConv.events.some(e => e.id === event.id);
                     if (!existsInGlobal) {
+                        eventAuthorById.set(event.id, event.pubkey);
                         globalConv.events.push({ id: event.id, pubkey: event.pubkey, content: event.content || '', created_at: event.created_at, raw: event });
                         globalConv.events.sort((a, b) => a.created_at - b.created_at);
+                        scheduleChatCacheWrite();
                         if (selectedConversationId === GLOBAL_CHANNEL_SLUG) renderThread();
-                    }
-                }
-
-                if (pluscode && isPlusCodeChannelId(pluscode)) {
-                    const pluscodeConv = getOrCreateConversation('channel', pluscode, []);
-                    const existsInPluscode = pluscodeConv.events.some(e => e.id === event.id);
-                    if (!existsInPluscode) {
-                        pluscodeConv.events.push({ id: event.id, pubkey: event.pubkey, content: event.content || '', created_at: event.created_at, raw: event });
-                        pluscodeConv.events.sort((a, b) => a.created_at - b.created_at);
-                        renderConvList();
-                        if (selectedConversationId === pluscode) renderThread();
                     }
                 }
             }
@@ -1435,10 +1459,21 @@
             pool.subscribe(relays, mapNoteFilter({ '#L': [TRUSTROOTS_CIRCLE_LABEL] }), { onevent: onChannelEvent });
             pool.subscribe(relays, mapNoteFilter(), { onevent: onChannelEvent });
 
+            pool.subscribe(relays, { kinds: [5], limit: 500 }, { onevent(event) {
+                (event.tags || []).filter(t => t[0] === 'e' && t[1]).forEach(t => {
+                    const eid = t[1];
+                    if (eventAuthorById.get(eid) === event.pubkey) deletedEventIds.add(eid);
+                });
+                scheduleChatCacheWrite();
+                renderConvList();
+                if (selectedConversationId) renderThread();
+            } });
+
             pool.subscribe(relays, { kinds: [TRUSTROOTS_PROFILE_KIND] }, { onevent(event) {
                 const username = getTrustrootsUsernameFromProfileEvent(event);
                 if (username) {
                     pubkeyToUsername.set(event.pubkey, username);
+                    scheduleChatCacheWrite();
                     renderConvList();
                     if (selectedConversationId) renderThread();
                 }
@@ -1448,6 +1483,7 @@
                 const username = getTrustrootsUsernameFromKind0(event);
                 if (username && !pubkeyToUsername.has(event.pubkey)) {
                     pubkeyToUsername.set(event.pubkey, username);
+                    scheduleChatCacheWrite();
                     renderConvList();
                     if (selectedConversationId) renderThread();
                 }
@@ -1461,6 +1497,7 @@
                                 currentUserNip05 = nip05;
                                 updateAuthNip05Display();
                             }
+                            scheduleChatCacheWrite();
                             renderConvList();
                             if (selectedConversationId) renderThread();
                         }
@@ -1476,6 +1513,12 @@
             relays = relayUrlsForList.length ? relayUrlsForList : DEFAULT_RELAYS;
             const relayList = Array.isArray(relays) && relays.length ? relays : DEFAULT_RELAYS;
             if (!currentPublicKey || !relayList.length) return;
+
+            // Restore from cache so UI shows immediately while relays stream
+            if (loadChatFromCache()) {
+                renderConvList();
+                if (selectedConversationId) renderThread();
+            }
 
             if (!publicSubsStarted) {
                 if (pool) try { pool.close(); } catch (_) {}
@@ -1496,8 +1539,10 @@
                 const authorPubkey = event.pubkey === currentPublicKey ? peer : event.pubkey;
                 let plain = await decryptKind4(event.content, authorPubkey);
                 if (plain == null) plain = '[could not decrypt]';
+                eventAuthorById.set(event.id, event.pubkey);
                 conv.events.push({ id: event.id, pubkey: event.pubkey, content: plain, created_at: event.created_at, raw: event });
                 conv.events.sort((a, b) => a.created_at - b.created_at);
+                scheduleChatCacheWrite();
                 renderConvList();
                 if (selectedConversationId === convId) renderThread();
             };
@@ -1523,8 +1568,10 @@
                     const conv = getOrCreateConversation('group', groupId, members);
                     const existing = conv.events.some(e => e.id === rumor.id);
                     if (!existing) {
+                        eventAuthorById.set(rumor.id, rumor.pubkey);
                         conv.events.push({ id: rumor.id, pubkey: rumor.pubkey, content: rumor.content || '', created_at: rumor.created_at, raw: rumor });
                         conv.events.sort((a, b) => a.created_at - b.created_at);
+                        scheduleChatCacheWrite();
                         renderConvList();
                         if (selectedConversationId === groupId) renderThread();
                     }
@@ -1647,6 +1694,7 @@
                 usernameFromNostr = true;
                 setTrustrootsUI(username);
                 pubkeyToUsername.set(currentPublicKey, username);
+                scheduleChatCacheWrite();
                 showStatus('Profile linked.', 'success');
             } catch (e) {
                 showStatus(e?.message || 'Failed to link profile.', 'error');
@@ -1762,7 +1810,7 @@
                     encIcon = ENC_LOCK;
                     encTitle = 'Encrypted';
                 } else if (type === 'channel') {
-                    label = id === GLOBAL_CHANNEL_SLUG ? 'Global' : (isPlusCodeChannelId(id) ? '\u2316 ' + id : '#' + id);
+                    label = id === GLOBAL_CHANNEL_SLUG ? 'Global' : '#' + id;
                     encIcon = ENC_GLOBE;
                     encTitle = 'Unencrypted (public)';
                 }
@@ -1798,7 +1846,7 @@
                 document.getElementById('thread-enc-icon').textContent = isEnc ? ENC_LOCK : ENC_GLOBE;
                 document.getElementById('thread-enc-icon').title = isEnc ? 'Encrypted' : 'Unencrypted (public)';
                 document.getElementById('thread-enc-label').textContent = isEnc ? 'Encrypted' : 'Unencrypted';
-                document.getElementById('thread-title').textContent = conv.type === 'channel' ? (conv.id === GLOBAL_CHANNEL_SLUG ? 'Global' : (isPlusCodeChannelId(conv.id) ? '\u2316 ' + conv.id : '#' + conv.id)) : (conv.type === 'group' ? `Group (${conv.members.length})` : (getDisplayNameShort(conv.id) || getDisplayName(conv.id) || conv.id));
+                document.getElementById('thread-title').textContent = conv.type === 'channel' ? (conv.id === GLOBAL_CHANNEL_SLUG ? 'Global' : '#' + conv.id) : (conv.type === 'group' ? `Group (${conv.members.length})` : (getDisplayNameShort(conv.id) || getDisplayName(conv.id) || conv.id));
             }
         }
 
@@ -1822,8 +1870,11 @@
             if (!conv || !container) return;
             container.innerHTML = '';
             const isChannel = conv.type === 'channel';
-            conv.events.forEach(ev => {
+            const eventsToShow = conv.events.filter(ev => !deletedEventIds.has(ev.id));
+            eventsToShow.forEach(ev => {
                 const isSelf = ev.pubkey === currentPublicKey;
+                const row = document.createElement('div');
+                row.className = 'message-row' + (isSelf ? ' self' : '');
                 const wrap = document.createElement('div');
                 wrap.className = 'message-wrap ' + (isSelf ? 'self' : 'other');
                 if (isChannel && !isSelf) {
@@ -1842,8 +1893,8 @@
                     const pluscodeEl = document.createElement('div');
                     pluscodeEl.className = 'message-pluscode';
                     const link = document.createElement('a');
-                    link.href = '#' + encodeURIComponent(pluscode).replace(/%2B/g, '+');
-                    link.title = 'Go to Plus Code chat';
+                    link.href = 'index.html#' + encodeURIComponent(pluscode).replace(/%2B/g, '+');
+                    link.title = 'View on map';
                     link.textContent = '\u2316 ' + pluscode;
                     pluscodeEl.appendChild(link);
                     div.appendChild(pluscodeEl);
@@ -1860,13 +1911,39 @@
                 }
                 div.appendChild(meta);
                 wrap.appendChild(div);
-                container.appendChild(wrap);
+                row.appendChild(wrap);
+                if (isSelf) {
+                    const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
+                    delBtn.className = 'message-delete';
+                    delBtn.title = 'Delete message (NIP-09)';
+                    delBtn.setAttribute('aria-label', 'Delete message');
+                    delBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+                    delBtn.onclick = (e) => { e.preventDefault(); openDeleteConfirmModal(ev.id); };
+                    row.appendChild(delBtn);
+                }
+                container.appendChild(row);
             });
             container.scrollTop = container.scrollHeight;
         }
 
+        function parseHashtagChannelSlug(raw) {
+            const s = (raw || '').trim();
+            const m = s.match(/^#([a-zA-Z0-9_-]+)$/);
+            return m ? m[1] : null;
+        }
+
         async function startDm() {
             const raw = document.getElementById('new-dm-pubkey')?.value?.trim() || '';
+            const hashtagSlug = parseHashtagChannelSlug(raw);
+            if (hashtagSlug) {
+                getOrCreateConversation('channel', hashtagSlug, []);
+                closeNewDmModal();
+                document.getElementById('new-dm-pubkey').value = '';
+                setHashRoute(hashtagSlug);
+                selectConversation(hashtagSlug);
+                return;
+            }
             const peer = await resolvePubkeyInput(raw);
             if (!peer) {
                 showStatus('Invalid npub, nip5 or hashtag (e.g. nostroots@trustroots.org).', 'error');
@@ -1899,7 +1976,7 @@
                     if (!provider) {
                         showStatus('Extension no longer available. Please reconnect.', 'error');
                         usingNip07 = false;
-                        localStorage.removeItem('using_nip07');
+                        setUsingNip07InStorage(false);
                         updateUI();
                         throw new Error('Extension no longer available');
                     }
@@ -1908,7 +1985,7 @@
                         showStatus(pk ? 'Extension public key changed. Please reconnect.' : 'Extension no longer available. Please reconnect.', 'error');
                         usingNip07 = false;
                         nostrProvider = null;
-                        localStorage.removeItem('using_nip07');
+                        setUsingNip07InStorage(false);
                         updateUI();
                         throw new Error('Extension no longer available');
                     }
@@ -1955,8 +2032,10 @@
                 template.id = getEventHash(template);
                 signEvent(template).then(signed => {
                     pool.publish(relays, signed);
+                    eventAuthorById.set(signed.id, currentPublicKey);
                     conv.events.push({ id: signed.id, pubkey: currentPublicKey, content: text, created_at: template.created_at, raw: signed });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
+                    scheduleChatCacheWrite();
                     input.value = '';
                     renderThread();
                     showStatus('Sent.', 'success');
@@ -1997,8 +2076,10 @@
                             pool.publish(relays, wrap);
                         } catch (_) {}
                     }
+                    eventAuthorById.set(rumor.id, currentPublicKey);
                     conv.events.push({ id: rumor.id, pubkey: currentPublicKey, content: text, created_at: rumor.created_at, raw: rumor });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
+                    scheduleChatCacheWrite();
                     document.getElementById('compose-input').value = '';
                     renderThread();
                     showStatus('Sent to group.', 'success');
@@ -2012,10 +2093,6 @@
                     ['L', TRUSTROOTS_CIRCLE_LABEL],
                     ['l', slug, TRUSTROOTS_CIRCLE_LABEL]
                 ];
-                if (isPlusCodeChannelId(slug)) {
-                    const prefix = slug.slice(0, 8);
-                    tags.push(['L', 'open-location-code'], ['l', slug, 'open-location-code'], ['L', 'open-location-code-prefix'], ['l', prefix, 'open-location-code-prefix']);
-                }
                 const template = {
                     kind: MAP_NOTE_KIND,
                     content: text,
@@ -2026,13 +2103,48 @@
                 template.id = getEventHash(template);
                 signEvent(template).then(signed => {
                     pool.publish(relays, signed);
+                    eventAuthorById.set(signed.id, currentPublicKey);
                     conv.events.push({ id: signed.id, pubkey: currentPublicKey, content: text, created_at: template.created_at, raw: signed });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
+                    scheduleChatCacheWrite();
                     document.getElementById('compose-input').value = '';
                     renderThread();
                     showStatus('Sent to channel.', 'success');
                 }).catch(e => showStatus('Send failed: ' + (e.message || e), 'error'));
             }
+        }
+
+        function openDeleteConfirmModal(eventId) {
+            pendingDeleteEventId = eventId;
+            document.getElementById('delete-confirm-modal').classList.add('active');
+        }
+        function closeDeleteConfirmModal() {
+            pendingDeleteEventId = null;
+            document.getElementById('delete-confirm-modal').classList.remove('active');
+        }
+        function confirmDeleteMessage() {
+            if (pendingDeleteEventId) {
+                deleteMessage(pendingDeleteEventId);
+                closeDeleteConfirmModal();
+            }
+        }
+        function deleteMessage(eventId) {
+            if (eventAuthorById.get(eventId) !== currentPublicKey) return;
+            const template = {
+                kind: 5,
+                content: '',
+                tags: [['e', eventId]],
+                created_at: Math.floor(Date.now() / 1000),
+                pubkey: currentPublicKey
+            };
+            signEvent(template).then(signed => {
+                pool.publish(relays, signed);
+                deletedEventIds.add(eventId);
+                scheduleChatCacheWrite();
+                renderConvList();
+                renderThread();
+                showStatus('Delete requested.', 'success');
+            }).catch(e => showStatus('Delete failed: ' + (e.message || e), 'error'));
         }
 
         // Expose handlers for inline onclick (module scope is not global)
@@ -2056,6 +2168,9 @@
         window.updateTrustrootsProfile = updateTrustrootsProfile;
         window.copyPublicKey = copyPublicKey;
         window.closeRelaysModal = closeRelaysModal;
+        window.openDeleteConfirmModal = openDeleteConfirmModal;
+        window.closeDeleteConfirmModal = closeDeleteConfirmModal;
+        window.confirmDeleteMessage = confirmDeleteMessage;
 
         document.addEventListener('keydown', (e) => {
             if (e.key !== 'Escape' && e.keyCode !== 27) return;
@@ -2066,6 +2181,7 @@
             else if (active.id === 'relays-modal') closeRelaysModal();
             else if (active.id === 'new-dm-modal') closeNewDmModal();
             else if (active.id === 'new-group-modal') closeNewGroupModal();
+            else if (active.id === 'delete-confirm-modal') closeDeleteConfirmModal();
         }, true);
 
         window.addEventListener('hashchange', applyHashToState);

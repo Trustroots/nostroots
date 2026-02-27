@@ -1,14 +1,11 @@
 import { NOSTR_EVENT_INDEX_MAXIMUM_PLUS_CODE_LENGTH } from "@/constants";
-import { addEvent, EventWithMetadata } from "@/redux/slices/events.slice";
-import { mapActions } from "@/redux/slices/map.slice";
-import { store } from "@/redux/store";
+import { EventWithMetadata } from "@/redux/slices/events.slice";
 import {
   getFirstTagValueFromEvent,
   MAP_LAYER_KEY,
   MAP_LAYERS,
   MapLayer,
 } from "@trustroots/nr-common";
-import { router } from "expo-router";
 import { matchFilter, NostrEvent } from "nostr-tools";
 import OpenLocationCode from "open-location-code-typescript";
 import { BoundingBox, Region } from "react-native-maps";
@@ -442,31 +439,4 @@ export function getLayerForEvent(event: NostrEvent): MAP_LAYER_KEY {
   }
   // Default to trustroots if no match found
   return "trustroots";
-}
-
-export function navigateToEvent(plusCode: string, event: NostrEvent) {
-  const layer = getLayerForEvent(event);
-  store.dispatch(mapActions.enableLayer(layer));
-  store.dispatch(addEvent({ event, fromRelay: "notification" }));
-
-  const location = plusCodeToCoordinates(plusCode);
-
-  if (location) {
-    store.dispatch(
-      mapActions.setCurrentMapLocation({
-        latitude: location.latitude,
-        longitude: location.longitude,
-      }),
-    );
-    store.dispatch(mapActions.setSelectedPlusCode(plusCode));
-    store.dispatch(mapActions.centerMapOnHalfModal());
-    store.dispatch(
-      mapActions.setCurrentNotificationEvent({
-        event,
-        metadata: { seenOnRelays: [] },
-      }),
-    );
-  }
-
-  router.replace("/");
 }

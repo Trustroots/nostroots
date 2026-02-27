@@ -36,7 +36,7 @@ import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
-import { navigateToEvent } from "@/utils/map.utils";
+import { navigateToEvent } from "@/utils/navigation.utils";
 import { getFirstLabelValueFromEvent } from "@trustroots/nr-common";
 import { Stack } from "expo-router";
 import Toast from "react-native-root-toast";

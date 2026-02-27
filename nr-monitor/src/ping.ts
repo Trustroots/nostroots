@@ -25,6 +25,7 @@ function createPingEvent(
 }
 
 export async function runPing(
+  name: string,
   relayWsUrl: string,
   targetPubkey: string,
   timeoutSeconds: number = 60,
@@ -32,17 +33,13 @@ export async function runPing(
   const secretKey = generateSecretKey();
   const pingEvent = createPingEvent(secretKey, targetPubkey);
 
-  log.debug(
-    `#Kj8Tv1 Pinging ${
-      targetPubkey.substring(0, 8)
-    }... event ID: ${pingEvent.id}`,
-  );
+  log.debug(`#Kj8Tv1 [${name}] Pinging, event ID: ${pingEvent.id}`);
 
   let relay: Relay;
   try {
     relay = await Relay.connect(relayWsUrl);
   } catch (error) {
-    log.error(`#Qr9Ys4 Failed to connect:`, error);
+    log.error(`#Qr9Ys4 [${name}] Failed to connect:`, error);
     return {
       status: "error",
       error: error instanceof Error ? error.message : String(error),
@@ -53,11 +50,7 @@ export async function runPing(
 
   return new Promise<PingResult>((resolve) => {
     const timeout = setTimeout(() => {
-      log.error(
-        `#Uv5Au6 Timeout after ${timeoutSeconds}s pinging ${
-          targetPubkey.substring(0, 8)
-        }...`,
-      );
+      log.error(`#Uv5Au6 [${name}] Timeout after ${timeoutSeconds}s`);
       relay.close();
       resolve({ status: "error", error: "Timeout waiting for ACK" });
     }, timeoutSeconds * 1000);
@@ -78,11 +71,7 @@ export async function runPing(
             event.pubkey === targetPubkey
           ) {
             const durationMs = Date.now() - publishTime;
-            log.info(
-              `#Yz1Cw8 ACK from ${
-                targetPubkey.substring(0, 8)
-              }... (${durationMs}ms)`,
-            );
+            log.info(`#Yz1Cw8 [${name}] ACK received (${durationMs}ms)`);
             clearTimeout(timeout);
             sub.close();
             relay.close();
@@ -90,11 +79,11 @@ export async function runPing(
           }
         },
         oneose() {
-          log.debug(`#Ab4Dx9 End of stored events, publishing ping...`);
+          log.debug(`#Ab4Dx9 [${name}] End of stored events, publishing ping...`);
           relay.publish(pingEvent).then(
-            () => log.debug(`#Cd7Ey0 Ping published`),
+            () => log.debug(`#Cd7Ey0 [${name}] Ping published`),
             (err) => {
-              log.error(`#Ef0Fz1 Ping rejected: ${err}`);
+              log.error(`#Ef0Fz1 [${name}] Ping rejected: ${err}`);
               clearTimeout(timeout);
               sub.close();
               relay.close();

@@ -14,7 +14,7 @@ async function runChecks(): Promise<StatusReport> {
   const [services, ...pingResults] = await Promise.all([
     checkAllServices(config.services),
     ...config.pings.map((p) =>
-      runPing(config.relayWsUrl, p.pubkey, config.pingTimeoutSeconds)
+      runPing(p.name, config.relayWsUrl, p.pubkey, config.pingTimeoutSeconds)
     ),
   ]);
 

@@ -52,7 +52,9 @@ export async function loadSubscriptionsFromRelay(
       }, 30000);
     });
 
-    log.info(`#yXyIJX Loaded initial subscriptions from relay: ${store.pubkeyCount} pubkeys`);
+    log.info(
+      `#yXyIJX Loaded initial subscriptions from relay: ${store.pubkeyCount} pubkeys`,
+    );
   } finally {
     relay.close();
   }

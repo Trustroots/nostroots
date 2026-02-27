@@ -34,7 +34,11 @@ export async function decryptAndParseSubscription(
   privateKey: string,
 ): Promise<DecryptedSubscription | undefined> {
   try {
-    const decrypted = await nip04.decrypt(privateKey, event.pubkey, event.content);
+    const decrypted = await nip04.decrypt(
+      privateKey,
+      event.pubkey,
+      event.content,
+    );
     const parsed = JSON.parse(decrypted);
     const validated = kind10395ContentDecryptedDecodedSchema.parse(parsed);
 
@@ -43,11 +47,16 @@ export async function decryptAndParseSubscription(
       (t) => t.expoPushToken,
     );
 
-    log.info(`Decrypted subscription from ${event.pubkey}: ${filters.length} filters, ${tokens.length} tokens`);
+    log.info(
+      `Decrypted subscription from ${event.pubkey}: ${filters.length} filters, ${tokens.length} tokens`,
+    );
 
     return { filters, tokens };
   } catch (error) {
-    log.error(`Failed to decrypt/parse subscription from ${event.pubkey}:`, error);
+    log.error(
+      `Failed to decrypt/parse subscription from ${event.pubkey}:`,
+      error,
+    );
     return undefined;
   }
 }

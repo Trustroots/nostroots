@@ -1,10 +1,10 @@
 import { Relay } from "nostr-tools/relay";
 import type { NostrEvent } from "nostr-tools";
 import {
-  TRUSTROOTS_PROFILE_KIND,
-  TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
   getFirstLabelValueFromTags,
   getNip5PubKey,
+  TRUSTROOTS_PROFILE_KIND,
+  TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
 } from "@trustroots/nr-common";
 
 export class Nip5VerificationError extends Error {
@@ -14,7 +14,9 @@ export class Nip5VerificationError extends Error {
     public readonly nip5Pubkey: string | undefined,
   ) {
     super(
-      `NIP-5 verification failed: pubkey ${pubkey} claims username "${claimedUsername}" but NIP-5 returned pubkey ${nip5Pubkey ?? "undefined"}`,
+      `NIP-5 verification failed: pubkey ${pubkey} claims username "${claimedUsername}" but NIP-5 returned pubkey ${
+        nip5Pubkey ?? "undefined"
+      }`,
     );
     this.name = "Nip5VerificationError";
   }

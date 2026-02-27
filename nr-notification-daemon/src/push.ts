@@ -60,7 +60,9 @@ export async function sendPushNotifications(
     });
 
     if (!response.ok) {
-      log.error(`Expo Push API error: ${response.status} ${response.statusText}`);
+      log.error(
+        `Expo Push API error: ${response.status} ${response.statusText}`,
+      );
       return;
     }
 

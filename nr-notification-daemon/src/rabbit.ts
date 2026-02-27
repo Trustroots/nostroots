@@ -61,7 +61,9 @@ export async function consumeFromRabbit(
     queue: queueName,
   });
 
-  log.info(`RabbitMQ setup complete. Consuming from queue: ${queueName} with ${store.totalFilterCount} filters`);
+  log.info(
+    `RabbitMQ setup complete. Consuming from queue: ${queueName} with ${store.totalFilterCount} filters`,
+  );
 
   await channel.consume(
     { queue: queueName },
@@ -87,7 +89,9 @@ export async function consumeFromRabbit(
             }
           }
         } else {
-          log.debug(`Parsed Nostr Event: ID=${event.id} Kind=${event.kind} PubKey=${event.pubkey} Source=${wrapper.sourceInfo}`);
+          log.debug(
+            `Parsed Nostr Event: ID=${event.id} Kind=${event.kind} PubKey=${event.pubkey} Source=${wrapper.sourceInfo}`,
+          );
           await matchAndNotify(event, store, expoAccessToken, relayUrl);
         }
 
@@ -98,4 +102,6 @@ export async function consumeFromRabbit(
       }
     },
   );
+
+  log.debug("#csBAjm channel.consume() has finished");
 }

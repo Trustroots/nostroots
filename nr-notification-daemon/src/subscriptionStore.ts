@@ -18,7 +18,9 @@ export class SubscriptionStore {
     const count = filters.length;
 
     if (exists) {
-      log.debug(`Updating filters from existing pubkey ${pubkey}. Count: ${count}.`);
+      log.debug(
+        `Updating filters from existing pubkey ${pubkey}. Count: ${count}.`,
+      );
     } else {
       log.info(`Received filters from new pubkey ${pubkey}. Count: ${count}.`);
     }
@@ -35,9 +37,13 @@ export class SubscriptionStore {
     const count = tokens.length;
 
     if (exists) {
-      log.debug(`Updating push tokens from existing pubkey ${pubkey}. Count: ${count}.`);
+      log.debug(
+        `Updating push tokens from existing pubkey ${pubkey}. Count: ${count}.`,
+      );
     } else {
-      log.info(`Received push tokens from new pubkey ${pubkey}. Count: ${count}.`);
+      log.info(
+        `Received push tokens from new pubkey ${pubkey}. Count: ${count}.`,
+      );
     }
   }
 

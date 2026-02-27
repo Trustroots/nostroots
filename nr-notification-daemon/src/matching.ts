@@ -2,7 +2,7 @@ import { matchFilter } from "nostr-tools";
 import type { NostrEvent } from "nostr-tools";
 import { getAuthorFromEvent } from "@trustroots/nr-common";
 import { log } from "./log.ts";
-import { resolveUsername, Nip5VerificationError } from "./profiles.ts";
+import { Nip5VerificationError, resolveUsername } from "./profiles.ts";
 import { sendPushNotifications } from "./push.ts";
 import type { SubscriptionStore } from "./subscriptionStore.ts";
 
@@ -15,7 +15,7 @@ export async function matchAndNotify(
   const pairs = store.getAllFilterPubkeyPairs();
 
   const matchingPairs = pairs.filter(({ filter }) =>
-    matchFilter(filter, event),
+    matchFilter(filter, event)
   );
 
   if (matchingPairs.length === 0) {
@@ -30,7 +30,11 @@ export async function matchAndNotify(
   const username = await resolveUsername(authorPubkey, relayUrl).catch(
     (error) => {
       if (error instanceof Nip5VerificationError) {
-        log.error(`#q6on2y ERROR NIP-5 verification failed for event ${event.id}. Author pubkey ${error.pubkey} claims username "${error.claimedUsername}" but NIP-5 returned pubkey ${error.nip5Pubkey ?? "undefined"}. Dropping notification. Full event: ${JSON.stringify(event)}`);
+        log.error(
+          `#q6on2y ERROR NIP-5 verification failed for event ${event.id}. Author pubkey ${error.pubkey} claims username "${error.claimedUsername}" but NIP-5 returned pubkey ${
+            error.nip5Pubkey ?? "undefined"
+          }. Dropping notification. Full event: ${JSON.stringify(event)}`,
+        );
         return null;
       }
       throw error;

@@ -1,6 +1,10 @@
 import { amqp, nanoid, nrCommon } from "../deps.ts";
-const { eventSchema, AMQP_EXCHANGE_NAME, AMQP_EXCHANGE_TYPE, AMQP_RELAY_INGEST_QUEUE_NAME } =
-  nrCommon;
+const {
+  eventSchema,
+  AMQP_EXCHANGE_NAME,
+  AMQP_EXCHANGE_TYPE,
+  AMQP_RELAY_INGEST_QUEUE_NAME,
+} = nrCommon;
 import { getRelayPool } from "./relays.ts";
 import { processEventFactoryFactory } from "./validation/repost.ts";
 import { log } from "./log.ts";
@@ -8,13 +12,13 @@ import { log } from "./log.ts";
 const EMPTY_AMQP_URL = "amqp://insecure:insecure@localhost:5672";
 
 const createId = nanoid.customAlphabet(
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
 );
 
 export async function consume(
   privateKey: Uint8Array,
   isDev: true | undefined,
-  amqpUrl?: string
+  amqpUrl?: string,
 ) {
   const relayPool = await getRelayPool(isDev);
   const processEventFactory = processEventFactoryFactory(relayPool, privateKey);
@@ -62,7 +66,7 @@ export async function consume(
       queue: AMQP_RELAY_INGEST_QUEUE_NAME,
     });
 
-    channel.consume(
+    await channel.consume(
       { queue: AMQP_RELAY_INGEST_QUEUE_NAME },
       async function processQueueItem(args, _props, data) {
         const id = createId();
@@ -93,8 +97,10 @@ export async function consume(
         } catch (error) {
           log.error(`#Y5y2oB Error in channel.consume ${id}`, error);
         }
-      }
+      },
     );
+
+    log.debug("#VzBn7C channel.consume() has finished");
   } catch (error) {
     log.error(`#s9QMqm consume() failed with error`, error);
   }

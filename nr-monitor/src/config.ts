@@ -26,7 +26,7 @@ export interface ServiceConfig {
 export const config = {
   telegramBot: getEnvRequired("TELEGRAM_BOT"),
   telegramChat: getEnvRequired("TELEGRAM_CHAT"),
-  checkIntervalMs: parseInt(getEnvOptional("CHECK_INTERVAL_MS") ?? "60000", 10),
+  checkIntervalMs: parseInt(getEnvOptional("CHECK_INTERVAL_MS") ?? "900000", 10),
   startupDelayMs: parseInt(getEnvOptional("STARTUP_DELAY_MS") ?? "120000", 10),
   healthCheckTimeoutMs: parseInt(
     getEnvOptional("HEALTH_CHECK_TIMEOUT_MS") ?? "5000",

@@ -66,6 +66,7 @@ export async function consume(
       queue: AMQP_RELAY_INGEST_QUEUE_NAME,
     });
 
+    // NOTE: This returns right away
     await channel.consume(
       { queue: AMQP_RELAY_INGEST_QUEUE_NAME },
       async function processQueueItem(args, _props, data) {
@@ -99,8 +100,6 @@ export async function consume(
         }
       },
     );
-
-    log.debug("#VzBn7C channel.consume() has finished");
   } catch (error) {
     log.error(`#s9QMqm consume() failed with error`, error);
   }

@@ -103,6 +103,7 @@ export async function consumeFromRabbit(
     `RabbitMQ setup complete. Consuming from queue: ${queueName} with ${store.totalFilterCount} filters`,
   );
 
+  // NOTE: This returns right away
   await channel.consume(
     { queue: queueName },
     async (args, _props, data) => {
@@ -142,6 +143,4 @@ export async function consumeFromRabbit(
       }
     },
   );
-
-  log.debug("#csBAjm channel.consume() has finished");
 }

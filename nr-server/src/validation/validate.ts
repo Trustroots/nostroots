@@ -24,7 +24,7 @@ async function getKindZeroEvent(relayPool: nostrify.NPool, pubKey: string) {
     const signal = controller.signal;
     globalThis.setTimeout(
       () => controller.abort(),
-      WAIT_FOR_KIND_ZERO_TIMEOUT_SECONDS * 1000
+      WAIT_FOR_KIND_ZERO_TIMEOUT_SECONDS * 1000,
     );
 
     const kindZeroEvents = await relayPool.query(filter, { signal });
@@ -35,7 +35,7 @@ async function getKindZeroEvent(relayPool: nostrify.NPool, pubKey: string) {
 
 async function getTrustrootsProfileEvent(
   relayPool: nostrify.NPool,
-  pubKey: string
+  pubKey: string,
 ) {
   const filter = [
     {
@@ -48,7 +48,7 @@ async function getTrustrootsProfileEvent(
   const signal = controller.signal;
   globalThis.setTimeout(
     () => controller.abort(),
-    WAIT_FOR_KIND_ZERO_TIMEOUT_SECONDS * 1000
+    WAIT_FOR_KIND_ZERO_TIMEOUT_SECONDS * 1000,
   );
 
   const profileEvents = await relayPool.query(filter, { signal });
@@ -78,7 +78,7 @@ function getProfileFromEvent(event: nostrTools.Event): Profile | undefined {
 
 async function getTrustrootsUsernameFromProfile(
   relayPool: nostrify.NPool,
-  pubkey: string
+  pubkey: string,
 ) {
   const [trustrootsProfileEvent, kindZeroEvent] = await Promise.all([
     getTrustrootsProfileEvent(relayPool, pubkey),
@@ -88,7 +88,7 @@ async function getTrustrootsUsernameFromProfile(
   if (typeof trustrootsProfileEvent !== "undefined") {
     const trustrootsUsername = getFirstLabelValueFromEvent(
       trustrootsProfileEvent,
-      TRUSTROOTS_USERNAME_LABEL_NAMESPACE
+      TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
     );
 
     return trustrootsUsername;
@@ -116,15 +116,18 @@ export type ValidationResult =
  */
 export async function validateEvent(
   relayPool: nostrify.NPool,
-  event: nostrify.NostrEvent
+  event: nostrify.NostrEvent,
 ): Promise<ValidationResult> {
   if (event.kind !== MAP_NOTE_KIND) {
-    return { valid: false, reason: `Event kind ${event.kind} is not supported.` };
+    return {
+      valid: false,
+      reason: `Event kind ${event.kind} is not supported.`,
+    };
   }
 
   const trustrootsUsername = await getTrustrootsUsernameFromProfile(
     relayPool,
-    event.pubkey
+    event.pubkey,
   );
 
   if (
@@ -133,7 +136,7 @@ export async function validateEvent(
   ) {
     log.debug(
       "#Kmf59M Skipping event with no trustrootsUsername from profile",
-      { event }
+      { event },
     );
     return {
       valid: false,
@@ -149,7 +152,8 @@ export async function validateEvent(
     log.debug("#b0gWmE Failed to get string nip5 pubkey", { event });
     return {
       valid: false,
-      reason: `NIP-05 verification failed for username "${trustrootsUsername}".`,
+      reason:
+        `NIP-05 verification failed for username "${trustrootsUsername}".`,
     };
   }
 
@@ -157,7 +161,8 @@ export async function validateEvent(
     log.debug("#dtKr5H Event failed nip5 validation", { event });
     return {
       valid: false,
-      reason: `NIP-05 public key mismatch for username "${trustrootsUsername}".`,
+      reason:
+        `NIP-05 public key mismatch for username "${trustrootsUsername}".`,
     };
   }
 

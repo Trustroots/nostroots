@@ -11,10 +11,11 @@ import { processEventFactoryFactory } from "./validation/repost.ts";
  */
 function createFilter(
   isDev: true | undefined,
-  maxAgeMinutes: number | undefined
+  maxAgeMinutes: number | undefined,
 ): nostrify.NostrFilter[] {
-  const maxAgeSeconds =
-    typeof maxAgeMinutes === "undefined" ? 60 * 60 : maxAgeMinutes * 60;
+  const maxAgeSeconds = typeof maxAgeMinutes === "undefined"
+    ? 60 * 60
+    : maxAgeMinutes * 60;
 
   const baseFilter: nostrify.NostrFilter = {
     kinds: [MAP_NOTE_KIND],
@@ -31,7 +32,7 @@ function createFilter(
 export async function subscribeAndRepost(
   privateKey: Uint8Array,
   isDev: true | undefined,
-  maxAgeMinutes: number | undefined
+  maxAgeMinutes: number | undefined,
 ) {
   log.debug(`#BmseJH Startup`);
 
@@ -42,10 +43,15 @@ export async function subscribeAndRepost(
   let signal: AbortSignal;
 
   async function _subscribe() {
-    log.info(`#okwpth (Re)starting subscriptions, last message received at ${lastReceivedMessageTimestamp} (${new Date(lastReceivedMessageTimestamp * 1000).toLocaleString()})`);
-    if (lastReceivedMessageTimestamp)
+    log.info(
+      `#okwpth (Re)starting subscriptions, last message received at ${lastReceivedMessageTimestamp} (${
+        new Date(lastReceivedMessageTimestamp * 1000).toLocaleString()
+      })`,
+    );
+    if (lastReceivedMessageTimestamp) {
       maxAgeMinutes =
         (Math.floor(Date.now() / 1000) - lastReceivedMessageTimestamp) / 60 + 1;
+    }
 
     const filter = createFilter(isDev, maxAgeMinutes);
 
@@ -57,7 +63,7 @@ export async function subscribeAndRepost(
     const queue = newQueue(3);
     const processEventFactory = processEventFactoryFactory(
       relayPool,
-      privateKey
+      privateKey,
     );
 
     try {

@@ -14,7 +14,6 @@ async function runChecks(): Promise<StatusReport> {
     checkAllServices(config.services),
     runNrServerPing(
       config.relayWsUrl,
-      config.nrServerPingPrivateKeyHex,
       config.nrServerPingTimeoutSeconds,
     ),
   ]);
@@ -24,7 +23,8 @@ async function runChecks(): Promise<StatusReport> {
 
 function logStatus(report: StatusReport): void {
   for (const service of report.services) {
-    log.info(`#Gh2Jk3   ${service.displayName}: ${service.status}`);
+    const error = service.status === "error" && service.error ? ` (${service.error})` : "";
+    log.info(`#Gh2Jk3   ${service.name}: ${service.status}${error}`);
   }
   const duration = report.nrServerPing.durationMs
     ? ` (${report.nrServerPing.durationMs}ms)`

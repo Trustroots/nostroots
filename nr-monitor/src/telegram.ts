@@ -57,7 +57,11 @@ export function formatStatusMessage(report: StatusReport): string {
   // Services
   for (const service of report.services) {
     const icon = service.status === "ok" ? "🟢" : "🔴";
-    lines.push(`${icon} ${service.displayName}`);
+    const reason =
+      service.status === "error" && service.error
+        ? ` — ${service.error}`
+        : "";
+    lines.push(`${icon} ${service.name}${reason}`);
   }
 
   // nr-server ping

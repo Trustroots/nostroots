@@ -1,11 +1,12 @@
 import { config, ServiceConfig } from "./config.ts";
+import { log } from "./log.ts";
 
 export type ServiceStatus = "ok" | "error";
 
 export interface ServiceResult {
   name: string;
-  displayName: string;
   status: ServiceStatus;
+  error?: string;
 }
 
 const MAX_ATTEMPTS = 3;
@@ -25,17 +26,24 @@ async function checkServiceOnce(
       signal: controller.signal,
     });
 
-    return {
-      name: service.name,
-      displayName: service.displayName,
-      status: response.ok ? "ok" : "error",
-    };
-  } catch {
-    return {
-      name: service.name,
-      displayName: service.displayName,
-      status: "error",
-    };
+    if (response.ok) {
+      return { name: service.name, status: "ok" };
+    }
+
+    const error = `HTTP ${response.status}`;
+    log.warn(
+      `#hC3kR1 ${service.name} returned ${response.status} from ${service.url}`,
+    );
+    return { name: service.name, status: "error", error };
+  } catch (err) {
+    const error =
+      err instanceof DOMException && err.name === "AbortError"
+        ? "Timeout"
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    log.warn(`#hC4mS2 ${service.name} failed: ${error}`);
+    return { name: service.name, status: "error", error };
   } finally {
     clearTimeout(timeout);
   }
@@ -44,14 +52,21 @@ async function checkServiceOnce(
 export async function checkService(
   service: ServiceConfig,
 ): Promise<ServiceResult> {
+  let lastResult: ServiceResult = { name: service.name, status: "error" };
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const result = await checkServiceOnce(service);
-    if (result.status === "ok") return result;
+    lastResult = await checkServiceOnce(service);
+    if (lastResult.status === "ok") return lastResult;
     if (attempt < MAX_ATTEMPTS) {
+      log.info(
+        `#hC5nT3 ${service.name} attempt ${attempt}/${MAX_ATTEMPTS} failed, retrying...`,
+      );
       await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
     }
   }
-  return { name: service.name, displayName: service.displayName, status: "error" };
+  log.error(
+    `#hC6pU4 ${service.name} failed all ${MAX_ATTEMPTS} attempts: ${lastResult.error}`,
+  );
+  return lastResult;
 }
 
 export async function checkAllServices(

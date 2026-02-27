@@ -1,6 +1,5 @@
-import { getPublicKey, finalizeEvent, type Event } from "nostr-tools/pure";
+import { generateSecretKey, getPublicKey, finalizeEvent, type Event } from "nostr-tools/pure";
 import { Relay } from "nostr-tools/relay";
-import { hexToBytes } from "@noble/hashes/utils";
 import {
   PING_ACK_KIND,
   NOSTROOTS_VALIDATION_PUBKEY,
@@ -26,16 +25,12 @@ function createPingEvent(secretKey: Uint8Array): Event {
 
 export async function runNrServerPing(
   relayWsUrl: string,
-  privateKeyHex: string,
   timeoutSeconds: number = 60,
 ): Promise<NrServerPingResult> {
-  const secretKey = hexToBytes(privateKeyHex);
-  const publicKey = getPublicKey(secretKey);
-
+  const secretKey = generateSecretKey();
   const pingEvent = createPingEvent(secretKey);
 
   log.debug(`#Kj8Tv1 Publishing ping event with ID: ${pingEvent.id}`);
-  log.debug(`#Lm3Wq2 Ping author pubkey: ${publicKey}`);
 
   let relay: Relay;
   try {

@@ -20,7 +20,6 @@ function getEnvOptional(key: string): string | undefined {
 
 export interface ServiceConfig {
   name: string;
-  displayName: string;
   url: string;
 }
 
@@ -35,35 +34,14 @@ export const config = {
   ),
 
   services: [
-    {
-      name: "strfry-relay",
-      displayName: "Relay",
-      url: getEnvRequired("RELAY_URL"),
-    },
-    {
-      name: "rabbitmq",
-      displayName: "RabbitMQ",
-      url: getEnvRequired("RABBITMQ_URL"),
-    },
-    {
-      name: "nr-relay-to-rabbit",
-      displayName: "Relay to RabbitMQ",
-      url: getEnvRequired("RELAY_TO_RABBIT_URL"),
-    },
-    {
-      name: "nr-server",
-      displayName: "Validations",
-      url: getEnvRequired("SERVER_URL"),
-    },
-    {
-      name: "nr-notification-daemon",
-      displayName: "Notifications",
-      url: getEnvRequired("NOTIFICATION_DAEMON_URL"),
-    },
+    { name: "strfry-relay", url: getEnvRequired("RELAY_URL") },
+    { name: "rabbitmq", url: getEnvRequired("RABBITMQ_URL") },
+    { name: "nr-relay-to-rabbit", url: getEnvRequired("RELAY_TO_RABBIT_URL") },
+    { name: "nr-server", url: getEnvRequired("SERVER_URL") },
+    { name: "nr-notification-daemon", url: getEnvRequired("NOTIFICATION_DAEMON_URL") },
   ] as ServiceConfig[],
 
   // nr-server ping configuration
-  nrServerPingPrivateKeyHex: getEnvRequired("NR_SERVER_PING_PRIVATE_KEY_HEX"),
   relayWsUrl: getEnvRequired("RELAY_WS_URL"),
   nrServerPingTimeoutSeconds: parseInt(
     getEnvOptional("NR_SERVER_PING_TIMEOUT_SECONDS") ?? "60",

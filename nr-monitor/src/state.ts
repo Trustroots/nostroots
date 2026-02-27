@@ -16,11 +16,14 @@ export function updateState(report: StatusReport): boolean {
     currentState[service.name] = service.status;
   }
 
-  const prevPing = currentState["nr-server-ping"];
-  if (prevPing !== undefined && prevPing !== report.nrServerPing.status) {
-    changed = true;
+  for (const ping of report.pings) {
+    const key = `${ping.name}-ping`;
+    const prev = currentState[key];
+    if (prev !== undefined && prev !== ping.status) {
+      changed = true;
+    }
+    currentState[key] = ping.status;
   }
-  currentState["nr-server-ping"] = report.nrServerPing.status;
 
   return changed;
 }

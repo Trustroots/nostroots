@@ -1,17 +1,34 @@
 import { config } from "./config.ts";
 import { ServiceResult } from "./health-check.ts";
-import { NrServerPingResult } from "./nr-server-ping.ts";
+import { PingResult } from "./ping.ts";
 import { log } from "./log.ts";
+
+export interface NamedPingResult extends PingResult {
+  name: string;
+}
 
 export interface StatusReport {
   services: ServiceResult[];
-  nrServerPing: NrServerPingResult;
+  pings: NamedPingResult[];
+}
+
+function formatPingLine(name: string, ping: PingResult): string {
+  if (ping.status === "ok") {
+    const duration = ping.durationMs
+      ? ping.durationMs >= 1000
+        ? `${(ping.durationMs / 1000).toFixed(1)}s`
+        : `${ping.durationMs}ms`
+      : "";
+    const durationSuffix = duration ? ` — ${duration}` : "";
+    return `🟢 ${name}${durationSuffix}`;
+  }
+  const reason = ping.error ? ` — ${ping.error}` : "";
+  return `🔴 ${name}${reason}`;
 }
 
 export function formatStatusMessage(report: StatusReport): string {
   const lines: string[] = [];
 
-  // Header with timestamp
   const now = new Date();
   const formatted = now.toLocaleString("en-GB", {
     day: "numeric",
@@ -24,7 +41,6 @@ export function formatStatusMessage(report: StatusReport): string {
   lines.push(`📡 <b>Nostroots Status</b> — ${formatted} UTC`);
   lines.push("");
 
-  // Services
   for (const service of report.services) {
     const icon = service.status === "ok" ? "🟢" : "🔴";
     const reason =
@@ -34,29 +50,16 @@ export function formatStatusMessage(report: StatusReport): string {
     lines.push(`${icon} ${service.name}${reason}`);
   }
 
-  // nr-server ping
-  if (report.nrServerPing.status === "ok") {
-    const duration = report.nrServerPing.durationMs
-      ? report.nrServerPing.durationMs >= 1000
-        ? `${(report.nrServerPing.durationMs / 1000).toFixed(1)}s`
-        : `${report.nrServerPing.durationMs}ms`
-      : "";
-    const durationSuffix = duration ? ` — ${duration}` : "";
-    lines.push(`🟢 nr-server Ping${durationSuffix}`);
-  } else {
-    const reason = report.nrServerPing.error
-      ? ` — ${report.nrServerPing.error}`
-      : "";
-    lines.push(`🔴 nr-server Ping${reason}`);
+  for (const ping of report.pings) {
+    lines.push(formatPingLine(`${ping.name} ping`, ping));
   }
 
-  // Footer with operational count
   const serviceUpCount = report.services.filter(
     (s) => s.status === "ok",
   ).length;
-  const pingUp = report.nrServerPing.status === "ok" ? 1 : 0;
-  const totalUp = serviceUpCount + pingUp;
-  const total = report.services.length + 1;
+  const pingUpCount = report.pings.filter((p) => p.status === "ok").length;
+  const totalUp = serviceUpCount + pingUpCount;
+  const total = report.services.length + report.pings.length;
 
   lines.push("");
   lines.push(`── ${totalUp}/${total} operational ──`);

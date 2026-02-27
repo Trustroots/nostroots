@@ -1,24 +1,29 @@
 import { config } from "./src/config.ts";
-import { runNrServerPing } from "./src/nr-server-ping.ts";
+import { runPing } from "./src/ping.ts";
 import { checkAllServices } from "./src/health-check.ts";
 import { log } from "./src/log.ts";
 import { updateState } from "./src/state.ts";
 import {
   formatStatusMessage,
   sendTelegramMessage,
+  NamedPingResult,
   StatusReport,
 } from "./src/telegram.ts";
 
 async function runChecks(): Promise<StatusReport> {
-  const [services, nrServerPing] = await Promise.all([
+  const [services, ...pingResults] = await Promise.all([
     checkAllServices(config.services),
-    runNrServerPing(
-      config.relayWsUrl,
-      config.nrServerPingTimeoutSeconds,
+    ...config.pings.map((p) =>
+      runPing(config.relayWsUrl, p.pubkey, config.pingTimeoutSeconds),
     ),
   ]);
 
-  return { services, nrServerPing };
+  const pings: NamedPingResult[] = config.pings.map((p, i) => ({
+    name: p.name,
+    ...pingResults[i],
+  }));
+
+  return { services, pings };
 }
 
 function logStatus(report: StatusReport): void {
@@ -26,12 +31,11 @@ function logStatus(report: StatusReport): void {
     const error = service.status === "error" && service.error ? ` (${service.error})` : "";
     log.info(`#Gh2Jk3   ${service.name}: ${service.status}${error}`);
   }
-  const duration = report.nrServerPing.durationMs
-    ? ` (${report.nrServerPing.durationMs}ms)`
-    : "";
-  log.info(
-    `#Mn4Pq5   nr-server Ping: ${report.nrServerPing.status}${duration}`,
-  );
+  for (const ping of report.pings) {
+    const duration = ping.durationMs ? ` (${ping.durationMs}ms)` : "";
+    const error = ping.status === "error" && ping.error ? ` (${ping.error})` : "";
+    log.info(`#Mn4Pq5   ${ping.name} ping: ${ping.status}${duration}${error}`);
+  }
 }
 
 async function runOnce(): Promise<void> {

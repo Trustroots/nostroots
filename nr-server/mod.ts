@@ -37,30 +37,18 @@ await new cliffy.Command()
     "The URL to connect to AMQP, like amqp://insecure:insecure@localhost:5672",
   )
   .action(async (options) => {
-    const healthCheckServer = Deno.serve(
-      { port: 80, hostname: "0.0.0.0" },
-      () =>
-        new Response(JSON.stringify({ status: "ok", service: "nr-server" }), {
-          headers: { "content-type": "application/json" },
-        }),
+    const { isDev } = options;
+    const privateKey = getOrCreatePrivateKey(options.privateKeyNsec);
+    const maxAgeMinutes = options.maxAgeMinutes;
+
+    log.debug(
+      `#PnFUPS Startup isDev ${isDev} and subscribe ${options.subscribe}`,
     );
 
-    try {
-      const { isDev } = options;
-      const privateKey = getOrCreatePrivateKey(options.privateKeyNsec);
-      const maxAgeMinutes = options.maxAgeMinutes;
-
-      log.debug(
-        `#PnFUPS Startup isDev ${isDev} and subscribe ${options.subscribe}`,
-      );
-
-      if (options.subscribe) {
-        await subscribeAndRepost(privateKey, isDev, maxAgeMinutes);
-      } else {
-        await consume(privateKey, isDev, options.amqpUrl);
-      }
-    } finally {
-      healthCheckServer.shutdown();
+    if (options.subscribe) {
+      await subscribeAndRepost(privateKey, isDev, maxAgeMinutes);
+    } else {
+      await consume(privateKey, isDev, options.amqpUrl);
     }
   })
   .parse(Deno.args);

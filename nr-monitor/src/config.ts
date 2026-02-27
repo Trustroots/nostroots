@@ -1,3 +1,8 @@
+import {
+  NOSTROOTS_VALIDATION_PUBKEY,
+  NOTIFICATION_SERVER_PUBKEY,
+} from "@trustroots/nr-common";
+
 function getEnv(key: string): string | undefined {
   return Deno.env.get(key);
 }
@@ -23,6 +28,11 @@ export interface ServiceConfig {
   url: string;
 }
 
+export interface PingConfig {
+  name: string;
+  pubkey: string;
+}
+
 export const config = {
   telegramBot: getEnvRequired("TELEGRAM_BOT"),
   telegramChat: getEnvRequired("TELEGRAM_CHAT"),
@@ -37,14 +47,16 @@ export const config = {
     { name: "strfry-relay", url: getEnvRequired("RELAY_URL") },
     { name: "rabbitmq", url: getEnvRequired("RABBITMQ_URL") },
     { name: "nr-relay-to-rabbit", url: getEnvRequired("RELAY_TO_RABBIT_URL") },
-    { name: "nr-server", url: getEnvRequired("SERVER_URL") },
-    { name: "nr-notification-daemon", url: getEnvRequired("NOTIFICATION_DAEMON_URL") },
   ] as ServiceConfig[],
 
-  // nr-server ping configuration
+  // Ping configuration
   relayWsUrl: getEnvRequired("RELAY_WS_URL"),
-  nrServerPingTimeoutSeconds: parseInt(
-    getEnvOptional("NR_SERVER_PING_TIMEOUT_SECONDS") ?? "60",
+  pingTimeoutSeconds: parseInt(
+    getEnvOptional("PING_TIMEOUT_SECONDS") ?? "60",
     10,
   ),
+  pings: [
+    { name: "nr-server", pubkey: NOSTROOTS_VALIDATION_PUBKEY },
+    { name: "nr-notification-daemon", pubkey: NOTIFICATION_SERVER_PUBKEY },
+  ] as PingConfig[],
 };

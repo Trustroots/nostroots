@@ -36,12 +36,11 @@ async function checkServiceOnce(
     );
     return { name: service.name, status: "error", error };
   } catch (err) {
-    const error =
-      err instanceof DOMException && err.name === "AbortError"
-        ? "Timeout"
-        : err instanceof Error
-          ? err.message
-          : String(err);
+    const error = err instanceof DOMException && err.name === "AbortError"
+      ? "Timeout"
+      : err instanceof Error
+      ? err.message
+      : String(err);
     log.warn(`#hC4mS2 ${service.name} failed: ${error}`);
     return { name: service.name, status: "error", error };
   } finally {

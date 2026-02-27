@@ -1,4 +1,4 @@
-import { generateSecretKey, finalizeEvent, type Event } from "nostr-tools/pure";
+import { type Event, finalizeEvent, generateSecretKey } from "nostr-tools/pure";
 import { Relay } from "nostr-tools/relay";
 import { PING_ACK_KIND } from "@trustroots/nr-common";
 import { log } from "./log.ts";
@@ -33,7 +33,9 @@ export async function runPing(
   const pingEvent = createPingEvent(secretKey, targetPubkey);
 
   log.debug(
-    `#Kj8Tv1 Pinging ${targetPubkey.substring(0, 8)}... event ID: ${pingEvent.id}`,
+    `#Kj8Tv1 Pinging ${
+      targetPubkey.substring(0, 8)
+    }... event ID: ${pingEvent.id}`,
   );
 
   let relay: Relay;
@@ -52,7 +54,9 @@ export async function runPing(
   return new Promise<PingResult>((resolve) => {
     const timeout = setTimeout(() => {
       log.error(
-        `#Uv5Au6 Timeout after ${timeoutSeconds}s pinging ${targetPubkey.substring(0, 8)}...`,
+        `#Uv5Au6 Timeout after ${timeoutSeconds}s pinging ${
+          targetPubkey.substring(0, 8)
+        }...`,
       );
       relay.close();
       resolve({ status: "error", error: "Timeout waiting for ACK" });
@@ -75,7 +79,9 @@ export async function runPing(
           ) {
             const durationMs = Date.now() - publishTime;
             log.info(
-              `#Yz1Cw8 ACK from ${targetPubkey.substring(0, 8)}... (${durationMs}ms)`,
+              `#Yz1Cw8 ACK from ${
+                targetPubkey.substring(0, 8)
+              }... (${durationMs}ms)`,
             );
             clearTimeout(timeout);
             sub.close();

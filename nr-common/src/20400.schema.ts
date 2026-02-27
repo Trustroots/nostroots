@@ -31,7 +31,8 @@ export const pingEventSchema = baseEventSchema.extend({
     .array()
     .array()
     .refine(isValidPingTags, {
-      message: "ping event must have at least one valid p tag targeting a service",
+      message:
+        "ping event must have at least one valid p tag targeting a service",
     }),
 });
 

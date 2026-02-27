@@ -1,7 +1,7 @@
 import { z } from "../deps.ts";
 import {
-  contentSchema,
   baseEventSchema,
+  contentSchema,
   tagsIncludingPlusCodeSchema,
 } from "./base.schema.ts";
 

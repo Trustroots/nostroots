@@ -43,10 +43,9 @@ export function formatStatusMessage(report: StatusReport): string {
 
   for (const service of report.services) {
     const icon = service.status === "ok" ? "🟢" : "🔴";
-    const reason =
-      service.status === "error" && service.error
-        ? ` — ${service.error}`
-        : "";
+    const reason = service.status === "error" && service.error
+      ? ` — ${service.error}`
+      : "";
     lines.push(`${icon} ${service.name}${reason}`);
   }
 

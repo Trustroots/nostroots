@@ -5,8 +5,8 @@ import { log } from "./src/log.ts";
 import { updateState } from "./src/state.ts";
 import {
   formatStatusMessage,
-  sendTelegramMessage,
   NamedPingResult,
+  sendTelegramMessage,
   StatusReport,
 } from "./src/telegram.ts";
 
@@ -14,7 +14,7 @@ async function runChecks(): Promise<StatusReport> {
   const [services, ...pingResults] = await Promise.all([
     checkAllServices(config.services),
     ...config.pings.map((p) =>
-      runPing(config.relayWsUrl, p.pubkey, config.pingTimeoutSeconds),
+      runPing(config.relayWsUrl, p.pubkey, config.pingTimeoutSeconds)
     ),
   ]);
 
@@ -28,12 +28,16 @@ async function runChecks(): Promise<StatusReport> {
 
 function logStatus(report: StatusReport): void {
   for (const service of report.services) {
-    const error = service.status === "error" && service.error ? ` (${service.error})` : "";
+    const error = service.status === "error" && service.error
+      ? ` (${service.error})`
+      : "";
     log.info(`#Gh2Jk3   ${service.name}: ${service.status}${error}`);
   }
   for (const ping of report.pings) {
     const duration = ping.durationMs ? ` (${ping.durationMs}ms)` : "";
-    const error = ping.status === "error" && ping.error ? ` (${ping.error})` : "";
+    const error = ping.status === "error" && ping.error
+      ? ` (${ping.error})`
+      : "";
     log.info(`#Mn4Pq5   ${ping.name} ping: ${ping.status}${duration}${error}`);
   }
 }
@@ -57,9 +61,7 @@ async function runLoop(): Promise<void> {
     log.info(
       `#Ab1Cd2 Waiting ${config.startupDelayMs}ms before starting health monitor...`,
     );
-    await new Promise((resolve) =>
-      setTimeout(resolve, config.startupDelayMs)
-    );
+    await new Promise((resolve) => setTimeout(resolve, config.startupDelayMs));
   }
 
   log.info(
@@ -73,9 +75,7 @@ async function runLoop(): Promise<void> {
       log.error("#Hi5Jk6 Error during health check:", error);
     }
 
-    await new Promise((resolve) =>
-      setTimeout(resolve, config.checkIntervalMs)
-    );
+    await new Promise((resolve) => setTimeout(resolve, config.checkIntervalMs));
   }
 }
 

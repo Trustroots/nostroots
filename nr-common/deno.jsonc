@@ -8,13 +8,13 @@
     "@deno/dnt": "jsr:@deno/dnt@^0.41.3",
     "nostr-tools": "npm:nostr-tools@2.10.4",
     "nostr-tools/core": "npm:nostr-tools@2.10.4/core",
-    "zod": "npm:zod@^3.25.76",
+    "zod": "npm:zod@^3.25.76"
   },
   "tasks": {
     "cache": "deno cache --node-modules-dir deps.ts",
     "build": "deno run -A build_npm.ts",
     "build:watch": "deno run -A --watch=src/,constants.ts,deps.ts,mod.ts build_npm.ts",
-    "test": "deno test --ignore=build/",
+    "test": "deno test --ignore=build/"
   },
-  "license": "AGPL-3.0-or-later",
+  "license": "AGPL-3.0-or-later"
 }

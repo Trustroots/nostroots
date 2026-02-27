@@ -13,7 +13,7 @@ import { decodeHex, encodeHex } from "jsr:@std/encoding/hex";
 
 function getFirstTagValueFromEvent(
   nostrEvent: NostrEvent,
-  tagName: string
+  tagName: string,
 ): string | undefined {
   const firstMatchingTagPair = nostrEvent.tags.find(([key]) => key === tagName);
 
@@ -61,7 +61,8 @@ function generateResponse({
   publicKey: string;
   secret: string;
 }) {
-  const connectURI = `nostrconnect://${publicKey}?relay=${relay}&secret=${secret}`;
+  const connectURI =
+    `nostrconnect://${publicKey}?relay=${relay}&secret=${secret}`;
   const qrCode = qrcode(connectURI, { output: "svg" });
 
   const html = `
@@ -115,7 +116,7 @@ async function subscribe({
       console.log("Decrypting…");
       const decryptedContenString = await signer.nip04.decrypt(
         event.pubkey,
-        event.content
+        event.content,
       );
       const content = JSON.parse(decryptedContenString);
 

@@ -76,8 +76,9 @@ Deno.serve({ port: 80, hostname: "0.0.0.0" }, async (request) => {
       new TextEncoder().encode(JSON.stringify(strfryLine)),
     );
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : JSON.stringify(error);
+    const errorMessage = error instanceof Error
+      ? error.message
+      : JSON.stringify(error);
     log.error(`#bW4hNc AMQP publish failed: ${errorMessage}`);
     const response = rejectEvent(
       strfryLine,

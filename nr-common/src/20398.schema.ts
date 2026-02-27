@@ -22,16 +22,15 @@ function isValidOptionalPubkey(tags: string[][]) {
 function isValidOptionalEventId(tags: string[][]) {
   const eventId = getFirstTagValue(tags, "e");
   const hasNoETag = typeof eventId === "undefined";
-  const isValidId =
-    typeof eventId === "string" && idSchema.safeParse(eventId).success;
+  const isValidId = typeof eventId === "string" &&
+    idSchema.safeParse(eventId).success;
   return hasNoETag || isValidId;
 }
 
 function isValidOptionalMessageType(tags: string[][]) {
   const messageType = getFirstTagValue(tags, SERVER_MESSAGE_TYPE_TAG_NAME);
   const hasNoMessageType = typeof messageType === "undefined";
-  const isKnownType =
-    typeof messageType === "string" &&
+  const isKnownType = typeof messageType === "string" &&
     (SERVER_MESSAGE_TYPES as readonly string[]).includes(messageType);
   return hasNoMessageType || isKnownType;
 }
@@ -50,7 +49,9 @@ export const kind20398EventSchema = baseEventSchema.extend({
       message: "e tag must be a valid 64-char hex event id",
     })
     .refine(isValidOptionalMessageType, {
-      message: `serverMessageType tag must be one of: ${SERVER_MESSAGE_TYPES.join(", ")}`,
+      message: `serverMessageType tag must be one of: ${
+        SERVER_MESSAGE_TYPES.join(", ")
+      }`,
     }),
 });
 

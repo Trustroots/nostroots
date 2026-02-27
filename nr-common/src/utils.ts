@@ -16,7 +16,7 @@ function last<T>(items: T[]): T {
 
 function unique<T>(items: T[]): T[] {
   const dedupedItems = items.filter(
-    (item, index) => items.indexOf(item) === index
+    (item, index) => items.indexOf(item) === index,
   );
   return dedupedItems;
 }
@@ -75,7 +75,7 @@ export function isPlusCode(code: string) {
         }
       }
     },
-    { failed: false, zeroSeen: false }
+    { failed: false, zeroSeen: false },
   );
   if (failed) {
     return false;
@@ -86,21 +86,20 @@ export function isPlusCode(code: string) {
 
 export function isPlusCodeInsidePlusCode(
   containingPlusCode: string,
-  targetPlusCode: string
+  targetPlusCode: string,
 ): boolean {
   const indexOfFirstZero = containingPlusCode.indexOf("0");
   // If the plus code has a trailing zero, use the code up to that as a search
   // prefix, otherwise use the whole code
-  const startsWithPrefix =
-    indexOfFirstZero === -1
-      ? containingPlusCode
-      : containingPlusCode.slice(0, indexOfFirstZero);
+  const startsWithPrefix = indexOfFirstZero === -1
+    ? containingPlusCode
+    : containingPlusCode.slice(0, indexOfFirstZero);
   const isWithin = targetPlusCode.startsWith(startsWithPrefix);
   return isWithin;
 }
 
 export function isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(
-  tags: string[][]
+  tags: string[][],
 ): boolean {
   const labelNamespaceTags = tags.filter((tag) => tag[0] === "L");
   const allNamespacesHaveAtLeastOneTag = labelNamespaceTags.every(
@@ -111,17 +110,17 @@ export function isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(
         return true;
       }
       return false;
-    }
+    },
   );
   return allNamespacesHaveAtLeastOneTag;
 }
 
 export function isValidTagsArrayWithTrustrootsUsername(
-  tags: string[][]
+  tags: string[][],
 ): boolean {
   const trustrootsUsername = getFirstLabelValueFromTags(
     tags,
-    TRUSTROOTS_USERNAME_LABEL_NAMESPACE
+    TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
   );
   if (
     typeof trustrootsUsername !== "string" ||
@@ -138,7 +137,7 @@ export function getCurrentTimestamp() {
 
 export function getFirstTagValueFromEvent(
   nostrEvent: Event,
-  tagName: string
+  tagName: string,
 ): string | undefined {
   const firstMatchingTagPair = nostrEvent.tags.find(([key]) => key === tagName);
 
@@ -153,10 +152,10 @@ export function getFirstTagValueFromEvent(
 
 export function getAllLabelValuesFromTags(
   tags: string[][],
-  labelName: string
+  labelName: string,
 ): string[] | undefined {
   const matchingTags = tags.filter(
-    (tag) => tag[0] === "l" && last(tag) === labelName
+    (tag) => tag[0] === "l" && last(tag) === labelName,
   );
   if (matchingTags.length === 0) {
     return;
@@ -167,7 +166,7 @@ export function getAllLabelValuesFromTags(
 
 export function getFirstLabelValueFromTags(
   tags: string[][],
-  labelName: string
+  labelName: string,
 ): string | undefined {
   const tagsValues = getAllLabelValuesFromTags(tags, labelName);
   if (typeof tagsValues === "undefined" || tagsValues.length === 0) {
@@ -178,7 +177,7 @@ export function getFirstLabelValueFromTags(
 
 export function createLabelTags(
   labelName: string,
-  labelValue: string | string[]
+  labelValue: string | string[],
 ): string[][] {
   const labelTag = ["L", labelName];
   const values = Array.isArray(labelValue) ? labelValue : [labelValue];
@@ -189,14 +188,14 @@ export function createLabelTags(
 
 export function getAllLabelValuesFromEvent(
   nostrEvent: Event,
-  labelName: string
+  labelName: string,
 ): string[] | undefined {
   return getAllLabelValuesFromTags(nostrEvent.tags, labelName);
 }
 
 export function getFirstLabelValueFromEvent(
   nostrEvent: Event,
-  labelName: string
+  labelName: string,
 ): string | undefined {
   return getFirstLabelValueFromTags(nostrEvent.tags, labelName);
 }
@@ -211,14 +210,15 @@ export function getPlusCodePrefix(plusCode: string, length: number): string {
 // TODO This should accept a maximumLength as well
 export function getAllPlusCodePrefixes(
   plusCode: string,
-  minimumLength: number
+  minimumLength: number,
 ): string[] {
   if (minimumLength % 2 !== 0) {
     throw new Error("#HqXbxX-invalid-minimum-length");
   }
   const numberOfCodes = (8 - minimumLength) / 2 + 1;
-  const plusCodes = Array.from({ length: numberOfCodes }, (_value, index) =>
-    getPlusCodePrefix(plusCode, minimumLength + index * 2)
+  const plusCodes = Array.from(
+    { length: numberOfCodes },
+    (_value, index) => getPlusCodePrefix(plusCode, minimumLength + index * 2),
   );
   const uniquePlusCodePrefixes = unique(plusCodes);
   return uniquePlusCodePrefixes;
@@ -228,11 +228,11 @@ export function getPlusCodeAndPlusCodePrefixTags(plusCode: string) {
   const plusCodeTags = createLabelTags(OPEN_LOCATION_CODE_TAG_NAME, plusCode);
   const plusCodePrefixes = getAllPlusCodePrefixes(
     plusCode,
-    DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH
+    DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH,
   );
   const plusCodePrefixTags = createLabelTags(
     OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
-    plusCodePrefixes
+    plusCodePrefixes,
   );
   const tags = [...plusCodeTags, ...plusCodePrefixTags];
   return tags;
@@ -244,13 +244,14 @@ export function hasOpenLocationCode(tags: string[][]): boolean {
     .map((tag) => tag.slice(1))
     .flat();
   const hasOpenLocationCodeNamespace = namespaces.includes(
-    OPEN_LOCATION_CODE_TAG_NAME
+    OPEN_LOCATION_CODE_TAG_NAME,
   );
   if (!hasOpenLocationCodeNamespace) return false;
 
   const plusCodeTags = tags.filter(
     (tag) =>
-      tag.length > 3 && tag[0] === "l" && tag[2] === OPEN_LOCATION_CODE_TAG_NAME
+      tag.length > 3 && tag[0] === "l" &&
+      tag[2] === OPEN_LOCATION_CODE_TAG_NAME,
   );
   if (plusCodeTags.length === 0) return false;
 
@@ -273,10 +274,11 @@ export function hasVersion(tags: string[][]): boolean {
 }
 
 export async function getNip5PubKey(
-  trustrootsUsername: string
+  trustrootsUsername: string,
 ): Promise<string | undefined> {
   try {
-    const url = `https://www.trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`;
+    const url =
+      `https://www.trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`;
     const nip5Response = await fetch(url);
 
     const { names, error } = (await nip5Response.json()) as {
@@ -287,7 +289,9 @@ export async function getNip5PubKey(
     };
 
     if (error) {
-      console.warn(`NIP-5 error for ${trustrootsUsername}: ${serializeArg(error)}`);
+      console.warn(
+        `NIP-5 error for ${trustrootsUsername}: ${serializeArg(error)}`,
+      );
       return;
     }
 
@@ -298,7 +302,9 @@ export async function getNip5PubKey(
     const nip5PubKey = names[trustrootsUsername];
     return nip5PubKey;
   } catch (e: unknown) {
-    console.warn(`Could not get nip5 key for ${trustrootsUsername} ${serializeArg(e)}`);
+    console.warn(
+      `Could not get nip5 key for ${trustrootsUsername} ${serializeArg(e)}`,
+    );
     return;
   }
 }
@@ -306,7 +312,7 @@ export async function getNip5PubKey(
 export function getTrustrootsUsernameFromProfileEvent(event: NostrEvent) {
   const username = getFirstLabelValueFromEvent(
     event,
-    TRUSTROOTS_USERNAME_LABEL_NAMESPACE
+    TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
   );
   return username;
 }

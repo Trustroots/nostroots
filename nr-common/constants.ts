@@ -72,7 +72,6 @@ export const HITCHWIKI_AUTHOR_PUBLIC_KEY =
 export const TIMESAFARI_AUTHOR_PUBLIC_KEY =
   "76e88d2e653fc3655f8e0b97f6bc85f5468eaffc5d64522b584ce13eedbd8af7" as const;
 
-
 // cross-env DSN id - use for native + server
 export const SENTRY_DSN =
   "https://ea370f9e4aba87f6e69a479f2d41bc23@o4508806276841472.ingest.de.sentry.io/4508806292176976" as const;

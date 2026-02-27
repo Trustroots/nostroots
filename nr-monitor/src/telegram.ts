@@ -1,11 +1,11 @@
 import { config } from "./config.ts";
 import { ServiceResult } from "./health-check.ts";
-import { E2EResult } from "./e2e-test.ts";
+import { NrServerPingResult } from "./nr-server-ping.ts";
 import { log } from "./log.ts";
 
 export interface StatusReport {
   services: ServiceResult[];
-  e2e: E2EResult;
+  nrServerPing: NrServerPingResult;
 }
 
 interface TelegramMessage {
@@ -60,26 +60,28 @@ export function formatStatusMessage(report: StatusReport): string {
     lines.push(`${icon} ${service.displayName}`);
   }
 
-  // E2E test as a service
-  if (report.e2e.status === "ok") {
-    const duration = report.e2e.durationMs
-      ? report.e2e.durationMs >= 1000
-        ? `${(report.e2e.durationMs / 1000).toFixed(1)}s`
-        : `${report.e2e.durationMs}ms`
+  // nr-server ping
+  if (report.nrServerPing.status === "ok") {
+    const duration = report.nrServerPing.durationMs
+      ? report.nrServerPing.durationMs >= 1000
+        ? `${(report.nrServerPing.durationMs / 1000).toFixed(1)}s`
+        : `${report.nrServerPing.durationMs}ms`
       : "";
     const durationSuffix = duration ? ` — ${duration}` : "";
-    lines.push(`🟢 E2E Test${durationSuffix}`);
+    lines.push(`🟢 nr-server Ping${durationSuffix}`);
   } else {
-    const reason = report.e2e.error ? ` — ${report.e2e.error}` : "";
-    lines.push(`🔴 E2E Test${reason}`);
+    const reason = report.nrServerPing.error
+      ? ` — ${report.nrServerPing.error}`
+      : "";
+    lines.push(`🔴 nr-server Ping${reason}`);
   }
 
   // Footer with operational count
   const serviceUpCount = report.services.filter(
     (s) => s.status === "ok",
   ).length;
-  const e2eUp = report.e2e.status === "ok" ? 1 : 0;
-  const totalUp = serviceUpCount + e2eUp;
+  const pingUp = report.nrServerPing.status === "ok" ? 1 : 0;
+  const totalUp = serviceUpCount + pingUp;
   const total = report.services.length + 1;
 
   lines.push("");

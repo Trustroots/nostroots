@@ -6,7 +6,6 @@ const {
   getFirstLabelValueFromEvent,
   TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
   getNip5PubKey,
-  VALIDATION_BYPASS_PUBLIC_KEYS,
   TRUSTROOTS_USERNAME_MIN_LENGTH,
 } = nrCommon;
 import { log } from "../log.ts";
@@ -121,11 +120,6 @@ export async function validateEvent(
 ): Promise<ValidationResult> {
   if (event.kind !== MAP_NOTE_KIND) {
     return { valid: false, reason: `Event kind ${event.kind} is not supported.` };
-  }
-
-  // Automatically validate events from trusted sources (hitchmaps, e2e tests, etc.)
-  if (VALIDATION_BYPASS_PUBLIC_KEYS.includes(event.pubkey)) {
-    return { valid: true };
   }
 
   const trustrootsUsername = await getTrustrootsUsernameFromProfile(

@@ -1,5 +1,5 @@
 import { config } from "./src/config.ts";
-import { runE2ETest } from "./src/e2e-test.ts";
+import { runNrServerPing } from "./src/nr-server-ping.ts";
 import { checkAllServices } from "./src/health-check.ts";
 import { log } from "./src/log.ts";
 import { updateState } from "./src/state.ts";
@@ -10,26 +10,28 @@ import {
 } from "./src/telegram.ts";
 
 async function runChecks(): Promise<StatusReport> {
-  const [services, e2e] = await Promise.all([
+  const [services, nrServerPing] = await Promise.all([
     checkAllServices(config.services),
-    runE2ETest(
+    runNrServerPing(
       config.relayWsUrl,
-      config.e2eTestPrivateKeyHex,
-      config.e2eTimeoutSeconds,
+      config.nrServerPingPrivateKeyHex,
+      config.nrServerPingTimeoutSeconds,
     ),
   ]);
 
-  return { services, e2e };
+  return { services, nrServerPing };
 }
 
 function logStatus(report: StatusReport): void {
   for (const service of report.services) {
     log.info(`#Gh2Jk3   ${service.displayName}: ${service.status}`);
   }
-  const duration = report.e2e.durationMs
-    ? ` (${report.e2e.durationMs}ms)`
+  const duration = report.nrServerPing.durationMs
+    ? ` (${report.nrServerPing.durationMs}ms)`
     : "";
-  log.info(`#Mn4Pq5   E2E Pipeline: ${report.e2e.status}${duration}`);
+  log.info(
+    `#Mn4Pq5   nr-server Ping: ${report.nrServerPing.status}${duration}`,
+  );
 }
 
 async function runOnce(): Promise<void> {
@@ -51,11 +53,17 @@ async function runOnce(): Promise<void> {
 
 async function runLoop(): Promise<void> {
   if (config.startupDelayMs > 0) {
-    log.info(`#Ab1Cd2 Waiting ${config.startupDelayMs}ms before starting health monitor...`);
-    await new Promise((resolve) => setTimeout(resolve, config.startupDelayMs));
+    log.info(
+      `#Ab1Cd2 Waiting ${config.startupDelayMs}ms before starting health monitor...`,
+    );
+    await new Promise((resolve) =>
+      setTimeout(resolve, config.startupDelayMs)
+    );
   }
 
-  log.info(`#De3Fg4 Starting health monitor with ${config.checkIntervalMs}ms interval`);
+  log.info(
+    `#De3Fg4 Starting health monitor with ${config.checkIntervalMs}ms interval`,
+  );
 
   while (true) {
     try {
@@ -64,7 +72,9 @@ async function runLoop(): Promise<void> {
       log.error("#Hi5Jk6 Error during health check:", error);
     }
 
-    await new Promise((resolve) => setTimeout(resolve, config.checkIntervalMs));
+    await new Promise((resolve) =>
+      setTimeout(resolve, config.checkIntervalMs)
+    );
   }
 }
 

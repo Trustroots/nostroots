@@ -16,11 +16,11 @@ export function updateState(report: StatusReport): boolean {
     currentState[service.name] = service.status;
   }
 
-  const prevE2e = currentState["e2e-pipeline"];
-  if (prevE2e !== undefined && prevE2e !== report.e2e.status) {
+  const prevPing = currentState["nr-server-ping"];
+  if (prevPing !== undefined && prevPing !== report.nrServerPing.status) {
     changed = true;
   }
-  currentState["e2e-pipeline"] = report.e2e.status;
+  currentState["nr-server-ping"] = report.nrServerPing.status;
 
   return changed;
 }

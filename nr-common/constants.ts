@@ -10,6 +10,7 @@ export const EVENT_DELETION_KIND = 5 as const;
 export const TRUSTROOTS_PROFILE_KIND = 10390 as const;
 export const NOTIFICATION_SUBSCRIPTION_KIND = 10395 as const;
 export const SERVER_MESSAGE_KIND = 20398 as const;
+export const PING_ACK_KIND = 20400 as const;
 export const MAP_NOTE_KIND = 30397 as const;
 export const MAP_NOTE_REPOST_KIND = 30398 as const;
 export const THIRD_PARTY_EVENT_KIND = 30399 as const;
@@ -22,6 +23,7 @@ export const ACCEPTED_KINDS = [
   TRUSTROOTS_PROFILE_KIND,
   NOTIFICATION_SUBSCRIPTION_KIND,
   SERVER_MESSAGE_KIND,
+  PING_ACK_KIND,
   MAP_NOTE_KIND,
   MAP_NOTE_REPOST_KIND,
   THIRD_PARTY_EVENT_KIND,
@@ -70,14 +72,6 @@ export const HITCHWIKI_AUTHOR_PUBLIC_KEY =
 export const TIMESAFARI_AUTHOR_PUBLIC_KEY =
   "76e88d2e653fc3655f8e0b97f6bc85f5468eaffc5d64522b584ce13eedbd8af7" as const;
 
-export const E2E_TEST_AUTHOR_PUBLIC_KEY =
-  "fb745245a3bcf0fb57e35020feb577ee4f30f7e7ba761d956407a4be4ad6d69d" as const;
-
-// Public keys that bypass Trustroots profile validation
-export const VALIDATION_BYPASS_PUBLIC_KEYS = [
-  HITCHMAPS_AUTHOR_PUBLIC_KEY,
-  E2E_TEST_AUTHOR_PUBLIC_KEY,
-] as const;
 
 // cross-env DSN id - use for native + server
 export const SENTRY_DSN =

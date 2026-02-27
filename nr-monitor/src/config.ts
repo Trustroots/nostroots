@@ -62,8 +62,11 @@ export const config = {
     },
   ] as ServiceConfig[],
 
-  // E2E test configuration
-  e2eTestPrivateKeyHex: getEnvRequired("E2E_TEST_PRIVATE_KEY_HEX"),
+  // nr-server ping configuration
+  nrServerPingPrivateKeyHex: getEnvRequired("NR_SERVER_PING_PRIVATE_KEY_HEX"),
   relayWsUrl: getEnvRequired("RELAY_WS_URL"),
-  e2eTimeoutSeconds: parseInt(getEnvOptional("E2E_TIMEOUT_SECONDS") ?? "60", 10),
+  nrServerPingTimeoutSeconds: parseInt(
+    getEnvOptional("NR_SERVER_PING_TIMEOUT_SECONDS") ?? "60",
+    10,
+  ),
 };

@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nostroots Chat</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            /* Sticker + notes.trustroots.org: cream, teal-green, moss, terracotta */
+            --background: hsl(40, 28%, 96%);
+            --foreground: hsl(168, 25%, 18%);
+            --card: hsl(45, 22%, 98%);
+            --card-foreground: hsl(168, 25%, 18%);
+            --primary: hsl(168, 48%, 32%);
+            --primary-foreground: hsl(45, 30%, 98%);
+            --secondary: hsl(88, 18%, 92%);
+            --secondary-foreground: hsl(168, 25%, 20%);
+            --muted: hsl(40, 20%, 93%);
+            --muted-foreground: hsl(168, 15%, 38%);
+            --accent: hsl(24, 38%, 94%);
+            --accent-foreground: hsl(168, 25%, 16%);
+            --terracotta: hsl(24, 38%, 48%);
+            --destructive: hsl(12, 48%, 48%);
+            --border: hsl(168, 20%, 80%);
+            --border-outer: hsl(168, 45%, 28%);
+            --input: hsl(40, 20%, 91%);
+            --ring: hsl(168, 45%, 35%);
+            --radius: 0.875rem;
+            --radius-lg: 1.25rem;
+            --header-green: #12b591;
+            --header-green-dark: #0e9a7b;
+        }
+        /* Dark mode theme - default (warm, cozy dark) */
+        [data-theme="dark"],
+        :root:not([data-theme="light"]) {
+            --background: hsl(30, 14%, 11%);
+            --foreground: hsl(40, 28%, 92%);
+            --card: hsl(30, 12%, 15%);
+            --card-foreground: hsl(40, 28%, 92%);
+            --primary: hsl(88, 22%, 42%);
+            --primary-foreground: hsl(30, 14%, 11%);
+            --secondary: hsl(30, 12%, 22%);
+            --secondary-foreground: hsl(40, 28%, 92%);
+            --muted: hsl(30, 10%, 20%);
+            --muted-foreground: hsl(40, 15%, 62%);
+            --accent: hsl(24, 25%, 22%);
+            --accent-foreground: hsl(40, 28%, 92%);
+            --terracotta: hsl(24, 38%, 52%);
+            --destructive: hsl(12, 45%, 52%);
+            --border: hsl(30, 12%, 24%);
+            --border-outer: hsl(88, 18%, 35%);
+            --input: hsl(30, 12%, 20%);
+            --ring: hsl(88, 22%, 45%);
+        }
+        body {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--background);
+            color: var(--foreground);
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+        }
+        h1, h2, .modal-header h2 {
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-weight: 600;
+        }
+        /* Header from notes.trustroots.org */
+        .app-header {
+            flex-shrink: 0;
+            background: var(--header-green);
+            min-height: 56px;
+            padding: 0 1rem;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            position: relative;
+            overflow: hidden;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+        .app-header .vines {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        .app-header .vines img {
+            width: 100%;
+            min-height: 100%;
+            object-fit: cover;
+            opacity: 0.15;
+        }
+        .app-header-inner {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 0.75rem 1rem;
+            position: relative;
+            z-index: 1;
+            min-width: 0;
+        }
+        .app-header-logo {
+            height: 32px;
+            width: auto;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .app-header h1 {
+            color: #fff;
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 1.65rem;
+            font-weight: 700;
+            font-style: italic;
+            letter-spacing: 0.02em;
+            text-transform: none;
+            margin: 0;
+            padding: 0;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+        .app-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            position: relative;
+            z-index: 1;
+            flex-shrink: 0;
+        }
+        .header-identity {
+            font-size: 0.8125rem;
+            color: rgba(255, 255, 255, 0.95);
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 0.375rem 0.75rem;
+            margin-right: 0.25rem;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 999px;
+            font-weight: 500;
+        }
+        .header-identity.nip5 { font-weight: 600; }
+        .header-identity.empty { display: none; }
+        .app-header-actions .settings-icon,
+        .app-header-actions .keys-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            transition: transform 0.2s ease, background 0.2s ease;
+        }
+        .app-header-actions .settings-icon:hover,
+        .app-header-actions .keys-icon:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+        .app-header-actions .settings-icon:active,
+        .app-header-actions .keys-icon:active {
+            transform: scale(0.95);
+        }
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: calc(var(--radius) - 2px);
+            background: var(--primary);
+            color: var(--primary-foreground);
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+        .btn:hover { opacity: 0.9; }
+        .btn-secondary { background: var(--secondary); color: var(--secondary-foreground); }
+        .btn-danger { background: var(--destructive); color: #fff; }
+        .btn-danger:hover { filter: brightness(1.1); }
+        .nip07-status {
+            font-size: 0.75rem;
+            padding: 0.375rem 0.625rem;
+            border-radius: calc(var(--radius) - 2px);
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+            display: none;
+            background: color-mix(in srgb, var(--primary) 18%, transparent);
+            color: var(--primary);
+            border: 1px solid color-mix(in srgb, var(--primary) 35%, transparent);
+            line-height: 1.4;
+        }
+        .nip07-status.show { display: block; }
+        .username-nostr-indicator { font-size: 0.8125rem; color: var(--muted-foreground); margin-top: 0.5rem; font-style: italic; }
+        .settings-section {
+            background: var(--card);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: var(--radius-lg);
+            border: 2px solid var(--border);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        }
+        .settings-section h2 {
+            margin-bottom: 1rem;
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--foreground);
+        }
+        .key-input-wrapper {
+            position: relative;
+            display: flex;
+            gap: 0.5rem;
+            align-items: stretch;
+        }
+        .key-input-wrapper input {
+            flex: 1;
+            padding-right: 3rem;
+        }
+        .key-input-wrapper input[readonly] {
+            background: var(--muted);
+            cursor: default;
+        }
+        .copy-btn {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: transparent;
+            border: none;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            padding: 0.25rem 0.5rem;
+            border-radius: calc(var(--radius) - 2px);
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .copy-btn:hover {
+            background: var(--secondary);
+            color: var(--foreground);
+        }
+        .copy-btn:active { transform: translateY(-50%) scale(0.95); }
+        .copy-btn.copied { color: var(--primary); }
+        .nip05-input { background: var(--muted); cursor: default; }
+        /* Bottom mycelium strip (notes.trustroots.org style) */
+        .mycelium-bottom {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 140px;
+            pointer-events: none;
+            z-index: 5;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .mycelium-bottom img {
+            width: 100%;
+            min-width: 600px;
+            height: 100%;
+            object-fit: cover;
+            object-position: center bottom;
+            opacity: 0.22;
+        }
+        .main {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            min-height: 0;
+            position: relative;
+            z-index: 1;
+        }
+        .sidebar {
+            width: 280px;
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            background: var(--card);
+            flex-shrink: 0;
+        }
+        .sidebar-header { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+        .conv-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.25rem;
+        }
+        .conv-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: calc(var(--radius) - 2px);
+            cursor: pointer;
+            margin-bottom: 2px;
+        }
+        .conv-item:hover { background: var(--muted); }
+        .conv-item.selected { background: var(--primary); color: var(--primary-foreground); }
+        .conv-item .enc-icon { font-size: 0.9rem; flex-shrink: 0; }
+        .conv-item .label-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .conv-item .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; }
+        .conv-item .tags-line { font-size: 0.7rem; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .thread-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            background: var(--background);
+        }
+        .thread-header {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+        .thread-header .enc-icon { font-size: 1rem; }
+        .thread-header .enc-label { font-size: 0.75rem; color: var(--muted-foreground); }
+        .thread-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .message-wrap {
+            display: flex;
+            flex-direction: column;
+            max-width: 85%;
+        }
+        .message-wrap.self { align-self: flex-end; align-items: flex-end; }
+        .message-wrap.other { align-self: flex-start; align-items: flex-start; }
+        .message-author {
+            font-size: 0.75rem;
+            color: var(--primary);
+            margin-bottom: 2px;
+            padding-left: 2px;
+        }
+        .message-wrap.self .message-author { display: none; }
+        .message {
+            padding: 0.5rem 0.75rem 0.4rem;
+            font-size: 0.9rem;
+            word-break: break-word;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+        }
+        .message.self {
+            border-radius: 1rem 1rem 0.25rem 1rem;
+            background: var(--primary);
+            color: var(--primary-foreground);
+        }
+        .message.other {
+            border-radius: 1rem 1rem 1rem 0.25rem;
+            background: var(--muted);
+        }
+        .message .meta {
+            font-size: 0.7rem;
+            opacity: 0.85;
+            margin-top: 2px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.35rem;
+        }
+        .message .meta .time { opacity: 0.75; }
+        .message-pluscode {
+            margin-top: 0.35rem;
+            font-size: 0.75rem;
+        }
+        .message-pluscode a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: var(--primary);
+            text-decoration: none;
+            padding: 0.2rem 0.4rem;
+            border-radius: calc(var(--radius) - 2px);
+            background: rgba(0,0,0,0.06);
+        }
+        .message.self .message-pluscode a { color: var(--primary-foreground); background: rgba(255,255,255,0.2); }
+        .message-pluscode a:hover { text-decoration: underline; }
+        .compose {
+            padding: 0.75rem 1rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+        .compose input, .compose textarea {
+            flex: 1;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: calc(var(--radius) - 2px);
+            background: var(--input);
+            color: var(--foreground);
+            font-size: 0.9rem;
+        }
+        .empty-state {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted-foreground);
+            font-size: 0.9rem;
+            padding: 2rem;
+            text-align: center;
+        }
+        .relays-section {
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--card);
+        }
+        .relays-section summary { cursor: pointer; font-size: 0.85rem; color: var(--muted-foreground); }
+        .relays-list { margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; }
+        .relay-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; }
+        .relay-item .url { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--card);
+            border-radius: var(--radius);
+            padding: 1.5rem;
+            max-width: 420px;
+            width: 95%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-content h2 { margin-bottom: 1rem; font-size: 1.1rem; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.25rem; font-size: 0.875rem; }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: calc(var(--radius) - 2px);
+            background: var(--input);
+            color: var(--foreground);
+        }
+        .status-container { position: fixed; bottom: 1rem; left: 50%; transform: translateX(-50%); z-index: 1001; pointer-events: none; }
+        .status-toast {
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius);
+            font-size: 0.875rem;
+            background: var(--card);
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .status-toast.success { border-color: var(--primary); }
+        .status-toast.error { border-color: var(--destructive); }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .modal-header h2 { font-size: 1.25rem; font-weight: 600; color: var(--foreground); }
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--muted-foreground);
+            padding: 0.25rem;
+            line-height: 1;
+            border-radius: calc(var(--radius) - 2px);
+        }
+        .modal-close:hover { background: var(--accent); color: var(--foreground); }
+        .settings-section {
+            background: var(--card);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+        .settings-section h2 { margin-bottom: 1rem; font-size: 1.125rem; font-weight: 600; color: var(--foreground); }
+        .add-member-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        .add-member-row input { flex: 1; min-width: 0; }
+        .add-member-row .btn { flex-shrink: 0; }
+        .new-group-members-list {
+            margin-bottom: 1rem;
+            min-height: 2rem;
+        }
+        .participant-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.35rem 0.5rem;
+            margin: 0.25rem 0.25rem 0 0;
+            background: var(--secondary);
+            border-radius: calc(var(--radius) - 2px);
+            font-size: 0.8125rem;
+        }
+        .participant-chip .label { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .participant-chip .remove-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.125rem;
+            color: var(--muted-foreground);
+            font-size: 1rem;
+            line-height: 1;
+        }
+        .participant-chip .remove-btn:hover { color: var(--destructive); }
+
+        @media (max-width: 768px) {
+            .app-header { padding: 0 0.75rem; }
+            .app-header-inner { justify-content: flex-start; }
+            .app-header h1 { font-size: 1.35rem; }
+            .app-header-logo { height: 28px; }
+            .header-identity { max-width: 120px; font-size: 0.75rem; padding: 0.3rem 0.5rem; }
+            .mycelium-bottom { height: 100px; }
+            .mycelium-bottom img { min-width: 100%; }
+            .main { flex-direction: column; }
+            .sidebar { width: 100%; max-height: 40%; }
+        }
+    </style>
+    <script src="common.js"></script>
+</head>
+<body>
+    <header class="app-header" aria-label="Brand">
+        <div class="vines">
+            <img src="https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/vines-top.png" alt="" width="1200" height="400">
+        </div>
+        <div class="app-header-inner">
+            <img src="https://notes.trustroots.org/logo.svg" alt="Trustroots" class="app-header-logo" width="140" height="32">
+            <h1>Nostroots Chat</h1>
+        </div>
+        <div class="app-header-actions">
+            <span class="header-identity empty" id="header-identity" title=""></span>
+            <button type="button" class="keys-icon" id="keys-icon-btn" title="Keys" onclick="openAuthModal()">🔑</button>
+            <button type="button" class="settings-icon" id="settings-icon-btn" title="Relays" onclick="openRelaysModal()">⚙️</button>
+        </div>
+    </header>
+    <main class="main">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <button type="button" class="btn" onclick="openNewDmModal()" style="width:100%;">New conversation</button>
+            </div>
+            <div class="conv-list" id="conv-list"></div>
+        </aside>
+        <section class="thread-area">
+            <div class="thread-header" id="thread-header" style="display:none;">
+                <span class="enc-icon" id="thread-enc-icon" title=""></span>
+                <span class="enc-label" id="thread-enc-label"></span>
+                <span id="thread-title"></span>
+            </div>
+            <div class="thread-messages" id="thread-messages"></div>
+            <div class="empty-state" id="empty-state">Select a conversation or start a new one.</div>
+            <div class="compose" id="compose" style="display:none;">
+                <input type="text" id="compose-input" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendMessage()">
+                <button type="button" class="btn" onclick="sendMessage()">Send</button>
+            </div>
+        </section>
+    </main>
+
+    <div id="auth-modal" class="modal" onclick="if(event.target===this)closeAuthModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="auth-modal-title">Keys</h2>
+                <button type="button" class="modal-close" onclick="closeAuthModal()">&times;</button>
+            </div>
+            <div id="auth-connected-section" style="display:none;">
+                <div class="settings-section">
+                    <h2>Keys</h2>
+                    <div class="form-group">
+                        <label>Public Key (npub)</label>
+                        <div class="key-input-wrapper">
+                            <input type="text" id="auth-npub-display" readonly>
+                            <button type="button" class="copy-btn" id="auth-copy-npub-btn" onclick="copyPublicKey()" title="Copy to clipboard">
+                                <span id="auth-copy-npub-text">📋</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="auth-nip05-wrap" class="form-group" style="display:none;">
+                        <label>NIP-05</label>
+                        <input type="text" id="auth-nip05-display" readonly class="nip05-input">
+                    </div>
+                    <div id="auth-nip07-status" class="nip07-status">✓ Using NIP-07 extension - private key secure</div>
+                    <div class="form-group" id="auth-update-trustroots-wrap" style="margin-top: 0.75rem;">
+                        <button type="button" class="btn btn-secondary" id="auth-update-trustroots-btn" onclick="updateTrustrootsProfile()" style="width:100%;">Update Trustroots Profile</button>
+                    </div>
+                    <button type="button" class="btn btn-danger" style="margin-top: 0.75rem;" onclick="disconnect(); closeAuthModal();">Disconnect</button>
+                </div>
+                <div id="auth-trustroots-section" class="settings-section">
+                    <h2>Trustroots username</h2>
+                    <div class="form-group">
+                        <input type="text" id="trustroots-username" placeholder="your-username" style="width:100%;" onkeydown="if(event.key==='Enter')linkTrustrootsProfile()">
+                        <div id="username-nostr-indicator" class="username-nostr-indicator" style="display:none;"><small>This username is from a Nostr event and cannot be edited here.</small></div>
+                        <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                            <button type="button" class="btn btn-secondary" onclick="linkTrustrootsProfile()">Link profile</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="auth-connect-section">
+                <div class="form-group">
+                    <button type="button" class="btn" onclick="connectNip07()">Connect browser extension (NIP-07)</button>
+                </div>
+                <div class="form-group">
+                    <label>Or paste nsec / hex key</label>
+                    <input type="password" id="nsec-input" placeholder="nsec1... or hex">
+                    <button type="button" class="btn btn-secondary" style="margin-top:0.5rem;" onclick="importKey()">Use this key</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="relays-modal" class="modal" onclick="if(event.target===this)closeRelaysModal()">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Relays</h2>
+                <button type="button" class="modal-close" onclick="closeRelaysModal()">&times;</button>
+            </div>
+            <div class="settings-section">
+                <div class="relays-list" id="relays-list"></div>
+                <div class="form-group" style="margin-top:1rem; display:flex; gap:0.5rem;">
+                    <input type="text" id="new-relay-url" placeholder="wss://relay.example.com" style="flex:1;" onkeydown="if(event.key==='Enter')addRelay()">
+                    <button type="button" class="btn" onclick="addRelay()">Add Relay</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="new-dm-modal" class="modal">
+        <div class="modal-content">
+            <h2>New conversation</h2>
+            <div class="form-group">
+                <label>npub, nip5 or hashtag</label>
+                <input type="text" id="new-dm-pubkey" placeholder="npub1... or nostroots@trustroots.org">
+            </div>
+            <button type="button" class="btn" onclick="startDm()">Start</button>
+            <button type="button" class="btn btn-secondary" onclick="closeNewDmModal()">Cancel</button>
+        </div>
+    </div>
+    <div id="new-group-modal" class="modal">
+        <div class="modal-content">
+            <h2>New group</h2>
+            <div class="form-group">
+                <label>Add members (npub, nip5 or hashtag e.g. nostroots@trustroots.org)</label>
+                <div class="add-member-row">
+                    <input type="text" id="new-group-one-pubkey" placeholder="npub1... or nostroots@trustroots.org" onkeydown="if(event.key==='Enter')addGroupParticipant()">
+                    <button type="button" class="btn" onclick="addGroupParticipant()">Add</button>
+                </div>
+            </div>
+            <div id="new-group-members-list" class="new-group-members-list" aria-label="Added members"></div>
+            <button type="button" class="btn" id="new-group-start-btn" onclick="startGroup()" disabled>Start group</button>
+            <button type="button" class="btn btn-secondary" onclick="closeNewGroupModal()">Cancel</button>
+        </div>
+    </div>
+    <!-- Bottom mycelium decoration -->
+    <div class="mycelium-bottom" aria-hidden="true">
+        <img src="https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/mycelium-roots.svg" alt="">
+    </div>
+    <div id="status-container" class="status-container"></div>
+
+    <script type="module">
+        import {
+            finalizeEvent,
+            getPublicKey,
+            getEventHash,
+            nip19,
+            nip04,
+            nip44,
+            generateSecretKey,
+            SimplePool
+        } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.23.0/+esm';
+
+        // nostr-tools may access window.printer.maybe for debug; avoid ReferenceError
+        if (typeof window !== 'undefined' && !window.printer) {
+            window.printer = { maybe: function () {} };
+        }
+
+        const MAP_NOTE_KIND = 30397;
+        const TRUSTROOTS_PROFILE_KIND = 10390;
+        const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = 'org.trustroots:username';
+        const DEFAULT_RELAY_URL = 'wss://relay.trustroots.org';
+        const DEFAULT_RELAYS = ['wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
+        const TRUSTROOTS_CIRCLE_LABEL = 'trustroots-circle';
+        const GLOBAL_CHANNEL_SLUG = 'global';
+
+        function isPlusCodeChannelId(id) {
+            // OLC alphabet plus '0' for padded/prefix codes (e.g. 9F000000+)
+            return typeof id === 'string' && id !== GLOBAL_CHANNEL_SLUG && /^[023456789CFGHJMPQRVWX]{4,}\+?$/i.test(id.replace(/\s/g, ''));
+        }
+        const pubkeyToUsername = new Map();
+        /** NIP-05 from kind 0 (any domain). Used for display; prefer over npub. */
+        const pubkeyToNip05 = new Map();
+        let isProfileLinked = false;
+        let usernameFromNostr = false;
+        let currentUserNip05 = '';
+
+        function getTrustrootsCircles() {
+            return [
+                { slug: 'hitch' }, { slug: 'hackers' }, { slug: 'nomads' }, { slug: 'veg' }, { slug: 'climbers' },
+                { slug: 'cyclists' }, { slug: 'artists' }, { slug: 'photographers' }, { slug: 'vanlife' },
+                { slug: 'sailors' }, { slug: 'musicians' }, { slug: 'punks' }, { slug: 'ecoliving' },
+                { slug: 'foodsharing' }, { slug: 'yoga' }, { slug: 'hikers' }, { slug: 'dancers' },
+                { slug: 'volunteers' }, { slug: 'activists' }, { slug: 'burners' }, { slug: 'lightfoot' }
+            ];
+        }
+
+        /** Same relay list as index.html: localStorage 'relay_urls' or DEFAULT_RELAYS. */
+        function getRelayUrls() {
+            const saved = localStorage.getItem('relay_urls');
+            if (saved) {
+                return saved.split('\n').filter(url => url.trim());
+            }
+            return DEFAULT_RELAYS;
+        }
+
+        function saveRelayUrls(urls) {
+            if (urls.length) localStorage.setItem('relay_urls', urls.join('\n'));
+            else localStorage.removeItem('relay_urls');
+        }
+
+        let currentPublicKey = null;
+        let currentSecretKeyHex = null;
+        let currentSecretKeyBytes = null;
+        let usingNip07 = false;
+        let nostrProvider = null;
+        let authenticatingWithExtension = false;
+        let pool = null;
+        let relays = [];
+        const conversations = new Map();
+        let selectedConversationId = null;
+        let relayUrlsForList = [];
+        /** New group modal: list of { hex, label } for added members */
+        let groupModalMembers = [];
+
+        function getHashRoute() {
+            const h = location.hash.slice(1);
+            if (!h) return '';
+            try { return decodeURIComponent(h); } catch (_) { return h; }
+        }
+        function setHashRoute(route) {
+            const encoded = route ? encodeURIComponent(route).replace(/%2B/g, '+') : '';
+            const want = encoded ? '#' + encoded : '';
+            if (location.hash !== want) location.hash = want;
+        }
+        function applyHashToState() {
+            const route = getHashRoute();
+            if (route === 'keys') {
+                document.getElementById('relays-modal').classList.remove('active');
+                openAuthModal();
+                return;
+            }
+            if (route === 'settings') {
+                document.getElementById('auth-modal').classList.remove('active');
+                openRelaysModal();
+                return;
+            }
+            document.getElementById('auth-modal').classList.remove('active');
+            document.getElementById('relays-modal').classList.remove('active');
+            if (!route) {
+                selectConversation(GLOBAL_CHANNEL_SLUG);
+                return;
+            }
+            if (route && conversations.has(route)) {
+                selectConversation(route);
+                return;
+            }
+            if (route && !conversations.has(route)) {
+                if (isPlusCodeChannelId(route)) {
+                    getOrCreateConversation('channel', route, []);
+                    selectConversation(route);
+                } else {
+                    selectedConversationId = null;
+                    renderConvList();
+                    renderThread();
+                    document.getElementById('empty-state').style.display = 'block';
+                    document.getElementById('compose').style.display = 'none';
+                    document.getElementById('thread-header').style.display = 'none';
+                    document.getElementById('thread-messages').innerHTML = '';
+                }
+                return;
+            }
+        }
+
+        function showStatus(message, type) {
+            const el = document.getElementById('status-container');
+            if (!el) return;
+            el.innerHTML = `<div class="status-toast ${type || 'info'}">${message}</div>`;
+            setTimeout(() => { el.innerHTML = ''; }, 4000);
+        }
+
+        function truncatePubkey(hex) {
+            if (!hex || hex.length < 16) return hex || '';
+            return hex.slice(0, 8) + '…' + hex.slice(-8);
+        }
+
+        /** Display name: NIP-05 if known (Trustroots or kind 0), else npub. Never hex. */
+        function getDisplayName(hex) {
+            if (!hex) return '';
+            const trUser = pubkeyToUsername.get(hex);
+            if (trUser) return trUser + '@trustroots.org';
+            const nip05 = pubkeyToNip05.get(hex);
+            if (nip05) return nip05;
+            return hexToNpub(hex) || '';
+        }
+
+        /** Short form for sidebar: NIP-05 as-is if short, else truncated npub (never hex). */
+        function getDisplayNameShort(hex) {
+            const full = getDisplayName(hex);
+            if (!full) return '';
+            if (full.includes('@') && full.length <= 32) return full;
+            if (full.length <= 20) return full;
+            return full.slice(0, 12) + '…' + full.slice(-8);
+        }
+
+        /** Display label for a pubkey (nip5 or npub); used in thread author and meta. */
+        function pubkeyDisplayLabel(hex) {
+            return getDisplayName(hex) || getDisplayNameShort(hex) || '';
+        }
+
+        function hexToNpub(hex) {
+            try {
+                if (!hex || typeof hex !== 'string') return '';
+                const s = hex.trim().toLowerCase().replace(/^0x/, '');
+                if (s.startsWith('npub1')) return hex.trim();
+                if (s.length !== 64 || !/^[0-9a-f]+$/.test(s)) return '';
+                const bytes = new Uint8Array(32);
+                for (let i = 0; i < 32; i++) bytes[i] = parseInt(s.slice(i * 2, i * 2 + 2), 16);
+                return nip19.npubEncode(bytes);
+            } catch (_) {}
+            try {
+                const s = (hex || '').trim().toLowerCase().replace(/^0x/, '');
+                if (s.length === 64 && /^[0-9a-f]+$/.test(s)) return nip19.npubEncode(s);
+            } catch (_) {}
+            return '';
+        }
+
+        function getDisplayNpub() {
+            if (!currentPublicKey) return '';
+            return hexToNpub(currentPublicKey) || '';
+        }
+
+        function parsePubkeyInput(input) {
+            const s = (input || '').trim();
+            if (!s) return null;
+            if (/^[0-9a-f]{64}$/i.test(s)) return s;
+            try {
+                const decoded = nip19.decode(s);
+                if (decoded.type === 'npub') return Array.from(decoded.data).map(b => b.toString(16).padStart(2, '0')).join('');
+                if (decoded.type === 'nsec') return null;
+            } catch (_) {}
+            return null;
+        }
+
+        /** Resolve NIP-05 (e.g. nostroots@trustroots.org) to hex. trustroots.org use www.trustroots.org. Falls back to CORS proxy when direct fetch is blocked (missing Access-Control-Allow-Origin or 502). */
+        async function resolveNip05(nip05) {
+            const s = (nip05 || '').trim().toLowerCase();
+            const at = s.indexOf('@');
+            if (at <= 0 || at === s.length - 1) return null;
+            const local = s.slice(0, at);
+            let domain = s.slice(at + 1).replace(/^www\./, '');
+            const base = (domain === 'trustroots.org' || domain === 'nos.trustroots.org') ? 'https://www.trustroots.org' : `https://${domain}`;
+            const url = `${base}/.well-known/nostr.json?name=${encodeURIComponent(local)}`;
+            let data = null;
+            try {
+                const res = await fetch(url);
+                if (res.ok) data = await res.json();
+            } catch (_) {}
+            if (!data) {
+                try {
+                    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+                    const text = await fetch(proxyUrl).then(r => r.text());
+                    data = JSON.parse(text);
+                } catch (_) {
+                    return null;
+                }
+            }
+            if (!data || !data.names || !data.names[local]) return null;
+            const hex = (data.names[local] + '').toLowerCase();
+            return (hex.length === 64 && /^[0-9a-f]+$/.test(hex)) ? hex : null;
+        }
+
+        /** Resolve npub/hex synchronously, or NIP-05 (async) to hex. Returns Promise<hex|null>. */
+        async function resolvePubkeyInput(raw) {
+            const s = (raw || '').trim();
+            if (!s) return null;
+            if (s.includes('@')) return await resolveNip05(s);
+            return parsePubkeyInput(s);
+        }
+
+        function decodeNsec(input) {
+            const s = (input || '').trim();
+            if (s.length === 64 && /^[0-9a-f]+$/i.test(s)) return s;
+            if (!s.startsWith('nsec1')) return null;
+            try {
+                const decoded = nip19.decode(s);
+                if (decoded.type === 'nsec') return Array.from(decoded.data).map(b => b.toString(16).padStart(2, '0')).join('');
+            } catch (_) {}
+            return null;
+        }
+
+        // NIP-07: use shared common.js (NrNip07)
+        function loadKeysFromStorage(retryAttempt) {
+            const hex = localStorage.getItem('nostr_private_key');
+            const nip07 = localStorage.getItem('using_nip07') === 'true';
+            const provider = window.NrNip07 ? NrNip07.detectNostrExtension() : null;
+            if (nip07 && provider && NrNip07.isExtensionReady(provider)) {
+                usingNip07 = true;
+                nostrProvider = provider;
+                (async () => {
+                    const pk = await NrNip07.getPublicKeyFromExtension(nostrProvider);
+                    if (pk) {
+                        currentPublicKey = pk;
+                        currentSecretKeyHex = null;
+                        currentSecretKeyBytes = null;
+                        updateUI();
+                        startSubscriptions();
+                        return;
+                    }
+                    usingNip07 = false;
+                    nostrProvider = null;
+                    localStorage.removeItem('using_nip07');
+                    updateUI();
+                })();
+                return;
+            }
+            // Extension not ready yet: retry up to 5 times (like index.html)
+            if (nip07 && (retryAttempt ?? 0) < 5) {
+                setTimeout(() => loadKeysFromStorage((retryAttempt ?? 0) + 1), 300);
+                return;
+            }
+            if (nip07 && (retryAttempt ?? 0) >= 5) {
+                usingNip07 = false;
+                nostrProvider = null;
+                localStorage.removeItem('using_nip07');
+                updateUI();
+            }
+            if (hex && hex.length === 64 && /^[0-9a-f]+$/i.test(hex)) {
+                currentSecretKeyHex = hex;
+                currentSecretKeyBytes = new Uint8Array(32);
+                for (let i = 0; i < 32; i++) currentSecretKeyBytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+                currentPublicKey = getPublicKey(currentSecretKeyBytes);
+                usingNip07 = false;
+                nostrProvider = null;
+                updateUI();
+                startSubscriptions();
+            }
+        }
+
+        function savePrivateKey(hex) {
+            localStorage.setItem('nostr_private_key', hex);
+            localStorage.removeItem('using_nip07');
+            currentSecretKeyHex = hex;
+            currentSecretKeyBytes = new Uint8Array(32);
+            for (let i = 0; i < 32; i++) currentSecretKeyBytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+            currentPublicKey = getPublicKey(currentSecretKeyBytes);
+            usingNip07 = false;
+            nostrProvider = null;
+        }
+
+        async function connectNip07() {
+            if (authenticatingWithExtension) return;
+            authenticatingWithExtension = true;
+            try {
+                const provider = NrNip07.detectNostrExtension();
+                if (!provider) {
+                    showStatus('No NIP-07 extension found. Please install nos2x or Alby.', 'error');
+                    authenticatingWithExtension = false;
+                    return;
+                }
+                if (!NrNip07.isExtensionReady(provider)) {
+                    showStatus('Extension getPublicKey method is not available or not ready', 'error');
+                    authenticatingWithExtension = false;
+                    return;
+                }
+                const pubkey = await NrNip07.getPublicKeyFromExtension(provider);
+                if (!pubkey) {
+                    showStatus('Failed to get valid public key from extension.', 'error');
+                    authenticatingWithExtension = false;
+                    return;
+                }
+                currentPublicKey = pubkey;
+                currentSecretKeyHex = null;
+                currentSecretKeyBytes = null;
+                nostrProvider = provider;
+                usingNip07 = true;
+                localStorage.setItem('using_nip07', 'true');
+                localStorage.removeItem('nostr_private_key');
+                closeAuthModal();
+                updateUI();
+                startSubscriptions();
+                showStatus('Connected to NIP-07 extension! Your private key stays secure in the extension.', 'success');
+            } catch (e) {
+                showStatus('Extension error: ' + (e?.message || String(e)), 'error');
+            } finally {
+                authenticatingWithExtension = false;
+            }
+        }
+
+        function importKey() {
+            const raw = document.getElementById('nsec-input')?.value?.trim() || '';
+            const hex = decodeNsec(raw);
+            if (!hex) {
+                showStatus('Invalid nsec or hex key.', 'error');
+                return;
+            }
+            savePrivateKey(hex);
+            document.getElementById('nsec-input').value = '';
+            closeAuthModal();
+            updateUI();
+            startSubscriptions();
+            showStatus('Key imported. Shared with map app.', 'success');
+        }
+
+        function disconnect() {
+            currentPublicKey = null;
+            currentSecretKeyHex = null;
+            currentSecretKeyBytes = null;
+            usingNip07 = false;
+            nostrProvider = null;
+            isProfileLinked = false;
+            usernameFromNostr = false;
+            currentUserNip05 = '';
+            setTrustrootsUI('');
+            localStorage.removeItem('nostr_private_key');
+            localStorage.removeItem('using_nip07');
+            conversations.clear();
+            selectedConversationId = null;
+            if (pool) {
+                pool.close();
+                pool = null;
+            }
+            updateUI();
+            renderConvList();
+            showThreadEmpty();
+        }
+
+        function setHeaderIdentity() {
+            const el = document.getElementById('header-identity');
+            if (!el) return;
+            const hasKey = !!currentPublicKey;
+            const nip5 = currentUserNip05 || (currentPublicKey ? pubkeyToNip05.get(currentPublicKey) : '');
+            const trUsername = currentPublicKey ? pubkeyToUsername.get(currentPublicKey) : null;
+            const npubStr = getDisplayNpub() || (currentPublicKey ? hexToNpub(currentPublicKey) : '');
+            if (!hasKey) {
+                el.textContent = '';
+                el.title = '';
+                el.classList.add('empty');
+                el.classList.remove('nip5');
+                return;
+            }
+            el.classList.remove('empty');
+            if (nip5) {
+                el.textContent = nip5;
+                el.title = nip5 + (npubStr ? '\n' + npubStr : '');
+                el.classList.add('nip5');
+            } else if (trUsername) {
+                el.textContent = trUsername + '@trustroots.org';
+                el.title = trUsername + '@trustroots.org\n' + (npubStr || '');
+                el.classList.remove('nip5');
+            } else {
+                el.textContent = npubStr ? (npubStr.slice(0, 12) + '…' + npubStr.slice(-8)) : '';
+                el.title = npubStr || '';
+                el.classList.remove('nip5');
+            }
+        }
+
+        function updateUI() {
+            const hasKey = !!currentPublicKey;
+            setHeaderIdentity();
+            document.getElementById('keys-icon-btn').title = hasKey ? 'Keys' : 'Connect';
+            const authConnected = document.getElementById('auth-connected-section');
+            const authConnect = document.getElementById('auth-connect-section');
+            const authTitle = document.getElementById('auth-modal-title');
+            const npubDisplay = document.getElementById('auth-npub-display');
+            const nip07Status = document.getElementById('auth-nip07-status');
+            if (hasKey) {
+                authConnected.style.display = 'block';
+                authConnect.style.display = 'none';
+                authTitle.textContent = 'Keys';
+                const npubStr = getDisplayNpub() || (currentPublicKey ? hexToNpub(currentPublicKey) : '');
+                if (npubDisplay) npubDisplay.value = npubStr;
+                if (nip07Status) {
+                    if (usingNip07) {
+                        nip07Status.textContent = '✓ Using NIP-07 extension – private key stays in extension';
+                        nip07Status.classList.add('show');
+                    } else {
+                        nip07Status.classList.remove('show');
+                    }
+                }
+            } else {
+                authConnected.style.display = 'none';
+                authConnect.style.display = 'block';
+                authTitle.textContent = 'Connect';
+                if (nip07Status) nip07Status.classList.remove('show');
+            }
+            if (hasKey) {
+                renderRelaysList();
+                renderConvList();
+            }
+        }
+
+        function openAuthModal() {
+            const npubEl = document.getElementById('auth-npub-display');
+            const nip07El = document.getElementById('auth-nip07-status');
+            function setNpubDisplay(npub) {
+                if (npubEl) npubEl.value = npub || '';
+            }
+            setNpubDisplay(getDisplayNpub());
+            if (nip07El) {
+                if (usingNip07) {
+                    nip07El.textContent = '✓ Using NIP-07 extension - private key secure';
+                    nip07El.classList.add('show');
+                    // Use currentPublicKey for display; do not call extension getPublicKey() here (avoids repeated calls)
+                    if (!npubEl?.value && currentPublicKey) setNpubDisplay(hexToNpub(currentPublicKey));
+                } else {
+                    nip07El.classList.remove('show');
+                }
+            }
+            if (currentPublicKey) {
+                checkProfileLinked();
+                updateAuthNip05Display();
+                if (!currentUserNip05) {
+                    const r = relays?.length ? relays : (getRelayUrls().length ? getRelayUrls() : DEFAULT_RELAYS);
+                    if (r.length) {
+                        if (!pool) pool = new SimplePool();
+                        pool.subscribe(r, { kinds: [0], authors: [currentPublicKey], limit: 1 }, { onevent(event) {
+                            if (event.pubkey !== currentPublicKey || !event.content) return;
+                            try {
+                                const profile = JSON.parse(event.content);
+                                const nip05 = (profile.nip05 || '').trim();
+                                if (nip05) {
+                                    currentUserNip05 = nip05;
+                                    updateAuthNip05Display();
+                                }
+                            } catch (_) {}
+                        } });
+                    }
+                }
+            } else {
+                updateAuthNip05Display();
+            }
+            document.getElementById('auth-modal').classList.add('active');
+            setHashRoute('keys');
+        }
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.remove('active');
+            setHashRoute(selectedConversationId || '');
+        }
+
+        function updateAuthNip05Display() {
+            const wrap = document.getElementById('auth-nip05-wrap');
+            const input = document.getElementById('auth-nip05-display');
+            if (wrap && input) {
+                if (currentUserNip05) {
+                    wrap.style.display = 'block';
+                    input.value = currentUserNip05;
+                } else {
+                    wrap.style.display = 'none';
+                    input.value = '';
+                }
+            }
+            setHeaderIdentity();
+        }
+
+        function copyPublicKey() {
+            const npubEl = document.getElementById('auth-npub-display');
+            const copyBtn = document.getElementById('auth-copy-npub-btn');
+            const copyText = document.getElementById('auth-copy-npub-text');
+            if (!npubEl || !npubEl.value) {
+                showStatus('No public key to copy', 'error');
+                return;
+            }
+            navigator.clipboard.writeText(npubEl.value).then(() => {
+                const original = copyText.textContent;
+                copyText.textContent = '✓';
+                if (copyBtn) copyBtn.classList.add('copied');
+                showStatus('Public key copied to clipboard', 'success');
+                setTimeout(() => {
+                    copyText.textContent = original;
+                    if (copyBtn) copyBtn.classList.remove('copied');
+                }, 2000);
+            }).catch(() => showStatus('Failed to copy', 'error'));
+        }
+
+        function openNewDmModal() {
+            document.getElementById('new-dm-modal').classList.add('active');
+        }
+        function closeNewDmModal() {
+            document.getElementById('new-dm-modal').classList.remove('active');
+        }
+        function openNewGroupModal() {
+            groupModalMembers = [];
+            renderGroupModalMembers();
+            document.getElementById('new-group-one-pubkey').value = '';
+            document.getElementById('new-group-modal').classList.add('active');
+        }
+        function closeNewGroupModal() {
+            document.getElementById('new-group-modal').classList.remove('active');
+        }
+
+        function renderGroupModalMembers() {
+            const list = document.getElementById('new-group-members-list');
+            const startBtn = document.getElementById('new-group-start-btn');
+            if (!list) return;
+            list.textContent = '';
+            groupModalMembers.forEach(({ hex, label }) => {
+                const chip = document.createElement('span');
+                chip.className = 'participant-chip';
+                const span = document.createElement('span');
+                span.className = 'label';
+                span.title = label;
+                span.textContent = label;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'remove-btn';
+                btn.setAttribute('aria-label', 'Remove');
+                btn.textContent = '×';
+                btn.onclick = () => removeGroupModalMember(hex);
+                chip.appendChild(span);
+                chip.appendChild(btn);
+                list.appendChild(chip);
+            });
+            if (startBtn) startBtn.disabled = groupModalMembers.length === 0;
+        }
+
+        function removeGroupModalMember(hex) {
+            groupModalMembers = groupModalMembers.filter(m => m.hex !== hex);
+            renderGroupModalMembers();
+        }
+
+        async function addGroupParticipant() {
+            const input = document.getElementById('new-group-one-pubkey');
+            const raw = (input?.value || '').trim();
+            if (!raw) {
+                showStatus('Enter npub, nip5 or hashtag (e.g. nostroots@trustroots.org).', 'error');
+                return;
+            }
+            const hex = await resolvePubkeyInput(raw);
+            if (!hex) {
+                showStatus('Could not resolve: invalid or nip5 not found.', 'error');
+                return;
+            }
+            if (hex === currentPublicKey) {
+                showStatus('You are already in the group.', 'error');
+                return;
+            }
+            if (groupModalMembers.some(m => m.hex === hex)) {
+                showStatus('Already added.', 'error');
+                return;
+            }
+            groupModalMembers.push({ hex, label: raw });
+            renderGroupModalMembers();
+            input.value = '';
+            showStatus('Added: ' + raw, 'success');
+        }
+        function openRelaysModal() {
+            document.getElementById('relays-modal').classList.add('active');
+            renderRelaysList();
+            setHashRoute('settings');
+        }
+        function closeRelaysModal() {
+            document.getElementById('relays-modal').classList.remove('active');
+            setHashRoute(selectedConversationId || '');
+        }
+
+        function getOrCreateConversation(type, id, members) {
+            let c = conversations.get(id);
+            if (!c) {
+                c = { type, id, members: members || [], events: [] };
+                conversations.set(id, c);
+                if (getHashRoute() === id) selectConversation(id);
+            }
+            return c;
+        }
+
+        function getConversationKey(theirPubkey) {
+            if (!currentSecretKeyBytes) return null;
+            try {
+                const key = nip44.v2.getConversationKey(currentSecretKeyBytes, theirPubkey);
+                return key;
+            } catch (_) {}
+            return null;
+        }
+
+        /** Encrypt DM content for a peer. Uses local key or NIP-07 extension (nip44 then nip04). */
+        async function encryptKind4(peerPubkey, plaintext) {
+            if (currentSecretKeyBytes) {
+                const key = getConversationKey(peerPubkey);
+                if (key) {
+                    try {
+                        return nip44.v2.encrypt(plaintext, key);
+                    } catch (_) {}
+                }
+                try {
+                    return nip04.encrypt(currentSecretKeyBytes, peerPubkey, plaintext);
+                } catch (_) {}
+                return null;
+            }
+            if (usingNip07 && nostrProvider) {
+                try {
+                    if (typeof nostrProvider.nip44?.encrypt === 'function') {
+                        const cipher = await nostrProvider.nip44.encrypt(peerPubkey, plaintext);
+                        if (cipher != null && typeof cipher === 'string') return cipher;
+                    }
+                } catch (_) {}
+                try {
+                    if (typeof nostrProvider.nip04?.encrypt === 'function') {
+                        const cipher = await nostrProvider.nip04.encrypt(peerPubkey, plaintext);
+                        if (cipher != null && typeof cipher === 'string') return cipher;
+                    }
+                } catch (_) {}
+            }
+            return null;
+        }
+
+        /** NIP-07: only one decrypt in flight to avoid flooding consent dialogs. */
+        let nip07DecryptTail = Promise.resolve();
+
+        async function decryptKind4(content, authorPubkey) {
+            if (currentSecretKeyBytes) {
+                const key = getConversationKey(authorPubkey);
+                if (key) {
+                    try {
+                        return nip44.v2.decrypt(content, key);
+                    } catch (_) {}
+                }
+                try {
+                    return nip04.decrypt(currentSecretKeyBytes, authorPubkey, content);
+                } catch (_) {}
+            }
+            if (usingNip07 && nostrProvider) {
+                const runDecrypt = async () => {
+                    try {
+                        if (typeof nostrProvider.nip44?.decrypt === 'function') {
+                            const plain = await nostrProvider.nip44.decrypt(authorPubkey, content);
+                            if (plain != null && typeof plain === 'string') return plain;
+                        }
+                    } catch (_) {}
+                    try {
+                        if (typeof nostrProvider.nip04?.decrypt === 'function') {
+                            const plain = await nostrProvider.nip04.decrypt(authorPubkey, content);
+                            if (plain != null && typeof plain === 'string') return plain;
+                        }
+                    } catch (_) {}
+                    return null;
+                };
+                const prev = nip07DecryptTail;
+                nip07DecryptTail = prev.then(() => runDecrypt(), () => runDecrypt());
+                return nip07DecryptTail;
+            }
+            return null;
+        }
+
+        let publicSubsStarted = false;
+
+        function startPublicSubscriptions() {
+            relayUrlsForList = getRelayUrls();
+            relays = relayUrlsForList.length ? relayUrlsForList : DEFAULT_RELAYS;
+            if (!pool) pool = new SimplePool();
+
+            getOrCreateConversation('channel', GLOBAL_CHANNEL_SLUG, []);
+            renderConvList();
+            if (!getHashRoute()) selectConversation(GLOBAL_CHANNEL_SLUG);
+
+            function onChannelEvent(event) {
+                const circleTag = (event.tags || []).find(t => t.length >= 3 && (t[0] === 'l' || t[0] === 'L') && t[2] === TRUSTROOTS_CIRCLE_LABEL);
+                const slug = circleTag?.[1];
+                const pluscode = getPluscodeFromEvent(event);
+
+                const targetSlug = slug || GLOBAL_CHANNEL_SLUG;
+                const conv = getOrCreateConversation('channel', targetSlug, []);
+                const existing = conv.events.some(e => e.id === event.id);
+                if (!existing) {
+                    conv.events.push({ id: event.id, pubkey: event.pubkey, content: event.content || '', created_at: event.created_at, raw: event });
+                    conv.events.sort((a, b) => a.created_at - b.created_at);
+                    renderConvList();
+                    if (selectedConversationId === targetSlug) renderThread();
+                }
+
+                if (slug && slug !== GLOBAL_CHANNEL_SLUG) {
+                    const globalConv = getOrCreateConversation('channel', GLOBAL_CHANNEL_SLUG, []);
+                    const existsInGlobal = globalConv.events.some(e => e.id === event.id);
+                    if (!existsInGlobal) {
+                        globalConv.events.push({ id: event.id, pubkey: event.pubkey, content: event.content || '', created_at: event.created_at, raw: event });
+                        globalConv.events.sort((a, b) => a.created_at - b.created_at);
+                        if (selectedConversationId === GLOBAL_CHANNEL_SLUG) renderThread();
+                    }
+                }
+
+                if (pluscode && isPlusCodeChannelId(pluscode)) {
+                    const pluscodeConv = getOrCreateConversation('channel', pluscode, []);
+                    const existsInPluscode = pluscodeConv.events.some(e => e.id === event.id);
+                    if (!existsInPluscode) {
+                        pluscodeConv.events.push({ id: event.id, pubkey: event.pubkey, content: event.content || '', created_at: event.created_at, raw: event });
+                        pluscodeConv.events.sort((a, b) => a.created_at - b.created_at);
+                        renderConvList();
+                        if (selectedConversationId === pluscode) renderThread();
+                    }
+                }
+            }
+
+            const mapNoteFilter = (extra) => ({ kinds: [MAP_NOTE_KIND], limit: 10000, ...extra });
+            pool.subscribe(relays, mapNoteFilter({ '#L': [TRUSTROOTS_CIRCLE_LABEL] }), { onevent: onChannelEvent });
+            pool.subscribe(relays, mapNoteFilter(), { onevent: onChannelEvent });
+
+            pool.subscribe(relays, { kinds: [TRUSTROOTS_PROFILE_KIND] }, { onevent(event) {
+                const username = getTrustrootsUsernameFromProfileEvent(event);
+                if (username) {
+                    pubkeyToUsername.set(event.pubkey, username);
+                    renderConvList();
+                    if (selectedConversationId) renderThread();
+                }
+            } });
+
+            pool.subscribe(relays, { kinds: [0] }, { onevent(event) {
+                const username = getTrustrootsUsernameFromKind0(event);
+                if (username && !pubkeyToUsername.has(event.pubkey)) {
+                    pubkeyToUsername.set(event.pubkey, username);
+                    renderConvList();
+                    if (selectedConversationId) renderThread();
+                }
+                if (event.content) {
+                    try {
+                        const profile = JSON.parse(event.content);
+                        const nip05 = (profile.nip05 || '').trim();
+                        if (nip05) {
+                            pubkeyToNip05.set(event.pubkey, nip05);
+                            if (event.pubkey === currentPublicKey) {
+                                currentUserNip05 = nip05;
+                                updateAuthNip05Display();
+                            }
+                            renderConvList();
+                            if (selectedConversationId) renderThread();
+                        }
+                    } catch (_) {}
+                }
+            } });
+
+            publicSubsStarted = true;
+        }
+
+        function startSubscriptions() {
+            relayUrlsForList = getRelayUrls();
+            relays = relayUrlsForList.length ? relayUrlsForList : DEFAULT_RELAYS;
+            const relayList = Array.isArray(relays) && relays.length ? relays : DEFAULT_RELAYS;
+            if (!currentPublicKey || !relayList.length) return;
+
+            if (!publicSubsStarted) {
+                if (pool) try { pool.close(); } catch (_) {}
+                pool = new SimplePool();
+                startPublicSubscriptions();
+            } else {
+                try { if (pool) pool.close(); } catch (_) {}
+                pool = new SimplePool();
+                startPublicSubscriptions();
+            }
+
+            const onDmEvent = async (event) => {
+                const other = event.tags.find(t => t[0] === 'p')?.[1];
+                const peer = other && other !== currentPublicKey ? other : event.pubkey;
+                const convId = peer;
+                const conv = getOrCreateConversation('dm', convId, [peer]);
+                if (conv.events.some(e => e.id === event.id)) return;
+                const authorPubkey = event.pubkey === currentPublicKey ? peer : event.pubkey;
+                let plain = await decryptKind4(event.content, authorPubkey);
+                if (plain == null) plain = '[could not decrypt]';
+                conv.events.push({ id: event.id, pubkey: event.pubkey, content: plain, created_at: event.created_at, raw: event });
+                conv.events.sort((a, b) => a.created_at - b.created_at);
+                renderConvList();
+                if (selectedConversationId === convId) renderThread();
+            };
+            pool.subscribe(relayList, { kinds: [4], '#p': [currentPublicKey] }, { onevent: onDmEvent });
+            pool.subscribe(relayList, { kinds: [4], authors: [currentPublicKey] }, { onevent: onDmEvent });
+
+            pool.subscribe(relayList, { kinds: [1059], '#p': [currentPublicKey] }, { onevent(wrapEvent) {
+                if (!currentSecretKeyBytes) return;
+                try {
+                    const wrapPubkey = wrapEvent.pubkey;
+                    const key = nip44.v2.getConversationKey(currentSecretKeyBytes, wrapPubkey);
+                    const innerJson = nip44.v2.decrypt(wrapEvent.content, key);
+                    const seal = JSON.parse(innerJson);
+                    if (seal.kind !== 13) return;
+                    const sealKey = nip44.v2.getConversationKey(currentSecretKeyBytes, seal.pubkey);
+                    const rumorJson = nip44.v2.decrypt(seal.content, sealKey);
+                    const rumor = JSON.parse(rumorJson);
+                    if (rumor.kind !== 14) return;
+                    if (rumor.pubkey !== seal.pubkey) return;
+                    const pTags = (rumor.tags || []).filter(t => t[0] === 'p').map(t => t[1]);
+                    const members = [rumor.pubkey, ...pTags].filter((x, i, a) => a.indexOf(x) === i).sort();
+                    const groupId = members.join(',');
+                    const conv = getOrCreateConversation('group', groupId, members);
+                    const existing = conv.events.some(e => e.id === rumor.id);
+                    if (!existing) {
+                        conv.events.push({ id: rumor.id, pubkey: rumor.pubkey, content: rumor.content || '', created_at: rumor.created_at, raw: rumor });
+                        conv.events.sort((a, b) => a.created_at - b.created_at);
+                        renderConvList();
+                        if (selectedConversationId === groupId) renderThread();
+                    }
+                } catch (_) {}
+            } });
+        }
+
+        function getTrustrootsUsernameFromProfileEvent(event) {
+            if (event.kind !== TRUSTROOTS_PROFILE_KIND) return undefined;
+            const tag = (event.tags || []).find(t => t.length >= 3 && t[0] === 'l' && t[2] === TRUSTROOTS_USERNAME_LABEL_NAMESPACE);
+            return tag && tag[1] ? tag[1] : undefined;
+        }
+
+        function getTrustrootsUsernameFromKind0(event) {
+            if (event.kind !== 0 || !event.content) return undefined;
+            try {
+                const profile = JSON.parse(event.content);
+                const nip05 = (profile.nip05 || '').trim().toLowerCase();
+                if (!nip05) return undefined;
+                // trustroots.org or www.trustroots.org
+                if (nip05.endsWith('@trustroots.org') || nip05.endsWith('@www.trustroots.org')) {
+                    const local = nip05.split('@')[0];
+                    return local || undefined;
+                }
+                return undefined;
+            } catch (_) {
+                return undefined;
+            }
+        }
+
+        async function checkProfileLinked() {
+            if (!currentPublicKey) {
+                isProfileLinked = false;
+                usernameFromNostr = false;
+                setTrustrootsUI('');
+                return;
+            }
+            const r = relays?.length ? relays : (getRelayUrls().length ? getRelayUrls() : DEFAULT_RELAYS);
+            if (!r.length) {
+                setTrustrootsUI('');
+                return;
+            }
+            if (!pool) pool = new SimplePool();
+            let linkedUsername = null;
+            const done = { done: false };
+            const unsub = pool.subscribe(r, { kinds: [TRUSTROOTS_PROFILE_KIND], authors: [currentPublicKey], limit: 1 }, { onevent(event) {
+                if (done.done) return;
+                done.done = true;
+                const u = getTrustrootsUsernameFromProfileEvent(event);
+                if (u) linkedUsername = u;
+            } });
+            await new Promise(r => setTimeout(r, 2500));
+            try { if (typeof unsub === 'function') unsub(); else if (unsub?.close) unsub.close(); } catch (_) {}
+            if (linkedUsername) {
+                try {
+                    const res = await fetch(`https://www.trustroots.org/.well-known/nostr.json?name=${encodeURIComponent(linkedUsername)}`);
+                    const data = await res.json();
+                    if (data.names && data.names[linkedUsername]) {
+                        const nip5Hex = (data.names[linkedUsername] + '').toLowerCase();
+                        if (nip5Hex !== currentPublicKey.toLowerCase()) {
+                            linkedUsername = null;
+                        }
+                    } else {
+                        linkedUsername = null;
+                    }
+                } catch (_) {
+                    linkedUsername = null;
+                }
+            }
+            isProfileLinked = !!linkedUsername;
+            usernameFromNostr = !!linkedUsername;
+            if (linkedUsername) pubkeyToUsername.set(currentPublicKey, linkedUsername);
+            setTrustrootsUI(linkedUsername || '');
+        }
+
+        function setTrustrootsUI(username) {
+            const usernameInput = document.getElementById('trustroots-username');
+            const usernameIndicator = document.getElementById('username-nostr-indicator');
+            const updateBtn = document.getElementById('auth-update-trustroots-btn');
+            const updateWrap = document.getElementById('auth-update-trustroots-wrap');
+            if (usernameInput) {
+                usernameInput.value = username;
+                usernameInput.disabled = !!username;
+            }
+            if (usernameIndicator) usernameIndicator.style.display = username ? 'block' : 'none';
+            if (updateBtn) updateBtn.style.display = username ? 'none' : 'block';
+            if (updateWrap) updateWrap.style.display = username ? 'none' : 'block';
+        }
+
+        async function linkTrustrootsProfile() {
+            const username = document.getElementById('trustroots-username')?.value?.trim() || '';
+            if (!username) { showStatus('Please enter a username.', 'error'); return; }
+            if (!currentPublicKey) { showStatus('Please connect a key first.', 'error'); return; }
+            try {
+                const res = await fetch(`https://www.trustroots.org/.well-known/nostr.json?name=${encodeURIComponent(username)}`);
+                const data = await res.json();
+                if (!data.names || !data.names[username]) {
+                    showStatus('Username not found or not linked on Trustroots.', 'error');
+                    return;
+                }
+                const nip5Hex = (data.names[username] + '').toLowerCase();
+                if (nip5Hex !== currentPublicKey.toLowerCase()) {
+                    showStatus('That username is linked to a different key on Trustroots.', 'error');
+                    return;
+                }
+                const eventTemplate = {
+                    kind: TRUSTROOTS_PROFILE_KIND,
+                    tags: [
+                        ['L', TRUSTROOTS_USERNAME_LABEL_NAMESPACE],
+                        ['l', username, TRUSTROOTS_USERNAME_LABEL_NAMESPACE]
+                    ],
+                    content: '',
+                    created_at: Math.floor(Date.now() / 1000),
+                    pubkey: currentPublicKey
+                };
+                const signedEvent = await signEvent(eventTemplate);
+                const r = relays.length ? relays : getRelayUrls().length ? getRelayUrls() : DEFAULT_RELAYS;
+                await pool.publish(r, signedEvent);
+                isProfileLinked = true;
+                usernameFromNostr = true;
+                setTrustrootsUI(username);
+                pubkeyToUsername.set(currentPublicKey, username);
+                showStatus('Profile linked.', 'success');
+            } catch (e) {
+                showStatus(e?.message || 'Failed to link profile.', 'error');
+            }
+        }
+
+        async function updateTrustrootsProfile() {
+            if (!currentPublicKey) { showStatus('No key connected.', 'error'); return; }
+            const npub = getDisplayNpub() || nip19.npubEncode(currentPublicKey);
+            await navigator.clipboard.writeText(npub);
+            alert('Your npub has been copied to the clipboard. Please paste it into the Nostr field on Trustroots.');
+            window.open('https://www.trustroots.org/profile/edit/networks', '_blank');
+        }
+
+        function renderRelaysList() {
+            const urls = getRelayUrls();
+            const list = document.getElementById('relays-list');
+            if (!list) return;
+            list.innerHTML = '';
+            if (urls.length === 0) {
+                const p = document.createElement('p');
+                p.style.cssText = 'color: var(--muted-foreground); font-size: 0.875rem; padding: 0.5rem 0;';
+                p.textContent = 'No relays configured. Add one below (or reconnect to use defaults).';
+                list.appendChild(p);
+                return;
+            }
+            urls.forEach(url => {
+                const div = document.createElement('div');
+                div.className = 'relay-item';
+                div.innerHTML = `<span class="url">${url}</span><button type="button" class="btn btn-secondary" onclick="removeRelay('${url.replace(/'/g, "\\'")}')">Remove</button>`;
+                list.appendChild(div);
+            });
+        }
+
+        function addRelay() {
+            let url = document.getElementById('new-relay-url')?.value?.trim() || '';
+            if (!url) { showStatus('Enter a relay URL.', 'error'); return; }
+            if (!url.startsWith('ws://') && !url.startsWith('wss://')) url = 'wss://' + url;
+            const urls = getRelayUrls();
+            if (urls.includes(url)) { showStatus('Already added.', 'error'); return; }
+            urls.push(url);
+            saveRelayUrls(urls);
+            document.getElementById('new-relay-url').value = '';
+            renderRelaysList();
+            if (currentPublicKey) {
+                relayUrlsForList = urls;
+                relays = urls;
+                startSubscriptions();
+            }
+            showStatus('Relay added.', 'success');
+        }
+
+        function removeRelay(url) {
+            const urls = getRelayUrls().filter(u => u !== url);
+            saveRelayUrls(urls);
+            renderRelaysList();
+            if (currentPublicKey) {
+                relayUrlsForList = urls;
+                relays = urls.length ? urls : DEFAULT_RELAYS;
+                startSubscriptions();
+            }
+            showStatus('Relay removed.', 'success');
+        }
+
+        function convSortKey(c) {
+            const last = c.events[c.events.length - 1];
+            return last ? last.created_at : 0;
+        }
+
+        const ENC_LOCK = '🔒';
+        const ENC_GLOBE = '🌐';
+
+        function getChannelTagsSummary(events) {
+            const seen = new Set();
+            const parts = [];
+            for (const ev of events) {
+                const raw = ev.raw || ev;
+                const tags = raw.tags || [];
+                for (const t of tags) {
+                    if (t.length < 2) continue;
+                    const key = (t[0] || '').toLowerCase();
+                    const val = t[1] || '';
+                    const label = t[2] || '';
+                    const token = label ? `${key}:${val} (${label})` : `${key}:${val}`;
+                    if (token && !seen.has(token)) {
+                        seen.add(token);
+                        parts.push(label || val || key);
+                    }
+                }
+            }
+            return parts.slice(0, 8).join(', ');
+        }
+
+        function renderConvList() {
+            const list = document.getElementById('conv-list');
+            if (!list) return;
+            list.innerHTML = '';
+            const entries = Array.from(conversations.entries())
+                .map(([id, c]) => ({ id, ...c }));
+            const globalEntry = entries.find(e => e.id === GLOBAL_CHANNEL_SLUG);
+            const rest = entries.filter(e => e.id !== GLOBAL_CHANNEL_SLUG).sort((a, b) => convSortKey(b) - convSortKey(a));
+            const ordered = globalEntry ? [globalEntry, ...rest] : rest;
+            ordered.forEach(({ id, type, members, events }) => {
+                let label = id;
+                let encIcon = ENC_GLOBE;
+                let encTitle = 'Unencrypted (public)';
+                if (type === 'dm') {
+                    label = getDisplayNameShort(id) || hexToNpub(id) || id;
+                    encIcon = ENC_LOCK;
+                    encTitle = 'Encrypted';
+                } else if (type === 'group') {
+                    label = `Group (${members.length})`;
+                    encIcon = ENC_LOCK;
+                    encTitle = 'Encrypted';
+                } else if (type === 'channel') {
+                    label = id === GLOBAL_CHANNEL_SLUG ? 'Global' : (isPlusCodeChannelId(id) ? '\u2316 ' + id : '#' + id);
+                    encIcon = ENC_GLOBE;
+                    encTitle = 'Unencrypted (public)';
+                }
+                let tagsLine = '';
+                if (type === 'channel' && events.length) tagsLine = getChannelTagsSummary(events);
+                const item = document.createElement('div');
+                item.className = 'conv-item' + (selectedConversationId === id ? ' selected' : '');
+                const safeLabel = (function escape(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); })(label);
+                const safeTags = (function escape(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); })(tagsLine);
+                if (tagsLine) {
+                    item.innerHTML = `<span class="enc-icon" title="${encTitle}">${encIcon}</span><div class="label-wrap"><span class="label">${safeLabel}</span><span class="tags-line" title="${safeTags}">${safeTags}</span></div>`;
+                } else {
+                    item.innerHTML = `<span class="enc-icon" title="${encTitle}">${encIcon}</span><span class="label">${safeLabel}</span>`;
+                }
+                item.onclick = () => selectConversation(id);
+                list.appendChild(item);
+            });
+        }
+
+        function selectConversation(id) {
+            selectedConversationId = id;
+            setHashRoute(id || '');
+            document.getElementById('auth-modal').classList.remove('active');
+            document.getElementById('relays-modal').classList.remove('active');
+            renderConvList();
+            renderThread();
+            const conv = conversations.get(id);
+            document.getElementById('empty-state').style.display = conv ? 'none' : 'block';
+            document.getElementById('compose').style.display = conv ? 'flex' : 'none';
+            document.getElementById('thread-header').style.display = conv ? 'flex' : 'none';
+            if (conv) {
+                const isEnc = conv.type === 'dm' || conv.type === 'group';
+                document.getElementById('thread-enc-icon').textContent = isEnc ? ENC_LOCK : ENC_GLOBE;
+                document.getElementById('thread-enc-icon').title = isEnc ? 'Encrypted' : 'Unencrypted (public)';
+                document.getElementById('thread-enc-label').textContent = isEnc ? 'Encrypted' : 'Unencrypted';
+                document.getElementById('thread-title').textContent = conv.type === 'channel' ? (conv.id === GLOBAL_CHANNEL_SLUG ? 'Global' : (isPlusCodeChannelId(conv.id) ? '\u2316 ' + conv.id : '#' + conv.id)) : (conv.type === 'group' ? `Group (${conv.members.length})` : (getDisplayNameShort(conv.id) || getDisplayName(conv.id) || conv.id));
+            }
+        }
+
+        function showThreadEmpty() {
+            document.getElementById('empty-state').style.display = 'block';
+            document.getElementById('compose').style.display = 'none';
+            document.getElementById('thread-header').style.display = 'none';
+            document.getElementById('thread-messages').innerHTML = '';
+        }
+
+        function getPluscodeFromEvent(raw) {
+            if (!raw?.tags) return null;
+            const tag = raw.tags.find(t => Array.isArray(t) && t.length >= 3 && t[0] === 'l' && t[2] === 'open-location-code');
+            const code = tag?.[1];
+            return (code && typeof code === 'string' && code.trim()) ? code.trim() : null;
+        }
+
+        function renderThread() {
+            const conv = conversations.get(selectedConversationId);
+            const container = document.getElementById('thread-messages');
+            if (!conv || !container) return;
+            container.innerHTML = '';
+            const isChannel = conv.type === 'channel';
+            conv.events.forEach(ev => {
+                const isSelf = ev.pubkey === currentPublicKey;
+                const wrap = document.createElement('div');
+                wrap.className = 'message-wrap ' + (isSelf ? 'self' : 'other');
+                if (isChannel && !isSelf) {
+                    const author = document.createElement('div');
+                    author.className = 'message-author';
+                    author.textContent = pubkeyDisplayLabel(ev.pubkey);
+                    const fullNpub = hexToNpub(ev.pubkey);
+                    if (fullNpub) author.title = fullNpub;
+                    wrap.appendChild(author);
+                }
+                const div = document.createElement('div');
+                div.className = 'message ' + (isSelf ? 'self' : 'other');
+                div.textContent = ev.content;
+                const pluscode = getPluscodeFromEvent(ev.raw);
+                if (pluscode) {
+                    const pluscodeEl = document.createElement('div');
+                    pluscodeEl.className = 'message-pluscode';
+                    const link = document.createElement('a');
+                    link.href = '#' + encodeURIComponent(pluscode).replace(/%2B/g, '+');
+                    link.title = 'Go to Plus Code chat';
+                    link.textContent = '\u2316 ' + pluscode;
+                    pluscodeEl.appendChild(link);
+                    div.appendChild(pluscodeEl);
+                }
+                const meta = document.createElement('div');
+                meta.className = 'meta';
+                const authorLabel = pubkeyDisplayLabel(ev.pubkey);
+                const timeStr = new Date(ev.created_at * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                const authorTitle = (hexToNpub(ev.pubkey) || '').replace(/"/g, '&quot;');
+                if (isChannel && !isSelf) {
+                    meta.innerHTML = `<span class="author"${authorTitle ? ` title="${authorTitle}"` : ''}>${authorLabel}</span><span class="time">${timeStr}</span>`;
+                } else {
+                    meta.innerHTML = `<span class="time">${timeStr}</span>`;
+                }
+                div.appendChild(meta);
+                wrap.appendChild(div);
+                container.appendChild(wrap);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function startDm() {
+            const raw = document.getElementById('new-dm-pubkey')?.value?.trim() || '';
+            const peer = await resolvePubkeyInput(raw);
+            if (!peer) {
+                showStatus('Invalid npub, nip5 or hashtag (e.g. nostroots@trustroots.org).', 'error');
+                return;
+            }
+            if (peer === currentPublicKey) {
+                showStatus('Cannot message yourself.', 'error');
+                return;
+            }
+            getOrCreateConversation('dm', peer, [peer]);
+            closeNewDmModal();
+            document.getElementById('new-dm-pubkey').value = '';
+            selectConversation(peer);
+        }
+
+        function startGroup() {
+            const members = [currentPublicKey, ...groupModalMembers.map(m => m.hex)];
+            members.sort();
+            const groupId = members.join(',');
+            getOrCreateConversation('group', groupId, members);
+            closeNewGroupModal();
+            groupModalMembers = [];
+            selectConversation(groupId);
+        }
+
+        async function signEvent(template) {
+            if (usingNip07) {
+                if (!nostrProvider) {
+                    const provider = NrNip07.detectNostrExtension();
+                    if (!provider) {
+                        showStatus('Extension no longer available. Please reconnect.', 'error');
+                        usingNip07 = false;
+                        localStorage.removeItem('using_nip07');
+                        updateUI();
+                        throw new Error('Extension no longer available');
+                    }
+                    const pk = await NrNip07.getPublicKeyFromExtension(provider);
+                    if (!pk || pk !== currentPublicKey) {
+                        showStatus(pk ? 'Extension public key changed. Please reconnect.' : 'Extension no longer available. Please reconnect.', 'error');
+                        usingNip07 = false;
+                        nostrProvider = null;
+                        localStorage.removeItem('using_nip07');
+                        updateUI();
+                        throw new Error('Extension no longer available');
+                    }
+                    nostrProvider = provider;
+                }
+                try {
+                    const signed = await nostrProvider.signEvent(template);
+                    // Some extensions return an event without tags; nostr-tools serialization expects tags to be an array.
+                    if (!Array.isArray(signed.tags)) signed.tags = Array.isArray(template.tags) ? [...template.tags] : [];
+                    return signed;
+                } catch (e) {
+                    console.error('Error signing with extension:', e);
+                    showStatus('Error signing: ' + (e?.message || String(e)), 'error');
+                    throw e;
+                }
+            }
+            if (currentSecretKeyBytes) {
+                return finalizeEvent(template, currentSecretKeyBytes);
+            }
+            throw new Error('No key to sign');
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('compose-input');
+            const text = (input?.value || '').trim();
+            if (!text) return;
+            const conv = selectedConversationId ? conversations.get(selectedConversationId) : null;
+            if (!conv) return;
+
+            if (conv.type === 'dm') {
+                const peer = conv.id;
+                const cipher = await encryptKind4(peer, text);
+                if (!cipher) {
+                    showStatus('Cannot encrypt: no secret key. Use extension (NIP-07) or import key.', 'error');
+                    return;
+                }
+                const template = {
+                    kind: 4,
+                    content: cipher,
+                    tags: [['p', peer]],
+                    created_at: Math.floor(Date.now() / 1000),
+                    pubkey: currentPublicKey
+                };
+                template.id = getEventHash(template);
+                signEvent(template).then(signed => {
+                    pool.publish(relays, signed);
+                    conv.events.push({ id: signed.id, pubkey: currentPublicKey, content: text, created_at: template.created_at, raw: signed });
+                    conv.events.sort((a, b) => a.created_at - b.created_at);
+                    input.value = '';
+                    renderThread();
+                    showStatus('Sent.', 'success');
+                }).catch(e => showStatus('Send failed: ' + (e.message || e), 'error'));
+                return;
+            }
+
+            if (conv.type === 'group') {
+                const rumor = {
+                    kind: 14,
+                    content: text,
+                    tags: conv.members.filter(m => m !== currentPublicKey).map(m => ['p', m]),
+                    created_at: Math.floor(Date.now() / 1000),
+                    pubkey: currentPublicKey
+                };
+                rumor.id = getEventHash(rumor);
+                const membersToSend = conv.members;
+                (async () => {
+                    for (const memberPubkey of membersToSend) {
+                        try {
+                            const sealContent = nip44.v2.encrypt(JSON.stringify(rumor), nip44.v2.getConversationKey(currentSecretKeyBytes, memberPubkey));
+                            const seal = await signEvent({
+                                kind: 13,
+                                content: sealContent,
+                                tags: [],
+                                created_at: Math.floor(Date.now() / 1000) - Math.floor(Math.random() * 86400),
+                                pubkey: currentPublicKey
+                            });
+                            const ephem = generateSecretKey();
+                            const wrapContent = nip44.v2.encrypt(JSON.stringify(seal), nip44.v2.getConversationKey(ephem, memberPubkey));
+                            const wrap = finalizeEvent({
+                                kind: 1059,
+                                content: wrapContent,
+                                tags: [['p', memberPubkey]],
+                                created_at: Math.floor(Date.now() / 1000) - Math.floor(Math.random() * 86400),
+                                pubkey: getPublicKey(ephem)
+                            }, ephem);
+                            pool.publish(relays, wrap);
+                        } catch (_) {}
+                    }
+                    conv.events.push({ id: rumor.id, pubkey: currentPublicKey, content: text, created_at: rumor.created_at, raw: rumor });
+                    conv.events.sort((a, b) => a.created_at - b.created_at);
+                    document.getElementById('compose-input').value = '';
+                    renderThread();
+                    showStatus('Sent to group.', 'success');
+                })();
+                return;
+            }
+
+            if (conv.type === 'channel') {
+                const slug = conv.id;
+                const tags = [
+                    ['L', TRUSTROOTS_CIRCLE_LABEL],
+                    ['l', slug, TRUSTROOTS_CIRCLE_LABEL]
+                ];
+                if (isPlusCodeChannelId(slug)) {
+                    const prefix = slug.slice(0, 8);
+                    tags.push(['L', 'open-location-code'], ['l', slug, 'open-location-code'], ['L', 'open-location-code-prefix'], ['l', prefix, 'open-location-code-prefix']);
+                }
+                const template = {
+                    kind: MAP_NOTE_KIND,
+                    content: text,
+                    tags,
+                    created_at: Math.floor(Date.now() / 1000),
+                    pubkey: currentPublicKey
+                };
+                template.id = getEventHash(template);
+                signEvent(template).then(signed => {
+                    pool.publish(relays, signed);
+                    conv.events.push({ id: signed.id, pubkey: currentPublicKey, content: text, created_at: template.created_at, raw: signed });
+                    conv.events.sort((a, b) => a.created_at - b.created_at);
+                    document.getElementById('compose-input').value = '';
+                    renderThread();
+                    showStatus('Sent to channel.', 'success');
+                }).catch(e => showStatus('Send failed: ' + (e.message || e), 'error'));
+            }
+        }
+
+        // Expose handlers for inline onclick (module scope is not global)
+        window.connectNip07 = connectNip07;
+        window.importKey = importKey;
+        window.openAuthModal = openAuthModal;
+        window.closeAuthModal = closeAuthModal;
+        window.openRelaysModal = openRelaysModal;
+        window.addRelay = addRelay;
+        window.removeRelay = removeRelay;
+        window.openNewDmModal = openNewDmModal;
+        window.closeNewDmModal = closeNewDmModal;
+        window.openNewGroupModal = openNewGroupModal;
+        window.closeNewGroupModal = closeNewGroupModal;
+        window.addGroupParticipant = addGroupParticipant;
+        window.startDm = startDm;
+        window.startGroup = startGroup;
+        window.sendMessage = sendMessage;
+        window.disconnect = disconnect;
+        window.linkTrustrootsProfile = linkTrustrootsProfile;
+        window.updateTrustrootsProfile = updateTrustrootsProfile;
+        window.copyPublicKey = copyPublicKey;
+        window.closeRelaysModal = closeRelaysModal;
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape' && e.keyCode !== 27) return;
+            const active = document.querySelector('.modal.active');
+            if (!active) return;
+            e.preventDefault();
+            if (active.id === 'auth-modal') closeAuthModal();
+            else if (active.id === 'relays-modal') closeRelaysModal();
+            else if (active.id === 'new-dm-modal') closeNewDmModal();
+            else if (active.id === 'new-group-modal') closeNewGroupModal();
+        }, true);
+
+        window.addEventListener('hashchange', applyHashToState);
+
+        startPublicSubscriptions();
+
+        // loadKeysFromStorage(0) retries up to 5 times when NIP-07 was used (like index.html)
+        loadKeysFromStorage(0);
+        if (!currentPublicKey) updateUI();
+        applyHashToState();
+    </script>
+</body>
+</html>

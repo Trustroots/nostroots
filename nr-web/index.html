@@ -11,8 +11,10 @@
     
     <!-- MapLibre GL CSS -->
     <link href="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css" rel="stylesheet" />
-    
-    <style>
+    <link rel="stylesheet" href="common.css">
+    <link rel="stylesheet" href="index.css">
+    <script src="common.js"></script>
+    <style type="text/template-removed">
         * {
             margin: 0;
             padding: 0;
@@ -2122,132 +2124,28 @@
             return [...new Set(prefixes)];
         }
         
-        // NIP-07 Extension Support
-        function detectNostrExtension() {
-            // Check for standard window.nostr interface (nos2x, etc.)
-            if (window.nostr && typeof window.nostr.getPublicKey === 'function') {
-                return window.nostr;
-            }
-            
-            // Check for Alby's nostr provider
-            if (window.webln && window.webln.nostr && typeof window.webln.nostr.getPublicKey === 'function') {
-                return window.webln.nostr;
-            }
-            
-            return null;
-        }
-        
-        // Helper to check if extension is actually ready (not just detected)
-        function isExtensionReady(provider) {
-            if (!provider) return false;
-            if (typeof provider.getPublicKey !== 'function') return false;
-            // Some extensions might have additional readiness checks
-            // For now, just check if the function exists and is callable
-            return true;
-        }
-        
+        // NIP-07: use shared common.js (NrNip07)
         async function authenticateWithExtension() {
-            // Prevent concurrent calls
-            if (authenticatingWithExtension) {
-                return false;
-            }
-            
+            if (authenticatingWithExtension) return false;
             authenticatingWithExtension = true;
-            
             try {
-                const provider = detectNostrExtension();
-                
+                const provider = NrNip07.detectNostrExtension();
                 if (!provider) {
                     showStatus('No NIP-07 extension found. Please install nos2x or Alby.', 'error');
                     authenticatingWithExtension = false;
                     return false;
                 }
-                
-                // Validate that getPublicKey is a function before calling
-                if (!isExtensionReady(provider)) {
+                if (!NrNip07.isExtensionReady(provider)) {
                     showStatus('Extension getPublicKey method is not available or not ready', 'error');
                     authenticatingWithExtension = false;
                     return false;
                 }
-                
-                // Get public key from extension - call with no arguments explicitly
-                // NIP-07 spec: getPublicKey() should be called with no arguments
-                // Some extensions may throw errors if called incorrectly or if not ready
-                let pubkey;
-                let callError = null;
-                
-                try {
-                    pubkey = await provider.getPublicKey();
-                } catch (error) {
-                    callError = error;
-                    console.error('Error calling getPublicKey (first attempt):', error);
-                    
-                    // Check if this is the known SyntaxError from the extension's content script
-                    // This is a bug in some extensions where they throw SyntaxError internally
-                    const errorStr = String(error?.message || error?.toString() || '');
-                    const isSyntaxError = error?.name === 'SyntaxError' || 
-                                         errorStr.includes('SyntaxError') ||
-                                         errorStr.includes('invalid or illegal string');
-                    
-                    if (isSyntaxError) {
-                        // This is likely an extension bug - wait longer and retry
-                        await new Promise(resolve => setTimeout(resolve, 1000));
-                        
-                        // Re-check that extension is still available
-                        const retryProvider = detectNostrExtension();
-                        
-                        if (!retryProvider || !isExtensionReady(retryProvider)) {
-                            throw new Error('Extension error: The extension encountered an internal error. Please try refreshing the page, or unlock/restart your extension and try again.');
-                        }
-                        
-                        try {
-                            pubkey = await retryProvider.getPublicKey();
-                            callError = null; // Success on retry
-                        } catch (retryError) {
-                            console.error('Error calling getPublicKey (retry attempt):', retryError);
-                            // Still failing - provide helpful error message
-                            throw new Error('Extension error: The extension is having issues. Please try: 1) Unlock your extension, 2) Refresh this page, or 3) Restart your browser. If the problem persists, the extension may need to be updated.');
-                        }
-                    } else {
-                        // Other types of errors - wait a bit and retry once
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                        
-                        // Re-check that extension is still available
-                        const retryProvider = detectNostrExtension();
-                        if (!retryProvider || !isExtensionReady(retryProvider)) {
-                            throw new Error('Extension became unavailable. Please ensure the extension is installed and enabled, then try again.');
-                        }
-                        
-                        try {
-                            pubkey = await retryProvider.getPublicKey();
-                            callError = null; // Success on retry
-                        } catch (retryError) {
-                            console.error('Error calling getPublicKey (retry attempt):', retryError);
-                            const errorMsg = callError?.message || callError?.toString() || 'Unknown error';
-                            throw new Error(`Extension getPublicKey failed: ${errorMsg}. Please ensure the extension is unlocked and try again.`);
-                        }
-                    }
-                }
-                
-                // If we still have an error after retries, throw it
-                if (callError && !pubkey) {
-                    throw callError;
-                }
-                
-                // Validate the returned public key
-                if (!pubkey || typeof pubkey !== 'string') {
-                    showStatus('Failed to get public key from extension: invalid response', 'error');
+                const pubkey = await NrNip07.getPublicKeyFromExtension(provider);
+                if (!pubkey) {
+                    showStatus('Failed to get public key from extension.', 'error');
                     authenticatingWithExtension = false;
                     return false;
                 }
-                
-                // Validate it's a valid hex string (64 chars for 32 bytes)
-                if (!/^[0-9a-f]{64}$/i.test(pubkey)) {
-                    showStatus('Extension returned invalid public key format', 'error');
-                    authenticatingWithExtension = false;
-                    return false;
-                }
-                
                 // IMPORTANT: With NIP-07, the private key NEVER leaves the extension
                 // We explicitly clear any local private keys and only store the public key
                 currentPrivateKey = null;
@@ -2290,11 +2188,8 @@
         }
         
         function checkNip07OnLoad() {
-            // Give extension content script time to initialize
-            // Some extensions need a moment to inject their content script
             setTimeout(() => {
-                // Check if extension is available
-                const provider = detectNostrExtension();
+                const provider = NrNip07.detectNostrExtension();
                 const nip07Section = document.getElementById('nip07-section');
                 // Note: onboarding-nip07-section is now always visible in the new UI, so we don't hide/show it
                 
@@ -4726,41 +4621,25 @@
                 if (usingNip07) {
                     // Verify extension is still available
                     if (!nostrProvider) {
-                        const provider = detectNostrExtension();
-                        if (provider) {
-                            nostrProvider = provider;
-                            try {
-                                if (typeof provider.getPublicKey !== 'function') {
-                                    throw new Error('getPublicKey method not available');
-                                }
-                                const currentPubkey = await provider.getPublicKey();
-                                if (!currentPubkey || typeof currentPubkey !== 'string') {
-                                    throw new Error('Invalid public key returned');
-                                }
-                                if (currentPubkey !== currentPublicKey) {
-                                    showStatus('Extension public key changed. Please reconnect.', 'error');
-                                    usingNip07 = false;
-                                    updateKeyDisplay();
-                                    return;
-                                }
-                            } catch (error) {
-                                console.error('Error verifying extension public key:', error);
-                                showStatus('Extension no longer available. Please reconnect.', 'error');
-                                usingNip07 = false;
-                                nostrProvider = null;
-                                localStorage.removeItem('using_nip07');
-                                updateKeyDisplay();
-                                return;
-                            }
-                        } else {
+                        const provider = NrNip07.detectNostrExtension();
+                        if (!provider) {
                             showStatus('Extension no longer available. Please reconnect or use local keys.', 'error');
                             usingNip07 = false;
                             localStorage.removeItem('using_nip07');
                             updateKeyDisplay();
                             return;
                         }
+                        const currentPubkey = await NrNip07.getPublicKeyFromExtension(provider);
+                        if (!currentPubkey || currentPubkey !== currentPublicKey) {
+                            showStatus(currentPubkey ? 'Extension public key changed. Please reconnect.' : 'Extension no longer available. Please reconnect.', 'error');
+                            usingNip07 = false;
+                            nostrProvider = null;
+                            localStorage.removeItem('using_nip07');
+                            updateKeyDisplay();
+                            return;
+                        }
+                        nostrProvider = provider;
                     }
-                    
                     try {
                         signedEvent = await nostrProvider.signEvent(eventTemplate);
                     } catch (error) {
@@ -5187,45 +5066,8 @@
                 if (usingNip07) {
                     // Verify extension is still available
                     if (!nostrProvider) {
-                        const provider = detectNostrExtension();
-                        if (provider) {
-                            nostrProvider = provider;
-                            try {
-                                if (typeof provider.getPublicKey !== 'function') {
-                                    throw new Error('getPublicKey method not available');
-                                }
-                                const currentPubkey = await provider.getPublicKey();
-                                if (!currentPubkey || typeof currentPubkey !== 'string') {
-                                    throw new Error('Invalid public key returned');
-                                }
-                                if (currentPubkey !== currentPublicKey) {
-                                    showStatus('Extension public key changed. Please reconnect.', 'error');
-                                    usingNip07 = false;
-                                    updateKeyDisplay();
-                                    if (deleteButton) {
-                                        deleteButton.disabled = false;
-                                        deleteButton.classList.remove('deleting');
-                                        deleteButton.textContent = '🗑️ DELETE';
-                                        deleteButton.title = 'Delete this note';
-                                    }
-                                    return;
-                                }
-                            } catch (error) {
-                                console.error('Error verifying extension public key:', error);
-                                showStatus('Extension no longer available. Please reconnect.', 'error');
-                                usingNip07 = false;
-                                nostrProvider = null;
-                                localStorage.removeItem('using_nip07');
-                                updateKeyDisplay();
-                                if (deleteButton) {
-                                    deleteButton.disabled = false;
-                                    deleteButton.classList.remove('deleting');
-                                    deleteButton.textContent = '🗑️ DELETE';
-                                    deleteButton.title = 'Delete this note';
-                                }
-                                return;
-                            }
-                        } else {
+                        const provider = NrNip07.detectNostrExtension();
+                        if (!provider) {
                             showStatus('Extension no longer available. Please reconnect or use local keys.', 'error');
                             usingNip07 = false;
                             localStorage.removeItem('using_nip07');
@@ -5238,8 +5080,23 @@
                             }
                             return;
                         }
+                        const currentPubkey = await NrNip07.getPublicKeyFromExtension(provider);
+                        if (!currentPubkey || currentPubkey !== currentPublicKey) {
+                            showStatus(currentPubkey ? 'Extension public key changed. Please reconnect.' : 'Extension no longer available. Please reconnect.', 'error');
+                            usingNip07 = false;
+                            nostrProvider = null;
+                            localStorage.removeItem('using_nip07');
+                            updateKeyDisplay();
+                            if (deleteButton) {
+                                deleteButton.disabled = false;
+                                deleteButton.classList.remove('deleting');
+                                deleteButton.textContent = '🗑️ DELETE';
+                                deleteButton.title = 'Delete this note';
+                            }
+                            return;
+                        }
+                        nostrProvider = provider;
                     }
-                    
                     try {
                         signedEvent = await nostrProvider.signEvent(deletionEvent);
                     } catch (error) {
@@ -5655,7 +5512,7 @@
                 // Check if NIP-07 extension is available and show the section
                 // Check immediately and also after a short delay to catch extensions that load late
                 const checkNip07 = () => {
-                    const provider = detectNostrExtension();
+                    const provider = NrNip07.detectNostrExtension();
                     if (nip07Section) {
                         nip07Section.style.display = provider ? 'block' : 'none';
                     }
@@ -5726,7 +5583,7 @@
             // Extensions may need time to inject content scripts in new tabs
             if (wasUsingNip07) {
                 const tryReconnect = (attempt = 0, maxAttempts = 5) => {
-                    const provider = detectNostrExtension();
+                    const provider = NrNip07.detectNostrExtension();
                     
                     if (provider) {
                         // Extension detected, try to authenticate

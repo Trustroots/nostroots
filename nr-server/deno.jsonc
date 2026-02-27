@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "run": "deno run --allow-net --allow-env mod.ts",
+    "run": "deno run --allow-net --allow-env main.ts",
     "cache": "deno cache --lock deno.lock deps.ts",
   },
   "imports": {

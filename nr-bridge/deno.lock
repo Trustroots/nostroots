@@ -1,0 +1,135 @@
+{
+  "version": "5",
+  "specifiers": {
+    "jsr:@hono/hono@*": "4.12.3",
+    "jsr:@std/assert@^1.0.19": "1.0.19",
+    "jsr:@std/expect@*": "1.0.18",
+    "jsr:@std/internal@^1.0.12": "1.0.12",
+    "jsr:@std/path@^1.1.4": "1.1.4",
+    "npm:mongodb@6": "6.21.0",
+    "npm:zod@^3.25.76": "3.25.76"
+  },
+  "jsr": {
+    "@hono/hono@4.12.3": {
+      "integrity": "53c2d99912626a8bc293d6f69649af8148961b05d44485f2c0ed3053657d324c"
+    },
+    "@std/assert@1.0.19": {
+      "integrity": "eaada96ee120cb980bc47e040f82814d786fe8162ecc53c91d8df60b8755991e",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/expect@1.0.18": {
+      "integrity": "8566eab35200466f8609eb7e7aed062ed0db314e9a258d5d201b1b8997ce801a",
+      "dependencies": [
+        "jsr:@std/assert",
+        "jsr:@std/internal",
+        "jsr:@std/path"
+      ]
+    },
+    "@std/internal@1.0.12": {
+      "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
+    },
+    "@std/path@1.1.4": {
+      "integrity": "1d2d43f39efb1b42f0b1882a25486647cb851481862dc7313390b2bb044314b5",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    }
+  },
+  "npm": {
+    "@mongodb-js/saslprep@1.4.6": {
+      "integrity": "sha512-y+x3H1xBZd38n10NZF/rEBlvDOOMQ6LKUTHqr8R9VkJ+mmQOYtJFxIlkkK8fZrtOiL6VixbOBWMbZGBdal3Z1g==",
+      "dependencies": [
+        "sparse-bitfield"
+      ]
+    },
+    "@types/webidl-conversions@7.0.3": {
+      "integrity": "sha512-CiJJvcRtIgzadHCYXw7dqEnMNRjhGZlYK05Mj9OyktqV8uVT8fD2BFOB7S1uwBE3Kj2Z+4UyPmFw/Ixgw/LAlA=="
+    },
+    "@types/whatwg-url@11.0.5": {
+      "integrity": "sha512-coYR071JRaHa+xoEvvYqvnIHaVqaYrLPbsufM9BF63HkwI5Lgmy2QR8Q5K/lYDYo5AK82wOvSOS0UsLTpTG7uQ==",
+      "dependencies": [
+        "@types/webidl-conversions"
+      ]
+    },
+    "bson@6.10.4": {
+      "integrity": "sha512-WIsKqkSC0ABoBJuT1LEX+2HEvNmNKKgnTAyd0fL8qzK4SH2i9NXg+t08YtdZp/V9IZ33cxe3iV4yM0qg8lMQng=="
+    },
+    "memory-pager@1.5.0": {
+      "integrity": "sha512-ZS4Bp4r/Zoeq6+NLJpP+0Zzm0pR8whtGPf1XExKLJBAczGMnSi3It14OiNCStjQjM6NU1okjQGSxgEZN8eBYKg=="
+    },
+    "mongodb-connection-string-url@3.0.2": {
+      "integrity": "sha512-rMO7CGo/9BFwyZABcKAWL8UJwH/Kc2x0g72uhDWzG48URRax5TCIcJ7Rc3RZqffZzO/Gwff/jyKwCU9TN8gehA==",
+      "dependencies": [
+        "@types/whatwg-url",
+        "whatwg-url"
+      ]
+    },
+    "mongodb@6.21.0": {
+      "integrity": "sha512-URyb/VXMjJ4da46OeSXg+puO39XH9DeQpWCslifrRn9JWugy0D+DvvBvkm2WxmHe61O/H19JM66p1z7RHVkZ6A==",
+      "dependencies": [
+        "@mongodb-js/saslprep",
+        "bson",
+        "mongodb-connection-string-url"
+      ]
+    },
+    "punycode@2.3.1": {
+      "integrity": "sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg=="
+    },
+    "sparse-bitfield@3.0.3": {
+      "integrity": "sha512-kvzhi7vqKTfkh0PZU+2D2PIllw2ymqJKujUcyPMd9Y75Nv4nPbGJZXNhxsgdQab2BmlDct1YnfQCguEvHr7VsQ==",
+      "dependencies": [
+        "memory-pager"
+      ]
+    },
+    "tr46@5.1.1": {
+      "integrity": "sha512-hdF5ZgjTqgAntKkklYw0R03MG2x/bSzTtkxmIRw/sTNV8YXsCJ1tfLAX23lhxhHJlEf3CRCOCGGWw3vI3GaSPw==",
+      "dependencies": [
+        "punycode"
+      ]
+    },
+    "webidl-conversions@7.0.0": {
+      "integrity": "sha512-VwddBukDzu71offAQR975unBIGqfKZpM+8ZX6ySk8nYhVoo5CYaZyzt3YBvYtRtO+aoGlqxPg/B87NGVZ/fu6g=="
+    },
+    "whatwg-url@14.2.0": {
+      "integrity": "sha512-De72GdQZzNTUBBChsXueQUnPKDkg/5A5zp7pFDuQAj5UFoENpiACU0wlCvzpAGnTkj++ihpKwKyYewn/XNUbKw==",
+      "dependencies": [
+        "tr46",
+        "webidl-conversions"
+      ]
+    },
+    "zod@3.25.76": {
+      "integrity": "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="
+    }
+  },
+  "redirects": {
+    "https://deno.land/x/denomailer/mod.ts": "https://deno.land/x/denomailer@1.6.0/mod.ts"
+  },
+  "remote": {
+    "https://deno.land/std@0.173.0/encoding/base64.ts": "7de04c2f8aeeb41453b09b186480be90f2ff357613b988e99fabb91d2eeceba1",
+    "https://deno.land/x/denomailer@1.6.0/client/basic/QUE.ts": "5af1dfcc5814bf4542f098908ac1fdd8a1a1c2b1597138a121c95eaa791315d0",
+    "https://deno.land/x/denomailer@1.6.0/client/basic/client.ts": "462e4db45ae218647812ceae720d55ea33e0e928f9138fee9da5913cbb1e20f9",
+    "https://deno.land/x/denomailer@1.6.0/client/basic/connection.ts": "68de68d7551d8303629905c2b7581cb09b45646e530ce93a5786ca1aba61055c",
+    "https://deno.land/x/denomailer@1.6.0/client/basic/transforms.ts": "e630a23d24e9b397e231ae8796c0a0080770ac6f5ab9bffc105d3717706e62c9",
+    "https://deno.land/x/denomailer@1.6.0/client/mod.ts": "8ec4c25d9586f83f8629768311a077eaf03b1490dcb872030ba2e27fadb674d8",
+    "https://deno.land/x/denomailer@1.6.0/client/pool.ts": "0466e69ca8959aa85501cc6b30d7f5fd8e43b0a6ac88ecc60dab71081e801bae",
+    "https://deno.land/x/denomailer@1.6.0/client/worker/worker.ts": "a4c3a3e2e1fde0967817ece7c345a565eb44a7312acf8d46ce620d4ff4443b31",
+    "https://deno.land/x/denomailer@1.6.0/config/client.ts": "302f5c18fbb5531b5615613084b86d44120acc210e072f4135e431fa27fc4526",
+    "https://deno.land/x/denomailer@1.6.0/config/mail/attachments.ts": "1f357bddc9d5e813c3f647498db81a165a1a8a7163116c58dc10cf01427fd81e",
+    "https://deno.land/x/denomailer@1.6.0/config/mail/content.ts": "3925d4c3baaabed4e08933159d34b1450e6426b35a5bc323a0666780bef20192",
+    "https://deno.land/x/denomailer@1.6.0/config/mail/email.ts": "bb0ca104bf9cb54af6613a04b3f8cb05290f4fb012e7113f1d050cab10226a7c",
+    "https://deno.land/x/denomailer@1.6.0/config/mail/encoding.ts": "0bc5983ada3b902333925cdca225f8ea5e28fffbc2f1bd2b0ccb9a423f6f7fcc",
+    "https://deno.land/x/denomailer@1.6.0/config/mail/headers.ts": "ce94874beb5a1a7248b5b91bf1ae3b3aed2d4c0541f3f448f2bbfad6c8f570ee",
+    "https://deno.land/x/denomailer@1.6.0/config/mail/mod.ts": "a7fafa3386a45a585d7983d816b09ddc28b2f2b84097a614f1e38685b1f62868",
+    "https://deno.land/x/denomailer@1.6.0/deps.ts": "12bef188bb2a490fedc82ac1889f3d438e8a15887c423b045fee532b31a43102",
+    "https://deno.land/x/denomailer@1.6.0/mod.ts": "71a197dff098194ab53691abd3c9d22a276ef04e1382eb85f5632dbcb5a83bf3"
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@hono/hono@*",
+      "npm:mongodb@6",
+      "npm:zod@^3.25.76"
+    ]
+  }
+}

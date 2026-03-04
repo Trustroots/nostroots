@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 describe('Modal Behavior', () => {
   beforeEach(() => {
     // Reset modal states
-    const modals = ['settings-modal', 'keys-modal', 'view-note-modal', 'pluscode-notes-modal', 'circles-modal'];
+    const modals = ['settings-modal', 'keys-modal', 'pluscode-notes-modal', 'circles-modal'];
     modals.forEach(id => {
       const modal = document.getElementById(id);
       if (modal) {
@@ -46,40 +46,54 @@ describe('Modal Behavior', () => {
       expect(importBtn).toBeTruthy();
     });
 
-    it('has NIP-07 section', () => {
-      const nip07Section = document.getElementById('keys-nip07-section');
-      expect(nip07Section).toBeTruthy();
-    });
   });
 
   describe('Note Modals', () => {
-    it('view note modal exists', () => {
-      const modal = document.getElementById('view-note-modal');
-      expect(modal).toBeTruthy();
-    });
-
     it('plus code notes modal exists', () => {
       const modal = document.getElementById('pluscode-notes-modal');
       expect(modal).toBeTruthy();
     });
 
-    // Note: add-note-modal might be created dynamically or have a different ID
-    // Check for note-related modals that exist
+    it('circles modal exists', () => {
+      const modal = document.getElementById('circles-modal');
+      expect(modal).toBeTruthy();
+    });
+
     it('has note-related modal elements', () => {
-      const viewModal = document.getElementById('view-note-modal');
       const plusCodeModal = document.getElementById('pluscode-notes-modal');
-      expect(viewModal || plusCodeModal).toBeTruthy();
+      expect(plusCodeModal).toBeTruthy();
     });
   });
 
   describe('Modal structure', () => {
     it('all modals have modal-content wrapper', () => {
-      const modals = ['settings-modal', 'keys-modal', 'view-note-modal'];
-      modals.forEach(id => {
+      const modalIds = ['settings-modal', 'keys-modal', 'pluscode-notes-modal', 'circles-modal'];
+      modalIds.forEach(id => {
         const modal = document.getElementById(id);
+        expect(modal).toBeTruthy();
         const content = modal?.querySelector('.modal-content');
         expect(content).toBeTruthy();
       });
+    });
+  });
+
+  describe('Injected modals (modals-keys-settings.html)', () => {
+    it('keys modal has onboarding sections from fragment', () => {
+      const keysModal = document.getElementById('keys-modal');
+      expect(keysModal).toBeTruthy();
+      expect(document.getElementById('keys-welcome-section')).toBeTruthy();
+      expect(document.getElementById('keys-import-section')).toBeTruthy();
+      expect(document.getElementById('keys-generate-section')).toBeTruthy();
+      expect(document.getElementById('onboarding-import')).toBeTruthy();
+    });
+
+    it('settings modal has relays section and GitHub link from fragment', () => {
+      const settingsModal = document.getElementById('settings-modal');
+      expect(settingsModal).toBeTruthy();
+      expect(document.getElementById('relays-list')).toBeTruthy();
+      expect(document.getElementById('new-relay-url')).toBeTruthy();
+      const githubLink = settingsModal?.querySelector('a.github-icon-link[href*="github.com"]');
+      expect(githubLink).toBeTruthy();
     });
   });
 });

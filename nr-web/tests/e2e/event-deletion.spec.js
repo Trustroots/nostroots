@@ -104,9 +104,8 @@ test.describe('Event Deletion E2E', () => {
     // Verify that delete requires a key
     const requiresKey = await page.evaluate(() => {
       // Simulate the check that deleteEvent would do
-      const hasNip07 = localStorage.getItem('using_nip07') === 'true';
       const hasLocalKey = !!localStorage.getItem('nostr_private_key');
-      return hasNip07 || hasLocalKey;
+      return hasLocalKey;
     });
     
     // After beforeEach, we should have a key

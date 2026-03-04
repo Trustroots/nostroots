@@ -54,7 +54,6 @@ test.describe('Relay Publishing', () => {
     // Clear any existing keys first
     await page.evaluate(() => {
       localStorage.removeItem('nostr_private_key');
-      localStorage.removeItem('using_nip07');
       window.currentPublicKey = null;
       window.currentPrivateKeyBytes = null;
     });
@@ -284,7 +283,6 @@ test.describe('Relay Publishing', () => {
     // Clear any existing keys first
     await page.evaluate(() => {
       localStorage.removeItem('nostr_private_key');
-      localStorage.removeItem('using_nip07');
       window.currentPublicKey = null;
       window.currentPrivateKeyBytes = null;
     });

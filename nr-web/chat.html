@@ -236,7 +236,7 @@
         .message-wrap {
             display: flex;
             flex-direction: column;
-            max-width: 85%;
+            max-width: 92%;
         }
         .message-wrap.self { align-self: flex-end; align-items: flex-end; }
         .message-wrap.other { align-self: flex-start; align-items: flex-start; }
@@ -270,8 +270,10 @@
             align-items: baseline;
             justify-content: flex-end;
             gap: 0.35rem;
-            white-space: nowrap;
+            flex-wrap: wrap;
+            white-space: normal;
         }
+        .message .meta .author { min-width: 0; overflow-wrap: anywhere; }
         .message .meta .time { opacity: 0.75; }
         .message-nip-pill {
             font-size: inherit;
@@ -281,7 +283,7 @@
         .message-row { display: flex; align-items: center; gap: 0.25rem; width: 100%; }
         .message-row.self { align-self: flex-end; justify-content: flex-end; }
         .message-row.other { justify-content: flex-start; }
-        .message-row .message-wrap { flex: 0 1 auto; min-width: 0; max-width: 85%; }
+        .message-row .message-wrap { flex: 0 1 auto; min-width: 0; max-width: 92%; }
         .message-delete {
             flex-shrink: 0;
             width: 1.25rem;
@@ -318,25 +320,42 @@
         }
         .message.self .message-pluscode a { color: var(--primary-foreground); background: rgba(255,255,255,0.2); }
         .message-pluscode a:hover { text-decoration: underline; }
+        .message-channel-tag {
+            margin-top: 0.35rem;
+            font-size: 0.75rem;
+        }
+        .message-channel-tag a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            color: var(--primary);
+            text-decoration: none;
+            padding: 0.2rem 0.4rem;
+            border-radius: calc(var(--radius) - 2px);
+            background: rgba(0,0,0,0.06);
+        }
+        .message.self .message-channel-tag a { color: var(--primary-foreground); background: rgba(255,255,255,0.2); }
+        .message-channel-tag a:hover { text-decoration: underline; }
         .compose {
-            padding: 0.3rem 0.5rem 0.4rem;
+            padding: 0.2rem 0.35rem;
             border-top: 1px solid var(--border);
             display: flex;
-            flex-direction: column;
             flex-shrink: 0;
         }
         .compose-input-row {
             display: flex;
-            align-items: flex-end;
-            gap: 0.4rem;
+            align-items: stretch;
+            gap: 0.25rem;
+            flex: 1;
         }
         .compose-input-row .compose-input-cell {
             flex: 1;
             min-width: 0;
+            display: flex;
         }
         .compose input, .compose textarea {
             width: 100%;
-            padding: 0.35rem 0.5rem;
+            padding: 0.3rem 0.45rem;
             border: 1px solid var(--border);
             border-radius: calc(var(--radius) - 2px);
             background: var(--input);
@@ -345,26 +364,32 @@
         }
         .compose textarea {
             resize: vertical;
-            min-height: 2.25rem;
+            min-height: 2rem;
         }
         .compose-options {
             display: flex;
             flex-direction: column;
-            align-items: flex-start;
-            gap: 0.1rem;
+            align-items: center;
+            justify-content: center;
+            gap: 0;
             flex-shrink: 0;
         }
         .compose-options label {
-            font-size: 0.7rem;
+            font-size: 0.55rem;
             color: var(--muted-foreground);
+            letter-spacing: 0.04em;
+            line-height: 1;
+            margin-bottom: 0.1rem;
         }
         .compose-options select {
-            padding: 0.25rem 0.4rem;
+            padding: 0.15rem 0.25rem;
             border: 1px solid var(--border);
             border-radius: calc(var(--radius) - 2px);
             background: var(--input);
             color: var(--foreground);
-            font-size: 0.8125rem;
+            font-size: 0.7rem;
+            line-height: 1;
+            height: 1.5rem;
         }
         .empty-state {
             flex: 1;
@@ -552,14 +577,14 @@
                         <textarea id="compose-input" placeholder="Type a message..." rows="2" onkeydown="if(event.key==='Enter'){if(!event.shiftKey){event.preventDefault();sendMessage();}}"></textarea>
                     </div>
                     <div class="compose-options" id="compose-note-duration" style="display:none;">
-                        <select id="compose-expiry" aria-label="Expiry">
-                            <option value="3600">1 Hour</option>
-                            <option value="86400">24 Hours</option>
-                            <option value="604800">7 Days</option>
-                            <option value="2592000" selected>30 Days</option>
-                            <option value="">Permanent</option>
-                        </select>
                         <label for="compose-expiry">EXPIRY</label>
+                        <select id="compose-expiry" aria-label="Expiry">
+                            <option value="3600">1h</option>
+                            <option value="86400">24h</option>
+                            <option value="604800">7d</option>
+                            <option value="2592000" selected>30d</option>
+                            <option value="31536000">1y</option>
+                        </select>
                     </div>
                 </div>
             </div>
@@ -1910,12 +1935,20 @@
             return (code && typeof code === 'string' && code.trim()) ? code.trim() : null;
         }
 
+        function getChannelSlugFromEvent(raw) {
+            if (!raw?.tags) return null;
+            const tag = raw.tags.find(t => Array.isArray(t) && t.length >= 3 && (t[0] === 'l' || t[0] === 'L') && t[2] === TRUSTROOTS_CIRCLE_LABEL);
+            const slug = (tag?.[1] || '').trim();
+            return /^[a-zA-Z0-9_-]+$/.test(slug) ? slug : null;
+        }
+
         function renderThread() {
             const conv = conversations.get(selectedConversationId);
             const container = document.getElementById('thread-messages');
             if (!conv || !container) return;
             container.innerHTML = '';
             const isChannel = conv.type === 'channel';
+            const isGlobalChannel = isChannel && conv.id === GLOBAL_CHANNEL_SLUG;
             const eventsToShow = conv.events.filter(ev => !deletedEventIds.has(ev.id));
             eventsToShow.forEach(ev => {
                 const isSelf = ev.pubkey === currentPublicKey;
@@ -1944,6 +1977,17 @@
                     link.textContent = '\u2316 ' + pluscode;
                     pluscodeEl.appendChild(link);
                     div.appendChild(pluscodeEl);
+                }
+                const channelSlug = isGlobalChannel ? getChannelSlugFromEvent(ev.raw) : null;
+                if (channelSlug && channelSlug !== GLOBAL_CHANNEL_SLUG) {
+                    const channelEl = document.createElement('div');
+                    channelEl.className = 'message-channel-tag';
+                    const channelLink = document.createElement('a');
+                    channelLink.href = '#'+ encodeURIComponent(channelSlug);
+                    channelLink.title = `Open #${channelSlug}`;
+                    channelLink.textContent = `#${channelSlug}`;
+                    channelEl.appendChild(channelLink);
+                    div.appendChild(channelEl);
                 }
                 const meta = document.createElement('div');
                 meta.className = 'meta';

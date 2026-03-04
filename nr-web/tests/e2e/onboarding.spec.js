@@ -54,27 +54,6 @@ test.describe('Onboarding Flow', () => {
     await expect(importInput).toBeVisible();
   });
 
-  test('onboarding shows NIP-07 option when available', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    
-    // Mock window.nostr to simulate extension
-    await page.evaluate(() => {
-      window.nostr = {
-        getPublicKey: async () => 'test-pubkey',
-      };
-    });
-    
-    // Trigger the check (might need to reload or trigger the check function)
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-    
-    // NIP-07 section might be visible or hidden depending on detection
-    const nip07Section = page.locator('#keys-nip07-section');
-    // Just verify it exists, visibility depends on extension detection timing
-    await expect(nip07Section).toBeAttached();
-  });
-
   test('keys modal cannot be closed with ESC when no key exists', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');

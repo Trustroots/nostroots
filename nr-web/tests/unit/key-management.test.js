@@ -11,7 +11,6 @@ describe('Key Management', () => {
     // Reset any global state
     if (window.currentPrivateKey) window.currentPrivateKey = null;
     if (window.currentPublicKey) window.currentPublicKey = null;
-    if (window.usingNip07) window.usingNip07 = false;
   });
 
   describe('localStorage operations', () => {
@@ -49,16 +48,6 @@ describe('Key Management', () => {
       
       expect(onboardingImport).toBeTruthy();
       expect(keysModal).toBeTruthy();
-    });
-  });
-
-  describe('NIP-07 state management', () => {
-    it('can track NIP-07 usage in localStorage', () => {
-      localStorage.setItem('using_nip07', 'true');
-      expect(localStorage.getItem('using_nip07')).toBe('true');
-      
-      localStorage.removeItem('using_nip07');
-      expect(localStorage.getItem('using_nip07')).toBeNull();
     });
   });
 });

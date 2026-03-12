@@ -1,0 +1,25 @@
+{
+  "name": "Nostroots Bridge",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/app",
+  "forwardPorts": [27017],
+  "portsAttributes": {
+    "27017": {
+      "label": "MongoDB",
+      "onAutoForward": "silent"
+    }
+  },
+  "containerEnv": {
+    "MONGODB_URI": "mongodb://mongodb:27017/trustroots-dev"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "denoland.vscode-deno",
+        "mongodb.mongodb-vscode"
+      ]
+    }
+  },
+  "remoteUser": "root"
+}

@@ -9,7 +9,11 @@
  */
 import type { Context } from "hono";
 import { VerifyCodeBodySchema } from "@trustroots/nr-common";
-import { deletePendingVerification, getPendingVerification } from "../db/kv.ts";
+import {
+  deletePendingVerification,
+  getPendingVerification,
+  incrementVerifyAttempts,
+} from "../db/kv.ts";
 import { setNpubForUsername } from "../db/mongodb.ts";
 
 /**
@@ -44,6 +48,12 @@ export async function handleVerifyCode(
   }
 
   if (verification.code !== code) {
+    // Count this wrong attempt against the per-token lockout. The response
+    // shape stays "Invalid code" even on the lockout-triggering call — the
+    // attacker only discovers the lockout on their *next* call, which falls
+    // through to the existing "No pending verification or token expired"
+    // branch above and is indistinguishable from a naturally expired token.
+    await incrementVerifyAttempts(token);
     return context.json({ error: "Invalid code" }, 401);
   }
 

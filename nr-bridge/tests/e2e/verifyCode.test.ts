@@ -67,6 +67,7 @@ Deno.test({
         code,
         createdAt: now,
         expiresAt: now + TOKEN_EXPIRY_MS,
+        attempts: 0,
       };
       await createPendingVerification(verification);
 
@@ -119,6 +120,7 @@ Deno.test({
         code: "111222",
         createdAt: now,
         expiresAt: now + TOKEN_EXPIRY_MS,
+        attempts: 0,
       };
       await createPendingVerification(verification);
 
@@ -167,6 +169,7 @@ Deno.test({
         code: "333444",
         createdAt: now - TOKEN_EXPIRY_MS - 1000,
         expiresAt: now - 1000,
+        attempts: 0,
       };
       await createPendingVerification(verification);
 

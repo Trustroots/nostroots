@@ -13,18 +13,43 @@
  * throw-away token with no side effects. This keeps the response
  * indistinguishable from a real flow and prevents username (and, in the
  * future, email) enumeration.
+ *
+ * Both branches are independently rate-limited via the request_token throttle
+ * (real users by Mongo `_id`, unknown inputs by lowercased input string).
+ * Throttling the unknown branch is the second leg of the enumeration defence
+ * — without it, the throttle on the real branch would itself become an
+ * enumeration oracle. The 429 response is byte-identical between the two
+ * branches by construction (single `respondRateLimited` builder).
  */
 import type { Context } from "hono";
 import { RequestTokenBodySchema } from "@trustroots/nr-common";
 import {
   type PendingVerification,
+  REQUEST_TOKEN_WINDOW_MS,
   TOKEN_EXPIRY_MS,
 } from "../../schemas/pendingVerification.ts";
 import { findUserByUsername } from "../db/mongodb.ts";
-import { createPendingVerification } from "../db/kv.ts";
+import {
+  createPendingVerification,
+  tryReserveRequestTokenSlotByInput,
+  tryReserveRequestTokenSlotByUserId,
+} from "../db/kv.ts";
 import { generateSixDigitCode, generateToken } from "../utils.ts";
 import { sendEmail } from "../email/send.ts";
 import { buildVerificationEmail } from "../email/templates.ts";
+
+/**
+ * Build the 429 response used by both branches of the throttle. Defined in
+ * one place so a future maintainer cannot accidentally diverge the body or
+ * headers between branches and re-open the enumeration oracle.
+ */
+function respondRateLimited(context: Context): Response {
+  return context.json(
+    { error: "Too many verification requests, try again later" },
+    429,
+    { "Retry-After": String(Math.ceil(REQUEST_TOKEN_WINDOW_MS / 1000)) },
+  );
+}
 
 /**
  * Handle `POST /request_token`.
@@ -50,10 +75,33 @@ export async function handleRequestToken(
 
   const user = await findUserByUsername(username);
   if (!user) {
-    // Silently succeed to prevent username enumeration: the response is
-    // indistinguishable from a real flow, but step 2 will fail with the
-    // same generic 401 as an expired token.
+    // Unknown-user (throwaway) branch. Silently succeed to prevent
+    // enumeration. The throttle here is the second leg of that enumeration
+    // defence: without it, hitting the real-branch throttle would itself
+    // be a signal that the user exists.
+    const normalizedInput = username.toLowerCase();
+    const reservation = await tryReserveRequestTokenSlotByInput(
+      normalizedInput,
+    );
+    if (!reservation.allowed) {
+      console.warn("request_token rate limit hit (input)", {
+        input: normalizedInput,
+        count: reservation.count,
+      });
+      return respondRateLimited(context);
+    }
     return context.json({ token: generateToken() });
+  }
+
+  // Real-user branch. Throttle on the canonical Mongo _id so that future
+  // email-based lookups hit the same counter.
+  const reservation = await tryReserveRequestTokenSlotByUserId(user.id);
+  if (!reservation.allowed) {
+    console.warn("request_token rate limit hit (uid)", {
+      userId: user.id,
+      count: reservation.count,
+    });
+    return respondRateLimited(context);
   }
 
   const now = Date.now();
@@ -68,6 +116,7 @@ export async function handleRequestToken(
     code,
     createdAt: now,
     expiresAt: now + TOKEN_EXPIRY_MS,
+    attempts: 0,
   };
 
   await createPendingVerification(verification);

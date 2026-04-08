@@ -18,18 +18,25 @@ const usersCollection: Collection = mongoClient
  * Look up a Trustroots user by their username.
  *
  * @param username - Case-insensitive Trustroots username.
- * @returns The user's `email`, `username`, and optional `nostrNpub`, or `null`
- *          if no matching user exists.
+ * @returns The user's stringified Mongo `_id` (as `id`), `email`, `username`,
+ *          and optional `nostrNpub`, or `null` if no matching user exists.
+ *          The returned `id` is the canonical user identifier — stable across
+ *          username changes and the same regardless of whether the user was
+ *          looked up by username or (in the future) by email. It is the
+ *          correct key for per-user rate limiting.
  */
 export async function findUserByUsername(
   username: string,
-): Promise<{ email: string; username: string; nostrNpub?: string } | null> {
+): Promise<
+  { id: string; email: string; username: string; nostrNpub?: string } | null
+> {
   const user = await usersCollection.findOne(
     { username: username.toLowerCase() },
-    { projection: { email: 1, username: 1, nostrNpub: 1 } },
+    { projection: { _id: 1, email: 1, username: 1, nostrNpub: 1 } },
   );
   if (!user) return null;
   return {
+    id: user._id.toString(),
     email: user.email as string,
     username: user.username as string,
     nostrNpub: (user.nostrNpub as string) ?? undefined,

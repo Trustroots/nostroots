@@ -143,15 +143,17 @@ Content-Type: application/json
 
 **Responses**
 
-| Status | Body                                                  | Meaning                            |
-| ------ | ----------------------------------------------------- | ---------------------------------- |
-| `200`  | `{ "token": "550e8400-e29b-41d4-a716-446655440000" }` | Always returned for valid bodies   |
-| `400`  | `{ "error": "Invalid request", "details": {...} }`    | Request body failed Zod validation |
+| Status | Body                                                                  | Meaning                                            |
+| ------ | --------------------------------------------------------------------- | -------------------------------------------------- |
+| `200`  | `{ "token": "550e8400-e29b-41d4-a716-446655440000" }`                 | Returned for any valid body (real or unknown user) |
+| `400`  | `{ "error": "Invalid request", "details": {...} }`                    | Request body failed Zod validation                 |
+| `429`  | `{ "error": "Too many verification requests, try again later" }`      | Rate limit hit; includes `Retry-After: 3600`       |
 
 A `200` response does **not** imply the username exists. To prevent enumeration,
 unknown usernames receive an indistinguishable response with a throw-away token
 that will fail at `POST /verify_code` with the same generic `401` as an expired
-token. See [Security Considerations](#security-considerations).
+token. The `429` response is byte-identical between the real and unknown
+branches by construction. See [Security Considerations](#security-considerations).
 
 **Side effects** (only when the username matches a real user)
 
@@ -191,13 +193,18 @@ Content-Type: application/json
 
 **Responses**
 
-| Status | Body                                                      | Meaning                                            |
-| ------ | --------------------------------------------------------- | -------------------------------------------------- |
-| `200`  | `{ "success": true }`                                     | npub written to MongoDB                            |
-| `400`  | `{ "error": "Invalid request", "details": {...} }`        | Validation failed (missing fields, bad npub, etc.) |
-| `401`  | `{ "error": "No pending verification or token expired" }` | No matching `PendingVerification` in KV            |
-| `401`  | `{ "error": "Invalid code" }`                             | Token matches but the supplied code does not       |
-| `500`  | `{ "error": "Failed to update user" }`                    | MongoDB update did not modify a document           |
+| Status | Body                                                      | Meaning                                                                                 |
+| ------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `200`  | `{ "success": true }`                                     | npub written to MongoDB                                                                 |
+| `400`  | `{ "error": "Invalid request", "details": {...} }`        | Validation failed (missing fields, bad npub, etc.)                                      |
+| `401`  | `{ "error": "No pending verification or token expired" }` | No matching `PendingVerification` in KV (also returned after a per-token lockout)       |
+| `401`  | `{ "error": "Invalid code" }`                             | Token matches but the supplied code does not (returned even on the lockout-triggering call) |
+| `500`  | `{ "error": "Failed to update user" }`                    | MongoDB update did not modify a document                                                |
+
+Each wrong-code submission increments a per-token counter; after 5 wrong
+attempts the pending verification is deleted and the next call falls through
+to the "No pending verification or token expired" branch. The lockout is not
+visible on the triggering call — see [Security Considerations](#security-considerations).
 
 **Side effects**
 
@@ -217,15 +224,16 @@ TTL via Deno KV's `expireIn` option. An additional application-level check on
 **token** proves the caller is the same client that initiated the flow, and the
 **code** proves the user controls the inbox.
 
-| Field       | Type             | Description                                |
-| ----------- | ---------------- | ------------------------------------------ |
-| `id`        | string (UUID v4) | Unique identifier for the record           |
-| `username`  | string           | Trustroots username                        |
-| `email`     | string           | Email address from MongoDB                 |
-| `token`     | string (UUID v4) | Returned to the API client; KV lookup key  |
-| `code`      | string           | Six-digit numeric code (`100000`-`999999`) |
-| `createdAt` | number           | Unix ms timestamp of creation              |
-| `expiresAt` | number           | Unix ms timestamp of expiry                |
+| Field       | Type             | Description                                                                   |
+| ----------- | ---------------- | ----------------------------------------------------------------------------- |
+| `id`        | string (UUID v4) | Unique identifier for the record                                              |
+| `username`  | string           | Trustroots username                                                           |
+| `email`     | string           | Email address from MongoDB                                                    |
+| `token`     | string (UUID v4) | Returned to the API client; KV lookup key                                     |
+| `code`      | string           | Six-digit numeric code (`100000`-`999999`)                                    |
+| `createdAt` | number           | Unix ms timestamp of creation                                                 |
+| `expiresAt` | number           | Unix ms timestamp of expiry                                                   |
+| `attempts`  | number           | Wrong-code submissions; record is deleted at `MAX_VERIFY_ATTEMPTS`            |
 
 ### MongoDB User (relevant fields)
 
@@ -451,7 +459,38 @@ The verification email is a responsive HTML email with:
   `401 "No pending verification or token expired"` as a legitimate expired
   token. This keeps the real path (MongoDB read + KV write + SMTP send) and the
   no-op path distinguishable only by timing; equalising that timing is not
-  currently in scope.
+  currently in scope. **The `/request_token` rate limit (below) is the second
+  leg of this defence** — it must throttle both the real and the throwaway
+  branches with byte-identical 429 responses, otherwise the throttle itself
+  becomes an enumeration oracle.
+- **Rate limiting** -- Both endpoints are throttled in-app via Deno KV. No
+  rate limiting is delegated to Cloudflare for the body-aware checks below;
+  Cloudflare is still recommended as an outer ring for coarse per-IP /
+  volumetric protection, configured out-of-band.
+  - `/verify_code`: per-token wrong-code lockout. After 5 wrong codes
+    (`MAX_VERIFY_ATTEMPTS`), the pending verification is deleted from KV. The
+    response on the lockout-triggering call is still `401 "Invalid code"`; the
+    attacker only discovers the lockout on their *next* call, which falls
+    through to the same `401 "No pending verification or token expired"` as a
+    naturally expired token.
+  - `/request_token`: 3 calls per hour per identity (sliding window;
+    `MAX_REQUEST_TOKEN_PER_WINDOW` / `REQUEST_TOKEN_WINDOW_MS`). The throttle
+    has two disjoint key namespaces:
+    - **Real-user branch** — keyed by canonical Mongo `_id`, so the same user
+      looked up via username or (in the future) email hits the same counter
+      and an attacker cannot double the throttle by alternating lookup
+      methods.
+    - **Unknown-user (throwaway) branch** — keyed by the lowercased input
+      string. Throttling this branch is what preserves the enumeration
+      defence above.
+    - Both branches return a byte-identical 429 response with
+      `Retry-After: 3600`. A regression in `/e2e6/` will catch any
+      divergence.
+  - **Threat math:** with 3 tokens/hour and 5 guesses/token an attacker gets
+    ≤ 15 code guesses per user per hour against a 10⁶ code space
+    (≈ 1.7×10⁻⁵ hit rate per hour). Tightening either threshold below 3
+    risks locking out honest users; tightening lower should be done as a
+    deliberate, code-reviewed product decision, not a deploy-time tweak.
 - **Code entropy** -- Six-digit codes are generated with
   `crypto.getRandomValues()`, not `Math.random()`.
 - **Token entropy** -- Tokens are UUID v4 via `crypto.randomUUID()`.

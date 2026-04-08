@@ -5,8 +5,11 @@
     "test": "DENO_KV_PATH=:memory: deno test --allow-net --allow-env --allow-sys --allow-read --allow-write --unstable-kv"
   },
   "imports": {
+    "@trustroots/nr-common": "../nr-common/mod.ts",
     "hono": "jsr:@hono/hono",
     "denomailer": "https://deno.land/x/denomailer/mod.ts",
+    "nostr-tools": "npm:nostr-tools@2.10.4",
+    "nostr-tools/core": "npm:nostr-tools@2.10.4/core",
     "zod": "npm:zod@^3.25.76",
     "mongodb": "npm:mongodb@^6"
   }

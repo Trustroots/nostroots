@@ -15,9 +15,9 @@
  * future, email) enumeration.
  */
 import type { Context } from "hono";
+import { RequestTokenBodySchema } from "@trustroots/nr-common";
 import {
   type PendingVerification,
-  RequestTokenBodySchema,
   TOKEN_EXPIRY_MS,
 } from "../../schemas/pendingVerification.ts";
 import { findUserByUsername } from "../db/mongodb.ts";

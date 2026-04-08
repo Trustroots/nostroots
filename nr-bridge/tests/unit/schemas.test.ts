@@ -1,9 +1,9 @@
 import { expect } from "jsr:@std/expect";
 import {
-  PendingVerificationSchema,
   RequestTokenBodySchema,
   VerifyCodeBodySchema,
-} from "../../schemas/pendingVerification.ts";
+} from "@trustroots/nr-common";
+import { PendingVerificationSchema } from "../../schemas/pendingVerification.ts";
 
 Deno.test("#sch1 RequestTokenBodySchema accepts valid username", () => {
   const result = RequestTokenBodySchema.safeParse({ username: "alice" });

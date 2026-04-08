@@ -8,7 +8,7 @@
  * Trustroots MongoDB `users` collection, and removes the KV entry on success.
  */
 import type { Context } from "hono";
-import { VerifyCodeBodySchema } from "../../schemas/pendingVerification.ts";
+import { VerifyCodeBodySchema } from "@trustroots/nr-common";
 import { deletePendingVerification, getPendingVerification } from "../db/kv.ts";
 import { setNpubForUsername } from "../db/mongodb.ts";
 

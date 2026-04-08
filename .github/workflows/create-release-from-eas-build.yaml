@@ -1,0 +1,152 @@
+name: Create Release from EAS Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_profile:
+        description: 'Which build profile to create release from'
+        required: false
+        default: 'android-preview'
+        type: choice
+        options:
+          - android-preview
+  workflow_run:
+    workflows: ['Create build in EAS Cloud']
+    types: [completed]
+    branches: [main]
+
+jobs:
+  create-release:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - uses: ./.github/actions/repo-setup
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Get build profile context from triggering workflow
+        id: build_context
+        if: github.event_name != 'workflow_dispatch'
+        run: |
+          # When triggered by workflow_run, we need to fetch the workflow run details
+          WORKFLOW_RUN=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.event.workflow_run.id }})
+          
+          BUILD_PROFILE=$(echo "$WORKFLOW_RUN" | jq -r '.inputs.platform // "android-preview"')
+          echo "build_profile=$BUILD_PROFILE" >> $GITHUB_OUTPUT
+
+      - name: Determine build profile
+        id: profile
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            PROFILE="${{ inputs.build_profile }}"
+          else
+            PROFILE="${{ steps.build_context.outputs.build_profile }}"
+          fi
+          echo "profile=$PROFILE" >> $GITHUB_OUTPUT
+
+      - name: Get app version
+        id: version
+        run: |
+          VERSION=$(node -e "console.log(require('./nr-app/app.json').expo.version)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Fetch latest EAS build artifact
+        id: artifact
+        run: |
+          cd nr-app
+          
+          # Build profile filter
+          FILTER_PROFILE="preview"
+          if [ "${{ steps.profile.outputs.profile }}" == "android-preview" ]; then
+            FILTER_PROFILE="preview"
+          fi
+          
+          # Get the latest successful build for android
+          BUILD_INFO=$(pnpm exec eas build:list \
+            --platform android \
+            --build-profile "$FILTER_PROFILE" \
+            --json \
+            --non-interactive \
+            --status finished \
+            --limit 1)
+          
+          BUILD_ID=$(echo "$BUILD_INFO" | jq -r '.[0].id')
+          BUILD_URL=$(echo "$BUILD_INFO" | jq -r '.[0].artifacts.buildUrl')
+          BUILD_CREATED=$(echo "$BUILD_INFO" | jq -r '.[0].createdAt')
+          
+          if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" == "null" ]; then
+            echo "❌ No recent builds found for android preview"
+            exit 1
+          fi
+          
+          echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+          echo "build_url=$BUILD_URL" >> $GITHUB_OUTPUT
+          echo "build_created=$BUILD_CREATED" >> $GITHUB_OUTPUT
+          echo "✅ Found build: $BUILD_ID"
+          echo "📦 APK URL: $BUILD_URL"
+
+      - name: Download APK
+        id: download
+        run: |
+          cd nr-app
+          mkdir -p ./builds
+          curl -L -o "./builds/app-preview.apk" "${{ steps.artifact.outputs.build_url }}"
+          
+          APK_SIZE=$(ls -lh "./builds/app-preview.apk" | awk '{print $5}')
+          echo "apk_path=./nr-app/builds/app-preview.apk" >> $GITHUB_OUTPUT
+          echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
+          echo "✅ Downloaded APK ($APK_SIZE)"
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: ${{ steps.download.outputs.apk_path }}
+          tag_name: preview-${{ steps.version.outputs.version }}-${{ github.run_number }}
+          release_name: Nostroots Preview v${{ steps.version.outputs.version }} Build #${{ github.run_number }}
+          body: |
+            🚀 **Nostroots Preview Release**
+            
+            **Version:** v${{ steps.version.outputs.version }}
+            **Build ID:** `${{ steps.artifact.outputs.build_id }}`
+            **Build Date:** ${{ steps.artifact.outputs.build_created }}
+            **APK Size:** ${{ steps.download.outputs.apk_size }}
+            
+            ## Installation
+            Download the `.apk` file and install it on your Android device or emulator.
+            
+            ```bash
+            adb install -r app-preview.apk
+            ```
+            
+            ## Notes
+            - This is a preview build for testing purposes
+            - Built from: `${{ github.ref_name }}` branch (commit: `${{ github.sha }}`)
+            - Built at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          draft: false
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload summary
+        run: |
+          echo "## ✅ Release Created Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Release Tag | \`preview-${{ steps.version.outputs.version }}-${{ github.run_number }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build ID | \`${{ steps.artifact.outputs.build_id }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| APK Size | ${{ steps.download.outputs.apk_size }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Created At | ${{ steps.artifact.outputs.build_created }} |" >> $GITHUB_STEP_SUMMARY

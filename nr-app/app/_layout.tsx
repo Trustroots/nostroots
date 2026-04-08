@@ -38,6 +38,7 @@ import { persistor, store } from "@/redux/store";
 import "@/global.css";
 import { useUpdateOnForeground } from "@/hooks/useUpdateOnForeground";
 import { StatusBar } from "react-native";
+import { configureNavigationDispatch } from "@/utils/navigation.utils";
 
 // Construct a new integration instance. This is needed to communicate between the integration and React
 const navigationIntegration = Sentry.reactNavigationIntegration({
@@ -104,6 +105,7 @@ function RootLayout() {
   useUpdateOnForeground();
 
   useEffect(() => {
+    configureNavigationDispatch(store.dispatch);
     const subscription = setupNotificationHandling();
     return () => {
       subscription.remove();

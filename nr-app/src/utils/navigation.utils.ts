@@ -1,27 +1,41 @@
+import { ROUTES } from "@/constants/routes";
 import { addEvent } from "@/redux/slices/events.slice";
 import { mapActions } from "@/redux/slices/map.slice";
-import { store } from "@/redux/store";
+import type { AppDispatch } from "@/redux/store";
 import { router } from "expo-router";
 import { NostrEvent } from "nostr-tools";
 import { getLayerForEvent, plusCodeToCoordinates } from "./map.utils";
 
+let navigationDispatch: AppDispatch | undefined;
+
+export function configureNavigationDispatch(dispatch: AppDispatch) {
+  navigationDispatch = dispatch;
+}
+
 export function navigateToEvent(plusCode: string, event: NostrEvent) {
+  if (!navigationDispatch) {
+    if (__DEV__) {
+      console.warn("#K7Q9mv Navigation dispatch not configured");
+    }
+    return;
+  }
+
   const layer = getLayerForEvent(event);
-  store.dispatch(mapActions.enableLayer(layer));
-  store.dispatch(addEvent({ event, fromRelay: "notification" }));
+  navigationDispatch(mapActions.enableLayer(layer));
+  navigationDispatch(addEvent({ event, fromRelay: "notification" }));
 
   const location = plusCodeToCoordinates(plusCode);
 
   if (location) {
-    store.dispatch(
+    navigationDispatch(
       mapActions.setCurrentMapLocation({
         latitude: location.latitude,
         longitude: location.longitude,
       }),
     );
-    store.dispatch(mapActions.setSelectedPlusCode(plusCode));
-    store.dispatch(mapActions.centerMapOnHalfModal());
-    store.dispatch(
+    navigationDispatch(mapActions.setSelectedPlusCode(plusCode));
+    navigationDispatch(mapActions.centerMapOnHalfModal());
+    navigationDispatch(
       mapActions.setCurrentNotificationEvent({
         event,
         metadata: { seenOnRelays: [] },
@@ -29,5 +43,5 @@ export function navigateToEvent(plusCode: string, event: NostrEvent) {
     );
   }
 
-  router.replace("/");
+  router.dismissTo(ROUTES.HOME);
 }

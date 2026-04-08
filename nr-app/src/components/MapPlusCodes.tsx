@@ -17,7 +17,7 @@ import {
   regionToBoundingBox,
 } from "@/utils/map.utils";
 import { mapRefService } from "@/utils/mapRef";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
 import MapView, { Details, Polygon, Region } from "react-native-maps";
 // @ts-ignore
@@ -86,6 +86,7 @@ const selectPlusCodesWithState = createSelector(
 
 export default function MapPlusCodes() {
   const dispatch = useAppDispatch();
+  const [isMapReady, setIsMapReady] = useState(false);
 
   const plusCodesWithState = useAppSelector(selectPlusCodesWithState);
   const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
@@ -112,7 +113,7 @@ export default function MapPlusCodes() {
 
   // Handle centering map on current location when flag is set
   useEffect(() => {
-    if (centerMapOnCurrentLocation && currentMapLocation) {
+    if (isMapReady && centerMapOnCurrentLocation && currentMapLocation) {
       dispatch(
         animateToCoordinate(
           currentMapLocation.latitude,
@@ -124,11 +125,11 @@ export default function MapPlusCodes() {
       );
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
     }
-  }, [centerMapOnCurrentLocation, currentMapLocation, dispatch]);
+  }, [isMapReady, centerMapOnCurrentLocation, currentMapLocation, dispatch]);
 
   // Handle centering map for half modal
   useEffect(() => {
-    if (centerMapOnHalfModal && currentMapLocation) {
+    if (isMapReady && centerMapOnHalfModal && currentMapLocation) {
       // Adjust center point for half modal
       const adjustedLatitude = currentMapLocation.latitude - 0.02;
       dispatch(
@@ -142,7 +143,7 @@ export default function MapPlusCodes() {
       );
       dispatch(mapActions.centerMapOnHalfModalComplete());
     }
-  }, [centerMapOnHalfModal, currentMapLocation, dispatch]);
+  }, [isMapReady, centerMapOnHalfModal, currentMapLocation, dispatch]);
 
   const handleLocationPress = async () => {
     const location = await getCurrentLocation();
@@ -199,6 +200,7 @@ export default function MapPlusCodes() {
           }
           // Register the map ref with the service for Redux sagas to use
           mapRefService.setMapRef(mapViewRef.current);
+          setIsMapReady(true);
 
           const boundaries = await mapViewRef.current.getMapBoundaries();
           log.debug("#iztRxR onMapReady", boundaries);

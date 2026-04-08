@@ -1,14 +1,14 @@
 /**
  * @module main
  *
- * Entry point for the nr-bridge server. Reads the `PORT` environment variable
- * (default `8000`) and starts a Deno HTTP server using the Hono application
+ * Entry point for the nr-bridge server. Uses {@link PORT} from the central
+ * config module to start a Deno HTTP server with the Hono application
  * returned by {@link createApp}.
  */
 import { createApp } from "./src/server.ts";
+import { PORT } from "./src/config.ts";
 
-const port = Number(Deno.env.get("PORT") ?? "8000");
 const app = createApp();
 
-console.log(`nr-bridge listening on port ${port}`);
-Deno.serve({ port }, app.fetch);
+console.log(`nr-bridge listening on port ${PORT}`);
+Deno.serve({ port: PORT }, app.fetch);

@@ -2,9 +2,9 @@
 
 Bridge between the legacy [Trustroots.org](https://www.trustroots.org) MongoDB
 user database and the new Nostr-based Nostroots iOS app. The service verifies
-that a user owns the email address associated with their Trustroots username and,
-once verified, writes their Nostr public key (`npub`) into the MongoDB `users`
-collection.
+that a user owns the email address associated with their Trustroots username
+and, once verified, writes their Nostr public key (`npub`) into the MongoDB
+`users` collection.
 
 ## Overview
 
@@ -49,42 +49,37 @@ linked.
 ### Step-by-Step
 
 1. The user opens the nr-app iOS app and enters their Trustroots username.
-2. The app sends `POST /verify_token` with the username.
-3. nr-bridge looks up the username in MongoDB, generates a six-digit code and a
-   UUID token, stores both in Deno KV (15 min TTL), and emails the user.
-4. The email contains **two** ways to verify:
-   - A **six-digit code** the user can type into the app.
-   - A **deep link** (`nostroots://verify?token=<uuid>`) that opens the app
-     directly, bypassing the code entry screen.
-5. The app sends `POST /authenticate` with the username, the user's `npub`, and
-   either the code or the token.
-6. nr-bridge validates the credential against Deno KV, writes the `npub` to
-   MongoDB, and deletes the KV entry.
+2. The app sends `POST /request_token` with the username.
+3. nr-bridge looks up the username in MongoDB, generates a UUID `token` and a
+   six-digit `code`, stores both as a `PendingVerification` in Deno KV (15 min
+   TTL), emails the code to the user, and returns the `token` to the app in the
+   response body.
+4. The user reads the six-digit code from their email and types it into the app.
+5. The app sends `POST /verify_code` with `{ token, code, npub }` — `token` from
+   step 3 (proving it's the same client) and `code` from the email (proving the
+   user controls the inbox).
+6. nr-bridge looks up the pending verification by token, checks the supplied
+   code matches, writes the `npub` to MongoDB, and deletes the KV entry.
 
 ### User Flow Diagram
 
 ```mermaid
 flowchart TD
     A["User opens nr-app"] --> B["Enters Trustroots username"]
-    B --> C["Taps 'Verify identity with email'"]
-    C --> D["nr-app POST /verify_token"]
-    D --> E{"Username exists\nin MongoDB?"}
-    E -- No --> F["404 Not Found"]
-    E -- Yes --> G{"Unexpired token\nalready pending?"}
-    G -- Yes --> H["409 Conflict"]
-    G -- No --> I["Generate code + token"]
-    I --> J["Store in Deno KV\n(15 min TTL)"]
-    J --> K["Email code + deep link"]
-    K --> L["200 Success"]
-    L --> M{"User chooses\nverification method"}
-    M -- "Types 6-digit code" --> N["nr-app POST /authenticate\nwith code"]
-    M -- "Taps deep link" --> O["nr-app POST /authenticate\nwith token"]
-    N --> P{"Code or token\nvalid?"}
-    O --> P
-    P -- No --> Q["401 Unauthorized"]
-    P -- Yes --> R["Set npub in MongoDB"]
-    R --> S["Delete KV entry"]
-    S --> T["200 Success"]
+    B --> C["nr-app POST /request_token"]
+    C --> D{"Username exists\nin MongoDB?"}
+    D -- No --> E["404 Not Found"]
+    D -- Yes --> F["Generate token + 6-digit code"]
+    F --> G["Store PendingVerification\nin Deno KV (15 min TTL)"]
+    G --> H["Email code to user"]
+    H --> I["200 { token }"]
+    I --> J["User reads code from email\n+ types it into nr-app"]
+    J --> K["nr-app POST /verify_code\n{ token, code, npub }"]
+    K --> L{"Token in KV\n+ code matches?"}
+    L -- No --> M["401 Unauthorized"]
+    L -- Yes --> N["Set npub in MongoDB"]
+    N --> O["Delete KV entry"]
+    O --> P["200 { success: true }"]
 ```
 
 ### Sequence Diagram
@@ -92,47 +87,43 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant App as nr-app (iOS)
+    participant User as User
     participant Bridge as nr-bridge
     participant KV as Deno KV
     participant Mongo as MongoDB
     participant Email as SMTP
 
-    App->>Bridge: POST /verify_token {username}
+    App->>Bridge: POST /request_token { username }
     Bridge->>Mongo: Find user by username
-    Mongo-->>Bridge: {email, username}
-    Bridge->>KV: Check for existing token
-    KV-->>Bridge: null (no existing)
-    Bridge->>Bridge: Generate code + token
-    Bridge->>KV: Store token request (15min expiry)
-    Bridge->>Email: Send email with code + deep link
-    Bridge-->>App: 200 {success: true}
-
-    alt User enters 6-digit code
-        App->>Bridge: POST /authenticate {username, npub, code}
-    else User clicks deep link
-        App->>Bridge: POST /authenticate {username, npub, token}
-    end
-
-    Bridge->>KV: Get token request by username
-    KV-->>Bridge: {code, token, ...}
-    Bridge->>Bridge: Verify code or token matches
+    Mongo-->>Bridge: { email, username }
+    Bridge->>Bridge: Generate token + code
+    Bridge->>KV: Store PendingVerification (key=token, 15min TTL)
+    Bridge->>Email: Send email with 6-digit code
+    Bridge-->>App: 200 { token }
+    Email-->>User: Verification email
+    User->>App: Types 6-digit code
+    App->>Bridge: POST /verify_code { token, code, npub }
+    Bridge->>KV: Get PendingVerification by token
+    KV-->>Bridge: { username, code, ... }
+    Bridge->>Bridge: Compare submitted code to stored code
     Bridge->>Mongo: Update nostrNpub for user
-    Bridge->>KV: Delete token request
-    Bridge-->>App: 200 {success: true}
+    Bridge->>KV: Delete PendingVerification
+    Bridge-->>App: 200 { success: true }
 ```
 
 ---
 
 ## API Reference
 
-### `POST /verify_token`
+### `POST /request_token`
 
-Initiate email verification for a Trustroots username.
+Start an email verification for a Trustroots username. Returns a `token` the
+client must hold onto and supply back to `POST /verify_code`.
 
 **Request**
 
 ```
-POST /verify_token
+POST /request_token
 Content-Type: application/json
 ```
 
@@ -142,115 +133,103 @@ Content-Type: application/json
 }
 ```
 
-| Field      | Type   | Required | Description                          |
-| ---------- | ------ | -------- | ------------------------------------ |
+| Field      | Type   | Required | Description                                        |
+| ---------- | ------ | -------- | -------------------------------------------------- |
 | `username` | string | yes      | Trustroots username (case-insensitive, min 1 char) |
 
 **Responses**
 
-| Status | Body                                                  | Meaning                                        |
-| ------ | ----------------------------------------------------- | ---------------------------------------------- |
-| `200`  | `{ "success": true }`                                 | Verification email sent                        |
-| `400`  | `{ "error": "Invalid request", "details": {...} }`    | Request body failed Zod validation             |
-| `404`  | `{ "error": "User not found" }`                       | No user with that username in MongoDB          |
-| `409`  | `{ "error": "Verification already pending" }`         | An unexpired token already exists for this user |
+| Status | Body                                                  | Meaning                               |
+| ------ | ----------------------------------------------------- | ------------------------------------- |
+| `200`  | `{ "token": "550e8400-e29b-41d4-a716-446655440000" }` | Verification email sent               |
+| `400`  | `{ "error": "Invalid request", "details": {...} }`    | Request body failed Zod validation    |
+| `404`  | `{ "error": "User not found" }`                       | No user with that username in MongoDB |
 
 **Side effects**
 
-- Creates a token request entry in Deno KV (key: `["tokenRequests", username]`,
-  TTL: 15 minutes).
-- Sends an HTML email to the address on file containing:
-  - A six-digit verification code.
-  - A deep link: `nostroots://verify?token=<uuid>`.
+- Creates a `PendingVerification` in Deno KV (key:
+  `["pendingVerifications", token]`, TTL: 15 minutes) containing the token, the
+  six-digit code, and the user's identity.
+- Sends an HTML email to the address on file containing the six-digit code.
 
 ---
 
-### `POST /authenticate`
+### `POST /verify_code`
 
-Complete verification by providing the six-digit code or the deep-link token,
-along with the user's Nostr public key.
+Complete verification by supplying the `token` from `POST /request_token` and
+the `code` the user received in their email, together with the user's Nostr
+public key.
 
 **Request**
 
 ```
-POST /authenticate
+POST /verify_code
 Content-Type: application/json
 ```
 
 ```json
 {
-  "username": "alice",
-  "npub": "npub1abc123...",
-  "code": "482937"
+  "token": "550e8400-e29b-41d4-a716-446655440000",
+  "code": "482937",
+  "npub": "npub1abc123..."
 }
 ```
 
-or
-
-```json
-{
-  "username": "alice",
-  "npub": "npub1abc123...",
-  "token": "550e8400-e29b-41d4-a716-446655440000"
-}
-```
-
-| Field      | Type   | Required | Description                                      |
-| ---------- | ------ | -------- | ------------------------------------------------ |
-| `username` | string | yes      | Trustroots username                              |
-| `npub`     | string | yes      | Nostr public key (must start with `"npub"`)      |
-| `code`     | string | no*      | Six-digit numeric code from the email            |
-| `token`    | string | no*      | UUID token from the deep link                    |
-
-*At least one of `code` or `token` must be provided.
+| Field   | Type   | Required | Description                                  |
+| ------- | ------ | -------- | -------------------------------------------- |
+| `token` | string | yes      | UUID token returned by `POST /request_token` |
+| `code`  | string | yes      | Six-digit code from the verification email   |
+| `npub`  | string | yes      | Nostr public key (must start with `"npub"`)  |
 
 **Responses**
 
-| Status | Body                                                        | Meaning                                  |
-| ------ | ----------------------------------------------------------- | ---------------------------------------- |
-| `200`  | `{ "success": true }`                                       | npub written to MongoDB                  |
-| `400`  | `{ "error": "Invalid request", "details": {...} }`          | Validation failed (missing fields, bad npub, etc.) |
-| `401`  | `{ "error": "No pending verification or code expired" }`    | No token request in KV or it has expired |
-| `401`  | `{ "error": "Invalid code or token" }`                      | Code/token does not match                |
-| `500`  | `{ "error": "Failed to update user" }`                      | MongoDB update did not modify a document |
+| Status | Body                                                      | Meaning                                            |
+| ------ | --------------------------------------------------------- | -------------------------------------------------- |
+| `200`  | `{ "success": true }`                                     | npub written to MongoDB                            |
+| `400`  | `{ "error": "Invalid request", "details": {...} }`        | Validation failed (missing fields, bad npub, etc.) |
+| `401`  | `{ "error": "No pending verification or token expired" }` | No matching `PendingVerification` in KV            |
+| `401`  | `{ "error": "Invalid code" }`                             | Token matches but the supplied code does not       |
+| `500`  | `{ "error": "Failed to update user" }`                    | MongoDB update did not modify a document           |
 
 **Side effects**
 
-- Sets the `nostrNpub` field and updates the `updated` timestamp on the
-  matching user document in MongoDB.
-- Deletes the token request from Deno KV.
+- Sets the `nostrNpub` field and updates the `updated` timestamp on the matching
+  user document in MongoDB.
+- Deletes the `PendingVerification` from Deno KV.
 
 ---
 
 ## Data Model
 
-### Token Request (Deno KV)
+### PendingVerification (Deno KV)
 
-Stored under the key `["tokenRequests", <username>]` with a 15-minute TTL via
-Deno KV's `expireIn` option. An additional application-level check on
-`expiresAt` guards against clock drift.
+Stored under the key `[KV_KEYS.pendingVerifications, <token>]` with a 15-minute
+TTL via Deno KV's `expireIn` option. An additional application-level check on
+`expiresAt` guards against clock drift. Verification is two-factor: the
+**token** proves the caller is the same client that initiated the flow, and the
+**code** proves the user controls the inbox.
 
-| Field       | Type             | Description                              |
-| ----------- | ---------------- | ---------------------------------------- |
-| `id`        | string (UUID v4) | Unique identifier for this request       |
-| `username`  | string           | Trustroots username                      |
-| `email`     | string           | Email address from MongoDB               |
-| `code`      | string?          | Six-digit numeric code (`100000`-`999999`) |
-| `token`     | string?          | UUID v4 for deep-link verification       |
-| `createdAt` | number           | Unix ms timestamp of creation            |
-| `expiresAt` | number           | Unix ms timestamp of expiry              |
+| Field       | Type             | Description                                |
+| ----------- | ---------------- | ------------------------------------------ |
+| `id`        | string (UUID v4) | Unique identifier for the record           |
+| `username`  | string           | Trustroots username                        |
+| `email`     | string           | Email address from MongoDB                 |
+| `token`     | string (UUID v4) | Returned to the API client; KV lookup key  |
+| `code`      | string           | Six-digit numeric code (`100000`-`999999`) |
+| `createdAt` | number           | Unix ms timestamp of creation              |
+| `expiresAt` | number           | Unix ms timestamp of expiry                |
 
 ### MongoDB User (relevant fields)
 
 The `users` collection in the Trustroots database. nr-bridge only reads
 `username` and `email`, and writes `nostrNpub` and `updated`.
 
-| Field       | Type   | Description                        |
-| ----------- | ------ | ---------------------------------- |
+| Field       | Type   | Description                           |
+| ----------- | ------ | ------------------------------------- |
 | `username`  | string | Unique, lowercase Trustroots username |
-| `email`     | string | User's email address               |
-| `nostrNpub` | string | Nostr public key (set by nr-bridge) |
-| `updated`   | Date   | Last-modified timestamp            |
+| `email`     | string | User's email address                  |
+| `nostrNpub` | string | Nostr public key (set by nr-bridge)   |
+| `updated`   | Date   | Last-modified timestamp               |
 
 ---
 
@@ -263,24 +242,29 @@ graph LR
     subgraph nrBridge["nr-bridge (Deno)"]
         main["main.ts"]
         server["server.ts (Hono)"]
-        vt["verifyToken.ts"]
-        auth["authenticate.ts"]
-        mongoMod["mongodb.ts"]
-        kvMod["kv.ts"]
+        rt["routes/requestToken.ts"]
+        vc["routes/verifyCode.ts"]
+        mongoMod["db/mongodb.ts"]
+        kvMod["db/kv.ts"]
         emailMod["email/send.ts"]
         tmpl["email/templates.ts"]
         utils["utils.ts"]
+        cfg["config.ts"]
 
         main --> server
-        server --> vt
-        server --> auth
-        vt --> mongoMod
-        vt --> kvMod
-        vt --> emailMod
-        vt --> tmpl
-        vt --> utils
-        auth --> mongoMod
-        auth --> kvMod
+        main --> cfg
+        server --> rt
+        server --> vc
+        rt --> mongoMod
+        rt --> kvMod
+        rt --> emailMod
+        rt --> tmpl
+        rt --> utils
+        vc --> mongoMod
+        vc --> kvMod
+        kvMod --> cfg
+        mongoMod --> cfg
+        emailMod --> cfg
     end
 
     mongoMod --> MongoDB["MongoDB (Trustroots)"]
@@ -292,35 +276,36 @@ graph LR
 
 ```
 nr-bridge/
-├── deno.json                        # Tasks, imports, permissions
-├── main.ts                          # Entry point: starts Hono server
+├── deno.json                              # Tasks, imports, permissions
+├── main.ts                                # Entry point: starts Hono server
 ├── schemas/
-│   ├── user.ts                      # Full Zod UserSchema (mirrors Mongoose)
-│   ├── nrBridgeUser.ts              # Subset: username, email, nostrNpub, ...
-│   └── tokenRequest.ts             # Token request schema + request body schemas
+│   ├── user.ts                            # Full Zod UserSchema (mirrors Mongoose)
+│   ├── nrBridgeUser.ts                    # Subset: username, email, nostrNpub, ...
+│   └── pendingVerification.ts             # PendingVerification + request body schemas
 ├── src/
-│   ├── server.ts                    # Hono app with route registration
-│   ├── utils.ts                     # generateSixDigitCode(), generateToken()
+│   ├── server.ts                          # Hono app with route registration
+│   ├── config.ts                          # Central env-var reads (fail-fast required values)
+│   ├── utils.ts                           # generateSixDigitCode(), generateToken()
 │   ├── routes/
-│   │   ├── verifyToken.ts           # POST /verify_token handler
-│   │   └── authenticate.ts          # POST /authenticate handler
+│   │   ├── requestToken.ts                # POST /request_token handler
+│   │   └── verifyCode.ts                  # POST /verify_code handler
 │   ├── db/
-│   │   ├── mongodb.ts               # MongoDB client, findUserByUsername, setNpubForUsername
-│   │   └── kv.ts                    # Deno KV CRUD for token requests
+│   │   ├── mongodb.ts                     # MongoDB client, findUserByUsername, setNpubForUsername
+│   │   └── kv.ts                          # Deno KV CRUD for PendingVerification (keyed by token)
 │   └── email/
-│       ├── send.ts                  # SMTP sending via denomailer
-│       └── templates.ts             # HTML email template (code + deep link)
+│       ├── send.ts                        # SMTP sending via denomailer
+│       └── templates.ts                   # HTML email template (six-digit code)
 ├── tests/
 │   ├── unit/
-│   │   ├── utils.test.ts            # Code/token generation tests
-│   │   ├── schemas.test.ts          # Zod schema validation tests
-│   │   ├── tokenRequest.test.ts     # KV CRUD tests (in-memory)
-│   │   └── routes.test.ts           # Route handler tests (mocked deps)
+│   │   ├── utils.test.ts                  # Code/token generation tests
+│   │   ├── schemas.test.ts                # Zod schema validation tests
+│   │   ├── pendingVerification.test.ts    # KV CRUD tests (in-memory)
+│   │   └── routes.test.ts                 # Route handler tests
 │   └── e2e/
-│       ├── verifyToken.test.ts      # Full /verify_token flow with MongoDB
-│       └── authenticate.test.ts     # Full /authenticate flow with MongoDB
+│       ├── requestToken.test.ts           # /request_token validation/404 against real MongoDB
+│       └── verifyCode.test.ts             # /verify_code flow against real MongoDB
 └── trustroots_docs/
-    └── user.server.model.js         # Legacy Mongoose model (reference only)
+    └── user.server.model.js               # Legacy Mongoose model (reference only)
 ```
 
 ---
@@ -341,8 +326,8 @@ The recommended way to develop is with the VS Code devcontainer at
 - MongoDB 7 seeded from `trustroots_docs/trustroots-dev.archive`
 - `MONGODB_URI` pre-configured to `mongodb://mongodb:27017/trustroots-dev`
 
-Open the repo in VS Code, select **Reopen in Container**, and choose
-**Nostroots Bridge**.
+Open the repo in VS Code, select **Reopen in Container**, and choose **Nostroots
+Bridge**.
 
 ### Running Locally
 
@@ -370,35 +355,39 @@ deno test --allow-net --allow-env --allow-sys --allow-read --allow-write --unsta
 deno test --allow-net --allow-env --allow-sys --allow-read --allow-write --unstable-kv tests/e2e/
 ```
 
-The test suite includes 27 tests:
+The test suite is split between unit and e2e:
 
-| Suite                  | Count | Description                                |
-| ---------------------- | ----- | ------------------------------------------ |
-| `utils.test.ts`        | 5     | Code generation, token generation          |
-| `schemas.test.ts`      | 9     | Zod schema accept/reject cases             |
-| `tokenRequest.test.ts` | 4     | Deno KV CRUD with in-memory store          |
-| `routes.test.ts`       | 5     | Route handlers with mocked dependencies    |
-| `verifyToken.test.ts`  | 1     | E2E: /verify_token against real MongoDB    |
-| `authenticate.test.ts` | 3     | E2E: /authenticate against real MongoDB    |
+| Suite                         | Count | Description                              |
+| ----------------------------- | ----- | ---------------------------------------- |
+| `utils.test.ts`               | 5     | Code generation, token generation        |
+| `schemas.test.ts`             | 9     | Zod schema accept/reject cases           |
+| `pendingVerification.test.ts` | 4     | Deno KV CRUD against in-memory KV        |
+| `routes.test.ts`              | 5     | Route handler validation/auth paths      |
+| `requestToken.test.ts`        | 1     | E2E: /request_token against real MongoDB |
+| `verifyCode.test.ts`          | 3     | E2E: /verify_code against real MongoDB   |
 
-Unit tests use `:memory:` Deno KV instances so they require no external
-services. E2E tests connect to the MongoDB instance from the devcontainer.
+Unit tests rely on `DENO_KV_PATH=:memory:` (set by `deno task test`) so they do
+not touch disk. E2E tests connect to the MongoDB instance from the devcontainer.
 
 ---
 
 ## Environment Variables
 
-| Variable         | Description                | Default                                  |
-| ---------------- | -------------------------- | ---------------------------------------- |
-| `MONGODB_URI`    | MongoDB connection string  | `mongodb://mongodb:27017/trustroots-dev` |
-| `PORT`           | HTTP server port           | `8000`                                   |
-| `SMTP_HOST`      | SMTP server hostname       | *(required)*                             |
-| `SMTP_PORT`      | SMTP server port           | `587`                                    |
-| `SMTP_USER`      | SMTP username              | *(required)*                             |
-| `SMTP_PASS`      | SMTP password              | *(required)*                             |
-| `SMTP_FROM`      | Sender email address       | `noreply@nostroots.com`                  |
-| `DEEP_LINK_BASE` | Base URL for iOS deep link | `nostroots://verify`                     |
-| `DENO_KV_PATH`   | Path to Deno KV database   | *(Deno default)*                         |
+All env vars are read by `src/config.ts` at startup. Values marked _(required)_
+throw immediately at startup if unset. SMTP credentials are validated lazily
+inside `sendEmail` so unit tests that never send mail don't need to populate
+them.
+
+| Variable       | Description               | Default                                  |
+| -------------- | ------------------------- | ---------------------------------------- |
+| `MONGODB_URI`  | MongoDB connection string | `mongodb://mongodb:27017/trustroots-dev` |
+| `PORT`         | HTTP server port          | `8000`                                   |
+| `DENO_KV_PATH` | Path to Deno KV database  | _(required; `:memory:` in tests)_        |
+| `SMTP_HOST`    | SMTP server hostname      | _(required at send time)_                |
+| `SMTP_PORT`    | SMTP server port          | `587`                                    |
+| `SMTP_USER`    | SMTP username             | _(required at send time)_                |
+| `SMTP_PASS`    | SMTP password             | _(required at send time)_                |
+| `SMTP_FROM`    | Sender email address      | `support@trustroots.org`                 |
 
 ---
 
@@ -434,10 +423,8 @@ Zod's flattened error output:
 The verification email is a responsive HTML email with:
 
 - **Header** -- Nostroots branding.
-- **Code block** -- The six-digit code displayed in a large monospace font
-  with letter-spacing for readability.
-- **Deep link button** -- "Open Nostroots" button linking to
-  `nostroots://verify?token=<uuid>`.
+- **Code block** -- The six-digit code displayed in a large monospace font with
+  letter-spacing for readability.
 - **Footer** -- Expiry notice ("This code expires in 15 minutes") and a
   safe-to-ignore disclaimer.
 
@@ -445,12 +432,16 @@ The verification email is a responsive HTML email with:
 
 ## Security Considerations
 
+- **Two-factor verification** -- Completing `/verify_code` requires both the
+  token (returned to the API client by `/request_token` and never delivered to
+  the user directly) and the code (delivered to the user's email and never
+  returned to the API client). Either credential alone is insufficient.
 - **Code entropy** -- Six-digit codes are generated with
   `crypto.getRandomValues()`, not `Math.random()`.
-- **Token entropy** -- Deep-link tokens are UUID v4 via `crypto.randomUUID()`.
-- **TTL** -- Token requests expire after 15 minutes at both the KV level
+- **Token entropy** -- Tokens are UUID v4 via `crypto.randomUUID()`.
+- **TTL** -- Pending verifications expire after 15 minutes at both the KV level
   (`expireIn`) and the application level (`expiresAt` timestamp check).
 - **npub validation** -- The `npub` field is validated to start with `"npub"` to
   prevent accidental submission of secret keys (`nsec`).
-- **No credentials in responses** -- Neither the code nor the token is ever
-  returned in an HTTP response; they are only delivered via email.
+- **No code in responses** -- The six-digit code is never returned in an HTTP
+  response; it is only delivered via email.

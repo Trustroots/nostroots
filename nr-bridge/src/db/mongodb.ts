@@ -1,55 +1,18 @@
 /**
  * @module mongodb
  *
- * Lazily-initialised MongoDB client and query helpers for the Trustroots
- * `users` collection.
+ * MongoDB client and query helpers for the Trustroots `users` collection.
  *
- * Connection is configured via the `MONGODB_URI` environment variable
- * (defaults to `mongodb://mongodb:27017/trustroots-dev`).
+ * The shared {@link MongoClient} is constructed at module load. Connections
+ * are established lazily by the driver on the first query.
  */
-import { MongoClient, type Db, type Collection } from "mongodb";
+import { type Collection, MongoClient } from "mongodb";
+import { MONGODB_DB_NAME, MONGODB_URI } from "../config.ts";
 
-let client: MongoClient | null = null;
-let db: Db | null = null;
-
-/**
- * Return a connected {@link MongoClient}, creating one on the first call.
- *
- * @returns The shared MongoClient instance.
- */
-export async function getMongoClient(): Promise<MongoClient> {
-  if (client) return client;
-  const uri =
-    Deno.env.get("MONGODB_URI") ?? "mongodb://mongodb:27017/trustroots-dev";
-  client = new MongoClient(uri);
-  await client.connect();
-  return client;
-}
-
-/**
- * Return the application {@link Db} handle, deriving the database name from
- * `MONGODB_URI`.
- *
- * @returns The Mongo database instance.
- */
-export async function getDb(): Promise<Db> {
-  if (db) return db;
-  const c = await getMongoClient();
-  const uri =
-    Deno.env.get("MONGODB_URI") ?? "mongodb://mongodb:27017/trustroots-dev";
-  const dbName = new URL(uri).pathname.slice(1) || "trustroots-dev";
-  db = c.db(dbName);
-  return db;
-}
-
-/**
- * Convenience accessor for the `users` collection.
- *
- * @returns A promise resolving to the `users` {@link Collection}.
- */
-export function getUsersCollection(): Promise<Collection> {
-  return getDb().then((d) => d.collection("users"));
-}
+const mongoClient = new MongoClient(MONGODB_URI);
+const usersCollection: Collection = mongoClient
+  .db(MONGODB_DB_NAME)
+  .collection("users");
 
 /**
  * Look up a Trustroots user by their username.
@@ -61,8 +24,7 @@ export function getUsersCollection(): Promise<Collection> {
 export async function findUserByUsername(
   username: string,
 ): Promise<{ email: string; username: string; nostrNpub?: string } | null> {
-  const users = await getUsersCollection();
-  const user = await users.findOne(
+  const user = await usersCollection.findOne(
     { username: username.toLowerCase() },
     { projection: { email: 1, username: 1, nostrNpub: 1 } },
   );
@@ -86,22 +48,9 @@ export async function setNpubForUsername(
   username: string,
   npub: string,
 ): Promise<boolean> {
-  const users = await getUsersCollection();
-  const result = await users.updateOne(
+  const result = await usersCollection.updateOne(
     { username: username.toLowerCase() },
     { $set: { nostrNpub: npub, updated: new Date() } },
   );
   return result.modifiedCount === 1;
-}
-
-/**
- * Close the shared MongoDB client and reset internal state. Safe to call even
- * if no client has been created.
- */
-export async function closeMongoClient(): Promise<void> {
-  if (client) {
-    await client.close();
-    client = null;
-    db = null;
-  }
 }

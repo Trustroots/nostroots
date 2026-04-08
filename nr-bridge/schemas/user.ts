@@ -260,9 +260,17 @@ const UserMiniProfileSchema = UserSchema.pick({
 });
 
 export {
-  ACQUISITION_STORY_MAX_LENGTH, ObjectIdSchema,
-  PASSWORD_MIN_LENGTH, UserMemberSchema, UserMiniProfileSchema, USERNAME_MAX_LENGTH, USERNAME_MIN_LENGTH, UserProfileUpdateSchema,
-  UserPublicProfileSchema, UserPushRegistrationSchema, UserSchema
+  ACQUISITION_STORY_MAX_LENGTH,
+  ObjectIdSchema,
+  PASSWORD_MIN_LENGTH,
+  UserMemberSchema,
+  UserMiniProfileSchema,
+  USERNAME_MAX_LENGTH,
+  USERNAME_MIN_LENGTH,
+  UserProfileUpdateSchema,
+  UserPublicProfileSchema,
+  UserPushRegistrationSchema,
+  UserSchema,
 };
 
 export type User = z.infer<typeof UserSchema>;

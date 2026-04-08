@@ -8,23 +8,17 @@
 interface VerificationEmailParams {
   /** The six-digit verification code to display prominently. */
   code: string;
-  /** The UUID token embedded in the deep link URL. */
-  token: string;
-  /** Base URL for the iOS deep link (e.g. `nostroots://verify`). */
-  deepLinkBase: string;
-  /** Number of minutes before the code/token expires. */
+  /** Number of minutes before the code expires. */
   expiryMinutes: number;
 }
 
 /**
  * Build the verification email subject and HTML body.
  *
- * The resulting email contains:
- * - A large, styled six-digit code for manual entry.
- * - A deep-link button that opens the nr-app iOS app directly.
- * - An expiry notice.
+ * The email displays the six-digit code in a large styled block and tells the
+ * user how long they have to enter it.
  *
- * @param params - Code, token, deep-link base URL, and expiry duration.
+ * @param params - Code and expiry duration.
  * @returns An object with `subject` and `html` strings ready for
  *          {@link sendEmail}.
  */
@@ -32,8 +26,7 @@ export function buildVerificationEmail(params: VerificationEmailParams): {
   subject: string;
   html: string;
 } {
-  const { code, token, deepLinkBase, expiryMinutes } = params;
-  const deepLink = `${deepLinkBase}?token=${encodeURIComponent(token)}`;
+  const { code, expiryMinutes } = params;
 
   const subject = `Your Nostroots verification code: ${code}`;
 
@@ -63,14 +56,6 @@ export function buildVerificationEmail(params: VerificationEmailParams): {
                 <span style="display:inline-block;background-color:#f0f7f4;border:2px solid #2d6a4f;border-radius:8px;padding:16px 32px;font-size:36px;font-weight:700;letter-spacing:8px;color:#2d6a4f;">
                   ${code}
                 </span>
-              </div>
-              <p style="margin:0 0 24px;color:#333333;font-size:16px;line-height:1.5;">
-                Or tap the button below to open the app directly:
-              </p>
-              <div style="text-align:center;margin:0 0 32px;">
-                <a href="${deepLink}" style="display:inline-block;background-color:#2d6a4f;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;padding:14px 32px;border-radius:8px;">
-                  Open Nostroots
-                </a>
               </div>
               <p style="margin:0;color:#888888;font-size:13px;line-height:1.5;">
                 This code expires in ${expiryMinutes} minutes. If you didn't request this, you can safely ignore this email.

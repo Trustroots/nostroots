@@ -38,7 +38,15 @@ export function formatStatusMessage(report: StatusReport): string {
     timeZone: "UTC",
   });
 
+  const serviceUpCount = report.services.filter(
+    (s) => s.status === "ok",
+  ).length;
+  const pingUpCount = report.pings.filter((p) => p.status === "ok").length;
+  const totalUp = serviceUpCount + pingUpCount;
+  const total = report.services.length + report.pings.length;
+
   lines.push(`📡 <b>Nostroots Status</b> — ${formatted} UTC`);
+  lines.push(`── ${totalUp}/${total} operational ──`);
   lines.push("");
 
   for (const service of report.services) {
@@ -52,16 +60,6 @@ export function formatStatusMessage(report: StatusReport): string {
   for (const ping of report.pings) {
     lines.push(formatPingLine(`${ping.name} ping`, ping));
   }
-
-  const serviceUpCount = report.services.filter(
-    (s) => s.status === "ok",
-  ).length;
-  const pingUpCount = report.pings.filter((p) => p.status === "ok").length;
-  const totalUp = serviceUpCount + pingUpCount;
-  const total = report.services.length + report.pings.length;
-
-  lines.push("");
-  lines.push(`── ${totalUp}/${total} operational ──`);
 
   return lines.join("\n");
 }

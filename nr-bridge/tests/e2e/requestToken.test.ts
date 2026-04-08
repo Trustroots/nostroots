@@ -32,7 +32,7 @@ async function cleanupUser(
 }
 
 Deno.test({
-  name: "#e2e1 POST /request_token validation and 404 paths",
+  name: "#e2e1 POST /request_token validation and unknown-user paths",
   async fn() {
     const client = new MongoClient(MONGODB_URI);
 
@@ -55,13 +55,22 @@ Deno.test({
       });
       expect(res400.status).toBe(400);
 
-      // Test: nonexistent user returns 404
-      const res404 = await app.request("/request_token", {
+      // Test: nonexistent user returns 200 with a throw-away token (silent
+      // success to prevent username enumeration). The token will not
+      // correspond to a real PendingVerification in KV, so any later
+      // /verify_code attempt with it will fail with the same 401 as an
+      // expired token.
+      const resUnknown = await app.request("/request_token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: "nonexistent_e2e_user_xyz" }),
       });
-      expect(res404.status).toBe(404);
+      expect(resUnknown.status).toBe(200);
+      const unknownBody = await resUnknown.json();
+      expect(typeof unknownBody.token).toBe("string");
+      expect(unknownBody.token).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+      );
     } finally {
       await cleanupUser(client, "e2etestuser");
       await client.close();

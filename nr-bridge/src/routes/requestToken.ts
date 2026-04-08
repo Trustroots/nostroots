@@ -8,6 +8,11 @@
  * the user), stores both in Deno KV with a 15-minute TTL, and returns the
  * token in the response body so the client can supply it back later via
  * `POST /verify_code`.
+ *
+ * When the username does not match any user, the handler returns a
+ * throw-away token with no side effects. This keeps the response
+ * indistinguishable from a real flow and prevents username (and, in the
+ * future, email) enumeration.
  */
 import type { Context } from "hono";
 import {
@@ -25,8 +30,8 @@ import { buildVerificationEmail } from "../email/templates.ts";
  * Handle `POST /request_token`.
  *
  * @param context - Hono request context.
- * @returns `200` with `{ token }` on success, `400` for invalid input, or
- *          `404` if the username is not in MongoDB.
+ * @returns `200` with `{ token }` for any well-formed request (whether or
+ *          not the username exists), or `400` for invalid input.
  */
 export async function handleRequestToken(
   context: Context,
@@ -45,7 +50,10 @@ export async function handleRequestToken(
 
   const user = await findUserByUsername(username);
   if (!user) {
-    return context.json({ error: "User not found" }, 404);
+    // Silently succeed to prevent username enumeration: the response is
+    // indistinguishable from a real flow, but step 2 will fail with the
+    // same generic 401 as an expired token.
+    return context.json({ token: generateToken() });
   }
 
   const now = Date.now();

@@ -53,7 +53,10 @@ linked.
 3. nr-bridge looks up the username in MongoDB, generates a UUID `token` and a
    six-digit `code`, stores both as a `PendingVerification` in Deno KV (15 min
    TTL), emails the code to the user, and returns the `token` to the app in the
-   response body.
+   response body. If the username does not match any user, nr-bridge still
+   returns a `200 { token }` response but performs no side effects — this
+   prevents username (and eventually email) enumeration. The unmatched token
+   will fail at step 6 with the same generic `401` as an expired token.
 4. The user reads the six-digit code from their email and types it into the app.
 5. The app sends `POST /verify_code` with `{ token, code, npub }` — `token` from
    step 3 (proving it's the same client) and `code` from the email (proving the
@@ -68,11 +71,12 @@ flowchart TD
     A["User opens nr-app"] --> B["Enters Trustroots username"]
     B --> C["nr-app POST /request_token"]
     C --> D{"Username exists\nin MongoDB?"}
-    D -- No --> E["404 Not Found"]
+    D -- No --> E["Generate throw-away token\n(no KV write, no email)"]
+    E --> I["200 { token }"]
     D -- Yes --> F["Generate token + 6-digit code"]
     F --> G["Store PendingVerification\nin Deno KV (15 min TTL)"]
     G --> H["Email code to user"]
-    H --> I["200 { token }"]
+    H --> I
     I --> J["User reads code from email\n+ types it into nr-app"]
     J --> K["nr-app POST /verify_code\n{ token, code, npub }"]
     K --> L{"Token in KV\n+ code matches?"}
@@ -139,13 +143,17 @@ Content-Type: application/json
 
 **Responses**
 
-| Status | Body                                                  | Meaning                               |
-| ------ | ----------------------------------------------------- | ------------------------------------- |
-| `200`  | `{ "token": "550e8400-e29b-41d4-a716-446655440000" }` | Verification email sent               |
-| `400`  | `{ "error": "Invalid request", "details": {...} }`    | Request body failed Zod validation    |
-| `404`  | `{ "error": "User not found" }`                       | No user with that username in MongoDB |
+| Status | Body                                                  | Meaning                            |
+| ------ | ----------------------------------------------------- | ---------------------------------- |
+| `200`  | `{ "token": "550e8400-e29b-41d4-a716-446655440000" }` | Always returned for valid bodies   |
+| `400`  | `{ "error": "Invalid request", "details": {...} }`    | Request body failed Zod validation |
 
-**Side effects**
+A `200` response does **not** imply the username exists. To prevent enumeration,
+unknown usernames receive an indistinguishable response with a throw-away token
+that will fail at `POST /verify_code` with the same generic `401` as an expired
+token. See [Security Considerations](#security-considerations).
+
+**Side effects** (only when the username matches a real user)
 
 - Creates a `PendingVerification` in Deno KV (key:
   `["pendingVerifications", token]`, TTL: 15 minutes) containing the token, the
@@ -436,6 +444,14 @@ The verification email is a responsive HTML email with:
   token (returned to the API client by `/request_token` and never delivered to
   the user directly) and the code (delivered to the user's email and never
   returned to the API client). Either credential alone is insufficient.
+- **Username enumeration prevention** -- `/request_token` returns the same
+  `200 { token }` shape whether or not the username exists. Unknown usernames
+  receive a throw-away token that is never stored in KV, so a subsequent
+  `/verify_code` call with it will fail with the same generic
+  `401 "No pending verification or token expired"` as a legitimate expired
+  token. This keeps the real path (MongoDB read + KV write + SMTP send) and the
+  no-op path distinguishable only by timing; equalising that timing is not
+  currently in scope.
 - **Code entropy** -- Six-digit codes are generated with
   `crypto.getRandomValues()`, not `Math.random()`.
 - **Token entropy** -- Tokens are UUID v4 via `crypto.randomUUID()`.

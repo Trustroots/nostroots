@@ -161,7 +161,7 @@ jobs:
             - Built from: `${{ github.ref_name }}` branch (commit: `${{ github.sha }}`)
             - Built at: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           draft: false
-          prerelease: true
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

@@ -90,6 +90,18 @@ jobs:
             echo "❌ No recent builds found for android preview"
             exit 1
           fi
+
+          if [ -z "$BUILD_URL" ] || [ "$BUILD_URL" == "null" ]; then
+            echo "❌ No recent build is available: latest build has no artifact URL"
+            exit 1
+          fi
+
+          # Validate that the artifact URL is still reachable before proceeding.
+          HTTP_STATUS=$(curl -sSL -o /dev/null -w "%{http_code}" "$BUILD_URL")
+          if [ "$HTTP_STATUS" -lt 200 ] || [ "$HTTP_STATUS" -ge 300 ]; then
+            echo "❌ No recent build is available: latest artifact appears expired or inaccessible (HTTP $HTTP_STATUS)"
+            exit 1
+          fi
           
           echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
           echo "build_url=$BUILD_URL" >> $GITHUB_OUTPUT
@@ -102,7 +114,20 @@ jobs:
         run: |
           cd nr-app
           mkdir -p ./builds
-          curl -L -o "./builds/app-preview.apk" "${{ steps.artifact.outputs.build_url }}"
+
+          curl -fsSL --retry 3 -o "./builds/app-preview.apk" "${{ steps.artifact.outputs.build_url }}"
+
+          # Expired artifact links can return HTML/error payloads with .apk extension.
+          if ! unzip -t "./builds/app-preview.apk" >/dev/null 2>&1; then
+            echo "❌ No recent build is available: downloaded file is not a valid APK (artifact likely expired)"
+            exit 1
+          fi
+
+          APK_BYTES=$(wc -c < "./builds/app-preview.apk")
+          if [ "$APK_BYTES" -lt 1000000 ]; then
+            echo "❌ No recent build is available: APK is unexpectedly small (${APK_BYTES} bytes, artifact likely expired)"
+            exit 1
+          fi
           
           APK_SIZE=$(ls -lh "./builds/app-preview.apk" | awk '{print $5}')
           echo "apk_path=./nr-app/builds/app-preview.apk" >> $GITHUB_OUTPUT

@@ -1401,7 +1401,7 @@
         
         function setupRelayAuthHandler(relay, relayUrl) {
             let latestChallenge = null;
-            relay.on('auth', async (challenge) => {
+            const authHandler = async (challenge) => {
                 latestChallenge = challenge;
                 try {
                     await authenticateRelay(relay, relayUrl, challenge);
@@ -1409,7 +1409,16 @@
                     const errorMessage = error?.message || String(error);
                     console.error(`[Relay] NIP-42 auth failed for ${relayUrl}:`, errorMessage);
                 }
-            });
+            };
+            
+            // nostr-tools relay APIs differ across versions:
+            // some expose relay.on('auth', ...), others expose relay.onauth callback.
+            if (typeof relay?.on === 'function') {
+                relay.on('auth', authHandler);
+            } else if ('onauth' in relay) {
+                relay.onauth = authHandler;
+            }
+            
             return {
                 getLatestChallenge: () => latestChallenge
             };

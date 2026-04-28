@@ -1363,19 +1363,83 @@
         
         const RELAY_PUBLISH_RETRIES = 2;
         const RELAY_PUBLISH_RETRY_DELAY_MS = 1500;
+        const NIP42_AUTH_KIND = 22242;
+        
+        function isAuthRequiredError(errorMessage) {
+            return (errorMessage || '').toLowerCase().includes('auth-required');
+        }
+        
+        async function signEventTemplate(eventTemplate) {
+            if (currentPrivateKeyBytes) {
+                return finalizeEvent(eventTemplate, currentPrivateKeyBytes);
+            }
+            if (window.nostr && typeof window.nostr.signEvent === 'function') {
+                return await window.nostr.signEvent(eventTemplate);
+            }
+            throw new Error('No signing method available for relay authentication');
+        }
+        
+        async function authenticateRelay(relay, relayUrl, challenge) {
+            if (!challenge) {
+                throw new Error('Missing NIP-42 challenge');
+            }
+            const authTemplate = {
+                kind: NIP42_AUTH_KIND,
+                created_at: Math.floor(Date.now() / 1000),
+                tags: [
+                    ['relay', relayUrl],
+                    ['challenge', challenge]
+                ],
+                content: ''
+            };
+            if (currentPublicKey) {
+                authTemplate.pubkey = currentPublicKey;
+            }
+            const signedAuth = await signEventTemplate(authTemplate);
+            await relay.auth(signedAuth);
+        }
+        
+        function setupRelayAuthHandler(relay, relayUrl) {
+            let latestChallenge = null;
+            relay.on('auth', async (challenge) => {
+                latestChallenge = challenge;
+                try {
+                    await authenticateRelay(relay, relayUrl, challenge);
+                } catch (error) {
+                    const errorMessage = error?.message || String(error);
+                    console.error(`[Relay] NIP-42 auth failed for ${relayUrl}:`, errorMessage);
+                }
+            });
+            return {
+                getLatestChallenge: () => latestChallenge
+            };
+        }
         
         /** Publish event to one relay with retries. Returns { success, url, error }. */
         async function publishToRelayWithRetries(url, signedEvent) {
             let lastError = null;
             for (let attempt = 0; attempt <= RELAY_PUBLISH_RETRIES; attempt++) {
                 let relay = null;
+                let authState = null;
                 try {
                     relay = await Relay.connect(url);
+                    authState = setupRelayAuthHandler(relay, url);
                     await relay.publish(signedEvent);
                     await new Promise(resolve => setTimeout(resolve, 500));
                     return { success: true, url };
                 } catch (error) {
                     lastError = error?.message || String(error);
+                    const latestChallenge = authState?.getLatestChallenge?.();
+                    if (relay && latestChallenge && isAuthRequiredError(lastError)) {
+                        try {
+                            await authenticateRelay(relay, url, latestChallenge);
+                            await relay.publish(signedEvent);
+                            await new Promise(resolve => setTimeout(resolve, 500));
+                            return { success: true, url };
+                        } catch (authError) {
+                            lastError = authError?.message || String(authError);
+                        }
+                    }
                     if (attempt < RELAY_PUBLISH_RETRIES) {
                         await new Promise(resolve => setTimeout(resolve, RELAY_PUBLISH_RETRY_DELAY_MS));
                     }
@@ -2560,6 +2624,7 @@
                 try {
                     updateRelayStatus(url, 'connecting');
                     const relay = await Relay.connect(url);
+                    setupRelayAuthHandler(relay, url);
                     relays.push(relay);
                     // Ensure relayWriteEnabled is set before updating status
                     if (!relayWriteEnabled.has(url)) {

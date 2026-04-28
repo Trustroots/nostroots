@@ -320,8 +320,48 @@
     word-break: break-all;
 }
 
+#settings-modal .relay-url-wrap {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+#settings-modal .relay-privacy-hint {
+    font-size: 0.7rem;
+    color: var(--muted-foreground);
+}
+
 .relay-controls {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+}
+
+#settings-modal .relay-post-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+
+#settings-modal .relay-post-toggle input {
+    margin: 0;
+}
+
+#settings-modal .relay-delete-btn {
+    border: none;
+    border-radius: calc(var(--radius) - 2px);
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+}
+
+#settings-modal .relay-delete-btn:hover {
+    opacity: 0.9;
 }

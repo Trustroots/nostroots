@@ -283,7 +283,7 @@
             <code>pubkey=${event.pubkey.slice(0, 16)}...</code> |
             <code>${date}</code>${plusCodeHtml}
           </div>
-          <pre>${escapeHtml(event.content || "")}</pre>
+          <pre>${linkifyTrustrootsUrls(escapeHtml(event.content || ""))}</pre>
         `;
         return box;
       }
@@ -344,6 +344,13 @@
         return str.replace(/[&<>"]/g, (ch) => (
           ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" })[ch]
         ));
+      }
+
+      function linkifyTrustrootsUrls(html) {
+        return html.replace(
+          /https:\/\/(?:www\.)?trustroots\.org\/[^\s<)]+/gi,
+          (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+        );
       }
 
       function subscribeNotes() {

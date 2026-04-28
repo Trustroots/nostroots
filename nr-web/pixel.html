@@ -8,8 +8,17 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="common.css">
-    <script src="common.js"></script>
+    <script>
+        (function loadLocalStylesheets() {
+            const version = Date.now();
+            ['common.css', 'modals.css'].forEach((href) => {
+                document.write('<link rel="stylesheet" href="' + href + '?v=' + version + '">');
+            });
+        })();
+    </script>
+    <script>
+        document.write('<script src="common.js?v=' + Date.now() + '"><\/script>');
+    </script>
     <style>
         .pixel-page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         .pixel-main { display: flex; flex: 1; min-height: 0; }
@@ -24,7 +33,8 @@
         .pixel-feed-meta .location { color: var(--primary); }
         .pixel-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
         .pixel-palette { display: flex; gap: 2px; }
-        .pixel-swatch { width: 28px; height: 28px; border: 2px solid transparent; border-radius: 4px; cursor: pointer; }
+        .pixel-swatch { width: 28px; height: 28px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer; transition: transform 0.12s ease, border-color 0.12s ease; }
+        .pixel-swatch:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.45); }
         .pixel-swatch.selected { border-color: var(--foreground); box-shadow: 0 0 0 1px var(--foreground); }
         #pixel-grid-wrap { border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--muted); }
         #pixel-grid { display: block; image-rendering: pixelated; image-rendering: crisp-edges; cursor: crosshair; touch-action: none; }
@@ -60,7 +70,7 @@
                 </div>
                 <div class="pixel-publish-section">
                     <input type="text" id="pixel-title" placeholder="Title (optional)">
-                    <input type="text" id="pixel-where" placeholder="Where (city, place — connects people IRL)">
+                    <input type="text" id="pixel-where" placeholder="Where (city/place)">
                     <label><input type="checkbox" id="pixel-is-invite"> This is an invite / jam (meetup)</label>
                     <input type="text" id="pixel-when" placeholder="When (e.g. Thursday 8pm)" style="display:none">
                     <button type="button" class="btn" id="pixel-publish">Publish to circle</button>
@@ -80,7 +90,15 @@
         const GRID_SIZE = 16;
         const CELL_PX = 16;
         const DEFAULT_PALETTE = [
-            '#1a1a2e', '#16213e', '#0f3460', '#e94560', '#533483', '#c4b6b6', '#f5e6e8', '#ffc93c', '#ffffff'
+            '#1b1f3b', // deep indigo
+            '#264653', // slate teal
+            '#2a9d8f', // teal
+            '#8ab17d', // moss green
+            '#f4a261', // warm orange
+            '#e76f51', // terracotta
+            '#ef476f', // pink-red
+            '#7b5bd6', // violet
+            '#f8f9fa'  // near-white
         ];
 
         const PIXEL_CIRCLES = [
@@ -88,6 +106,8 @@
             { slug: 'burners', title: 'Burners' },
             { slug: 'punks', title: 'Punks' }
         ];
+        const relaySettings = window.NrWebRelaySettings;
+        const relayAuth = window.NrWebRelayAuth;
 
         let currentCircle = 'artists';
         let selectedColorIndex = 8;
@@ -97,6 +117,8 @@
         let feedEvents = [];
         let activeFeedConnections = [];
         let feedSubscriptionToken = 0;
+        const relayStatus = new Map(); // url -> { status, canWrite }
+        const relayWriteEnabled = new Map(); // url -> boolean
 
         function getCircleFromUrl() {
             const params = new URLSearchParams(location.search);
@@ -106,11 +128,60 @@
         }
 
         function getRelayUrls() {
-            try {
-                const saved = localStorage.getItem('relay_urls');
-                if (saved) return saved.split('\n').filter(u => u.trim());
-            } catch (_) {}
+            if (relaySettings?.getRelayUrls) {
+                return relaySettings.getRelayUrls(DEFAULT_RELAYS);
+            }
+            return DEFAULT_RELAYS.slice();
+        }
+
+        function getSavedRelayWritePreferences() {
+            if (relaySettings?.getRelayWritePreferences) {
+                return relaySettings.getRelayWritePreferences();
+            }
+            return {};
+        }
+
+        function saveRelayWritePreferences() {
+            if (relaySettings?.saveRelayWritePreferences) {
+                relaySettings.saveRelayWritePreferences(getRelayUrls(), relayWriteEnabled);
+            }
+        }
+
+        function initializeRelaySettingsState(urls, status = 'disconnected') {
+            const prefs = getSavedRelayWritePreferences();
+            urls.forEach((url) => {
+                const canWrite = prefs[url] !== false;
+                relayWriteEnabled.set(url, canWrite);
+                relayStatus.set(url, { status, canWrite });
+            });
+            saveRelayWritePreferences();
+        }
+
+        function getWritableRelayUrls() {
+            return getRelayUrls().filter((url) => relayWriteEnabled.get(url) !== false);
+        }
+
+        function getPublishRelayUrls() {
+            const writable = getWritableRelayUrls();
+            if (writable.length > 0) return writable;
+            const configured = getRelayUrls();
+            if (configured.length > 0) return configured;
             return DEFAULT_RELAYS;
+        }
+
+        function setRelayWriteEnabled(url, enabled) {
+            relayWriteEnabled.set(url, enabled);
+            const current = relayStatus.get(url) || { status: 'disconnected', canWrite: true };
+            relayStatus.set(url, { ...current, canWrite: enabled });
+            saveRelayWritePreferences();
+            renderRelaysList();
+        }
+
+        function toggleRelayWriteForEncodedUrl(encodedUrl, enabled) {
+            try {
+                const url = decodeURIComponent(encodedUrl);
+                setRelayWriteEnabled(url, enabled);
+            } catch (_) {}
         }
 
         function initGrid() {
@@ -351,17 +422,16 @@
 
         const seenIds = new Set();
         function closeFeedSubscriptions() {
-            activeFeedConnections.forEach(({ relay, sub }) => {
-                try { sub?.close?.(); } catch (_) {}
-                try { relay?.close?.(); } catch (_) {}
+            activeFeedConnections.forEach((conn) => {
+                try { conn?.close?.(); } catch (_) {}
             });
             activeFeedConnections = [];
         }
 
         function subscribeFeed() {
             if (!nostrTools) return;
-            const { Relay } = nostrTools;
             const urls = getRelayUrls();
+            initializeRelaySettingsState(urls, 'connecting');
             closeFeedSubscriptions();
             const token = ++feedSubscriptionToken;
             feedEvents = [];
@@ -369,15 +439,20 @@
             renderFeed();
             const filter = { kinds: [PIXEL_KIND], '#L': ['trustroots-circle'], '#l': [currentCircle] };
             urls.forEach(url => {
-                Relay.connect(url).then(relay => {
-                    if (token !== feedSubscriptionToken) {
-                        relay.close();
-                        return;
-                    }
-                    const sub = relay.subscribe([filter], {
-                        onevent: (event) => {
+                if (!relayAuth?.startNip42WsSubscription) return;
+                try {
+                    const connection = relayAuth.startNip42WsSubscription({
+                        relayUrl: url,
+                        filter,
+                        authPubkey: currentPublicKey,
+                        signEvent: async (eventTemplate) => {
+                            await ensureNostr();
+                            if (!currentPrivateKeyBytes) throw new Error('No local key loaded');
+                            return nostrTools.finalizeEvent(eventTemplate, currentPrivateKeyBytes);
+                        },
+                        onEvent: (event) => {
                             if (token !== feedSubscriptionToken) return;
-                            if (seenIds.has(event.id)) return;
+                            if (!event || event.kind !== PIXEL_KIND || seenIds.has(event.id)) return;
                             seenIds.add(event.id);
                             try {
                                 const c = JSON.parse(event.content || '{}');
@@ -387,10 +462,22 @@
                                     renderFeed();
                                 }
                             } catch (_) {}
+                        },
+                        onOpen: () => {
+                            relayStatus.set(url, { status: 'connected', canWrite: relayWriteEnabled.get(url) !== false });
+                            renderRelaysList();
+                        },
+                        onAuthFail: () => {
+                            relayStatus.set(url, { status: 'error', canWrite: relayWriteEnabled.get(url) !== false });
+                            renderRelaysList();
+                        },
+                        onError: () => {
+                            relayStatus.set(url, { status: 'error', canWrite: relayWriteEnabled.get(url) !== false });
+                            renderRelaysList();
                         }
                     });
-                    activeFeedConnections.push({ relay, sub });
-                }).catch(() => {});
+                    activeFeedConnections.push(connection);
+                } catch (_) {}
             });
         }
 
@@ -465,7 +552,7 @@
                 tags
             };
             const signed = finalizeEvent(event, currentPrivateKeyBytes);
-            const urls = getRelayUrls();
+            const urls = getPublishRelayUrls();
             setStatus('Publishing…', 'info');
             let ok = 0;
             for (const url of urls) {
@@ -488,32 +575,50 @@
             const list = document.getElementById('relays-list');
             if (!list) return;
             const urls = getRelayUrls();
-            list.innerHTML = '';
-            urls.forEach((url) => {
-                const item = document.createElement('div');
-                item.className = 'relay-item';
-                item.innerHTML = `<span>${escapeHtml(url)}</span><button type="button" class="btn btn-secondary" data-relay-url="${escapeHtml(url)}">Remove</button>`;
-                item.querySelector('button').addEventListener('click', () => removeRelay(url));
-                list.appendChild(item);
-            });
+            if (relaySettings?.renderRelaysList) {
+                relaySettings.renderRelaysList(list, {
+                    urls,
+                    statusMap: relayStatus,
+                    relayWriteEnabledMap: relayWriteEnabled,
+                    allowPostToggle: true,
+                    allowRemove: true,
+                    removeHandlerName: 'removeRelay',
+                    toggleHandlerName: 'toggleRelayWriteForEncodedUrl',
+                    removeButtonLabel: 'DELETE',
+                    emptyMessage: 'No relays configured',
+                    showLocalPrivacyHint: true
+                });
+            }
         }
 
         function saveRelayUrls(urls) {
             const cleaned = [...new Set(urls.map(u => u.trim()).filter(Boolean))];
-            if (cleaned.length) localStorage.setItem('relay_urls', cleaned.join('\n'));
-            else localStorage.removeItem('relay_urls');
+            if (relaySettings?.saveRelayUrls) {
+                relaySettings.saveRelayUrls(cleaned);
+            } else if (cleaned.length) {
+                localStorage.setItem('relay_urls', cleaned.join('\n'));
+            } else {
+                localStorage.removeItem('relay_urls');
+            }
+            initializeRelaySettingsState(cleaned.length ? cleaned : DEFAULT_RELAYS, 'disconnected');
             subscribeFeed();
             renderRelaysList();
         }
 
         function addRelay() {
             const input = document.getElementById('new-relay-url');
-            const url = input?.value?.trim();
-            if (!url) return;
-            if (!/^wss:\/\/.+/i.test(url)) {
-                setStatus('Relay URL must start with wss://', 'error');
-                return;
+            const rawUrl = input?.value?.trim();
+            if (!rawUrl) return;
+            let url = rawUrl;
+            if (relaySettings?.normalizeRelayUrlInput) {
+                const normalized = relaySettings.normalizeRelayUrlInput(rawUrl, 'ws');
+                if (!normalized.ok) {
+                    setStatus('Relay URL must start with ws:// or wss://', 'error');
+                    return;
+                }
+                url = normalized.value;
             }
+            if (!url) return;
             saveRelayUrls([...getRelayUrls(), url]);
             if (input) input.value = '';
             setStatus('Relay added.', 'success');
@@ -675,6 +780,8 @@
         Object.assign(window, {
             addRelay,
             removeRelay,
+            setRelayWriteEnabled,
+            toggleRelayWriteForEncodedUrl,
             openKeysModal,
             closeKeysModal,
             openSettingsModal,
@@ -691,6 +798,7 @@
         });
 
         document.addEventListener('nostroots-modals-injected', () => {
+            initializeRelaySettingsState(getRelayUrls(), 'disconnected');
             updateKeyDisplay();
             renderRelaysList();
         });
@@ -705,6 +813,8 @@
             buildCircleTabs();
             initGrid();
             await initKeys();
+            initializeRelaySettingsState(getRelayUrls(), 'disconnected');
+            renderRelaysList();
             subscribeFeed();
         })();
     </script>

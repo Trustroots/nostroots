@@ -8,9 +8,14 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="common.css">
-    <link rel="stylesheet" href="modals.css">
-    <link rel="stylesheet" href="chat.css">
+    <script>
+        (function loadLocalStylesheets() {
+            const version = Date.now();
+            ['common.css', 'modals.css', 'chat.css'].forEach((href) => {
+                document.write('<link rel="stylesheet" href="' + href + '?v=' + version + '">');
+            });
+        })();
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -261,6 +266,14 @@
         .message.other {
             border-radius: 1rem 1rem 1rem 0.25rem;
             background: var(--muted);
+        }
+        .message-inline-link {
+            color: var(--primary);
+            text-decoration: underline;
+            word-break: break-all;
+        }
+        .message.self .message-inline-link {
+            color: var(--primary-foreground);
         }
         .message .meta {
             font-size: 0.7rem;
@@ -544,7 +557,9 @@
             .message .meta .author { display: none; }
         }
     </style>
-    <script src="common.js"></script>
+    <script>
+        document.write('<script src="common.js?v=' + Date.now() + '"><\/script>');
+    </script>
 </head>
 <body>
     <header class="app-header" id="app-header"
@@ -646,7 +661,7 @@
             nip04,
             nip44,
             generateSecretKey,
-            SimplePool
+            SimplePool,
         } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.23.0/+esm';
 
         // nostr-tools may access window.printer.maybe for debug; avoid ReferenceError
@@ -659,12 +674,26 @@
         }
 
         const MAP_NOTE_KIND = 30397;
+        const MAP_NOTE_REPOST_KIND = 30398;
         const TRUSTROOTS_PROFILE_KIND = 10390;
         const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = 'org.trustroots:username';
         const DEFAULT_RELAY_URL = 'wss://relay.trustroots.org';
         const DEFAULT_RELAYS = ['wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
         const TRUSTROOTS_CIRCLE_LABEL = 'trustroots-circle';
         const GLOBAL_CHANNEL_SLUG = 'global';
+        const HOSTING_OFFER_CHANNEL_SLUG = 'hostingoffers';
+        const HOSTING_OFFER_CHANNEL_ALIASES = ['hostingoffer', 'hostingoffers'];
+        const relaySettings = window.NrWebRelaySettings;
+        const NIP42_AUTH_KIND = 22242;
+
+        function normalizeChannelSlug(slug) {
+            if (typeof slug !== 'string') return slug;
+            const normalized = slug.trim().toLowerCase();
+            if (HOSTING_OFFER_CHANNEL_ALIASES.includes(normalized)) {
+                return HOSTING_OFFER_CHANNEL_SLUG;
+            }
+            return slug;
+        }
 
         // Decode blocklist npubs to hex (shared blocklist in common.js)
         if (typeof NrBlocklist !== 'undefined' && NrBlocklist.BLOCKLIST_NPUBS && nip19) {
@@ -699,26 +728,43 @@
             ];
         }
 
-        /** Same relay list as index.html: localStorage 'relay_urls' or DEFAULT_RELAYS. */
+        /** Shared relay list storage (same as index.html). */
         function getRelayUrls() {
-            const saved = localStorage.getItem('relay_urls');
-            if (saved) {
-                return saved.split('\n').filter(url => url.trim());
+            if (relaySettings?.getRelayUrls) {
+                return relaySettings.getRelayUrls(DEFAULT_RELAYS);
             }
-            return DEFAULT_RELAYS;
+            return DEFAULT_RELAYS.slice();
         }
 
         function saveRelayUrls(urls) {
+            if (relaySettings?.saveRelayUrls) {
+                relaySettings.saveRelayUrls(urls);
+                return;
+            }
             if (urls.length) localStorage.setItem('relay_urls', urls.join('\n'));
             else localStorage.removeItem('relay_urls');
+        }
+
+        function getSavedRelayWritePreferences() {
+            if (relaySettings?.getRelayWritePreferences) {
+                return relaySettings.getRelayWritePreferences();
+            }
+            return {};
+        }
+
+        function saveRelayWritePreferences() {
+            if (relaySettings?.saveRelayWritePreferences) {
+                relaySettings.saveRelayWritePreferences(getRelayUrls(), relayWriteEnabled);
+            }
         }
 
         let currentPublicKey = null;
         let currentSecretKeyHex = null;
         let currentSecretKeyBytes = null;
-        let authenticatingWithExtension = false;
         let pool = null;
         let relays = [];
+        const relayStatus = new Map(); // url -> { status, canWrite }
+        const relayWriteEnabled = new Map(); // url -> boolean
         const conversations = new Map();
         let selectedConversationId = null;
         let relayUrlsForList = [];
@@ -730,6 +776,51 @@
         const eventAuthorById = new Map();
         /** event id pending delete confirmation */
         let pendingDeleteEventId = null;
+
+        function getWritableRelayUrls() {
+            return getRelayUrls().filter(url => relayWriteEnabled.get(url) !== false);
+        }
+
+        function getPublishRelayUrls() {
+            const writable = getWritableRelayUrls();
+            if (writable.length > 0) return writable;
+            const configured = getRelayUrls();
+            if (configured.length > 0) return configured;
+            return DEFAULT_RELAYS;
+        }
+
+        function updateRelayStatus(url, status, canWrite = null) {
+            const current = relayStatus.get(url) || { status: 'disconnected', canWrite: true };
+            relayStatus.set(url, {
+                status: status,
+                canWrite: canWrite !== null ? canWrite : current.canWrite
+            });
+        }
+
+        function setRelayWriteEnabled(url, enabled) {
+            relayWriteEnabled.set(url, enabled);
+            const current = relayStatus.get(url) || { status: 'disconnected', canWrite: true };
+            relayStatus.set(url, { ...current, canWrite: enabled });
+            saveRelayWritePreferences();
+            renderRelaysList();
+        }
+
+        function toggleRelayWriteForEncodedUrl(encodedUrl, enabled) {
+            try {
+                const url = decodeURIComponent(encodedUrl);
+                setRelayWriteEnabled(url, enabled);
+            } catch (_) {}
+        }
+
+        function initializeRelaySettingsState(urls, status = 'disconnected') {
+            const savedWritePreferences = getSavedRelayWritePreferences();
+            urls.forEach((url) => {
+                const canWrite = savedWritePreferences[url] !== false;
+                relayWriteEnabled.set(url, canWrite);
+                updateRelayStatus(url, status, canWrite);
+            });
+            saveRelayWritePreferences();
+        }
 
         // Chat cache (conversations, profiles, deletions) in localStorage.
         // Includes NIP-04 DMs and NIP-44 group messages (decrypted content) so they load faster on next visit.
@@ -831,6 +922,7 @@
         }
         function applyHashToState() {
             const route = getHashRoute();
+            const normalizedRoute = normalizeChannelSlug(route);
             const keysEl = document.getElementById('keys-modal');
             const settingsEl = document.getElementById('settings-modal');
             if (route === 'keys') {
@@ -849,18 +941,21 @@
                 selectConversation(GLOBAL_CHANNEL_SLUG);
                 return;
             }
-            if (route && conversations.has(route)) {
-                selectConversation(route);
+            if (normalizedRoute && route !== normalizedRoute) {
+                setHashRoute(normalizedRoute);
+            }
+            if (normalizedRoute && conversations.has(normalizedRoute)) {
+                selectConversation(normalizedRoute);
                 return;
             }
-            if (route && !conversations.has(route)) {
-                if (isPlusCodeChannelId(route)) {
-                    location.href = 'index.html#' + encodeURIComponent(route).replace(/%2B/g, '+');
+            if (normalizedRoute && !conversations.has(normalizedRoute)) {
+                if (isPlusCodeChannelId(normalizedRoute)) {
+                    location.href = 'index.html#' + encodeURIComponent(normalizedRoute).replace(/%2B/g, '+');
                     return;
                 }
-                if (/^[a-zA-Z0-9_-]+$/.test(route) && route !== 'keys' && route !== 'settings' && route !== GLOBAL_CHANNEL_SLUG) {
-                    getOrCreateConversation('channel', route, []);
-                    selectConversation(route);
+                if (/^[a-zA-Z0-9_-]+$/.test(normalizedRoute) && normalizedRoute !== 'keys' && normalizedRoute !== 'settings' && normalizedRoute !== GLOBAL_CHANNEL_SLUG) {
+                    getOrCreateConversation('channel', normalizedRoute, []);
+                    selectConversation(normalizedRoute);
                 } else {
                     selectedConversationId = null;
                     document.body.classList.remove('chat-open');
@@ -992,8 +1087,16 @@
             return null;
         }
 
+        function hasLocalSigningKey() {
+            return !!(currentSecretKeyBytes && currentPublicKey);
+        }
+
+        function requireLocalSigningKey() {
+            if (hasLocalSigningKey()) return true;
+            throw new Error('No local key loaded. Import an nsec to continue.');
+        }
+
         function loadKeysFromStorage() {
-            localStorage.removeItem('using_nip07');
             const hex = localStorage.getItem('nostr_private_key');
             if (hex && hex.length === 64 && /^[0-9a-f]+$/i.test(hex)) {
                 currentSecretKeyHex = hex;
@@ -1048,6 +1151,7 @@
                 pool.close();
                 pool = null;
             }
+            closePublicMapRelayConnections();
             updateUI();
             renderConvList();
             showThreadEmpty();
@@ -1362,6 +1466,19 @@
             showStatus('Added: ' + raw, 'success');
         }
         function getOrCreateConversation(type, id, members) {
+            if (type === 'channel') {
+                const normalizedId = normalizeChannelSlug(id);
+                if (normalizedId && normalizedId !== id) {
+                    const legacyConv = conversations.get(id);
+                    const canonicalConv = conversations.get(normalizedId);
+                    if (legacyConv && !canonicalConv) {
+                        legacyConv.id = normalizedId;
+                        conversations.set(normalizedId, legacyConv);
+                        conversations.delete(id);
+                    }
+                }
+                id = normalizedId;
+            }
             let c = conversations.get(id);
             if (!c) {
                 c = { type, id, members: members || [], events: [] };
@@ -1445,10 +1562,87 @@
         }
 
         let publicSubsStarted = false;
+        let publicMapRelayConnections = [];
+
+        function closePublicMapRelayConnections() {
+            publicMapRelayConnections.forEach((conn) => {
+                try { conn?.close?.(); } catch (_) {}
+            });
+            publicMapRelayConnections = [];
+        }
+
+        async function buildAuthEventForRelay(relayUrl, challenge) {
+            if (!challenge) return false;
+            requireLocalSigningKey();
+            const authTemplate = {
+                kind: NIP42_AUTH_KIND,
+                created_at: Math.floor(Date.now() / 1000),
+                tags: [
+                    ['relay', relayUrl],
+                    ['challenge', challenge]
+                ],
+                content: '',
+                pubkey: currentPublicKey
+            };
+            return signEvent(authTemplate);
+        }
+
+        function startWsMapSubscription(relayUrl, onChannelEvent) {
+            const ws = new WebSocket(relayUrl);
+            const subId = `chat-map-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+            const sendReq = () => {
+                const filter = { kinds: [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND], limit: 10000 };
+                ws.send(JSON.stringify(['REQ', subId, filter]));
+            };
+
+            ws.addEventListener('open', () => {
+                sendReq();
+            });
+
+            ws.addEventListener('message', async (msg) => {
+                let data;
+                try {
+                    data = JSON.parse(msg.data);
+                } catch (_) {
+                    return;
+                }
+                const [type, a, b] = data;
+                if (type === 'AUTH') {
+                    try {
+                        const signedAuth = await buildAuthEventForRelay(relayUrl, a);
+                        ws.send(JSON.stringify(['AUTH', signedAuth]));
+                        // Mirror test.html behavior: retry REQ after AUTH.
+                        sendReq();
+                    } catch (error) {
+                        console.error(`[Chat Relay] NIP-42 auth failed for ${relayUrl}:`, error?.message || error);
+                    }
+                    return;
+                }
+                if (type === 'EVENT') {
+                    const event = b;
+                    if (event && (event.kind === MAP_NOTE_KIND || event.kind === MAP_NOTE_REPOST_KIND)) {
+                        onChannelEvent(event);
+                    }
+                    return;
+                }
+            });
+
+            ws.addEventListener('error', () => {
+                // Keep silent, debug badge counters already indicate auth success/fail state.
+            });
+
+            return {
+                close: () => {
+                    try { ws.close(); } catch (_) {}
+                }
+            };
+        }
 
         function startPublicSubscriptions() {
             relayUrlsForList = getRelayUrls();
             relays = relayUrlsForList.length ? relayUrlsForList : DEFAULT_RELAYS;
+            initializeRelaySettingsState(relays, 'connecting');
+            renderRelaysList();
             if (!pool) pool = new SimplePool();
 
             getOrCreateConversation('channel', GLOBAL_CHANNEL_SLUG, []);
@@ -1456,38 +1650,42 @@
             if (!getHashRoute()) selectConversation(GLOBAL_CHANNEL_SLUG);
 
             function onChannelEvent(event) {
-                const circleTag = (event.tags || []).find(t => t.length >= 3 && (t[0] === 'l' || t[0] === 'L') && t[2] === TRUSTROOTS_CIRCLE_LABEL);
-                const slug = circleTag?.[1];
+                const slugs = getChannelSlugsFromEvent(event);
 
                 if (NrBlocklist && NrBlocklist.isBlocked(event.pubkey)) return;
-                const targetSlug = slug || GLOBAL_CHANNEL_SLUG;
-                const conv = getOrCreateConversation('channel', targetSlug, []);
-                const existing = conv.events.some(e => e.id === event.id);
-                if (!existing) {
+
+                let changed = false;
+                slugs.forEach((targetSlug) => {
+                    const conv = getOrCreateConversation('channel', targetSlug, []);
+                    const existing = conv.events.some(e => e.id === event.id);
+                    if (existing) return;
                     eventAuthorById.set(event.id, event.pubkey);
                     conv.events.push({ id: event.id, pubkey: event.pubkey, content: event.content || '', created_at: event.created_at, raw: event });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
+                    changed = true;
+                    if (selectedConversationId === targetSlug) scheduleRender('thread');
+                });
+
+                if (changed) {
                     scheduleChatCacheWrite();
                     scheduleRender('convList');
-                    if (selectedConversationId === targetSlug) scheduleRender('thread');
-                }
-
-                if (slug && slug !== GLOBAL_CHANNEL_SLUG) {
-                    const globalConv = getOrCreateConversation('channel', GLOBAL_CHANNEL_SLUG, []);
-                    const existsInGlobal = globalConv.events.some(e => e.id === event.id);
-                    if (!existsInGlobal) {
-                        eventAuthorById.set(event.id, event.pubkey);
-                        globalConv.events.push({ id: event.id, pubkey: event.pubkey, content: event.content || '', created_at: event.created_at, raw: event });
-                        globalConv.events.sort((a, b) => a.created_at - b.created_at);
-                        scheduleChatCacheWrite();
-                        if (selectedConversationId === GLOBAL_CHANNEL_SLUG) scheduleRender('thread');
-                    }
                 }
             }
 
-            const mapNoteFilter = (extra) => ({ kinds: [MAP_NOTE_KIND], limit: 10000, ...extra });
+            const mapNoteFilter = (extra) => ({ kinds: [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND], limit: 10000, ...extra });
             pool.subscribe(relays, mapNoteFilter({ '#L': [TRUSTROOTS_CIRCLE_LABEL] }), { onevent: onChannelEvent });
+            pool.subscribe(relays, mapNoteFilter({ '#t': HOSTING_OFFER_CHANNEL_ALIASES }), { onevent: onChannelEvent });
             pool.subscribe(relays, mapNoteFilter(), { onevent: onChannelEvent });
+
+            closePublicMapRelayConnections();
+            relays.forEach((url) => {
+                try {
+                    const connection = startWsMapSubscription(url, onChannelEvent);
+                    publicMapRelayConnections.push(connection);
+                } catch (error) {
+                    console.error(`[Chat Relay] failed to connect ${url}:`, error?.message || error);
+                }
+            });
 
             pool.subscribe(relays, { kinds: [5], limit: 500 }, { onevent(event) {
                 (event.tags || []).filter(t => t[0] === 'e' && t[1]).forEach(t => {
@@ -1531,6 +1729,10 @@
                 }
             } });
 
+            relays.forEach((url) => {
+                updateRelayStatus(url, 'connected', relayWriteEnabled.get(url) !== false);
+            });
+            renderRelaysList();
             publicSubsStarted = true;
         }
 
@@ -1553,6 +1755,7 @@
                 startPublicSubscriptions();
             } else {
                 try { if (pool) pool.close(); } catch (_) {}
+                closePublicMapRelayConnections();
                 pool = new SimplePool();
                 startPublicSubscriptions();
             }
@@ -1721,7 +1924,7 @@
                     pubkey: currentPublicKey
                 };
                 const signedEvent = await signEvent(eventTemplate);
-                const r = relays.length ? relays : getRelayUrls().length ? getRelayUrls() : DEFAULT_RELAYS;
+                const r = getPublishRelayUrls();
                 await pool.publish(r, signedEvent);
                 isProfileLinked = true;
                 usernameFromNostr = true;
@@ -1746,30 +1949,43 @@
             const urls = getRelayUrls();
             const list = document.getElementById('relays-list');
             if (!list) return;
-            list.innerHTML = '';
-            if (urls.length === 0) {
-                const p = document.createElement('p');
-                p.style.cssText = 'color: var(--muted-foreground); font-size: 0.875rem; padding: 0.5rem 0;';
-                p.textContent = 'No relays configured. Add one below (or reconnect to use defaults).';
-                list.appendChild(p);
+            if (relaySettings?.renderRelaysList) {
+                relaySettings.renderRelaysList(list, {
+                    urls,
+                    statusMap: relayStatus,
+                    relayWriteEnabledMap: relayWriteEnabled,
+                    allowPostToggle: true,
+                    allowRemove: true,
+                    removeHandlerName: 'removeRelay',
+                    toggleHandlerName: 'toggleRelayWriteForEncodedUrl',
+                    removeButtonLabel: 'DELETE',
+                    emptyMessage: 'No relays configured',
+                    showLocalPrivacyHint: true
+                });
                 return;
             }
-            urls.forEach(url => {
-                const div = document.createElement('div');
-                div.className = 'relay-item';
-                div.innerHTML = `<span class="url">${url}</span><button type="button" class="btn btn-secondary" onclick="removeRelay('${url.replace(/'/g, "\\'")}')">Remove</button>`;
-                list.appendChild(div);
-            });
         }
 
         function addRelay() {
             let url = document.getElementById('new-relay-url')?.value?.trim() || '';
             if (!url) { showStatus('Enter a relay URL.', 'error'); return; }
-            if (!url.startsWith('ws://') && !url.startsWith('wss://')) url = 'wss://' + url;
+            if (relaySettings?.normalizeRelayUrlInput) {
+                const normalized = relaySettings.normalizeRelayUrlInput(url, 'ws');
+                if (!normalized.ok) {
+                    showStatus('Relay URL must start with ws:// or wss://', 'error');
+                    return;
+                }
+                url = normalized.value;
+            } else if (!url.startsWith('ws://') && !url.startsWith('wss://')) {
+                url = 'ws://' + url;
+            }
             const urls = getRelayUrls();
             if (urls.includes(url)) { showStatus('Already added.', 'error'); return; }
             urls.push(url);
             saveRelayUrls(urls);
+            relayWriteEnabled.set(url, true);
+            updateRelayStatus(url, 'connecting', true);
+            saveRelayWritePreferences();
             document.getElementById('new-relay-url').value = '';
             renderRelaysList();
             if (currentPublicKey) {
@@ -1783,6 +1999,9 @@
         function removeRelay(url) {
             const urls = getRelayUrls().filter(u => u !== url);
             saveRelayUrls(urls);
+            relayWriteEnabled.delete(url);
+            relayStatus.delete(url);
+            saveRelayWritePreferences();
             renderRelaysList();
             if (currentPublicKey) {
                 relayUrlsForList = urls;
@@ -1937,9 +2156,61 @@
 
         function getChannelSlugFromEvent(raw) {
             if (!raw?.tags) return null;
-            const tag = raw.tags.find(t => Array.isArray(t) && t.length >= 3 && (t[0] === 'l' || t[0] === 'L') && t[2] === TRUSTROOTS_CIRCLE_LABEL);
-            const slug = (tag?.[1] || '').trim();
-            return /^[a-zA-Z0-9_-]+$/.test(slug) ? slug : null;
+            const circleTag = raw.tags.find(t => Array.isArray(t) && t.length >= 3 && (t[0] === 'l' || t[0] === 'L') && t[2] === TRUSTROOTS_CIRCLE_LABEL);
+            const circleSlug = (circleTag?.[1] || '').trim();
+            if (/^[a-zA-Z0-9_-]+$/.test(circleSlug)) return circleSlug;
+
+            const circleHashtagTag = raw.tags.find(t =>
+                Array.isArray(t) &&
+                t.length >= 2 &&
+                (t[0] === 't' || t[0] === 'T') &&
+                typeof t[1] === 'string' &&
+                !HOSTING_OFFER_CHANNEL_ALIASES.includes(t[1].trim().toLowerCase()) &&
+                /^[a-zA-Z0-9_-]+$/.test(t[1].trim())
+            );
+            if (circleHashtagTag) {
+                return normalizeChannelSlug(circleHashtagTag[1].trim().toLowerCase());
+            }
+
+            const hashtagTag = raw.tags.find(t =>
+                Array.isArray(t) &&
+                t.length >= 2 &&
+                (t[0] === 't' || t[0] === 'T') &&
+                typeof t[1] === 'string' &&
+                HOSTING_OFFER_CHANNEL_ALIASES.includes(t[1].trim().toLowerCase())
+            );
+            if (hashtagTag) return HOSTING_OFFER_CHANNEL_SLUG;
+
+            if (typeof raw.content === 'string') {
+                const match = raw.content.match(/#([a-zA-Z0-9_-]+)/g) || [];
+                for (const token of match) {
+                    const slug = token.slice(1).toLowerCase();
+                    if (HOSTING_OFFER_CHANNEL_ALIASES.includes(slug)) {
+                        return HOSTING_OFFER_CHANNEL_SLUG;
+                    }
+                }
+            }
+            return null;
+        }
+
+        function getChannelSlugsFromEvent(raw) {
+            const slugs = new Set([GLOBAL_CHANNEL_SLUG]);
+            const primarySlug = getChannelSlugFromEvent(raw);
+            if (primarySlug) {
+                slugs.add(normalizeChannelSlug(primarySlug));
+            }
+
+            if (raw?.tags) {
+                (raw.tags || []).forEach((tag) => {
+                    if (!Array.isArray(tag) || tag.length < 2) return;
+                    if (tag[0] !== 't' && tag[0] !== 'T') return;
+                    const normalizedTag = normalizeChannelSlug((tag[1] || '').trim());
+                    if (/^[a-zA-Z0-9_-]+$/.test(normalizedTag)) {
+                        slugs.add(normalizedTag);
+                    }
+                });
+            }
+            return Array.from(slugs);
         }
 
         function renderThread() {
@@ -1966,7 +2237,7 @@
                 }
                 const div = document.createElement('div');
                 div.className = 'message ' + (isSelf ? 'self' : 'other');
-                div.textContent = ev.content;
+                div.innerHTML = linkifyTrustrootsUrls(escapeHtml(ev.content || ''));
                 const pluscode = getPluscodeFromEvent(ev.raw);
                 if (pluscode) {
                     const pluscodeEl = document.createElement('div');
@@ -2032,7 +2303,21 @@
         function parseHashtagChannelSlug(raw) {
             const s = (raw || '').trim();
             const m = s.match(/^#([a-zA-Z0-9_-]+)$/);
-            return m ? m[1] : null;
+            return m ? normalizeChannelSlug(m[1]) : null;
+        }
+
+        function escapeHtml(text) {
+            if (text == null) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function linkifyTrustrootsUrls(html) {
+            return html.replace(
+                /https:\/\/(?:www\.)?trustroots\.org\/[^\s<)]+/gi,
+                (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="message-inline-link">${url}</a>`
+            );
         }
 
         async function startDm() {
@@ -2076,10 +2361,9 @@
         }
 
         async function signEvent(template) {
-            if (currentSecretKeyBytes) {
-                return finalizeEvent(template, currentSecretKeyBytes);
-            }
-            throw new Error('No key to sign');
+            requireLocalSigningKey();
+            const eventToSign = template.pubkey ? template : { ...template, pubkey: currentPublicKey };
+            return finalizeEvent(eventToSign, currentSecretKeyBytes);
         }
 
         /** Returns Unix timestamp (seconds) for note expiration, or null for permanent. NIP-40. */
@@ -2115,7 +2399,7 @@
                 };
                 template.id = getEventHash(template);
                 signEvent(template).then(signed => {
-                    pool.publish(relays, signed);
+                    pool.publish(getPublishRelayUrls(), signed);
                     eventAuthorById.set(signed.id, currentPublicKey);
                     conv.events.push({ id: signed.id, pubkey: currentPublicKey, content: text, created_at: template.created_at, raw: signed, nip: result.nip });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
@@ -2157,7 +2441,7 @@
                                 created_at: Math.floor(Date.now() / 1000) - Math.floor(Math.random() * 86400),
                                 pubkey: getPublicKey(ephem)
                             }, ephem);
-                            pool.publish(relays, wrap);
+                            pool.publish(getPublishRelayUrls(), wrap);
                         } catch (_) {}
                     }
                     eventAuthorById.set(rumor.id, currentPublicKey);
@@ -2188,7 +2472,7 @@
                 };
                 template.id = getEventHash(template);
                 signEvent(template).then(signed => {
-                    pool.publish(relays, signed);
+                    pool.publish(getPublishRelayUrls(), signed);
                     eventAuthorById.set(signed.id, currentPublicKey);
                     conv.events.push({ id: signed.id, pubkey: currentPublicKey, content: text, created_at: template.created_at, raw: signed });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
@@ -2224,7 +2508,7 @@
                 pubkey: currentPublicKey
             };
             signEvent(template).then(signed => {
-                pool.publish(relays, signed);
+                pool.publish(getPublishRelayUrls(), signed);
                 deletedEventIds.add(eventId);
                 scheduleChatCacheWrite();
                 renderConvList();
@@ -2266,6 +2550,8 @@
         document.getElementById('thread-back-btn')?.addEventListener('click', goBackToList);
         window.addRelay = addRelay;
         window.removeRelay = removeRelay;
+        window.setRelayWriteEnabled = setRelayWriteEnabled;
+        window.toggleRelayWriteForEncodedUrl = toggleRelayWriteForEncodedUrl;
         window.openNewDmModal = openNewDmModal;
         window.closeNewDmModal = closeNewDmModal;
         window.openNewGroupModal = openNewGroupModal;
@@ -2297,9 +2583,11 @@
         window.addEventListener('hashchange', applyHashToState);
         document.addEventListener('nostroots-modals-injected', applyHashToState);
 
-        startPublicSubscriptions();
         loadKeysFromStorage();
-        if (!currentPublicKey) updateUI();
+        if (!currentPublicKey) {
+            updateUI();
+            startPublicSubscriptions();
+        }
         applyHashToState();
     </script>
 </body>

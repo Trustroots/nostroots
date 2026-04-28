@@ -1,4 +1,4 @@
-FROM golang:1.22-bookworm AS builder
+FROM golang:1.25-bookworm AS builder
 WORKDIR /src
 COPY go.mod ./
 RUN go mod download
@@ -12,6 +12,8 @@ RUN useradd --system --uid 10001 --home-dir /nonexistent nip42relay \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /out/nip42relay /usr/local/bin/nip42relay
+RUN mkdir -p /data \
+    && chown -R nip42relay:nip42relay /data /app
 USER nip42relay
-EXPOSE 8080
+EXPOSE 8042
 CMD ["nip42relay"]

@@ -21,8 +21,8 @@ type Config struct {
 
 func Load() (Config, error) {
 	cfg := Config{
-		ListenAddr:          env("LISTEN_ADDR", ":8080"),
-		PublicRelayURL:      env("PUBLIC_RELAY_URL", "ws://localhost:8080"),
+		ListenAddr:          env("LISTEN_ADDR", ":8042"),
+		PublicRelayURL:      env("PUBLIC_RELAY_URL", "ws://localhost:8042"),
 		UpstreamRelayURL:    env("UPSTREAM_RELAY_URL", "ws://strfry:5542"),
 		AuthCachePath:       env("AUTH_CACHE_PATH", "./auth-cache.db"),
 		TrustrootsNIP05Base: env("TRUSTROOTS_NIP05_BASE_URL", "https://www.trustroots.org/.well-known/nostr.json"),

@@ -13,7 +13,7 @@ docker compose up --build
 
 The compose stack starts:
 
-- `nip42relay` on `ws://localhost:8080`
+- `nip42relay` on `ws://localhost:8042`
 - `strfry` as an internal upstream on `ws://strfry:5542`
 - `strfry-data`, a clean unseeded named volume that persists across restarts
 - `nip42relay-data`, a named volume for the SQLite auth cache
@@ -28,8 +28,8 @@ docker compose down -v
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `LISTEN_ADDR` | `:8080` | HTTP/WebSocket listen address. |
-| `PUBLIC_RELAY_URL` | `ws://localhost:8080` | Relay URL expected in NIP-42 auth events. |
+| `LISTEN_ADDR` | `:8042` | HTTP/WebSocket listen address. |
+| `PUBLIC_RELAY_URL` | `ws://localhost:8042` | Relay URL expected in NIP-42 auth events. |
 | `UPSTREAM_RELAY_URL` | `ws://strfry:5542` | Private upstream relay URL. |
 | `AUTH_CACHE_PATH` | `./auth-cache.db` | SQLite auth cache path. |
 | `TRUSTROOTS_NIP05_BASE_URL` | `https://www.trustroots.org/.well-known/nostr.json` | NIP-05 endpoint. |

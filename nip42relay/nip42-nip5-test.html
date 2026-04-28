@@ -66,10 +66,16 @@
         }
       }
       .status {
-        font-size: 0.9rem;
+        font-size: 0.82rem;
+        line-height: 1.25;
         color: #93c5fd;
-        margin-top: 8px;
+        margin-top: 6px;
         white-space: pre-wrap;
+        max-height: 7.5em;
+        overflow-y: auto;
+      }
+      .status-card {
+        padding: 10px 12px;
       }
       .notes {
         display: grid;
@@ -85,6 +91,13 @@
         color: #9ca3af;
         font-size: 0.8rem;
         margin-bottom: 6px;
+      }
+      .meta a {
+        color: #93c5fd;
+        text-decoration: none;
+      }
+      .meta a:hover {
+        text-decoration: underline;
       }
       pre {
         margin: 0;
@@ -123,7 +136,7 @@
           <button id="closeBtn" class="secondary">Disconnect</button>
         </section>
 
-        <section class="card">
+        <section class="card status-card">
           <div><strong>Status</strong></div>
           <div id="status" class="status">Idle.</div>
         </section>
@@ -151,15 +164,23 @@
       let authPubkey = null;
       let latestChallenge = null;
       let secretKey = null;
+      let noteEvents = [];
+      let statusLines = [];
       const watchedKinds = [1, 30397, 30398, 10390, 10395];
       const nsecStorageKey = "nip42test.nsec";
+      const STATUS_MAX_LINES = 8;
 
       function setStatus(message) {
-        statusEl.textContent = message;
+        statusLines = [message];
+        statusEl.textContent = statusLines.join("\n");
       }
 
       function addStatus(message) {
-        statusEl.textContent = `${statusEl.textContent}\n${message}`;
+        statusLines.push(message);
+        if (statusLines.length > STATUS_MAX_LINES) {
+          statusLines = statusLines.slice(-STATUS_MAX_LINES);
+        }
+        statusEl.textContent = statusLines.join("\n");
       }
 
       function closeSocket() {
@@ -196,10 +217,10 @@
           }
           if (!secretKey || secretKey.length !== 32) throw new Error("Invalid nsec key payload.");
           authPubkey = getPublicKey(secretKey);
-          addStatus(`Using local private key pubkey=${authPubkey.slice(0, 16)}...`);
+          addStatus(`Auth: local key ${authPubkey.slice(0, 8)}...`);
         } else if (window.nostr?.getPublicKey && window.nostr?.signEvent) {
           authPubkey = (await window.nostr.getPublicKey()).toLowerCase();
-          addStatus(`Using browser extension pubkey=${authPubkey.slice(0, 16)}...`);
+          addStatus(`Auth: extension key ${authPubkey.slice(0, 8)}...`);
         } else {
           throw new Error("No auth method available: provide nsec or use a NIP-07 extension.");
         }
@@ -226,22 +247,78 @@
         }
         if (!verifyEvent(evt)) throw new Error("Signed AUTH event failed verification.");
         ws.send(JSON.stringify(["AUTH", evt]));
-        addStatus("AUTH event sent.");
+        addStatus("AUTH sent");
       }
 
       function renderNote(event) {
         const box = document.createElement("article");
         box.className = "note";
         const date = new Date(event.created_at * 1000).toISOString();
+        const plusCode = getPlusCodeFromEvent(event);
+        const plusCodeHtml = plusCode
+          ? ` | <a href="https://nos.trustroots.org/#${escapeHtml(plusCode)}" target="_blank" rel="noopener noreferrer"><code>${escapeHtml(plusCode)}</code></a>`
+          : "";
         box.innerHTML = `
           <div class="meta">
             <code>kind=${event.kind}</code> |
             <code>pubkey=${event.pubkey.slice(0, 16)}...</code> |
-            <code>${date}</code>
+            <code>${date}</code>${plusCodeHtml}
           </div>
           <pre>${escapeHtml(event.content || "")}</pre>
         `;
-        notesEl.prepend(box);
+        return box;
+      }
+
+      function renderNotesList() {
+        notesEl.innerHTML = "";
+        const sorted = [...noteEvents].sort((a, b) => {
+          const timeDiff = (b.created_at || 0) - (a.created_at || 0);
+          if (timeDiff !== 0) return timeDiff;
+          return (b.id || "").localeCompare(a.id || "");
+        });
+        sorted.forEach((event) => {
+          notesEl.appendChild(renderNote(event));
+        });
+      }
+
+      function upsertNoteEvent(event) {
+        if (!event?.id) return;
+        const idx = noteEvents.findIndex((item) => item.id === event.id);
+        if (idx === -1) {
+          noteEvents.push(event);
+        } else {
+          noteEvents[idx] = event;
+        }
+        renderNotesList();
+      }
+
+      function normalizePlusCode(value) {
+        if (typeof value !== "string") return null;
+        const cleaned = value.trim().toUpperCase();
+        return cleaned ? cleaned : null;
+      }
+
+      function getPlusCodeFromEvent(event) {
+        if (!Array.isArray(event?.tags)) return null;
+
+        // Preferred tags in nr events:
+        // ["l", "XXXX0000+", "open-location-code-prefix"]
+        // ["l", "XXXX+XX", "open-location-code"]
+        for (const tag of event.tags) {
+          if (!Array.isArray(tag) || tag.length < 2 || tag[0] !== "l") continue;
+          const namespace = typeof tag[2] === "string" ? tag[2] : "";
+          if (namespace.startsWith("open-location-code")) {
+            return normalizePlusCode(tag[1]);
+          }
+        }
+
+        // Fallback: some map notes may carry plus code in d-tag.
+        const dTag = event.tags.find((tag) => Array.isArray(tag) && tag[0] === "d" && typeof tag[1] === "string");
+        if (dTag) {
+          return normalizePlusCode(dTag[1]);
+        }
+
+        return null;
       }
 
       function escapeHtml(str) {
@@ -254,7 +331,7 @@
         subId = `notes-${Date.now()}`;
         const filter = { kinds: watchedKinds, limit: 100 };
         ws.send(JSON.stringify(["REQ", subId, filter]));
-        addStatus(`REQ sent for kinds=${watchedKinds.join(",")}.`);
+        addStatus("REQ notes sent");
       }
 
       nsecInput.addEventListener("keydown", (event) => {
@@ -272,12 +349,17 @@
         const savedNsec = localStorage.getItem(nsecStorageKey);
         if (savedNsec) {
           nsecInput.value = savedNsec;
+          // Auto-connect when a saved nsec is available.
+          setTimeout(() => {
+            connectBtn.click();
+          }, 50);
         }
         nsecInput.focus();
       });
 
       connectBtn.addEventListener("click", async () => {
         notesEl.innerHTML = "";
+        noteEvents = [];
         authPubkey = null;
         latestChallenge = null;
         secretKey = null;
@@ -293,7 +375,7 @@
         ws = new WebSocket(relayUrl);
 
         ws.addEventListener("open", async () => {
-          addStatus("Socket open.");
+          addStatus("Connected");
           subscribeNotes();
         });
 
@@ -309,7 +391,7 @@
           const [type, a, b, c] = data;
           if (type === "AUTH") {
             latestChallenge = a;
-            addStatus(`Challenge received: ${latestChallenge}`);
+            addStatus("AUTH challenge received");
             try {
               await sendAuth(latestChallenge, relayUrl);
               // Retry subscription after AUTH, in case first REQ was denied.
@@ -321,12 +403,13 @@
           }
 
           if (type === "OK") {
-            addStatus(`OK: event=${a?.slice?.(0, 8) || "-"} accepted=${b} msg=${c || ""}`);
+            const shortId = a?.slice?.(0, 8) || "-";
+            addStatus(`OK ${shortId}: ${b ? "accepted" : "rejected"}${c ? ` (${c})` : ""}`);
             return;
           }
 
           if (type === "EOSE") {
-            addStatus(`EOSE for ${a}`);
+            addStatus("EOSE");
             return;
           }
 
@@ -336,13 +419,13 @@
           }
 
           if (type === "CLOSED") {
-            addStatus(`CLOSED: sub=${a} reason=${b}`);
+            addStatus(`Subscription closed${b ? ` (${b})` : ""}`);
             return;
           }
 
           if (type === "EVENT") {
             const event = b;
-            if (watchedKinds.includes(event?.kind)) renderNote(event);
+            if (watchedKinds.includes(event?.kind)) upsertNoteEvent(event);
             return;
           }
 

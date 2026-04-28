@@ -18,7 +18,27 @@ func TestCleanContent(t *testing.T) {
 	}
 
 	long := strings.Repeat("a", maxContentLength+10)
-	if got := cleanContent(long); len([]rune(got)) != maxContentLength {
+	if got := cleanContent(long); len([]rune(got)) != maxContentLength+10 {
+		t.Fatalf("cleaned content length = %d", len([]rune(got)))
+	}
+}
+
+func TestBuildNoteContent(t *testing.T) {
+	user := User{
+		Username:  "alice",
+		NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+	}
+	got := buildNoteContent("<p>Can host one person.</p>", user)
+	if !strings.Contains(got, "https://www.trustroots.org/profile/alice") {
+		t.Fatalf("missing Trustroots profile link in content: %q", got)
+	}
+	if !strings.Contains(got, "#hostingoffers") {
+		t.Fatalf("missing #hostingoffers in content: %q", got)
+	}
+	if !strings.Contains(got, user.NostrNpub) {
+		t.Fatalf("missing npub in content: %q", got)
+	}
+	if len([]rune(got)) > maxContentLength {
 		t.Fatalf("content length = %d", len([]rune(got)))
 	}
 }

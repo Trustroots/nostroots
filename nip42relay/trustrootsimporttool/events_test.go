@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -27,9 +28,10 @@ func TestEventForHost(t *testing.T) {
 			UserID:        userID,
 		},
 		User: User{
-			ID:       userID,
-			Username: "alice",
-			Public:   true,
+			ID:        userID,
+			Username:  "alice",
+			NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+			Public:    true,
 		},
 		Circles: []string{"hitchhikers"},
 	}, testPrivateKey)
@@ -45,8 +47,36 @@ func TestEventForHost(t *testing.T) {
 	if event.Tags.GetD() != dTagForOffer(offerID.Hex()) {
 		t.Fatalf("d tag = %q", event.Tags.GetD())
 	}
-	if event.Content != "Can host one person." {
-		t.Fatalf("content = %q", event.Content)
+	if event.Content == "Can host one person." {
+		t.Fatalf("content was not enriched: %q", event.Content)
+	}
+	if !strings.Contains(event.Content, "Can host one person.") {
+		t.Fatalf("missing description in content: %q", event.Content)
+	}
+	if !strings.Contains(event.Content, "https://www.trustroots.org/profile/alice") {
+		t.Fatalf("missing profile link in content: %q", event.Content)
+	}
+	if !strings.Contains(event.Content, "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj") {
+		t.Fatalf("missing npub in content: %q", event.Content)
+	}
+	if tag := event.Tags.GetFirst([]string{"r", "https://www.trustroots.org/profile/alice"}); tag == nil {
+		t.Fatalf("missing r profile tag: %#v", event.Tags)
+	}
+	if tag := event.Tags.GetFirst([]string{"trustroots", "alice"}); tag == nil {
+		t.Fatalf("missing trustroots tag: %#v", event.Tags)
+	}
+	if tag := event.Tags.GetFirst([]string{"t", "hostingoffers"}); tag == nil {
+		t.Fatalf("missing t hostingoffers tag: %#v", event.Tags)
+	}
+	if tag := event.Tags.GetFirst([]string{"t", "hitchhikers"}); tag == nil {
+		t.Fatalf("missing t circle tag: %#v", event.Tags)
+	}
+	expectedPubKey, ok := decodeNpubToHex("npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj")
+	if !ok {
+		t.Fatal("failed to decode expected test npub")
+	}
+	if tag := event.Tags.GetFirst([]string{"p", expectedPubKey}); tag == nil {
+		t.Fatalf("missing p tag for decoded npub: %#v", event.Tags)
 	}
 	openLocationCode := ""
 	for _, tag := range event.Tags {
@@ -61,7 +91,7 @@ func TestEventForHost(t *testing.T) {
 	if openLocationCode != "9F4M0000+" {
 		t.Fatalf("open-location-code = %q", openLocationCode)
 	}
-	ok, err := event.CheckSignature()
+	ok, err = event.CheckSignature()
 	if err != nil {
 		t.Fatal(err)
 	}

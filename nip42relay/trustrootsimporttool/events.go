@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/nbd-wtf/go-nostr"
@@ -38,21 +39,40 @@ func eventForHost(record HostRecord, privateKey string) (nostr.Event, error) {
 
 	if len(record.Circles) > 0 {
 		tags = append(tags, nostr.Tag{"L", "trustroots-circle"})
+		seenCircleHashtags := map[string]struct{}{}
 		for _, circle := range record.Circles {
 			tags = append(tags, nostr.Tag{"l", circle, "trustroots-circle"})
+			hashtag := strings.ToLower(strings.TrimSpace(circle))
+			if hashtag == "" {
+				continue
+			}
+			if _, exists := seenCircleHashtags[hashtag]; exists {
+				continue
+			}
+			seenCircleHashtags[hashtag] = struct{}{}
+			tags = append(tags, nostr.Tag{"t", hashtag})
 		}
 	}
 
 	tags = append(tags,
 		nostr.Tag{"linkLabel", "posted by @" + record.User.Username},
 		nostr.Tag{"linkPath", "/profile/" + record.User.Username},
+		nostr.Tag{"t", "hostingoffers"},
 	)
+	profileURL := "https://www.trustroots.org/profile/" + record.User.Username
+	tags = append(tags,
+		nostr.Tag{"r", profileURL},
+		nostr.Tag{"trustroots", record.User.Username},
+	)
+	if pubkeyHex, ok := decodeNpubToHex(record.User.NostrNpub); ok {
+		tags = append(tags, nostr.Tag{"p", pubkeyHex})
+	}
 
 	event := nostr.Event{
 		CreatedAt: nostr.Timestamp(createdAt.Unix()),
 		Kind:      mapNoteRepostKind,
 		Tags:      tags,
-		Content:   cleanContent(record.Offer.Description),
+		Content:   buildNoteContent(record.Offer.Description, record.User),
 	}
 	if err := event.Sign(privateKey); err != nil {
 		return nostr.Event{}, err

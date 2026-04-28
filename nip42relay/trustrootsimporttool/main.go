@@ -17,7 +17,10 @@ func main() {
 }
 
 func run(args []string) error {
-	cfg := loadConfig(args)
+	cfg, err := loadConfig(args)
+	if err != nil {
+		return fmt.Errorf("load config: %w", err)
+	}
 	if err := validatePrivateKey(cfg.NostrSK); err != nil {
 		return err
 	}
@@ -25,8 +28,8 @@ func run(args []string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	previous, err := loadState(cfg.StateFile)
-	if err != nil {
+	// Keep reading state so existing state files remain valid for future re-enable.
+	if _, err := loadState(cfg.StateFile); err != nil {
 		return fmt.Errorf("load state: %w", err)
 	}
 	records, err := fetchHosts(ctx, cfg.MongoURI, cfg.Limit)
@@ -64,17 +67,8 @@ func run(args []string) error {
 		}
 	}
 
+	// Temporarily disabled: do not emit deletion events for stale offers.
 	deleted := 0
-	for offerID, entry := range staleEntries(previous, current) {
-		event, err := deletionEvent(entry, cfg.NostrSK, time.Now())
-		if err != nil {
-			return fmt.Errorf("create deletion for offer %s: %w", offerID, err)
-		}
-		if err := writeJSONLine(writer, event); err != nil {
-			return err
-		}
-		deleted++
-	}
 
 	if err := writer.Flush(); err != nil {
 		return err

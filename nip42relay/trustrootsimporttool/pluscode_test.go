@@ -24,3 +24,10 @@ func TestPlusCodePrefixes(t *testing.T) {
 		}
 	}
 }
+
+func TestPlusCodeAtGranularity(t *testing.T) {
+	got := plusCodeAtGranularity("9F4MGC22+22", 4)
+	if got != "9F4M0000+" {
+		t.Fatalf("plusCodeAtGranularity() = %q", got)
+	}
+}

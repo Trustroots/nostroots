@@ -21,13 +21,14 @@ func eventForHost(record HostRecord, privateKey string) (nostr.Event, error) {
 	if err != nil {
 		return nostr.Event{}, err
 	}
+	coarsePlusCode := plusCodeAtGranularity(plusCode, 4)
 
 	dTag := dTagForOffer(record.Offer.ID.Hex())
 	tags := nostr.Tags{
 		{"d", dTag},
 		{"original_created_at", strconv.FormatInt(record.Offer.CreatedAt.Unix(), 10)},
 		{"L", "open-location-code"},
-		{"l", plusCode, "open-location-code"},
+		{"l", coarsePlusCode, "open-location-code"},
 		{"L", "open-location-code-prefix"},
 	}
 	prefixTag := nostr.Tag{"l"}

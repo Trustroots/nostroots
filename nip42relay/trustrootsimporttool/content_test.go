@@ -27,6 +27,7 @@ func TestIsEligibleHost(t *testing.T) {
 	user := User{
 		ID:       primitive.NewObjectID(),
 		Username: "alice",
+		NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
 		Public:   true,
 		Roles:    []string{"user"},
 	}
@@ -50,5 +51,16 @@ func TestIsEligibleHost(t *testing.T) {
 	user.Roles = []string{"user", "suspended"}
 	if isEligibleHost(offer, user) {
 		t.Fatal("suspended user should not be eligible")
+	}
+	user.Roles = []string{"user"}
+
+	user.NostrNpub = ""
+	if isEligibleHost(offer, user) {
+		t.Fatal("host without npub should not be eligible")
+	}
+
+	user.NostrNpub = "npub-not-valid"
+	if isEligibleHost(offer, user) {
+		t.Fatal("host with invalid npub should not be eligible")
 	}
 }

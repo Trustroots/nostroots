@@ -4,6 +4,8 @@ import (
 	"html"
 	"regexp"
 	"strings"
+
+	"github.com/nbd-wtf/go-nostr/nip19"
 )
 
 var (
@@ -40,6 +42,15 @@ func hasBlockedRole(user User) bool {
 	return false
 }
 
+func hasValidNpub(user User) bool {
+	prefix, decoded, err := nip19.Decode(strings.TrimSpace(user.NostrNpub))
+	if err != nil || prefix != "npub" {
+		return false
+	}
+	_, ok := decoded.(string)
+	return ok
+}
+
 func isEligibleHost(offer Offer, user User) bool {
 	if offer.Type != "host" {
 		return false
@@ -58,6 +69,9 @@ func isEligibleHost(offer Offer, user User) bool {
 		return false
 	}
 	if !user.Public || user.Username == "" || hasBlockedRole(user) {
+		return false
+	}
+	if !hasValidNpub(user) {
 		return false
 	}
 	return true

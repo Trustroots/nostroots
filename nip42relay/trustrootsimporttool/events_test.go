@@ -48,6 +48,19 @@ func TestEventForHost(t *testing.T) {
 	if event.Content != "Can host one person." {
 		t.Fatalf("content = %q", event.Content)
 	}
+	openLocationCode := ""
+	for _, tag := range event.Tags {
+		if len(tag) >= 3 && tag[0] == "l" && tag[2] == "open-location-code" {
+			openLocationCode = tag[1]
+			break
+		}
+	}
+	if openLocationCode == "" {
+		t.Fatalf("missing open-location-code tag: %#v", event.Tags)
+	}
+	if openLocationCode != "9F4M0000+" {
+		t.Fatalf("open-location-code = %q", openLocationCode)
+	}
 	ok, err := event.CheckSignature()
 	if err != nil {
 		t.Fatal(err)

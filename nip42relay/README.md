@@ -43,9 +43,10 @@ docker compose down -v
   event.
 - The auth event must be kind `22242`, signed by the pubkey, include the
   connection challenge, and include the configured public relay URL.
-- The authenticated pubkey must have a profile event in the upstream relay that
-  declares a Trustroots username. That username must resolve through Trustroots
-  NIP-05 to the same pubkey.
+- The authenticated pubkey must have a profile event (kind `10390` or kind `0`)
+  that declares a Trustroots username. The relay checks the configured upstream
+  plus `wss://relay.trustroots.org` and `wss://relay.nomadwiki.org`. The
+  username must resolve through Trustroots NIP-05 to the same pubkey.
 - Authenticated users may only publish events signed by their authenticated
   pubkey.
 

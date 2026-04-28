@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage:
+  ./import-host-offers-to-nip42strfry.sh [--from-file path.jsonl] [-- <trustrootsimporttool args>]
+
+Examples:
+  ./import-host-offers-to-nip42strfry.sh
+  ./import-host-offers-to-nip42strfry.sh -- -limit 100
+  ./import-host-offers-to-nip42strfry.sh --from-file ./trustrootsimporttool/trustroots-hosts.jsonl
+EOF
+}
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+FROM_FILE=""
+TOOL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --from-file) FROM_FILE="${2:-}"; shift 2 ;;
+    --) shift; TOOL_ARGS=("$@"); break ;;
+    *) echo "Unknown argument: $1" >&2; usage; exit 1 ;;
+  esac
+done
+
+[[ -n "${FROM_FILE}" && ! -f "${FROM_FILE}" ]] && { echo "File not found: ${FROM_FILE}" >&2; exit 1; }
+command -v docker >/dev/null || { echo "docker not found" >&2; exit 1; }
+docker compose version >/dev/null || { echo "docker compose not available" >&2; exit 1; }
+
+cd "$ROOT_DIR"
+docker compose ps --status running strfry >/dev/null || {
+  echo "strfry is not running. Start with: docker compose up -d" >&2
+  exit 1
+}
+
+local_tmp=""
+state_tmp=""
+if [[ -n "$FROM_FILE" ]]; then
+  input_file="$FROM_FILE"
+  echo "Using existing JSONL: $input_file"
+else
+  command -v go >/dev/null || { echo "go not found" >&2; exit 1; }
+  local_tmp="$(mktemp -t trustroots-hosts)"
+  state_tmp="$(mktemp -t trustroots-import-state)"
+  echo "Generating host offers JSONL..."
+  if [[ ${#TOOL_ARGS[@]:-0} -gt 0 ]]; then
+    go run ./trustrootsimporttool -output "$local_tmp" -state-file "$state_tmp" "${TOOL_ARGS[@]}"
+  else
+    go run ./trustrootsimporttool -output "$local_tmp" -state-file "$state_tmp"
+  fi
+  input_file="$local_tmp"
+  echo "Generated JSONL: $input_file"
+fi
+
+container_tmp="/tmp/$(basename "$input_file").$$"
+cleanup() {
+  docker compose exec -T strfry rm -f "$container_tmp" >/dev/null 2>&1 || true
+  [[ -n "${local_tmp:-}" ]] && rm -f "${local_tmp}"
+  [[ -n "${state_tmp:-}" ]] && rm -f "${state_tmp}"
+}
+trap cleanup EXIT
+
+echo "Copying JSONL to strfry container: $container_tmp"
+docker compose cp "$input_file" "strfry:$container_tmp"
+echo "Importing events into strfry..."
+docker compose exec -T strfry sh -lc '
+if command -v strfry >/dev/null 2>&1; then
+  strfry import < "$1"
+elif [ -x /app/strfry ]; then
+  /app/strfry import < "$1"
+else
+  echo "strfry executable not found in container" >&2
+  exit 1
+fi
+' sh "$container_tmp"
+
+echo "Import complete."

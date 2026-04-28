@@ -50,6 +50,10 @@ func fetchHosts(ctx context.Context, mongoURI string, limit int64) ([]HostRecord
 		}
 		user, err := fetchUser(ctx, db, offer.UserID)
 		if err != nil {
+			if err == mongo.ErrNoDocuments {
+				// Some legacy offers reference missing users; skip them.
+				continue
+			}
 			return nil, err
 		}
 		if !isEligibleHost(offer, user) {
@@ -117,11 +121,11 @@ func databaseNameFromURI(uri string) string {
 
 func validatePrivateKey(privateKey string) error {
 	if len(privateKey) != 64 {
-		return fmt.Errorf("NOSTR_SK_HEX must be 64 hex characters")
+		return fmt.Errorf("invalid NSEC: expected decoded secret key to be 64 hex characters")
 	}
 	for _, char := range privateKey {
 		if !strings.ContainsRune("0123456789abcdefABCDEF", char) {
-			return fmt.Errorf("NOSTR_SK_HEX must be hex")
+			return fmt.Errorf("invalid NSEC: decoded secret key must be hex")
 		}
 	}
 	return nil

@@ -79,3 +79,21 @@ func plusCodePrefixes(plusCode string) []string {
 	}
 	return prefixes
 }
+
+func plusCodeAtGranularity(plusCode string, significantDigits int) string {
+	raw := strings.ReplaceAll(plusCode, plusCodeSeparator, "")
+	if significantDigits < 2 {
+		significantDigits = 2
+	}
+	if significantDigits > 8 {
+		significantDigits = 8
+	}
+	if significantDigits%2 != 0 {
+		significantDigits--
+	}
+	if len(raw) < significantDigits {
+		significantDigits = len(raw)
+	}
+	prefix := raw[:significantDigits]
+	return prefix + strings.Repeat("0", 8-significantDigits) + plusCodeSeparator
+}

@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NIP-42/NIP-5 Relay Test</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      body {
+        margin: 0;
+        background: #111827;
+        color: #e5e7eb;
+      }
+      .wrap {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1 {
+        margin: 0 0 12px;
+        font-size: 1.4rem;
+      }
+      .grid {
+        display: grid;
+        gap: 12px;
+      }
+      .card {
+        background: #1f2937;
+        border: 1px solid #374151;
+        border-radius: 10px;
+        padding: 14px;
+      }
+      label {
+        display: block;
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+      }
+      input, button {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 8px;
+        border: 1px solid #4b5563;
+        background: #111827;
+        color: #e5e7eb;
+        padding: 10px;
+      }
+      button {
+        cursor: pointer;
+        background: #2563eb;
+        border: 0;
+        font-weight: 600;
+      }
+      button.secondary {
+        background: #374151;
+      }
+      .row {
+        display: grid;
+        gap: 10px;
+      }
+      @media (min-width: 720px) {
+        .row.two {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      .status {
+        font-size: 0.9rem;
+        color: #93c5fd;
+        margin-top: 8px;
+        white-space: pre-wrap;
+      }
+      .notes {
+        display: grid;
+        gap: 10px;
+      }
+      .note {
+        border: 1px solid #374151;
+        border-radius: 8px;
+        padding: 10px;
+        background: #111827;
+      }
+      .meta {
+        color: #9ca3af;
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+      }
+      pre {
+        margin: 0;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>NIP-42 / NIP-5 Relay Test</h1>
+      <div class="grid">
+        <section class="card">
+          <div>
+            <label for="relayUrl">Relay URL</label>
+            <input id="relayUrl" value="ws://localhost:8042" />
+          </div>
+        </section>
+        <section class="card">
+          <label for="nsec">Private key for AUTH (optional)</label>
+          <input
+            id="nsec"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="nsec1..."
+            autofocus
+          />
+        </section>
+
+        <section class="card row two">
+          <button id="connectBtn">Connect + Subscribe Notes</button>
+          <button id="closeBtn" class="secondary">Disconnect</button>
+        </section>
+
+        <section class="card">
+          <div><strong>Status</strong></div>
+          <div id="status" class="status">Idle.</div>
+        </section>
+
+        <section class="card">
+          <div style="margin-bottom: 8px;"><strong>Notes</strong></div>
+          <div id="notes" class="notes"></div>
+        </section>
+      </div>
+    </div>
+
+    <script type="module">
+      import { finalizeEvent, verifyEvent, getPublicKey } from "https://esm.sh/nostr-tools@2.7.2/pure?target=es2020";
+      import { nip19 } from "https://esm.sh/nostr-tools@2.7.2?target=es2020";
+
+      const relayUrlInput = document.getElementById("relayUrl");
+      const nsecInput = document.getElementById("nsec");
+      const statusEl = document.getElementById("status");
+      const notesEl = document.getElementById("notes");
+      const connectBtn = document.getElementById("connectBtn");
+      const closeBtn = document.getElementById("closeBtn");
+
+      let ws = null;
+      let subId = null;
+      let authPubkey = null;
+      let latestChallenge = null;
+      let secretKey = null;
+      const watchedKinds = [1, 30397, 30398, 10390, 10395];
+      const nsecStorageKey = "nip42test.nsec";
+
+      function setStatus(message) {
+        statusEl.textContent = message;
+      }
+
+      function addStatus(message) {
+        statusEl.textContent = `${statusEl.textContent}\n${message}`;
+      }
+
+      function closeSocket() {
+        if (ws && ws.readyState <= WebSocket.OPEN) ws.close();
+        ws = null;
+      }
+
+      function hexToBytes(hex) {
+        if (!/^[0-9a-f]{64}$/i.test(hex)) return null;
+        const out = new Uint8Array(32);
+        for (let i = 0; i < 32; i += 1) {
+          out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+        }
+        return out;
+      }
+
+      async function pickAuthMethod() {
+        const keyInput = nsecInput.value.trim();
+        if (keyInput) {
+          if (!keyInput.toLowerCase().startsWith("nsec1")) {
+            throw new Error("Private key must be nsec format (nsec1...).");
+          }
+          const decoded = nip19.decode(keyInput);
+          if (decoded.type !== "nsec") {
+            throw new Error("Invalid nsec value.");
+          }
+          if (decoded.data instanceof Uint8Array) {
+            secretKey = decoded.data;
+          } else if (typeof decoded.data === "string") {
+            // Keep compatibility with any decoder variant returning hex.
+            secretKey = hexToBytes(decoded.data.toLowerCase());
+          } else {
+            secretKey = null;
+          }
+          if (!secretKey || secretKey.length !== 32) throw new Error("Invalid nsec key payload.");
+          authPubkey = getPublicKey(secretKey);
+          addStatus(`Using local private key pubkey=${authPubkey.slice(0, 16)}...`);
+        } else if (window.nostr?.getPublicKey && window.nostr?.signEvent) {
+          authPubkey = (await window.nostr.getPublicKey()).toLowerCase();
+          addStatus(`Using browser extension pubkey=${authPubkey.slice(0, 16)}...`);
+        } else {
+          throw new Error("No auth method available: provide nsec or use a NIP-07 extension.");
+        }
+      }
+
+      async function sendAuth(challenge, relayUrl) {
+        if (!authPubkey) await pickAuthMethod();
+        const unsigned = {
+          kind: 22242,
+          created_at: Math.floor(Date.now() / 1000),
+          tags: [
+            ["relay", relayUrl],
+            ["challenge", challenge]
+          ],
+          content: "",
+          pubkey: authPubkey
+        };
+
+        let evt;
+        if (secretKey) {
+          evt = finalizeEvent(unsigned, secretKey);
+        } else {
+          evt = await window.nostr.signEvent(unsigned);
+        }
+        if (!verifyEvent(evt)) throw new Error("Signed AUTH event failed verification.");
+        ws.send(JSON.stringify(["AUTH", evt]));
+        addStatus("AUTH event sent.");
+      }
+
+      function renderNote(event) {
+        const box = document.createElement("article");
+        box.className = "note";
+        const date = new Date(event.created_at * 1000).toISOString();
+        box.innerHTML = `
+          <div class="meta">
+            <code>kind=${event.kind}</code> |
+            <code>pubkey=${event.pubkey.slice(0, 16)}...</code> |
+            <code>${date}</code>
+          </div>
+          <pre>${escapeHtml(event.content || "")}</pre>
+        `;
+        notesEl.prepend(box);
+      }
+
+      function escapeHtml(str) {
+        return str.replace(/[&<>"]/g, (ch) => (
+          ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" })[ch]
+        ));
+      }
+
+      function subscribeNotes() {
+        subId = `notes-${Date.now()}`;
+        const filter = { kinds: watchedKinds, limit: 100 };
+        ws.send(JSON.stringify(["REQ", subId, filter]));
+        addStatus(`REQ sent for kinds=${watchedKinds.join(",")}.`);
+      }
+
+      nsecInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          connectBtn.click();
+        }
+      });
+
+      nsecInput.addEventListener("input", () => {
+        localStorage.setItem(nsecStorageKey, nsecInput.value);
+      });
+
+      window.addEventListener("load", () => {
+        const savedNsec = localStorage.getItem(nsecStorageKey);
+        if (savedNsec) {
+          nsecInput.value = savedNsec;
+        }
+        nsecInput.focus();
+      });
+
+      connectBtn.addEventListener("click", async () => {
+        notesEl.innerHTML = "";
+        authPubkey = null;
+        latestChallenge = null;
+        secretKey = null;
+        closeSocket();
+
+        const relayUrl = relayUrlInput.value.trim();
+        if (!relayUrl.startsWith("ws://") && !relayUrl.startsWith("wss://")) {
+          setStatus("Relay URL must start with ws:// or wss://");
+          return;
+        }
+
+        setStatus(`Connecting to ${relayUrl} ...`);
+        ws = new WebSocket(relayUrl);
+
+        ws.addEventListener("open", async () => {
+          addStatus("Socket open.");
+          subscribeNotes();
+        });
+
+        ws.addEventListener("message", async (msg) => {
+          let data;
+          try {
+            data = JSON.parse(msg.data);
+          } catch {
+            addStatus(`Non-JSON message: ${String(msg.data)}`);
+            return;
+          }
+
+          const [type, a, b, c] = data;
+          if (type === "AUTH") {
+            latestChallenge = a;
+            addStatus(`Challenge received: ${latestChallenge}`);
+            try {
+              await sendAuth(latestChallenge, relayUrl);
+              // Retry subscription after AUTH, in case first REQ was denied.
+              subscribeNotes();
+            } catch (err) {
+              addStatus(`AUTH failed: ${err.message}`);
+            }
+            return;
+          }
+
+          if (type === "OK") {
+            addStatus(`OK: event=${a?.slice?.(0, 8) || "-"} accepted=${b} msg=${c || ""}`);
+            return;
+          }
+
+          if (type === "EOSE") {
+            addStatus(`EOSE for ${a}`);
+            return;
+          }
+
+          if (type === "NOTICE") {
+            addStatus(`NOTICE: ${a}`);
+            return;
+          }
+
+          if (type === "CLOSED") {
+            addStatus(`CLOSED: sub=${a} reason=${b}`);
+            return;
+          }
+
+          if (type === "EVENT") {
+            const event = b;
+            if (watchedKinds.includes(event?.kind)) renderNote(event);
+            return;
+          }
+
+          addStatus(`Unhandled: ${JSON.stringify(data)}`);
+        });
+
+        ws.addEventListener("error", () => addStatus("WebSocket error."));
+        ws.addEventListener("close", (ev) => addStatus(`Socket closed (${ev.code}) ${ev.reason || ""}`));
+      });
+
+      closeBtn.addEventListener("click", () => {
+        closeSocket();
+        addStatus("Disconnected by user.");
+      });
+    </script>
+  </body>
+</html>

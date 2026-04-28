@@ -26,6 +26,7 @@ type Offer struct {
 type User struct {
 	ID       primitive.ObjectID `bson:"_id"`
 	Username string             `bson:"username"`
+	NostrNpub string            `bson:"nostrNpub"`
 	Public   bool               `bson:"public"`
 	Roles    []string           `bson:"roles"`
 	Member   []Membership       `bson:"member"`

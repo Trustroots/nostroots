@@ -1992,7 +1992,14 @@
                 const meta = document.createElement('div');
                 meta.className = 'meta';
                 const authorLabel = pubkeyDisplayLabel(ev.pubkey);
-                const timeStr = new Date(ev.created_at * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                const timeStr = new Date(ev.created_at * 1000).toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false
+                });
                 const authorTitle = (hexToNpub(ev.pubkey) || '').replace(/"/g, '&quot;');
                 if (isChannel && !isSelf) {
                     meta.innerHTML = `<span class="author"${authorTitle ? ` title="${authorTitle}"` : ''}>${authorLabel}</span><span class="time">${timeStr}</span>`;

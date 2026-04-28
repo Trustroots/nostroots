@@ -45,6 +45,9 @@
         var navAriaLabel = header.getAttribute('data-nav-aria-label') || navTitle;
         var navIcon = header.getAttribute('data-nav-icon') || '';
         var settingsTitle = header.getAttribute('data-settings-title') || 'Settings';
+        var pixelHref = header.getAttribute('data-pixel-href') || '';
+
+        var pixelLink = pixelHref ? '<a href="' + escapeHtml(pixelHref) + '" class="app-header-nav-link" title="Pixel" aria-label="Pixel">Pixel</a>' : '';
 
         header.setAttribute('aria-label', 'Brand');
         header.innerHTML =
@@ -55,6 +58,7 @@
             '<img src="https://notes.trustroots.org/logo.svg" alt="Trustroots" class="app-header-logo" width="140" height="32">' +
             '<h1>' + escapeHtml(pageTitle) + '</h1>' +
             '<a href="' + escapeHtml(navHref) + '" class="app-header-nav-link" title="' + escapeHtml(navTitle) + '" aria-label="' + escapeHtml(navAriaLabel) + '">' + escapeHtml(navIcon) + '</a>' +
+            pixelLink +
             '</div>' +
             '<div class="app-header-actions">' +
             '<button type="button" class="keys-icon header-identity-btn" id="keys-icon-btn" title="Keys">' +

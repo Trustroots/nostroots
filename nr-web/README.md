@@ -18,6 +18,7 @@ This web app provides similar functionality to the `nr-app` mobile app:
 - **Note Posting**: Add notes to any pluscode location by clicking on the map
 - **Key Management**: Generate new keys or import existing ones (nsec or mnemonic), NIP-07 extension support
 - **Persistent Settings**: Preferences are stored locally, keys as well (if not using NIP-07)
+- **Pixel**: Circle-scoped pixel sequencer (artists, burners, punks) — draw a 16×16, publish to Nostr, optional "Where" and invite/jam for IRL meetups. [pixel.html](pixel.html)
 
 
 ## Getting Started

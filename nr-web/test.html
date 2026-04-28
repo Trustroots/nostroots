@@ -15,28 +15,32 @@
         color: #e5e7eb;
       }
       .wrap {
-        max-width: 900px;
+        max-width: 100%;
         margin: 0 auto;
-        padding: 20px;
+        padding: 8px;
       }
       h1 {
-        margin: 0 0 12px;
-        font-size: 1.4rem;
+        margin: 0 0 10px;
+        font-size: 1.15rem;
       }
-      .grid {
+      .layout {
         display: grid;
-        gap: 12px;
+        gap: 10px;
+      }
+      .controls {
+        display: grid;
+        gap: 10px;
       }
       .card {
         background: #1f2937;
         border: 1px solid #374151;
         border-radius: 10px;
-        padding: 14px;
+        padding: 10px;
       }
       label {
         display: block;
-        font-size: 0.9rem;
-        margin-bottom: 6px;
+        font-size: 0.82rem;
+        margin-bottom: 4px;
       }
       input, button {
         width: 100%;
@@ -45,13 +49,14 @@
         border: 1px solid #4b5563;
         background: #111827;
         color: #e5e7eb;
-        padding: 10px;
+        padding: 8px;
       }
       button {
         cursor: pointer;
         background: #2563eb;
         border: 0;
         font-weight: 600;
+        font-size: 0.92rem;
       }
       button.secondary {
         background: #374151;
@@ -69,22 +74,24 @@
         font-size: 0.82rem;
         line-height: 1.25;
         color: #93c5fd;
-        margin-top: 6px;
+        margin-top: 4px;
         white-space: pre-wrap;
-        max-height: 7.5em;
+        max-height: 6.5em;
         overflow-y: auto;
       }
       .status-card {
-        padding: 10px 12px;
+        padding: 8px 10px;
       }
       .notes {
         display: grid;
-        gap: 10px;
+        gap: 8px;
+        max-height: calc(100vh - 90px);
+        overflow-y: auto;
       }
       .note {
         border: 1px solid #374151;
         border-radius: 8px;
-        padding: 10px;
+        padding: 8px;
         background: #111827;
       }
       .meta {
@@ -107,42 +114,54 @@
       code {
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       }
+      @media (min-width: 900px) {
+        .layout {
+          grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1.25fr);
+          align-items: start;
+        }
+        .controls {
+          position: sticky;
+          top: 10px;
+        }
+      }
     </style>
   </head>
   <body>
     <div class="wrap">
       <h1>NIP-42 / NIP-5 Relay Test</h1>
-      <div class="grid">
-        <section class="card">
-          <div>
-            <label for="relayUrl">Relay URL</label>
-            <input id="relayUrl" value="ws://localhost:8042" />
-          </div>
-        </section>
-        <section class="card">
-          <label for="nsec">Private key for AUTH (optional)</label>
-          <input
-            id="nsec"
-            type="password"
-            autocomplete="off"
-            spellcheck="false"
-            placeholder="nsec1..."
-            autofocus
-          />
-        </section>
+      <div class="layout">
+        <div class="controls">
+          <section class="card">
+            <div>
+              <label for="relayUrl">Relay URL</label>
+              <input id="relayUrl" value="ws://localhost:8042" />
+            </div>
+          </section>
+          <section class="card">
+            <label for="nsec">Private key for AUTH (optional)</label>
+            <input
+              id="nsec"
+              type="password"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="nsec1..."
+              autofocus
+            />
+          </section>
 
-        <section class="card row two">
-          <button id="connectBtn">Connect + Subscribe Notes</button>
-          <button id="closeBtn" class="secondary">Disconnect</button>
-        </section>
+          <section class="card row two">
+            <button id="connectBtn">Connect + Subscribe Notes</button>
+            <button id="closeBtn" class="secondary">Disconnect</button>
+          </section>
 
-        <section class="card status-card">
-          <div><strong>Status</strong></div>
-          <div id="status" class="status">Idle.</div>
-        </section>
+          <section class="card status-card">
+            <div><strong>Status</strong></div>
+            <div id="status" class="status">Idle.</div>
+          </section>
+        </div>
 
         <section class="card">
-          <div style="margin-bottom: 8px;"><strong>Notes</strong></div>
+          <div style="margin-bottom: 6px;"><strong>Notes</strong></div>
           <div id="notes" class="notes"></div>
         </section>
       </div>

@@ -1,0 +1,27 @@
+services:
+  nip42relay:
+    build: .
+    depends_on:
+      - strfry
+    environment:
+      LISTEN_ADDR: ":8080"
+      PUBLIC_RELAY_URL: "ws://localhost:8080"
+      UPSTREAM_RELAY_URL: "ws://strfry:5542"
+      AUTH_CACHE_PATH: "/data/auth-cache.db"
+      TRUSTROOTS_NIP05_BASE_URL: "https://www.trustroots.org/.well-known/nostr.json"
+      AUTH_CACHE_TTL: "24h"
+      AUTH_EVENT_MAX_AGE: "10m"
+    ports:
+      - "8080:8080"
+    volumes:
+      - nip42relay-data:/data
+
+  strfry:
+    image: ghcr.io/hoytech/strfry:latest
+    volumes:
+      - ./strfry/strfry.conf:/etc/strfry.conf:ro
+      - strfry-data:/app/strfry-db
+
+volumes:
+  nip42relay-data:
+  strfry-data:

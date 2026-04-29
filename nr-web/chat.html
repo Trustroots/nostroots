@@ -192,7 +192,43 @@
             background: var(--card);
             flex-shrink: 0;
         }
-        .sidebar-header { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+        .sidebar-header {
+            padding: 0.6rem 0.65rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+        .sidebar-header-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+        }
+        .sidebar-header-title {
+            margin: 0;
+            font-size: 1.45rem;
+            line-height: 1.1;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+        .sidebar-header-new-btn {
+            width: 46px !important;
+            height: 46px;
+            border-radius: 12px;
+            flex-shrink: 0;
+        }
+        .conv-filter {
+            width: 100%;
+            margin-top: 0;
+            padding: 0.5rem 0.7rem;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--input);
+            color: var(--foreground);
+            font-size: 0.95rem;
+        }
+        .conv-filter::placeholder { color: var(--muted-foreground); }
         .conv-list {
             flex: 1;
             overflow-y: auto;
@@ -608,7 +644,18 @@
     <main class="main">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <button type="button" class="btn" onclick="openNewDmModal()" style="width:100%; display:flex; justify-content:center; align-items:center;" title="New conversation" aria-label="New conversation"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <div class="sidebar-header-top">
+                    <h2 class="sidebar-header-title">Chats</h2>
+                    <button type="button" class="btn sidebar-header-new-btn" onclick="openNewDmModal()" style="display:flex; justify-content:center; align-items:center;" title="New conversation" aria-label="New conversation"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                </div>
+                <input
+                    type="search"
+                    id="conv-filter"
+                    class="conv-filter"
+                    placeholder="Search chats and messages"
+                    aria-label="Filter conversations"
+                    autocomplete="off"
+                    spellcheck="false">
             </div>
             <div class="conv-list" id="conv-list"></div>
         </aside>
@@ -793,6 +840,11 @@
         const relayWriteEnabled = new Map(); // url -> boolean
         const conversations = new Map();
         let selectedConversationId = null;
+        let conversationFilterQuery = '';
+        let backgroundContentMatches = new Set();
+        const conversationSearchIndex = new Map();
+        let backgroundSearchToken = 0;
+        let backgroundSearchScheduled = null;
         let relayUrlsForList = [];
         /** New group modal: list of { hex, label } for added members */
         let groupModalMembers = [];
@@ -958,6 +1010,8 @@
                 const data = JSON.parse(raw);
                 if (!data || !data.timestamp || (Date.now() - data.timestamp > CHAT_CACHE_MAX_AGE)) return false;
                 conversations.clear();
+                conversationSearchIndex.clear();
+                backgroundContentMatches.clear();
                 const isBlocked = (NrBlocklist && NrBlocklist.isBlocked) ? (hex) => NrBlocklist.isBlocked(hex) : () => false;
                 for (const c of data.conversations || []) {
                     const events = (c.events || [])
@@ -1003,6 +1057,77 @@
                 saveChatToCache();
                 chatCacheWriteTimeout = null;
             }, 2000);
+        }
+
+        function normalizeSearchQuery(value) {
+            return String(value || '').trim().toLowerCase();
+        }
+
+        function normalizeSearchText(value) {
+            return String(value || '').toLowerCase();
+        }
+
+        function invalidateConversationSearchIndex(conversationId) {
+            if (!conversationId) return;
+            conversationSearchIndex.delete(conversationId);
+            if (backgroundContentMatches.delete(conversationId)) scheduleRender('convList');
+            if (normalizeSearchQuery(conversationFilterQuery)) scheduleBackgroundContentSearch();
+        }
+
+        function getConversationContentSearchText(entry) {
+            const id = String(entry?.id || '');
+            if (!id) return '';
+            if (conversationSearchIndex.has(id)) return conversationSearchIndex.get(id) || '';
+            const events = Array.isArray(entry?.events) ? entry.events : [];
+            const indexed = events
+                .map((ev) => normalizeSearchText(ev?.content))
+                .filter(Boolean)
+                .join('\n');
+            conversationSearchIndex.set(id, indexed);
+            return indexed;
+        }
+
+        function runBackgroundContentSearch(token, query) {
+            const normalizedQuery = normalizeSearchQuery(query);
+            if (!normalizedQuery) {
+                backgroundContentMatches = new Set();
+                scheduleRender('convList');
+                return;
+            }
+            const entries = Array.from(conversations.entries()).map(([id, c]) => ({ id, ...c }));
+            const matches = new Set();
+            let idx = 0;
+
+            function step() {
+                if (token !== backgroundSearchToken) return;
+                const start = performance.now();
+                while (idx < entries.length) {
+                    const entry = entries[idx++];
+                    if (conversationMatchesFast(entry, normalizedQuery)) continue;
+                    if (getConversationContentSearchText(entry).includes(normalizedQuery)) matches.add(entry.id);
+                    if (performance.now() - start >= 8) break;
+                }
+                if (idx < entries.length) {
+                    requestAnimationFrame(step);
+                    return;
+                }
+                if (token !== backgroundSearchToken) return;
+                backgroundContentMatches = matches;
+                scheduleRender('convList');
+            }
+
+            requestAnimationFrame(step);
+        }
+
+        function scheduleBackgroundContentSearch() {
+            backgroundSearchToken += 1;
+            const token = backgroundSearchToken;
+            if (backgroundSearchScheduled) clearTimeout(backgroundSearchScheduled);
+            const query = conversationFilterQuery;
+            backgroundSearchScheduled = setTimeout(() => {
+                backgroundSearchScheduled = null;
+                runBackgroundContentSearch(token, query);
+            }, 0);
         }
 
         function getHashRoute() {
@@ -1632,6 +1757,7 @@
             if (!c) {
                 c = { type, id, members: members || [], events: [] };
                 conversations.set(id, c);
+                invalidateConversationSearchIndex(id);
                 if (getHashRoute() === id) selectConversation(id);
             }
             return c;
@@ -1684,6 +1810,7 @@
                     const dmNip = looksLikeNip04(event.content) ? 'nip4' : 'nip44';
                     conv.events.push({ id: event.id, pubkey: event.pubkey, content: plain, created_at: event.created_at, raw: event, nip: dmNip });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
+                    invalidateConversationSearchIndex(conv.id);
                     scheduleChatCacheWrite();
                     if (selectedConversationId === conv.id) scheduleRender('thread');
                 }
@@ -1820,6 +1947,7 @@
                         mapNoteKey
                     });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
+                    invalidateConversationSearchIndex(conv.id);
                     changed = true;
                     if (selectedConversationId === targetSlug) scheduleRender('thread');
                 });
@@ -1934,6 +2062,7 @@
                 const dmNip = looksLikeNip04(event.content) ? 'nip4' : 'nip44';
                 conv.events.push({ id: event.id, pubkey: event.pubkey, content: plain, created_at: event.created_at, raw: event, nip: dmNip });
                 conv.events.sort((a, b) => a.created_at - b.created_at);
+                invalidateConversationSearchIndex(conv.id);
                 scheduleChatCacheWrite();
                 scheduleRender('convList');
                 if (selectedConversationId === convId) scheduleRender('thread');
@@ -1965,6 +2094,7 @@
                         eventAuthorById.set(rumor.id, rumor.pubkey);
                         conv.events.push({ id: rumor.id, pubkey: rumor.pubkey, content: rumor.content || '', created_at: rumor.created_at, raw: rumor, nip: 'nip17' });
                         conv.events.sort((a, b) => a.created_at - b.created_at);
+                        invalidateConversationSearchIndex(conv.id);
                         scheduleChatCacheWrite();
                         scheduleRender('convList');
                         if (selectedConversationId === groupId) scheduleRender('thread');
@@ -2230,6 +2360,13 @@
             });
         }
 
+        function getConversationLabel(entry) {
+            const id = String(entry.id || '');
+            if (entry.type === 'channel') return id === GLOBAL_CHANNEL_SLUG ? 'Global' : '#' + id;
+            if (entry.type === 'group') return `Group (${entry.members?.length || 0})`;
+            return getDisplayNameShort(id) || getDisplayName(id) || hexToNpub(id) || id;
+        }
+
         function renderConvList() {
             const list = document.getElementById('conv-list');
             if (!list) return;
@@ -2239,15 +2376,10 @@
             const globalEntry = entries.find(e => e.id === GLOBAL_CHANNEL_SLUG);
             const rest = entries.filter(e => e.id !== GLOBAL_CHANNEL_SLUG).sort((a, b) => convSortKey(b) - convSortKey(a));
             const ordered = globalEntry ? [globalEntry, ...rest] : rest;
-            ordered.forEach(({ id, type, members, events }) => {
-                let label = id;
-                if (type === 'dm') {
-                    label = getDisplayNameShort(id) || hexToNpub(id) || id;
-                } else if (type === 'group') {
-                    label = `Group (${members.length})`;
-                } else if (type === 'channel') {
-                    label = id === GLOBAL_CHANNEL_SLUG ? 'Global' : '#' + id;
-                }
+            const query = normalizeSearchQuery(conversationFilterQuery);
+            const filtered = query ? ordered.filter((entry) => conversationMatchesFilter(entry, query)) : ordered;
+            filtered.forEach(({ id, type, members, events }) => {
+                const label = getConversationLabel({ id, type, members, events });
                 const item = document.createElement('div');
                 item.className = 'conv-item' + (selectedConversationId === id ? ' selected' : '');
                 item.dataset.convId = id;
@@ -2255,6 +2387,36 @@
                 item.innerHTML = `<span class="label">${safeLabel}</span>`;
                 item.onclick = () => selectConversation(id);
                 list.appendChild(item);
+            });
+
+            if (!filtered.length) {
+                const empty = document.createElement('div');
+                empty.className = 'conv-item';
+                empty.innerHTML = '<span class="label">No matching conversations</span>';
+                list.appendChild(empty);
+            }
+        }
+
+        function conversationMatchesFilter(entry, query) {
+            if (!query) return true;
+            return conversationMatchesFast(entry, query) || backgroundContentMatches.has(entry.id);
+        }
+
+        function conversationMatchesFast(entry, query) {
+            const id = String(entry.id || '');
+            const baseLabel = getConversationLabel(entry);
+            const channelAlias = entry.type === 'channel' ? id : '';
+            return [baseLabel, channelAlias, id].some((value) => String(value || '').toLowerCase().includes(query));
+        }
+
+        function bindConversationFilterInput() {
+            const filterInput = document.getElementById('conv-filter');
+            if (!filterInput) return;
+            filterInput.addEventListener('input', (event) => {
+                conversationFilterQuery = normalizeSearchQuery(event.target?.value || '');
+                backgroundContentMatches = new Set();
+                scheduleRender('convList');
+                scheduleBackgroundContentSearch();
             });
         }
 
@@ -2731,6 +2893,7 @@
                         relayScope: getRelayScopeFromRelayUrls(publishRelayUrls)
                     });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
+                    invalidateConversationSearchIndex(conv.id);
                     scheduleChatCacheWrite();
                     input.value = '';
                     renderThread();
@@ -2783,6 +2946,7 @@
                         relayScope: getRelayScopeFromRelayUrls(publishRelayUrls)
                     });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
+                    invalidateConversationSearchIndex(conv.id);
                     scheduleChatCacheWrite();
                     document.getElementById('compose-input').value = '';
                     renderThread();
@@ -2819,6 +2983,7 @@
                         relayScope: getRelayScopeFromRelayUrls(publishRelayUrls)
                     });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
+                    invalidateConversationSearchIndex(conv.id);
                     scheduleChatCacheWrite();
                     document.getElementById('compose-input').value = '';
                     renderThread();
@@ -2890,6 +3055,7 @@
         } else {
             attachHeaderButtons();
         }
+        bindConversationFilterInput();
         document.getElementById('thread-back-btn')?.addEventListener('click', goBackToList);
         window.addRelay = addRelay;
         window.removeRelay = removeRelay;

@@ -760,6 +760,7 @@
         const MAP_NOTE_REPOST_KIND = 30398;
         const TRUSTROOTS_PROFILE_KIND = 10390;
         const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = 'org.trustroots:username';
+        const TRUSTROOTS_USERNAME_CACHE_STORAGE_KEY = 'trustroots_username_by_pubkey';
         const DEFAULT_RELAY_URL = 'wss://nip42.trustroots.org';
         const DEFAULT_RELAYS = (window.NrWebRelaySettings?.getDefaultRelays?.() || ['wss://nip42.trustroots.org', 'wss://relay.trustroots.org', 'wss://relay.nomadwiki.org']);
         const TRUSTROOTS_CIRCLE_LABEL = 'trustroots-circle';
@@ -801,6 +802,48 @@
         let isProfileLinked = false;
         let usernameFromNostr = false;
         let currentUserNip05 = '';
+
+        function readValidatedTrustrootsUsernameMap() {
+            try {
+                const raw = localStorage.getItem(TRUSTROOTS_USERNAME_CACHE_STORAGE_KEY);
+                if (!raw) return {};
+                const parsed = JSON.parse(raw);
+                return parsed && typeof parsed === 'object' ? parsed : {};
+            } catch (_) {
+                return {};
+            }
+        }
+
+        function writeValidatedTrustrootsUsernameMap(map) {
+            try {
+                localStorage.setItem(TRUSTROOTS_USERNAME_CACHE_STORAGE_KEY, JSON.stringify(map || {}));
+            } catch (_) {}
+        }
+
+        function getCachedValidatedTrustrootsUsername(pubkey) {
+            if (!pubkey) return '';
+            const normalized = String(pubkey).toLowerCase();
+            const map = readValidatedTrustrootsUsernameMap();
+            return map[normalized] || '';
+        }
+
+        function setCachedValidatedTrustrootsUsername(pubkey, username) {
+            if (!pubkey) return;
+            const normalizedPubkey = String(pubkey).toLowerCase();
+            const normalizedUsername = (username || '').trim().toLowerCase();
+            if (!normalizedUsername) return;
+            const map = readValidatedTrustrootsUsernameMap();
+            map[normalizedPubkey] = normalizedUsername;
+            writeValidatedTrustrootsUsernameMap(map);
+        }
+
+        function clearCachedValidatedTrustrootsUsername(pubkey) {
+            if (!pubkey) return;
+            const normalized = String(pubkey).toLowerCase();
+            const map = readValidatedTrustrootsUsernameMap();
+            delete map[normalized];
+            writeValidatedTrustrootsUsernameMap(map);
+        }
 
         function getTrustrootsCircles() {
             return [
@@ -1363,6 +1406,12 @@
                 currentSecretKeyBytes = new Uint8Array(32);
                 for (let i = 0; i < 32; i++) currentSecretKeyBytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
                 currentPublicKey = getPublicKey(currentSecretKeyBytes);
+                const cachedUsername = getCachedValidatedTrustrootsUsername(currentPublicKey);
+                if (cachedUsername) {
+                    isProfileLinked = true;
+                    usernameFromNostr = true;
+                    pubkeyToUsername.set(currentPublicKey, cachedUsername);
+                }
                 loadChatFromCache();
                 updateUI();
                 startSubscriptions();
@@ -1473,7 +1522,7 @@
                     route: 'keys',
                     setRoute: setHashRoute,
                     onOpenManagedSection: () => {
-                        updateKeyDisplay();
+                        updateKeyDisplay({ skipProfileLookup: true });
                         checkProfileLinked();
                     }
                 });
@@ -2256,6 +2305,15 @@
                 updateKeyDisplay({ skipProfileLookup: true });
                 return;
             }
+            const cachedUsername = getCachedValidatedTrustrootsUsername(currentPublicKey);
+            if (cachedUsername) {
+                isProfileLinked = true;
+                usernameFromNostr = true;
+                pubkeyToUsername.set(currentPublicKey, cachedUsername);
+                setTrustrootsUI(cachedUsername);
+                updateKeyDisplay({ skipProfileLookup: true });
+                return;
+            }
             const r = relays?.length ? relays : (getRelayUrls().length ? getRelayUrls() : DEFAULT_RELAYS);
             if (!r.length) {
                 setTrustrootsUI('');
@@ -2291,7 +2349,12 @@
             }
             isProfileLinked = !!linkedUsername;
             usernameFromNostr = !!linkedUsername;
-            if (linkedUsername) pubkeyToUsername.set(currentPublicKey, linkedUsername);
+            if (linkedUsername) {
+                pubkeyToUsername.set(currentPublicKey, linkedUsername);
+                setCachedValidatedTrustrootsUsername(currentPublicKey, linkedUsername);
+            } else {
+                clearCachedValidatedTrustrootsUsername(currentPublicKey);
+            }
             setTrustrootsUI(linkedUsername || '');
             updateKeyDisplay({ skipProfileLookup: true });
         }
@@ -2344,6 +2407,7 @@
                 setTrustrootsUI(username);
                 updateKeyDisplay({ skipProfileLookup: true });
                 pubkeyToUsername.set(currentPublicKey, username);
+                setCachedValidatedTrustrootsUsername(currentPublicKey, username);
                 scheduleChatCacheWrite();
                 showStatus('Profile linked. You can now close this modal and explore the app. Make sure your nsec is safely backed up (for example in your password manager).', 'success');
             } catch (e) {

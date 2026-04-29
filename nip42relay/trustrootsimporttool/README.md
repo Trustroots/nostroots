@@ -1,8 +1,16 @@
 # Trustroots Import Tool
 
-Exports active public Trustroots host offers from an imported MongoDB database as
-signed Nostr JSONL for direct import into the private strfry behind
-`nip42.trustroots.org`.
+Exports Trustroots data from an imported MongoDB database as signed Nostr JSONL
+for direct import into the private strfry behind `nip42.trustroots.org`.
+
+Outputs (in this order):
+
+- **Profile claims** (`kind 30390`) — Nostr profile JSON for each eligible user (from Mongo; not a live kind-0 fetch)
+- **Host mirrors** (`kind 30398`) — verified map note reposts for public host offers
+- **Relationship suggestions** (`kind 30392`) — contacts between two eligible users (both have npubs)
+- **Positive experience suggestions** (`kind 30393`) — experiences between two eligible users
+
+There are **no relay-side dedupe checks**; stricter validation can live in clients (e.g. `nr-web`).
 
 ## Usage
 
@@ -20,34 +28,21 @@ Useful options can also be provided as environment variables:
 - `NSEC`, required (`nsec1...`)
 - `OUTPUT`, default `trustroots-hosts.jsonl`
 - `STATE_FILE`, default `.trustrootsimporttool-state.json`
-- `LIMIT`, optional
+- `LIMIT`, optional (applies to host query and contact/experience queries)
 - `LOG_EVERY`, default `1000`
-- `CHECK_RELAY_URLS`, comma-separated list, default `wss://nip42.trustroots.org`
 
 The tool auto-loads `.env` from the current working directory and from
 `trustrootsimporttool/.env` (when running from `nip42relay`).
 
-The tool exports claimable Trustroots data only for eligible users and emits:
+### Eligibility
 
-- imported host mirror events (`kind 30398`, existing behavior)
-- profile claim suggestions (`kind 30390`)
-- host claim suggestions (`kind 30391`)
-- relationship claim suggestions (`kind 30392`)
-- positive experience claim suggestions (`kind 30393`)
+**Hosts:** same rules as before (public host offer, valid npub, etc.).
 
-Eligibility rules:
+**Contacts & experiences:** both users must be eligible (`public`, confirmed email,
+valid `nostrNpub`, not blocked). Experiences must pass the positive/hidden filters (same as before).
 
-- user must have valid `nostrNpub`
-- user must be public, not suspended/shadow-banned, and have confirmed email
-- relationships require both users to be eligible with valid npubs
-- experiences must be positive/recommended and not hidden
-
-Before emitting claim suggestions, the tool can connect to private relays with
-its NSEC and skip data already user-signed by the account owner (kind `0`,
-`30397`, `3`, `30000`, `1985` checks).
-
-The JSONL file can be copied to the strfry host and imported with the
-operator’s normal strfry import workflow.
+The JSONL file can be copied to the strfry host and imported with the operator’s
+normal strfry import workflow.
 
 ## Smoke test
 

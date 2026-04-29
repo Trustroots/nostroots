@@ -51,16 +51,11 @@ func (r *recommendField) UnmarshalBSONValue(t bsontype.Type, data []byte) error 
 
 const (
 	mapNoteRepostKind                = 30398
-	TrustrootsUsernameLabelNamespace = "org.trustroots:username"
 	profileClaimKind                 = 30390
-	hostClaimKind                    = 30391
 	relationClaimKind                = 30392
 	experienceClaimKind              = 30393
-	userMapNoteKind                  = 30397
-	nip32LabelKind                   = 1985
-	nip02FollowKind                  = 3
-	nip51FollowSetKind               = 30000
 	maxContentLength                 = 300
+	TrustrootsUsernameLabelNamespace = "org.trustroots:username"
 )
 
 type Offer struct {

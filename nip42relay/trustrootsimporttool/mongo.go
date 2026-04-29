@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -11,8 +12,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// mongoClientTimeout caps how long we wait when MongoDB is unreachable (driver
+// defaults are much slower, often ~30s for server selection).
+const mongoClientTimeout = 5 * time.Second
+
+func newMongoClientOptions(uri string) *options.ClientOptions {
+	return options.Client().
+		ApplyURI(uri).
+		SetConnectTimeout(mongoClientTimeout).
+		SetServerSelectionTimeout(mongoClientTimeout)
+}
+
 func fetchHosts(ctx context.Context, mongoURI string, limit int64) ([]HostRecord, error) {
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	client, err := mongo.Connect(ctx, newMongoClientOptions(mongoURI))
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +88,7 @@ func fetchHosts(ctx context.Context, mongoURI string, limit int64) ([]HostRecord
 }
 
 func openMongo(ctx context.Context, mongoURI string) (*mongo.Client, *mongo.Database, error) {
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	client, err := mongo.Connect(ctx, newMongoClientOptions(mongoURI))
 	if err != nil {
 		return nil, nil, err
 	}

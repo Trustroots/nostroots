@@ -45,11 +45,11 @@ func TestBuildNoteContent(t *testing.T) {
 
 func TestIsEligibleHost(t *testing.T) {
 	user := User{
-		ID:       primitive.NewObjectID(),
-		Username: "alice",
+		ID:        primitive.NewObjectID(),
+		Username:  "alice",
 		NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
-		Public:   true,
-		Roles:    []string{"user"},
+		Public:    true,
+		Roles:     []string{"user"},
 	}
 	offer := Offer{
 		ID:            primitive.NewObjectID(),
@@ -82,5 +82,56 @@ func TestIsEligibleHost(t *testing.T) {
 	user.NostrNpub = "npub-not-valid"
 	if isEligibleHost(offer, user) {
 		t.Fatal("host with invalid npub should not be eligible")
+	}
+}
+
+func TestIsEligibleUserEmailAndRoles(t *testing.T) {
+	confirmed := true
+	user := User{
+		ID:             primitive.NewObjectID(),
+		Username:       "alice",
+		NostrNpub:      "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+		Public:         true,
+		EmailConfirmed: &confirmed,
+		Roles:          []string{"user"},
+	}
+	if !isEligibleUser(user) {
+		t.Fatal("expected user to be eligible")
+	}
+
+	user.EmailUnconfirmed = true
+	if isEligibleUser(user) {
+		t.Fatal("email-unconfirmed user should not be eligible")
+	}
+	user.EmailUnconfirmed = false
+
+	unconfirmed := false
+	user.EmailConfirmed = &unconfirmed
+	if isEligibleUser(user) {
+		t.Fatal("emailConfirmed=false user should not be eligible")
+	}
+
+	user.EmailConfirmed = &confirmed
+	user.Roles = []string{"user", "shadowbanned-temp"}
+	if isEligibleUser(user) {
+		t.Fatal("shadow-ban role should not be eligible")
+	}
+}
+
+func TestIsPositiveExperience(t *testing.T) {
+	if !isPositiveExperience(Experience{Positive: true}) {
+		t.Fatal("positive=true should be considered positive")
+	}
+	if !isPositiveExperience(Experience{Recommend: true}) {
+		t.Fatal("recommend=true should be considered positive")
+	}
+	if !isPositiveExperience(Experience{Recommendation: "recommended"}) {
+		t.Fatal("recommended recommendation should be considered positive")
+	}
+	if isPositiveExperience(Experience{Recommendation: "no"}) {
+		t.Fatal("negative recommendation should not be considered positive")
+	}
+	if isPositiveExperience(Experience{Positive: true, Hidden: true}) {
+		t.Fatal("hidden experience should not be considered positive")
 	}
 }

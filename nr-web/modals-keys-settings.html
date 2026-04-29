@@ -98,6 +98,20 @@
                 </div>
             </div>
         </div>
+
+        <div class="settings-section" id="keys-claim-section" style="display: none;">
+            <h2>Claim Trustroots data</h2>
+            <div id="claim-summary" style="margin-bottom: 0.75rem; color: var(--muted-foreground); font-size: 0.875rem;"></div>
+            <div class="action-buttons" style="margin-bottom: 0.5rem;">
+                <button class="btn btn-secondary" onclick="refreshClaimSuggestions()" type="button">Refresh Claims</button>
+            </div>
+            <div id="claim-actions" class="action-buttons" style="display: none;">
+                <button class="btn" onclick="claimProfileData()" type="button">Sign Profile</button>
+                <button class="btn" onclick="claimHostingOffers()" type="button">Sign Hosting</button>
+                <button class="btn" onclick="claimRelationships()" type="button">Sign Relationships</button>
+                <button class="btn" onclick="claimExperiences()" type="button">Sign Experiences</button>
+            </div>
+        </div>
     </div>
 </div>
 

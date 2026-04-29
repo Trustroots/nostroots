@@ -50,11 +50,22 @@ func buildNoteContent(description string, user User) string {
 
 func hasBlockedRole(user User) bool {
 	for _, role := range user.Roles {
-		if role == "suspended" || role == "shadowban" {
+		normalized := strings.ToLower(strings.TrimSpace(role))
+		if normalized == "suspended" || normalized == "shadowban" || strings.Contains(normalized, "shadow") || strings.Contains(normalized, "ban") {
 			return true
 		}
 	}
 	return false
+}
+
+func isEmailConfirmed(user User) bool {
+	if user.EmailUnconfirmed {
+		return false
+	}
+	if user.EmailConfirmed != nil {
+		return *user.EmailConfirmed
+	}
+	return true
 }
 
 func decodeNpubToHex(npub string) (string, bool) {
@@ -91,11 +102,37 @@ func isEligibleHost(offer Offer, user User) bool {
 		offer.LocationFuzzy[1] < -180 || offer.LocationFuzzy[1] > 180 {
 		return false
 	}
-	if !user.Public || user.Username == "" || hasBlockedRole(user) {
+	if !user.Public || user.Username == "" || hasBlockedRole(user) || !isEmailConfirmed(user) {
 		return false
 	}
 	if !hasValidNpub(user) {
 		return false
 	}
 	return true
+}
+
+func isEligibleUser(user User) bool {
+	if !user.Public || user.Username == "" {
+		return false
+	}
+	if hasBlockedRole(user) || !isEmailConfirmed(user) {
+		return false
+	}
+	return hasValidNpub(user)
+}
+
+func isPositiveExperience(experience Experience) bool {
+	if experience.Hidden {
+		return false
+	}
+	if experience.Positive || experience.Recommend {
+		return true
+	}
+	recommendation := strings.ToLower(strings.TrimSpace(experience.Recommendation))
+	switch recommendation {
+	case "yes", "positive", "recommend", "recommended", "vouch":
+		return true
+	default:
+		return false
+	}
 }

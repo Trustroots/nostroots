@@ -13,12 +13,13 @@ import (
 )
 
 type Config struct {
-	MongoURI  string
-	NostrSK   string
-	Output    string
-	StateFile string
-	Limit     int64
-	LogEvery  int
+	MongoURI       string
+	NostrSK        string
+	Output         string
+	StateFile      string
+	Limit          int64
+	LogEvery       int
+	CheckRelayURLs []string
 }
 
 func loadConfig(args []string) (Config, error) {
@@ -34,6 +35,8 @@ func loadConfig(args []string) (Config, error) {
 	fs.StringVar(&cfg.StateFile, "state-file", envString("STATE_FILE", ".trustrootsimporttool-state.json"), "JSON state file path")
 	fs.Int64Var(&cfg.Limit, "limit", envInt64("LIMIT", 0), "maximum number of eligible hosts to export; 0 means no limit")
 	fs.IntVar(&cfg.LogEvery, "log-every", envInt("LOG_EVERY", 1000), "progress log interval")
+	checkRelays := envString("CHECK_RELAY_URLS", "wss://nip42.trustroots.org")
+	fs.StringVar(&checkRelays, "check-relays", checkRelays, "comma-separated relays to check for existing user-signed events before importing")
 
 	_ = fs.Parse(args)
 	decodedHex, err := decodeNSEC(nsec)
@@ -41,7 +44,20 @@ func loadConfig(args []string) (Config, error) {
 		return Config{}, err
 	}
 	cfg.NostrSK = decodedHex
+	cfg.CheckRelayURLs = parseCSV(checkRelays)
 	return cfg, nil
+}
+
+func parseCSV(value string) []string {
+	parts := strings.Split(value, ",")
+	trimmed := make([]string, 0, len(parts))
+	for _, part := range parts {
+		v := strings.TrimSpace(part)
+		if v != "" {
+			trimmed = append(trimmed, v)
+		}
+	}
+	return trimmed
 }
 
 func envString(name, fallback string) string {

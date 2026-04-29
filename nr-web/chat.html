@@ -686,8 +686,8 @@
         const MAP_NOTE_REPOST_KIND = 30398;
         const TRUSTROOTS_PROFILE_KIND = 10390;
         const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = 'org.trustroots:username';
-        const DEFAULT_RELAY_URL = 'wss://relay.trustroots.org';
-        const DEFAULT_RELAYS = ['wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
+        const DEFAULT_RELAY_URL = 'wss://nip42.trustroots.org';
+        const DEFAULT_RELAYS = (window.NrWebRelaySettings?.getDefaultRelays?.() || ['wss://nip42.trustroots.org', 'wss://relay.trustroots.org', 'wss://relay.nomadwiki.org']);
         const TRUSTROOTS_CIRCLE_LABEL = 'trustroots-circle';
         const GLOBAL_CHANNEL_SLUG = 'global';
         const HOSTING_OFFER_CHANNEL_SLUG = 'hostingoffers';
@@ -738,12 +738,7 @@
         }
 
         /** Shared relay list storage (same as index.html). */
-        function getRelayUrls() {
-            if (relaySettings?.getRelayUrls) {
-                return relaySettings.getRelayUrls(DEFAULT_RELAYS);
-            }
-            return DEFAULT_RELAYS.slice();
-        }
+        const getRelayUrls = () => relaySettings?.getRelayUrls ? relaySettings.getRelayUrls(DEFAULT_RELAYS) : DEFAULT_RELAYS.slice();
 
         function saveRelayUrls(urls) {
             if (relaySettings?.saveRelayUrls) {
@@ -754,25 +749,13 @@
             else localStorage.removeItem('relay_urls');
         }
 
-        function getSavedRelayWritePreferences() {
-            if (relaySettings?.getRelayWritePreferences) {
-                return relaySettings.getRelayWritePreferences();
-            }
-            return {};
-        }
-
-        function getDefaultRelayPostEnabled(url) {
-            if (relaySettings?.getDefaultRelayPostEnabled) {
-                return relaySettings.getDefaultRelayPostEnabled(url);
-            }
-            return true;
-        }
-
-        function saveRelayWritePreferences() {
-            if (relaySettings?.saveRelayWritePreferences) {
-                relaySettings.saveRelayWritePreferences(getRelayUrls(), relayWriteEnabled);
-            }
-        }
+        const getSavedRelayWritePreferences = () => relaySettings?.getRelayWritePreferences ? relaySettings.getRelayWritePreferences() : {};
+        const getDefaultRelayPostEnabled = (url) => relaySettings?.getDefaultRelayPostEnabled
+            ? relaySettings.getDefaultRelayPostEnabled(url)
+            : (url || '').trim().toLowerCase() === 'wss://nip42.trustroots.org';
+        const saveRelayWritePreferences = () => {
+            if (relaySettings?.saveRelayWritePreferences) relaySettings.saveRelayWritePreferences(getRelayUrls(), relayWriteEnabled);
+        };
 
         let currentPublicKey = null;
         let currentSecretKeyHex = null;
@@ -798,14 +781,18 @@
         }
 
         function getPublishRelayUrls() {
+            const configured = getRelayUrls();
+            if (relaySettings?.getPublishRelayUrls) {
+                return relaySettings.getPublishRelayUrls(configured, relayWriteEnabled, DEFAULT_RELAYS);
+            }
             const writable = getWritableRelayUrls();
             if (writable.length > 0) return writable;
-            const configured = getRelayUrls();
             if (configured.length > 0) return configured;
             return DEFAULT_RELAYS;
         }
 
         function isKnownPublicRelayUrl(url) {
+            if (relaySettings?.isPublicRelayUrl) return relaySettings.isPublicRelayUrl(url);
             const normalized = String(url || '').trim().toLowerCase();
             return normalized === 'wss://relay.trustroots.org' || normalized === 'wss://relay.nomadwiki.org';
         }
@@ -848,28 +835,28 @@
 
         function renderRelayPostWarning(container, urls) {
             if (!container) return;
-            const warningId = 'relay-post-disabled-warning';
-            let warningEl = document.getElementById(warningId);
-            const hasWritableRelay = urls.some(url => relayWriteEnabled.get(url) !== false);
-            const shouldShowWarning = urls.length > 0 && !hasWritableRelay;
-
-            if (!shouldShowWarning) {
-                if (warningEl) warningEl.remove();
+            if (relaySettings?.renderRelayPostWarnings) {
+                relaySettings.renderRelayPostWarnings(container, urls, relayWriteEnabled, {
+                    disabledWarningId: 'relay-post-disabled-warning',
+                    publicWarningId: 'relay-post-public-warning',
+                    disabledClassName: 'status-toast error',
+                    publicClassName: 'status-toast info',
+                    disabledMessage: 'Posting is disabled. Enable "Post" for at least one relay so you can send messages.',
+                    publicMessage: 'PUBLIC posting is enabled. Messages sent there are publicly visible.',
+                    pointerEvents: 'auto'
+                });
                 return;
             }
-
-            if (!warningEl) {
-                warningEl = document.createElement('div');
-                warningEl.id = warningId;
-                warningEl.className = 'status-toast error';
-                warningEl.style.marginBottom = '0.5rem';
-                warningEl.style.pointerEvents = 'auto';
-                container.parentNode?.insertBefore(warningEl, container);
-            }
-            warningEl.textContent = 'Posting is disabled. Enable "Post" for at least one relay so you can send messages.';
         }
 
         function initializeRelaySettingsState(urls, status = 'disconnected') {
+            if (relaySettings?.initializeRelaySettingsState) {
+                relaySettings.initializeRelaySettingsState(urls, relayWriteEnabled, relayStatus, {
+                    status,
+                    savePreferences: true
+                });
+                return;
+            }
             const savedWritePreferences = getSavedRelayWritePreferences();
             urls.forEach((url) => {
                 const hasSavedPreference = Object.prototype.hasOwnProperty.call(savedWritePreferences, url);

@@ -86,7 +86,7 @@
 
     <script type="module">
         const PIXEL_KIND = 1923;
-        const DEFAULT_RELAYS = ['wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
+        const DEFAULT_RELAYS = ['wss://nip42.trustroots.org', 'wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
         const GRID_SIZE = 16;
         const CELL_PX = 16;
         const DEFAULT_PALETTE = [
@@ -127,34 +127,23 @@
             return 'artists';
         }
 
-        function getRelayUrls() {
-            if (relaySettings?.getRelayUrls) {
-                return relaySettings.getRelayUrls(DEFAULT_RELAYS);
-            }
-            return DEFAULT_RELAYS.slice();
-        }
-
-        function getSavedRelayWritePreferences() {
-            if (relaySettings?.getRelayWritePreferences) {
-                return relaySettings.getRelayWritePreferences();
-            }
-            return {};
-        }
-
-        function getDefaultRelayPostEnabled(url) {
-            if (relaySettings?.getDefaultRelayPostEnabled) {
-                return relaySettings.getDefaultRelayPostEnabled(url);
-            }
-            return true;
-        }
-
-        function saveRelayWritePreferences() {
-            if (relaySettings?.saveRelayWritePreferences) {
-                relaySettings.saveRelayWritePreferences(getRelayUrls(), relayWriteEnabled);
-            }
-        }
+        const getRelayUrls = () => relaySettings?.getRelayUrls ? relaySettings.getRelayUrls(DEFAULT_RELAYS) : DEFAULT_RELAYS.slice();
+        const getSavedRelayWritePreferences = () => relaySettings?.getRelayWritePreferences ? relaySettings.getRelayWritePreferences() : {};
+        const getDefaultRelayPostEnabled = (url) => relaySettings?.getDefaultRelayPostEnabled
+            ? relaySettings.getDefaultRelayPostEnabled(url)
+            : (url || '').trim().toLowerCase() === 'wss://nip42.trustroots.org';
+        const saveRelayWritePreferences = () => {
+            if (relaySettings?.saveRelayWritePreferences) relaySettings.saveRelayWritePreferences(getRelayUrls(), relayWriteEnabled);
+        };
 
         function initializeRelaySettingsState(urls, status = 'disconnected') {
+            if (relaySettings?.initializeRelaySettingsState) {
+                relaySettings.initializeRelaySettingsState(urls, relayWriteEnabled, relayStatus, {
+                    status,
+                    savePreferences: true
+                });
+                return;
+            }
             const prefs = getSavedRelayWritePreferences();
             urls.forEach((url) => {
                 const hasSavedPreference = Object.prototype.hasOwnProperty.call(prefs, url);
@@ -172,9 +161,12 @@
         }
 
         function getPublishRelayUrls() {
+            const configured = getRelayUrls();
+            if (relaySettings?.getPublishRelayUrls) {
+                return relaySettings.getPublishRelayUrls(configured, relayWriteEnabled, DEFAULT_RELAYS);
+            }
             const writable = getWritableRelayUrls();
             if (writable.length > 0) return writable;
-            const configured = getRelayUrls();
             if (configured.length > 0) return configured;
             return DEFAULT_RELAYS;
         }

@@ -75,6 +75,123 @@ func fetchHosts(ctx context.Context, mongoURI string, limit int64) ([]HostRecord
 	return records, nil
 }
 
+func openMongo(ctx context.Context, mongoURI string) (*mongo.Client, *mongo.Database, error) {
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
+	if err != nil {
+		return nil, nil, err
+	}
+	dbName := databaseNameFromURI(mongoURI)
+	return client, client.Database(dbName), nil
+}
+
+func fetchEligibleUsers(ctx context.Context, db *mongo.Database) ([]User, map[primitive.ObjectID]User, error) {
+	cursor, err := db.Collection("users").Find(ctx, bson.M{"public": true}, options.Find().SetSort(bson.D{{Key: "_id", Value: 1}}))
+	if err != nil {
+		return nil, nil, err
+	}
+	defer cursor.Close(ctx)
+
+	list := make([]User, 0, 1024)
+	byID := make(map[primitive.ObjectID]User, 1024)
+	for cursor.Next(ctx) {
+		var user User
+		if err := cursor.Decode(&user); err != nil {
+			return nil, nil, err
+		}
+		if !isEligibleUser(user) {
+			continue
+		}
+		list = append(list, user)
+		byID[user.ID] = user
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, nil, err
+	}
+	return list, byID, nil
+}
+
+func fetchContactRecords(ctx context.Context, db *mongo.Database, usersByID map[primitive.ObjectID]User, limit int64) ([]ContactRecord, error) {
+	findOptions := options.Find().SetSort(bson.D{{Key: "_id", Value: 1}})
+	if limit > 0 {
+		findOptions.SetLimit(limit)
+	}
+	cursor, err := db.Collection("contacts").Find(ctx, bson.M{}, findOptions)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	records := make([]ContactRecord, 0, 1024)
+	for cursor.Next(ctx) {
+		var contact Contact
+		if err := cursor.Decode(&contact); err != nil {
+			return nil, err
+		}
+		user, okUser := usersByID[contact.UserID]
+		other, okOther := usersByID[contact.OtherID]
+		if !okUser || !okOther {
+			continue
+		}
+		records = append(records, ContactRecord{
+			Contact: contact,
+			User:    user,
+			Other:   other,
+		})
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+	return records, nil
+}
+
+func fetchExperienceRecords(ctx context.Context, db *mongo.Database, usersByID map[primitive.ObjectID]User, limit int64) ([]ExperienceRecord, error) {
+	findOptions := options.Find().SetSort(bson.D{{Key: "_id", Value: 1}})
+	if limit > 0 {
+		findOptions.SetLimit(limit)
+	}
+	cursor, err := db.Collection("experiences").Find(ctx, bson.M{}, findOptions)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	records := make([]ExperienceRecord, 0, 1024)
+	for cursor.Next(ctx) {
+		var experience Experience
+		if err := cursor.Decode(&experience); err != nil {
+			return nil, err
+		}
+		if !isPositiveExperience(experience) {
+			continue
+		}
+		authorID := firstObjectID(experience.FromID, experience.AuthorID, experience.UserID)
+		targetID := firstObjectID(experience.ToID, experience.TargetID, experience.ReceiverID)
+		author, okAuthor := usersByID[authorID]
+		target, okTarget := usersByID[targetID]
+		if !okAuthor || !okTarget {
+			continue
+		}
+		records = append(records, ExperienceRecord{
+			Experience: experience,
+			Author:     author,
+			Target:     target,
+		})
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+	return records, nil
+}
+
+func firstObjectID(ids ...primitive.ObjectID) primitive.ObjectID {
+	for _, id := range ids {
+		if !id.IsZero() {
+			return id
+		}
+	}
+	return primitive.NilObjectID
+}
+
 func fetchUser(ctx context.Context, db *mongo.Database, id primitive.ObjectID) (User, error) {
 	var user User
 	err := db.Collection("users").FindOne(ctx, bson.M{"_id": id}).Decode(&user)

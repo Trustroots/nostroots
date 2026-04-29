@@ -22,13 +22,29 @@ Useful options can also be provided as environment variables:
 - `STATE_FILE`, default `.trustrootsimporttool-state.json`
 - `LIMIT`, optional
 - `LOG_EVERY`, default `1000`
+- `CHECK_RELAY_URLS`, comma-separated list, default `wss://nip42.trustroots.org`
 
 The tool auto-loads `.env` from the current working directory and from
 `trustrootsimporttool/.env` (when running from `nip42relay`).
 
-The tool exports only public host offers with `status: "yes"`,
-`showOnlyInMyCircles: false`, and a valid `nostrNpub`. Hosts limited to shared
-Trustroots circles are not exported.
+The tool exports claimable Trustroots data only for eligible users and emits:
+
+- imported host mirror events (`kind 30398`, existing behavior)
+- profile claim suggestions (`kind 30390`)
+- host claim suggestions (`kind 30391`)
+- relationship claim suggestions (`kind 30392`)
+- positive experience claim suggestions (`kind 30393`)
+
+Eligibility rules:
+
+- user must have valid `nostrNpub`
+- user must be public, not suspended/shadow-banned, and have confirmed email
+- relationships require both users to be eligible with valid npubs
+- experiences must be positive/recommended and not hidden
+
+Before emitting claim suggestions, the tool can connect to private relays with
+its NSEC and skip data already user-signed by the account owner (kind `0`,
+`30397`, `3`, `30000`, `1985` checks).
 
 The JSONL file can be copied to the strfry host and imported with the
 operator’s normal strfry import workflow.

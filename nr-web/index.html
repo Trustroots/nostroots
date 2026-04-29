@@ -1383,6 +1383,7 @@
             nip19,
             Relay 
         } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.10.3/+esm';
+        import { extractRelationshipTargetsFromClaims, mergePTags, buildKind3Tags, buildTrustroots30000Tags } from './claim-utils.js';
         
         // Import BIP39 for mnemonic support
         import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm';
@@ -1394,12 +1395,19 @@
         // Constants from nr-common
         const MAP_NOTE_KIND = 30397;
         const MAP_NOTE_REPOST_KIND = 30398;
+        const PROFILE_CLAIM_KIND = 30390;
+        const HOST_CLAIM_KIND = 30391;
+        const RELATIONSHIP_CLAIM_KIND = 30392;
+        const EXPERIENCE_CLAIM_KIND = 30393;
+        const FOLLOW_LIST_KIND = 3;
+        const TRUSTROOTS_CONTACT_SET_KIND = 30000;
+        const NIP32_LABEL_KIND = 1985;
         const MAP_NOTE_KINDS = [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND];
         const DELETION_KIND = 5; // NIP-05: Deletion events
         const TRUSTROOTS_PROFILE_KIND = 10390;
         const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = "org.trustroots:username";
-        const DEFAULT_RELAY_URL = 'wss://relay.trustroots.org';
-        const DEFAULT_RELAYS = ['wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
+        const DEFAULT_RELAY_URL = 'wss://nip42.trustroots.org';
+        const DEFAULT_RELAYS = (window.NrWebRelaySettings?.getDefaultRelays?.() || ['wss://nip42.trustroots.org', 'wss://relay.trustroots.org', 'wss://relay.nomadwiki.org']);
         const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2;
 
         // Decode blocklist npubs to hex (shared blocklist in common.js)
@@ -1721,8 +1729,36 @@
         let map = null;
         let markers = [];
         let events = [];
+        let claimEventsByKind = new Map();
         let selectedPlusCode = null;
         let selectedCircle = null; // Selected Trustroots circle slug
+
+        function getClaimKinds() {
+            return [PROFILE_CLAIM_KIND, HOST_CLAIM_KIND, RELATIONSHIP_CLAIM_KIND, EXPERIENCE_CLAIM_KIND];
+        }
+
+        function getClaimKindBucket(kind) {
+            if (!claimEventsByKind.has(kind)) claimEventsByKind.set(kind, []);
+            return claimEventsByKind.get(kind);
+        }
+
+        function hasPTarget(event, pubkey) {
+            if (!event || !Array.isArray(event.tags) || !pubkey) return false;
+            return event.tags.some(tag => Array.isArray(tag) && tag[0] === 'p' && tag[1] && tag[1].toLowerCase() === pubkey.toLowerCase());
+        }
+
+        function upsertClaimEvent(event) {
+            if (!event || !getClaimKinds().includes(event.kind)) return;
+            if (!currentPublicKey || !hasPTarget(event, currentPublicKey)) return;
+            const bucket = getClaimKindBucket(event.kind);
+            const idx = bucket.findIndex(e => e.id === event.id);
+            if (idx >= 0) {
+                bucket[idx] = event;
+            } else {
+                bucket.push(event);
+            }
+            renderClaimSummary();
+        }
 
         function closeWsMapSubscriptions() {
             wsMapSubscriptions.forEach((sub) => {
@@ -2498,6 +2534,7 @@
             if (currentPublicKey && options.skipProfileLookup !== true) checkProfileLinked();
             setHeaderIdentity();
             renderRelaysList();
+            renderClaimSummary();
         }
         
         function setHeaderIdentity() {
@@ -2534,40 +2571,21 @@
         const relayWriteEnabled = new Map(); // url -> boolean
         const relaySettings = window.NrWebRelaySettings;
         const RELAY_WRITE_ENABLED_STORAGE_KEY = relaySettings?.RELAY_WRITE_ENABLED_STORAGE_KEY || 'relay_write_enabled';
-
-        function getSavedRelayWritePreferences() {
-            if (relaySettings?.getRelayWritePreferences) {
-                return relaySettings.getRelayWritePreferences();
-            }
-            return {};
-        }
-
-        function getDefaultRelayPostEnabled(url) {
-            if (relaySettings?.getDefaultRelayPostEnabled) {
-                return relaySettings.getDefaultRelayPostEnabled(url);
-            }
-            return true;
-        }
-
-        function saveRelayWritePreferences() {
+        const getSavedRelayWritePreferences = () => relaySettings?.getRelayWritePreferences ? relaySettings.getRelayWritePreferences() : {};
+        const getDefaultRelayPostEnabled = (url) => relaySettings?.getDefaultRelayPostEnabled
+            ? relaySettings.getDefaultRelayPostEnabled(url)
+            : (url || '').trim().toLowerCase() === TRUSTROOTS_RESTRICTED_RELAY_URL;
+        const getRelayUrls = () => relaySettings?.getRelayUrls ? relaySettings.getRelayUrls(DEFAULT_RELAYS) : DEFAULT_RELAYS.slice();
+        const saveRelayWritePreferences = () => {
             const urls = getRelayUrls();
-            if (relaySettings?.saveRelayWritePreferences) {
-                relaySettings.saveRelayWritePreferences(urls, relayWriteEnabled);
-                return;
-            }
-        }
+            if (relaySettings?.saveRelayWritePreferences) relaySettings.saveRelayWritePreferences(urls, relayWriteEnabled);
+        };
 
         function isLocalRelayUrl(url) {
             return relaySettings?.isLocalRelayUrl ? relaySettings.isLocalRelayUrl(url) : false;
         }
         
         // Relay management
-        function getRelayUrls() {
-            if (relaySettings?.getRelayUrls) {
-                return relaySettings.getRelayUrls(DEFAULT_RELAYS);
-            }
-            return DEFAULT_RELAYS.slice();
-        }
 
         function getWritableRelayUrls() {
             return getRelayUrls().filter(url => relayWriteEnabled.get(url) !== false);
@@ -2634,24 +2652,17 @@
 
         function renderRelayPostWarning(container, urls) {
             if (!container) return;
-            const warningId = 'relay-post-disabled-warning';
-            let warningEl = document.getElementById(warningId);
-            const hasWritableRelay = urls.some(url => relayWriteEnabled.get(url) !== false);
-            const shouldShowWarning = urls.length > 0 && !hasWritableRelay;
-
-            if (!shouldShowWarning) {
-                if (warningEl) warningEl.remove();
+            if (relaySettings?.renderRelayPostWarnings) {
+                relaySettings.renderRelayPostWarnings(container, urls, relayWriteEnabled, {
+                    disabledWarningId: 'relay-post-disabled-warning',
+                    publicWarningId: 'relay-post-public-warning',
+                    disabledClassName: 'status error',
+                    publicClassName: 'status info',
+                    disabledMessage: 'Posting is disabled. Enable "Post" for at least one relay so you can publish notes.',
+                    publicMessage: 'PUBLIC posting is enabled for at least one relay. Anything you post there is publicly visible.'
+                });
                 return;
             }
-
-            if (!warningEl) {
-                warningEl = document.createElement('div');
-                warningEl.id = warningId;
-                warningEl.className = 'status error';
-                warningEl.style.marginBottom = '0.5rem';
-                container.parentNode?.insertBefore(warningEl, container);
-            }
-            warningEl.textContent = 'Posting is disabled. Enable "Post" for at least one relay so you can publish notes.';
         }
         
         function renderRelaysList() {
@@ -3383,6 +3394,10 @@
         
         function processIncomingEvent(event) {
             if (NrBlocklist && NrBlocklist.isBlocked(event.pubkey)) return;
+            if (getClaimKinds().includes(event.kind)) {
+                upsertClaimEvent(event);
+                return;
+            }
             // Process kind 10390 (Trustroots profile) events to extract usernames
             if (event.kind === TRUSTROOTS_PROFILE_KIND) {
                 const username = getTrustrootsUsernameFromProfileEvent(event);
@@ -5559,6 +5574,7 @@
                 
                 updateLinkProfileButton();
                 setHeaderIdentity();
+                renderClaimSummary();
                 
                 // Update "Update Trustroots Profile" button visibility - hide if profile is linked
                 const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
@@ -5585,6 +5601,7 @@
                 }
                 
                 updateLinkProfileButton();
+                renderClaimSummary();
                 
                 // Show "Update Trustroots Profile" button if profile is not linked
                 const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
@@ -5600,6 +5617,211 @@
             // Link Profile button has been removed, this function is kept for compatibility
             // but no longer does anything
         }
+
+        function getClaimSummaryCounts() {
+            return {
+                profile: (claimEventsByKind.get(PROFILE_CLAIM_KIND) || []).length,
+                hosts: (claimEventsByKind.get(HOST_CLAIM_KIND) || []).length,
+                relationships: (claimEventsByKind.get(RELATIONSHIP_CLAIM_KIND) || []).length,
+                experiences: (claimEventsByKind.get(EXPERIENCE_CLAIM_KIND) || []).length
+            };
+        }
+
+        function renderClaimSummary() {
+            const section = document.getElementById('keys-claim-section');
+            const summary = document.getElementById('claim-summary');
+            const actions = document.getElementById('claim-actions');
+            if (!section || !summary || !actions) return;
+            const canShow = !!currentPublicKey && !!currentPrivateKeyBytes && isProfileLinked === true;
+            section.style.display = canShow ? 'block' : 'none';
+            if (!canShow) return;
+            const counts = getClaimSummaryCounts();
+            summary.textContent = `Profiles: ${counts.profile} | Hosting: ${counts.hosts} | Relationships: ${counts.relationships} | Experiences: ${counts.experiences}`;
+            const total = counts.profile + counts.hosts + counts.relationships + counts.experiences;
+            actions.style.display = total > 0 ? 'flex' : 'none';
+        }
+
+        async function refreshClaimSuggestions() {
+            if (!currentPublicKey) {
+                showStatus('Load a key first to fetch claim suggestions.', 'error');
+                return;
+            }
+            const relayUrls = getRelayUrls();
+            claimEventsByKind = new Map();
+            const filter = { kinds: getClaimKinds(), '#p': [currentPublicKey], limit: 500 };
+            const tasks = relayUrls.map(async (url) => {
+                try {
+                    const relay = await Relay.connect(url);
+                    const sub = relay.subscribe([filter], {
+                        onevent: (event) => upsertClaimEvent(event),
+                        oneose: () => {
+                            try { sub.close(); } catch (_) {}
+                            try { relay.close(); } catch (_) {}
+                        }
+                    });
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                    try { sub.close(); } catch (_) {}
+                    try { relay.close(); } catch (_) {}
+                } catch (_) {}
+            });
+            await Promise.allSettled(tasks);
+            renderClaimSummary();
+        }
+
+        async function publishSignedEventTemplate(eventTemplate) {
+            if (!currentPrivateKeyBytes) throw new Error('No private key available');
+            const signedEvent = finalizeEvent(eventTemplate, currentPrivateKeyBytes);
+            const relayUrls = getWritableRelayUrls();
+            if (relayUrls.length === 0) throw new Error('No relays enabled for posting');
+            const results = await Promise.all(relayUrls.map(url => publishToRelayWithRetries(url, signedEvent)));
+            const successful = results.filter(r => r.success);
+            if (successful.length === 0) {
+                const failed = results.filter(r => !r.success).map(r => `${r.url}: ${r.error || 'failed'}`).join(', ');
+                throw new Error(`Publish failed: ${failed}`);
+            }
+            return { signedEvent, results };
+        }
+
+        function removeClaimedHostTags(tags) {
+            return (tags || []).filter(tag => {
+                if (!Array.isArray(tag) || tag.length === 0) return false;
+                if (tag[0] === 'source' || tag[0] === 'source_id') return false;
+                if (tag[0] === 'p' && tag[1] && tag[1].toLowerCase() === currentPublicKey?.toLowerCase()) return false;
+                return true;
+            });
+        }
+
+        async function claimProfileData() {
+            const claims = claimEventsByKind.get(PROFILE_CLAIM_KIND) || [];
+            if (!claims.length) {
+                showStatus('No profile claims available.', 'info');
+                return;
+            }
+            try {
+                const latest = claims.sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0];
+                const content = JSON.parse(latest.content || '{}');
+                const template = { kind: 0, created_at: Math.floor(Date.now() / 1000), tags: [], content: JSON.stringify(content) };
+                await publishSignedEventTemplate(template);
+                showStatus('Profile claimed and published as kind 0.', 'success');
+            } catch (error) {
+                showStatus('Failed to claim profile: ' + (error?.message || error), 'error');
+            }
+        }
+
+        async function claimHostingOffers() {
+            const claims = claimEventsByKind.get(HOST_CLAIM_KIND) || [];
+            if (!claims.length) {
+                showStatus('No hosting claims available.', 'info');
+                return;
+            }
+            let successCount = 0;
+            for (const claim of claims) {
+                try {
+                    const template = {
+                        kind: MAP_NOTE_KIND,
+                        created_at: Math.floor(Date.now() / 1000),
+                        tags: removeClaimedHostTags(claim.tags),
+                        content: claim.content || ''
+                    };
+                    await publishSignedEventTemplate(template);
+                    successCount++;
+                } catch (_) {}
+            }
+            showStatus(`Claimed ${successCount}/${claims.length} hosting offers as kind ${MAP_NOTE_KIND}.`, successCount > 0 ? 'success' : 'error');
+        }
+
+        async function queryLatestUserEvent(kind, extraFilter) {
+            const relayUrls = getRelayUrls();
+            let newest = null;
+            const filter = { kinds: [kind], authors: [currentPublicKey], limit: 20, ...(extraFilter || {}) };
+            const tasks = relayUrls.map(async (url) => {
+                try {
+                    const relay = await Relay.connect(url);
+                    const sub = relay.subscribe([filter], {
+                        onevent: (event) => {
+                            if (!newest || (event.created_at || 0) > (newest.created_at || 0)) newest = event;
+                        },
+                        oneose: () => {
+                            try { sub.close(); } catch (_) {}
+                            try { relay.close(); } catch (_) {}
+                        }
+                    });
+                    await new Promise(resolve => setTimeout(resolve, 1200));
+                    try { sub.close(); } catch (_) {}
+                    try { relay.close(); } catch (_) {}
+                } catch (_) {}
+            });
+            await Promise.allSettled(tasks);
+            return newest;
+        }
+
+        async function claimRelationships() {
+            const claims = claimEventsByKind.get(RELATIONSHIP_CLAIM_KIND) || [];
+            if (!claims.length) {
+                showStatus('No relationship claims available.', 'info');
+                return;
+            }
+            const targets = extractRelationshipTargetsFromClaims(claims, currentPublicKey);
+            if (!targets.size) {
+                showStatus('No relationships for this pubkey in claim events.', 'info');
+                return;
+            }
+            try {
+                const existingKind3 = await queryLatestUserEvent(FOLLOW_LIST_KIND);
+                const mergedTargets = mergePTags(existingKind3?.tags || [], targets);
+                const kind3Template = {
+                    kind: FOLLOW_LIST_KIND,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: buildKind3Tags(mergedTargets),
+                    content: existingKind3?.content || ''
+                };
+                await publishSignedEventTemplate(kind3Template);
+
+                const existingSet = await queryLatestUserEvent(TRUSTROOTS_CONTACT_SET_KIND, { '#d': ['trustroots-contacts'] });
+                const setTargets = mergePTags(existingSet?.tags || [], targets);
+                const setTemplate = {
+                    kind: TRUSTROOTS_CONTACT_SET_KIND,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: buildTrustroots30000Tags(setTargets),
+                    content: existingSet?.content || ''
+                };
+                await publishSignedEventTemplate(setTemplate);
+                showStatus(`Claimed ${targets.size} relationships into kind 3 and kind 30000.`, 'success');
+            } catch (error) {
+                showStatus('Failed to claim relationships: ' + (error?.message || error), 'error');
+            }
+        }
+
+        async function claimExperiences() {
+            const claims = claimEventsByKind.get(EXPERIENCE_CLAIM_KIND) || [];
+            if (!claims.length) {
+                showStatus('No experience claims available.', 'info');
+                return;
+            }
+            let successCount = 0;
+            for (const claim of claims) {
+                try {
+                    const pTags = (claim.tags || []).filter(t => Array.isArray(t) && t[0] === 'p' && t[1]);
+                    const targetHex = pTags.find(t => t[1].toLowerCase() !== currentPublicKey.toLowerCase())?.[1];
+                    const sourceID = (claim.tags || []).find(t => Array.isArray(t) && t[0] === 'source_id' && t[1])?.[1];
+                    if (!targetHex || !sourceID) continue;
+                    const template = {
+                        kind: NIP32_LABEL_KIND,
+                        created_at: Math.floor(Date.now() / 1000),
+                        tags: [
+                            ['p', targetHex],
+                            ['d', sourceID],
+                            ['L', 'org.trustroots:experience'],
+                            ['l', 'positive', 'org.trustroots:experience']
+                        ],
+                        content: claim.content || 'positive'
+                    };
+                    await publishSignedEventTemplate(template);
+                    successCount++;
+                } catch (_) {}
+            }
+            showStatus(`Claimed ${successCount}/${claims.length} positive experiences as kind ${NIP32_LABEL_KIND}.`, successCount > 0 ? 'success' : 'error');
+        }
         
         // Settings Modal Functions (modals injected by common.js)
         function openKeysModal(options = {}) {
@@ -5614,6 +5836,8 @@
                     onOpenManagedSection: () => {
                         updateKeyDisplay();
                         if (shouldRunProfileLookup) checkProfileLinked();
+                        renderClaimSummary();
+                        refreshClaimSuggestions();
                     }
                 });
                 return;
@@ -5672,6 +5896,11 @@
         window.requestNotificationPermission = requestNotificationPermission;
         window.setNotificationsEnabled = setNotificationsEnabled;
         window.renderSettingsNotificationsSection = renderSettingsNotificationsSection;
+        window.refreshClaimSuggestions = refreshClaimSuggestions;
+        window.claimProfileData = claimProfileData;
+        window.claimHostingOffers = claimHostingOffers;
+        window.claimRelationships = claimRelationships;
+        window.claimExperiences = claimExperiences;
         
         // Onboarding
         function checkOnboarding() {
@@ -5929,21 +6158,28 @@
         // Initialize relay list in settings
         function initializeRelayList() {
             const urls = getRelayUrls();
-            const savedWritePreferences = getSavedRelayWritePreferences();
-            urls.forEach(url => {
-                const hasSavedPreference = Object.prototype.hasOwnProperty.call(savedWritePreferences, url);
-                const canWrite = hasSavedPreference
-                    ? savedWritePreferences[url] !== false
-                    : getDefaultRelayPostEnabled(url);
-                if (!relayStatus.has(url)) {
-                    relayStatus.set(url, { status: 'disconnected', canWrite });
-                } else {
-                    const current = relayStatus.get(url) || { status: 'disconnected', canWrite: true };
-                    relayStatus.set(url, { ...current, canWrite });
-                }
-                relayWriteEnabled.set(url, canWrite);
-            });
-            saveRelayWritePreferences();
+            if (relaySettings?.initializeRelaySettingsState) {
+                relaySettings.initializeRelaySettingsState(urls, relayWriteEnabled, relayStatus, {
+                    status: 'disconnected',
+                    savePreferences: true
+                });
+            } else {
+                const savedWritePreferences = getSavedRelayWritePreferences();
+                urls.forEach(url => {
+                    const hasSavedPreference = Object.prototype.hasOwnProperty.call(savedWritePreferences, url);
+                    const canWrite = hasSavedPreference
+                        ? savedWritePreferences[url] !== false
+                        : getDefaultRelayPostEnabled(url);
+                    if (!relayStatus.has(url)) {
+                        relayStatus.set(url, { status: 'disconnected', canWrite });
+                    } else {
+                        const current = relayStatus.get(url) || { status: 'disconnected', canWrite: true };
+                        relayStatus.set(url, { ...current, canWrite });
+                    }
+                    relayWriteEnabled.set(url, canWrite);
+                });
+                saveRelayWritePreferences();
+            }
             renderRelaysList();
         }
         

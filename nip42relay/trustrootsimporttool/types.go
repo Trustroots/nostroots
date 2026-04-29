@@ -7,8 +7,17 @@ import (
 )
 
 const (
-	mapNoteRepostKind = 30398
-	maxContentLength  = 300
+	mapNoteRepostKind                = 30398
+	TrustrootsUsernameLabelNamespace = "org.trustroots:username"
+	profileClaimKind                 = 30390
+	hostClaimKind                    = 30391
+	relationClaimKind                = 30392
+	experienceClaimKind              = 30393
+	userMapNoteKind                  = 30397
+	nip32LabelKind                   = 1985
+	nip02FollowKind                  = 3
+	nip51FollowSetKind               = 30000
+	maxContentLength                 = 300
 )
 
 type Offer struct {
@@ -24,12 +33,17 @@ type Offer struct {
 }
 
 type User struct {
-	ID       primitive.ObjectID `bson:"_id"`
-	Username string             `bson:"username"`
-	NostrNpub string            `bson:"nostrNpub"`
-	Public   bool               `bson:"public"`
-	Roles    []string           `bson:"roles"`
-	Member   []Membership       `bson:"member"`
+	ID               primitive.ObjectID `bson:"_id"`
+	Username         string             `bson:"username"`
+	DisplayName      string             `bson:"displayName"`
+	Description      string             `bson:"description"`
+	Avatar           string             `bson:"avatar"`
+	NostrNpub        string             `bson:"nostrNpub"`
+	Public           bool               `bson:"public"`
+	EmailConfirmed   *bool              `bson:"emailConfirmed"`
+	EmailUnconfirmed bool               `bson:"emailunconfirmed"`
+	Roles            []string           `bson:"roles"`
+	Member           []Membership       `bson:"member"`
 }
 
 type Membership struct {
@@ -47,6 +61,46 @@ type HostRecord struct {
 	Offer   Offer
 	User    User
 	Circles []string
+}
+
+type Contact struct {
+	ID        primitive.ObjectID `bson:"_id"`
+	UserID    primitive.ObjectID `bson:"user"`
+	OtherID   primitive.ObjectID `bson:"contact"`
+	CreatedAt time.Time          `bson:"createdAt"`
+	Updated   time.Time          `bson:"updated"`
+}
+
+type ContactRecord struct {
+	Contact Contact
+	User    User
+	Other   User
+}
+
+type Experience struct {
+	ID             primitive.ObjectID `bson:"_id"`
+	FromID         primitive.ObjectID `bson:"from"`
+	ToID           primitive.ObjectID `bson:"to"`
+	UserID         primitive.ObjectID `bson:"user"`
+	TargetID       primitive.ObjectID `bson:"target"`
+	AuthorID       primitive.ObjectID `bson:"author"`
+	ReceiverID     primitive.ObjectID `bson:"receiver"`
+	Text           string             `bson:"text"`
+	Description    string             `bson:"description"`
+	Public         bool               `bson:"public"`
+	Visible        bool               `bson:"visible"`
+	Hidden         bool               `bson:"hidden"`
+	Recommendation string             `bson:"recommendation"`
+	Recommend      bool               `bson:"recommend"`
+	Positive       bool               `bson:"positive"`
+	CreatedAt      time.Time          `bson:"createdAt"`
+	Updated        time.Time          `bson:"updated"`
+}
+
+type ExperienceRecord struct {
+	Experience Experience
+	Author     User
+	Target     User
 }
 
 type State struct {

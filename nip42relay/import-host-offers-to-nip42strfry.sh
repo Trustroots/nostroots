@@ -36,6 +36,12 @@ docker compose ps --status running strfry >/dev/null || {
   exit 1
 }
 
+mktemp_compat() {
+  local prefix="$1"
+  # GNU mktemp requires XXXXXX in the template, BSD accepts -t prefix.
+  mktemp -t "${prefix}.XXXXXX" 2>/dev/null || mktemp -t "${prefix}"
+}
+
 local_tmp=""
 state_tmp=""
 if [[ -n "$FROM_FILE" ]]; then
@@ -43,8 +49,8 @@ if [[ -n "$FROM_FILE" ]]; then
   echo "Using existing JSONL: $input_file"
 else
   command -v go >/dev/null || { echo "go not found" >&2; exit 1; }
-  local_tmp="$(mktemp -t trustroots-hosts)"
-  state_tmp="$(mktemp -t trustroots-import-state)"
+  local_tmp="$(mktemp_compat trustroots-hosts)"
+  state_tmp="$(mktemp_compat trustroots-import-state)"
   echo "Generating host offers JSONL..."
   if [[ ${#TOOL_ARGS[@]:-0} -gt 0 ]]; then
     go run ./trustrootsimporttool -output "$local_tmp" -state-file "$state_tmp" "${TOOL_ARGS[@]}"

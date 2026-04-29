@@ -2631,11 +2631,34 @@
                 setRelayWriteEnabled(url, enabled);
             } catch (_) {}
         }
+
+        function renderRelayPostWarning(container, urls) {
+            if (!container) return;
+            const warningId = 'relay-post-disabled-warning';
+            let warningEl = document.getElementById(warningId);
+            const hasWritableRelay = urls.some(url => relayWriteEnabled.get(url) !== false);
+            const shouldShowWarning = urls.length > 0 && !hasWritableRelay;
+
+            if (!shouldShowWarning) {
+                if (warningEl) warningEl.remove();
+                return;
+            }
+
+            if (!warningEl) {
+                warningEl = document.createElement('div');
+                warningEl.id = warningId;
+                warningEl.className = 'status error';
+                warningEl.style.marginBottom = '0.5rem';
+                container.parentNode?.insertBefore(warningEl, container);
+            }
+            warningEl.textContent = 'Posting is disabled. Enable "Post" for at least one relay so you can publish notes.';
+        }
         
         function renderRelaysList() {
             const container = document.getElementById('relays-list');
             if (!container) return;
             const urls = getRelayUrls();
+            renderRelayPostWarning(container, urls);
             if (relaySettings?.renderRelaysList) {
                 relaySettings.renderRelaysList(container, {
                     urls,

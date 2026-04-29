@@ -239,7 +239,7 @@
         .message-wrap {
             display: flex;
             flex-direction: column;
-            max-width: 92%;
+            max-width: 96%;
         }
         .message-wrap.self { align-self: flex-end; align-items: flex-end; }
         .message-wrap.other { align-self: flex-start; align-items: flex-start; }
@@ -305,7 +305,7 @@
         .message-row { display: flex; align-items: center; gap: 0.25rem; width: 100%; }
         .message-row.self { align-self: flex-end; justify-content: flex-end; }
         .message-row.other { justify-content: flex-start; }
-        .message-row .message-wrap { flex: 0 1 auto; min-width: 0; max-width: 92%; }
+        .message-row .message-wrap { flex: 0 1 auto; min-width: min(18rem, 100%); max-width: 96%; }
         .message-delete {
             flex-shrink: 0;
             width: 1.25rem;
@@ -562,7 +562,7 @@
 
             .thread-messages { padding: 0.75rem 0.5rem; }
             .message-row .message-wrap { max-width: 100%; }
-            .message-wrap { max-width: 100%; }
+            .message-wrap { min-width: 0; max-width: 100%; }
             .message .meta .author { display: none; }
         }
     </style>
@@ -844,6 +844,29 @@
                 const url = decodeURIComponent(encodedUrl);
                 setRelayWriteEnabled(url, enabled);
             } catch (_) {}
+        }
+
+        function renderRelayPostWarning(container, urls) {
+            if (!container) return;
+            const warningId = 'relay-post-disabled-warning';
+            let warningEl = document.getElementById(warningId);
+            const hasWritableRelay = urls.some(url => relayWriteEnabled.get(url) !== false);
+            const shouldShowWarning = urls.length > 0 && !hasWritableRelay;
+
+            if (!shouldShowWarning) {
+                if (warningEl) warningEl.remove();
+                return;
+            }
+
+            if (!warningEl) {
+                warningEl = document.createElement('div');
+                warningEl.id = warningId;
+                warningEl.className = 'status-toast error';
+                warningEl.style.marginBottom = '0.5rem';
+                warningEl.style.pointerEvents = 'auto';
+                container.parentNode?.insertBefore(warningEl, container);
+            }
+            warningEl.textContent = 'Posting is disabled. Enable "Post" for at least one relay so you can send messages.';
         }
 
         function initializeRelaySettingsState(urls, status = 'disconnected') {
@@ -2071,6 +2094,7 @@
             const urls = getRelayUrls();
             const list = document.getElementById('relays-list');
             if (!list) return;
+            renderRelayPostWarning(list, urls);
             if (relaySettings?.renderRelaysList) {
                 relaySettings.renderRelaysList(list, {
                     urls,
@@ -2624,6 +2648,13 @@
             if (!text) return;
             const conv = selectedConversationId ? conversations.get(selectedConversationId) : null;
             if (!conv) return;
+            const publishRelayUrls = getWritableRelayUrls();
+            if (publishRelayUrls.length === 0) {
+                showStatus('No relays enabled for posting. Enable "Post" for at least one relay. Opening Settings…', 'error');
+                alert('At least one relay must have "Post" enabled before you can send a message.');
+                openSettingsModal();
+                return;
+            }
 
             if (conv.type === 'dm') {
                 const peer = conv.id;
@@ -2641,7 +2672,6 @@
                 };
                 template.id = getEventHash(template);
                 signEvent(template).then(signed => {
-                    const publishRelayUrls = getPublishRelayUrls();
                     pool.publish(publishRelayUrls, signed);
                     eventAuthorById.set(signed.id, currentPublicKey);
                     conv.events.push({
@@ -2672,7 +2702,6 @@
                 };
                 rumor.id = getEventHash(rumor);
                 const membersToSend = conv.members;
-                const publishRelayUrls = getPublishRelayUrls();
                 (async () => {
                     for (const memberPubkey of membersToSend) {
                         try {
@@ -2732,7 +2761,6 @@
                 };
                 template.id = getEventHash(template);
                 signEvent(template).then(signed => {
-                    const publishRelayUrls = getPublishRelayUrls();
                     pool.publish(publishRelayUrls, signed);
                     eventAuthorById.set(signed.id, currentPublicKey);
                     conv.events.push({

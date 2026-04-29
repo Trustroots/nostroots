@@ -768,6 +768,7 @@
         const HOSTING_OFFER_CHANNEL_ALIASES = ['hostingoffer', 'hostingoffers'];
         const relaySettings = window.NrWebRelaySettings;
         const NIP42_AUTH_KIND = 22242;
+        const RELAY_PUBLISH_TIMEOUT_MS = 10000;
 
         function normalizeChannelSlug(slug) {
             if (typeof slug !== 'string') return slug;
@@ -1850,17 +1851,138 @@
         async function buildAuthEventForRelay(relayUrl, challenge) {
             if (!challenge) return false;
             requireLocalSigningKey();
+            let relayTag = (relayUrl || '').trim();
+            try {
+                const parsed = new URL(relayTag);
+                if ((parsed.pathname === '' || parsed.pathname === '/') && !parsed.search && !parsed.hash) {
+                    relayTag = `${parsed.protocol}//${parsed.host}`;
+                } else {
+                    relayTag = parsed.toString();
+                }
+            } catch (_) {}
             const authTemplate = {
                 kind: NIP42_AUTH_KIND,
                 created_at: Math.floor(Date.now() / 1000),
                 tags: [
-                    ['relay', relayUrl],
+                    ['relay', relayTag],
                     ['challenge', challenge]
                 ],
                 content: '',
                 pubkey: currentPublicKey
             };
             return signEvent(authTemplate);
+        }
+
+        async function publishEventToRelayViaWebSocket(relayUrl, signedEvent) {
+            return await new Promise((resolve) => {
+                let settled = false;
+                let ws = null;
+                let authEventId = null;
+                let authCompleted = false;
+                let authChallengeSeen = false;
+                let eventRejectedForAuth = false;
+                let eventSent = false;
+                let delayedSendTimer = null;
+                const finish = (result) => {
+                    if (settled) return;
+                    settled = true;
+                    clearTimeout(timeoutId);
+                    if (delayedSendTimer) clearTimeout(delayedSendTimer);
+                    try { ws?.close(); } catch (_) {}
+                    resolve(result);
+                };
+                const sendEvent = () => {
+                    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+                    eventSent = true;
+                    ws.send(JSON.stringify(['EVENT', signedEvent]));
+                };
+                const timeoutId = setTimeout(() => {
+                    finish({ success: false, url: relayUrl, error: 'timeout waiting for relay OK' });
+                }, RELAY_PUBLISH_TIMEOUT_MS);
+
+                try {
+                    ws = new WebSocket(relayUrl);
+                } catch (error) {
+                    finish({ success: false, url: relayUrl, error: error?.message || String(error) });
+                    return;
+                }
+
+                ws.addEventListener('open', () => {
+                    // Give relays that require NIP-42 a brief moment to issue AUTH before EVENT.
+                    delayedSendTimer = setTimeout(() => {
+                        if (!authChallengeSeen && !eventSent) sendEvent();
+                    }, 120);
+                });
+
+                ws.addEventListener('message', async (msg) => {
+                    let data;
+                    try {
+                        data = JSON.parse(msg.data);
+                    } catch (_) {
+                        return;
+                    }
+                    const [type, a, b, c] = data;
+
+                    if (type === 'AUTH') {
+                        authChallengeSeen = true;
+                        if (delayedSendTimer) {
+                            clearTimeout(delayedSendTimer);
+                            delayedSendTimer = null;
+                        }
+                        try {
+                            const relayTagUrl = ws?.url || relayUrl;
+                            const signedAuth = await buildAuthEventForRelay(relayTagUrl, a);
+                            authEventId = signedAuth.id;
+                            ws.send(JSON.stringify(['AUTH', signedAuth]));
+                        } catch (error) {
+                            finish({ success: false, url: relayUrl, error: error?.message || String(error) });
+                        }
+                        return;
+                    }
+
+                    if (type === 'OK' && a === signedEvent.id) {
+                        if (b === true) {
+                            finish({ success: true, url: relayUrl });
+                        } else {
+                            const reason = (c || '').toString();
+                            if (reason.toLowerCase().includes('auth-required') && !authCompleted) {
+                                eventRejectedForAuth = true;
+                                return;
+                            }
+                            finish({ success: false, url: relayUrl, error: reason || 'relay rejected event' });
+                        }
+                        return;
+                    }
+
+                    if (type === 'OK' && authEventId && a === authEventId) {
+                        if (b === true) {
+                            authCompleted = true;
+                            if (!eventSent || eventRejectedForAuth) {
+                                eventRejectedForAuth = false;
+                                sendEvent();
+                            }
+                        } else {
+                            finish({ success: false, url: relayUrl, error: (c || '').toString() || 'relay rejected auth event' });
+                        }
+                    }
+                });
+
+                ws.addEventListener('error', () => {
+                    finish({ success: false, url: relayUrl, error: 'websocket error' });
+                });
+
+                ws.addEventListener('close', () => {
+                    if (!settled) finish({ success: false, url: relayUrl, error: 'connection closed before relay OK' });
+                });
+            });
+        }
+
+        async function publishEventWithRelayAcks(relayUrls, signedEvent) {
+            const urls = Array.isArray(relayUrls) ? relayUrls : [];
+            const results = await Promise.all(urls.map((url) => publishEventToRelayViaWebSocket(url, signedEvent)));
+            const succeeded = results.filter((res) => res.success);
+            const failed = results.filter((res) => !res.success);
+            return { succeeded, failed };
         }
 
         function startWsMapSubscription(relayUrl, onChannelEvent) {
@@ -2880,7 +3002,7 @@
                     pubkey: currentPublicKey
                 };
                 template.id = getEventHash(template);
-                signEvent(template).then(signed => {
+                signEvent(template).then((signed) => {
                     pool.publish(publishRelayUrls, signed);
                     eventAuthorById.set(signed.id, currentPublicKey);
                     conv.events.push({
@@ -2971,8 +3093,13 @@
                     pubkey: currentPublicKey
                 };
                 template.id = getEventHash(template);
-                signEvent(template).then(signed => {
-                    pool.publish(publishRelayUrls, signed);
+                signEvent(template).then(async (signed) => {
+                    const { succeeded, failed } = await publishEventWithRelayAcks(publishRelayUrls, signed);
+                    if (succeeded.length === 0) {
+                        const firstError = failed[0]?.error || 'unknown relay error';
+                        showStatus('Send failed: ' + firstError, 'error');
+                        return;
+                    }
                     eventAuthorById.set(signed.id, currentPublicKey);
                     conv.events.push({
                         id: signed.id,
@@ -2987,7 +3114,11 @@
                     scheduleChatCacheWrite();
                     document.getElementById('compose-input').value = '';
                     renderThread();
-                    showStatus('Sent to channel.', 'success');
+                    if (failed.length > 0) {
+                        showStatus(`Sent to channel on ${succeeded.length}/${publishRelayUrls.length} relays.`, 'success');
+                    } else {
+                        showStatus('Sent to channel.', 'success');
+                    }
                 }).catch(e => showStatus('Send failed: ' + (e.message || e), 'error'));
             }
         }
@@ -3015,13 +3146,23 @@
                 created_at: Math.floor(Date.now() / 1000),
                 pubkey: currentPublicKey
             };
-            signEvent(template).then(signed => {
-                pool.publish(getPublishRelayUrls(), signed);
+            signEvent(template).then(async (signed) => {
+                const relayUrls = getPublishRelayUrls();
+                const { succeeded, failed } = await publishEventWithRelayAcks(relayUrls, signed);
+                if (succeeded.length === 0) {
+                    const firstError = failed[0]?.error || 'unknown relay error';
+                    showStatus('Delete failed: ' + firstError, 'error');
+                    return;
+                }
                 deletedEventIds.add(eventId);
                 scheduleChatCacheWrite();
                 renderConvList();
                 renderThread();
-                showStatus('Delete requested.', 'success');
+                if (failed.length > 0) {
+                    showStatus(`Delete requested on ${succeeded.length}/${relayUrls.length} relays.`, 'success');
+                } else {
+                    showStatus('Delete requested.', 'success');
+                }
             }).catch(e => showStatus('Delete failed: ' + (e.message || e), 'error'));
         }
 

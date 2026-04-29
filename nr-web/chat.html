@@ -210,9 +210,7 @@
         .conv-item:hover { background: var(--muted); }
         .conv-item.selected { background: var(--primary); color: var(--primary-foreground); }
         .conv-item .enc-icon { font-size: 0.9rem; flex-shrink: 0; }
-        .conv-item .label-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
         .conv-item .label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; }
-        .conv-item .tags-line { font-size: 0.7rem; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .thread-area {
             flex: 1;
             display: flex;
@@ -283,9 +281,25 @@
         }
         .message .meta .author { min-width: 0; overflow-wrap: anywhere; }
         .message .meta .time { opacity: 0.75; }
+        .message-meta-main {
+            display: inline-flex;
+            align-items: baseline;
+            gap: 0.35rem;
+            white-space: nowrap;
+        }
         .message-nip-pill {
             font-size: inherit;
             opacity: 0.5;
+            white-space: nowrap;
+        }
+        .message-privacy-pill {
+            font-size: inherit;
+            opacity: 0.7;
+            white-space: nowrap;
+        }
+        .message-relay-pill {
+            font-size: inherit;
+            opacity: 0.7;
             white-space: nowrap;
         }
         .message-row { display: flex; align-items: center; gap: 0.25rem; width: 100%; }
@@ -791,6 +805,24 @@
             return DEFAULT_RELAYS;
         }
 
+        function isKnownPublicRelayUrl(url) {
+            const normalized = String(url || '').trim().toLowerCase();
+            return normalized === 'wss://relay.trustroots.org' || normalized === 'wss://relay.nomadwiki.org';
+        }
+
+        /**
+         * Relay scope for display:
+         * - "public" when any known public relay is targeted
+         * - "auth" when relay set is non-empty but includes no known public relays (eg. NIP-42 only)
+         * - "" when unknown
+         */
+        function getRelayScopeFromRelayUrls(urls) {
+            const list = Array.isArray(urls) ? urls : [];
+            if (!list.length) return '';
+            if (list.some((url) => isKnownPublicRelayUrl(url))) return 'public';
+            return 'auth';
+        }
+
         function updateRelayStatus(url, status, canWrite = null) {
             const current = relayStatus.get(url) || { status: 'disconnected', canWrite: true };
             relayStatus.set(url, {
@@ -854,7 +886,8 @@
                             created_at: ev.raw.created_at,
                             tags: ev.raw.tags || []
                         } : {},
-                        ...(ev.nip ? { nip: ev.nip } : {})
+                        ...(ev.nip ? { nip: ev.nip } : {}),
+                        ...(ev.relayScope ? { relayScope: ev.relayScope } : {})
                     }));
                     convArr.push({ type: c.type, id, members: c.members || [], events });
                 }
@@ -906,7 +939,8 @@
                                 created_at: ev.raw.created_at,
                                 tags: ev.raw.tags
                             } : {},
-                            ...(ev.nip ? { nip: ev.nip } : {})
+                            ...(ev.nip ? { nip: ev.nip } : {}),
+                            ...(ev.relayScope ? { relayScope: ev.relayScope } : {})
                         }));
                     conversations.set(c.id, { type: c.type, id: c.id, members: c.members || [], events });
                 }
@@ -2106,6 +2140,18 @@
 
         const ENC_LOCK = '🔒';
         const ENC_GLOBE = '🌐';
+        const RELAY_SCOPE_AUTH = '🔐';
+        const RELAY_SCOPE_PUBLIC = '🌍';
+
+        function getRelayScopeForDisplay(eventLike, conversation) {
+            if (eventLike?.relayScope === 'public' || eventLike?.relayScope === 'auth') {
+                return eventLike.relayScope;
+            }
+            // Backward-compatible fallback for older cached/received events without relay scope metadata.
+            // We default to public marker so every message has a transport icon.
+            if (conversation?.type === 'channel') return 'public';
+            return 'public';
+        }
 
         function getChannelTagsSummary(events) {
             const seen = new Set();
@@ -2154,33 +2200,18 @@
             const ordered = globalEntry ? [globalEntry, ...rest] : rest;
             ordered.forEach(({ id, type, members, events }) => {
                 let label = id;
-                let encIcon = ENC_GLOBE;
-                let encTitle = 'Unencrypted (public)';
                 if (type === 'dm') {
                     label = getDisplayNameShort(id) || hexToNpub(id) || id;
-                    encIcon = ENC_LOCK;
-                    encTitle = 'Encrypted';
                 } else if (type === 'group') {
                     label = `Group (${members.length})`;
-                    encIcon = ENC_LOCK;
-                    encTitle = 'Encrypted';
                 } else if (type === 'channel') {
                     label = id === GLOBAL_CHANNEL_SLUG ? 'Global' : '#' + id;
-                    encIcon = ENC_GLOBE;
-                    encTitle = 'Unencrypted (public)';
                 }
-                let tagsLine = '';
-                if (type === 'channel' && events.length) tagsLine = getChannelTagsSummary(events);
                 const item = document.createElement('div');
                 item.className = 'conv-item' + (selectedConversationId === id ? ' selected' : '');
                 item.dataset.convId = id;
                 const safeLabel = (function escape(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); })(label);
-                const safeTags = (function escape(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); })(tagsLine);
-                if (tagsLine) {
-                    item.innerHTML = `<span class="enc-icon" title="${encTitle}">${encIcon}</span><div class="label-wrap"><span class="label">${safeLabel}</span><span class="tags-line" title="${safeTags}">${safeTags}</span></div>`;
-                } else {
-                    item.innerHTML = `<span class="enc-icon" title="${encTitle}">${encIcon}</span><span class="label">${safeLabel}</span>`;
-                }
+                item.innerHTML = `<span class="label">${safeLabel}</span>`;
                 item.onclick = () => selectConversation(id);
                 list.appendChild(item);
             });
@@ -2447,11 +2478,26 @@
                 const hour = String(messageDate.getHours()).padStart(2, '0');
                 const minute = String(messageDate.getMinutes()).padStart(2, '0');
                 const timeStr = `${year}-${month}-${day} ${hour}:${minute}`;
-                if (isChannel && !isSelf) {
-                    meta.innerHTML = `<span class="time">${timeStr}</span>`;
-                } else {
-                    meta.innerHTML = `<span class="time">${timeStr}</span>`;
+                const metaMain = document.createElement('span');
+                metaMain.className = 'message-meta-main';
+                metaMain.innerHTML = `<span class="time">${timeStr}</span>`;
+                meta.appendChild(metaMain);
+                const confidentialityPill = document.createElement('span');
+                confidentialityPill.className = 'message-privacy-pill';
+                const isEncryptedConversation = conv.type === 'dm' || conv.type === 'group';
+                if (isEncryptedConversation) {
+                    confidentialityPill.textContent = ENC_LOCK;
+                    confidentialityPill.title = 'Encrypted message content (independent of relay type)';
+                    metaMain.appendChild(confidentialityPill);
                 }
+                const relayScopeForDisplay = getRelayScopeForDisplay(ev, conv);
+                const relayPill = document.createElement('span');
+                relayPill.className = 'message-relay-pill';
+                relayPill.textContent = relayScopeForDisplay === 'auth' ? RELAY_SCOPE_AUTH : RELAY_SCOPE_PUBLIC;
+                relayPill.title = relayScopeForDisplay === 'auth'
+                    ? 'Posted only to auth-required relays'
+                    : 'Posted to public relay';
+                metaMain.appendChild(relayPill);
                 if ((conv.type === 'dm' || conv.type === 'group') && ev.nip) {
                     const pill = document.createElement('span');
                     pill.className = 'message-nip-pill';
@@ -2595,9 +2641,18 @@
                 };
                 template.id = getEventHash(template);
                 signEvent(template).then(signed => {
-                    pool.publish(getPublishRelayUrls(), signed);
+                    const publishRelayUrls = getPublishRelayUrls();
+                    pool.publish(publishRelayUrls, signed);
                     eventAuthorById.set(signed.id, currentPublicKey);
-                    conv.events.push({ id: signed.id, pubkey: currentPublicKey, content: text, created_at: template.created_at, raw: signed, nip: result.nip });
+                    conv.events.push({
+                        id: signed.id,
+                        pubkey: currentPublicKey,
+                        content: text,
+                        created_at: template.created_at,
+                        raw: signed,
+                        nip: result.nip,
+                        relayScope: getRelayScopeFromRelayUrls(publishRelayUrls)
+                    });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
                     scheduleChatCacheWrite();
                     input.value = '';
@@ -2617,6 +2672,7 @@
                 };
                 rumor.id = getEventHash(rumor);
                 const membersToSend = conv.members;
+                const publishRelayUrls = getPublishRelayUrls();
                 (async () => {
                     for (const memberPubkey of membersToSend) {
                         try {
@@ -2637,11 +2693,19 @@
                                 created_at: Math.floor(Date.now() / 1000) - Math.floor(Math.random() * 86400),
                                 pubkey: getPublicKey(ephem)
                             }, ephem);
-                            pool.publish(getPublishRelayUrls(), wrap);
+                            pool.publish(publishRelayUrls, wrap);
                         } catch (_) {}
                     }
                     eventAuthorById.set(rumor.id, currentPublicKey);
-                    conv.events.push({ id: rumor.id, pubkey: currentPublicKey, content: text, created_at: rumor.created_at, raw: rumor, nip: 'nip17' });
+                    conv.events.push({
+                        id: rumor.id,
+                        pubkey: currentPublicKey,
+                        content: text,
+                        created_at: rumor.created_at,
+                        raw: rumor,
+                        nip: 'nip17',
+                        relayScope: getRelayScopeFromRelayUrls(publishRelayUrls)
+                    });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
                     scheduleChatCacheWrite();
                     document.getElementById('compose-input').value = '';
@@ -2668,9 +2732,17 @@
                 };
                 template.id = getEventHash(template);
                 signEvent(template).then(signed => {
-                    pool.publish(getPublishRelayUrls(), signed);
+                    const publishRelayUrls = getPublishRelayUrls();
+                    pool.publish(publishRelayUrls, signed);
                     eventAuthorById.set(signed.id, currentPublicKey);
-                    conv.events.push({ id: signed.id, pubkey: currentPublicKey, content: text, created_at: template.created_at, raw: signed });
+                    conv.events.push({
+                        id: signed.id,
+                        pubkey: currentPublicKey,
+                        content: text,
+                        created_at: template.created_at,
+                        raw: signed,
+                        relayScope: getRelayScopeFromRelayUrls(publishRelayUrls)
+                    });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
                     scheduleChatCacheWrite();
                     document.getElementById('compose-input').value = '';

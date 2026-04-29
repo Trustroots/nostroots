@@ -134,10 +134,10 @@
         if (!url) return '';
         var normalized = String(url).trim().toLowerCase();
         if (normalized === 'wss://nip42.trustroots.org') {
-            return 'Restricted relay: reading from and writing to this relay requires a Trustroots profile linked to your Nostr identity.';
+            return '🔐 Auth relay (NIP-42): reading from and writing to this relay requires a Trustroots profile linked to your Nostr identity.';
         }
         if (normalized === 'wss://relay.trustroots.org' || normalized === 'wss://relay.nomadwiki.org') {
-            return 'Public relay: readable by anyone.';
+            return '🌍 Public relay: readable by anyone.';
         }
         return '';
     }
@@ -192,7 +192,7 @@
             var encodedUrl = encodeURIComponent(url);
             var accessHint = relayAccessHint(url);
             var localPrivacyHint = showLocalPrivacyHint && isLocalRelayUrl(url)
-                ? '<div class="relay-privacy-hint">More private (local relay)</div>'
+                ? '<div class="relay-privacy-hint">🔐 More private (local relay)</div>'
                 : '';
             var relayHintHtml = accessHint
                 ? '<div class="relay-privacy-hint">' + escapeHtml(accessHint) + '</div>'

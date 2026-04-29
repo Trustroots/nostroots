@@ -76,11 +76,44 @@
         color: #93c5fd;
         margin-top: 4px;
         white-space: pre-wrap;
-        max-height: 6.5em;
+        max-height: 10em;
         overflow-y: auto;
       }
       .status-card {
         padding: 8px 10px;
+      }
+      .kind-filter-controls {
+        display: flex;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .kind-filter-controls button {
+        width: auto;
+        padding: 6px 10px;
+        font-size: 0.8rem;
+      }
+      .kind-filter-list {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px 10px;
+        max-height: 140px;
+        overflow-y: auto;
+      }
+      .kind-filter-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border: 1px solid #374151;
+        border-radius: 999px;
+        padding: 4px 8px;
+        background: #111827;
+        font-size: 0.8rem;
+      }
+      .kind-filter-item input {
+        width: auto;
+        margin: 0;
+        padding: 0;
       }
       .notes {
         display: grid;
@@ -114,6 +147,21 @@
       code {
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       }
+      .raw-log {
+        margin-top: 8px;
+        max-height: 180px;
+        overflow-y: auto;
+        overflow-x: hidden;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        padding: 8px;
+        background: #0b1220;
+        font-size: 0.75rem;
+        line-height: 1.35;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
       @media (min-width: 900px) {
         .layout {
           grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1.25fr);
@@ -134,7 +182,7 @@
           <section class="card">
             <div>
               <label for="relayUrl">Relay URL</label>
-              <input id="relayUrl" value="wss://nip42.trustroots.org" />
+              <input id="relayUrl" value="wss://relay.trustroots.org" />
             </div>
           </section>
           <section class="card">
@@ -157,6 +205,16 @@
           <section class="card status-card">
             <div><strong>Status</strong></div>
             <div id="status" class="status">Idle.</div>
+            <div id="rawLog" class="raw-log"></div>
+          </section>
+
+          <section class="card">
+            <div><strong>Kinds filter</strong></div>
+            <div class="kind-filter-controls">
+              <button id="kindsAllBtn" type="button" class="secondary">Show all</button>
+              <button id="kindsNoneBtn" type="button" class="secondary">Hide all</button>
+            </div>
+            <div id="kindFilterList" class="kind-filter-list"></div>
           </section>
         </div>
 
@@ -174,9 +232,13 @@
       const relayUrlInput = document.getElementById("relayUrl");
       const nsecInput = document.getElementById("nsec");
       const statusEl = document.getElementById("status");
+      const rawLogEl = document.getElementById("rawLog");
       const notesEl = document.getElementById("notes");
       const connectBtn = document.getElementById("connectBtn");
       const closeBtn = document.getElementById("closeBtn");
+      const kindsAllBtn = document.getElementById("kindsAllBtn");
+      const kindsNoneBtn = document.getElementById("kindsNoneBtn");
+      const kindFilterListEl = document.getElementById("kindFilterList");
 
       let ws = null;
       let subId = null;
@@ -185,10 +247,13 @@
       let secretKey = null;
       let noteEvents = [];
       let statusLines = [];
-      const watchedKinds = [1, 30397, 30398, 10390, 10395];
+      let rawLines = [];
+      const discoveredKinds = new Set();
+      const hiddenKinds = new Set();
       const nsecStorageKey = "nip42test.nsec";
       const relayUrlStorageKey = "nip42test.relayUrl";
-      const STATUS_MAX_LINES = 8;
+      const STATUS_MAX_LINES = 20;
+      const RAW_MAX_LINES = 120;
 
       function setStatus(message) {
         statusLines = [message];
@@ -201,6 +266,14 @@
           statusLines = statusLines.slice(-STATUS_MAX_LINES);
         }
         statusEl.textContent = statusLines.join("\n");
+      }
+
+      function addRaw(message) {
+        rawLines.push(message);
+        if (rawLines.length > RAW_MAX_LINES) {
+          rawLines = rawLines.slice(-RAW_MAX_LINES);
+        }
+        rawLogEl.textContent = rawLines.join("\n");
       }
 
       function closeSocket() {
@@ -238,11 +311,8 @@
           if (!secretKey || secretKey.length !== 32) throw new Error("Invalid nsec key payload.");
           authPubkey = getPublicKey(secretKey);
           addStatus(`Auth: local key ${authPubkey.slice(0, 8)}...`);
-        } else if (window.nostr?.getPublicKey && window.nostr?.signEvent) {
-          authPubkey = (await window.nostr.getPublicKey()).toLowerCase();
-          addStatus(`Auth: extension key ${authPubkey.slice(0, 8)}...`);
         } else {
-          throw new Error("No auth method available: provide nsec or use a NIP-07 extension.");
+          throw new Error("No auth method available: provide nsec.");
         }
       }
 
@@ -263,7 +333,7 @@
         if (secretKey) {
           evt = finalizeEvent(unsigned, secretKey);
         } else {
-          evt = await window.nostr.signEvent(unsigned);
+          throw new Error("Missing nsec for AUTH signing.");
         }
         if (!verifyEvent(evt)) throw new Error("Signed AUTH event failed verification.");
         ws.send(JSON.stringify(["AUTH", evt]));
@@ -297,12 +367,48 @@
           return (b.id || "").localeCompare(a.id || "");
         });
         sorted.forEach((event) => {
+          if (hiddenKinds.has(event.kind)) return;
           notesEl.appendChild(renderNote(event));
+        });
+      }
+
+      function renderKindFilters() {
+        kindFilterListEl.innerHTML = "";
+        const kinds = [...discoveredKinds].sort((a, b) => a - b);
+        if (kinds.length === 0) {
+          kindFilterListEl.textContent = "No kinds discovered yet.";
+          return;
+        }
+        kinds.forEach((kind) => {
+          const label = document.createElement("label");
+          label.className = "kind-filter-item";
+
+          const checkbox = document.createElement("input");
+          checkbox.type = "checkbox";
+          checkbox.checked = !hiddenKinds.has(kind);
+          checkbox.addEventListener("change", () => {
+            if (checkbox.checked) {
+              hiddenKinds.delete(kind);
+            } else {
+              hiddenKinds.add(kind);
+            }
+            renderNotesList();
+          });
+
+          const text = document.createElement("code");
+          text.textContent = String(kind);
+          label.appendChild(checkbox);
+          label.appendChild(text);
+          kindFilterListEl.appendChild(label);
         });
       }
 
       function upsertNoteEvent(event) {
         if (!event?.id) return;
+        if (typeof event.kind === "number" && !discoveredKinds.has(event.kind)) {
+          discoveredKinds.add(event.kind);
+          renderKindFilters();
+        }
         const idx = noteEvents.findIndex((item) => item.id === event.id);
         if (idx === -1) {
           noteEvents.push(event);
@@ -356,7 +462,8 @@
 
       function subscribeNotes() {
         subId = `notes-${Date.now()}`;
-        const filter = { kinds: watchedKinds, limit: 100 };
+        // No "kinds" or "limit" filter: ask relay for all matching events.
+        const filter = {};
         ws.send(JSON.stringify(["REQ", subId, filter]));
         addStatus("REQ notes sent");
       }
@@ -380,6 +487,16 @@
         const savedRelayUrl = localStorage.getItem(relayUrlStorageKey);
         if (savedRelayUrl) {
           relayUrlInput.value = savedRelayUrl;
+        } else {
+          // Fallback to shared relay list used by other nr-web pages (e.g. chat.html).
+          const sharedRelayList = localStorage.getItem("relay_urls");
+          if (sharedRelayList) {
+            const firstRelay = sharedRelayList
+              .split(/\r?\n/)
+              .map((url) => url.trim())
+              .find((url) => url);
+            if (firstRelay) relayUrlInput.value = firstRelay;
+          }
         }
         const savedNsec = localStorage.getItem(nsecStorageKey);
         if (savedNsec) {
@@ -407,6 +524,8 @@
         }
 
         setStatus(`Connecting to ${relayUrl} ...`);
+        rawLines = [];
+        rawLogEl.textContent = "";
         ws = new WebSocket(relayUrl);
 
         ws.addEventListener("open", async () => {
@@ -418,8 +537,10 @@
           let data;
           try {
             data = JSON.parse(msg.data);
+            addRaw(`< ${JSON.stringify(data)}`);
           } catch {
             addStatus(`Non-JSON message: ${String(msg.data)}`);
+            addRaw(`< [non-json] ${String(msg.data)}`);
             return;
           }
 
@@ -460,7 +581,7 @@
 
           if (type === "EVENT") {
             const event = b;
-            if (watchedKinds.includes(event?.kind)) upsertNoteEvent(event);
+            if (event && typeof event.kind === "number") upsertNoteEvent(event);
             return;
           }
 
@@ -474,6 +595,19 @@
       closeBtn.addEventListener("click", () => {
         closeSocket();
         addStatus("Disconnected by user.");
+      });
+
+      kindsAllBtn.addEventListener("click", () => {
+        hiddenKinds.clear();
+        renderKindFilters();
+        renderNotesList();
+      });
+
+      kindsNoneBtn.addEventListener("click", () => {
+        hiddenKinds.clear();
+        discoveredKinds.forEach((kind) => hiddenKinds.add(kind));
+        renderKindFilters();
+        renderNotesList();
       });
     </script>
   </body>

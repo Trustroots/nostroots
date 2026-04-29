@@ -141,6 +141,13 @@
             return {};
         }
 
+        function getDefaultRelayPostEnabled(url) {
+            if (relaySettings?.getDefaultRelayPostEnabled) {
+                return relaySettings.getDefaultRelayPostEnabled(url);
+            }
+            return true;
+        }
+
         function saveRelayWritePreferences() {
             if (relaySettings?.saveRelayWritePreferences) {
                 relaySettings.saveRelayWritePreferences(getRelayUrls(), relayWriteEnabled);
@@ -150,7 +157,10 @@
         function initializeRelaySettingsState(urls, status = 'disconnected') {
             const prefs = getSavedRelayWritePreferences();
             urls.forEach((url) => {
-                const canWrite = prefs[url] !== false;
+                const hasSavedPreference = Object.prototype.hasOwnProperty.call(prefs, url);
+                const canWrite = hasSavedPreference
+                    ? prefs[url] !== false
+                    : getDefaultRelayPostEnabled(url);
                 relayWriteEnabled.set(url, canWrite);
                 relayStatus.set(url, { status, canWrite });
             });

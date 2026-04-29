@@ -7,7 +7,8 @@
     // --- Blocklist (shared by index + chat) ---
     /** Npubs to block; pages decode to hex and call setBlocklistHex. */
     var BLOCKLIST_NPUBS = [
-        'npub1ld69y3drhnc0k4lr2qs0adthae8npal8hfmpm9tyq7jtujkk66ws5lp53h'
+        'npub1ld69y3drhnc0k4lr2qs0adthae8npal8hfmpm9tyq7jtujkk66ws5lp53h',
+        'npub17k78z6f0cz822tqdrj9ulwr409vyzp44l66w54ptrw9f2cf0y4asw3ay0f'
     ];
     var BLOCKLIST_HEX = null;
 
@@ -129,6 +130,28 @@
         return 'Disconnected';
     }
 
+    function relayAccessHint(url) {
+        if (!url) return '';
+        var normalized = String(url).trim().toLowerCase();
+        if (normalized === 'wss://nip42.trustroots.org') {
+            return 'Restricted relay: reading from and writing to this relay requires a Trustroots profile linked to your Nostr identity.';
+        }
+        if (normalized === 'wss://relay.trustroots.org' || normalized === 'wss://relay.nomadwiki.org') {
+            return 'Public relay: readable by anyone.';
+        }
+        return '';
+    }
+
+    function isPublicRelayUrl(url) {
+        if (!url) return false;
+        var normalized = String(url).trim().toLowerCase();
+        return normalized === 'wss://relay.trustroots.org' || normalized === 'wss://relay.nomadwiki.org';
+    }
+
+    function getDefaultRelayPostEnabled(url) {
+        return !isPublicRelayUrl(url);
+    }
+
     function renderRelaysList(container, options) {
         if (!container) return;
         var opts = options || {};
@@ -167,9 +190,13 @@
                 ? relayWriteEnabledMap.get(url) !== false
                 : (status && status.canWrite !== false);
             var encodedUrl = encodeURIComponent(url);
+            var accessHint = relayAccessHint(url);
             var localPrivacyHint = showLocalPrivacyHint && isLocalRelayUrl(url)
-                ? '<div class="relay-privacy-hint">More private (NIP-42 + Trustroots NIP-5)</div>'
+                ? '<div class="relay-privacy-hint">More private (local relay)</div>'
                 : '';
+            var relayHintHtml = accessHint
+                ? '<div class="relay-privacy-hint">' + escapeHtml(accessHint) + '</div>'
+                : localPrivacyHint;
             var postToggleHtml = allowPostToggle
                 ? '<label class="relay-post-toggle" title="When off, this relay is read-only">' +
                   '<input type="checkbox" ' + (postEnabled ? 'checked' : '') +
@@ -185,7 +212,7 @@
             item.className = 'relay-item';
             item.innerHTML =
                 '<div class="relay-status-indicator ' + escapeHtml(indicatorStatusClass) + '" title="' + escapeHtml(indicatorStatusText) + '"></div>' +
-                '<div class="relay-url-wrap"><div class="relay-url">' + escapeHtml(url) + '</div>' + localPrivacyHint + '</div>' +
+                '<div class="relay-url-wrap"><div class="relay-url">' + escapeHtml(url) + '</div>' + relayHintHtml + '</div>' +
                 '<div class="relay-controls">' + postToggleHtml + removeButtonHtml + '</div>';
             container.appendChild(item);
         });
@@ -198,9 +225,93 @@
         saveRelayUrls: saveRelayUrls,
         getRelayWritePreferences: getRelayWritePreferences,
         saveRelayWritePreferences: saveRelayWritePreferences,
+        getDefaultRelayPostEnabled: getDefaultRelayPostEnabled,
         isLocalRelayUrl: isLocalRelayUrl,
         normalizeRelayUrlInput: normalizeRelayUrlInput,
         renderRelaysList: renderRelaysList
+    };
+
+    // --- Shared keys modal helpers (index + chat) ---
+    function setDisplayById(id, displayValue) {
+        var el = global.document.getElementById(id);
+        if (el) el.style.display = displayValue;
+    }
+
+    function setKeysModalSections(hasKey) {
+        if (!hasKey) {
+            setDisplayById('keys-welcome-section', 'block');
+            setDisplayById('keys-import-section', 'block');
+            setDisplayById('keys-generate-section', 'block');
+            setDisplayById('keys-manage-section', 'none');
+            setDisplayById('keys-trustroots-section', 'none');
+            return;
+        }
+        setDisplayById('keys-welcome-section', 'none');
+        setDisplayById('keys-import-section', 'none');
+        setDisplayById('keys-generate-section', 'none');
+        setDisplayById('keys-manage-section', 'block');
+        setDisplayById('keys-trustroots-section', 'block');
+    }
+
+    function openKeysModal(options) {
+        var opts = options || {};
+        var keysEl = global.document.getElementById(opts.keysModalId || 'keys-modal');
+        if (!keysEl) return false;
+        var settingsEl = global.document.getElementById(opts.settingsModalId || 'settings-modal');
+        if (settingsEl) settingsEl.classList.remove('active');
+        keysEl.classList.add('active');
+        setKeysModalSections(!!opts.hasKey);
+        if (opts.hasKey && typeof opts.onOpenManagedSection === 'function') {
+            opts.onOpenManagedSection();
+        }
+        if (typeof opts.setRoute === 'function') {
+            opts.setRoute(opts.route || 'keys');
+        }
+        return true;
+    }
+
+    function closeKeysModal(options) {
+        var opts = options || {};
+        var keysEl = global.document.getElementById(opts.keysModalId || 'keys-modal');
+        if (keysEl) keysEl.classList.remove('active');
+        if (typeof opts.setRoute === 'function') {
+            opts.setRoute(opts.fallbackRoute || '');
+        }
+    }
+
+    function updateKeyDisplay(options) {
+        var opts = options || {};
+        var hasNsec = !!opts.hasNsec;
+        var hasPublicKey = !!opts.hasPublicKey;
+        var npub = typeof opts.npub === 'string' ? opts.npub : '';
+        var npubError = typeof opts.npubError === 'string' ? opts.npubError : 'Error encoding npub';
+        var isProfileLinked = opts.isProfileLinked === true;
+
+        setDisplayById('nsec-actions-group', hasNsec ? 'block' : 'none');
+        setDisplayById('no-nsec-actions-group', hasNsec ? 'none' : 'block');
+        setDisplayById('generate-key-group', hasNsec ? 'none' : 'block');
+
+        var npubDisplay = global.document.getElementById('npub-display');
+        if (hasPublicKey) {
+            if (npubDisplay) npubDisplay.value = npub || npubError;
+            setDisplayById('npub-display-group', 'block');
+            setDisplayById('key-section-divider', 'block');
+            setDisplayById('update-trustroots-profile-group', isProfileLinked ? 'none' : 'block');
+        } else {
+            if (npubDisplay) npubDisplay.value = '';
+            setDisplayById('npub-display-group', 'none');
+            setDisplayById('key-section-divider', 'none');
+            setDisplayById('update-trustroots-profile-group', 'none');
+        }
+
+        var keysBtn = global.document.getElementById('keys-icon-btn');
+        if (keysBtn) keysBtn.title = hasPublicKey ? 'Keys' : 'Connect';
+    }
+
+    global.NrWebKeysModal = {
+        openKeysModal: openKeysModal,
+        closeKeysModal: closeKeysModal,
+        updateKeyDisplay: updateKeyDisplay
     };
 
     // --- Shared NIP-42 WS auth subscription helper (index + chat + pixel) ---
@@ -217,74 +328,137 @@
         var onOpen = opts.onOpen;
         var onClose = opts.onClose;
         var onError = opts.onError;
+        var connectDelayMs = typeof opts.connectDelayMs === 'number' ? Math.max(0, opts.connectDelayMs) : 350;
+        var maxReconnectAttempts = typeof opts.maxReconnectAttempts === 'number' ? Math.max(0, opts.maxReconnectAttempts) : 2;
+        var reconnectBaseDelayMs = typeof opts.reconnectBaseDelayMs === 'number' ? Math.max(50, opts.reconnectBaseDelayMs) : 500;
         if (!relayUrl) throw new Error('relayUrl is required');
         if (typeof onEvent !== 'function') throw new Error('onEvent callback is required');
         if (typeof signEvent !== 'function') throw new Error('signEvent callback is required');
 
-        var ws = new WebSocket(relayUrl);
         var subId = 'ws-sub-' + Date.now() + '-' + Math.random().toString(16).slice(2, 8);
+        var ws = null;
+        var closedByUser = false;
+        var attempt = 0;
+        var connectTimer = null;
 
         function sendReq() {
-            ws.send(JSON.stringify(['REQ', subId, filter]));
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(['REQ', subId, filter]));
+            }
         }
 
-        ws.addEventListener('open', function () {
-            if (typeof onOpen === 'function') onOpen(relayUrl);
-            sendReq();
-        });
+        function clearConnectTimer() {
+            if (connectTimer) {
+                clearTimeout(connectTimer);
+                connectTimer = null;
+            }
+        }
 
-        ws.addEventListener('message', function (msg) {
-            var data = null;
+        function scheduleConnect(delayMs) {
+            if (closedByUser) return;
+            clearConnectTimer();
+            connectTimer = setTimeout(function () {
+                connectTimer = null;
+                connect();
+            }, Math.max(0, delayMs));
+        }
+
+        function scheduleReconnect(lastError) {
+            if (closedByUser) return;
+            if (attempt >= maxReconnectAttempts) {
+                if (typeof onError === 'function' && lastError) onError(relayUrl, lastError);
+                return;
+            }
+            attempt += 1;
+            var backoffMs = reconnectBaseDelayMs * attempt;
+            scheduleConnect(backoffMs);
+        }
+
+        function connect() {
+            if (closedByUser) return;
             try {
-                data = JSON.parse(msg.data);
-            } catch (_) {
-                return;
-            }
-            var type = data[0];
-            var a = data[1];
-            var b = data[2];
-
-            if (type === 'AUTH') {
-                if (typeof onAuthChallenge === 'function') onAuthChallenge(relayUrl, a);
-                Promise.resolve().then(function () {
-                    var template = {
-                        kind: 22242,
-                        created_at: Math.floor(Date.now() / 1000),
-                        tags: [
-                            ['relay', relayUrl],
-                            ['challenge', a]
-                        ],
-                        content: '',
-                        pubkey: authPubkey
-                    };
-                    return signEvent(template);
-                }).then(function (signedAuth) {
-                    ws.send(JSON.stringify(['AUTH', signedAuth]));
-                    if (typeof onAuthSuccess === 'function') onAuthSuccess(relayUrl);
-                    // Retry reads after AUTH, matching test page behavior.
-                    sendReq();
-                }).catch(function (err) {
-                    if (typeof onAuthFail === 'function') onAuthFail(relayUrl, err);
-                });
+                ws = new WebSocket(relayUrl);
+            } catch (err) {
+                scheduleReconnect(err);
                 return;
             }
 
-            if (type === 'EVENT') {
-                onEvent(b, relayUrl, data);
+            var hasOpened = false;
+            var reconnectScheduled = false;
+
+            function maybeReconnect(err) {
+                if (reconnectScheduled || closedByUser) return;
+                reconnectScheduled = true;
+                scheduleReconnect(err);
             }
-        });
 
-        ws.addEventListener('error', function (err) {
-            if (typeof onError === 'function') onError(relayUrl, err);
-        });
+            ws.addEventListener('open', function () {
+                hasOpened = true;
+                attempt = 0;
+                if (typeof onOpen === 'function') onOpen(relayUrl);
+                sendReq();
+            });
 
-        ws.addEventListener('close', function (ev) {
-            if (typeof onClose === 'function') onClose(relayUrl, ev);
-        });
+            ws.addEventListener('message', function (msg) {
+                var data = null;
+                try {
+                    data = JSON.parse(msg.data);
+                } catch (_) {
+                    return;
+                }
+                var type = data[0];
+                var a = data[1];
+                var b = data[2];
+
+                if (type === 'AUTH') {
+                    if (typeof onAuthChallenge === 'function') onAuthChallenge(relayUrl, a);
+                    Promise.resolve().then(function () {
+                        var template = {
+                            kind: 22242,
+                            created_at: Math.floor(Date.now() / 1000),
+                            tags: [
+                                ['relay', relayUrl],
+                                ['challenge', a]
+                            ],
+                            content: '',
+                            pubkey: authPubkey
+                        };
+                        return signEvent(template);
+                    }).then(function (signedAuth) {
+                        ws.send(JSON.stringify(['AUTH', signedAuth]));
+                        if (typeof onAuthSuccess === 'function') onAuthSuccess(relayUrl);
+                        // Retry reads after AUTH, matching test page behavior.
+                        sendReq();
+                    }).catch(function (err) {
+                        if (typeof onAuthFail === 'function') onAuthFail(relayUrl, err);
+                    });
+                    return;
+                }
+
+                if (type === 'EVENT') {
+                    onEvent(b, relayUrl, data);
+                }
+            });
+
+            ws.addEventListener('error', function (err) {
+                // Browser may emit transient errors during initial page load. Reconnect first,
+                // and only surface onError after retries are exhausted.
+                if (!hasOpened) maybeReconnect(err);
+                if (typeof onError === 'function' && hasOpened) onError(relayUrl, err);
+            });
+
+            ws.addEventListener('close', function (ev) {
+                if (typeof onClose === 'function') onClose(relayUrl, ev);
+                if (!closedByUser && !hasOpened) maybeReconnect(ev);
+            });
+        }
+        scheduleConnect(connectDelayMs);
 
         return {
             close: function () {
-                try { ws.close(); } catch (_) {}
+                closedByUser = true;
+                clearConnectTimer();
+                try { if (ws) ws.close(); } catch (_) {}
             }
         };
     }
@@ -292,6 +466,40 @@
     global.NrWebRelayAuth = {
         startNip42WsSubscription: startNip42WsSubscription
     };
+
+    var MOBILE_APP_LINKS = [
+        {
+            id: 'android',
+            href: 'https://github.com/Trustroots/nostroots/releases',
+            label: 'Android',
+            icon: '🤖',
+            title: 'Download Android APK from GitHub releases'
+        },
+        {
+            id: 'ios',
+            href: 'https://testflight.apple.com/join/n5WGu8Hu',
+            label: 'iOS',
+            icon: '🍎',
+            title: 'Join iOS beta on TestFlight'
+        }
+    ];
+
+    function buildMobileAppLinksMarkup() {
+        var links = MOBILE_APP_LINKS.map(function (item) {
+            return '<a class="app-header-mobile-link app-header-mobile-link-' + escapeHtml(item.id) + '"' +
+                ' href="' + escapeHtml(item.href) + '"' +
+                ' title="' + escapeHtml(item.title) + '"' +
+                ' aria-label="' + escapeHtml(item.title) + '"' +
+                ' target="_blank" rel="noopener noreferrer">' +
+                '<span class="app-header-mobile-link-icon" aria-hidden="true">' + escapeHtml(item.icon) + '</span>' +
+                '<span class="app-header-mobile-link-label">' + escapeHtml(item.label) + '</span>' +
+                '</a>';
+        }).join('');
+        return '<div class="app-header-mobile-links-wrap" aria-label="Mobile apps">' +
+            '<div class="app-header-mobile-links">' + links + '</div>' +
+            '<p class="app-header-mobile-hint">Mobile app is more stable. Web is more experimental and has more features.</p>' +
+            '</div>';
+    }
 
     // --- Shared header (index + chat) ---
     // Fill <header id="app-header" data-page-title="..." data-nav-href="..." ...>
@@ -314,6 +522,7 @@
             '<img src="https://notes.trustroots.org/logo.svg" alt="Trustroots" class="app-header-logo" width="140" height="32">' +
             '<h1>' + escapeHtml(pageTitle) + '</h1>' +
             '<a href="' + escapeHtml(navHref) + '" class="app-header-nav-link" title="' + escapeHtml(navTitle) + '" aria-label="' + escapeHtml(navAriaLabel) + '">' + escapeHtml(navIcon) + '</a>' +
+            buildMobileAppLinksMarkup() +
             '</div>' +
             '<div class="app-header-actions">' +
             '<button type="button" class="keys-icon header-identity-btn" id="keys-icon-btn" title="Keys">' +

@@ -38,14 +38,17 @@ describe('Relay Management', () => {
       expect(stored['wss://nip42.trustroots.org']).toBe(false);
     });
 
-    it('defaults to post enabled when relay has no saved preference', () => {
+    it('defaults to post disabled for public relays when no preference is saved', () => {
       const saved = { 'wss://relay.trustroots.org': false };
       localStorage.setItem('relay_write_enabled', JSON.stringify(saved));
 
       const stored = JSON.parse(localStorage.getItem('relay_write_enabled') || '{}');
       const relayUrl = 'wss://relay.nomadwiki.org';
-      const canPost = stored[relayUrl] !== false;
-      expect(canPost).toBe(true);
+      const isPublicRelay = relayUrl === 'wss://relay.trustroots.org' || relayUrl === 'wss://relay.nomadwiki.org';
+      const canPost = Object.prototype.hasOwnProperty.call(stored, relayUrl)
+        ? stored[relayUrl] !== false
+        : !isPublicRelay;
+      expect(canPost).toBe(false);
     });
 
     it('handles missing relay write preferences', () => {
@@ -89,7 +92,7 @@ describe('Relay Management', () => {
 
     it('detects loopback relay hosts for local privacy hint', () => {
       const localRelayUrls = [
-        'wss://nip42.trustroots.org',
+        'ws://localhost:8042',
         'ws://127.0.0.1:8042',
         'ws://[::1]:8042',
       ];

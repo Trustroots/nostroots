@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- MapLibre GL CSS -->
-    <link href="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <link href="https://unpkg.com/maplibre-gl@5.11.0/dist/maplibre-gl.css" rel="stylesheet" />
     <script>
         (function loadLocalStylesheets() {
             const version = Date.now();
@@ -1347,21 +1347,30 @@
     <!-- Keys and Settings modals injected by common.js from modals-keys-settings.html -->
 
     <!-- MapLibre GL JS -->
-    <script src="https://unpkg.com/maplibre-gl@5.9.0/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/maplibre-gl@5.11.0/dist/maplibre-gl.js"></script>
     
-    <!-- Suppress WebGL deprecation warning from MapLibre GL -->
+    <!-- Suppress Firefox WebGL deprecation warnings from MapLibre GL internals -->
     <script>
-        // Filter out the harmless WebGL deprecation warning from MapLibre GL JS
+        // Firefox logs this deprecation for non-DOM texture uploads used by MapLibre internals.
+        // Keep console noise down while preserving all other warnings/errors.
+        const isDeprecatedWebGLUploadWarning = (...args) => {
+            const message = args.join(' ');
+            return (
+                (message.includes('texImage') || message.includes('texSubImage')) &&
+                (message.includes('Alpha-premult') || message.includes('y-flip'))
+            );
+        };
+
         const originalWarn = console.warn;
         console.warn = function(...args) {
-            const message = args.join(' ');
-            // Suppress the specific WebGL texture upload deprecation warning
-            if (message.includes('texImage') && 
-                (message.includes('Alpha-premult') || message.includes('y-flip'))) {
-                return; // Suppress this specific warning
-            }
-            // Pass through all other warnings
+            if (isDeprecatedWebGLUploadWarning(...args)) return;
             originalWarn.apply(console, args);
+        };
+
+        const originalError = console.error;
+        console.error = function(...args) {
+            if (isDeprecatedWebGLUploadWarning(...args)) return;
+            originalError.apply(console, args);
         };
     </script>
     
@@ -1410,9 +1419,26 @@
             const s = errorStr.replace(/^Error:\s*/i, '').trim();
             return s.replace(/^error:\s*/i, '').trim() || s;
         }
+        function isTrustrootsProfileMissingRelayError(errorStr) {
+            const normalized = (errorStr || '').toLowerCase();
+            return normalized.includes('restricted') && normalized.includes('no trustroots username profile event found');
+        }
+        function markRelaysWithPublishFailures(failed) {
+            failed.forEach((failure) => {
+                if (!failure?.url) return;
+                if (isTrustrootsProfileMissingRelayError(failure.error)) {
+                    const canWrite = relayWriteEnabled.get(failure.url) !== false;
+                    updateRelayStatus(failure.url, 'error', canWrite);
+                }
+            });
+        }
         /** If any failure is a relay "internal error", return a short user hint. */
         function getRelayPublishFailureHint(failed) {
+            const hasProfileMissingRestriction = failed.some(f => isTrustrootsProfileMissingRelayError(f.error));
             const hasInternalError = failed.some(f => (f.error || '').toLowerCase().includes('internal error'));
+            if (hasProfileMissingRestriction) {
+                return ' Add your npub to your Trustroots profile, then try again.';
+            }
             return hasInternalError
                 ? ' Try again in a moment—relay errors are often temporary.'
                 : '';
@@ -1430,15 +1456,11 @@
             if (currentPrivateKeyBytes) {
                 return finalizeEvent(eventTemplate, currentPrivateKeyBytes);
             }
-            if (window.nostr && typeof window.nostr.signEvent === 'function') {
-                return await window.nostr.signEvent(eventTemplate);
-            }
             throw new Error('No signing method available for relay authentication');
         }
 
         function hasRelayAuthSigningCapability() {
-            if (currentPrivateKeyBytes) return true;
-            return !!(currentPublicKey && window.nostr && typeof window.nostr.signEvent === 'function');
+            return !!currentPrivateKeyBytes;
         }
         
         async function authenticateRelay(relay, relayUrl, challenge) {
@@ -2280,6 +2302,8 @@
                 if (privateKeyHex) {
                     savePrivateKey(privateKeyHex);
                     loadKeys();
+                    showStatus('nsec imported. Looking up your kind 0 profile information...', 'info');
+                    await checkProfileLinked();
                     showStatus('nsec imported successfully!', 'success');
                     document.getElementById('nsec-import').value = '';
                 } else {
@@ -2425,59 +2449,30 @@
         }
         
         function updateKeyDisplay() {
-            const hasNsec = !!currentPrivateKey;
-            const nsecActionsGroup = document.getElementById('nsec-actions-group');
-            const noNsecActionsGroup = document.getElementById('no-nsec-actions-group');
-            const generateKeyBtn = document.getElementById('generate-key-btn');
-            const generateKeyGroup = document.getElementById('generate-key-group');
-            const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
-            
-            if (hasNsec) {
-                if (nsecActionsGroup) nsecActionsGroup.style.display = 'block';
-                if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'none';
-                if (generateKeyGroup) generateKeyGroup.style.display = 'none';
-            } else {
-                if (nsecActionsGroup) nsecActionsGroup.style.display = 'none';
-                if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'block';
-                if (generateKeyGroup) generateKeyGroup.style.display = 'block';
-            }
-            
-            // Show/hide public key field and update button based on whether we have a public key
-            const npubDisplayGroup = document.getElementById('npub-display-group');
-            const keySectionDivider = document.getElementById('key-section-divider');
-            
+            const keysModal = window.NrWebKeysModal;
+            let npub = '';
+            let npubError = '';
             if (currentPublicKey) {
                 try {
-                    // nip19.npubEncode expects hex string
-                    const npub = nip19.npubEncode(currentPublicKey);
-                    const npubEl = document.getElementById('npub-display');
-                    if (npubEl) npubEl.value = npub;
-                    if (npubDisplayGroup) npubDisplayGroup.style.display = 'block';
-                    if (keySectionDivider) keySectionDivider.style.display = 'block';
-                    // Only show update button if profile is not linked
-                    if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = isProfileLinked ? 'none' : 'block';
+                    npub = nip19.npubEncode(currentPublicKey);
                 } catch (error) {
                     console.error('Error encoding npub:', error);
-                    const npubElErr = document.getElementById('npub-display');
-                    if (npubElErr) npubElErr.value = 'Error encoding npub';
-                    if (npubDisplayGroup) npubDisplayGroup.style.display = 'block';
-                    if (keySectionDivider) keySectionDivider.style.display = 'block';
-                    // Only show update button if profile is not linked
-                    if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = isProfileLinked ? 'none' : 'block';
+                    npubError = 'Error encoding npub';
                 }
-                // Check if profile is linked when public key changes
-                checkProfileLinked();
             } else {
-                const npubElClear = document.getElementById('npub-display');
-                if (npubElClear) npubElClear.value = '';
-                if (npubDisplayGroup) npubDisplayGroup.style.display = 'none';
-                if (keySectionDivider) keySectionDivider.style.display = 'none';
-                if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = 'none';
                 isProfileLinked = false;
                 updateLinkProfileButton();
             }
-            const keysIconBtn = document.getElementById('keys-icon-btn');
-            if (keysIconBtn) keysIconBtn.title = currentPublicKey ? 'Keys' : 'Connect';
+            if (keysModal?.updateKeyDisplay) {
+                keysModal.updateKeyDisplay({
+                    hasNsec: !!currentPrivateKey,
+                    hasPublicKey: !!currentPublicKey,
+                    npub,
+                    npubError,
+                    isProfileLinked
+                });
+            }
+            if (currentPublicKey) checkProfileLinked();
             setHeaderIdentity();
             renderRelaysList();
         }
@@ -2522,6 +2517,13 @@
                 return relaySettings.getRelayWritePreferences();
             }
             return {};
+        }
+
+        function getDefaultRelayPostEnabled(url) {
+            if (relaySettings?.getDefaultRelayPostEnabled) {
+                return relaySettings.getDefaultRelayPostEnabled(url);
+            }
+            return true;
         }
 
         function saveRelayWritePreferences() {
@@ -2639,8 +2641,9 @@
             }
             
             // Add to status tracking
-            relayStatus.set(url, { status: 'disconnected', canWrite: true });
-            relayWriteEnabled.set(url, true);
+            const canWrite = getDefaultRelayPostEnabled(url);
+            relayStatus.set(url, { status: 'disconnected', canWrite });
+            relayWriteEnabled.set(url, canWrite);
             
             // Save to localStorage
             const allUrls = [...urls, url];
@@ -3530,21 +3533,9 @@
                     const match = titleText.match(/for\s+([A-Z0-9]+\+)/);
                     if (match && match[1]) {
                         modalPlusCode = match[1];
-                        console.log('[Modal Refresh] Extracted plus code from modal title:', modalPlusCode);
                     }
                 }
             }
-            
-            // Always log the check for debugging
-            console.log('[Modal Refresh Check]', {
-                hasModal: !!notesModal,
-                isModalActive: isModalActive,
-                selectedPlusCode: selectedPlusCode,
-                modalPlusCode: modalPlusCode,
-                eventPlusCode: plusCode,
-                eventId: event.id?.substring(0, 16),
-                eventKind: event.kind
-            });
             
             // If modal is open and we have a plus code (from selectedPlusCode or modal title), check if we should refresh
             if (isModalActive && modalPlusCode) {
@@ -3556,37 +3547,17 @@
                     const exactMatch = plusCode === modalPlusCode;
                     const insideMatch = isPlusCodeInsidePlusCode(modalPlusCode, plusCode);
                     shouldRefresh = exactMatch || insideMatch;
-                    
-                    console.log('[Modal Refresh Check] Plus code comparison:', {
-                        eventPlusCode: plusCode,
-                        modalPlusCode: modalPlusCode,
-                        exactMatch: exactMatch,
-                        insideMatch: insideMatch,
-                        shouldRefresh: shouldRefresh
-                    });
-                } else {
-                    console.log('[Modal Refresh Check] No plus code for event, skipping refresh');
                 }
                 
                 if (shouldRefresh) {
                     // Refresh the modal - showNotesForPlusCode will use the updated spatial index
                     // to filter and display events correctly
-                    console.log('[Modal Refresh] Refreshing modal for new event');
                     // Use requestAnimationFrame to ensure DOM is ready, then refresh
                     requestAnimationFrame(() => {
                         setTimeout(() => {
                             showNotesForPlusCode(modalPlusCode);
                         }, 100);
                     });
-                } else {
-                    console.log('[Modal Refresh] Skipping refresh - event does not match selected plus code');
-                }
-            } else {
-                // Log why we're not refreshing
-                if (!isModalActive) {
-                    console.log('[Modal Refresh] Modal not active - skipping refresh');
-                } else if (!modalPlusCode) {
-                    console.log('[Modal Refresh] Modal active but no plus code available - skipping refresh');
                 }
             }
             
@@ -4754,6 +4725,7 @@
                         showNotesForPlusCode(selectedPlusCode);
                     }, 100);
                 } else {
+                    markRelaysWithPublishFailures(failed);
                     const errorDetails = failed.map(f => {
                         const hostname = f.url;
                         const errorMsg = f.error ? ` (${formatRelayError(f.error)})` : '';
@@ -4761,7 +4733,11 @@
                     }).join(', ');
                     const hint = getRelayPublishFailureHint(failed);
                     const relayWord = failed.length === 1 ? 'relay' : 'relays';
-                    showStatus(`Failed to publish to ${relayWord}: ${errorDetails}.${hint}`, 'error', { eventPayload: signedEvent });
+                    const hasProfileMissingRestriction = failed.some(f => isTrustrootsProfileMissingRelayError(f.error));
+                    const actions = hasProfileMissingRestriction
+                        ? [{ label: 'Open Keys', onClick: () => openKeysModal() }]
+                        : [];
+                    showStatus(`Failed to publish to ${relayWord}: ${errorDetails}.${hint}`, 'error', { eventPayload: signedEvent, actions });
                 }
             } catch (error) {
                 console.error('Error publishing note:', error);
@@ -4774,13 +4750,6 @@
             
             // Use fast spatial index lookup instead of filtering all events
             const { eventsForPlusCodeExactly, eventsWithinPlusCode } = filterEventsForPlusCodeFast(plusCode);
-            
-            console.log('[showNotesForPlusCode]', {
-                plusCode: plusCode,
-                exactMatches: eventsForPlusCodeExactly.length,
-                withinMatches: eventsWithinPlusCode.length,
-                totalEventsInArray: events.length
-            });
             
             // Merge exact matches into within plus code section, avoiding duplicates
             const allEventsMap = new Map();
@@ -4813,41 +4782,65 @@
                         }
                     }
                 });
-                console.log('[showNotesForPlusCode] Fallback filter found', allEventsMap.size, 'events');
             }
             
             // Filter out expired events (already filtered in filterEventsForPlusCodeFast, but double-check)
             const nonExpiredEvents = Array.from(allEventsMap.values()).filter(event => {
                 const isExpired = isEventExpired(event);
                 const isDeleted = isEventDeleted(event);
-                if (isExpired || isDeleted) {
-                    console.log('[showNotesForPlusCode] Filtering out event:', {
-                        eventId: event.id?.substring(0, 16),
-                        isExpired: isExpired,
-                        isDeleted: isDeleted
-                    });
-                }
                 return !isExpired && !isDeleted;
             });
             
-            // De-duplicate near-identical notes for display. This commonly happens when
-            // both an original note and its repost are present; prefer the event whose
-            // pubkey resolves to a Trustroots username so the UI shows NIP-5 identity.
+            // De-duplicate near-identical notes for display. Relays can return both
+            // original map notes (30397) and validation reposts (30398) for the same
+            // user-visible note. Prefer entries with a Trustroots username and reposts.
+            const repostTargets = new Set();
+            nonExpiredEvents.forEach(event => {
+                if (event.kind !== MAP_NOTE_REPOST_KIND || !Array.isArray(event.tags)) return;
+                const targetTag = event.tags.find(tag => Array.isArray(tag) && tag[0] === 'e' && tag[1]);
+                if (targetTag && targetTag[1]) repostTargets.add(targetTag[1]);
+            });
+
             const dedupedForDisplay = new Map();
             nonExpiredEvents.forEach(event => {
                 const eventPlusCode = getPlusCodeFromEvent(event) || '';
                 const content = (event.content || '').trim();
-                const dedupeKey = `${event.created_at || 0}|${eventPlusCode}|${content}`;
+                const eventTags = Array.isArray(event.tags) ? event.tags : [];
+                const originalAuthorTag = eventTags.find(tag => Array.isArray(tag) && tag[0] === 'p' && tag[1]);
+                const originalCreatedAtTag = eventTags.find(tag => Array.isArray(tag) && tag[0] === 'original_created_at' && tag[1]);
+                const canonicalAuthorPubkey = event.kind === MAP_NOTE_REPOST_KIND && originalAuthorTag
+                    ? originalAuthorTag[1]
+                    : event.pubkey;
+                const canonicalCreatedAt = event.kind === MAP_NOTE_REPOST_KIND && originalCreatedAtTag
+                    ? Number.parseInt(originalCreatedAtTag[1], 10) || (event.created_at || 0)
+                    : (event.created_at || 0);
+
+                // Primary dedupe key: when repost links to original, treat as same note.
+                let dedupeKey = '';
+                if (event.kind === MAP_NOTE_REPOST_KIND && eventTags.length > 0) {
+                    const targetTag = eventTags.find(tag => Array.isArray(tag) && tag[0] === 'e' && tag[1]);
+                    if (targetTag && targetTag[1]) dedupeKey = `origin:${targetTag[1]}`;
+                } else if (event.kind === MAP_NOTE_KIND && repostTargets.has(event.id)) {
+                    dedupeKey = `origin:${event.id}`;
+                }
+
+                // Secondary key: canonical original author + original timestamp (from repost tag),
+                // plus code, and content. This dedupes original/repost pairs even when IDs differ.
+                if (!dedupeKey && canonicalAuthorPubkey) {
+                    dedupeKey = `canonical:${canonicalAuthorPubkey}|${canonicalCreatedAt}|${eventPlusCode}|${content}`;
+                }
+
+                // Last-resort fallback: tolerate reposts with shifted second-level timestamp.
+                if (!dedupeKey) {
+                    const createdAtMinute = Math.floor((event.created_at || 0) / 60);
+                    dedupeKey = `fallback:${createdAtMinute}|${eventPlusCode}|${content}`;
+                }
+
                 const currentBest = dedupedForDisplay.get(dedupeKey);
                 const hasUsername = !!pubkeyToUsername.get(event.pubkey);
                 const score = (hasUsername ? 10 : 0) + (event.kind === MAP_NOTE_REPOST_KIND ? 1 : 0);
 
-                if (!currentBest) {
-                    dedupedForDisplay.set(dedupeKey, { event, score });
-                    return;
-                }
-
-                if (score > currentBest.score) {
+                if (!currentBest || score > currentBest.score) {
                     dedupedForDisplay.set(dedupeKey, { event, score });
                 }
             });
@@ -4855,13 +4848,6 @@
             const sortedAll = Array.from(dedupedForDisplay.values())
                 .map(item => item.event)
                 .sort((a, b) => a.created_at - b.created_at);
-            
-            console.log('[showNotesForPlusCode] Final events to display:', {
-                beforeFilter: allEventsMap.size,
-                afterExpiredFilter: nonExpiredEvents.length,
-                finalSorted: sortedAll.length,
-                eventIds: sortedAll.map(e => e.id?.substring(0, 16))
-            });
             
             // Update modal title
             document.getElementById('pluscode-notes-title').textContent = 
@@ -4888,8 +4874,6 @@
                         console.error('[showNotesForPlusCode] Error creating note item:', error, event);
                     }
                 });
-                
-                console.log('[showNotesForPlusCode] Rendered', renderedCount, 'out of', sortedAll.length, 'notes');
                 
                 notesContent.appendChild(notesSection);
             } else {
@@ -4993,13 +4977,19 @@
             // Show Trustroots username if available, otherwise show npub
             const username = pubkeyToUsername.get(event.pubkey);
             if (username) {
-                author.textContent = `@${username}`;
+                const nip05 = `${username}@trustroots.org`.toLowerCase();
+                const chatHref = 'chat.html#' + encodeURIComponent(nip05).replace(/%2B/g, '+');
+                const authorLink = document.createElement('a');
+                authorLink.className = 'nr-content-link';
+                authorLink.href = chatHref;
+                authorLink.textContent = `@${username}`;
                 try {
                     const npub = nip19.npubEncode(event.pubkey);
-                    author.title = `@${username} (${npub})`; // Show username and npub on hover
+                    authorLink.title = `@${username} (${npub})`; // Show username and npub on hover
                 } catch (error) {
-                    author.title = `@${username} (${event.pubkey.substring(0, 16)}...)`;
+                    authorLink.title = `@${username} (${event.pubkey.substring(0, 16)}...)`;
                 }
+                author.appendChild(authorLink);
             } else {
                 try {
                     const npub = nip19.npubEncode(event.pubkey);
@@ -5295,6 +5285,22 @@
             const msgEl = document.createElement('div');
             msgEl.textContent = message;
             status.appendChild(msgEl);
+
+            if (Array.isArray(options.actions) && options.actions.length > 0) {
+                const actions = document.createElement('div');
+                actions.className = 'status-event-actions';
+                options.actions.forEach((action) => {
+                    if (!action || typeof action.label !== 'string' || typeof action.onClick !== 'function') return;
+                    const actionBtn = document.createElement('button');
+                    actionBtn.type = 'button';
+                    actionBtn.textContent = action.label;
+                    actionBtn.addEventListener('click', action.onClick);
+                    actions.appendChild(actionBtn);
+                });
+                if (actions.childElementCount > 0) {
+                    status.appendChild(actions);
+                }
+            }
             
             if (options.eventPayload) {
                 const json = JSON.stringify(options.eventPayload, null, 2);
@@ -5507,42 +5513,37 @@
         }
         
         // Settings Modal Functions (modals injected by common.js)
-        function openKeysModal() {
+        function openKeysModal(options = {}) {
+            const keysModal = window.NrWebKeysModal;
+            const shouldRunProfileLookup = options.runProfileLookup !== false;
+            const hasKey = !!(currentPublicKey || currentPrivateKey);
+            if (keysModal?.openKeysModal) {
+                keysModal.openKeysModal({
+                    hasKey,
+                    route: 'keys',
+                    setRoute: setHashRoute,
+                    onOpenManagedSection: () => {
+                        updateKeyDisplay();
+                        if (shouldRunProfileLookup) checkProfileLinked();
+                    }
+                });
+                return;
+            }
+            // Fallback if shared helper is unavailable.
             const keysEl = document.getElementById('keys-modal');
-            const settingsEl = document.getElementById('settings-modal');
-            if (settingsEl) settingsEl.classList.remove('active');
             if (keysEl) keysEl.classList.add('active');
             setHashRoute('keys');
-            
-            // Check if we have a key
-            const hasKey = !!(currentPublicKey || currentPrivateKey);
-            
-            const welcomeSection = document.getElementById('keys-welcome-section');
-            const importSection = document.getElementById('keys-import-section');
-            const generateSection = document.getElementById('keys-generate-section');
-            const manageSection = document.getElementById('keys-manage-section');
-            const trustrootsSection = document.getElementById('keys-trustroots-section');
-            
-            if (!hasKey) {
-                if (welcomeSection) welcomeSection.style.display = 'block';
-                if (importSection) importSection.style.display = 'block';
-                if (generateSection) generateSection.style.display = 'block';
-                if (manageSection) manageSection.style.display = 'none';
-                if (trustrootsSection) trustrootsSection.style.display = 'none';
-            } else {
-                if (welcomeSection) welcomeSection.style.display = 'none';
-                if (importSection) importSection.style.display = 'none';
-                if (generateSection) generateSection.style.display = 'none';
-                if (manageSection) manageSection.style.display = 'block';
-                if (trustrootsSection) trustrootsSection.style.display = 'block';
-                
-                // Update key display when opening keys modal
-                updateKeyDisplay();
-                checkProfileLinked();
-            }
         }
         
         function closeKeysModal() {
+            const keysModal = window.NrWebKeysModal;
+            if (keysModal?.closeKeysModal) {
+                keysModal.closeKeysModal({
+                    fallbackRoute: selectedPlusCode || '',
+                    setRoute: setHashRoute
+                });
+                return;
+            }
             const el = document.getElementById('keys-modal');
             if (el) el.classList.remove('active');
             setHashRoute(selectedPlusCode || '');
@@ -5586,7 +5587,6 @@
         // Onboarding
         function checkOnboarding() {
             const hasKey = localStorage.getItem('nostr_private_key');
-            localStorage.removeItem('using_nip07');
             if (!hasKey) {
                 openKeysModal();
                 updateKeyDisplay();
@@ -5616,7 +5616,9 @@
                     savePrivateKey(privateKeyHex);
                     loadKeys();
                     // Refresh the keys modal to show the management section
-                    openKeysModal();
+                    openKeysModal({ runProfileLookup: false });
+                    showStatus('nsec imported. Looking up your kind 0 profile information...', 'info');
+                    await checkProfileLinked();
                     showStatus('nsec imported successfully!', 'success');
                 } else {
                     showStatus(getNsecInputErrorMessage(input), 'error');
@@ -5643,7 +5645,9 @@
                     savePrivateKey(privateKeyHex);
                     loadKeys();
                     // Refresh the keys modal to show the management section
-                    openKeysModal();
+                    openKeysModal({ runProfileLookup: false });
+                    showStatus('Mnemonic imported. Looking up your kind 0 profile information...', 'info');
+                    await checkProfileLinked();
                     showStatus('Mnemonic imported successfully!', 'success');
                 } catch (error) {
                     console.error('Error importing mnemonic:', error);
@@ -5749,7 +5753,7 @@
                         
                         if (successful.length > 0) {
                             const relayWord = successful.length === 1 ? 'relay' : 'relays';
-                            let statusMessage = `Profile linked! Username ${username} published to ${successful.length} ${relayWord}`;
+                            let statusMessage = `Profile linked! Username ${username} published to ${successful.length} ${relayWord}. You can now close this modal and explore the app. Make sure your nsec is safely backed up (for example in your password manager).`;
                             if (failed.length > 0) {
                                 const failedRelays = failed.map(f => f.url).join(', ');
                                 statusMessage += ` (${failed.length} failed: ${failedRelays})`;
@@ -5777,13 +5781,18 @@
                                 updateTrustrootsGroup.style.display = 'none';
                             }
                         } else {
+                            markRelaysWithPublishFailures(failed);
                             const errorDetails = failed.map(f => {
                                 const hostname = f.url;
                                 const errorMsg = f.error ? ` (${formatRelayError(f.error)})` : '';
                                 return `${hostname}${errorMsg}`;
                             }).join(', ');
                             const hint = getRelayPublishFailureHint(failed);
-                            showStatus(`Profile validated but failed to publish: ${errorDetails}.${hint}`, 'error', { eventPayload: signedEvent });
+                            const hasProfileMissingRestriction = failed.some(f => isTrustrootsProfileMissingRelayError(f.error));
+                            const actions = hasProfileMissingRestriction
+                                ? [{ label: 'Open Keys', onClick: () => openKeysModal() }]
+                                : [];
+                            showStatus(`Profile validated but failed to publish: ${errorDetails}.${hint}`, 'error', { eventPayload: signedEvent, actions });
                         }
                     } else {
                         showStatus(`Username ${username} is linked to a different npub. This profile does not belong to you.`, 'error');
@@ -5820,7 +5829,10 @@
             const urls = getRelayUrls();
             const savedWritePreferences = getSavedRelayWritePreferences();
             urls.forEach(url => {
-                const canWrite = savedWritePreferences[url] !== false;
+                const hasSavedPreference = Object.prototype.hasOwnProperty.call(savedWritePreferences, url);
+                const canWrite = hasSavedPreference
+                    ? savedWritePreferences[url] !== false
+                    : getDefaultRelayPostEnabled(url);
                 if (!relayStatus.has(url)) {
                     relayStatus.set(url, { status: 'disconnected', canWrite });
                 } else {

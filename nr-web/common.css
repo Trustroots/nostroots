@@ -194,6 +194,64 @@ h1, h2, .modal-header h2 {
     transform: scale(0.95);
 }
 
+.app-header-mobile-links-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    min-width: 0;
+    margin-left: 0.1rem;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    border-radius: 14px;
+    padding: 0.28rem 0.38rem 0.34rem;
+    width: fit-content;
+}
+
+.app-header-mobile-links {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.app-header-mobile-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    height: 28px;
+    padding: 0 0.5rem;
+    border-radius: 999px;
+    text-decoration: none;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    color: #fff;
+    font-size: 0.72rem;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.app-header-mobile-link:hover {
+    background: rgba(255, 255, 255, 0.24);
+}
+
+.app-header-mobile-link-icon {
+    font-size: 0.82rem;
+}
+
+.app-header-mobile-link-label {
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.app-header-mobile-hint {
+    margin: 0.04rem 0 0;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.5rem;
+    line-height: 1.15;
+    max-width: 315px;
+    white-space: normal;
+    letter-spacing: 0.004em;
+}
+
 .app-header h1 {
     color: #fff;
     font-family: Georgia, "Times New Roman", serif;
@@ -349,9 +407,13 @@ h1, h2, .modal-header h2 {
 
 @media (max-width: 768px) {
     .app-header { padding: 0 0.75rem; }
-    .app-header-inner { justify-content: flex-start; }
+    .app-header-inner { justify-content: flex-start; gap: 0.45rem; }
     .app-header h1 { font-size: 1.35rem; }
-    .app-header-logo { height: 28px; }
+    .app-header-logo { display: none; }
+    .app-header-mobile-links-wrap { margin-left: 0; }
+    .app-header-mobile-link { height: 26px; padding: 0 0.45rem; }
+    .app-header-mobile-link-label { display: none; }
+    .app-header-mobile-hint { display: none; }
     .header-identity { max-width: 120px; font-size: 0.75rem; padding: 0.3rem 0.5rem; }
     .app-header-actions .keys-icon .header-identity-text { display: none; }
     .app-header-actions .keys-icon.header-identity-btn.has-identity { padding: 0; width: 44px; }
@@ -359,6 +421,8 @@ h1, h2, .modal-header h2 {
     .mycelium-bottom img { min-width: 100%; }
 }
 @media (max-width: 480px) {
-    .app-header-logo { display: none; }
-    .app-header h1 { font-size: 1.2rem; }
+    .app-header h1 { font-size: 1.15rem; }
+    .app-header-actions { gap: 0.35rem; }
+    .app-header-mobile-links { gap: 0.25rem; }
+    .app-header-mobile-link { width: 26px; padding: 0; justify-content: center; }
 }

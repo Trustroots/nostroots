@@ -12,14 +12,12 @@ This document outlines suggested tests to add, organized by category and test ty
    - Generates a valid 64-character hex private key
    - Stores key in localStorage
    - Derives correct public key
-   - Disables NIP-07 when generating new key
    - Shows success status message
 
 2. **importNsec()**
    - Successfully imports valid nsec format
    - Rejects invalid nsec (wrong prefix, malformed)
    - Clears input field on success
-   - Disables NIP-07 when importing
    - Shows appropriate error messages
    - Handles empty input
 
@@ -96,7 +94,6 @@ This document outlines suggested tests to add, organized by category and test ty
    - Shows on first visit (no key)
    - Hides after key is generated/imported
    - Cannot be closed with ESC (must complete onboarding)
-   - Shows NIP-07 option when extension available
 
 3. **Note Modals**
    - View note modal opens/closes correctly
@@ -153,12 +150,6 @@ This document outlines suggested tests to add, organized by category and test ty
    - Modal closes
    - Settings show public key
    - Invalid nsec shows error
-
-3. **Extension Connection Flow** (if extension available)
-   - Click "Connect Browser Extension"
-   - Extension prompt appears
-   - Connection succeeds
-   - Settings show NIP-07 status
 
 ### Note Posting (`tests/e2e/note-posting.spec.js`)
 

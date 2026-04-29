@@ -14,7 +14,7 @@ Comprehensive test suite implemented for nr-web with **64 total tests** covering
 ## Files Created
 
 ### Unit Tests
-1. `tests/unit/key-management.test.js` - Key storage, DOM elements, NIP-07 state (6 tests)
+1. `tests/unit/key-management.test.js` - Key storage and DOM elements (6 tests)
 2. `tests/unit/relay-management.test.js` - Relay URL storage and validation (5 tests)
 3. `tests/unit/example.test.js` - Basic DOM structure tests (3 tests)
 
@@ -42,7 +42,6 @@ Comprehensive test suite implemented for nr-web with **64 total tests** covering
 **Key Management**
 - localStorage operations
 - DOM element presence
-- NIP-07 state tracking
 - Key display elements
 
 **Relay Management**
@@ -57,7 +56,7 @@ Comprehensive test suite implemented for nr-web with **64 total tests** covering
 - Button elements
 
 **User Workflows (E2E)**
-- Onboarding flow (generate key, import, extension)
+- Onboarding flow (generate key, import)
 - Settings access and modification
 - Map rendering
 - Note modal structure
@@ -109,7 +108,6 @@ docker-compose run --rm tests pnpm test:local:e2e
 4. **Error Handling Tests**
    - Invalid input handling
    - Network error scenarios
-   - Extension connection failures
 
 5. **Accessibility Tests**
    - Keyboard navigation

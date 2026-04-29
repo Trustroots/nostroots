@@ -747,6 +747,13 @@
             return {};
         }
 
+        function getDefaultRelayPostEnabled(url) {
+            if (relaySettings?.getDefaultRelayPostEnabled) {
+                return relaySettings.getDefaultRelayPostEnabled(url);
+            }
+            return true;
+        }
+
         function saveRelayWritePreferences() {
             if (relaySettings?.saveRelayWritePreferences) {
                 relaySettings.saveRelayWritePreferences(getRelayUrls(), relayWriteEnabled);
@@ -810,7 +817,10 @@
         function initializeRelaySettingsState(urls, status = 'disconnected') {
             const savedWritePreferences = getSavedRelayWritePreferences();
             urls.forEach((url) => {
-                const canWrite = savedWritePreferences[url] !== false;
+                const hasSavedPreference = Object.prototype.hasOwnProperty.call(savedWritePreferences, url);
+                const canWrite = hasSavedPreference
+                    ? savedWritePreferences[url] !== false
+                    : getDefaultRelayPostEnabled(url);
                 relayWriteEnabled.set(url, canWrite);
                 updateRelayStatus(url, status, canWrite);
             });
@@ -831,10 +841,19 @@
                 for (const [id, c] of conversations.entries()) {
                     const events = (c.events || []).slice(-CHAT_CACHE_MAX_EVENTS_PER_CONV).map(ev => ({
                         id: ev.id,
+                        kind: ev.kind,
                         pubkey: ev.pubkey,
                         content: ev.content ?? '',
                         created_at: ev.created_at,
-                        raw: ev.raw ? { tags: ev.raw.tags || [] } : {},
+                        mapNoteKey: ev.mapNoteKey,
+                        raw: ev.raw ? {
+                            id: ev.raw.id,
+                            kind: ev.raw.kind,
+                            pubkey: ev.raw.pubkey,
+                            content: ev.raw.content,
+                            created_at: ev.raw.created_at,
+                            tags: ev.raw.tags || []
+                        } : {},
                         ...(ev.nip ? { nip: ev.nip } : {})
                     }));
                     convArr.push({ type: c.type, id, members: c.members || [], events });
@@ -874,10 +893,19 @@
                         .filter(ev => !isBlocked(ev.pubkey))
                         .map(ev => ({
                             id: ev.id,
+                            kind: ev.kind,
                             pubkey: ev.pubkey,
                             content: ev.content ?? '',
                             created_at: ev.created_at,
-                            raw: ev.raw && ev.raw.tags ? { tags: ev.raw.tags } : {},
+                            mapNoteKey: ev.mapNoteKey,
+                            raw: ev.raw && ev.raw.tags ? {
+                                id: ev.raw.id,
+                                kind: ev.raw.kind,
+                                pubkey: ev.raw.pubkey,
+                                content: ev.raw.content,
+                                created_at: ev.raw.created_at,
+                                tags: ev.raw.tags
+                            } : {},
                             ...(ev.nip ? { nip: ev.nip } : {})
                         }));
                     conversations.set(c.id, { type: c.type, id: c.id, members: c.members || [], events });
@@ -1239,33 +1267,34 @@
         }
 
         function openKeysModal() {
+            const keysModal = window.NrWebKeysModal;
+            const hasKey = !!(currentPublicKey || currentSecretKeyHex);
+            if (keysModal?.openKeysModal) {
+                keysModal.openKeysModal({
+                    hasKey,
+                    route: 'keys',
+                    setRoute: setHashRoute,
+                    onOpenManagedSection: () => {
+                        updateKeyDisplay();
+                        checkProfileLinked();
+                    }
+                });
+                return;
+            }
             const keysEl = document.getElementById('keys-modal');
             if (!keysEl) return;
-            const hasKey = !!(currentPublicKey || currentSecretKeyHex);
-            const welcomeSection = document.getElementById('keys-welcome-section');
-            const importSection = document.getElementById('keys-import-section');
-            const generateSection = document.getElementById('keys-generate-section');
-            const manageSection = document.getElementById('keys-manage-section');
-            const trustrootsSection = document.getElementById('keys-trustroots-section');
-            if (!hasKey) {
-                if (welcomeSection) welcomeSection.style.display = 'block';
-                if (importSection) importSection.style.display = 'block';
-                if (generateSection) generateSection.style.display = 'block';
-                if (manageSection) manageSection.style.display = 'none';
-                if (trustrootsSection) trustrootsSection.style.display = 'none';
-            } else {
-                if (welcomeSection) welcomeSection.style.display = 'none';
-                if (importSection) importSection.style.display = 'none';
-                if (generateSection) generateSection.style.display = 'none';
-                if (manageSection) manageSection.style.display = 'block';
-                if (trustrootsSection) trustrootsSection.style.display = 'block';
-                updateKeyDisplay();
-                checkProfileLinked();
-            }
             keysEl.classList.add('active');
             setHashRoute('keys');
         }
         function closeKeysModal() {
+            const keysModal = window.NrWebKeysModal;
+            if (keysModal?.closeKeysModal) {
+                keysModal.closeKeysModal({
+                    fallbackRoute: getConversationRouteId(selectedConversationId),
+                    setRoute: setHashRoute
+                });
+                return;
+            }
             const el = document.getElementById('keys-modal');
             if (el) el.classList.remove('active');
             setHashRoute(getConversationRouteId(selectedConversationId));
@@ -1287,44 +1316,26 @@
         }
 
         function updateKeyDisplay() {
-            const hasNsec = !!currentSecretKeyHex;
-            const nsecActionsGroup = document.getElementById('nsec-actions-group');
-            const noNsecActionsGroup = document.getElementById('no-nsec-actions-group');
-            const generateKeyGroup = document.getElementById('generate-key-group');
-            const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
-            const npubDisplayGroup = document.getElementById('npub-display-group');
-            const keySectionDivider = document.getElementById('key-section-divider');
-            const npubDisplay = document.getElementById('npub-display');
-            if (hasNsec) {
-                if (nsecActionsGroup) nsecActionsGroup.style.display = 'block';
-                if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'none';
-                if (generateKeyGroup) generateKeyGroup.style.display = 'none';
-            } else {
-                if (nsecActionsGroup) nsecActionsGroup.style.display = 'none';
-                if (noNsecActionsGroup) noNsecActionsGroup.style.display = 'block';
-                if (generateKeyGroup) generateKeyGroup.style.display = 'block';
-            }
+            const keysModal = window.NrWebKeysModal;
+            let npub = '';
+            let npubError = '';
             if (currentPublicKey) {
                 try {
-                    const npub = nip19.npubEncode(currentPublicKey);
-                    if (npubDisplay) npubDisplay.value = npub;
-                    if (npubDisplayGroup) npubDisplayGroup.style.display = 'block';
-                    if (keySectionDivider) keySectionDivider.style.display = 'block';
-                    if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = isProfileLinked ? 'none' : 'block';
+                    npub = nip19.npubEncode(currentPublicKey);
                 } catch (_) {
-                    if (npubDisplay) npubDisplay.value = 'Error encoding npub';
-                    if (npubDisplayGroup) npubDisplayGroup.style.display = 'block';
-                    if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = isProfileLinked ? 'none' : 'block';
+                    npubError = 'Error encoding npub';
                 }
-                checkProfileLinked();
-            } else {
-                if (npubDisplay) npubDisplay.value = '';
-                if (npubDisplayGroup) npubDisplayGroup.style.display = 'none';
-                if (keySectionDivider) keySectionDivider.style.display = 'none';
-                if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = 'none';
             }
-            const keysBtn = document.getElementById('keys-icon-btn');
-            if (keysBtn) keysBtn.title = currentPublicKey ? 'Keys' : 'Connect';
+            if (keysModal?.updateKeyDisplay) {
+                keysModal.updateKeyDisplay({
+                    hasNsec: !!currentSecretKeyHex,
+                    hasPublicKey: !!currentPublicKey,
+                    npub,
+                    npubError,
+                    isProfileLinked
+                });
+            }
+            if (currentPublicKey) checkProfileLinked();
             setHeaderIdentity();
         }
 
@@ -1688,16 +1699,25 @@
 
             function onChannelEvent(event) {
                 const slugs = getChannelSlugsFromEvent(event);
+                const mapNoteKey = getMapNoteCanonicalKey(event);
 
                 if (NrBlocklist && NrBlocklist.isBlocked(event.pubkey)) return;
 
                 let changed = false;
                 slugs.forEach((targetSlug) => {
                     const conv = getOrCreateConversation('channel', targetSlug, []);
-                    const existing = conv.events.some(e => e.id === event.id);
+                    const existing = conv.events.some(e => e.id === event.id || (mapNoteKey && e.mapNoteKey === mapNoteKey));
                     if (existing) return;
                     eventAuthorById.set(event.id, event.pubkey);
-                    conv.events.push({ id: event.id, pubkey: event.pubkey, content: event.content || '', created_at: event.created_at, raw: event });
+                    conv.events.push({
+                        id: event.id,
+                        kind: event.kind,
+                        pubkey: event.pubkey,
+                        content: event.content || '',
+                        created_at: event.created_at,
+                        raw: event,
+                        mapNoteKey
+                    });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
                     changed = true;
                     if (selectedConversationId === targetSlug) scheduleRender('thread');
@@ -1968,7 +1988,7 @@
                 setTrustrootsUI(username);
                 pubkeyToUsername.set(currentPublicKey, username);
                 scheduleChatCacheWrite();
-                showStatus('Profile linked.', 'success');
+                showStatus('Profile linked. You can now close this modal and explore the app. Make sure your nsec is safely backed up (for example in your password manager).', 'success');
             } catch (e) {
                 showStatus(e?.message || 'Failed to link profile.', 'error');
             }
@@ -2191,6 +2211,47 @@
             return (code && typeof code === 'string' && code.trim()) ? code.trim() : null;
         }
 
+        function getFirstTagValue(raw, tagName) {
+            if (!raw?.tags) return '';
+            const tag = raw.tags.find(t => Array.isArray(t) && t[0] === tagName && t[1]);
+            return tag?.[1] || '';
+        }
+
+        function getMapNoteCanonicalKey(raw) {
+            if (!raw || (raw.kind !== MAP_NOTE_KIND && raw.kind !== MAP_NOTE_REPOST_KIND)) {
+                return raw?.id ? `id:${raw.id}` : '';
+            }
+
+            if (raw.kind === MAP_NOTE_REPOST_KIND) {
+                const originalEventId = getFirstTagValue(raw, 'e');
+                if (originalEventId) return `origin:${originalEventId}`;
+            }
+
+            const canonicalPubkey = raw.kind === MAP_NOTE_REPOST_KIND
+                ? (getFirstTagValue(raw, 'p') || raw.pubkey || '')
+                : (raw.pubkey || '');
+            const originalCreatedAt = raw.kind === MAP_NOTE_REPOST_KIND
+                ? Number.parseInt(getFirstTagValue(raw, 'original_created_at'), 10) || (raw.created_at || 0)
+                : (raw.created_at || 0);
+            const plusCode = getPluscodeFromEvent(raw) || '';
+            const content = (raw.content || '').trim();
+            return `canonical:${canonicalPubkey}|${originalCreatedAt}|${plusCode}|${content}`;
+        }
+
+        function isBlockedPubkey(pubkey) {
+            if (!pubkey || !NrBlocklist || typeof NrBlocklist.isBlocked !== 'function') return false;
+            if (NrBlocklist.isBlocked(pubkey)) return true;
+            if (typeof pubkey === 'string' && pubkey.startsWith('npub1') && nip19 && typeof nip19.decode === 'function') {
+                try {
+                    const decoded = nip19.decode(pubkey);
+                    if (decoded && decoded.type === 'npub' && decoded.data) {
+                        return NrBlocklist.isBlocked(decoded.data);
+                    }
+                } catch (_) {}
+            }
+            return false;
+        }
+
         function getChannelSlugFromEvent(raw) {
             if (!raw?.tags) return null;
             const circleTag = raw.tags.find(t => Array.isArray(t) && t.length >= 3 && (t[0] === 'l' || t[0] === 'L') && t[2] === TRUSTROOTS_CIRCLE_LABEL);
@@ -2257,7 +2318,54 @@
             container.innerHTML = '';
             const isChannel = conv.type === 'channel';
             const isGlobalChannel = isChannel && conv.id === GLOBAL_CHANNEL_SLUG;
-            const eventsToShow = conv.events.filter(ev => !deletedEventIds.has(ev.id));
+            let eventsToShow = conv.events.filter(ev => !deletedEventIds.has(ev.id) && !isBlockedPubkey(ev.pubkey));
+            if (isChannel) {
+                const deduped = new Map();
+                eventsToShow.forEach((ev) => {
+                    const raw = ev.raw || {};
+                    let eventKind = raw.kind || ev.kind;
+                    const rawTags = Array.isArray(raw.tags) ? raw.tags : [];
+                    if (!eventKind && rawTags.length) {
+                        const hasOriginalCreatedAt = rawTags.some(t => Array.isArray(t) && t[0] === 'original_created_at' && t[1]);
+                        const hasETag = rawTags.some(t => Array.isArray(t) && t[0] === 'e' && t[1]);
+                        const hasPTag = rawTags.some(t => Array.isArray(t) && t[0] === 'p' && t[1]);
+                        const hasPlusCode = rawTags.some(t => Array.isArray(t) && t[0] === 'l' && t[2] === 'open-location-code');
+                        if (hasOriginalCreatedAt && hasETag && hasPTag) eventKind = MAP_NOTE_REPOST_KIND;
+                        else if (hasPlusCode) eventKind = MAP_NOTE_KIND;
+                    }
+                    const eventLike = {
+                        id: raw.id || ev.id,
+                        kind: eventKind,
+                        pubkey: raw.pubkey || ev.pubkey,
+                        content: raw.content || ev.content || '',
+                        created_at: raw.created_at || ev.created_at || 0,
+                        tags: rawTags
+                    };
+                    const canonicalKey = ev.mapNoteKey || getMapNoteCanonicalKey(eventLike) || '';
+                    const plusCode = getPluscodeFromEvent(eventLike) || '';
+                    const contentNormalized = (eventLike.content || '').trim();
+                    const createdAtMinute = Math.floor((eventLike.created_at || 0) / 60);
+                    const similarityKey = (eventKind === MAP_NOTE_KIND || eventKind === MAP_NOTE_REPOST_KIND)
+                        ? `similar:${createdAtMinute}|${plusCode}|${contentNormalized}`
+                        : '';
+                    const key = canonicalKey || similarityKey || `id:${ev.id}`;
+                    const hasUsername = !!pubkeyToUsername.get(ev.pubkey);
+                    const nip05 = (pubkeyToNip05.get(ev.pubkey) || '').toLowerCase();
+                    const hasTrustrootsIdentity = hasUsername || nip05.endsWith('@trustroots.org');
+                    const isServerIdentity = nip05 === 'nostroots@trustroots.org' || ((pubkeyToUsername.get(ev.pubkey) || '').toLowerCase() === 'nostroots');
+                    const score = (eventKind === MAP_NOTE_KIND ? 20 : 0)
+                        + (hasTrustrootsIdentity ? 10 : 0)
+                        + (isServerIdentity ? -20 : 0)
+                        + (eventKind === MAP_NOTE_REPOST_KIND ? -1 : 0);
+                    const existing = deduped.get(key);
+                    if (!existing || score > existing.score) {
+                        deduped.set(key, { ev, score });
+                    }
+                });
+                eventsToShow = Array.from(deduped.values())
+                    .map(entry => entry.ev)
+                    .sort((a, b) => a.created_at - b.created_at);
+            }
             eventsToShow.forEach(ev => {
                 const isSelf = ev.pubkey === currentPublicKey;
                 const row = document.createElement('div');
@@ -2267,14 +2375,14 @@
                 if (isChannel && !isSelf) {
                     const author = document.createElement('div');
                     author.className = 'message-author';
-                    author.textContent = pubkeyDisplayLabel(ev.pubkey);
+                    author.innerHTML = renderPubkeyLabelHtml(ev.pubkey);
                     const fullNpub = hexToNpub(ev.pubkey);
                     if (fullNpub) author.title = fullNpub;
                     wrap.appendChild(author);
                 }
                 const div = document.createElement('div');
                 div.className = 'message ' + (isSelf ? 'self' : 'other');
-                div.innerHTML = linkifyTrustrootsUrls(escapeHtml(ev.content || ''));
+                div.innerHTML = linkifyNip05Identifiers(linkifyTrustrootsUrls(escapeHtml(ev.content || '')));
                 const pluscode = getPluscodeFromEvent(ev.raw);
                 if (pluscode) {
                     const pluscodeEl = document.createElement('div');
@@ -2301,7 +2409,6 @@
                 }
                 const meta = document.createElement('div');
                 meta.className = 'meta';
-                const authorLabel = pubkeyDisplayLabel(ev.pubkey);
                 const messageDate = new Date(ev.created_at * 1000);
                 const year = messageDate.getFullYear();
                 const month = String(messageDate.getMonth() + 1).padStart(2, '0');
@@ -2309,9 +2416,8 @@
                 const hour = String(messageDate.getHours()).padStart(2, '0');
                 const minute = String(messageDate.getMinutes()).padStart(2, '0');
                 const timeStr = `${year}-${month}-${day} ${hour}:${minute}`;
-                const authorTitle = (hexToNpub(ev.pubkey) || '').replace(/"/g, '&quot;');
                 if (isChannel && !isSelf) {
-                    meta.innerHTML = `<span class="author"${authorTitle ? ` title="${authorTitle}"` : ''}>${authorLabel}</span><span class="time">${timeStr}</span>`;
+                    meta.innerHTML = `<span class="time">${timeStr}</span>`;
                 } else {
                     meta.innerHTML = `<span class="time">${timeStr}</span>`;
                 }
@@ -2357,6 +2463,26 @@
                 /https:\/\/(?:www\.)?trustroots\.org\/[^\s<)]+/gi,
                 (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="message-inline-link nr-content-link">${url}</a>`
             );
+        }
+
+        function linkifyNip05Identifiers(html) {
+            return html.replace(
+                /(^|[^a-z0-9_@.-])([a-z0-9._-]+@[a-z0-9.-]+\.[a-z]{2,})(?=$|[^a-z0-9_@.-])/gi,
+                (match, prefix, nip05) => {
+                    const normalized = String(nip05 || '').trim().toLowerCase();
+                    if (!normalized) return match;
+                    const href = 'chat.html#' + encodeURIComponent(normalized).replace(/%2B/g, '+');
+                    return `${prefix}<a href="${href}" class="message-inline-link nr-content-link">${nip05}</a>`;
+                }
+            );
+        }
+
+        function renderPubkeyLabelHtml(hex) {
+            const label = escapeHtml(pubkeyDisplayLabel(hex));
+            if (!label) return '';
+            if (!label.includes('@')) return label;
+            const route = encodeURIComponent(label.toLowerCase()).replace(/%2B/g, '+');
+            return `<a href="chat.html#${route}" class="nr-content-link">${label}</a>`;
         }
 
         async function startDm() {

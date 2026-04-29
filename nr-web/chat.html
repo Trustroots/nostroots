@@ -618,12 +618,12 @@
     <!-- Keys and Settings modals injected by common.js from modals-keys-settings.html -->
     <div id="new-dm-modal" class="modal">
         <div class="modal-content">
-            <h2>New conversation</h2>
+            <h2>Start a private conversation or create a #hashtag channel</h2>
             <div class="form-group">
-                <label>npub, nip5 or hashtag</label>
-                <input type="text" id="new-dm-pubkey" placeholder="npub1... or nostroots@trustroots.org">
+                <label>Enter an npub or NIP-05 for a private chat, or enter a hashtag for a channel</label>
+                <input type="text" id="new-dm-pubkey" placeholder="npub1..., nostroots@trustroots.org, or #travel">
             </div>
-            <button type="button" class="btn" onclick="startDm()">Start</button>
+            <button type="button" class="btn" onclick="startDm()">Start conversation</button>
             <button type="button" class="btn btn-secondary" onclick="closeNewDmModal()">Cancel</button>
         </div>
     </div>
@@ -1528,6 +1528,8 @@
 
         function openNewDmModal() {
             document.getElementById('new-dm-modal').classList.add('active');
+            const input = document.getElementById('new-dm-pubkey');
+            if (input) input.focus();
         }
         function closeNewDmModal() {
             document.getElementById('new-dm-modal').classList.remove('active');

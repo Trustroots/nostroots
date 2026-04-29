@@ -232,9 +232,92 @@
     };
 
     // --- Shared keys modal helpers (index + chat) ---
+    var KEY_SOURCE_STORAGE_KEY = 'nostr_key_source_by_pubkey';
+    var KEY_BACKUP_STATUS_STORAGE_KEY = 'nostr_key_backup_by_pubkey';
+
     function setDisplayById(id, displayValue) {
         var el = global.document.getElementById(id);
         if (el) el.style.display = displayValue;
+    }
+
+    function readKeySourceMap() {
+        try {
+            var raw = global.localStorage.getItem(KEY_SOURCE_STORAGE_KEY);
+            if (!raw) return {};
+            var parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function writeKeySourceMap(map) {
+        try {
+            global.localStorage.setItem(KEY_SOURCE_STORAGE_KEY, JSON.stringify(map || {}));
+        } catch (_) {}
+    }
+
+    function setKeySourceForPubkey(pubkey, source) {
+        if (!pubkey) return;
+        var normalized = String(pubkey).toLowerCase();
+        var map = readKeySourceMap();
+        map[normalized] = source === 'generated' ? 'generated' : 'imported';
+        writeKeySourceMap(map);
+    }
+
+    function getKeySourceForPubkey(pubkey) {
+        if (!pubkey) return '';
+        var normalized = String(pubkey).toLowerCase();
+        var map = readKeySourceMap();
+        return map[normalized] || '';
+    }
+
+    function clearKeySourceForPubkey(pubkey) {
+        if (!pubkey) return;
+        var normalized = String(pubkey).toLowerCase();
+        var map = readKeySourceMap();
+        delete map[normalized];
+        writeKeySourceMap(map);
+    }
+
+    function readKeyBackupStatusMap() {
+        try {
+            var raw = global.localStorage.getItem(KEY_BACKUP_STATUS_STORAGE_KEY);
+            if (!raw) return {};
+            var parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function writeKeyBackupStatusMap(map) {
+        try {
+            global.localStorage.setItem(KEY_BACKUP_STATUS_STORAGE_KEY, JSON.stringify(map || {}));
+        } catch (_) {}
+    }
+
+    function setKeyBackedUpForPubkey(pubkey, isBackedUp) {
+        if (!pubkey) return;
+        var normalized = String(pubkey).toLowerCase();
+        var map = readKeyBackupStatusMap();
+        map[normalized] = isBackedUp === true;
+        writeKeyBackupStatusMap(map);
+    }
+
+    function isKeyBackedUpForPubkey(pubkey) {
+        if (!pubkey) return false;
+        var normalized = String(pubkey).toLowerCase();
+        var map = readKeyBackupStatusMap();
+        return map[normalized] === true;
+    }
+
+    function clearKeyBackedUpForPubkey(pubkey) {
+        if (!pubkey) return;
+        var normalized = String(pubkey).toLowerCase();
+        var map = readKeyBackupStatusMap();
+        delete map[normalized];
+        writeKeyBackupStatusMap(map);
     }
 
     function setKeysModalSections(hasKey) {
@@ -253,6 +336,19 @@
         setDisplayById('keys-trustroots-section', 'block');
     }
 
+    function focusKeysImportInput(hasKey) {
+        // Wait one tick so modal visibility/styles are applied before focusing.
+        setTimeout(function () {
+            var target = null;
+            if (!hasKey) {
+                target = global.document.getElementById('onboarding-import');
+            }
+            if (!target) target = global.document.getElementById('nsec-import');
+            if (!target || typeof target.focus !== 'function') return;
+            try { target.focus({ preventScroll: true }); } catch (_) { target.focus(); }
+        }, 0);
+    }
+
     function openKeysModal(options) {
         var opts = options || {};
         var keysEl = global.document.getElementById(opts.keysModalId || 'keys-modal');
@@ -261,6 +357,7 @@
         if (settingsEl) settingsEl.classList.remove('active');
         keysEl.classList.add('active');
         setKeysModalSections(!!opts.hasKey);
+        focusKeysImportInput(!!opts.hasKey);
         if (opts.hasKey && typeof opts.onOpenManagedSection === 'function') {
             opts.onOpenManagedSection();
         }
@@ -286,6 +383,9 @@
         var npub = typeof opts.npub === 'string' ? opts.npub : '';
         var npubError = typeof opts.npubError === 'string' ? opts.npubError : 'Error encoding npub';
         var isProfileLinked = opts.isProfileLinked === true;
+        var isUsernameLinked = opts.isUsernameLinked === true;
+        var showChecklist = opts.showChecklist === true;
+        var isNsecBackedUp = opts.isNsecBackedUp === true;
 
         setDisplayById('nsec-actions-group', hasNsec ? 'block' : 'none');
         setDisplayById('no-nsec-actions-group', hasNsec ? 'none' : 'block');
@@ -306,12 +406,41 @@
 
         var keysBtn = global.document.getElementById('keys-icon-btn');
         if (keysBtn) keysBtn.title = hasPublicKey ? 'Keys' : 'Connect';
+
+        var usernameGuidance = global.document.getElementById('keys-username-guidance-text');
+        if (usernameGuidance) {
+            usernameGuidance.textContent = isUsernameLinked
+                ? 'Trustroots username verified from your Nostr profile.'
+                : 'Enter your Trustroots username and verify it.';
+        }
+
+        var stepBackup = global.document.getElementById('keys-step-backup');
+        var stepProfile = global.document.getElementById('keys-step-profile');
+        var stepUsername = global.document.getElementById('keys-step-username');
+        if (stepBackup) {
+            stepBackup.style.display = showChecklist ? 'inline-block' : 'none';
+            stepBackup.checked = showChecklist && hasNsec && isNsecBackedUp;
+        }
+        if (stepProfile) {
+            stepProfile.style.display = showChecklist ? 'inline-block' : 'none';
+            stepProfile.checked = showChecklist && hasPublicKey && isProfileLinked;
+        }
+        if (stepUsername) {
+            stepUsername.style.display = showChecklist ? 'inline-block' : 'none';
+            stepUsername.checked = showChecklist && hasPublicKey && isUsernameLinked;
+        }
     }
 
     global.NrWebKeysModal = {
         openKeysModal: openKeysModal,
         closeKeysModal: closeKeysModal,
-        updateKeyDisplay: updateKeyDisplay
+        updateKeyDisplay: updateKeyDisplay,
+        setKeySourceForPubkey: setKeySourceForPubkey,
+        getKeySourceForPubkey: getKeySourceForPubkey,
+        clearKeySourceForPubkey: clearKeySourceForPubkey,
+        setKeyBackedUpForPubkey: setKeyBackedUpForPubkey,
+        isKeyBackedUpForPubkey: isKeyBackedUpForPubkey,
+        clearKeyBackedUpForPubkey: clearKeyBackedUpForPubkey
     };
 
     // --- Shared NIP-42 WS auth subscription helper (index + chat + pixel) ---

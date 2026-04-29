@@ -17,7 +17,7 @@
         <!-- Import nsec or mnemonic (only shown when no key) -->
         <div class="keys-option-section" id="keys-import-section" style="display: none;">
             <div class="keys-option-content">
-                <textarea id="onboarding-import" placeholder="Enter nsec1... or mnemonic phrase (12 or 24 words)..." style="width: 100%; min-height: 80px; margin-bottom: 0.75rem; font-family: monospace; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); background: var(--input); color: var(--foreground);"></textarea>
+                <textarea id="onboarding-import" placeholder="Enter nsec1... or mnemonic phrase (12 or 24 words)..." onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); onboardingImport();}" style="width: 100%; min-height: 80px; margin-bottom: 0.75rem; font-family: monospace; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); background: var(--input); color: var(--foreground);"></textarea>
                 <button class="btn btn-secondary" onclick="onboardingImport()" type="button" style="width: 100%;">Import</button>
             </div>
         </div>
@@ -31,7 +31,12 @@
 
         <!-- Keys section (only shown when key is set) -->
         <div class="settings-section" id="keys-manage-section" style="display: none;">
-            <h2>Keys</h2>
+            <div class="form-group keys-step-group">
+                <label class="keys-step-label">
+                    <input type="checkbox" id="keys-step-backup" disabled>
+                    <span>Export your <strong>nsec</strong> and copy it into your password manager (we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>).</span>
+                </label>
+            </div>
 
             <!-- Local Key Actions (above npub) -->
             <div class="form-group" id="nsec-actions-group" style="display: none;">
@@ -56,6 +61,10 @@
 
             <!-- Update Trustroots Profile button -->
             <div class="form-group" id="update-trustroots-profile-group" style="display: none; margin-top: 0.75rem;">
+                <label class="keys-step-label">
+                    <input type="checkbox" id="keys-step-profile" disabled>
+                    <span>Add your npub to your Trustroots profile.</span>
+                </label>
                 <button class="btn btn-secondary" onclick="updateTrustrootsProfile()" type="button" style="width: 100%;">
                     <span style="margin-right: 0.5rem;">🌐</span>
                     Update Trustroots Profile
@@ -65,7 +74,7 @@
             <!-- Import/Generate Section -->
             <div class="form-group" id="no-nsec-actions-group">
                 <label>Import nsec</label>
-                <input type="text" id="nsec-import" placeholder="nsec1...">
+                <input type="text" id="nsec-import" placeholder="nsec1..." onkeydown="if(event.key==='Enter'){event.preventDefault(); importNsec();}">
                 <small style="display: block; margin-top: 0.5rem; color: var(--muted-foreground);">Paste your private key (nsec) here. If you do not have one yet, generate a new key, then export and store your nsec in your password manager (we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>).</small>
                 <button class="btn" onclick="importNsec()" type="button" style="margin-top: 0.5rem;">Import</button>
             </div>
@@ -78,6 +87,10 @@
         <!-- Trustroots username section (only shown when key is set) -->
         <div class="settings-section" id="keys-trustroots-section" style="display: none;">
             <h2>Trustroots username</h2>
+            <label class="keys-step-label keys-step-group">
+                <input type="checkbox" id="keys-step-username" disabled>
+                <span id="keys-username-guidance-text">Enter your Trustroots username and verify it.</span>
+            </label>
             <div class="form-group">
                 <input type="text" id="trustroots-username" placeholder="your-username" onkeydown="if(event.key === 'Enter') linkTrustrootsProfile()">
                 <div id="username-nostr-indicator" class="username-nostr-indicator" style="display: none;">

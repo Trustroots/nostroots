@@ -93,6 +93,9 @@ describe('Modal Behavior', () => {
       expect(text).toContain('Nostr private key');
       expect(text).toContain('Nostroots mobile app');
       expect(text).toContain('Bitwarden');
+      expect(text).toContain('Export your nsec');
+      expect(text).toContain('Update Trustroots Profile');
+      expect(text).toContain('Enter your Trustroots username and verify it');
     });
 
     it('settings modal has relays section and GitHub link from fragment', () => {

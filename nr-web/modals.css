@@ -88,6 +88,26 @@
     color: var(--foreground);
 }
 
+/* Keep inline modal links readable and aligned with app link palette. */
+#keys-modal .modal-content a:not(.btn):not(.copy-btn):not(.github-icon-link),
+#settings-modal .modal-content a:not(.btn):not(.copy-btn):not(.github-icon-link) {
+    color: var(--content-link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+#keys-modal .modal-content a:not(.btn):not(.copy-btn):not(.github-icon-link):visited,
+#settings-modal .modal-content a:not(.btn):not(.copy-btn):not(.github-icon-link):visited {
+    color: var(--content-link-visited);
+}
+
+#keys-modal .modal-content a:not(.btn):not(.copy-btn):not(.github-icon-link):hover,
+#keys-modal .modal-content a:not(.btn):not(.copy-btn):not(.github-icon-link):focus-visible,
+#settings-modal .modal-content a:not(.btn):not(.copy-btn):not(.github-icon-link):hover,
+#settings-modal .modal-content a:not(.btn):not(.copy-btn):not(.github-icon-link):focus-visible {
+    color: var(--content-link-hover);
+}
+
 #settings-modal .github-icon-link {
     display: block;
     text-align: right;
@@ -199,6 +219,27 @@
     color: var(--foreground);
 }
 
+/* Keys modal checklist rows */
+#keys-modal .keys-step-group {
+    margin-bottom: 0.75rem;
+}
+
+#keys-modal .keys-step-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--muted-foreground);
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+#keys-modal .keys-step-label input[type="checkbox"] {
+    width: auto;
+    flex: 0 0 auto;
+    margin-top: 0.1rem;
+}
+
 #keys-modal .key-input-wrapper,
 #settings-modal .key-input-wrapper {
     position: relative;
@@ -250,10 +291,11 @@
 
 #keys-modal .username-nostr-indicator,
 #settings-modal .username-nostr-indicator {
-    font-size: 0.8125rem;
-    color: var(--muted-foreground);
+    font-size: 1rem;
+    color: var(--foreground);
     margin-top: 0.5rem;
-    font-style: italic;
+    line-height: 1.5;
+    font-style: normal;
 }
 
 /* Relays list (settings modal) */

@@ -504,10 +504,11 @@
         }
         
         .username-nostr-indicator {
-            font-size: 0.8125rem;
-            color: var(--muted-foreground);
+            font-size: 1rem;
+            color: var(--foreground);
             margin-top: 0.5rem;
-            font-style: italic;
+            line-height: 1.5;
+            font-style: normal;
         }
         
         .keys-option-section {
@@ -1697,6 +1698,7 @@
         
         const NOSTROOTS_VALIDATION_PUBKEY = 'f5bc71692fc08ea52c0d1c8bcfb87579584106b5feb4ea542b1b8a95612f257b';
         const DEV_PUBKEY = '80789235a71a388074abfa5c482e270456d2357425266270f82071cf2b1de74a';
+        const TRUSTROOTS_RESTRICTED_RELAY_URL = 'wss://nip42.trustroots.org';
         
         // Map to store pubkey -> Trustroots username
         const pubkeyToUsername = new Map();
@@ -2286,6 +2288,10 @@
             crypto.getRandomValues(privateKey);
             const privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('');
             savePrivateKey(privateKeyHex);
+            if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
+                window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'generated');
+                window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, false);
+            }
             loadKeys();
             showStatus('New key pair generated!', 'success');
         }
@@ -2301,6 +2307,10 @@
                 const privateKeyHex = decodeNsec(nsecInput);
                 if (privateKeyHex) {
                     savePrivateKey(privateKeyHex);
+                    if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
+                        window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'imported');
+                        window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, true);
+                    }
                     loadKeys();
                     showStatus('nsec imported. Looking up your kind 0 profile information...', 'info');
                     await checkProfileLinked();
@@ -2333,7 +2343,7 @@
         function getNsecInputErrorMessage(input) {
             if (!input) return 'Please enter an nsec';
             if (input.startsWith('npub1')) {
-                return 'You entered an npub (public key). Please enter your nsec (private key) here.';
+                return 'You entered an npub (public key). Paste your nsec (private key) or your mnemonic phrase instead. You may have it in the Nostroots mobile app or in your password manager.';
             }
             return 'Invalid nsec format';
         }
@@ -2405,10 +2415,14 @@
                 
                 // Copy to clipboard
                 navigator.clipboard.writeText(nsec).then(() => {
+                    window.NrWebKeysModal?.setKeyBackedUpForPubkey?.(currentPublicKey, true);
+                    updateKeyDisplay({ skipProfileLookup: true });
                     showStatus('nsec copied to clipboard!', 'success');
                 }).catch(() => {
                     // Fallback: show in alert if clipboard API fails
                     prompt('Your nsec (copy this):', nsec);
+                    window.NrWebKeysModal?.setKeyBackedUpForPubkey?.(currentPublicKey, true);
+                    updateKeyDisplay({ skipProfileLookup: true });
                     showStatus('nsec displayed', 'info');
                 });
             } catch (error) {
@@ -2421,11 +2435,14 @@
             if (!confirm('Are you sure you want to delete your private key? This action cannot be undone. You will need to import or generate a new key to continue using the app.')) {
                 return;
             }
+            const deletedPubkey = currentPublicKey;
             
             localStorage.removeItem('nostr_private_key');
             currentPrivateKey = null;
             currentPrivateKeyBytes = null;
             currentPublicKey = null;
+            window.NrWebKeysModal?.clearKeySourceForPubkey?.(deletedPubkey);
+            window.NrWebKeysModal?.clearKeyBackedUpForPubkey?.(deletedPubkey);
             isProfileLinked = false;
             usernameFromNostr = false;
             
@@ -2448,10 +2465,13 @@
             openKeysModal();
         }
         
-        function updateKeyDisplay() {
+        function updateKeyDisplay(options = {}) {
             const keysModal = window.NrWebKeysModal;
             let npub = '';
             let npubError = '';
+            const keySource = keysModal?.getKeySourceForPubkey?.(currentPublicKey) || '';
+            const showChecklist = keySource === 'generated';
+            const isNsecBackedUp = keysModal?.isKeyBackedUpForPubkey?.(currentPublicKey) === true;
             if (currentPublicKey) {
                 try {
                     npub = nip19.npubEncode(currentPublicKey);
@@ -2469,10 +2489,13 @@
                     hasPublicKey: !!currentPublicKey,
                     npub,
                     npubError,
-                    isProfileLinked
+                    isProfileLinked,
+                    isUsernameLinked: usernameFromNostr,
+                    showChecklist,
+                    isNsecBackedUp
                 });
             }
-            if (currentPublicKey) checkProfileLinked();
+            if (currentPublicKey && options.skipProfileLookup !== true) checkProfileLinked();
             setHeaderIdentity();
             renderRelaysList();
         }
@@ -2548,6 +2571,30 @@
 
         function getWritableRelayUrls() {
             return getRelayUrls().filter(url => relayWriteEnabled.get(url) !== false);
+        }
+
+        function isRestrictedRelayUrl(url) {
+            return (url || '').trim().toLowerCase() === TRUSTROOTS_RESTRICTED_RELAY_URL;
+        }
+
+        function canUseRestrictedRelay() {
+            return !!currentPrivateKeyBytes && isProfileLinked === true;
+        }
+
+        function getConnectableRelayUrls(relayUrls) {
+            return (relayUrls || []).filter((url) => {
+                if (!isRestrictedRelayUrl(url)) return true;
+                return canUseRestrictedRelay();
+            });
+        }
+
+        function reconnectRestrictedRelayIfEligible() {
+            const relayUrls = getRelayUrls();
+            const hasRestrictedRelay = relayUrls.some((url) => isRestrictedRelayUrl(url));
+            if (!hasRestrictedRelay || !canUseRestrictedRelay()) return;
+            const restrictedStatus = relayStatus.get(TRUSTROOTS_RESTRICTED_RELAY_URL);
+            if (restrictedStatus?.status === 'connected') return;
+            initializeNDK();
         }
         
         function saveRelays() {
@@ -2850,7 +2897,8 @@
         
         async function initializeNDK() {
             const relayUrls = getRelayUrls();
-            startWsMapSubscriptions(relayUrls);
+            const connectableRelayUrls = getConnectableRelayUrls(relayUrls);
+            startWsMapSubscriptions(connectableRelayUrls);
             // Initialize relays
             
             // Initialize status for all relays
@@ -2862,13 +2910,18 @@
                     updateRelayStatus(url, 'connecting');
                 }
             });
+            relayUrls.forEach((url) => {
+                if (isRestrictedRelayUrl(url) && !canUseRestrictedRelay()) {
+                    updateRelayStatus(url, 'disconnected', false);
+                }
+            });
             renderRelaysList();
             
             try {
                 if (NDK) {
                     // Use NDK if available
                     ndk = new NDK({
-                        explicitRelayUrls: relayUrls
+                        explicitRelayUrls: connectableRelayUrls
                     });
                     
                     await ndk.connect();
@@ -2876,7 +2929,7 @@
                     // Update status for all relays (NDK manages connections internally)
                     // Note: NDK doesn't provide per-relay status, so we assume all are connected
                     let connectedCount = 0;
-                    relayUrls.forEach(url => {
+                    connectableRelayUrls.forEach(url => {
                         // Try to check if relay is actually connected via NDK pool
                         try {
                             const relay = ndk.pool?.relays?.get(url);
@@ -2917,7 +2970,8 @@
         
         async function initializeRelays(relayUrls) {
             relays = [];
-            startWsMapSubscriptions(relayUrls);
+            const connectableRelayUrls = getConnectableRelayUrls(relayUrls);
+            startWsMapSubscriptions(connectableRelayUrls);
             
             // Initialize status for all relays
             relayUrls.forEach(url => {
@@ -2928,9 +2982,14 @@
                     updateRelayStatus(url, 'connecting');
                 }
             });
+            relayUrls.forEach((url) => {
+                if (isRestrictedRelayUrl(url) && !canUseRestrictedRelay()) {
+                    updateRelayStatus(url, 'disconnected', false);
+                }
+            });
             renderRelaysList();
             
-            for (const url of relayUrls) {
+            for (const url of connectableRelayUrls) {
                 try {
                     updateRelayStatus(url, 'connecting');
                     const relay = await Relay.connect(url);
@@ -3016,7 +3075,7 @@
             
             // Show summary message
             const connectedCount = relays.length;
-            const totalCount = relayUrls.length;
+            const totalCount = connectableRelayUrls.length;
             const failedCount = totalCount - connectedCount;
             
             if (connectedCount > 0) {
@@ -5355,6 +5414,7 @@
                 }
                 
                 updateLinkProfileButton();
+                updateKeyDisplay({ skipProfileLookup: true });
                 return;
             }
             
@@ -5442,6 +5502,7 @@
                     }
                 }
                 
+                const wasProfileLinked = isProfileLinked;
                 isProfileLinked = foundLinked;
                 
                 // Update username field if we found a linked username
@@ -5481,6 +5542,10 @@
                 if (updateTrustrootsGroup) {
                     updateTrustrootsGroup.style.display = isProfileLinked ? 'none' : 'block';
                 }
+                updateKeyDisplay({ skipProfileLookup: true });
+                if (!wasProfileLinked && isProfileLinked) {
+                    reconnectRestrictedRelayIfEligible();
+                }
             } catch (error) {
                 console.error('Error checking profile link:', error);
                 isProfileLinked = false;
@@ -5503,6 +5568,7 @@
                 if (updateTrustrootsGroup && currentPublicKey) {
                     updateTrustrootsGroup.style.display = 'block';
                 }
+                updateKeyDisplay({ skipProfileLookup: true });
             }
         }
         
@@ -5607,6 +5673,10 @@
                 showStatus('Please enter an nsec or mnemonic phrase', 'error');
                 return;
             }
+            if (input.startsWith('npub1')) {
+                showStatus(getNsecInputErrorMessage(input), 'error');
+                return;
+            }
             
             // Detect if input is nsec (starts with nsec1) or mnemonic (multiple words)
             if (input.startsWith('nsec1')) {
@@ -5614,6 +5684,10 @@
                 const privateKeyHex = decodeNsec(input);
                 if (privateKeyHex) {
                     savePrivateKey(privateKeyHex);
+                    if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
+                        window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'imported');
+                        window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, true);
+                    }
                     loadKeys();
                     // Refresh the keys modal to show the management section
                     openKeysModal({ runProfileLookup: false });
@@ -5627,7 +5701,7 @@
                 // Try to import as mnemonic
                 try {
                     // Validate mnemonic (using English wordlist by default)
-                    if (!validateMnemonic(input, wordlists.english)) {
+                    if (!validateMnemonic(input)) {
                         showStatus('Invalid mnemonic phrase. Please check your words.', 'error');
                         return;
                     }
@@ -5643,6 +5717,10 @@
                         .join('');
                     
                     savePrivateKey(privateKeyHex);
+                    if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
+                        window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'imported');
+                        window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, true);
+                    }
                     loadKeys();
                     // Refresh the keys modal to show the management section
                     openKeysModal({ runProfileLookup: false });
@@ -5780,6 +5858,7 @@
                             if (updateTrustrootsGroup) {
                                 updateTrustrootsGroup.style.display = 'none';
                             }
+                            updateKeyDisplay({ skipProfileLookup: true });
                         } else {
                             markRelaysWithPublishFailures(failed);
                             const errorDetails = failed.map(f => {

@@ -102,7 +102,7 @@
         .btn-secondary { background: var(--secondary); color: var(--secondary-foreground); }
         .btn-danger { background: var(--destructive); color: #fff; }
         .btn-danger:hover { filter: brightness(1.1); }
-        .username-nostr-indicator { font-size: 0.8125rem; color: var(--muted-foreground); margin-top: 0.5rem; font-style: italic; }
+        .username-nostr-indicator { font-size: 1rem; color: var(--foreground); margin-top: 0.5rem; line-height: 1.5; font-style: normal; }
         .settings-section {
             background: var(--card);
             padding: 1.25rem;
@@ -1144,7 +1144,7 @@
             const s = (input || '').trim();
             if (!s) return 'Please enter an nsec';
             if (s.startsWith('npub1')) {
-                return 'You entered an npub (public key). Please enter your nsec (private key) here.';
+                return 'You entered an npub (public key). Paste your nsec (private key) here. If you only have a mnemonic phrase, import it on the Map page first. You may have your key in the Nostroots mobile app or your password manager.';
             }
             return 'Invalid nsec format';
         }
@@ -1315,10 +1315,13 @@
             setHashRoute(getConversationRouteId(selectedConversationId));
         }
 
-        function updateKeyDisplay() {
+        function updateKeyDisplay(options = {}) {
             const keysModal = window.NrWebKeysModal;
             let npub = '';
             let npubError = '';
+            const keySource = keysModal?.getKeySourceForPubkey?.(currentPublicKey) || '';
+            const showChecklist = keySource === 'generated';
+            const isNsecBackedUp = keysModal?.isKeyBackedUpForPubkey?.(currentPublicKey) === true;
             if (currentPublicKey) {
                 try {
                     npub = nip19.npubEncode(currentPublicKey);
@@ -1332,10 +1335,13 @@
                     hasPublicKey: !!currentPublicKey,
                     npub,
                     npubError,
-                    isProfileLinked
+                    isProfileLinked,
+                    isUsernameLinked: usernameFromNostr,
+                    showChecklist,
+                    isNsecBackedUp
                 });
             }
-            if (currentPublicKey) checkProfileLinked();
+            if (currentPublicKey && options.skipProfileLookup !== true) checkProfileLinked();
             setHeaderIdentity();
         }
 
@@ -1357,6 +1363,10 @@
                 return;
             }
             savePrivateKey(hex);
+            if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
+                window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'imported');
+                window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, true);
+            }
             if (input) input.value = '';
             loadKeysFromStorage(0);
             updateUI();
@@ -1381,6 +1391,10 @@
                 return;
             }
             savePrivateKey(hex);
+            if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
+                window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'imported');
+                window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, true);
+            }
             if (el) el.value = '';
             loadKeysFromStorage(0);
             updateKeyDisplay();
@@ -1392,6 +1406,10 @@
             crypto.getRandomValues(privateKey);
             const privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('');
             savePrivateKey(privateKeyHex);
+            if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
+                window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'generated');
+                window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, false);
+            }
             loadKeysFromStorage(0);
             updateUI();
             startSubscriptions();
@@ -1406,8 +1424,14 @@
                 const bytes = new Uint8Array(32);
                 for (let i = 0; i < 32; i++) bytes[i] = parseInt(currentSecretKeyHex.substring(i * 2, i * 2 + 2), 16);
                 const nsec = nip19.nsecEncode(bytes);
-                navigator.clipboard.writeText(nsec).then(() => showStatus('nsec copied to clipboard!', 'success')).catch(() => {
+                navigator.clipboard.writeText(nsec).then(() => {
+                    window.NrWebKeysModal?.setKeyBackedUpForPubkey?.(currentPublicKey, true);
+                    updateKeyDisplay({ skipProfileLookup: true });
+                    showStatus('nsec copied to clipboard!', 'success');
+                }).catch(() => {
                     prompt('Your nsec (copy this):', nsec);
+                    window.NrWebKeysModal?.setKeyBackedUpForPubkey?.(currentPublicKey, true);
+                    updateKeyDisplay({ skipProfileLookup: true });
                     showStatus('nsec displayed', 'info');
                 });
             } catch (e) {
@@ -1416,7 +1440,10 @@
         }
         function deleteNsec() {
             if (!confirm('Delete your private key? You will need to import or generate a new key.')) return;
+            const deletedPubkey = currentPublicKey;
             disconnect();
+            window.NrWebKeysModal?.clearKeySourceForPubkey?.(deletedPubkey);
+            window.NrWebKeysModal?.clearKeyBackedUpForPubkey?.(deletedPubkey);
             updateKeyDisplay();
             openKeysModal();
             showStatus('Private key deleted', 'success');
@@ -1900,11 +1927,13 @@
                 isProfileLinked = false;
                 usernameFromNostr = false;
                 setTrustrootsUI('');
+                updateKeyDisplay({ skipProfileLookup: true });
                 return;
             }
             const r = relays?.length ? relays : (getRelayUrls().length ? getRelayUrls() : DEFAULT_RELAYS);
             if (!r.length) {
                 setTrustrootsUI('');
+                updateKeyDisplay({ skipProfileLookup: true });
                 return;
             }
             if (!pool) pool = new SimplePool();
@@ -1938,6 +1967,7 @@
             usernameFromNostr = !!linkedUsername;
             if (linkedUsername) pubkeyToUsername.set(currentPublicKey, linkedUsername);
             setTrustrootsUI(linkedUsername || '');
+            updateKeyDisplay({ skipProfileLookup: true });
         }
 
         function setTrustrootsUI(username) {
@@ -1986,6 +2016,7 @@
                 isProfileLinked = true;
                 usernameFromNostr = true;
                 setTrustrootsUI(username);
+                updateKeyDisplay({ skipProfileLookup: true });
                 pubkeyToUsername.set(currentPublicKey, username);
                 scheduleChatCacheWrite();
                 showStatus('Profile linked. You can now close this modal and explore the app. Make sure your nsec is safely backed up (for example in your password manager).', 'success');
@@ -2348,7 +2379,7 @@
                     const similarityKey = (eventKind === MAP_NOTE_KIND || eventKind === MAP_NOTE_REPOST_KIND)
                         ? `similar:${createdAtMinute}|${plusCode}|${contentNormalized}`
                         : '';
-                    const key = canonicalKey || similarityKey || `id:${ev.id}`;
+                    const key = similarityKey || canonicalKey || `id:${ev.id}`;
                     const hasUsername = !!pubkeyToUsername.get(ev.pubkey);
                     const nip05 = (pubkeyToNip05.get(ev.pubkey) || '').toLowerCase();
                     const hasTrustrootsIdentity = hasUsername || nip05.endsWith('@trustroots.org');

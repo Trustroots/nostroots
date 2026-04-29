@@ -134,7 +134,7 @@
           <section class="card">
             <div>
               <label for="relayUrl">Relay URL</label>
-              <input id="relayUrl" value="ws://localhost:8042" />
+              <input id="relayUrl" value="wss://nip42.trustroots.org" />
             </div>
           </section>
           <section class="card">
@@ -187,6 +187,7 @@
       let statusLines = [];
       const watchedKinds = [1, 30397, 30398, 10390, 10395];
       const nsecStorageKey = "nip42test.nsec";
+      const relayUrlStorageKey = "nip42test.relayUrl";
       const STATUS_MAX_LINES = 8;
 
       function setStatus(message) {
@@ -371,7 +372,15 @@
         localStorage.setItem(nsecStorageKey, nsecInput.value);
       });
 
+      relayUrlInput.addEventListener("input", () => {
+        localStorage.setItem(relayUrlStorageKey, relayUrlInput.value);
+      });
+
       window.addEventListener("load", () => {
+        const savedRelayUrl = localStorage.getItem(relayUrlStorageKey);
+        if (savedRelayUrl) {
+          relayUrlInput.value = savedRelayUrl;
+        }
         const savedNsec = localStorage.getItem(nsecStorageKey);
         if (savedNsec) {
           nsecInput.value = savedNsec;

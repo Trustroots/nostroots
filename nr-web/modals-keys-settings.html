@@ -9,7 +9,9 @@
         <!-- Welcome message (only shown when no key is set) -->
         <div id="keys-welcome-section" style="display: none; margin-bottom: 2rem;">
             <h2 style="margin-bottom: 0.5rem;">Welcome to Nostroots</h2>
-            <p style="color: var(--muted-foreground); margin: 0;">You need a nostr key to get started. Choose one of the options below:</p>
+            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">You need a Nostr private key (nsec) to get started.</p>
+            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">If you already have one, paste it below (for example from the Nostroots mobile app or your password manager).</p>
+            <p style="color: var(--muted-foreground); margin: 0;">If you do not have one yet, generate it here and store it in your password manager. If you do not have one yet, we recommend Bitwarden.</p>
         </div>
 
         <!-- Import nsec or mnemonic (only shown when no key) -->
@@ -64,6 +66,7 @@
             <div class="form-group" id="no-nsec-actions-group">
                 <label>Import nsec</label>
                 <input type="text" id="nsec-import" placeholder="nsec1...">
+                <small style="display: block; margin-top: 0.5rem; color: var(--muted-foreground);">Paste your private key (nsec) here. If you do not have one yet, generate a new key and store it in your password manager (we recommend Bitwarden).</small>
                 <button class="btn" onclick="importNsec()" type="button" style="margin-top: 0.5rem;">Import</button>
             </div>
 

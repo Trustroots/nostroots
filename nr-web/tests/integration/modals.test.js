@@ -87,6 +87,14 @@ describe('Modal Behavior', () => {
       expect(document.getElementById('onboarding-import')).toBeTruthy();
     });
 
+    it('keys modal includes guidance about nsec and password manager', () => {
+      const keysModal = document.getElementById('keys-modal');
+      const text = keysModal?.textContent || '';
+      expect(text).toContain('Nostr private key');
+      expect(text).toContain('Nostroots mobile app');
+      expect(text).toContain('Bitwarden');
+    });
+
     it('settings modal has relays section and GitHub link from fragment', () => {
       const settingsModal = document.getElementById('settings-modal');
       expect(settingsModal).toBeTruthy();

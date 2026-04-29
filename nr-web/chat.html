@@ -910,6 +910,29 @@
             if (!h) return '';
             try { return decodeURIComponent(h); } catch (_) { return h; }
         }
+        function getConversationRouteId(id) {
+            if (!id) return '';
+            const conv = conversations.get(id);
+            if (!conv || conv.type !== 'dm') return id;
+            const display = (getDisplayName(id) || '').trim();
+            if (display.includes('@')) return display.toLowerCase();
+            return hexToNpub(id) || id;
+        }
+        function findConversationIdByRoute(route) {
+            const r = (route || '').trim();
+            if (!r) return '';
+            if (conversations.has(r)) return r;
+            const needle = r.toLowerCase();
+            for (const [id, conv] of conversations.entries()) {
+                if (conv.type !== 'dm') continue;
+                if (id === r) return id;
+                const display = (getDisplayName(id) || '').trim().toLowerCase();
+                if (display && display === needle) return id;
+                const npub = (hexToNpub(id) || '').trim().toLowerCase();
+                if (npub && npub === needle) return id;
+            }
+            return '';
+        }
         function setHashRoute(route) {
             const encoded = route ? encodeURIComponent(route).replace(/%2B/g, '+') : '';
             const want = encoded ? '#' + encoded : '';
@@ -934,6 +957,13 @@
             if (settingsEl) settingsEl.classList.remove('active');
             if (!route) {
                 selectConversation(GLOBAL_CHANNEL_SLUG);
+                return;
+            }
+            const mappedConversationId = findConversationIdByRoute(route);
+            if (mappedConversationId) {
+                const preferredRoute = getConversationRouteId(mappedConversationId);
+                if (preferredRoute && route !== preferredRoute) setHashRoute(preferredRoute);
+                selectConversation(mappedConversationId);
                 return;
             }
             if (normalizedRoute && route !== normalizedRoute) {
@@ -1080,6 +1110,15 @@
                 if (decoded.type === 'nsec') return Array.from(decoded.data).map(b => b.toString(16).padStart(2, '0')).join('');
             } catch (_) {}
             return null;
+        }
+
+        function getNsecInputErrorMessage(input) {
+            const s = (input || '').trim();
+            if (!s) return 'Please enter an nsec';
+            if (s.startsWith('npub1')) {
+                return 'You entered an npub (public key). Please enter your nsec (private key) here.';
+            }
+            return 'Invalid nsec format';
         }
 
         function hasLocalSigningKey() {
@@ -1229,7 +1268,7 @@
         function closeKeysModal() {
             const el = document.getElementById('keys-modal');
             if (el) el.classList.remove('active');
-            setHashRoute(selectedConversationId || '');
+            setHashRoute(getConversationRouteId(selectedConversationId));
         }
 
         function openSettingsModal() {
@@ -1244,7 +1283,7 @@
         function closeSettingsModal() {
             const el = document.getElementById('settings-modal');
             if (el) el.classList.remove('active');
-            setHashRoute(selectedConversationId || '');
+            setHashRoute(getConversationRouteId(selectedConversationId));
         }
 
         function updateKeyDisplay() {
@@ -1300,7 +1339,10 @@
             }
             const hex = decodeNsec(raw) || (raw.length === 64 && /^[0-9a-f]+$/i.test(raw) ? raw : null);
             if (!hex) {
-                showStatus('Invalid nsec or hex. For mnemonic, use the Map page.', 'error');
+                const errorMessage = raw.startsWith('npub1')
+                    ? getNsecInputErrorMessage(raw)
+                    : 'Invalid nsec or hex. For mnemonic, use the Map page.';
+                showStatus(errorMessage, 'error');
                 return;
             }
             savePrivateKey(hex);
@@ -1324,7 +1366,7 @@
             }
             const hex = decodeNsec(raw) || (raw.length === 64 && /^[0-9a-f]+$/i.test(raw) ? raw : null);
             if (!hex) {
-                showStatus('Invalid nsec format', 'error');
+                showStatus(getNsecInputErrorMessage(raw), 'error');
                 return;
             }
             savePrivateKey(hex);
@@ -2095,7 +2137,7 @@
 
         function selectConversation(id) {
             selectedConversationId = id;
-            setHashRoute(id || '');
+            setHashRoute(getConversationRouteId(id));
             const keysEl = document.getElementById('keys-modal');
             const settingsEl = document.getElementById('settings-modal');
             if (keysEl) keysEl.classList.remove('active');

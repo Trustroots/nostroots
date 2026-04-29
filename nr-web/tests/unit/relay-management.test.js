@@ -29,13 +29,13 @@ describe('Relay Management', () => {
     it('stores and reads per-relay post preferences', () => {
       const preferences = {
         'wss://relay.trustroots.org': true,
-        'ws://localhost:8042': false,
+        'wss://nip42.trustroots.org': false,
       };
       localStorage.setItem('relay_write_enabled', JSON.stringify(preferences));
 
       const stored = JSON.parse(localStorage.getItem('relay_write_enabled') || '{}');
       expect(stored).toEqual(preferences);
-      expect(stored['ws://localhost:8042']).toBe(false);
+      expect(stored['wss://nip42.trustroots.org']).toBe(false);
     });
 
     it('defaults to post enabled when relay has no saved preference', () => {
@@ -89,7 +89,7 @@ describe('Relay Management', () => {
 
     it('detects loopback relay hosts for local privacy hint', () => {
       const localRelayUrls = [
-        'ws://localhost:8042',
+        'wss://nip42.trustroots.org',
         'ws://127.0.0.1:8042',
         'ws://[::1]:8042',
       ];

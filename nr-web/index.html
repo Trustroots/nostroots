@@ -1266,7 +1266,6 @@
         data-page-title="Nostroots Map"
         data-nav-href="chat.html"
         data-nav-title="Chat"
-        data-pixel-href="pixel.html"
         data-nav-aria-label="Open Chat"
         data-nav-icon="💬"
         data-settings-title="Settings">
@@ -1435,6 +1434,11 @@
                 return await window.nostr.signEvent(eventTemplate);
             }
             throw new Error('No signing method available for relay authentication');
+        }
+
+        function hasRelayAuthSigningCapability() {
+            if (currentPrivateKeyBytes) return true;
+            return !!(currentPublicKey && window.nostr && typeof window.nostr.signEvent === 'function');
         }
         
         async function authenticateRelay(relay, relayUrl, challenge) {
@@ -2279,7 +2283,7 @@
                     showStatus('nsec imported successfully!', 'success');
                     document.getElementById('nsec-import').value = '';
                 } else {
-                    showStatus('Invalid nsec format', 'error');
+                    showStatus(getNsecInputErrorMessage(nsecInput), 'error');
                 }
             } catch (error) {
                 showStatus('Error importing nsec: ' + error.message, 'error');
@@ -2300,6 +2304,14 @@
                 console.error('Error decoding nsec:', error);
                 return null;
             }
+        }
+
+        function getNsecInputErrorMessage(input) {
+            if (!input) return 'Please enter an nsec';
+            if (input.startsWith('npub1')) {
+                return 'You entered an npub (public key). Please enter your nsec (private key) here.';
+            }
+            return 'Invalid nsec format';
         }
         
         function savePrivateKey(privateKeyHex) {
@@ -2467,6 +2479,7 @@
             const keysIconBtn = document.getElementById('keys-icon-btn');
             if (keysIconBtn) keysIconBtn.title = currentPublicKey ? 'Keys' : 'Connect';
             setHeaderIdentity();
+            renderRelaysList();
         }
         
         function setHeaderIdentity() {
@@ -2579,6 +2592,8 @@
                     urls,
                     statusMap: relayStatus,
                     relayWriteEnabledMap: relayWriteEnabled,
+                    requireSigningForConnected: true,
+                    hasSigningCapability: hasRelayAuthSigningCapability(),
                     allowPostToggle: true,
                     allowRemove: true,
                     removeHandlerName: 'removeRelay',
@@ -5604,7 +5619,7 @@
                     openKeysModal();
                     showStatus('nsec imported successfully!', 'success');
                 } else {
-                    showStatus('Invalid nsec', 'error');
+                    showStatus(getNsecInputErrorMessage(input), 'error');
                 }
             } else {
                 // Try to import as mnemonic

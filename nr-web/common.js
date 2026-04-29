@@ -56,7 +56,7 @@
             isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
         } catch (_) {}
         if (isLocalHost) {
-            var localRelay = 'ws://localhost:8042';
+            var localRelay = 'wss://nip42.trustroots.org';
             var hasLocal = list.some(function (url) {
                 return String(url).trim().toLowerCase() === localRelay;
             });
@@ -142,6 +142,8 @@
         var toggleHandlerName = opts.toggleHandlerName || 'toggleRelayWriteForEncodedUrl';
         var emptyMessage = opts.emptyMessage || 'No relays configured';
         var showLocalPrivacyHint = opts.showLocalPrivacyHint !== false;
+        var requireSigningForConnected = opts.requireSigningForConnected === true;
+        var hasSigningCapability = opts.hasSigningCapability !== false;
 
         container.innerHTML = '';
         if (!urls.length) {
@@ -155,6 +157,12 @@
                 : { status: 'disconnected', canWrite: true };
             var statusClass = (status && status.status) ? status.status : 'disconnected';
             var statusText = relayStatusText(statusClass);
+            var indicatorStatusClass = statusClass;
+            var indicatorStatusText = statusText;
+            if (requireSigningForConnected && statusClass === 'connected' && !hasSigningCapability) {
+                indicatorStatusClass = 'disconnected';
+                indicatorStatusText = 'Connected (no nsec/signer)';
+            }
             var postEnabled = relayWriteEnabledMap && typeof relayWriteEnabledMap.get === 'function'
                 ? relayWriteEnabledMap.get(url) !== false
                 : (status && status.canWrite !== false);
@@ -176,7 +184,7 @@
             var item = global.document.createElement('div');
             item.className = 'relay-item';
             item.innerHTML =
-                '<div class="relay-status-indicator ' + escapeHtml(statusClass) + '" title="' + escapeHtml(statusText) + '"></div>' +
+                '<div class="relay-status-indicator ' + escapeHtml(indicatorStatusClass) + '" title="' + escapeHtml(indicatorStatusText) + '"></div>' +
                 '<div class="relay-url-wrap"><div class="relay-url">' + escapeHtml(url) + '</div>' + localPrivacyHint + '</div>' +
                 '<div class="relay-controls">' + postToggleHtml + removeButtonHtml + '</div>';
             container.appendChild(item);
@@ -296,9 +304,6 @@
         var navAriaLabel = header.getAttribute('data-nav-aria-label') || navTitle;
         var navIcon = header.getAttribute('data-nav-icon') || '';
         var settingsTitle = header.getAttribute('data-settings-title') || 'Settings';
-        var pixelHref = header.getAttribute('data-pixel-href') || '';
-
-        var pixelLink = pixelHref ? '<a href="' + escapeHtml(pixelHref) + '" class="app-header-nav-link" title="Pixel" aria-label="Pixel">Pixel</a>' : '';
 
         header.setAttribute('aria-label', 'Brand');
         header.innerHTML =
@@ -309,7 +314,6 @@
             '<img src="https://notes.trustroots.org/logo.svg" alt="Trustroots" class="app-header-logo" width="140" height="32">' +
             '<h1>' + escapeHtml(pageTitle) + '</h1>' +
             '<a href="' + escapeHtml(navHref) + '" class="app-header-nav-link" title="' + escapeHtml(navTitle) + '" aria-label="' + escapeHtml(navAriaLabel) + '">' + escapeHtml(navIcon) + '</a>' +
-            pixelLink +
             '</div>' +
             '<div class="app-header-actions">' +
             '<button type="button" class="keys-icon header-identity-btn" id="keys-icon-btn" title="Keys">' +

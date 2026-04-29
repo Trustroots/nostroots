@@ -29,6 +29,10 @@ It's just one file with HTML, CSS and JS.
 
 ## Development Notes
 
+### Style guide
+
+Use [`STYLE_GUIDE.md`](STYLE_GUIDE.md) for `nr-web` copy tone and lightweight visual guidance, especially for first-impression and onboarding changes.
+
 ### Testing
 
 Tests are designed to run in Docker by default for consistency and safety. See [tests/README.md](tests/README.md) for details.

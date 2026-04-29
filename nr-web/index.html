@@ -2720,7 +2720,7 @@
                     publicWarningId: 'relay-post-public-warning',
                     disabledClassName: 'status error',
                     publicClassName: 'status info',
-                    disabledMessage: 'Posting is disabled. Enable "Post" for at least one relay so you can publish notes.',
+                    disabledMessage: 'Posting is off. Enable "Post" for at least one relay so you can publish notes. You can still read notes.',
                     publicMessage: 'PUBLIC posting is enabled for at least one relay. Anything you post there is publicly visible.'
                 });
                 return;
@@ -3045,9 +3045,9 @@
                     });
                     
                     if (connectedCount > 0) {
-                        if (!window._nostrootsSuppressConnectionToasts) showStatus(`Connected to ${connectedCount} relay(s) (NDK)`, 'success');
+                        if (!window._nostrootsSuppressConnectionToasts) showStatus(`Connected to ${connectedCount} relay(s)`, 'success', { id: 'relay-connection-status' });
                     } else {
-                        if (!window._nostrootsSuppressConnectionToasts) showStatus('Connecting to relays (NDK)...', 'info');
+                        if (!window._nostrootsSuppressConnectionToasts) showStatus('Connecting to relays...', 'info', { id: 'relay-connection-status' });
                     }
                     
                     // Start subscribing to events
@@ -3055,13 +3055,12 @@
                     subscribeToPlusCodePrefixes();
                 } else {
                     // Fallback to direct Relay connections
-                    if (!window._nostrootsSuppressConnectionToasts) showStatus('Using direct relay connections', 'info');
                     await initializeRelays(relayUrls);
                 }
             } catch (error) {
                 console.error('[NDK] Error initializing NDK:', error.message || error);
                 // Fallback to direct relays
-                if (!window._nostrootsSuppressConnectionToasts) showStatus('Falling back to direct relay connections', 'info');
+                if (!window._nostrootsSuppressConnectionToasts) showStatus('Retrying relay connections...', 'info', { id: 'relay-connection-status' });
                 await initializeRelays(relayUrls);
             }
         }
@@ -3179,15 +3178,15 @@
             if (connectedCount > 0) {
                 if (!window._nostrootsSuppressConnectionToasts) {
                     if (failedCount > 0) {
-                        showStatus(`Connected to ${connectedCount} of ${totalCount} relay(s)`, 'success');
+                        showStatus(`Connected to ${connectedCount} of ${totalCount} relay(s)`, 'success', { id: 'relay-connection-status' });
                     } else {
-                        showStatus(`Connected to ${connectedCount} relay(s)`, 'success');
+                        showStatus(`Connected to ${connectedCount} relay(s)`, 'success', { id: 'relay-connection-status' });
                     }
                 }
                 // Subscribe to plus code prefixes
                 subscribeToPlusCodePrefixes();
             } else {
-                if (!window._nostrootsSuppressConnectionToasts) showStatus(`Failed to connect to any relays`, 'error');
+                if (!window._nostrootsSuppressConnectionToasts) showStatus(`Failed to connect to any relays`, 'error', { id: 'relay-connection-status' });
             }
         }
         
@@ -5043,7 +5042,7 @@
                 // Show message if no notes
                 const noNotes = document.createElement('div');
                 noNotes.className = 'notes-section';
-                noNotes.innerHTML = '<p style="color: var(--muted-foreground); text-align: center; padding: 2rem;">No notes yet for this plus code area.</p>';
+                noNotes.innerHTML = '<p style="color: var(--muted-foreground); text-align: center; padding: 2rem;">No notes here yet. You can post the first note for this area, or zoom out and open nearby areas to discover activity.</p>';
                 notesContent.appendChild(noNotes);
             }
             
@@ -5453,8 +5452,19 @@
                 document.body.appendChild(statusContainer);
             }
             
-            const status = document.createElement('div');
+            let status = null;
+            if (options.id) {
+                status = statusContainer.querySelector(`.status[data-status-id="${options.id}"]`);
+            }
+            if (!status) {
+                status = document.createElement('div');
+                statusContainer.appendChild(status);
+            } else if (status._hideTimer) {
+                clearTimeout(status._hideTimer);
+            }
             status.className = `status ${type}`;
+            if (options.id) status.setAttribute('data-status-id', options.id);
+            status.innerHTML = '';
             
             const msgEl = document.createElement('div');
             msgEl.textContent = message;
@@ -5504,10 +5514,8 @@
                 status.appendChild(pre);
             }
             
-            statusContainer.appendChild(status);
-            
             const hideMs = options.eventPayload ? 15000 : 5000;
-            setTimeout(() => {
+            status._hideTimer = setTimeout(() => {
                 if (status.parentNode) status.parentNode.removeChild(status);
             }, hideMs);
         }
@@ -5980,6 +5988,7 @@
         window.claimExperiences = claimExperiences;
         
         // Onboarding
+
         function checkOnboarding() {
             const hasKey = localStorage.getItem('nostr_private_key');
             if (!hasKey) {

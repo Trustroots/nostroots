@@ -56,6 +56,8 @@ pnpm install
 pnpm test:local
 ```
 
+When changing first-impression UX or onboarding copy in `nr-web`, follow `nr-web/STYLE_GUIDE.md`.
+
 ### nr-common (Shared Library)
 ```bash
 cd nr-common

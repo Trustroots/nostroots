@@ -90,12 +90,14 @@ describe('Modal Behavior', () => {
     it('keys modal includes guidance about nsec and password manager', () => {
       const keysModal = document.getElementById('keys-modal');
       const text = keysModal?.textContent || '';
+      expect(text).toContain('read and share traveler notes on the map');
       expect(text).toContain('Nostr private key');
       expect(text).toContain('Nostroots mobile app');
       expect(text).toContain('Bitwarden');
       expect(text).toContain('Export your nsec');
       expect(text).toContain('Update Trustroots Profile');
       expect(text).toContain('Enter your Trustroots username and verify it');
+      expect(text).toContain('links your Trustroots identity');
     });
 
     it('settings modal has relays section and GitHub link from fragment', () => {

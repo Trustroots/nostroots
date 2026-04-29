@@ -264,6 +264,14 @@ h1, h2, .modal-header h2 {
     padding: 0;
 }
 
+.app-header-purpose {
+    margin: 0.25rem 0 0;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.72rem;
+    line-height: 1.25;
+    max-width: 360px;
+}
+
 .app-header-actions {
     display: flex;
     align-items: center;
@@ -409,6 +417,7 @@ h1, h2, .modal-header h2 {
     .app-header { padding: 0 0.75rem; }
     .app-header-inner { justify-content: flex-start; gap: 0.45rem; }
     .app-header h1 { font-size: 1.35rem; }
+    .app-header-purpose { display: none; }
     .app-header-logo { display: none; }
     .app-header-mobile-links-wrap { margin-left: 0; }
     .app-header-mobile-link { height: 26px; padding: 0 0.45rem; }

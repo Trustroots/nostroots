@@ -166,7 +166,7 @@
         var publicWarningId = opts.publicWarningId || 'relay-post-public-warning';
         var disabledClassName = opts.disabledClassName || 'status error';
         var publicClassName = opts.publicClassName || 'status info';
-        var disabledMessage = opts.disabledMessage || 'Posting is disabled. Enable "Post" for at least one relay.';
+        var disabledMessage = opts.disabledMessage || 'Posting is off. Enable "Post" for at least one relay to publish notes. You can still read notes.';
         var publicMessage = opts.publicMessage || 'PUBLIC posting is enabled. Anything posted there is publicly visible.';
         var pointerEvents = opts.pointerEvents || '';
         var list = Array.isArray(urls) ? urls : [];
@@ -508,13 +508,13 @@
         }
 
         var keysBtn = global.document.getElementById('keys-icon-btn');
-        if (keysBtn) keysBtn.title = hasPublicKey ? 'Keys' : 'Connect';
+        if (keysBtn) keysBtn.title = hasPublicKey ? 'Keys' : 'Connect key to post';
 
         var usernameGuidance = global.document.getElementById('keys-username-guidance-text');
         if (usernameGuidance) {
             usernameGuidance.textContent = isUsernameLinked
                 ? 'Trustroots username verified from your Nostr profile.'
-                : 'Enter your Trustroots username and verify it.';
+                : 'Enter your Trustroots username and verify it to link your Trustroots identity for posting.';
         }
 
         var stepBackup = global.document.getElementById('keys-step-backup');
@@ -753,11 +753,12 @@
             '<div class="app-header-inner">' +
             '<img src="https://notes.trustroots.org/logo.svg" alt="Trustroots" class="app-header-logo" width="140" height="32">' +
             '<h1>' + escapeHtml(pageTitle) + '</h1>' +
+            '<p class="app-header-purpose">Read traveler notes by area. Click the map to explore, and connect a key when you want to post.</p>' +
             '<a href="' + escapeHtml(navHref) + '" class="app-header-nav-link" title="' + escapeHtml(navTitle) + '" aria-label="' + escapeHtml(navAriaLabel) + '">' + escapeHtml(navIcon) + '</a>' +
             buildMobileAppLinksMarkup() +
             '</div>' +
             '<div class="app-header-actions">' +
-            '<button type="button" class="keys-icon header-identity-btn" id="keys-icon-btn" title="Keys">' +
+            '<button type="button" class="keys-icon header-identity-btn" id="keys-icon-btn" title="Connect key to post">' +
             '<span class="header-identity-text empty" id="header-identity" title=""></span>' +
             '<span class="keys-icon-symbol" aria-hidden="true">🔑</span>' +
             '</button>' +

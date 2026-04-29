@@ -36,6 +36,7 @@ git commit --no-verify -m "Your commit message"
 ## Testing in nr-web
 
 When making changes to `nr-web`:
+- Follow `nr-web/STYLE_GUIDE.md` for first-impression UX copy and lightweight visual guidance
 - Add new tests if it makes sense (e.g., for new features, bug fixes, or edge cases)
 - Run the tests after making changes using Docker:
   ```bash

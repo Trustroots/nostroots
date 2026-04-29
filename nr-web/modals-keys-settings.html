@@ -9,8 +9,8 @@
         <!-- Welcome message (only shown when no key is set) -->
         <div id="keys-welcome-section" style="display: none; margin-bottom: 2rem;">
             <h2 style="margin-bottom: 0.5rem;">Welcome to Nostroots</h2>
-            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">You need a Nostr private key (nsec) to get started.</p>
-            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">If you already have one, paste it below (for example from the Nostroots mobile app or your password manager).</p>
+            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">Nostroots lets you read and share traveler notes on the map. You can read first, and add your own notes once your key is connected.</p>
+            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">If you already have a Nostr private key (nsec), paste it below (for example from the Nostroots mobile app or your password manager).</p>
             <p style="color: var(--muted-foreground); margin: 0;">If you do not have one yet, generate a key here, then export and store your nsec in your password manager. If you do not have a password manager yet, we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>.</p>
         </div>
 
@@ -91,6 +91,7 @@
                 <input type="checkbox" id="keys-step-username" disabled>
                 <span id="keys-username-guidance-text">Enter your Trustroots username and verify it.</span>
             </label>
+            <small style="display: block; margin: -0.25rem 0 0.75rem 0; color: var(--muted-foreground);">This links your Trustroots identity so Trustroots relays can verify your posts.</small>
             <div class="form-group">
                 <input type="text" id="trustroots-username" placeholder="your-username" onkeydown="if(event.key === 'Enter') linkTrustrootsProfile()">
                 <div id="username-nostr-indicator" class="username-nostr-indicator" style="display: none;">

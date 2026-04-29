@@ -1003,18 +1003,6 @@
             color: var(--content-link-hover) !important;
         }
 
-        .hashtag-link {
-            color: var(--content-link) !important;
-            text-decoration: none;
-        }
-        .hashtag-link:visited {
-            color: var(--content-link) !important;
-        }
-        .hashtag-link:hover {
-            color: var(--content-link-hover) !important;
-            text-decoration: underline;
-        }
-        
         .note-meta-row {
             display: flex;
             align-items: center;
@@ -3858,7 +3846,7 @@
         }
 
         function linkifyHashtags(html) {
-            return html.replace(/#(\w+)/g, '<a href="chat.html#$1" class="hashtag-link">#$1</a>');
+            return html.replace(/#(\w+)/g, '<a href="chat.html#$1" class="nr-content-link">#$1</a>');
         }
 
         function linkifyTrustrootsUrls(html) {

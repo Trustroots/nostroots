@@ -268,12 +268,7 @@
             background: var(--muted);
         }
         .message-inline-link {
-            color: var(--primary);
-            text-decoration: underline;
             word-break: break-all;
-        }
-        .message.self .message-inline-link {
-            color: var(--primary-foreground);
         }
         .message .meta {
             font-size: 0.7rem;
@@ -325,13 +320,13 @@
             display: inline-flex;
             align-items: center;
             gap: 0.25rem;
-            color: var(--primary);
+            color: inherit;
             text-decoration: none;
             padding: 0.2rem 0.4rem;
             border-radius: calc(var(--radius) - 2px);
             background: rgba(0,0,0,0.06);
         }
-        .message.self .message-pluscode a { color: var(--primary-foreground); background: rgba(255,255,255,0.2); }
+        .message.self .message-pluscode a { background: rgba(255,255,255,0.2); }
         .message-pluscode a:hover { text-decoration: underline; }
         .message-channel-tag {
             margin-top: 0.35rem;
@@ -341,13 +336,13 @@
             display: inline-flex;
             align-items: center;
             gap: 0.25rem;
-            color: var(--primary);
+            color: inherit;
             text-decoration: none;
             padding: 0.2rem 0.4rem;
             border-radius: calc(var(--radius) - 2px);
             background: rgba(0,0,0,0.06);
         }
-        .message.self .message-channel-tag a { color: var(--primary-foreground); background: rgba(255,255,255,0.2); }
+        .message.self .message-channel-tag a { background: rgba(255,255,255,0.2); }
         .message-channel-tag a:hover { text-decoration: underline; }
         .compose {
             padding: 0.2rem 0.35rem;
@@ -2243,6 +2238,7 @@
                     const pluscodeEl = document.createElement('div');
                     pluscodeEl.className = 'message-pluscode';
                     const link = document.createElement('a');
+                    link.className = 'nr-content-link';
                     link.href = 'index.html#' + encodeURIComponent(pluscode).replace(/%2B/g, '+');
                     link.title = 'View on map';
                     link.textContent = '\u2316 ' + pluscode;
@@ -2254,6 +2250,7 @@
                     const channelEl = document.createElement('div');
                     channelEl.className = 'message-channel-tag';
                     const channelLink = document.createElement('a');
+                    channelLink.className = 'nr-content-link';
                     channelLink.href = '#'+ encodeURIComponent(channelSlug);
                     channelLink.title = `Open #${channelSlug}`;
                     channelLink.textContent = `#${channelSlug}`;
@@ -2316,7 +2313,7 @@
         function linkifyTrustrootsUrls(html) {
             return html.replace(
                 /https:\/\/(?:www\.)?trustroots\.org\/[^\s<)]+/gi,
-                (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="message-inline-link">${url}</a>`
+                (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="message-inline-link nr-content-link">${url}</a>`
             );
         }
 

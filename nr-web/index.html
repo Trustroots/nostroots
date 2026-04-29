@@ -982,12 +982,35 @@
             word-wrap: break-word;
             white-space: pre-wrap;
         }
+        .note-content a,
+        .event-content a {
+            color: var(--content-link) !important;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            text-decoration-thickness: 1px;
+            word-break: break-all;
+        }
+        .note-content a:visited,
+        .event-content a:visited {
+            /* Keep visited links readable on dark note cards. */
+            color: var(--content-link) !important;
+        }
+        .note-content a:hover,
+        .note-content a:focus-visible,
+        .event-content a:hover,
+        .event-content a:focus-visible {
+            color: var(--content-link-hover) !important;
+        }
 
         .hashtag-link {
-            color: var(--primary);
+            color: var(--content-link) !important;
             text-decoration: none;
         }
+        .hashtag-link:visited {
+            color: var(--content-link) !important;
+        }
         .hashtag-link:hover {
+            color: var(--content-link-hover) !important;
             text-decoration: underline;
         }
         
@@ -3695,7 +3718,7 @@
         function linkifyTrustrootsUrls(html) {
             return html.replace(
                 /https:\/\/(?:www\.)?trustroots\.org\/[^\s<)]+/gi,
-                (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+                (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="nr-content-link">${url}</a>`
             );
         }
         

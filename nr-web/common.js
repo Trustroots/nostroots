@@ -299,7 +299,7 @@
                 ? '<label class="relay-post-toggle" title="When off, this relay is read-only">' +
                   '<input type="checkbox" ' + (postEnabled ? 'checked' : '') +
                   ' onchange="' + escapeHtml(toggleHandlerName) + '(\'' + encodedUrl + '\', this.checked)">' +
-                  '<span>' + (isPublicRelayUrl(url) ? 'Post (PUBLIC)' : 'Post') + '</span></label>'
+                  '<span>Post</span></label>'
                 : '';
             var removeButtonHtml = allowRemove
                 ? '<button class="relay-delete-btn" onclick="' + escapeHtml(removeHandlerName) + '(decodeURIComponent(\'' + encodedUrl + '\'))">' +

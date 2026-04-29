@@ -366,9 +366,35 @@
         }
         .compose-input-row {
             display: flex;
-            align-items: stretch;
-            gap: 0.25rem;
+            align-items: center;
+            gap: 0.35rem;
             flex: 1;
+        }
+        .compose-posting-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.75rem;
+            min-width: 1.75rem;
+            height: 1.75rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--input);
+            font-size: 0.9rem;
+            line-height: 1;
+            user-select: none;
+            color: var(--muted-foreground);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+            cursor: pointer;
+            transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+        }
+        .compose-posting-icon:hover {
+            border-color: var(--ring);
+            color: var(--foreground);
+        }
+        .compose-posting-icon:focus-visible {
+            outline: 2px solid var(--ring);
+            outline-offset: 1px;
         }
         .compose-input-row .compose-input-cell {
             flex: 1;
@@ -377,7 +403,7 @@
         }
         .compose input, .compose textarea {
             width: 100%;
-            padding: 0.3rem 0.45rem;
+            padding: 0.38rem 0.55rem;
             border: 1px solid var(--border);
             border-radius: calc(var(--radius) - 2px);
             background: var(--input);
@@ -386,7 +412,7 @@
         }
         .compose textarea {
             resize: vertical;
-            min-height: 2rem;
+            min-height: 2.1rem;
         }
         .compose-options {
             display: flex;
@@ -597,6 +623,7 @@
             <div class="empty-state" id="empty-state">Select a conversation or start a new one.</div>
             <div class="compose" id="compose" style="display:none;">
                 <div class="compose-input-row">
+                    <button id="compose-posting-icon" class="compose-posting-icon" title="Posting scope (open relay settings)" aria-label="Posting scope (open relay settings)" type="button" onclick="openSettingsModal()">🌍</button>
                     <div class="compose-input-cell">
                         <textarea id="compose-input" placeholder="Type a message..." rows="2" onkeydown="if(event.key==='Enter'){if(!event.shiftKey){event.preventDefault();sendMessage();}}"></textarea>
                     </div>
@@ -824,6 +851,7 @@
             relayStatus.set(url, { ...current, canWrite: enabled });
             saveRelayWritePreferences();
             renderRelaysList();
+            updateComposePostingIcon();
         }
 
         function toggleRelayWriteForEncodedUrl(encodedUrl, enabled) {
@@ -2230,6 +2258,35 @@
             });
         }
 
+        function updateComposePostingIcon() {
+            const iconEl = document.getElementById('compose-posting-icon');
+            if (!iconEl) return;
+            const conv = selectedConversationId ? conversations.get(selectedConversationId) : null;
+            if (!conv) {
+                iconEl.textContent = '';
+                iconEl.title = 'No conversation selected';
+                iconEl.style.display = 'none';
+                return;
+            }
+
+            iconEl.style.display = 'inline-flex';
+            const isEncrypted = conv.type === 'dm' || conv.type === 'group';
+            if (isEncrypted) {
+                iconEl.textContent = '🔒';
+                iconEl.title = 'Encrypted PM/group message';
+                return;
+            }
+
+            const relayScope = getRelayScopeFromRelayUrls(getWritableRelayUrls());
+            if (relayScope === 'public') {
+                iconEl.textContent = '🌍';
+                iconEl.title = 'Posting to channel on public relay(s)';
+            } else {
+                iconEl.textContent = '🔐';
+                iconEl.title = 'Posting to channel on auth-required relay(s)';
+            }
+        }
+
         function selectConversation(id) {
             selectedConversationId = id;
             setHashRoute(getConversationRouteId(id));
@@ -2245,6 +2302,7 @@
             document.getElementById('compose').style.display = conv ? 'flex' : 'none';
             const opts = document.getElementById('compose-note-duration');
             if (opts) opts.style.display = conv?.type === 'channel' ? 'flex' : 'none';
+            updateComposePostingIcon();
             document.getElementById('thread-header').style.display = conv ? 'flex' : 'none';
             if (conv) {
                 const isEnc = conv.type === 'dm' || conv.type === 'group';

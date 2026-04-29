@@ -1128,6 +1128,34 @@
             align-items: center;
             justify-content: space-between;
         }
+        .note-compose-scope-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.9rem;
+            min-width: 1.9rem;
+            height: 1.9rem;
+            border: 1px solid var(--input);
+            border-radius: 8px;
+            background: var(--background);
+            font-size: 0.95rem;
+            line-height: 1;
+            user-select: none;
+        }
+        .note-relay-scope-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 1.4rem;
+            height: 1.1rem;
+            padding: 0 0.25rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--muted);
+            font-size: 0.7rem;
+            line-height: 1;
+            color: var(--muted-foreground);
+        }
         
         .notes-add-form-row .form-group.expiration-group {
             display: flex;
@@ -1304,6 +1332,7 @@
             <div class="notes-actions">
                 <div class="notes-add-form">
                     <div class="notes-add-form-row">
+                        <span id="note-compose-scope-icon" class="note-compose-scope-icon" title="Posting scope" aria-label="Posting scope">🌍</span>
                         <div class="form-group expiration-group">
                             <label>Expiration</label>
                             <select id="note-expiration-in-modal" onchange="saveExpirationSetting(this.value)">
@@ -2591,6 +2620,38 @@
             return getRelayUrls().filter(url => relayWriteEnabled.get(url) !== false);
         }
 
+        function isKnownPublicRelayUrl(url) {
+            if (relaySettings?.isPublicRelayUrl) return relaySettings.isPublicRelayUrl(url);
+            const normalized = String(url || '').trim().toLowerCase();
+            return normalized === 'wss://relay.trustroots.org' || normalized === 'wss://relay.nomadwiki.org';
+        }
+
+        function getRelayScopeFromRelayUrls(urls) {
+            const list = Array.isArray(urls) ? urls : [];
+            if (!list.length) return '';
+            if (list.some((url) => isKnownPublicRelayUrl(url))) return 'public';
+            return 'auth';
+        }
+
+        function updateNoteComposePostingIcon() {
+            const iconEl = document.getElementById('note-compose-scope-icon');
+            if (!iconEl) return;
+            const writableRelayUrls = getWritableRelayUrls();
+            const scope = getRelayScopeFromRelayUrls(writableRelayUrls);
+            if (scope === 'public') {
+                iconEl.textContent = '🌍';
+                iconEl.title = 'Posting notes to public relay(s)';
+                return;
+            }
+            if (scope === 'auth') {
+                iconEl.textContent = '🔐';
+                iconEl.title = 'Posting notes to auth-required relay(s)';
+                return;
+            }
+            iconEl.textContent = '⚠️';
+            iconEl.title = 'No writable relay selected';
+        }
+
         function isRestrictedRelayUrl(url) {
             return (url || '').trim().toLowerCase() === TRUSTROOTS_RESTRICTED_RELAY_URL;
         }
@@ -2641,6 +2702,7 @@
             relayStatus.set(url, { ...current, canWrite: enabled });
             saveRelayWritePreferences();
             renderRelaysList();
+            updateNoteComposePostingIcon();
         }
 
         function toggleRelayWriteForEncodedUrl(encodedUrl, enabled) {
@@ -2685,8 +2747,10 @@
                     emptyMessage: 'No relays configured',
                     showLocalPrivacyHint: true
                 });
+                updateNoteComposePostingIcon();
                 return;
             }
+            updateNoteComposePostingIcon();
         }
         
         function addRelay() {
@@ -4810,6 +4874,7 @@
                         statusMessage += ` (${failed.length} failed: ${failedRelays})`;
                     }
                     showStatus(statusMessage, 'success');
+                    signedEvent.relayScope = getRelayScopeFromRelayUrls(relayUrls);
                     // Add to local events
                     processIncomingEvent(signedEvent);
                     // Clear form and refresh notes
@@ -4844,6 +4909,7 @@
         
         function showNotesForPlusCode(plusCode) {
             selectedPlusCode = plusCode;
+            updateNoteComposePostingIcon();
             
             // Use fast spatial index lookup instead of filtering all events
             const { eventsForPlusCodeExactly, eventsWithinPlusCode } = filterEventsForPlusCodeFast(plusCode);
@@ -5164,6 +5230,17 @@
                 plusCodeSpan.style.color = 'var(--primary)';
                 plusCodeSpan.textContent = plusCode;
                 rightGroup.appendChild(plusCodeSpan);
+            }
+
+            const relayScope = event?.relayScope;
+            if (relayScope === 'public' || relayScope === 'auth') {
+                const relayScopePill = document.createElement('span');
+                relayScopePill.className = 'note-relay-scope-pill';
+                relayScopePill.textContent = relayScope === 'public' ? '🌍' : '🔐';
+                relayScopePill.title = relayScope === 'public'
+                    ? 'Published to public relay(s)'
+                    : 'Published to auth-required relay(s)';
+                rightGroup.appendChild(relayScopePill);
             }
             
             metaRow.appendChild(rightGroup);

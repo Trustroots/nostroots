@@ -1,10 +1,53 @@
 package main
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+// recommendField decodes Trustroots experience.recommend, which may be stored as
+// a boolean or (legacy) string in MongoDB.
+type recommendField bool
+
+func recommendTruthFromString(s string) bool {
+	v := strings.ToLower(strings.TrimSpace(s))
+	switch v {
+	case "yes", "true", "1", "positive", "recommend", "recommended", "vouch":
+		return true
+	default:
+		return false
+	}
+}
+
+func (r *recommendField) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
+	raw := bson.RawValue{Type: t, Value: data}
+	switch t {
+	case bsontype.Boolean:
+		var b bool
+		if err := raw.Unmarshal(&b); err != nil {
+			return err
+		}
+		*r = recommendField(b)
+		return nil
+	case bsontype.String:
+		var s string
+		if err := raw.Unmarshal(&s); err != nil {
+			return err
+		}
+		*r = recommendField(recommendTruthFromString(s))
+		return nil
+	case bsontype.Null, bsontype.Undefined:
+		*r = false
+		return nil
+	default:
+		return fmt.Errorf("unsupported BSON type for recommend: %v", t)
+	}
+}
 
 const (
 	mapNoteRepostKind                = 30398
@@ -91,7 +134,7 @@ type Experience struct {
 	Visible        bool               `bson:"visible"`
 	Hidden         bool               `bson:"hidden"`
 	Recommendation string             `bson:"recommendation"`
-	Recommend      bool               `bson:"recommend"`
+	Recommend      recommendField     `bson:"recommend"`
 	Positive       bool               `bson:"positive"`
 	CreatedAt      time.Time          `bson:"createdAt"`
 	Updated        time.Time          `bson:"updated"`

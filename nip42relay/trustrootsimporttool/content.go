@@ -125,7 +125,7 @@ func isPositiveExperience(experience Experience) bool {
 	if experience.Hidden {
 		return false
 	}
-	if experience.Positive || experience.Recommend {
+	if experience.Positive || bool(experience.Recommend) {
 		return true
 	}
 	recommendation := strings.ToLower(strings.TrimSpace(experience.Recommendation))

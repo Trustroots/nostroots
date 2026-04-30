@@ -68,6 +68,8 @@ type Offer struct {
 	CreatedAt           time.Time          `bson:"createdAt"`
 	UserID              primitive.ObjectID `bson:"user"`
 	ShowOnlyInMyCircles bool               `bson:"showOnlyInMyCircles"`
+	MaxGuests           int                `bson:"maxGuests"`
+	ValidUntil          *time.Time         `bson:"validUntil"`
 }
 
 type User struct {

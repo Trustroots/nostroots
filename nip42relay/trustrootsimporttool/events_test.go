@@ -21,6 +21,7 @@ func TestEventForHost(t *testing.T) {
 			ID:            offerID,
 			Type:          "host",
 			Status:        "yes",
+			MaxGuests:     1,
 			Description:   "<p>Can host one person.</p>",
 			LocationFuzzy: []float64{52.5, 13.4},
 			CreatedAt:     created,

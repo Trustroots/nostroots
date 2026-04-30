@@ -36,7 +36,10 @@ The tool auto-loads `.env` from the current working directory and from
 
 ### Eligibility
 
-**Hosts:** same rules as before (public host offer, valid npub, etc.).
+**Hosts:** public `type: host` + `status: yes`, valid npub (for the `p` claim tag), sane
+coordinates, eligible user — and **`maxGuests` > 0** (Trustroots uses `0` for no capacity).
+Offers with **`validUntil` in the past** are skipped. Rows that fail validation are logged and
+skipped instead of aborting the run.
 
 **Contacts & experiences:** BSON fields match Trustroots Mongoose models (`userFrom` /
 `userTo`, etc.). Experiences must be **`public: true`**

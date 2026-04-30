@@ -10,6 +10,16 @@ import (
 )
 
 func eventForHost(record HostRecord, privateKey string) (nostr.Event, error) {
+	if _, ok := decodeNpubToHex(record.User.NostrNpub); !ok {
+		return nostr.Event{}, fmt.Errorf("cannot build host mirror without valid npub (missing p tag for claims)")
+	}
+	if record.Offer.MaxGuests <= 0 {
+		return nostr.Event{}, fmt.Errorf("maxGuests is %d, not a host offer", record.Offer.MaxGuests)
+	}
+	if record.Offer.ValidUntil != nil && record.Offer.ValidUntil.Before(time.Now()) {
+		return nostr.Event{}, fmt.Errorf("offer validUntil %v is in the past", record.Offer.ValidUntil)
+	}
+
 	createdAt := record.Offer.Updated
 	if createdAt.IsZero() {
 		createdAt = record.Offer.CreatedAt

@@ -4,6 +4,7 @@ import (
 	"html"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/nbd-wtf/go-nostr/nip19"
 )
@@ -93,6 +94,13 @@ func isEligibleHost(offer Offer, user User) bool {
 		return false
 	}
 	if offer.ShowOnlyInMyCircles {
+		return false
+	}
+	// Trustroots: maxGuests 0 means no capacity — not a publishable host offer.
+	if offer.MaxGuests <= 0 {
+		return false
+	}
+	if offer.ValidUntil != nil && offer.ValidUntil.Before(time.Now()) {
 		return false
 	}
 	if len(offer.LocationFuzzy) != 2 {

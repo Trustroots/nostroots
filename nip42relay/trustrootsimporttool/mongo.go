@@ -34,14 +34,30 @@ func fetchHosts(ctx context.Context, mongoURI string, limit int64) ([]HostRecord
 	db := client.Database(dbName)
 	offers := db.Collection("offers")
 
+	// Align with Trustroots offer schema: only real host capacity, not expired windows.
+	now := time.Now()
 	filter := bson.M{
-		"type":            "host",
-		"status":          "yes",
-		"locationFuzzy.0": bson.M{"$gte": -90, "$lte": 90},
-		"locationFuzzy.1": bson.M{"$gte": -180, "$lte": 180},
-		"$or": []bson.M{
-			{"showOnlyInMyCircles": false},
-			{"showOnlyInMyCircles": bson.M{"$exists": false}},
+		"$and": []bson.M{
+			{
+				"type":            "host",
+				"status":          "yes",
+				"maxGuests":       bson.M{"$gt": 0},
+				"locationFuzzy.0": bson.M{"$gte": -90, "$lte": 90},
+				"locationFuzzy.1": bson.M{"$gte": -180, "$lte": 180},
+			},
+			{
+				"$or": []bson.M{
+					{"showOnlyInMyCircles": false},
+					{"showOnlyInMyCircles": bson.M{"$exists": false}},
+				},
+			},
+			{
+				"$or": []bson.M{
+					{"validUntil": bson.M{"$exists": false}},
+					{"validUntil": nil},
+					{"validUntil": bson.M{"$gte": now}},
+				},
+			},
 		},
 	}
 	findOptions := options.Find().SetSort(bson.D{{Key: "_id", Value: 1}})

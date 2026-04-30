@@ -118,10 +118,13 @@ func run(args []string) error {
 	logf("phase 1 done: %d profile line(s)", profileLines)
 
 	logf("phase 2/4: host mirror events (kind %d) — %d offer row(s)…", mapNoteRepostKind, len(records))
+	skippedHost := 0
 	for _, record := range records {
 		event, err := eventForHost(record, cfg.NostrSK)
 		if err != nil {
-			return fmt.Errorf("create event for offer %s: %w", record.Offer.ID.Hex(), err)
+			logf("skip host offer %s: %v", record.Offer.ID.Hex(), err)
+			skippedHost++
+			continue
 		}
 		if err := writeJSONLine(writer, event); err != nil {
 			return err
@@ -136,6 +139,9 @@ func run(args []string) error {
 		if cfg.LogEvery > 0 && exported%cfg.LogEvery == 0 {
 			logf("…exported %d host offer(s) so far", exported)
 		}
+	}
+	if skippedHost > 0 {
+		logf("phase 2 skipped %d host offer(s) that were not exportable", skippedHost)
 	}
 	logf("phase 2 done: %d host mirror line(s)", exported)
 

@@ -3,6 +3,7 @@ package main
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -55,6 +56,7 @@ func TestIsEligibleHost(t *testing.T) {
 		ID:            primitive.NewObjectID(),
 		Type:          "host",
 		Status:        "yes",
+		MaxGuests:     1,
 		LocationFuzzy: []float64{52.5, 13.4},
 		UserID:        user.ID,
 	}
@@ -67,6 +69,19 @@ func TestIsEligibleHost(t *testing.T) {
 		t.Fatal("circle-limited host should not be eligible")
 	}
 	offer.ShowOnlyInMyCircles = false
+
+	offer.MaxGuests = 0
+	if isEligibleHost(offer, user) {
+		t.Fatal("maxGuests 0 should not be eligible")
+	}
+	offer.MaxGuests = 1
+
+	past := time.Now().Add(-24 * time.Hour)
+	offer.ValidUntil = &past
+	if isEligibleHost(offer, user) {
+		t.Fatal("expired validUntil should not be eligible")
+	}
+	offer.ValidUntil = nil
 
 	user.Roles = []string{"user", "suspended"}
 	if isEligibleHost(offer, user) {

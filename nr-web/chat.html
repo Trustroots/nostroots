@@ -1555,6 +1555,8 @@
             setHashRoute('settings');
             renderRelaysList();
             if (typeof renderSettingsNotificationsSection === 'function') renderSettingsNotificationsSection();
+            window.NrWeb?.applySettingsFooterMetadataFromCache?.();
+            window.NrWeb?.refreshSettingsFooterMetadata?.();
         }
         function closeSettingsModal() {
             const el = document.getElementById('settings-modal');

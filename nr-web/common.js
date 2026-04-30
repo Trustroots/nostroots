@@ -970,6 +970,126 @@
         }
     }
 
+    // --- Shared settings footer metadata (index + chat) ---
+    var settingsFooterMetadataLoaded = false;
+    var settingsFooterMetadataLoading = false;
+    var settingsFooterMetadataWarnings = new Set();
+    var SETTINGS_FOOTER_CACHE_KEY = 'nrweb_settings_footer_metadata_v1';
+
+    function warnSettingsFooterMetadataOnce(key, error) {
+        if (settingsFooterMetadataWarnings.has(key)) return;
+        settingsFooterMetadataWarnings.add(key);
+        console.warn('[settings-footer-meta] ' + key + ' unavailable', error);
+    }
+
+    function formatDateTimeYyyyMmDdHhMm(value) {
+        if (!value) return null;
+        var date = new Date(value);
+        if (isNaN(date.getTime())) return null;
+        var yyyy = String(date.getFullYear());
+        var mm = String(date.getMonth() + 1).padStart(2, '0');
+        var dd = String(date.getDate()).padStart(2, '0');
+        var hh = String(date.getHours()).padStart(2, '0');
+        var min = String(date.getMinutes()).padStart(2, '0');
+        return yyyy + '-' + mm + '-' + dd + ' ' + hh + ':' + min;
+    }
+
+    function setSettingsFooterValue(id, value) {
+        var el = global.document && global.document.getElementById(id);
+        if (!el) return;
+        el.textContent = value || 'unavailable';
+    }
+
+    function setSettingsFooterLink(id, href, fallbackHref) {
+        var el = global.document && global.document.getElementById(id);
+        if (!el || !(el instanceof global.HTMLAnchorElement)) return;
+        el.href = href || fallbackHref;
+    }
+
+    function loadSettingsFooterMetadataCache() {
+        try {
+            var raw = global.localStorage && global.localStorage.getItem(SETTINGS_FOOTER_CACHE_KEY);
+            if (!raw) return null;
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') return null;
+            return parsed;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function saveSettingsFooterMetadataCache(payload) {
+        try {
+            if (global.localStorage) global.localStorage.setItem(SETTINGS_FOOTER_CACHE_KEY, JSON.stringify(payload));
+        } catch (_) {}
+    }
+
+    function applySettingsFooterMetadataFromCache() {
+        var cache = loadSettingsFooterMetadataCache();
+        if (!cache) return false;
+        if (cache.commitDisplay) setSettingsFooterValue('settings-last-commit-datetime', cache.commitDisplay);
+        if (cache.commitUrl) setSettingsFooterLink('settings-last-commit-datetime', cache.commitUrl, 'https://github.com/Trustroots/nostroots/commits/main/nr-web');
+        if (cache.deployDisplay) setSettingsFooterValue('settings-last-deploy-datetime', cache.deployDisplay);
+        if (cache.deployUrl) setSettingsFooterLink('settings-last-deploy-datetime', cache.deployUrl, 'https://github.com/Trustroots/nostroots/actions/workflows/deploy-web.yml');
+        return true;
+    }
+
+    function fetchSettingsFooterJson(url, key) {
+        return fetch(url, { headers: { Accept: 'application/vnd.github+json' } })
+            .then(function (response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .catch(function (error) {
+                warnSettingsFooterMetadataOnce(key, error);
+                return null;
+            });
+    }
+
+    function refreshSettingsFooterMetadata() {
+        if (settingsFooterMetadataLoaded || settingsFooterMetadataLoading) return;
+        var commitEl = global.document && global.document.getElementById('settings-last-commit-datetime');
+        var deployEl = global.document && global.document.getElementById('settings-last-deploy-datetime');
+        if (!commitEl || !deployEl) return;
+        settingsFooterMetadataLoading = true;
+
+        Promise.all([
+            fetchSettingsFooterJson('https://api.github.com/repos/Trustroots/nostroots/commits?sha=main&path=nr-web&per_page=1', 'commit'),
+            fetchSettingsFooterJson('https://api.github.com/repos/Trustroots/nostroots/actions/workflows/deploy-web.yml/runs?status=success&per_page=1', 'deploy')
+        ]).then(function (results) {
+            var commitData = results[0];
+            var deployData = results[1];
+            var commitDate = commitData && commitData[0] && commitData[0].commit && (commitData[0].commit.committer && commitData[0].commit.committer.date || commitData[0].commit.author && commitData[0].commit.author.date);
+            var commitUrl = commitData && commitData[0] && commitData[0].html_url;
+            var firstRun = deployData && deployData.workflow_runs && deployData.workflow_runs[0];
+            var deployDate = firstRun && (firstRun.updated_at || firstRun.run_started_at || firstRun.created_at);
+            var deployUrl = firstRun && firstRun.html_url || 'https://github.com/Trustroots/nostroots/actions/workflows/deploy-web.yml';
+            var commitDisplay = formatDateTimeYyyyMmDdHhMm(commitDate);
+            var deployDisplay = formatDateTimeYyyyMmDdHhMm(deployDate);
+
+            setSettingsFooterValue('settings-last-commit-datetime', commitDisplay);
+            setSettingsFooterLink('settings-last-commit-datetime', commitUrl, 'https://github.com/Trustroots/nostroots/commits/main/nr-web');
+            setSettingsFooterValue('settings-last-deploy-datetime', deployDisplay);
+            setSettingsFooterLink('settings-last-deploy-datetime', deployUrl, 'https://github.com/Trustroots/nostroots/actions/workflows/deploy-web.yml');
+
+            if (!commitDisplay || !deployDisplay) {
+                applySettingsFooterMetadataFromCache();
+            } else {
+                saveSettingsFooterMetadataCache({
+                    commitDisplay: commitDisplay,
+                    commitUrl: commitUrl,
+                    deployDisplay: deployDisplay,
+                    deployUrl: deployUrl
+                });
+            }
+            settingsFooterMetadataLoaded = Boolean(commitDisplay && deployDisplay);
+            settingsFooterMetadataLoading = false;
+        }).catch(function () {
+            settingsFooterMetadataLoading = false;
+            applySettingsFooterMetadataFromCache();
+        });
+    }
+
     /** Inject shared Keys + Settings modals (used by index.html and chat.html). Dispatches 'nostroots-modals-injected' when done. */
     function injectKeysSettingsModals() {
         var doc = global.document;
@@ -980,6 +1100,8 @@
             .then(function (html) {
                 if (doc.body && !doc.getElementById('keys-modal')) {
                     doc.body.insertAdjacentHTML('beforeend', html);
+                    applySettingsFooterMetadataFromCache();
+                    refreshSettingsFooterMetadata();
                     try { doc.dispatchEvent(new CustomEvent('nostroots-modals-injected')); } catch (e) {}
                 }
             })
@@ -1002,4 +1124,6 @@
 
     global.NrWeb = global.NrWeb || {};
     global.NrWeb.fillAppHeader = fillAppHeader;
+    global.NrWeb.applySettingsFooterMetadataFromCache = applySettingsFooterMetadataFromCache;
+    global.NrWeb.refreshSettingsFooterMetadata = refreshSettingsFooterMetadata;
 })(typeof window !== 'undefined' ? window : typeof globalThis !== 'undefined' ? globalThis : this);

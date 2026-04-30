@@ -852,65 +852,6 @@
             pointer-events: none;
         }
         
-        #settings-modal .settings-footer-wrap {
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 0.55rem;
-            margin-top: 0.75rem;
-        }
-
-        #settings-modal .settings-footer-meta {
-            display: grid;
-            grid-template-columns: max-content max-content;
-            justify-content: start;
-            align-items: baseline;
-            column-gap: 0.45rem;
-            row-gap: 0.2rem;
-            padding-top: 0.75rem;
-            font-size: 0.66rem;
-            color: var(--muted-foreground);
-            flex: 1 1 auto;
-        }
-
-        #settings-modal .settings-footer-meta-row {
-            display: contents;
-        }
-
-        #settings-modal .settings-footer-meta-row .settings-footer-meta-value {
-            justify-self: end;
-            color: inherit;
-            font-family: monospace;
-            opacity: 1;
-            text-decoration-thickness: 1px;
-            text-underline-offset: 1px;
-        }
-
-        #settings-modal .settings-footer-meta-row .settings-footer-meta-value:hover,
-        #settings-modal .settings-footer-meta-row .settings-footer-meta-value:focus-visible {
-            color: inherit;
-            opacity: 1;
-        }
-        
-        #settings-modal .github-icon-link {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--foreground);
-            opacity: 0.4;
-            transition: opacity 0.2s;
-            margin-top: 0.2rem;
-            flex: 0 0 auto;
-        }
-
-        #settings-modal .github-icon-link svg {
-            vertical-align: middle;
-        }
-        
-        #settings-modal .github-icon-link:hover {
-            opacity: 1;
-        }
-        
         .notes-modal-content {
             max-width: 600px;
             max-height: 80vh;
@@ -6427,6 +6368,8 @@
             if (settingsEl) settingsEl.classList.add('active');
             setHashRoute('settings');
             renderSettingsNotificationsSection();
+            window.NrWeb?.applySettingsFooterMetadataFromCache?.();
+            window.NrWeb?.refreshSettingsFooterMetadata?.();
         }
 
         function closeSettingsModal() {
@@ -6435,75 +6378,6 @@
             setHashRoute(selectedPlusCode || '');
         }
 
-        let settingsFooterMetadataRequested = false;
-        const settingsFooterMetadataWarnings = new Set();
-
-        function warnSettingsFooterMetadataOnce(key, error) {
-            if (settingsFooterMetadataWarnings.has(key)) return;
-            settingsFooterMetadataWarnings.add(key);
-            console.warn(`[settings-footer-meta] ${key} unavailable`, error);
-        }
-
-        function formatDateTimeYyyyMmDdHhMm(value) {
-            if (!value) return null;
-            const date = new Date(value);
-            if (Number.isNaN(date.getTime())) return null;
-            const yyyy = String(date.getFullYear());
-            const mm = String(date.getMonth() + 1).padStart(2, '0');
-            const dd = String(date.getDate()).padStart(2, '0');
-            const hh = String(date.getHours()).padStart(2, '0');
-            const min = String(date.getMinutes()).padStart(2, '0');
-            return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
-        }
-
-        async function fetchSettingsFooterJson(url, key) {
-            try {
-                const response = await fetch(url, {
-                    headers: { Accept: 'application/vnd.github+json' }
-                });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                return await response.json();
-            } catch (error) {
-                warnSettingsFooterMetadataOnce(key, error);
-                return null;
-            }
-        }
-
-        function setSettingsFooterValue(id, value) {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.textContent = value || 'unavailable';
-        }
-
-        function setSettingsFooterLink(id, href) {
-            const el = document.getElementById(id);
-            if (!el || !(el instanceof HTMLAnchorElement)) return;
-            el.href = href || 'https://github.com/Trustroots/nostroots/commits/main/nr-web';
-        }
-
-        async function loadSettingsFooterMetadata() {
-            if (settingsFooterMetadataRequested) return;
-            settingsFooterMetadataRequested = true;
-            const commitEl = document.getElementById('settings-last-commit-datetime');
-            const deployEl = document.getElementById('settings-last-deploy-datetime');
-            if (!commitEl || !deployEl) return;
-
-            const [commitData, deployData] = await Promise.all([
-                fetchSettingsFooterJson('https://api.github.com/repos/Trustroots/nostroots/commits?sha=main&path=nr-web&per_page=1', 'commit'),
-                fetchSettingsFooterJson('https://api.github.com/repos/Trustroots/nostroots/actions/workflows/deploy-web.yml/runs?status=success&per_page=1', 'deploy')
-            ]);
-
-            const commitDate = commitData?.[0]?.commit?.committer?.date || commitData?.[0]?.commit?.author?.date;
-            const commitUrl = commitData?.[0]?.html_url;
-            const deployDate = deployData?.workflow_runs?.[0]?.updated_at || deployData?.workflow_runs?.[0]?.run_started_at || deployData?.workflow_runs?.[0]?.created_at;
-            const deployUrl = deployData?.workflow_runs?.[0]?.html_url || 'https://github.com/Trustroots/nostroots/actions/workflows/deploy-web.yml';
-
-            setSettingsFooterValue('settings-last-commit-datetime', formatDateTimeYyyyMmDdHhMm(commitDate));
-            setSettingsFooterLink('settings-last-commit-datetime', commitUrl);
-            setSettingsFooterValue('settings-last-deploy-datetime', formatDateTimeYyyyMmDdHhMm(deployDate));
-            setSettingsFooterLink('settings-last-deploy-datetime', deployUrl);
-        }
-        
         // Make functions globally accessible for onclick handlers
         window.openKeysModal = openKeysModal;
         window.closeKeysModal = closeKeysModal;
@@ -6878,7 +6752,8 @@
             // Defer onboarding and modal click handlers until the DOM is ready.
             function onModalsReady() {
                 checkOnboarding();
-                loadSettingsFooterMetadata();
+                window.NrWeb?.applySettingsFooterMetadataFromCache?.();
+                window.NrWeb?.refreshSettingsFooterMetadata?.();
                 
                 const keysModal = document.getElementById('keys-modal');
                 if (keysModal) {

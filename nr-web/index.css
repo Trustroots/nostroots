@@ -652,13 +652,55 @@
     pointer-events: none;
 }
 
+#settings-modal .settings-footer-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.55rem;
+    margin-top: 0.75rem;
+}
+
+#settings-modal .settings-footer-meta {
+    display: grid;
+    grid-template-columns: max-content max-content;
+    justify-content: start;
+    align-items: baseline;
+    column-gap: 0.45rem;
+    row-gap: 0.2rem;
+    padding-top: 0.75rem;
+    font-size: 0.66rem;
+    color: var(--muted-foreground);
+    flex: 1 1 auto;
+}
+
+#settings-modal .settings-footer-meta-row {
+    display: contents;
+}
+
+#settings-modal .settings-footer-meta-row .settings-footer-meta-value {
+    justify-self: end;
+    color: inherit;
+    font-family: monospace;
+    opacity: 1;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 1px;
+}
+
+#settings-modal .settings-footer-meta-row .settings-footer-meta-value:hover,
+#settings-modal .settings-footer-meta-row .settings-footer-meta-value:focus-visible {
+    color: inherit;
+    opacity: 1;
+}
+
 #settings-modal .github-icon-link {
-    display: block;
-    text-align: right;
-    margin-top: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     color: var(--foreground);
-    opacity: 0.5;
+    opacity: 0.4;
     transition: opacity 0.2s;
+    margin-top: 0.2rem;
+    flex: 0 0 auto;
 }
 
 #settings-modal .github-icon-link svg {
@@ -667,26 +709,6 @@
 
 #settings-modal .github-icon-link:hover {
     opacity: 1;
-}
-
-#settings-modal .settings-footer-meta {
-    margin-top: 1rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border);
-    font-size: 0.8125rem;
-    color: var(--muted-foreground);
-}
-
-#settings-modal .settings-footer-meta-row {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.5rem;
-    margin-bottom: 0.35rem;
-}
-
-#settings-modal .settings-footer-meta-row .settings-footer-meta-value {
-    color: var(--foreground);
-    font-family: monospace;
 }
 
 .notes-modal-content {

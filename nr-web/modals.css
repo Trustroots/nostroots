@@ -337,6 +337,26 @@
     opacity: 1;
 }
 
+#settings-modal .settings-footer-meta {
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+}
+
+#settings-modal .settings-footer-meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+#settings-modal .settings-footer-meta-row .settings-footer-meta-value {
+    color: var(--foreground);
+    font-family: monospace;
+}
+
 /* Keys modal: onboarding options */
 .keys-option-section {
     margin-bottom: 1.5rem;

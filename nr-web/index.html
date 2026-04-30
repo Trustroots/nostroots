@@ -860,6 +860,26 @@
             opacity: 0.5;
             transition: opacity 0.2s;
         }
+
+        #settings-modal .settings-footer-meta {
+            margin-top: 1rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.8125rem;
+            color: var(--muted-foreground);
+        }
+
+        #settings-modal .settings-footer-meta-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+            margin-bottom: 0.35rem;
+        }
+
+        #settings-modal .settings-footer-meta-row .settings-footer-meta-value {
+            color: var(--foreground);
+            font-family: monospace;
+        }
         
         #settings-modal .github-icon-link svg {
             vertical-align: middle;
@@ -6392,6 +6412,73 @@
             if (el) el.classList.remove('active');
             setHashRoute(selectedPlusCode || '');
         }
+
+        let settingsFooterMetadataRequested = false;
+        const settingsFooterMetadataWarnings = new Set();
+
+        function warnSettingsFooterMetadataOnce(key, error) {
+            if (settingsFooterMetadataWarnings.has(key)) return;
+            settingsFooterMetadataWarnings.add(key);
+            console.warn(`[settings-footer-meta] ${key} unavailable`, error);
+        }
+
+        function formatDateTimeYyyyMmDdHhMm(value) {
+            if (!value) return null;
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return null;
+            const yyyy = String(date.getFullYear());
+            const mm = String(date.getMonth() + 1).padStart(2, '0');
+            const dd = String(date.getDate()).padStart(2, '0');
+            const hh = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+        }
+
+        async function fetchSettingsFooterJson(url, key) {
+            try {
+                const response = await fetch(url, {
+                    headers: { Accept: 'application/vnd.github+json' }
+                });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                warnSettingsFooterMetadataOnce(key, error);
+                return null;
+            }
+        }
+
+        function setSettingsFooterValue(id, value) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.textContent = value || 'unavailable';
+        }
+
+        function setSettingsFooterLink(id, href) {
+            const el = document.getElementById(id);
+            if (!el || !(el instanceof HTMLAnchorElement)) return;
+            el.href = href || 'https://github.com/Trustroots/nostroots/commits/main/nr-web';
+        }
+
+        async function loadSettingsFooterMetadata() {
+            if (settingsFooterMetadataRequested) return;
+            settingsFooterMetadataRequested = true;
+            const commitEl = document.getElementById('settings-last-commit-datetime');
+            const deployEl = document.getElementById('settings-last-deploy-datetime');
+            if (!commitEl || !deployEl) return;
+
+            const [commitData, deployData] = await Promise.all([
+                fetchSettingsFooterJson('https://api.github.com/repos/Trustroots/nostroots/commits?sha=main&path=nr-web&per_page=1', 'commit'),
+                fetchSettingsFooterJson('https://api.github.com/repos/Trustroots/nostroots/pages/deployments?per_page=1', 'deploy')
+            ]);
+
+            const commitDate = commitData?.[0]?.commit?.committer?.date || commitData?.[0]?.commit?.author?.date;
+            const commitUrl = commitData?.[0]?.html_url;
+            const deployDate = deployData?.[0]?.updated_at || deployData?.[0]?.created_at;
+
+            setSettingsFooterValue('settings-last-commit-datetime', formatDateTimeYyyyMmDdHhMm(commitDate));
+            setSettingsFooterLink('settings-last-commit-datetime', commitUrl);
+            setSettingsFooterValue('settings-last-deploy-datetime', formatDateTimeYyyyMmDdHhMm(deployDate));
+        }
         
         // Make functions globally accessible for onclick handlers
         window.openKeysModal = openKeysModal;
@@ -6767,6 +6854,7 @@
             // Defer onboarding and modal click handlers until the DOM is ready.
             function onModalsReady() {
                 checkOnboarding();
+                loadSettingsFooterMetadata();
                 
                 const keysModal = document.getElementById('keys-modal');
                 if (keysModal) {

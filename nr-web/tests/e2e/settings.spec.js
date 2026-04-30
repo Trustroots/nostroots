@@ -119,6 +119,33 @@ test.describe('Settings Management', () => {
     }
   });
 
+  test('settings modal shows commit and deploy metadata', async ({ page }) => {
+    const settingsBtn = page.locator('#settings-icon-btn');
+    if (await settingsBtn.isVisible()) {
+      await settingsBtn.click();
+
+      const settingsModal = page.locator('#settings-modal');
+      await expect(settingsModal).toBeVisible();
+
+      const commitMeta = page.locator('#settings-last-commit-datetime');
+      const deployMeta = page.locator('#settings-last-deploy-datetime');
+      await expect(commitMeta).toBeAttached();
+      await expect(deployMeta).toBeAttached();
+
+      await expect.poll(async () => {
+        const value = (await commitMeta.textContent() || '').trim();
+        return value;
+      }).toMatch(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}|unavailable)$/);
+
+      await expect.poll(async () => {
+        const value = (await deployMeta.textContent() || '').trim();
+        return value;
+      }).toMatch(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}|unavailable)$/);
+    } else {
+      test.skip();
+    }
+  });
+
   test('can close settings modal', async ({ page }) => {
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {

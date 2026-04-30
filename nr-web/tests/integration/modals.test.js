@@ -109,6 +109,8 @@ describe('Modal Behavior', () => {
       expect(settingsModal).toBeTruthy();
       expect(document.getElementById('relays-list')).toBeTruthy();
       expect(document.getElementById('new-relay-url')).toBeTruthy();
+      expect(document.getElementById('settings-last-commit-datetime')).toBeTruthy();
+      expect(document.getElementById('settings-last-deploy-datetime')).toBeTruthy();
       const githubLink = settingsModal?.querySelector('a.github-icon-link[href*="github.com"]');
       expect(githubLink).toBeTruthy();
     });

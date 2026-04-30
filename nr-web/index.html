@@ -4275,11 +4275,28 @@
             }
         }
         
+        function hasUsableWebGL() {
+            try {
+                const canvas = document.createElement('canvas');
+                if (!canvas) return false;
+                const gl = canvas.getContext('webgl2', { failIfMajorPerformanceCaveat: false }) ||
+                           canvas.getContext('webgl', { failIfMajorPerformanceCaveat: false }) ||
+                           canvas.getContext('experimental-webgl', { failIfMajorPerformanceCaveat: false });
+                return !!gl;
+            } catch (_error) {
+                return false;
+            }
+        }
+
         function initializeMap() {
             try {
                 const mapContainer = document.getElementById('map');
                 if (!mapContainer) {
                     throw new Error('Map container not found');
+                }
+
+                if (!hasUsableWebGL()) {
+                    throw new Error('WebGL is unavailable in this browser');
                 }
                 
                 // Load saved map position from localStorage
@@ -4305,6 +4322,13 @@
                     zoom: savedZoom,
                     renderWorldCopies: false, // Improve performance
                     antialias: true, // Smoother rendering
+                    failIfMajorPerformanceCaveat: false,
+                    canvasContextAttributes: {
+                        antialias: true,
+                        powerPreference: 'high-performance',
+                        preserveDrawingBuffer: false,
+                        failIfMajorPerformanceCaveat: false
+                    },
                     fadeDuration: 0, // Instant transitions for smoother panning
                     dragPan: true, // Explicitly enable panning
                     boxZoom: true,
@@ -4382,7 +4406,11 @@
                 });
             } catch (error) {
                 console.error('Error initializing map:', error);
-                showStatus('Error initializing map: ' + error.message, 'error');
+                const baseMessage = 'Error initializing map: ' + error.message;
+                const webglHint = error.message && error.message.includes('WebGL')
+                    ? ' On iPhone, verify Safari Advanced > Feature Flags > WebGL is enabled and disable Low Power Mode.'
+                    : '';
+                showStatus(baseMessage + webglHint, 'error');
                 return;
             }
             

@@ -10,7 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- MapLibre GL CSS -->
-    <link href="https://unpkg.com/maplibre-gl@5.11.0/dist/maplibre-gl.css" rel="stylesheet" />
+    <!-- Keep MapLibre on 4.x for wider iOS WebGL compatibility -->
+    <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
     <script>
         (function loadLocalStylesheets() {
             const version = Date.now();
@@ -1375,7 +1376,7 @@
     <!-- Keys and Settings modals injected by common.js from modals-keys-settings.html -->
 
     <!-- MapLibre GL JS -->
-    <script src="https://unpkg.com/maplibre-gl@5.11.0/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
     
     <!-- Suppress Firefox WebGL deprecation warnings from MapLibre GL internals -->
     <script>

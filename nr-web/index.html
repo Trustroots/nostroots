@@ -12,6 +12,8 @@
     <!-- MapLibre GL CSS -->
     <!-- Keep MapLibre on 4.x for wider iOS WebGL compatibility -->
     <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+    <!-- Leaflet fallback map for browsers without usable WebGL -->
+    <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
     <script>
         (function loadLocalStylesheets() {
             const version = Date.now();
@@ -1360,6 +1362,8 @@
 
     <!-- MapLibre GL JS -->
     <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <!-- Leaflet JS fallback -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     
     <!-- Suppress Firefox WebGL deprecation warnings from MapLibre GL internals -->
     <script>
@@ -1739,6 +1743,7 @@
         let wsMapSubscriptions = [];
         let map = null;
         let mapFallbackMode = null;
+        let leafletGridLayer = null;
         let markers = [];
         let events = [];
         let claimEventsByKind = new Map();
@@ -4289,23 +4294,112 @@
             }
         }
 
-        function enableMapFallback(mode) {
-            if (mapFallbackMode) return;
-            mapFallbackMode = mode || 'map-fallback';
+        function renderUnavailableMapPanel(message) {
+            mapFallbackMode = 'map-unavailable';
 
             const mapContainer = document.getElementById('map');
             if (!mapContainer) return;
 
             map = null;
-            mapContainer.dataset.mapFallback = mapFallbackMode;
+            mapContainer.dataset.mapFallback = 'map-unavailable';
             mapContainer.innerHTML = `
                 <div class="map-fallback" role="status" aria-live="polite">
                     <h2>Map unavailable</h2>
-                    <p>This browser cannot start the interactive map right now.</p>
-                    <p class="map-fallback-hint">On iPhone: Safari > Advanced > Feature Flags > WebGL, then disable Low Power Mode.</p>
+                    <p>${escapeHtml(message || 'This browser cannot start the interactive map right now.')}</p>
+                    <p class="map-fallback-hint">WebGL and Leaflet fallback could not initialize.</p>
                     <button class="btn btn-secondary" type="button" onclick="window.location.reload()">Try again</button>
                 </div>
             `;
+        }
+
+        function getLeafletTileUrl() {
+            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark' ||
+                (!document.documentElement.getAttribute('data-theme') &&
+                 !document.documentElement.hasAttribute('data-theme'));
+            return isDarkMode
+                ? 'https://tiles.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+                : 'https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
+        }
+
+        function initializeLeafletFallback(reason) {
+            try {
+                if (typeof L === 'undefined') {
+                    renderUnavailableMapPanel('Leaflet map fallback failed to load.');
+                    return false;
+                }
+
+                const mapContainer = document.getElementById('map');
+                if (!mapContainer) {
+                    renderUnavailableMapPanel('Map container not found.');
+                    return false;
+                }
+
+                mapContainer.innerHTML = '';
+                mapContainer.dataset.mapFallback = 'leaflet';
+
+                let savedCenter = [0, 0];
+                let savedZoom = 2;
+                try {
+                    const savedCenterStr = localStorage.getItem('map_center');
+                    const savedZoomStr = localStorage.getItem('map_zoom');
+                    if (savedCenterStr) {
+                        const parsed = JSON.parse(savedCenterStr);
+                        if (Array.isArray(parsed) && parsed.length === 2) savedCenter = parsed;
+                    }
+                    if (savedZoomStr) savedZoom = parseFloat(savedZoomStr);
+                } catch (e) {
+                    console.warn('Failed to load saved map position for Leaflet fallback:', e);
+                }
+
+                const leafMap = L.map('map', {
+                    zoomControl: true,
+                    worldCopyJump: true,
+                    preferCanvas: true
+                }).setView([savedCenter[1], savedCenter[0]], savedZoom);
+
+                L.tileLayer(getLeafletTileUrl(), {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                }).addTo(leafMap);
+
+                leafletGridLayer = L.layerGroup().addTo(leafMap);
+                mapFallbackMode = 'leaflet';
+                map = leafMap;
+                map.loaded = () => true;
+                map.getSource = (sourceId) => sourceId === 'pluscode-grid' ? {} : null;
+
+                leafMap.on('click', (e) => {
+                    const plusCode = encodePlusCode(e.latlng.lat, e.latlng.lng);
+                    if (plusCode) showNotesForPlusCode(plusCode);
+                });
+
+                let leafMoveTimeout = null;
+                const onLeafMove = () => {
+                    const center = leafMap.getCenter();
+                    const zoom = leafMap.getZoom();
+                    localStorage.setItem('map_center', JSON.stringify([center.lng, center.lat]));
+                    localStorage.setItem('map_zoom', zoom.toString());
+
+                    clearTimeout(leafMoveTimeout);
+                    leafMoveTimeout = setTimeout(() => {
+                        updatePlusCodeGrid();
+                        subscribeToPlusCodePrefixes();
+                    }, 300);
+                };
+                leafMap.on('moveend', onLeafMove);
+                leafMap.on('zoomend', onLeafMove);
+
+                updatePlusCodeGrid();
+                showStatus('Using Leaflet fallback map because WebGL is unavailable.', 'info');
+                if (reason === 'maplibre-missing') {
+                    showStatus('MapLibre failed to load; switched to Leaflet fallback.', 'error');
+                }
+                return true;
+            } catch (leafletError) {
+                console.error('Leaflet fallback initialization failed:', leafletError);
+                renderUnavailableMapPanel('Leaflet map fallback could not initialize.');
+                return false;
+            }
         }
 
         function initializeMap() {
@@ -4315,10 +4409,12 @@
                     throw new Error('Map container not found');
                 }
 
+                if (typeof maplibregl === 'undefined') {
+                    return initializeLeafletFallback('maplibre-missing');
+                }
+
                 if (!hasUsableWebGL()) {
-                    enableMapFallback('webgl-unavailable');
-                    showStatus('Interactive map disabled: WebGL is unavailable in this browser.', 'info');
-                    return false;
+                    return initializeLeafletFallback('webgl-unavailable');
                 }
                 
                 // Load saved map position from localStorage
@@ -4426,7 +4522,6 @@
                     };
                     tryFallback();
                 });
-                return true;
             } catch (error) {
                 console.error('Error initializing map:', error);
                 const baseMessage = 'Error initializing map: ' + error.message;
@@ -4435,7 +4530,7 @@
                     : '';
                 showStatus(baseMessage + webglHint, 'error');
                 if (error.message && error.message.includes('WebGL')) {
-                    enableMapFallback('webgl-unavailable');
+                    return initializeLeafletFallback('webgl-unavailable');
                 }
                 return false;
             }
@@ -4662,6 +4757,66 @@
         }
         
         function updatePlusCodeGrid() {
+            if (mapFallbackMode === 'leaflet') {
+                if (!map || !leafletGridLayer) return;
+                leafletGridLayer.clearLayers();
+
+                const bounds = map.getBounds();
+                const plusCodesToRender = new Set();
+                if (selectedPlusCode) plusCodesToRender.add(selectedPlusCode);
+
+                eventsByPlusCode.forEach((eventSet, plusCode) => {
+                    if (!eventSet || eventSet.size === 0) return;
+                    const rectangle = plusCodeToRectangle(plusCode);
+                    if (!rectangle || rectangle.length === 0) return;
+                    const lons = rectangle.map(([lon]) => lon);
+                    const lats = rectangle.map(([, lat]) => lat);
+                    const minLon = Math.min(...lons);
+                    const maxLon = Math.max(...lons);
+                    const minLat = Math.min(...lats);
+                    const maxLat = Math.max(...lats);
+                    const overlapsViewport = !(
+                        maxLat < bounds.getSouth() ||
+                        minLat > bounds.getNorth() ||
+                        maxLon < bounds.getWest() ||
+                        minLon > bounds.getEast()
+                    );
+                    if (overlapsViewport) plusCodesToRender.add(plusCode);
+                });
+
+                let rendered = 0;
+                for (const plusCode of plusCodesToRender) {
+                    if (rendered >= 300) break;
+                    const rectangle = plusCodeToRectangle(plusCode);
+                    if (!rectangle || rectangle.length < 4) continue;
+
+                    const { eventsForPlusCodeExactly, eventsWithinPlusCode } = filterEventsForPlusCodeFast(plusCode);
+                    const totalEventCount = eventsForPlusCodeExactly.length + eventsWithinPlusCode.length;
+                    if ((!selectedPlusCode || plusCode !== selectedPlusCode) && totalEventCount === 0) continue;
+
+                    const fillColor = (selectedPlusCode && plusCode === selectedPlusCode)
+                        ? 'rgba(107, 138, 82, 0.55)'
+                        : 'rgba(166, 124, 91, 0.45)';
+                    const latLngs = rectangle.map(([lon, lat]) => [lat, lon]);
+                    const polygon = L.polygon(latLngs, {
+                        color: 'rgba(80, 80, 90, 0.65)',
+                        weight: 1,
+                        fillColor,
+                        fillOpacity: 0.6
+                    });
+                    polygon.on('click', (event) => {
+                        if (event && event.originalEvent) {
+                            event.originalEvent.preventDefault();
+                            event.originalEvent.stopPropagation();
+                        }
+                        showNotesForPlusCode(plusCode);
+                    });
+                    polygon.addTo(leafletGridLayer);
+                    rendered++;
+                }
+                return;
+            }
+
             if (!map || !map.loaded()) {
                 // If map not ready, try again after a short delay
                 setTimeout(() => {
@@ -6762,12 +6917,8 @@
                 sessionStorage.removeItem('nostroots_switching_page');
                 window._nostrootsSuppressConnectionToasts = true;
             }
-            // Wait for maplibregl to be available
-            if (typeof maplibregl === 'undefined') {
-                console.error('MapLibre GL not loaded');
-                enableMapFallback('map-library-missing');
-                showStatus('Map library failed to load; running without interactive map.', 'error');
-            }
+            // Map initialization handles MapLibre missing by attempting Leaflet fallback.
+            if (typeof maplibregl === 'undefined') console.warn('MapLibre GL not loaded; trying Leaflet fallback');
             
             // Initialize expiration input with saved value
             const savedExpiration = getExpirationSetting();

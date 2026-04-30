@@ -85,11 +85,15 @@
     min-height: 400px;
 }
 
-#map[data-map-fallback] {
+#map[data-map-fallback="map-unavailable"] {
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 1rem;
+    background: var(--muted);
+}
+
+#map[data-map-fallback="leaflet"] .leaflet-container {
     background: var(--muted);
 }
 

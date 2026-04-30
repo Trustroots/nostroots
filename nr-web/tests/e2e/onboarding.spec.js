@@ -70,7 +70,7 @@ test.describe('Onboarding Flow', () => {
     await expect(keysModal).toBeVisible();
   });
 
-  test('shows non-WebGL fallback when WebGL is unavailable', async ({ page }) => {
+  test('shows Leaflet fallback when WebGL is unavailable', async ({ page }) => {
     await page.addInitScript(() => {
       const originalGetContext = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = function patchedGetContext(type, ...args) {
@@ -84,7 +84,7 @@ test.describe('Onboarding Flow', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('#map[data-map-fallback="webgl-unavailable"]')).toBeVisible();
-    await expect(page.locator('#map .map-fallback')).toContainText('Map unavailable');
+    await expect(page.locator('#map[data-map-fallback="leaflet"]')).toBeVisible();
+    await expect(page.locator('#map.leaflet-container')).toBeVisible();
   });
 });

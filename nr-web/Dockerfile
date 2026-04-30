@@ -1,6 +1,7 @@
 FROM node:24-slim
 
 WORKDIR /app/nr-web
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 # Install system dependencies for Playwright
 RUN apt-get update && apt-get install -y \
@@ -23,14 +24,14 @@ RUN apt-get update && apt-get install -y \
 # Install pnpm
 RUN npm install -g pnpm
 
-# Copy nr-web package.json and lockfile (nr-web is a standalone pnpm project)
-COPY nr-web/package.json nr-web/pnpm-lock.yaml nr-web/pnpm-workspace.yaml ./
+# Copy nr-web package manifest (standalone project, no pnpm-workspace file)
+COPY nr-web/package.json ./
 
-# Install dependencies from lockfile (reproducible)
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# Install dependencies (nr-web currently has no lockfile in repo)
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
-# Install Playwright browsers (Chromium only for smaller image)
-RUN npx playwright install chromium --with-deps
+# Install browser matching the project's Playwright version
+RUN pnpm exec playwright install webkit --with-deps
 
 # Copy test files and source (will be overridden by volume mount in docker-compose)
 COPY nr-web/ ./

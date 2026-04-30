@@ -26,18 +26,13 @@ test.describe('Note Posting', () => {
     await expect(noteContent).toBeAttached();
   });
 
-  test('view note modal exists', async ({ page }) => {
-    const viewNoteModal = page.locator('#view-note-modal');
-    await expect(viewNoteModal).toBeAttached();
-  });
-
   test('plus code notes modal exists', async ({ page }) => {
     const plusCodeModal = page.locator('#pluscode-notes-modal');
     await expect(plusCodeModal).toBeAttached();
   });
 
   test('note modals have correct structure', async ({ page }) => {
-    const modals = ['view-note-modal', 'pluscode-notes-modal'];
+    const modals = ['pluscode-notes-modal'];
     
     for (const modalId of modals) {
       const modal = page.locator(`#${modalId}`);

@@ -46,6 +46,36 @@ make test-e2e      # E2E tests only
 
 **NIP-42 (`wss://nip42.trustroots.org`):** Automated tests mostly use public relays. For AUTH challenge/response behavior, use the manual client in [`test.html`](test.html). NIP-42 read/publish paths are not fully covered in CI.
 
+### Real Apple iOS Simulator (Xcode) automation
+
+Use this when you want real Safari automation on an Apple iOS Simulator, without running npm/pnpm on host:
+
+- Host requirements: Xcode + Simulator, Appium CLI (`appium`), Docker, Python 3
+- Host does **not** run npm/pnpm commands in this flow
+- Docker runs the WebDriver smoke client
+
+Run:
+
+```bash
+./scripts/test-ios-simulator-real.sh
+```
+
+Optional device override:
+
+```bash
+IOS_SIMULATOR_DEVICE="iPhone 17 Pro Max" ./scripts/test-ios-simulator-real.sh
+```
+
+If Appium reports missing XCUITest driver, run once on host:
+
+```bash
+APPIUM_HOME="$HOME/.appium" appium driver install xcuitest
+```
+
+Notes:
+- This path uses Appium + XCUITest against real iOS Simulator Safari.
+- It is separate from Playwright `ios-safari`, which is WebKit emulation.
+
 ### Committing Changes
 
 The repository has pre-commit hooks that run ESLint on the `nr-app` folder. Since `nr-web` is a standalone HTML file and doesn't use the same tooling, you should skip the pre-commit hook when committing changes that only affect `nr-web`:

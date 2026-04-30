@@ -1046,6 +1046,15 @@
             });
     }
 
+    function fetchDeployMetadataFile() {
+        return fetch('deploy-metadata.json', { cache: 'no-cache' })
+            .then(function (response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .catch(function () { return null; });
+    }
+
     function refreshSettingsFooterMetadata() {
         if (settingsFooterMetadataLoaded || settingsFooterMetadataLoading) return;
         var commitEl = global.document && global.document.getElementById('settings-last-commit-datetime');
@@ -1053,37 +1062,63 @@
         if (!commitEl || !deployEl) return;
         settingsFooterMetadataLoading = true;
 
-        Promise.all([
-            fetchSettingsFooterJson('https://api.github.com/repos/Trustroots/nostroots/commits?sha=main&path=nr-web&per_page=1', 'commit'),
-            fetchSettingsFooterJson('https://api.github.com/repos/Trustroots/nostroots/actions/workflows/deploy-web.yml/runs?status=success&per_page=1', 'deploy')
-        ]).then(function (results) {
-            var commitData = results[0];
-            var deployData = results[1];
-            var commitDate = commitData && commitData[0] && commitData[0].commit && (commitData[0].commit.committer && commitData[0].commit.committer.date || commitData[0].commit.author && commitData[0].commit.author.date);
-            var commitUrl = commitData && commitData[0] && commitData[0].html_url;
-            var firstRun = deployData && deployData.workflow_runs && deployData.workflow_runs[0];
-            var deployDate = firstRun && (firstRun.updated_at || firstRun.run_started_at || firstRun.created_at);
-            var deployUrl = firstRun && firstRun.html_url || 'https://github.com/Trustroots/nostroots/actions/workflows/deploy-web.yml';
-            var commitDisplay = formatDateTimeYyyyMmDdHhMm(commitDate);
-            var deployDisplay = formatDateTimeYyyyMmDdHhMm(deployDate);
+        fetchDeployMetadataFile().then(function (deployMeta) {
+            if (deployMeta) {
+                var commitDisplay = formatDateTimeYyyyMmDdHhMm(deployMeta.commitTimestamp);
+                var deployDisplay = formatDateTimeYyyyMmDdHhMm(deployMeta.deployTimestamp);
+                var commitUrl = deployMeta.commitUrl || (deployMeta.commitSha ? 'https://github.com/Trustroots/nostroots/commit/' + deployMeta.commitSha : null);
+                var deployUrl = deployMeta.deployRunUrl || deployMeta.deployWorkflowUrl || 'https://github.com/Trustroots/nostroots/actions/workflows/deploy-web.yml';
 
-            setSettingsFooterValue('settings-last-commit-datetime', commitDisplay);
-            setSettingsFooterLink('settings-last-commit-datetime', commitUrl, 'https://github.com/Trustroots/nostroots/commits/main/nr-web');
-            setSettingsFooterValue('settings-last-deploy-datetime', deployDisplay);
-            setSettingsFooterLink('settings-last-deploy-datetime', deployUrl, 'https://github.com/Trustroots/nostroots/actions/workflows/deploy-web.yml');
+                setSettingsFooterValue('settings-last-commit-datetime', commitDisplay);
+                setSettingsFooterLink('settings-last-commit-datetime', commitUrl, 'https://github.com/Trustroots/nostroots/commits/main/nr-web');
+                setSettingsFooterValue('settings-last-deploy-datetime', deployDisplay);
+                setSettingsFooterLink('settings-last-deploy-datetime', deployUrl, 'https://github.com/Trustroots/nostroots/actions/workflows/deploy-web.yml');
 
-            if (!commitDisplay || !deployDisplay) {
-                applySettingsFooterMetadataFromCache();
-            } else {
-                saveSettingsFooterMetadataCache({
-                    commitDisplay: commitDisplay,
-                    commitUrl: commitUrl,
-                    deployDisplay: deployDisplay,
-                    deployUrl: deployUrl
-                });
+                if (commitDisplay && deployDisplay) {
+                    saveSettingsFooterMetadataCache({
+                        commitDisplay: commitDisplay,
+                        commitUrl: commitUrl,
+                        deployDisplay: deployDisplay,
+                        deployUrl: deployUrl
+                    });
+                    settingsFooterMetadataLoaded = true;
+                    settingsFooterMetadataLoading = false;
+                    return;
+                }
             }
-            settingsFooterMetadataLoaded = Boolean(commitDisplay && deployDisplay);
-            settingsFooterMetadataLoading = false;
+
+            return Promise.all([
+                fetchSettingsFooterJson('https://api.github.com/repos/Trustroots/nostroots/commits?sha=main&path=nr-web&per_page=1', 'commit'),
+                fetchSettingsFooterJson('https://api.github.com/repos/Trustroots/nostroots/actions/workflows/deploy-web.yml/runs?status=success&per_page=1', 'deploy')
+            ]).then(function (results) {
+                var commitData = results[0];
+                var deployData = results[1];
+                var commitDate = commitData && commitData[0] && commitData[0].commit && (commitData[0].commit.committer && commitData[0].commit.committer.date || commitData[0].commit.author && commitData[0].commit.author.date);
+                var commitUrl = commitData && commitData[0] && commitData[0].html_url;
+                var firstRun = deployData && deployData.workflow_runs && deployData.workflow_runs[0];
+                var deployDate = firstRun && (firstRun.updated_at || firstRun.run_started_at || firstRun.created_at);
+                var deployUrl = firstRun && firstRun.html_url || 'https://github.com/Trustroots/nostroots/actions/workflows/deploy-web.yml';
+                var commitDisplay = formatDateTimeYyyyMmDdHhMm(commitDate);
+                var deployDisplay = formatDateTimeYyyyMmDdHhMm(deployDate);
+
+                setSettingsFooterValue('settings-last-commit-datetime', commitDisplay);
+                setSettingsFooterLink('settings-last-commit-datetime', commitUrl, 'https://github.com/Trustroots/nostroots/commits/main/nr-web');
+                setSettingsFooterValue('settings-last-deploy-datetime', deployDisplay);
+                setSettingsFooterLink('settings-last-deploy-datetime', deployUrl, 'https://github.com/Trustroots/nostroots/actions/workflows/deploy-web.yml');
+
+                if (!commitDisplay || !deployDisplay) {
+                    applySettingsFooterMetadataFromCache();
+                } else {
+                    saveSettingsFooterMetadataCache({
+                        commitDisplay: commitDisplay,
+                        commitUrl: commitUrl,
+                        deployDisplay: deployDisplay,
+                        deployUrl: deployUrl
+                    });
+                }
+                settingsFooterMetadataLoaded = Boolean(commitDisplay && deployDisplay);
+                settingsFooterMetadataLoading = false;
+            });
         }).catch(function () {
             settingsFooterMetadataLoading = false;
             applySettingsFooterMetadataFromCache();

@@ -6,9 +6,7 @@ on:
     branches:
       - main
     paths:
-      - "nr-web/index.html"
-      - "nr-web/favicon.*"
-      - "nr-web/robots.txt"
+      - "nr-web/**"
       - ".github/workflows/deploy-web.yml"
 
   # Allow manual trigger
@@ -43,6 +41,12 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+
+      - name: Write deploy metadata
+        run: |
+          node -e "const fs=require('fs'); const p='nr-web/deploy-metadata.json'; const data={commitSha: process.env.GITHUB_SHA, commitUrl: 'https://github.com/Trustroots/nostroots/commit/' + process.env.GITHUB_SHA, commitTimestamp: process.env.COMMIT_TIMESTAMP, deployWorkflowUrl: 'https://github.com/Trustroots/nostroots/actions/workflows/deploy-web.yml', deployRunUrl: 'https://github.com/Trustroots/nostroots/actions/runs/' + process.env.GITHUB_RUN_ID, deployTimestamp: new Date().toISOString()}; fs.writeFileSync(p, JSON.stringify(data, null, 2));"
+        env:
+          COMMIT_TIMESTAMP: ${{ github.event.head_commit.timestamp }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

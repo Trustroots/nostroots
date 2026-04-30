@@ -2035,6 +2035,23 @@
         }
 
         function startWsMapSubscription(relayUrl, onChannelEvent) {
+            const relayAuth = globalThis.NrWebRelayAuth;
+            if (relayAuth?.startNip42WsSubscription && currentPublicKey) {
+                return relayAuth.startNip42WsSubscription({
+                    relayUrl,
+                    filter: { kinds: [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND], limit: 10000 },
+                    authPubkey: currentPublicKey,
+                    signEvent: (template) => signEvent(template),
+                    onEvent: (event) => {
+                        if (event && (event.kind === MAP_NOTE_KIND || event.kind === MAP_NOTE_REPOST_KIND)) {
+                            onChannelEvent(event);
+                        }
+                    },
+                    onAuthChallenge: () => {},
+                    onAuthSuccess: () => {},
+                    onAuthFail: () => {}
+                });
+            }
             const ws = new WebSocket(relayUrl);
             const subId = `chat-map-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
             const sendReq = () => {
@@ -2058,7 +2075,6 @@
                     try {
                         const signedAuth = await buildAuthEventForRelay(relayUrl, a);
                         ws.send(JSON.stringify(['AUTH', signedAuth]));
-                        // Mirror test.html behavior: retry REQ after AUTH.
                         sendReq();
                     } catch (error) {
                         console.error(`[Chat Relay] NIP-42 auth failed for ${relayUrl}:`, error?.message || error);
@@ -2074,9 +2090,7 @@
                 }
             });
 
-            ws.addEventListener('error', () => {
-                // Keep silent, debug badge counters already indicate auth success/fail state.
-            });
+            ws.addEventListener('error', () => {});
 
             return {
                 close: () => {

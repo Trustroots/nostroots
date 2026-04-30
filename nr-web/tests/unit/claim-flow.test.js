@@ -4,6 +4,8 @@ import {
   mergePTags,
   buildKind3Tags,
   buildTrustroots30000Tags,
+  formatPubkeyShort,
+  pickOtherPTag,
 } from '../../claim-utils.js';
 
 describe('Claim Relationship Flow Helpers', () => {
@@ -33,6 +35,18 @@ describe('Claim Relationship Flow Helpers', () => {
     const tags = buildTrustroots30000Tags(['bbbb', 'cccc']);
     expect(tags[0]).toEqual(['d', 'trustroots-contacts']);
     expect(tags.slice(1)).toEqual([['p', 'bbbb'], ['p', 'cccc']]);
+  });
+
+  it('shortens long hex pubkeys for display', () => {
+    const long = 'a'.repeat(64);
+    expect(formatPubkeyShort(long)).toMatch(/^aaaaaaaa…aaaaaa$/);
+    expect(formatPubkeyShort('abcd')).toBe('abcd');
+  });
+
+  it('pickOtherPTag returns the other party in a two-p claim', () => {
+    expect(pickOtherPTag([['p', 'aa'], ['p', 'bb']], 'aa')).toBe('bb');
+    expect(pickOtherPTag([['p', 'AA'], ['p', 'bb']], 'aa')).toBe('bb');
+    expect(pickOtherPTag([['p', 'aa']], 'aa')).toBe('');
   });
 });
 

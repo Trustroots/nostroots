@@ -56,6 +56,11 @@
         width: 95%;
         padding: 1.5rem;
     }
+    #keys-modal .modal-content {
+        max-width: 100%;
+        width: 95%;
+        padding: 1.5rem 1.15rem;
+    }
     
     /* Notes modal: full width, bottom 60% on mobile */
     #pluscode-notes-modal {
@@ -628,6 +633,12 @@
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
     border: 2px solid var(--border-outer, var(--border));
     position: relative;
+}
+
+#keys-modal .modal-content {
+    max-width: min(96vw, 820px);
+    width: min(96vw, 820px);
+    padding: 2rem 2.25rem;
 }
 .modal-content::after {
     content: "";

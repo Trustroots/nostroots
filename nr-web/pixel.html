@@ -555,22 +555,43 @@
             };
             const signed = finalizeEvent(event, currentPrivateKeyBytes);
             const urls = getPublishRelayUrls();
+            const relayPublish = globalThis.NrWebRelayPublish;
             setStatus('Publishing…', 'info');
             let ok = 0;
+            const errors = [];
             for (const url of urls) {
                 try {
-                    const relay = await Relay.connect(url);
-                    await relay.publish(signed);
-                    relay.close();
-                    ok++;
-                } catch (_) {}
+                    if (relayPublish?.publishSignedEventViaWebSocket) {
+                        const res = await relayPublish.publishSignedEventViaWebSocket(
+                            url,
+                            signed,
+                            async (tpl) => finalizeEvent(tpl, currentPrivateKeyBytes)
+                        );
+                        if (res.success) ok += 1;
+                        else errors.push(`${url}: ${res.error || 'relay rejected'}`);
+                    } else {
+                        const relay = await Relay.connect(url);
+                        await relay.publish(signed);
+                        relay.close();
+                        ok += 1;
+                    }
+                } catch (err) {
+                    errors.push(`${url}: ${err?.message || err}`);
+                }
             }
             if (ok > 0) {
                 seenIds.add(signed.id);
                 feedEvents.unshift({ ...signed, parsed: content });
                 renderFeed();
                 setStatus(`Published to ${ok} relay(s).`, 'success');
-            } else setStatus('Publish failed. Check relays on Map settings.', 'error');
+            } else {
+                setStatus(
+                    errors.length
+                        ? `Publish failed: ${errors.join(' | ')}`
+                        : 'Publish failed. Check relays on Map settings.',
+                    'error'
+                );
+            }
         });
 
         function renderRelaysList() {

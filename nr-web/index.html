@@ -228,6 +228,11 @@
                 width: 95%;
                 padding: 1.5rem;
             }
+            #keys-modal .modal-content {
+                max-width: 100%;
+                width: 95%;
+                padding: 1.5rem 1.15rem;
+            }
             
             /* Notes modal: full width, bottom 60% on mobile */
             #pluscode-notes-modal {
@@ -829,6 +834,11 @@
             border: 2px solid var(--border-outer, var(--border));
             position: relative;
         }
+        #keys-modal .modal-content {
+            max-width: min(96vw, 820px);
+            width: min(96vw, 820px);
+            padding: 2rem 2.25rem;
+        }
         .modal-content::after {
             content: "";
             position: absolute;
@@ -1400,7 +1410,7 @@
             nip19,
             Relay 
         } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.10.3/+esm';
-        import { extractRelationshipTargetsFromClaims, mergePTags, buildKind3Tags, buildTrustroots30000Tags } from './claim-utils.js';
+        import { extractRelationshipTargetsFromClaims, mergePTags, buildKind3Tags, buildTrustroots30000Tags, formatPubkeyShort, pickOtherPTag } from './claim-utils.js';
         
         // Import BIP39 for mnemonic support
         import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm';
@@ -1747,6 +1757,7 @@
         let markers = [];
         let events = [];
         let claimEventsByKind = new Map();
+        let claimSuggestionsDebounce = null;
         let selectedPlusCode = null;
         let selectedCircle = null; // Selected Trustroots circle slug
 
@@ -1765,9 +1776,13 @@
         }
 
         function upsertClaimEvent(event) {
-            if (!event || !getClaimKinds().includes(event.kind)) return;
-            if (!currentPublicKey || !hasPTarget(event, currentPublicKey)) return;
-            const bucket = getClaimKindBucket(event.kind);
+            if (!event || !currentPublicKey || !hasPTarget(event, currentPublicKey)) return;
+            const accepted =
+                getClaimKinds().includes(event.kind) ||
+                event.kind === MAP_NOTE_REPOST_KIND;
+            if (!accepted) return;
+            const bucketKind = event.kind === MAP_NOTE_REPOST_KIND ? HOST_CLAIM_KIND : event.kind;
+            const bucket = getClaimKindBucket(bucketKind);
             const idx = bucket.findIndex(e => e.id === event.id);
             if (idx >= 0) {
                 bucket[idx] = event;
@@ -1783,6 +1798,11 @@
             });
             wsMapSubscriptions = [];
         }
+
+        // Map notes use two paths: (1) raw WebSocket + NIP-42 via startWsMapSubscriptions for
+        // long-lived reads and compatibility with some relays; (2) nostr-tools Relay + setupRelayAuthHandler
+        // in initializeRelays for shared long-lived connections used by publishToRelayWithRetries.
+        // Both call processIncomingEvent; duplicate EVENTs are deduped by id.
 
         function startWsMapSubscriptions(relayUrls) {
             const relayAuth = window.NrWebRelayAuth;
@@ -2489,6 +2509,7 @@
                 return;
             }
             const deletedPubkey = currentPublicKey;
+            clearClaimSignDoneForPubkey(deletedPubkey);
             
             localStorage.removeItem('nostr_private_key');
             currentPrivateKey = null;
@@ -2498,6 +2519,11 @@
             window.NrWebKeysModal?.clearKeyBackedUpForPubkey?.(deletedPubkey);
             isProfileLinked = false;
             usernameFromNostr = false;
+            claimEventsByKind = new Map();
+            if (claimSuggestionsDebounce) {
+                clearTimeout(claimSuggestionsDebounce);
+                claimSuggestionsDebounce = null;
+            }
             
             // Reset username field
             const usernameInput = document.getElementById('trustroots-username');
@@ -2691,6 +2717,7 @@
             saveRelayWritePreferences();
             renderRelaysList();
             updateNoteComposePostingIcon();
+            updateClaimRelayScopeRow();
         }
 
         function toggleRelayWriteForEncodedUrl(encodedUrl, enabled) {
@@ -2982,6 +3009,8 @@
         }
         
         async function initializeNDK() {
+            // NDK is disabled (const NDK = null). If re-enabled, every subscription path must
+            // support NIP-42 AUTH on wss://nip42.trustroots.org or reads/writes will fail there.
             const relayUrls = getRelayUrls();
             const connectableRelayUrls = getConnectableRelayUrls(relayUrls);
             startWsMapSubscriptions(connectableRelayUrls);
@@ -3449,6 +3478,9 @@
                 upsertClaimEvent(event);
                 return;
             }
+            if (event.kind === MAP_NOTE_REPOST_KIND && hasPTarget(event, currentPublicKey)) {
+                upsertClaimEvent(event);
+            }
             // Process kind 10390 (Trustroots profile) events to extract usernames
             if (event.kind === TRUSTROOTS_PROFILE_KIND) {
                 const username = getTrustrootsUsernameFromProfileEvent(event);
@@ -3724,11 +3756,22 @@
             
             console.log('Starting sync: checking which events still exist on relays...');
             const eventsOnRelays = new Set();
-            let queriesCompleted = 0;
-            const totalRelays = ndk ? 1 : relays.length;
-            
-            if (totalRelays === 0) {
-                console.log('No relays available for sync');
+            const relayUrls = getRelayUrls();
+            const relayAuth = window.NrWebRelayAuth;
+
+            if (relayUrls.length === 0) {
+                console.log('No relays configured for sync');
+                return;
+            }
+
+            // wss://nip42.trustroots.org requires NIP-42 AUTH before REQ returns map notes.
+            // Plain nostr-tools REQ without a successful AUTH sees zero events, which would
+            // incorrectly purge the whole NIP-42-backed cache.
+            const configuredRestrictedRelay = relayUrls.some((url) => isRestrictedRelayUrl(url));
+            if (configuredRestrictedRelay && !canUseRestrictedRelay()) {
+                console.log(
+                    'Sync skipped: link your Trustroots profile (NIP-42 auth relay) to verify cached notes, or remove that relay from settings.'
+                );
                 return;
             }
             
@@ -3772,10 +3815,50 @@
                     console.log('Sync complete: All events still exist on relays');
                 }
             };
+
+            const NIP42_SYNC_WAIT_MS = 15000;
+            const PUBLIC_RELAY_SYNC_TIMEOUT_MS = 30000;
+
+            const mergeNip42RestrictedRelays = async () => {
+                if (!canUseRestrictedRelay() || !relayAuth?.nip42SubscribeOnce || !currentPublicKey) {
+                    return true;
+                }
+                const restrictedUrls = relayUrls.filter((url) => isRestrictedRelayUrl(url));
+                if (restrictedUrls.length === 0) {
+                    return true;
+                }
+                const results = await Promise.allSettled(
+                    restrictedUrls.map((url) =>
+                        relayAuth.nip42SubscribeOnce({
+                            relayUrl: url,
+                            filter: { kinds: MAP_NOTE_KINDS, limit: 10000 },
+                            authPubkey: currentPublicKey,
+                            signEvent: async (eventTemplate) => signEventTemplate(eventTemplate),
+                            onEvent: (event) => {
+                                if (event) {
+                                    eventsOnRelays.add(getStorageId(event));
+                                }
+                            },
+                            onAuthChallenge: () => {},
+                            onAuthSuccess: () => {},
+                            onAuthFail: () => {},
+                            waitMs: NIP42_SYNC_WAIT_MS
+                        })
+                    )
+                );
+                let ok = true;
+                results.forEach((res, i) => {
+                    if (res.status === 'rejected') {
+                        ok = false;
+                        console.error(`[Sync] NIP-42 relay query failed for ${restrictedUrls[i]}:`, res.reason);
+                    }
+                });
+                return ok;
+            };
             
             // Query all events from relays
             if (ndk) {
-                // Use NDK to query all map note kinds
+                // Use NDK to query all map note kinds, then merge NIP-42 relay (AUTH-required) reads.
                 try {
                     const filter = { kinds: MAP_NOTE_KINDS };
                     const subscription = ndk.subscribe(filter, { closeOnEose: true });
@@ -3786,55 +3869,98 @@
                         eventsOnRelays.add(storageId);
                     });
                     
-                    subscription.on('eose', () => {
-                        queriesCompleted++;
-                        if (queriesCompleted >= totalRelays) {
-                            performSync(eventsOnRelays);
+                    subscription.on('eose', async () => {
+                        const nip42Ok = await mergeNip42RestrictedRelays();
+                        if (!nip42Ok) {
+                            console.log('Sync aborted removal: NIP-42 relay could not be queried');
+                            return;
                         }
+                        performSync(eventsOnRelays);
                     });
                 } catch (error) {
                     console.error('Error querying events via NDK:', error);
-                    queriesCompleted++;
-                    if (queriesCompleted >= totalRelays) {
+                    mergeNip42RestrictedRelays().then((nip42Ok) => {
+                        if (!nip42Ok) {
+                            console.log('Sync aborted removal: NIP-42 relay could not be queried');
+                            return;
+                        }
                         performSync(eventsOnRelays);
-                    }
+                    });
                 }
             } else {
-                // Query each relay directly
-                for (const relay of relays) {
-                    try {
-                        const query = relay.subscribe([{ kinds: MAP_NOTE_KINDS }], {
-                            onevent: (event) => {
-                                const storageId = getStorageId(event);
-                                eventsOnRelays.add(storageId);
-                            },
-                            oneose: () => {
-                                query.close();
-                                queriesCompleted++;
-                                if (queriesCompleted >= totalRelays) {
-                                    performSync(eventsOnRelays);
-                                }
-                            }
-                        });
-                        
-                        // Timeout after 30 seconds per relay
-                        setTimeout(() => {
-                            if (query) {
-                                query.close();
-                            }
-                            queriesCompleted++;
-                            if (queriesCompleted >= totalRelays) {
-                                performSync(eventsOnRelays);
-                            }
-                        }, 30000);
-                    } catch (error) {
-                        console.error(`Error querying relay ${relay.url}:`, error);
-                        queriesCompleted++;
-                        if (queriesCompleted >= totalRelays) {
-                            performSync(eventsOnRelays);
-                        }
+                let syncIncomplete = false;
+                const tasks = relayUrls.map((url) => {
+                    if (isRestrictedRelayUrl(url) && canUseRestrictedRelay() && relayAuth?.nip42SubscribeOnce) {
+                        return relayAuth
+                            .nip42SubscribeOnce({
+                                relayUrl: url,
+                                filter: { kinds: MAP_NOTE_KINDS, limit: 10000 },
+                                authPubkey: currentPublicKey,
+                                signEvent: async (eventTemplate) => signEventTemplate(eventTemplate),
+                                onEvent: (event) => {
+                                    if (event) {
+                                        eventsOnRelays.add(getStorageId(event));
+                                    }
+                                },
+                                onAuthChallenge: () => {},
+                                onAuthSuccess: () => {},
+                                onAuthFail: () => {},
+                                waitMs: NIP42_SYNC_WAIT_MS
+                            })
+                            .catch((err) => {
+                                console.error(`[Sync] NIP-42 relay query failed for ${url}:`, err);
+                                syncIncomplete = true;
+                            });
                     }
-                }
+
+                    const relay = relays.find((r) => r && r.url === url);
+                    if (!relay) {
+                        syncIncomplete = true;
+                        console.warn(`[Sync] No active connection for ${url}; will not remove cached events without a full relay check.`);
+                        return Promise.resolve();
+                    }
+
+                    return new Promise((resolve) => {
+                        let settled = false;
+                        const finish = () => {
+                            if (settled) return;
+                            settled = true;
+                            resolve();
+                        };
+                        try {
+                            const query = relay.subscribe([{ kinds: MAP_NOTE_KINDS }], {
+                                onevent: (event) => {
+                                    eventsOnRelays.add(getStorageId(event));
+                                },
+                                oneose: () => {
+                                    try {
+                                        query.close();
+                                    } catch (_) {}
+                                    finish();
+                                }
+                            });
+
+                            setTimeout(() => {
+                                try {
+                                    query.close();
+                                } catch (_) {}
+                                finish();
+                            }, PUBLIC_RELAY_SYNC_TIMEOUT_MS);
+                        } catch (error) {
+                            console.error(`Error querying relay ${relay.url}:`, error);
+                            syncIncomplete = true;
+                            finish();
+                        }
+                    });
+                });
+
+                Promise.all(tasks).then(() => {
+                    if (syncIncomplete) {
+                        console.log('Sync aborted removal: one or more relays could not be queried completely');
+                        return;
+                    }
+                    performSync(eventsOnRelays);
+                });
             }
         }
         
@@ -5304,44 +5430,21 @@
                 }
                 
                 const publishPromises = relayUrls.map(async (url, index) => {
-                    let relay = null;
                     try {
                         if (deleteButton && relayUrls.length > 1) {
                             deleteButton.textContent = `⏳ SENDING TO RELAY ${index + 1}/${relayUrls.length}...`;
                         }
-                        
-                        relay = await Relay.connect(url);
-                        await relay.publish(signedEvent);
-                        // Wait a bit for the relay to process
-                        await new Promise(resolve => setTimeout(resolve, 500));
-                        return { success: true, url };
+                        return await publishToRelayWithRetries(url, signedEvent);
                     } catch (error) {
-                        const errorMessage = error?.message || String(error);
                         console.error(`Error publishing deletion to ${url}:`, error);
-                        
-                        // For deletion events, we'll consider it successful if we sent it
-                        // even if we don't get a proper OK response (unless it's a clear rejection)
-                        const isClearRejection = errorMessage.includes('blocked') || 
-                                                errorMessage.includes('not allowed');
-                        
-                        return { 
-                            success: !isClearRejection, 
-                            url, 
-                            error: isClearRejection ? `Relay rejected: ${errorMessage}` : errorMessage 
-                        };
-                    } finally {
-                        if (relay) {
-                            try {
-                                relay.close();
-                            } catch (closeError) {
-                                // Ignore errors when closing
-                            }
-                        }
+                        return { success: false, url, error: error?.message || String(error) };
                     }
                 });
                 
                 const results = await Promise.allSettled(publishPromises);
-                const successCount = results.filter(r => r.status === 'fulfilled').length;
+                const successCount = results.filter(
+                    (r) => r.status === 'fulfilled' && r.value && r.value.success
+                ).length;
                 
                 // Update button to show completion
                 if (deleteButton) {
@@ -5533,32 +5636,45 @@
                 const relayUrls = getRelayUrls();
                 let foundLinked = false;
                 let linkedUsername = null;
+                const relayAuth = window.NrWebRelayAuth;
+                const profileFilter = {
+                    kinds: [TRUSTROOTS_PROFILE_KIND],
+                    authors: [currentPublicKey],
+                    limit: 1
+                };
+                const applyProfileEvent = (event) => {
+                    if (!event) return;
+                    foundLinked = true;
+                    const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = 'org.trustroots:username';
+                    for (const tag of event.tags || []) {
+                        if (tag[0] === 'l' && tag[2] === TRUSTROOTS_USERNAME_LABEL_NAMESPACE && tag[1]) {
+                            linkedUsername = tag[1];
+                            break;
+                        }
+                    }
+                };
                 
                 // Check each relay for kind 10390 events
                 const checkPromises = relayUrls.map(async (url) => {
                     try {
+                        if (
+                            isRestrictedRelayUrl(url) &&
+                            currentPrivateKeyBytes &&
+                            relayAuth?.nip42SubscribeOnce
+                        ) {
+                            await relayAuth.nip42SubscribeOnce({
+                                relayUrl: url,
+                                filter: profileFilter,
+                                authPubkey: currentPublicKey,
+                                signEvent: async (eventTemplate) => signEventTemplate(eventTemplate),
+                                onEvent: (event) => applyProfileEvent(event),
+                                waitMs: 6500
+                            });
+                            return;
+                        }
                         const relay = await Relay.connect(url);
-                        const sub = relay.subscribe([
-                            {
-                                kinds: [TRUSTROOTS_PROFILE_KIND],
-                                authors: [currentPublicKey],
-                                limit: 1
-                            }
-                        ], {
-                            onevent: (event) => {
-                                // Found a kind 10390 event - profile is linked
-                                foundLinked = true;
-                                
-                                // Extract username from event tags
-                                // Look for tag with "l" and namespace "org.trustroots:username"
-                                const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = "org.trustroots:username";
-                                for (const tag of event.tags) {
-                                    if (tag[0] === 'l' && tag[2] === TRUSTROOTS_USERNAME_LABEL_NAMESPACE && tag[1]) {
-                                        linkedUsername = tag[1];
-                                        break;
-                                    }
-                                }
-                            },
+                        const sub = relay.subscribe([profileFilter], {
+                            onevent: (event) => applyProfileEvent(event),
                             oneose: () => {
                                 relay.close();
                             }
@@ -5615,6 +5731,11 @@
                 
                 const wasProfileLinked = isProfileLinked;
                 isProfileLinked = foundLinked;
+                if (!isProfileLinked) {
+                    claimEventsByKind = new Map();
+                } else if (currentPrivateKeyBytes) {
+                    scheduleRefreshClaimSuggestions();
+                }
                 
                 // Update username field if we found a linked username
                 const usernameInput = document.getElementById('trustroots-username');
@@ -5662,6 +5783,7 @@
                 console.error('Error checking profile link:', error);
                 isProfileLinked = false;
                 usernameFromNostr = false;
+                claimEventsByKind = new Map();
                 
                 // Enable username field if not from Nostr
                 const usernameInput = document.getElementById('trustroots-username');
@@ -5691,6 +5813,18 @@
             // but no longer does anything
         }
 
+        function getClaimTagSingle(tags, name) {
+            const t = (tags || []).find((tag) => Array.isArray(tag) && tag[0] === name && tag[1]);
+            return t ? t[1] : '';
+        }
+
+        function truncateClaimBody(s, max) {
+            if (s == null || s === undefined) return '';
+            const t = String(s).trim();
+            if (t.length <= max) return t;
+            return t.slice(0, max - 1) + '…';
+        }
+
         function getClaimSummaryCounts() {
             return {
                 profile: (claimEventsByKind.get(PROFILE_CLAIM_KIND) || []).length,
@@ -5700,44 +5834,336 @@
             };
         }
 
+        const CLAIM_SIGN_STORAGE_KEY = 'nostroots_claim_sign_done';
+
+        function getClaimSignDoneMap() {
+            if (!currentPublicKey) return {};
+            try {
+                const raw = localStorage.getItem(CLAIM_SIGN_STORAGE_KEY);
+                const all = raw ? JSON.parse(raw) : {};
+                return all[currentPublicKey] || {};
+            } catch (_) {
+                return {};
+            }
+        }
+
+        function setClaimSignDone(kind) {
+            if (!currentPublicKey || !kind) return;
+            try {
+                const raw = localStorage.getItem(CLAIM_SIGN_STORAGE_KEY);
+                const all = raw ? JSON.parse(raw) : {};
+                if (!all[currentPublicKey]) all[currentPublicKey] = {};
+                all[currentPublicKey][kind] = true;
+                localStorage.setItem(CLAIM_SIGN_STORAGE_KEY, JSON.stringify(all));
+            } catch (_) {}
+        }
+
+        function clearClaimSignDoneForPubkey(pubkeyHex) {
+            if (!pubkeyHex) return;
+            try {
+                const raw = localStorage.getItem(CLAIM_SIGN_STORAGE_KEY);
+                const all = raw ? JSON.parse(raw) : {};
+                delete all[pubkeyHex];
+                localStorage.setItem(CLAIM_SIGN_STORAGE_KEY, JSON.stringify(all));
+            } catch (_) {}
+        }
+
+        function syncClaimButton(btn, kind, shouldEnable) {
+            if (!btn) return;
+            const signed = !!getClaimSignDoneMap()[kind];
+            if (signed) {
+                btn.classList.remove('claim-sign-exiting');
+                btn.classList.add('claim-sign-gone');
+                btn.disabled = true;
+                btn.setAttribute('aria-hidden', 'true');
+                return;
+            }
+            btn.classList.remove('claim-sign-gone');
+            if (btn.classList.contains('claim-sign-exiting')) {
+                return;
+            }
+            btn.removeAttribute('aria-hidden');
+            btn.disabled = !shouldEnable;
+        }
+
+        function fadeOutClaimButton(btn, kind) {
+            if (!btn || !kind) return;
+            btn.classList.add('claim-sign-exiting');
+            const finish = () => {
+                setClaimSignDone(kind);
+                btn.classList.remove('claim-sign-exiting');
+                btn.classList.add('claim-sign-gone');
+                btn.disabled = true;
+                btn.setAttribute('aria-hidden', 'true');
+            };
+            const onEnd = (e) => {
+                if (e.propertyName !== 'opacity') return;
+                btn.removeEventListener('transitionend', onEnd);
+                finish();
+            };
+            btn.addEventListener('transitionend', onEnd);
+            void btn.offsetHeight;
+            setTimeout(() => {
+                btn.removeEventListener('transitionend', onEnd);
+                if (btn.classList.contains('claim-sign-exiting')) finish();
+            }, 650);
+        }
+
+        function renderClaimDetailBlocks() {
+            const profilePre = document.getElementById('claim-preview-profile');
+            const hostingList = document.getElementById('claim-preview-hosting');
+            const relList = document.getElementById('claim-preview-relationships');
+            const expList = document.getElementById('claim-preview-experiences');
+            const btnP = document.getElementById('claim-btn-profile');
+            const btnH = document.getElementById('claim-btn-hosting');
+            const btnR = document.getElementById('claim-btn-relationships');
+            const btnE = document.getElementById('claim-btn-experiences');
+
+            const countH = (claimEventsByKind.get(HOST_CLAIM_KIND) || []).length;
+            const countRel = (claimEventsByKind.get(RELATIONSHIP_CLAIM_KIND) || []).length;
+            const countExp = (claimEventsByKind.get(EXPERIENCE_CLAIM_KIND) || []).length;
+            const claimsP = claimEventsByKind.get(PROFILE_CLAIM_KIND) || [];
+
+            if (profilePre && btnP) {
+                if (!claimsP.length) {
+                    profilePre.textContent = 'No profile suggestion on your relays yet (kind 30390). When the Trustroots export publishes it, reopen Keys here or reload the page—suggestions refresh automatically after your Trustroots link is verified.';
+                } else {
+                    const latest = [...claimsP].sort((a, b) => (b.created_at || 0) - (a.created_at || 0))[0];
+                    try {
+                        profilePre.textContent = JSON.stringify(JSON.parse(latest.content || '{}'), null, 2);
+                    } catch (_) {
+                        profilePre.textContent = latest.content || '';
+                    }
+                }
+            }
+
+            function fillClaimList(container, claims, emptyMsg, renderLine) {
+                if (!container) return;
+                while (container.firstChild) container.removeChild(container.firstChild);
+                if (!claims.length) {
+                    const p = document.createElement('p');
+                    p.className = 'claim-empty-note';
+                    p.textContent = emptyMsg;
+                    container.appendChild(p);
+                    return;
+                }
+                const sorted = [...claims].sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+                for (const ev of sorted) {
+                    container.appendChild(renderLine(ev));
+                }
+            }
+
+            fillClaimList(
+                hostingList,
+                claimEventsByKind.get(HOST_CLAIM_KIND) || [],
+                'Nothing loaded yet. Mirrored hosting usually appears as kind 30398 with your pubkey in a "p" tag.',
+                (ev) => {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'claim-line';
+                    const d = getClaimTagSingle(ev.tags, 'd');
+                    const meta = document.createElement('div');
+                    meta.className = 'claim-line-meta';
+                    meta.textContent = d || `Event ${(ev.id || '').slice(0, 12)}…`;
+                    const body = document.createElement('div');
+                    body.className = 'claim-line-body';
+                    body.textContent = truncateClaimBody(ev.content, 400);
+                    wrap.appendChild(meta);
+                    wrap.appendChild(body);
+                    return wrap;
+                }
+            );
+            fillClaimList(
+                relList,
+                claimEventsByKind.get(RELATIONSHIP_CLAIM_KIND) || [],
+                'No relationship suggestions yet (kind 30392). They only appear if both people have a pubkey on Trustroots.',
+                (ev) => {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'claim-line';
+                    const meta = document.createElement('div');
+                    meta.className = 'claim-line-meta';
+                    const other = pickOtherPTag(ev.tags, currentPublicKey);
+                    meta.textContent = other ? `Counterparty: ${formatPubkeyShort(other)}` : 'Relationship suggestion';
+                    const body = document.createElement('div');
+                    body.className = 'claim-line-body';
+                    body.textContent = ev.content || '';
+                    wrap.appendChild(meta);
+                    wrap.appendChild(body);
+                    return wrap;
+                }
+            );
+
+            fillClaimList(
+                expList,
+                claimEventsByKind.get(EXPERIENCE_CLAIM_KIND) || [],
+                'No experience suggestions yet (kind 30393). They appear when a mirrored positive experience exists for your account.',
+                (ev) => {
+                    const wrap = document.createElement('div');
+                    wrap.className = 'claim-line';
+                    const meta = document.createElement('div');
+                    meta.className = 'claim-line-meta';
+                    const other = pickOtherPTag(ev.tags, currentPublicKey);
+                    meta.textContent = other ? `About: ${formatPubkeyShort(other)}` : 'Experience suggestion';
+                    const body = document.createElement('div');
+                    body.className = 'claim-line-body';
+                    body.textContent = truncateClaimBody(ev.content, 400);
+                    wrap.appendChild(meta);
+                    wrap.appendChild(body);
+                    return wrap;
+                }
+            );
+            syncClaimButton(btnP, 'profile', claimsP.length > 0);
+            syncClaimButton(btnH, 'hosting', countH > 0);
+            syncClaimButton(btnR, 'relationships', countRel > 0);
+            syncClaimButton(btnE, 'experiences', countExp > 0);
+            updateClaimRelayScopeRow();
+        }
+
+        function updateClaimRelayScopeRow() {
+            const el = document.getElementById('claim-relay-scope');
+            if (!el) return;
+            while (el.firstChild) el.removeChild(el.firstChild);
+            el.classList.remove('claim-relay-scope--warning');
+            const section = document.getElementById('keys-claim-section');
+            if (!section || section.style.display === 'none') {
+                el.setAttribute('hidden', '');
+                el.setAttribute('aria-hidden', 'true');
+                return;
+            }
+            el.removeAttribute('hidden');
+            el.setAttribute('aria-hidden', 'false');
+            const urls = getWritableRelayUrls();
+            if (!urls.length) {
+                el.classList.add('claim-relay-scope--warning');
+                const p = document.createElement('p');
+                p.className = 'claim-relay-scope-detail';
+                p.style.margin = '0';
+                p.textContent = 'No relay has Post enabled. Turn on Post for at least one relay in Settings before signing; otherwise publishing will fail.';
+                el.appendChild(p);
+                return;
+            }
+            const hasOpen = urls.some((u) => !isRestrictedRelayUrl(u));
+            const hasRestricted = urls.some((u) => isRestrictedRelayUrl(u));
+            const label = document.createElement('span');
+            label.className = 'claim-relay-scope-label';
+            label.textContent = 'Signing sends to';
+            const icons = document.createElement('span');
+            icons.className = 'claim-relay-scope-icons';
+            if (hasOpen) {
+                const s = document.createElement('span');
+                s.className = 'claim-relay-icon';
+                s.textContent = '🌍';
+                s.setAttribute('role', 'img');
+                s.title = 'Open relay(s) — events are world-readable on the Nostr network (anyone can read). Includes public index relays such as relay.trustroots.org when Post is on.';
+                icons.appendChild(s);
+            }
+            if (hasRestricted) {
+                const s = document.createElement('span');
+                s.className = 'claim-relay-icon';
+                s.textContent = '🔐';
+                s.setAttribute('role', 'img');
+                s.title = 'Auth relay (nip42.trustroots.org, NIP-42) — publishing requires your nsec and a linked Trustroots identity.';
+                icons.appendChild(s);
+            }
+            el.appendChild(label);
+            el.appendChild(icons);
+            const detail = document.createElement('p');
+            detail.className = 'claim-relay-scope-detail';
+            const parts = [];
+            if (hasOpen) parts.push('open (publicly readable) relays');
+            if (hasRestricted) parts.push('the Trustroots auth relay');
+            detail.textContent = `Each signed event is published to every relay that has Post enabled: ${parts.join(' and ')}.`;
+            el.appendChild(detail);
+        }
+
         function renderClaimSummary() {
             const section = document.getElementById('keys-claim-section');
             const summary = document.getElementById('claim-summary');
-            const actions = document.getElementById('claim-actions');
-            if (!section || !summary || !actions) return;
+            if (!section || !summary) return;
             const canShow = !!currentPublicKey && !!currentPrivateKeyBytes && isProfileLinked === true;
             section.style.display = canShow ? 'block' : 'none';
-            if (!canShow) return;
+            if (!canShow) {
+                const scopeEl = document.getElementById('claim-relay-scope');
+                if (scopeEl) {
+                    scopeEl.setAttribute('hidden', '');
+                    scopeEl.setAttribute('aria-hidden', 'true');
+                }
+                return;
+            }
             const counts = getClaimSummaryCounts();
             summary.textContent = `Profiles: ${counts.profile} | Hosting: ${counts.hosts} | Relationships: ${counts.relationships} | Experiences: ${counts.experiences}`;
-            const total = counts.profile + counts.hosts + counts.relationships + counts.experiences;
-            actions.style.display = total > 0 ? 'flex' : 'none';
+            renderClaimDetailBlocks();
         }
 
-        async function refreshClaimSuggestions() {
+        function scheduleRefreshClaimSuggestions() {
+            if (!currentPublicKey || !currentPrivateKeyBytes || isProfileLinked !== true) return;
+            if (claimSuggestionsDebounce) clearTimeout(claimSuggestionsDebounce);
+            claimSuggestionsDebounce = setTimeout(() => {
+                claimSuggestionsDebounce = null;
+                void refreshClaimSuggestions({ silent: true });
+            }, 400);
+        }
+
+        async function refreshClaimSuggestions(options = {}) {
+            const silent = options.silent === true;
             if (!currentPublicKey) {
-                showStatus('Load a key first to fetch claim suggestions.', 'error');
+                if (!silent) showStatus('Load a key first to fetch claim suggestions.', 'error');
+                return;
+            }
+            if (!currentPrivateKeyBytes || isProfileLinked !== true) {
                 return;
             }
             const relayUrls = getRelayUrls();
             claimEventsByKind = new Map();
-            const filter = { kinds: getClaimKinds(), '#p': [currentPublicKey], limit: 500 };
-            const tasks = relayUrls.map(async (url) => {
+            const filter = {
+                kinds: [...getClaimKinds(), MAP_NOTE_REPOST_KIND],
+                '#p': [currentPublicKey],
+                limit: 1500
+            };
+            const relayAuth = window.NrWebRelayAuth;
+            const restrictedWaitMs = 8000;
+            const publicWaitMs = 4500;
+
+            const fetchFromRelay = async (url) => {
                 try {
+                    if (isRestrictedRelayUrl(url) && canUseRestrictedRelay() && relayAuth?.nip42SubscribeOnce) {
+                        await relayAuth.nip42SubscribeOnce({
+                            relayUrl: url,
+                            filter,
+                            authPubkey: currentPublicKey,
+                            signEvent: async (eventTemplate) => signEventTemplate(eventTemplate),
+                            onEvent: (event) => {
+                                if (event) upsertClaimEvent(event);
+                            },
+                            onAuthChallenge: () => {},
+                            onAuthSuccess: () => {},
+                            onAuthFail: () => {},
+                            waitMs: restrictedWaitMs
+                        });
+                        return;
+                    }
                     const relay = await Relay.connect(url);
                     const sub = relay.subscribe([filter], {
                         onevent: (event) => upsertClaimEvent(event),
                         oneose: () => {
-                            try { sub.close(); } catch (_) {}
-                            try { relay.close(); } catch (_) {}
+                            try {
+                                sub.close();
+                            } catch (_) {}
+                            try {
+                                relay.close();
+                            } catch (_) {}
                         }
                     });
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    try { sub.close(); } catch (_) {}
-                    try { relay.close(); } catch (_) {}
+                    await new Promise((resolve) => setTimeout(resolve, publicWaitMs));
+                    try {
+                        sub.close();
+                    } catch (_) {}
+                    try {
+                        relay.close();
+                    } catch (_) {}
                 } catch (_) {}
-            });
-            await Promise.allSettled(tasks);
+            };
+
+            await Promise.allSettled(relayUrls.map((url) => fetchFromRelay(url)));
             renderClaimSummary();
         }
 
@@ -5776,6 +6202,7 @@
                 const template = { kind: 0, created_at: Math.floor(Date.now() / 1000), tags: [], content: JSON.stringify(content) };
                 await publishSignedEventTemplate(template);
                 showStatus('Profile claimed and published as kind 0.', 'success');
+                fadeOutClaimButton(document.getElementById('claim-btn-profile'), 'profile');
             } catch (error) {
                 showStatus('Failed to claim profile: ' + (error?.message || error), 'error');
             }
@@ -5801,19 +6228,35 @@
                 } catch (_) {}
             }
             showStatus(`Claimed ${successCount}/${claims.length} hosting offers as kind ${MAP_NOTE_KIND}.`, successCount > 0 ? 'success' : 'error');
+            if (successCount > 0 && successCount === claims.length) {
+                fadeOutClaimButton(document.getElementById('claim-btn-hosting'), 'hosting');
+            }
         }
 
         async function queryLatestUserEvent(kind, extraFilter) {
             const relayUrls = getRelayUrls();
             let newest = null;
             const filter = { kinds: [kind], authors: [currentPublicKey], limit: 20, ...(extraFilter || {}) };
+            const relayAuth = window.NrWebRelayAuth;
+            const consider = (event) => {
+                if (event && (!newest || (event.created_at || 0) > (newest.created_at || 0))) newest = event;
+            };
             const tasks = relayUrls.map(async (url) => {
                 try {
+                    if (isRestrictedRelayUrl(url) && canUseRestrictedRelay() && relayAuth?.nip42SubscribeOnce) {
+                        await relayAuth.nip42SubscribeOnce({
+                            relayUrl: url,
+                            filter,
+                            authPubkey: currentPublicKey,
+                            signEvent: async (tpl) => signEventTemplate(tpl),
+                            onEvent: (event) => consider(event),
+                            waitMs: 6500
+                        });
+                        return;
+                    }
                     const relay = await Relay.connect(url);
                     const sub = relay.subscribe([filter], {
-                        onevent: (event) => {
-                            if (!newest || (event.created_at || 0) > (newest.created_at || 0)) newest = event;
-                        },
+                        onevent: (event) => consider(event),
                         oneose: () => {
                             try { sub.close(); } catch (_) {}
                             try { relay.close(); } catch (_) {}
@@ -5860,6 +6303,7 @@
                 };
                 await publishSignedEventTemplate(setTemplate);
                 showStatus(`Claimed ${targets.size} relationships into kind 3 and kind 30000.`, 'success');
+                fadeOutClaimButton(document.getElementById('claim-btn-relationships'), 'relationships');
             } catch (error) {
                 showStatus('Failed to claim relationships: ' + (error?.message || error), 'error');
             }
@@ -5874,8 +6318,7 @@
             let successCount = 0;
             for (const claim of claims) {
                 try {
-                    const pTags = (claim.tags || []).filter(t => Array.isArray(t) && t[0] === 'p' && t[1]);
-                    const targetHex = pTags.find(t => t[1].toLowerCase() !== currentPublicKey.toLowerCase())?.[1];
+                    const targetHex = pickOtherPTag(claim.tags, currentPublicKey);
                     const sourceID = (claim.tags || []).find(t => Array.isArray(t) && t[0] === 'source_id' && t[1])?.[1];
                     if (!targetHex || !sourceID) continue;
                     const template = {
@@ -5894,12 +6337,14 @@
                 } catch (_) {}
             }
             showStatus(`Claimed ${successCount}/${claims.length} positive experiences as kind ${NIP32_LABEL_KIND}.`, successCount > 0 ? 'success' : 'error');
+            if (successCount > 0 && successCount === claims.length) {
+                fadeOutClaimButton(document.getElementById('claim-btn-experiences'), 'experiences');
+            }
         }
         
         // Settings Modal Functions (modals injected by common.js)
         function openKeysModal(options = {}) {
             const keysModal = window.NrWebKeysModal;
-            const shouldRunProfileLookup = options.runProfileLookup !== false;
             const hasKey = !!(currentPublicKey || currentPrivateKey);
             if (keysModal?.openKeysModal) {
                 keysModal.openKeysModal({
@@ -5908,9 +6353,6 @@
                     setRoute: setHashRoute,
                     onOpenManagedSection: () => {
                         updateKeyDisplay();
-                        if (shouldRunProfileLookup) checkProfileLinked();
-                        renderClaimSummary();
-                        refreshClaimSuggestions();
                     }
                 });
                 return;
@@ -5970,6 +6412,7 @@
         window.setNotificationsEnabled = setNotificationsEnabled;
         window.renderSettingsNotificationsSection = renderSettingsNotificationsSection;
         window.refreshClaimSuggestions = refreshClaimSuggestions;
+        window.updateClaimRelayScopeRow = updateClaimRelayScopeRow;
         window.claimProfileData = claimProfileData;
         window.claimHostingOffers = claimHostingOffers;
         window.claimRelationships = claimRelationships;
@@ -6185,6 +6628,7 @@
                                 updateTrustrootsGroup.style.display = 'none';
                             }
                             updateKeyDisplay({ skipProfileLookup: true });
+                            await refreshClaimSuggestions({ silent: true });
                         } else {
                             markRelaysWithPublishFailures(failed);
                             const errorDetails = failed.map(f => {

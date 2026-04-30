@@ -51,6 +51,218 @@
     pointer-events: none;
 }
 
+/* Keys modal: wider for Trustroots claim flow + readable previews */
+#keys-modal .modal-content {
+    max-width: min(96vw, 820px);
+    width: min(96vw, 820px);
+    padding: 2rem 2.25rem;
+}
+
+@media (max-width: 640px) {
+    #keys-modal .modal-content {
+        max-width: 100%;
+        width: 95%;
+        padding: 1.5rem 1.15rem;
+    }
+}
+
+/* Trustroots “Claim data” section */
+#keys-modal .keys-claim-wrap {
+    background: var(--muted);
+}
+
+#keys-modal .claim-lead {
+    margin: 0 0 1rem 0;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+#keys-modal .claim-summary-bar {
+    margin-bottom: 1.25rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--foreground);
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.45;
+}
+
+#keys-modal .claim-relay-scope {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    margin: -0.5rem 0 1.25rem 0;
+    padding: 0.6rem 0.85rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--foreground);
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+#keys-modal .claim-relay-scope.claim-relay-scope--warning {
+    border-color: var(--destructive);
+    background: var(--card);
+}
+
+#keys-modal .claim-relay-scope-label {
+    font-weight: 600;
+    color: var(--muted-foreground);
+}
+
+#keys-modal .claim-relay-scope-icons {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+#keys-modal .claim-relay-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.75rem;
+    min-height: 1.75rem;
+    font-size: 1.1rem;
+    line-height: 1;
+    cursor: help;
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--muted);
+    border: 1px solid var(--border);
+}
+
+#keys-modal .claim-relay-scope-detail {
+    flex: 1 1 100%;
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    line-height: 1.45;
+}
+
+#keys-modal .claim-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1.125rem;
+}
+
+#keys-modal .claim-detail-block {
+    position: relative;
+    padding: 1rem 1.1rem 1.1rem 1.15rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    border-left: 4px solid var(--primary);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+}
+
+#keys-modal .claim-detail-heading {
+    margin: 0 0 0.4rem 0;
+    font-size: 1.02rem;
+    font-weight: 600;
+    color: var(--foreground);
+    letter-spacing: -0.01em;
+}
+
+#keys-modal .claim-detail-hint {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.8125rem;
+    color: var(--muted-foreground);
+    line-height: 1.45;
+}
+
+#keys-modal .claim-preview-pre {
+    margin: 0 0 1rem 0;
+    max-height: 14rem;
+    overflow: auto;
+    padding: 0.75rem 0.85rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, 'SF Mono', 'Monaco', 'Menlo', 'Courier New', monospace;
+}
+
+#keys-modal .claim-preview-list {
+    margin-bottom: 1rem;
+    max-height: 16rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    padding-right: 0.15rem;
+}
+
+#keys-modal .claim-line {
+    padding: 0.65rem 0.75rem;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    font-size: 0.875rem;
+    transition: border-color 0.15s ease;
+}
+
+#keys-modal .claim-line:hover {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+#keys-modal .claim-line-meta {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted-foreground);
+    margin-bottom: 0.35rem;
+    font-family: ui-monospace, 'SF Mono', 'Monaco', 'Menlo', 'Courier New', monospace;
+    word-break: break-all;
+}
+
+#keys-modal .claim-line-body {
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--foreground);
+}
+
+#keys-modal .claim-empty-note {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--muted-foreground);
+    line-height: 1.5;
+    padding: 0.35rem 0;
+}
+
+#keys-modal .claim-detail-block .btn {
+    width: 100%;
+    padding: 0.55rem 1rem;
+    font-weight: 600;
+}
+
+#keys-modal .claim-detail-block .btn.claim-sign-exiting {
+    opacity: 0 !important;
+    transform: translateY(6px);
+    pointer-events: none;
+    transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #keys-modal .claim-detail-block .btn.claim-sign-exiting {
+        transition-duration: 0.15s;
+        transform: none;
+    }
+}
+
+#keys-modal .claim-detail-block .btn.claim-sign-gone {
+    display: none !important;
+}
+
 #keys-modal .modal-header,
 #settings-modal .modal-header {
     display: flex;

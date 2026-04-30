@@ -547,6 +547,189 @@
     };
 
     // --- Shared NIP-42 WS auth subscription helper (index + chat + pixel) ---
+
+    function normalizeRelayTagUrl(relayUrl) {
+        var relayTag = (relayUrl || '').trim();
+        try {
+            var parsed = new URL(relayTag);
+            if ((parsed.pathname === '' || parsed.pathname === '/') && !parsed.search && !parsed.hash) {
+                relayTag = parsed.protocol + '//' + parsed.host;
+            } else {
+                relayTag = parsed.toString();
+            }
+        } catch (_) {}
+        return relayTag;
+    }
+
+    var NIP42_PUBLISH_AUTH_KIND = 22242;
+    var NIP42_PUBLISH_TIMEOUT_MS = 10000;
+
+    /**
+     * Publish a signed Nostr event over a raw WebSocket with NIP-42 AUTH (same behavior as chat.html).
+     * @param {string} relayUrl
+     * @param {object} signedEvent
+     * @param {function} signAuthEvent async (template) => signedEvent for kind 22242
+     */
+    function publishSignedEventViaWebSocket(relayUrl, signedEvent, signAuthEvent) {
+        if (!relayUrl || !signedEvent || typeof signAuthEvent !== 'function') {
+            return Promise.resolve({ success: false, url: relayUrl, error: 'invalid_args' });
+        }
+        return new Promise(function (resolve) {
+            var settled = false;
+            var ws = null;
+            var authEventId = null;
+            var authCompleted = false;
+            var authChallengeSeen = false;
+            var eventRejectedForAuth = false;
+            var eventSent = false;
+            var delayedSendTimer = null;
+            var timeoutId = setTimeout(function () {
+                finish({ success: false, url: relayUrl, error: 'timeout waiting for relay OK' });
+            }, NIP42_PUBLISH_TIMEOUT_MS);
+
+            function finish(result) {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeoutId);
+                if (delayedSendTimer) clearTimeout(delayedSendTimer);
+                try {
+                    if (ws) ws.close();
+                } catch (_) {}
+                resolve(result);
+            }
+
+            function sendEvent() {
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+                eventSent = true;
+                ws.send(JSON.stringify(['EVENT', signedEvent]));
+            }
+
+            try {
+                ws = new WebSocket(relayUrl);
+            } catch (error) {
+                finish({ success: false, url: relayUrl, error: error.message || String(error) });
+                return;
+            }
+
+            ws.addEventListener('open', function () {
+                delayedSendTimer = setTimeout(function () {
+                    if (!authChallengeSeen && !eventSent) sendEvent();
+                }, 120);
+            });
+
+            ws.addEventListener('message', function (msg) {
+                var data;
+                try {
+                    data = JSON.parse(msg.data);
+                } catch (_) {
+                    return;
+                }
+                var type = data[0];
+                var a = data[1];
+                var b = data[2];
+                var c = data[3];
+
+                if (type === 'AUTH') {
+                    authChallengeSeen = true;
+                    if (delayedSendTimer) {
+                        clearTimeout(delayedSendTimer);
+                        delayedSendTimer = null;
+                    }
+                    Promise.resolve()
+                        .then(function () {
+                            var relayTagUrl = ws && ws.url ? ws.url : relayUrl;
+                            var tag = normalizeRelayTagUrl(relayTagUrl);
+                            var authTemplate = {
+                                kind: NIP42_PUBLISH_AUTH_KIND,
+                                created_at: Math.floor(Date.now() / 1000),
+                                tags: [
+                                    ['relay', tag],
+                                    ['challenge', a]
+                                ],
+                                content: '',
+                                pubkey: signedEvent.pubkey
+                            };
+                            return signAuthEvent(authTemplate);
+                        })
+                        .then(function (signedAuth) {
+                            authEventId = signedAuth.id;
+                            ws.send(JSON.stringify(['AUTH', signedAuth]));
+                        })
+                        .catch(function (err) {
+                            finish({ success: false, url: relayUrl, error: err.message || String(err) });
+                        });
+                    return;
+                }
+
+                if (type === 'OK' && a === signedEvent.id) {
+                    if (b === true) {
+                        finish({ success: true, url: relayUrl });
+                    } else {
+                        var reason = (c || '').toString();
+                        if (reason.toLowerCase().indexOf('auth-required') !== -1 && !authCompleted) {
+                            eventRejectedForAuth = true;
+                            return;
+                        }
+                        finish({ success: false, url: relayUrl, error: reason || 'relay rejected event' });
+                    }
+                    return;
+                }
+
+                if (type === 'OK' && authEventId && a === authEventId) {
+                    if (b === true) {
+                        authCompleted = true;
+                        if (!eventSent || eventRejectedForAuth) {
+                            eventRejectedForAuth = false;
+                            sendEvent();
+                        }
+                    } else {
+                        finish({ success: false, url: relayUrl, error: (c || '').toString() || 'relay rejected auth event' });
+                    }
+                }
+            });
+
+            ws.addEventListener('error', function () {
+                finish({ success: false, url: relayUrl, error: 'websocket error' });
+            });
+
+            ws.addEventListener('close', function () {
+                if (!settled) finish({ success: false, url: relayUrl, error: 'connection closed before relay OK' });
+            });
+        });
+    }
+
+    /**
+     * One-shot NIP-42 read: open WS, AUTH if challenged, collect events for waitMs, then close.
+     */
+    function nip42SubscribeOnce(options) {
+        var opts = options || {};
+        var waitMs = typeof opts.waitMs === 'number' ? Math.max(100, opts.waitMs) : 6500;
+        var sub = startNip42WsSubscription({
+            relayUrl: opts.relayUrl,
+            filter: opts.filter || {},
+            signEvent: opts.signEvent,
+            authPubkey: opts.authPubkey,
+            onEvent: opts.onEvent,
+            onAuthChallenge: opts.onAuthChallenge,
+            onAuthSuccess: opts.onAuthSuccess,
+            onAuthFail: opts.onAuthFail,
+            onOpen: opts.onOpen,
+            onClose: opts.onClose,
+            onError: opts.onError,
+            connectDelayMs: opts.connectDelayMs,
+            maxReconnectAttempts: opts.maxReconnectAttempts,
+            reconnectBaseDelayMs: opts.reconnectBaseDelayMs
+        });
+        return new Promise(function (resolve) {
+            setTimeout(function () {
+                try {
+                    sub.close();
+                } catch (_) {}
+                resolve();
+            }, waitMs);
+        });
+    }
+
     function startNip42WsSubscription(options) {
         var opts = options || {};
         var relayUrl = opts.relayUrl;
@@ -649,7 +832,7 @@
                             kind: 22242,
                             created_at: Math.floor(Date.now() / 1000),
                             tags: [
-                                ['relay', relayUrl],
+                                ['relay', normalizeRelayTagUrl(relayUrl)],
                                 ['challenge', a]
                             ],
                             content: '',
@@ -696,7 +879,12 @@
     }
 
     global.NrWebRelayAuth = {
-        startNip42WsSubscription: startNip42WsSubscription
+        startNip42WsSubscription: startNip42WsSubscription,
+        nip42SubscribeOnce: nip42SubscribeOnce
+    };
+
+    global.NrWebRelayPublish = {
+        publishSignedEventViaWebSocket: publishSignedEventViaWebSocket
     };
 
     var MOBILE_APP_LINKS = [

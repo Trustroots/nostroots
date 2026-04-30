@@ -46,6 +46,10 @@ describe('Modal Behavior', () => {
       expect(importBtn).toBeTruthy();
     });
 
+    it('claim section includes relay scope row for publish targets', () => {
+      expect(document.getElementById('claim-relay-scope')).toBeTruthy();
+    });
+
   });
 
   describe('Note Modals', () => {

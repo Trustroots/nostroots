@@ -1738,6 +1738,7 @@
         let relays = [];
         let wsMapSubscriptions = [];
         let map = null;
+        let mapFallbackMode = null;
         let markers = [];
         let events = [];
         let claimEventsByKind = new Map();
@@ -4288,6 +4289,25 @@
             }
         }
 
+        function enableMapFallback(mode) {
+            if (mapFallbackMode) return;
+            mapFallbackMode = mode || 'map-fallback';
+
+            const mapContainer = document.getElementById('map');
+            if (!mapContainer) return;
+
+            map = null;
+            mapContainer.dataset.mapFallback = mapFallbackMode;
+            mapContainer.innerHTML = `
+                <div class="map-fallback" role="status" aria-live="polite">
+                    <h2>Map unavailable</h2>
+                    <p>This browser cannot start the interactive map right now.</p>
+                    <p class="map-fallback-hint">On iPhone: Safari > Advanced > Feature Flags > WebGL, then disable Low Power Mode.</p>
+                    <button class="btn btn-secondary" type="button" onclick="window.location.reload()">Try again</button>
+                </div>
+            `;
+        }
+
         function initializeMap() {
             try {
                 const mapContainer = document.getElementById('map');
@@ -4296,7 +4316,9 @@
                 }
 
                 if (!hasUsableWebGL()) {
-                    throw new Error('WebGL is unavailable in this browser');
+                    enableMapFallback('webgl-unavailable');
+                    showStatus('Interactive map disabled: WebGL is unavailable in this browser.', 'info');
+                    return false;
                 }
                 
                 // Load saved map position from localStorage
@@ -4404,6 +4426,7 @@
                     };
                     tryFallback();
                 });
+                return true;
             } catch (error) {
                 console.error('Error initializing map:', error);
                 const baseMessage = 'Error initializing map: ' + error.message;
@@ -4411,7 +4434,10 @@
                     ? ' On iPhone, verify Safari Advanced > Feature Flags > WebGL is enabled and disable Low Power Mode.'
                     : '';
                 showStatus(baseMessage + webglHint, 'error');
-                return;
+                if (error.message && error.message.includes('WebGL')) {
+                    enableMapFallback('webgl-unavailable');
+                }
+                return false;
             }
             
             // Track if map was dragged to prevent opening modal after panning
@@ -6739,8 +6765,8 @@
             // Wait for maplibregl to be available
             if (typeof maplibregl === 'undefined') {
                 console.error('MapLibre GL not loaded');
-                showStatus('Map library failed to load', 'error');
-                return;
+                enableMapFallback('map-library-missing');
+                showStatus('Map library failed to load; running without interactive map.', 'error');
             }
             
             // Initialize expiration input with saved value
@@ -6838,6 +6864,18 @@
             
             // Function to load data and connect to relays
             function loadDataWhenReady() {
+                if (mapFallbackMode) {
+                    loadCachedEvents();
+                    setTimeout(async () => {
+                        await initializeNDK();
+                        startPeriodicFlushingOfExpiredEvents();
+                        setTimeout(() => {
+                            syncLocalStorageWithRelays();
+                        }, 60000);
+                    }, 500);
+                    return;
+                }
+
                 // Check if map is ready
                 if (map && map.loaded() && map.getSource('pluscode-grid')) {
                     // Map is ready, load cached events

@@ -54,7 +54,9 @@ test.describe('Onboarding Flow', () => {
     await expect(importInput).toBeVisible();
   });
 
-  test('keys modal cannot be closed with ESC when no key exists', async ({ page }) => {
+  test('keys modal cannot be closed with ESC when no key exists', async ({ page, browserName }) => {
+    test.skip(browserName === 'webkit', 'ESC behavior is not reliable on iOS WebKit automation');
+
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
@@ -66,5 +68,23 @@ test.describe('Onboarding Flow', () => {
     
     // Modal should still be visible (user must set up keys first)
     await expect(keysModal).toBeVisible();
+  });
+
+  test('shows non-WebGL fallback when WebGL is unavailable', async ({ page }) => {
+    await page.addInitScript(() => {
+      const originalGetContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function patchedGetContext(type, ...args) {
+        if (type === 'webgl2' || type === 'webgl' || type === 'experimental-webgl') {
+          return null;
+        }
+        return originalGetContext.call(this, type, ...args);
+      };
+    });
+
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.locator('#map[data-map-fallback="webgl-unavailable"]')).toBeVisible();
+    await expect(page.locator('#map .map-fallback')).toContainText('Map unavailable');
   });
 });

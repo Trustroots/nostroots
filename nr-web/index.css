@@ -85,6 +85,40 @@
     min-height: 400px;
 }
 
+#map[data-map-fallback] {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: var(--muted);
+}
+
+.map-fallback {
+    max-width: 560px;
+    text-align: center;
+    background: var(--card);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.map-fallback h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+}
+
+.map-fallback p {
+    margin: 0 0 0.75rem;
+    font-size: 0.9rem;
+}
+
+.map-fallback-hint {
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+}
+
 /* Improve map panning performance and smoothness */
 .maplibregl-canvas {
     will-change: transform;

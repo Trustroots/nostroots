@@ -101,12 +101,13 @@ type HostRecord struct {
 	Circles []string
 }
 
+// Contact matches Trustroots modules/contacts/server/models/contacts.server.model.js
 type Contact struct {
 	ID        primitive.ObjectID `bson:"_id"`
-	UserID    primitive.ObjectID `bson:"user"`
-	OtherID   primitive.ObjectID `bson:"contact"`
-	CreatedAt time.Time          `bson:"createdAt"`
-	Updated   time.Time          `bson:"updated"`
+	UserFrom  primitive.ObjectID `bson:"userFrom"`
+	UserTo    primitive.ObjectID `bson:"userTo"`
+	Confirmed bool               `bson:"confirmed"`
+	Created   time.Time          `bson:"created"`
 }
 
 type ContactRecord struct {
@@ -115,24 +116,24 @@ type ContactRecord struct {
 	Other   User
 }
 
+// Experience matches Trustroots modules/experiences/server/models/experiences.server.model.js
 type Experience struct {
 	ID             primitive.ObjectID `bson:"_id"`
-	FromID         primitive.ObjectID `bson:"from"`
-	ToID           primitive.ObjectID `bson:"to"`
-	UserID         primitive.ObjectID `bson:"user"`
-	TargetID       primitive.ObjectID `bson:"target"`
-	AuthorID       primitive.ObjectID `bson:"author"`
-	ReceiverID     primitive.ObjectID `bson:"receiver"`
-	Text           string             `bson:"text"`
-	Description    string             `bson:"description"`
+	UserFrom       primitive.ObjectID `bson:"userFrom"`
+	UserTo         primitive.ObjectID `bson:"userTo"`
 	Public         bool               `bson:"public"`
 	Visible        bool               `bson:"visible"`
 	Hidden         bool               `bson:"hidden"`
-	Recommendation string             `bson:"recommendation"`
+	Recommendation string           `bson:"recommendation"`
 	Recommend      recommendField     `bson:"recommend"`
 	Positive       bool               `bson:"positive"`
-	CreatedAt      time.Time          `bson:"createdAt"`
-	Updated        time.Time          `bson:"updated"`
+	FeedbackPublic string             `bson:"feedbackPublic"`
+	Interactions   struct {
+		Met   bool `bson:"met"`
+		Guest bool `bson:"guest"`
+		Host  bool `bson:"host"`
+	} `bson:"interactions"`
+	Created time.Time `bson:"created"`
 }
 
 type ExperienceRecord struct {

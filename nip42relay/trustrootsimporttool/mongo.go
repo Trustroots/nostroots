@@ -139,8 +139,8 @@ func fetchContactRecords(ctx context.Context, db *mongo.Database, usersByID map[
 		if err := cursor.Decode(&contact); err != nil {
 			return nil, err
 		}
-		user, okUser := usersByID[contact.UserID]
-		other, okOther := usersByID[contact.OtherID]
+		user, okUser := usersByID[contact.UserFrom]
+		other, okOther := usersByID[contact.UserTo]
 		if !okUser || !okOther {
 			continue
 		}
@@ -176,8 +176,8 @@ func fetchExperienceRecords(ctx context.Context, db *mongo.Database, usersByID m
 		if !isPositiveExperience(experience) {
 			continue
 		}
-		authorID := firstObjectID(experience.FromID, experience.AuthorID, experience.UserID)
-		targetID := firstObjectID(experience.ToID, experience.TargetID, experience.ReceiverID)
+		authorID := experience.UserFrom
+		targetID := experience.UserTo
 		author, okAuthor := usersByID[authorID]
 		target, okTarget := usersByID[targetID]
 		if !okAuthor || !okTarget {
@@ -193,15 +193,6 @@ func fetchExperienceRecords(ctx context.Context, db *mongo.Database, usersByID m
 		return nil, err
 	}
 	return records, nil
-}
-
-func firstObjectID(ids ...primitive.ObjectID) primitive.ObjectID {
-	for _, id := range ids {
-		if !id.IsZero() {
-			return id
-		}
-	}
-	return primitive.NilObjectID
 }
 
 func fetchUser(ctx context.Context, db *mongo.Database, id primitive.ObjectID) (User, error) {

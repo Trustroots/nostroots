@@ -28,7 +28,7 @@ Useful options can also be provided as environment variables:
 - `NSEC`, required (`nsec1...`)
 - `OUTPUT`, default `trustroots-hosts.jsonl`
 - `STATE_FILE`, default `.trustrootsimporttool-state.json`
-- `LIMIT`, optional (applies to host query and contact/experience queries)
+- `LIMIT`, optional — **host offers only** (see Eligibility below)
 - `LOG_EVERY`, default `1000`
 
 The tool auto-loads `.env` from the current working directory and from
@@ -38,8 +38,12 @@ The tool auto-loads `.env` from the current working directory and from
 
 **Hosts:** same rules as before (public host offer, valid npub, etc.).
 
-**Contacts & experiences:** both users must be eligible (`public`, confirmed email,
-valid `nostrNpub`, not blocked). Experiences must pass the positive/hidden filters (same as before).
+**Contacts & experiences:** BSON fields match Trustroots Mongoose models (`userFrom` /
+`userTo`, etc.). Experiences must be **`public: true`**
+with **`recommend: "yes"`** (Trustroots enum). Both endpoints must be eligible users.
+
+The `-limit` / `LIMIT` flag applies **only** to the host-offers query, not contacts or
+experiences (so a small host limit no longer starves relationship/experience export).
 
 The JSONL file can be copied to the strfry host and imported with the operator’s
 normal strfry import workflow.

@@ -70,13 +70,15 @@ func run(args []string) error {
 	}
 	logf("loaded %d eligible user(s) (public, confirmed email, npub)", len(eligibleUsers))
 
-	contacts, err := fetchContactRecords(ctx, db, usersByID, cfg.Limit)
+	// Do not apply -limit to contacts/experiences: it only constrained early _id
+	// rows and often returned zero pairs overlapping eligible users.
+	contacts, err := fetchContactRecords(ctx, db, usersByID, 0)
 	if err != nil {
 		return fmt.Errorf("fetch contacts: %w", err)
 	}
 	logf("loaded %d contact pair(s) (both users eligible)", len(contacts))
 
-	experiences, err := fetchExperienceRecords(ctx, db, usersByID, cfg.Limit)
+	experiences, err := fetchExperienceRecords(ctx, db, usersByID, 0)
 	if err != nil {
 		return fmt.Errorf("fetch experiences: %w", err)
 	}

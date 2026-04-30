@@ -125,6 +125,9 @@ func isPositiveExperience(experience Experience) bool {
 	if experience.Hidden {
 		return false
 	}
+	if !experience.Public {
+		return false
+	}
 	if experience.Positive || bool(experience.Recommend) {
 		return true
 	}

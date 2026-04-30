@@ -43,10 +43,7 @@ func eventForProfileClaim(user User, privateKey string) (nostr.Event, error) {
 func eventForRelationshipClaim(record ContactRecord, privateKey string) (nostr.Event, error) {
 	sourceHex, _ := decodeNpubToHex(record.User.NostrNpub)
 	targetHex, _ := decodeNpubToHex(record.Other.NostrNpub)
-	createdAt := record.Contact.Updated
-	if createdAt.IsZero() {
-		createdAt = record.Contact.CreatedAt
-	}
+	createdAt := record.Contact.Created
 	if createdAt.IsZero() {
 		createdAt = time.Now()
 	}
@@ -72,17 +69,11 @@ func eventForRelationshipClaim(record ContactRecord, privateKey string) (nostr.E
 func eventForExperienceClaim(record ExperienceRecord, privateKey string) (nostr.Event, error) {
 	authorHex, _ := decodeNpubToHex(record.Author.NostrNpub)
 	targetHex, _ := decodeNpubToHex(record.Target.NostrNpub)
-	createdAt := record.Experience.Updated
-	if createdAt.IsZero() {
-		createdAt = record.Experience.CreatedAt
-	}
+	createdAt := record.Experience.Created
 	if createdAt.IsZero() {
 		createdAt = time.Now()
 	}
-	text := strings.TrimSpace(record.Experience.Text)
-	if text == "" {
-		text = strings.TrimSpace(record.Experience.Description)
-	}
+	text := strings.TrimSpace(record.Experience.FeedbackPublic)
 	if text == "" {
 		text = "Trustroots positive experience"
 	}

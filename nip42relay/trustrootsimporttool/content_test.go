@@ -119,19 +119,25 @@ func TestIsEligibleUserEmailAndRoles(t *testing.T) {
 }
 
 func TestIsPositiveExperience(t *testing.T) {
-	if !isPositiveExperience(Experience{Positive: true}) {
-		t.Fatal("positive=true should be considered positive")
+	if !isPositiveExperience(Experience{Public: true, Recommend: recommendField(recommendTruthFromString("yes"))}) {
+		t.Fatal("public + recommend=yes should export")
 	}
-	if !isPositiveExperience(Experience{Recommend: true}) {
-		t.Fatal("recommend=true should be considered positive")
+	if !isPositiveExperience(Experience{Public: true, Recommend: true}) {
+		t.Fatal("public + recommend bool true should export")
 	}
-	if !isPositiveExperience(Experience{Recommendation: "recommended"}) {
-		t.Fatal("recommended recommendation should be considered positive")
+	if isPositiveExperience(Experience{Public: true, Recommend: recommendField(recommendTruthFromString("no"))}) {
+		t.Fatal("recommend=no should not export")
 	}
-	if isPositiveExperience(Experience{Recommendation: "no"}) {
-		t.Fatal("negative recommendation should not be considered positive")
+	if isPositiveExperience(Experience{Public: true, Recommend: recommendField(recommendTruthFromString("unknown"))}) {
+		t.Fatal("recommend=unknown should not export")
 	}
-	if isPositiveExperience(Experience{Positive: true, Hidden: true}) {
-		t.Fatal("hidden experience should not be considered positive")
+	if isPositiveExperience(Experience{Public: false, Recommend: recommendField(recommendTruthFromString("yes"))}) {
+		t.Fatal("non-public experience should not export")
+	}
+}
+
+func TestRecommendTruthFromString(t *testing.T) {
+	if !recommendTruthFromString("yes") || recommendTruthFromString("no") {
+		t.Fatal("string yes/no")
 	}
 }

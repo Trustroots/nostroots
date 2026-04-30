@@ -32,7 +32,7 @@ func loadConfig(args []string) (Config, error) {
 	fs.StringVar(&nsec, "nsec", nsec, "NIP-19 nsec private key used to sign exported events")
 	fs.StringVar(&cfg.Output, "output", envString("OUTPUT", "trustroots-hosts.jsonl"), "JSONL output path")
 	fs.StringVar(&cfg.StateFile, "state-file", envString("STATE_FILE", ".trustrootsimporttool-state.json"), "JSON state file path")
-	fs.Int64Var(&cfg.Limit, "limit", envInt64("LIMIT", 0), "maximum number of eligible hosts to export; 0 means no limit")
+	fs.Int64Var(&cfg.Limit, "limit", envInt64("LIMIT", 0), "maximum host offers to export (offers collection only); 0 = no limit. Does not cap contacts/experiences.")
 	fs.IntVar(&cfg.LogEvery, "log-every", envInt("LOG_EVERY", 1000), "progress log interval")
 
 	_ = fs.Parse(args)

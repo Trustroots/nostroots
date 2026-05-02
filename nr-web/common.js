@@ -1157,6 +1157,177 @@
         }
     }
 
+    // --- Theme (light/dark UI; localStorage + optional NIP-78 sync from pages) ---
+    var NRWEB_THEME_STORAGE_KEY = 'nrweb_theme';
+    var NRWEB_THEME_TS_STORAGE_KEY = 'nrweb_theme_ts';
+    var NRWEB_THEME_KIND = 30078;
+    var NRWEB_THEME_D_TAG = 'nr-web/theme';
+    var themePublishFn = null;
+
+    function applyTheme(theme, meta) {
+        var m = meta || {};
+        if (!global.document || !global.document.documentElement) return;
+        var el = global.document.documentElement;
+        if (theme === 'dark') {
+            el.setAttribute('data-theme', 'dark');
+        } else {
+            el.setAttribute('data-theme', 'light');
+        }
+        try {
+            global.document.dispatchEvent(new CustomEvent('nostroots-theme-changed', {
+                detail: {
+                    theme: theme === 'dark' ? 'dark' : 'light',
+                    silent: !!m.silent
+                }
+            }));
+        } catch (_) {}
+    }
+
+    function getLocalTheme() {
+        try {
+            var v = global.localStorage.getItem(NRWEB_THEME_STORAGE_KEY);
+            if (v === 'light' || v === 'dark') return v;
+        } catch (_) {}
+        return null;
+    }
+
+    function setLocalTheme(theme) {
+        try {
+            if (theme === 'light' || theme === 'dark') {
+                global.localStorage.setItem(NRWEB_THEME_STORAGE_KEY, theme);
+            }
+        } catch (_) {}
+    }
+
+    function getLocalThemeTs() {
+        try {
+            var s = global.localStorage.getItem(NRWEB_THEME_TS_STORAGE_KEY);
+            var n = parseInt(s, 10);
+            return isNaN(n) ? 0 : n;
+        } catch (_) {
+            return 0;
+        }
+    }
+
+    function setLocalThemeTs(ts) {
+        try {
+            global.localStorage.setItem(NRWEB_THEME_TS_STORAGE_KEY, String(ts));
+        } catch (_) {}
+    }
+
+    function initTheme() {
+        if (!global.document || !global.document.documentElement) return;
+        var saved = getLocalTheme();
+        if (saved === 'light' || saved === 'dark') {
+            applyTheme(saved, { silent: true });
+            return;
+        }
+        var attr = global.document.documentElement.getAttribute('data-theme');
+        if (attr === 'dark') {
+            return;
+        }
+        applyTheme('light', { silent: true });
+    }
+
+    function syncThemeToggleFromDocument() {
+        var cb = global.document && global.document.getElementById('theme-toggle');
+        if (!cb) return;
+        cb.checked = global.document.documentElement.getAttribute('data-theme') === 'dark';
+    }
+
+    function registerThemePublish(fn) {
+        themePublishFn = typeof fn === 'function' ? fn : null;
+    }
+
+    /**
+     * Build unsigned kind 30078 template; sign with finalizeEvent in the page.
+     * @param {'light'|'dark'} theme
+     */
+    function createThemeEventTemplate(theme, nip44, secretKeyBytes, peerPubkeyHex) {
+        if (!nip44 || !secretKeyBytes || !peerPubkeyHex) return null;
+        if (theme !== 'light' && theme !== 'dark') return null;
+        try {
+            var convKey = nip44.getConversationKey(secretKeyBytes, peerPubkeyHex);
+            var cipher = nip44.v2.encrypt(JSON.stringify({ theme: theme }), convKey);
+            return {
+                kind: NRWEB_THEME_KIND,
+                created_at: Math.floor(Date.now() / 1000),
+                tags: [['d', NRWEB_THEME_D_TAG], ['client', 'nr-web']],
+                content: cipher
+            };
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function parseThemeFromKind78Event(ev, nip44, secretKeyBytes, peerPubkeyHex) {
+        if (!ev || !nip44 || !secretKeyBytes || !peerPubkeyHex) return null;
+        try {
+            var convKey = nip44.getConversationKey(secretKeyBytes, peerPubkeyHex);
+            var plain = nip44.v2.decrypt(ev.content, convKey);
+            var data = JSON.parse(plain);
+            if (data.theme !== 'light' && data.theme !== 'dark') return null;
+            return { theme: data.theme, created_at: ev.created_at || 0 };
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function mergeThemeFromRemote(parsed) {
+        if (!parsed || !parsed.theme) return false;
+        var remoteTs = parsed.created_at || 0;
+        var localTs = getLocalThemeTs();
+        if (remoteTs <= localTs) return false;
+        setLocalTheme(parsed.theme);
+        setLocalThemeTs(remoteTs);
+        applyTheme(parsed.theme, { silent: true });
+        syncThemeToggleFromDocument();
+        return true;
+    }
+
+    function wireThemeToggle() {
+        function bindOnce() {
+            var doc = global.document;
+            if (!doc) return;
+            var cb = doc.getElementById('theme-toggle');
+            if (!cb || cb.getAttribute('data-nrweb-bound') === '1') return;
+            cb.setAttribute('data-nrweb-bound', '1');
+            syncThemeToggleFromDocument();
+            cb.addEventListener('change', function () {
+                var theme = cb.checked ? 'dark' : 'light';
+                setLocalTheme(theme);
+                setLocalThemeTs(Math.floor(Date.now() / 1000));
+                applyTheme(theme, { silent: false });
+                if (typeof themePublishFn === 'function') {
+                    Promise.resolve(themePublishFn(theme)).catch(function () {});
+                }
+            });
+        }
+        if (global.document) {
+            global.document.addEventListener('nostroots-modals-injected', bindOnce);
+            bindOnce();
+        }
+    }
+
+    initTheme();
+    wireThemeToggle();
+
+    global.NrWebTheme = {
+        NRWEB_THEME_KIND: NRWEB_THEME_KIND,
+        NRWEB_THEME_D_TAG: NRWEB_THEME_D_TAG,
+        applyTheme: applyTheme,
+        getLocalTheme: getLocalTheme,
+        setLocalTheme: setLocalTheme,
+        getLocalThemeTs: getLocalThemeTs,
+        setLocalThemeTs: setLocalThemeTs,
+        initTheme: initTheme,
+        syncThemeToggleFromDocument: syncThemeToggleFromDocument,
+        registerThemePublish: registerThemePublish,
+        createThemeEventTemplate: createThemeEventTemplate,
+        parseThemeFromKind78Event: parseThemeFromKind78Event,
+        mergeThemeFromRemote: mergeThemeFromRemote
+    };
+
     global.NrWeb = global.NrWeb || {};
     global.NrWeb.fillAppHeader = fillAppHeader;
     global.NrWeb.applySettingsFooterMetadataFromCache = applySettingsFooterMetadataFromCache;

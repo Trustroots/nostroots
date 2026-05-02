@@ -146,6 +146,55 @@ test.describe('Settings Management', () => {
     }
   });
 
+  test('defaults to light theme and can persist dark mode from settings', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.removeItem('nrweb_theme');
+      localStorage.removeItem('nrweb_theme_ts');
+    });
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    const themeDefault = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+    expect(themeDefault).toBe('light');
+
+    const hasKey = await page.evaluate(() => !!localStorage.getItem('nostr_private_key'));
+    if (!hasKey) {
+      const generateBtn = page.locator('button[onclick="onboardingGenerate()"]');
+      if (await generateBtn.isVisible()) {
+        await generateBtn.click();
+        await page.waitForTimeout(500);
+      }
+    }
+
+    await page.evaluate(() => {
+      const keysModal = document.getElementById('keys-modal');
+      if (keysModal) {
+        keysModal.classList.remove('active');
+        keysModal.style.display = 'none';
+      }
+    });
+
+    const settingsBtn = page.locator('#settings-icon-btn');
+    if (!(await settingsBtn.isVisible())) {
+      test.skip();
+    }
+
+    await settingsBtn.click();
+    const toggle = page.locator('#theme-toggle');
+    await expect(toggle).toBeAttached();
+    await toggle.check();
+
+    const afterDark = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+    expect(afterDark).toBe('dark');
+    const stored = await page.evaluate(() => localStorage.getItem('nrweb_theme'));
+    expect(stored).toBe('dark');
+
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    const afterReload = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+    expect(afterReload).toBe('dark');
+  });
+
   test('can close settings modal', async ({ page }) => {
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {

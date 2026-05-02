@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script defer src="https://1p.trustroots.org/script.js" data-website-id="aefdc936-5f3e-48b6-a512-71d7a5292868"></script>
     <script>
         (function loadLocalStylesheets() {
             const version = Date.now();
@@ -43,9 +44,8 @@
             --header-green: #12b591;
             --header-green-dark: #0e9a7b;
         }
-        /* Dark mode theme - default (warm, cozy dark) */
-        [data-theme="dark"],
-        :root:not([data-theme="light"]) {
+        /* Dark mode theme (warm, cozy dark) */
+        [data-theme="dark"] {
             --background: hsl(30, 14%, 11%);
             --foreground: hsl(40, 28%, 92%);
             --card: hsl(30, 12%, 15%);
@@ -1453,6 +1453,9 @@
             usernameFromNostr = false;
             currentUserNip05 = '';
             setTrustrootsUI('');
+            if (typeof window.NrWebTheme !== 'undefined') {
+                window.NrWebTheme.registerThemePublish(null);
+            }
             localStorage.removeItem('nostr_private_key');
             conversations.clear();
             selectedConversationId = null;
@@ -1889,6 +1892,43 @@
             return null;
         }
 
+        function setupChatNrWebThemeSync() {
+            const NT = window.NrWebTheme;
+            if (!NT || !currentSecretKeyBytes || !currentPublicKey || !pool) return;
+            NT.registerThemePublish(async (theme) => {
+                try {
+                    const tpl = NT.createThemeEventTemplate(theme, nip44, currentSecretKeyBytes, currentPublicKey);
+                    if (!tpl) return;
+                    const signed = finalizeEvent(tpl, currentSecretKeyBytes);
+                    const relayList = Array.isArray(relays) && relays.length ? relays : DEFAULT_RELAYS;
+                    await pool.publish(relayList, signed);
+                } catch (_) {}
+            });
+            const relayList = Array.isArray(relays) && relays.length ? relays : DEFAULT_RELAYS;
+            const filter = {
+                kinds: [NT.NRWEB_THEME_KIND],
+                authors: [currentPublicKey],
+                '#d': [NT.NRWEB_THEME_D_TAG],
+                limit: 10
+            };
+            let best = null;
+            const sub = pool.subscribe(relayList, filter, {
+                onevent: (ev) => {
+                    if (!best || ev.created_at > best.created_at) best = ev;
+                },
+                oneose: () => {
+                    try { sub.close(); } catch (_) {}
+                    if (best) {
+                        const parsed = NT.parseThemeFromKind78Event(best, nip44, currentSecretKeyBytes, currentPublicKey);
+                        if (parsed) NT.mergeThemeFromRemote(parsed);
+                    }
+                }
+            });
+            setTimeout(() => {
+                try { sub.close(); } catch (_) {}
+            }, 8000);
+        }
+
         let publicSubsStarted = false;
         let publicMapRelayConnections = [];
 
@@ -2288,6 +2328,7 @@
                     }
                 } catch (_) {}
             } });
+            setupChatNrWebThemeSync();
         }
 
         function getTrustrootsUsernameFromProfileEvent(event) {

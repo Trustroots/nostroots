@@ -32,8 +32,7 @@
     --header-green-dark: #0e9a7b;
 }
 
-[data-theme="dark"],
-:root:not([data-theme="light"]) {
+[data-theme="dark"] {
     --background: hsl(30, 14%, 11%);
     --foreground: hsl(40, 28%, 92%);
     --card: hsl(30, 12%, 15%);

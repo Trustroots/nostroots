@@ -76,6 +76,26 @@ Notes:
 - This path uses Appium + XCUITest against real iOS Simulator Safari.
 - It is separate from Playwright `ios-safari`, which is WebKit emulation.
 
+### Real Android Emulator automation
+
+Use this when you want real Chrome automation on an Android Emulator, without running npm/pnpm on host:
+
+- Host requirements: Android SDK emulator + AVD, Appium CLI (`appium`), Docker, Python 3
+- Host does **not** run npm/pnpm commands in this flow
+- Docker runs the WebDriver smoke client
+
+Run:
+
+```bash
+./scripts/test-android-emulator-real.sh
+```
+
+Optional AVD override:
+
+```bash
+ANDROID_AVD_NAME="Medium_Phone_API_35" ./scripts/test-android-emulator-real.sh
+```
+
 ### Committing Changes
 
 The repository has pre-commit hooks that run ESLint on the `nr-app` folder. Since `nr-web` is a standalone HTML file and doesn't use the same tooling, you should skip the pre-commit hook when committing changes that only affect `nr-web`:

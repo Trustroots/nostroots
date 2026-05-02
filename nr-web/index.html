@@ -1,5 +1,5 @@
                                                                         <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script defer src="https://1p.trustroots.org/script.js" data-website-id="aefdc936-5f3e-48b6-a512-71d7a5292868"></script>
     
     <!-- MapLibre GL CSS -->
     <!-- Keep MapLibre on 4.x for wider iOS WebGL compatibility -->
@@ -58,9 +59,8 @@
             --header-green-dark: #0e9a7b;
         }
         
-        /* Dark mode theme - default (warm, cozy dark) */
-        [data-theme="dark"],
-        :root:not([data-theme="light"]) {
+        /* Dark mode theme (warm, cozy dark) */
+        [data-theme="dark"] {
             --background: hsl(30, 14%, 11%);
             --foreground: hsl(40, 28%, 92%);
             --card: hsl(30, 12%, 15%);
@@ -596,8 +596,7 @@
             background: var(--muted);
         }
         
-        [data-theme="dark"] .btn-secondary:hover,
-        :root:not([data-theme="light"]) .btn-secondary:hover {
+        [data-theme="dark"] .btn-secondary:hover {
             background: hsl(0, 0%, 20%);
         }
         
@@ -928,8 +927,7 @@
             border-left: 4px solid rgb(166, 124, 91);
         }
         
-        [data-theme="dark"] .notes-section-header.exact,
-        :root:not([data-theme="light"]) .notes-section-header.exact {
+        [data-theme="dark"] .notes-section-header.exact {
             background: rgba(166, 124, 91, 0.25);
             color: hsl(24, 38%, 58%);
             border-left: 4px solid rgb(180, 140, 108);
@@ -941,8 +939,7 @@
             border-left: 4px solid rgb(107, 138, 82);
         }
         
-        [data-theme="dark"] .notes-section-header.within,
-        :root:not([data-theme="light"]) .notes-section-header.within {
+        [data-theme="dark"] .notes-section-header.within {
             background: rgba(107, 138, 82, 0.25);
             color: hsl(88, 22%, 52%);
             border-left: 4px solid rgb(120, 150, 95);
@@ -1396,6 +1393,7 @@
             finalizeEvent, 
             getPublicKey, 
             nip19,
+            nip44,
             Relay 
         } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.10.3/+esm';
         import { extractRelationshipTargetsFromClaims, mergePTags, buildKind3Tags, buildTrustroots30000Tags, formatPubkeyShort, pickOtherPTag } from './claim-utils.js';
@@ -2422,6 +2420,7 @@
             }
             currentPrivateKeyBytes = bytes;
             currentPublicKey = getPublicKey(bytes);
+            void setupIndexNrWebThemeSync();
         }
         
         function loadKeys() {
@@ -2505,6 +2504,9 @@
             currentPrivateKey = null;
             currentPrivateKeyBytes = null;
             currentPublicKey = null;
+            if (typeof window.NrWebTheme !== 'undefined') {
+                window.NrWebTheme.registerThemePublish(null);
+            }
             window.NrWebKeysModal?.clearKeySourceForPubkey?.(deletedPubkey);
             window.NrWebKeysModal?.clearKeyBackedUpForPubkey?.(deletedPubkey);
             isProfileLinked = false;
@@ -3070,6 +3072,7 @@
                 if (!window._nostrootsSuppressConnectionToasts) showStatus('Retrying relay connections...', 'info', { id: 'relay-connection-status' });
                 await initializeRelays(relayUrls);
             }
+            await setupIndexNrWebThemeSync();
         }
         
         async function initializeRelays(relayUrls) {
@@ -4232,53 +4235,26 @@
             markers.push(marker);
         }
         
-        // Get map style based on current theme
+        /** Light map tiles only (UI may be dark); keeps contrast under warm-color / red-light filters. */
         function getMapStyle() {
-            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark' || 
-                             (!document.documentElement.getAttribute('data-theme') && 
-                              !document.documentElement.hasAttribute('data-theme'));
-            
-            if (isDarkMode) {
-                // Dark mode: Use CARTO Dark Matter tiles (official tiles.basemaps.cartocdn.com host)
-                return {
-                    version: 8,
-                    sources: {
-                        'carto-dark': {
-                            type: 'raster',
-                            tiles: [
-                                'https://tiles.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
-                            ],
-                            tileSize: 256,
-                            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
-                        }
-                    },
-                    layers: [{
-                        id: 'carto-dark',
+            return {
+                version: 8,
+                sources: {
+                    'carto-voyager': {
                         type: 'raster',
-                        source: 'carto-dark'
-                    }]
-                };
-            } else {
-                // Light mode: Use CARTO Voyager tiles (official tiles.basemaps.cartocdn.com host)
-                return {
-                    version: 8,
-                    sources: {
-                        'carto-voyager': {
-                            type: 'raster',
-                            tiles: [
-                                'https://tiles.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
-                            ],
-                            tileSize: 256,
-                            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
-                        }
-                    },
-                    layers: [{
-                        id: 'carto-voyager',
-                        type: 'raster',
-                        source: 'carto-voyager'
-                    }]
-                };
-            }
+                        tiles: [
+                            'https://tiles.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+                        ],
+                        tileSize: 256,
+                        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors © <a href="https://carto.com/attributions">CARTO</a>'
+                    }
+                },
+                layers: [{
+                    id: 'carto-voyager',
+                    type: 'raster',
+                    source: 'carto-voyager'
+                }]
+            };
         }
         
         function hasUsableWebGL() {
@@ -4313,12 +4289,7 @@
         }
 
         function getLeafletTileUrl() {
-            const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark' ||
-                (!document.documentElement.getAttribute('data-theme') &&
-                 !document.documentElement.hasAttribute('data-theme'));
-            return isDarkMode
-                ? 'https://tiles.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
-                : 'https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
+            return 'https://tiles.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png';
         }
 
         function initializeLeafletFallback(reason) {
@@ -4466,31 +4437,10 @@
                     fallbackAttempted = true;
                     
                     showStatus('Map loading error. Trying fallback style...', 'error');
-                    // Try fallback styles in order
-                    const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark' || 
-                                     (!document.documentElement.getAttribute('data-theme') && 
-                                      !document.documentElement.hasAttribute('data-theme'));
-                    
+                    // Try fallback styles in order (always light raster for readability)
                     const fallbackStyles = [
                         'https://demotiles.maplibre.org/style.json',
-                        isDarkMode ? {
-                            version: 8,
-                            sources: {
-                                'carto-dark-fallback': {
-                                    type: 'raster',
-                                    tiles: [
-                                        'https://tiles.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
-                                    ],
-                                    tileSize: 256,
-                                    attribution: '© OpenStreetMap contributors © CARTO'
-                                }
-                            },
-                            layers: [{
-                                id: 'carto-dark-fallback',
-                                type: 'raster',
-                                source: 'carto-dark-fallback'
-                            }]
-                        } : {
+                        {
                             version: 8,
                             sources: {
                                 'carto-positron': {
@@ -6372,6 +6322,68 @@
                 throw new Error(`Publish failed: ${failed}`);
             }
             return { signedEvent, results };
+        }
+
+        /** Register theme publish + fetch encrypted kind 30078 from relays (see NrWebTheme in common.js). */
+        async function fetchThemePreferenceFromRelaysIndex() {
+            const NT = window.NrWebTheme;
+            if (!NT || !currentPrivateKeyBytes || !currentPublicKey || !nip44) return;
+            const relayUrls = getConnectableRelayUrls(getRelayUrls());
+            if (!relayUrls.length) return;
+            const filter = [{
+                kinds: [NT.NRWEB_THEME_KIND],
+                authors: [currentPublicKey],
+                '#d': [NT.NRWEB_THEME_D_TAG],
+                limit: 10
+            }];
+            let best = null;
+            for (const url of relayUrls) {
+                try {
+                    const relay = await Relay.connect(url);
+                    await new Promise((resolve) => {
+                        let settled = false;
+                        const sub = relay.subscribe(filter, {
+                            onevent: (ev) => {
+                                if (!best || ev.created_at > best.created_at) best = ev;
+                            },
+                            oneose: () => {
+                                settled = true;
+                                try { sub.close(); } catch (_) {}
+                                try { relay.close(); } catch (_) {}
+                                resolve();
+                            }
+                        });
+                        setTimeout(() => {
+                            if (settled) return;
+                            settled = true;
+                            try { sub.close(); } catch (_) {}
+                            try { relay.close(); } catch (_) {}
+                            resolve();
+                        }, 4000);
+                    });
+                } catch (_) {}
+            }
+            if (best) {
+                const parsed = NT.parseThemeFromKind78Event(best, nip44, currentPrivateKeyBytes, currentPublicKey);
+                if (parsed) NT.mergeThemeFromRemote(parsed);
+            }
+        }
+
+        async function setupIndexNrWebThemeSync() {
+            const NT = window.NrWebTheme;
+            if (!NT) return;
+            if (!currentPrivateKeyBytes || !currentPublicKey) {
+                NT.registerThemePublish(null);
+                return;
+            }
+            NT.registerThemePublish(async (theme) => {
+                try {
+                    const tpl = NT.createThemeEventTemplate(theme, nip44, currentPrivateKeyBytes, currentPublicKey);
+                    if (!tpl) return;
+                    await publishSignedEventTemplate(tpl);
+                } catch (_) {}
+            });
+            await fetchThemePreferenceFromRelaysIndex();
         }
 
         function removeClaimedHostTags(tags) {

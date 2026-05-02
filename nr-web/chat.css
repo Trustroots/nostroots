@@ -24,9 +24,8 @@
     --header-green: #12b591;
     --header-green-dark: #0e9a7b;
 }
-/* Dark mode theme - default (warm, cozy dark) */
-[data-theme="dark"],
-:root:not([data-theme="light"]) {
+/* Dark mode theme (warm, cozy dark) */
+[data-theme="dark"] {
     --background: hsl(30, 14%, 11%);
     --foreground: hsl(40, 28%, 92%);
     --card: hsl(30, 12%, 15%);

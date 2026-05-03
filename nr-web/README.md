@@ -31,6 +31,7 @@ The main app (`index.html`) uses **`location.hash`** only (no path router; stati
 | `keys` / `settings` | Keys or Settings modal |
 | `map`, `chat`, `help`, `welcome`, `start` | Reserved actions (e.g. `#chat` opens chats with empty picker; `#map` clears hash and returns to map) |
 | Contains `+` as a full Open Location Code (prefix may end with `+` and no refinement, e.g. `9G000000+`) | Map — notes for that plus code |
+| `profile/npub1…`, `profile/<64-char-hex>`, or `profile/<NIP-05>` (NIP-05 may be URL-encoded, e.g. `profile/alice%40trustroots.org`) | **Profile** — public Nostr-backed profile view (invalid remainder shows an error in the profile shell) |
 | `npub1…` or 64-char hex | Chat — DM |
 | Looks like NIP-05 (e.g. `alice%40trustroots.org`) | Chat — DM |
 | Otherwise | Chat — circle / channel slug |
@@ -51,7 +52,13 @@ Core UI is `index.html` with small helpers: `common.js`, `nr-hash-router.js`, `c
 
 Use [`STYLE_GUIDE.md`](STYLE_GUIDE.md) for `nr-web` copy tone and lightweight visual guidance, especially for first-impression and onboarding changes.
 
+### Relay scope (globe / lock UI)
+
+See [`RELAY_SCOPE_UI.md`](RELAY_SCOPE_UI.md) for how `relayScope` is set on map notes and chat, why subscription-only events often have no 🌍/🔐 pill, and safe options if we extend this later.
+
 ### Testing
+
+The repo still iterates quickly on `nr-web`: tests exist to guard important behavior, not to drive every small UI change. Prefer meaningful coverage over a large suite; run the stack when you are changing critical paths or preparing to merge.
 
 Tests are designed to run in Docker by default for consistency and safety. See [tests/README.md](tests/README.md) for details.
 

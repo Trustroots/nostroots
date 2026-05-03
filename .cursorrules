@@ -18,9 +18,8 @@ git commit --no-verify -m "Your commit message"
 ```
 
 When committing changes to `nr-web/index.html`, be more verbose about what changed:
-- Changes to `nr-web/index.html` can often be derived from changes in the test files
 - Include specific details about what functionality was added, modified, or fixed
-- Reference related test files to provide context about the changes
+- Optionally reference related test files if they clarify behavior (the UI is still moving quickly; tests are not the primary changelog)
 
 ## Committing Workflow Changes
 
@@ -35,12 +34,10 @@ git commit --no-verify -m "Your commit message"
 
 ## Testing in nr-web
 
+`nr-web` is still in flux: prioritize product behavior and clear code over heavy test churn.
+
 When making changes to `nr-web`:
 - Follow `nr-web/STYLE_GUIDE.md` for first-impression UX copy and lightweight visual guidance
-- Add new tests if it makes sense (e.g., for new features, bug fixes, or edge cases)
-- Run the tests after making changes using Docker:
-  ```bash
-  make test-fast
-  ```
-  Use `make test` (full Playwright matrix including iOS WebKit) when you need CI-parity before merge.
-  This ensures that changes don't break existing functionality and that new features are properly tested.
+- Add or keep tests for **important** behavior (security-sensitive flows, tricky parsing, regressions you care about), not for every UI tweak
+- Do **not** spend large amounts of time running, rewriting, or expanding the suite on every small change; avoid blocking iteration on test-framework maintenance
+- When you do run tests (e.g. before merge or after touching critical paths), use Docker — see `nr-web/tests/README.md`. Quick check: `make test-fast` from `nr-web`; full matrix: `make test`

@@ -46,7 +46,7 @@ pnpm build:ios-production
 ### nr-web (Web App)
 ```bash
 cd nr-web
-make test-fast           # Fast: Vitest + Playwright Chromium (recommended for iteration)
+make test-fast           # Fast: Vitest + Playwright Chromium (use before merge or when touching critical paths)
 make test                # Full: all Playwright projects (CI-parity, slower)
 make test-watch          # Run tests in watch mode
 make test-e2e            # Run end-to-end tests only (all projects)
@@ -58,6 +58,8 @@ pnpm install
 pnpm test:local
 pnpm test:local:fast
 ```
+
+See **Testing Philosophy** below: do not treat full test runs or broad test updates as mandatory on every `nr-web` edit.
 
 When changing first-impression UX or onboarding copy in `nr-web`, follow `nr-web/STYLE_GUIDE.md`.
 
@@ -133,7 +135,7 @@ User creates note → nr-app signs & publishes (kind 30397)
 - Supports NIP-07 browser extensions
 - Compatible with nr-app event formats via nr-common schemas
 
-**Testing:** Vitest + Playwright in Docker for consistency
+**Testing:** Vitest + Playwright in Docker when you run the suite; coverage is intentionally pragmatic while the UI evolves (see Testing Philosophy)
 
 ## Development Workflows
 
@@ -144,7 +146,7 @@ User creates note → nr-app signs & publishes (kind 30397)
 git commit --no-verify -m "message"
 ```
 
-When committing `nr-web/index.html`, be verbose about what changed since changes can be derived from test files.
+When committing `nr-web/index.html`, be verbose about what changed in the product behavior; mention related tests only when helpful.
 
 **nr-app:** Hooks will run ESLint automatically. Fix issues before committing.
 
@@ -165,9 +167,9 @@ pnpm i            # Update workspace dependencies
 
 ### Testing Philosophy
 
-**nr-web:** Always add tests for new features/fixes. Tests run in Docker for consistency.
+**nr-web:** The stack is still moving quickly. Keep tests for **high-value** areas (e.g. key handling, protocol or routing edge cases, bugs you do not want back). Do **not** default to expanding or rewriting the suite on every change, and do not spend disproportionate time on test framework work. Run `make test-fast` (Docker) when you have touched critical logic or before merge/CI if your change could break covered flows.
 
-**nr-app:** Tests use jest-expo preset.
+**nr-app:** Tests use jest-expo preset; follow normal app testing discipline there.
 
 ### Nostr Standards
 
@@ -225,6 +227,6 @@ Each layer has distinct marker colors and Nostr filters.
 
 **EAS build expired:** Run GitHub action workflow "Build in EAS Cloud" manually or run build commands locally.
 
-**nr-web test failures:** Always use Docker (`make test-fast` or `make test`). Local execution may have environment inconsistencies.
+**nr-web test failures:** Reproduce in Docker (`make test-fast` or `make test`) when debugging failures; local runs can differ. If a failure is brittle or low-value while the feature is experimental, fixing the product or skipping/deleting an obsolete test can be acceptable—prefer judgment over exhaustive maintenance.
 
 **pnpm workspace issues:** Run `pnpm i` at root after making changes to nr-common.

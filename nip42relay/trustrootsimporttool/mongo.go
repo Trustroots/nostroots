@@ -247,6 +247,27 @@ func fetchUser(ctx context.Context, db *mongo.Database, id primitive.ObjectID) (
 	return user, err
 }
 
+func fetchPublicTribes(ctx context.Context, db *mongo.Database) ([]Tribe, error) {
+	cursor, err := db.Collection("tribes").Find(ctx, bson.M{"public": true}, options.Find().SetSort(bson.D{{Key: "slug", Value: 1}, {Key: "label", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var out []Tribe
+	for cursor.Next(ctx) {
+		var tribe Tribe
+		if err := cursor.Decode(&tribe); err != nil {
+			return nil, err
+		}
+		out = append(out, tribe)
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func fetchPublicCircleSlugs(ctx context.Context, db *mongo.Database, memberships []Membership) ([]string, error) {
 	circles := make([]string, 0, len(memberships))
 	for _, membership := range memberships {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 	"time"
@@ -98,6 +99,71 @@ func TestEventForHost(t *testing.T) {
 	}
 	if !ok {
 		t.Fatal("signature did not verify")
+	}
+}
+
+func TestEventForCircleMetadata(t *testing.T) {
+	event, err := eventForCircleMetadata(Tribe{
+		ID:          primitive.NewObjectID(),
+		Label:       "Hitchhikers",
+		Slug:        "hitch",
+		Public:      true,
+		Description: "Get lifts and share the road.",
+		Image:       true,
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if event.Kind != circleMetadataKind {
+		t.Fatalf("kind = %d", event.Kind)
+	}
+	if event.Tags.GetD() != "hitch" {
+		t.Fatalf("d tag = %q", event.Tags.GetD())
+	}
+	if tag := event.Tags.GetFirst([]string{"l", "hitch", trustrootsCircleLabelNamespace}); tag == nil {
+		t.Fatalf("missing circle l tag: %#v", event.Tags)
+	}
+	var payload map[string]string
+	if err := json.Unmarshal([]byte(event.Content), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["name"] != "Hitchhikers" {
+		t.Fatalf("name = %q", payload["name"])
+	}
+	if payload["about"] != "Get lifts and share the road." {
+		t.Fatalf("about = %q", payload["about"])
+	}
+	wantPic := "https://www.trustroots.org/uploads-circle/hitch/742x496.jpg"
+	if payload["picture"] != wantPic {
+		t.Fatalf("picture = %q want %q", payload["picture"], wantPic)
+	}
+	ok, err := event.CheckSignature()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !ok {
+		t.Fatal("signature did not verify")
+	}
+}
+
+func TestEventForCircleMetadataSkipsPictureWhenNoImage(t *testing.T) {
+	event, err := eventForCircleMetadata(Tribe{
+		ID:          primitive.NewObjectID(),
+		Label:       "Hackers",
+		Slug:        "hackers",
+		Public:      true,
+		Description: "Code",
+		Image:       false,
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var payload map[string]string
+	if err := json.Unmarshal([]byte(event.Content), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if _, has := payload["picture"]; has {
+		t.Fatalf("expected no picture field, got %#v", payload)
 	}
 }
 

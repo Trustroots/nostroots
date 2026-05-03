@@ -54,8 +54,10 @@ const (
 	profileClaimKind                 = 30390
 	relationClaimKind                = 30392
 	experienceClaimKind              = 30393
+	circleMetadataKind               = 30410
 	maxContentLength                 = 300
 	TrustrootsUsernameLabelNamespace = "org.trustroots:username"
+	trustrootsCircleLabelNamespace   = "trustroots-circle"
 )
 
 type Offer struct {
@@ -91,10 +93,13 @@ type Membership struct {
 }
 
 type Tribe struct {
-	ID     primitive.ObjectID `bson:"_id"`
-	Label  string             `bson:"label"`
-	Slug   string             `bson:"slug"`
-	Public bool               `bson:"public"`
+	ID          primitive.ObjectID `bson:"_id"`
+	Label       string             `bson:"label"`
+	Slug        string             `bson:"slug"`
+	Public      bool               `bson:"public"`
+	Description string             `bson:"description"`
+	Image       bool               `bson:"image"`
+	Color       string             `bson:"color"`
 }
 
 type HostRecord struct {

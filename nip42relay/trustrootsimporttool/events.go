@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -114,4 +115,50 @@ func deletionEvent(entry StateEntry, privateKey string, now time.Time) (nostr.Ev
 
 func dTagForOffer(offerID string) string {
 	return "trustroots:offer:" + offerID
+}
+
+// trustrootsCircleImageURL returns a public CDN URL when the tribe has a circle image.
+// Matches Trustroots client helper getCircleBackgroundUrl (742x496, jpg).
+func trustrootsCircleImageURL(tribe Tribe) string {
+	if !tribe.Image {
+		return ""
+	}
+	slug := strings.TrimSpace(strings.ToLower(tribe.Slug))
+	if slug == "" {
+		return ""
+	}
+	return "https://www.trustroots.org/uploads-circle/" + slug + "/742x496.jpg"
+}
+
+func eventForCircleMetadata(tribe Tribe, privateKey string) (nostr.Event, error) {
+	slug := strings.TrimSpace(strings.ToLower(tribe.Slug))
+	if slug == "" {
+		return nostr.Event{}, fmt.Errorf("tribe has empty slug")
+	}
+	name := strings.TrimSpace(tribe.Label)
+	if name == "" {
+		return nostr.Event{}, fmt.Errorf("tribe has empty label")
+	}
+	about := strings.TrimSpace(tribe.Description)
+	picture := strings.TrimSpace(trustrootsCircleImageURL(tribe))
+	meta := map[string]string{"name": name, "about": about}
+	if picture != "" {
+		meta["picture"] = picture
+	}
+	contentBytes, err := json.Marshal(meta)
+	if err != nil {
+		return nostr.Event{}, err
+	}
+	event := nostr.Event{
+		CreatedAt: nostr.Now(),
+		Kind:      circleMetadataKind,
+		Tags: nostr.Tags{
+			{"d", slug},
+			{"L", trustrootsCircleLabelNamespace},
+			{"l", slug, trustrootsCircleLabelNamespace},
+			{"source", "trustroots-import"},
+		},
+		Content: string(contentBytes),
+	}
+	return event, event.Sign(privateKey)
 }

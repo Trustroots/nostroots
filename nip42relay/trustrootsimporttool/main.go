@@ -101,7 +101,7 @@ func run(args []string) error {
 	seenContactClaims := map[string]struct{}{}
 	seenExperienceSource := map[string]struct{}{}
 
-	logf("phase 1/4: profile claim events (kind %d) — %d user(s)…", profileClaimKind, len(eligibleUsers))
+	logf("phase 1/5: profile claim events (kind %d) — %d user(s)…", profileClaimKind, len(eligibleUsers))
 	for i, user := range eligibleUsers {
 		event, err := eventForProfileClaim(user, cfg.NostrSK)
 		if err != nil {
@@ -117,7 +117,7 @@ func run(args []string) error {
 	}
 	logf("phase 1 done: %d profile line(s)", profileLines)
 
-	logf("phase 2/4: host mirror events (kind %d) — %d offer row(s)…", mapNoteRepostKind, len(records))
+	logf("phase 2/5: host mirror events (kind %d) — %d offer row(s)…", mapNoteRepostKind, len(records))
 	skippedHost := 0
 	for _, record := range records {
 		event, err := eventForHost(record, cfg.NostrSK)
@@ -145,7 +145,7 @@ func run(args []string) error {
 	}
 	logf("phase 2 done: %d host mirror line(s)", exported)
 
-	logf("phase 3/4: relationship claims (kind %d) — %d contact row(s)…", relationClaimKind, len(contacts))
+	logf("phase 3/5: relationship claims (kind %d) — %d contact row(s)…", relationClaimKind, len(contacts))
 	for i, record := range contacts {
 		contactID := record.Contact.ID.Hex()
 		if _, seen := seenContactClaims[contactID]; seen {
@@ -167,7 +167,7 @@ func run(args []string) error {
 	}
 	logf("phase 3 done: %d relationship claim line(s)", relationshipLines)
 
-	logf("phase 4/4: experience claims (kind %d) — %d experience row(s)…", experienceClaimKind, len(experiences))
+	logf("phase 4/5: experience claims (kind %d) — %d experience row(s)…", experienceClaimKind, len(experiences))
 	for i, record := range experiences {
 		sourceID := record.Experience.ID.Hex()
 		if _, seen := seenExperienceSource[sourceID]; seen {
@@ -189,6 +189,26 @@ func run(args []string) error {
 	}
 	logf("phase 4 done: %d experience claim line(s)", experienceLines)
 
+	logf("phase 5/5: circle metadata (kind %d)…", circleMetadataKind)
+	tribes, err := fetchPublicTribes(ctx, db)
+	if err != nil {
+		return fmt.Errorf("fetch tribes: %w", err)
+	}
+	logf("loaded %d public tribe(s)", len(tribes))
+	circleLines := 0
+	for _, tribe := range tribes {
+		event, err := eventForCircleMetadata(tribe, cfg.NostrSK)
+		if err != nil {
+			logf("skip tribe %s: %v", tribe.ID.Hex(), err)
+			continue
+		}
+		if err := writeJSONLine(writer, event); err != nil {
+			return err
+		}
+		circleLines++
+	}
+	logf("phase 5 done: %d circle metadata line(s)", circleLines)
+
 	deleted := 0
 
 	logf("flushing JSONL and writing state to %q…", cfg.StateFile)
@@ -201,12 +221,13 @@ func run(args []string) error {
 
 	fmt.Fprintf(
 		os.Stderr,
-		"trustrootsimporttool: wrote %q — profile_claims=%d exported_hosts=%d relationship_claims=%d experience_claims=%d deletions=%d state=%q\n",
+		"trustrootsimporttool: wrote %q — profile_claims=%d exported_hosts=%d relationship_claims=%d experience_claims=%d circle_metadata=%d deletions=%d state=%q\n",
 		cfg.Output,
 		profileLines,
 		exported,
 		relationshipLines,
 		experienceLines,
+		circleLines,
 		deleted,
 		cfg.StateFile,
 	)

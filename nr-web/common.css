@@ -706,8 +706,8 @@ h1, h2, .modal-header h2 {
     .app-header .nr-nav-main > .nr-nav-link .nr-nav-icon,
     .app-header .nr-nav-main > a.nr-nav-link .nr-nav-icon {
         display: inline-flex;
-        color: rgba(8, 72, 58, 0.48);
-        filter: drop-shadow(1px 1px 0 rgba(255, 255, 255, 0.28));
+        color: rgba(255, 255, 255, 0.95);
+        filter: none;
     }
     .app-header .nr-nav-main > .nr-nav-link.is-active .nr-nav-icon,
     .app-header .nr-nav-main > a.nr-nav-link[aria-current="page"] .nr-nav-icon {
@@ -722,8 +722,8 @@ h1, h2, .modal-header h2 {
     }
     .app-header .nr-nav-more-toggle .nr-nav-icon {
         display: inline-flex;
-        color: rgba(8, 72, 58, 0.48);
-        filter: drop-shadow(1px 1px 0 rgba(255, 255, 255, 0.28));
+        color: rgba(255, 255, 255, 0.95);
+        filter: none;
     }
     .nr-nav-dropdown-more.is-open .nr-nav-more-toggle .nr-nav-icon {
         color: #fff;
@@ -731,8 +731,8 @@ h1, h2, .modal-header h2 {
     }
     .nr-nav-dropdown-toggle { padding: 0.35rem 0.45rem; font-size: 0.78rem; }
     .app-header-mobile-links-wrap { margin-left: 0; }
-    .app-header-mobile-link { height: 26px; padding: 0 0.45rem; }
-    .app-header-mobile-link-label { display: none; }
+    .app-header-mobile-links { flex-wrap: wrap; row-gap: 0.2rem; }
+    .app-header-mobile-link { height: auto; min-height: 26px; padding: 0.2rem 0.45rem; }
     .app-header-mobile-hint { display: none; }
     .header-identity { max-width: 120px; font-size: 0.75rem; padding: 0.3rem 0.5rem; }
     .app-header-actions .keys-icon .header-identity-text { display: none; }
@@ -743,6 +743,12 @@ h1, h2, .modal-header h2 {
 @media (max-width: 480px) {
     .app-header h1 { font-size: 1.15rem; }
     .app-header-actions { gap: 0.35rem; }
-    .app-header-mobile-links { gap: 0.25rem; }
-    .app-header-mobile-link { width: 26px; padding: 0; justify-content: center; }
+    .app-header-mobile-links { gap: 0.25rem; flex-wrap: wrap; row-gap: 0.2rem; }
+    .app-header-mobile-link {
+        width: auto;
+        min-width: 0;
+        max-width: 100%;
+        padding: 0.2rem 0.4rem;
+        justify-content: center;
+    }
 }

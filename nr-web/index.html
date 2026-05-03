@@ -1552,7 +1552,18 @@
             nip44,
             Relay 
         } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.10.3/+esm';
-        import { extractRelationshipTargetsFromClaims, mergePTags, buildKind3Tags, buildTrustroots30000Tags, formatPubkeyShort, pickOtherPTag } from './claim-utils.js';
+        import {
+            extractRelationshipTargetsFromClaims,
+            mergePTags,
+            buildKind3Tags,
+            buildTrustroots30000Tags,
+            formatPubkeyShort,
+            pickOtherPTag,
+            getExperienceClaimSignPlan,
+            trustrootsProfileUrl,
+            relationshipCounterpartyDisplay,
+            experienceCounterpartyDisplay,
+        } from './claim-utils.js';
         
         // Import BIP39 for mnemonic support
         import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm';
@@ -3901,6 +3912,13 @@
                         console.log('Replacing event with newer version:', event.id.substring(0, 16) + '...');
                     }
                     // Replace the existing event with the newer one
+                    const incomingRelayScope =
+                        event.relayScope === 'public' || event.relayScope === 'auth' ? event.relayScope : null;
+                    const preservedRelayScope =
+                        existingEvent.relayScope === 'public' || existingEvent.relayScope === 'auth'
+                            ? existingEvent.relayScope
+                            : null;
+                    const relayScopeForReplace = incomingRelayScope || preservedRelayScope;
                     events[existingIndex] = {
                         id: event.id,
                         kind: event.kind,
@@ -3908,7 +3926,8 @@
                         content: event.content,
                         created_at: event.created_at,
                         tags: event.tags,
-                        sig: event.sig
+                        sig: event.sig,
+                        ...(relayScopeForReplace ? { relayScope: relayScopeForReplace } : {})
                     };
                     scheduleCacheWrite(); // Schedule cache write (debounced)
                     cachedFilteredEvents = null; // Invalidate cache
@@ -3958,7 +3977,10 @@
                 content: event.content,
                 created_at: event.created_at,
                 tags: event.tags,
-                sig: event.sig
+                sig: event.sig,
+                ...(event.relayScope === 'public' || event.relayScope === 'auth'
+                    ? { relayScope: event.relayScope }
+                    : {})
             };
             
             events.push(eventData);
@@ -5441,7 +5463,7 @@
                         statusMessage += ` (${failed.length} failed: ${failedRelays})`;
                     }
                     showStatus(statusMessage, 'success');
-                    signedEvent.relayScope = getRelayScopeFromRelayUrls(relayUrls);
+                    signedEvent.relayScope = getRelayScopeFromRelayUrls(successful.map((r) => r.url));
                     // Add to local events
                     processIncomingEvent(signedEvent);
                     // Clear form and refresh notes
@@ -6462,14 +6484,44 @@
             fillClaimList(
                 relList,
                 claimEventsByKind.get(RELATIONSHIP_CLAIM_KIND) || [],
-                'No relationship suggestions yet (kind 30392). They only appear if both people have a pubkey on Trustroots.',
+                'No relationship suggestions yet (kind 30392). They appear when Trustroots has mirrored a contact suggestion for you—counterparty may show as a pubkey or a Trustroots username until both sides have keys.',
                 (ev) => {
                     const wrap = document.createElement('div');
                     wrap.className = 'claim-line';
                     const meta = document.createElement('div');
                     meta.className = 'claim-line-meta';
-                    const other = pickOtherPTag(ev.tags, currentPublicKey);
-                    meta.textContent = other ? `Counterparty: ${formatPubkeyShort(other)}` : 'Relationship suggestion';
+                    const myTr = document.getElementById('trustroots-username')?.value || '';
+                    const disp = relationshipCounterpartyDisplay(ev.tags, ev.content, currentPublicKey, myTr);
+                    if (disp.type === 'hex') {
+                        meta.textContent = `Counterparty: ${formatPubkeyShort(disp.hex)}`;
+                    } else if (disp.type === 'user' && disp.usernames[0]) {
+                        const u = disp.usernames[0];
+                        meta.appendChild(document.createTextNode('Counterparty: '));
+                        const a = document.createElement('a');
+                        a.href = trustrootsProfileUrl(u);
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        a.textContent = `@${u}`;
+                        meta.appendChild(a);
+                    } else if (disp.type === 'users' && disp.usernames.length === 2) {
+                        meta.appendChild(document.createTextNode('Between: '));
+                        const [u0, u1] = disp.usernames;
+                        const a0 = document.createElement('a');
+                        a0.href = trustrootsProfileUrl(u0);
+                        a0.target = '_blank';
+                        a0.rel = 'noopener noreferrer';
+                        a0.textContent = `@${u0}`;
+                        meta.appendChild(a0);
+                        meta.appendChild(document.createTextNode(' → '));
+                        const a1 = document.createElement('a');
+                        a1.href = trustrootsProfileUrl(u1);
+                        a1.target = '_blank';
+                        a1.rel = 'noopener noreferrer';
+                        a1.textContent = `@${u1}`;
+                        meta.appendChild(a1);
+                    } else {
+                        meta.textContent = 'Relationship suggestion';
+                    }
                     const body = document.createElement('div');
                     body.className = 'claim-line-body';
                     body.textContent = ev.content || '';
@@ -6482,14 +6534,27 @@
             fillClaimList(
                 expList,
                 claimEventsByKind.get(EXPERIENCE_CLAIM_KIND) || [],
-                'No experience suggestions yet (kind 30393). They appear when a mirrored positive experience exists for your account.',
+                'No experience suggestions yet (kind 30393). They appear when a mirrored positive experience exists for your account; the other person may appear as a pubkey or a Trustroots username until they have a key on Trustroots.',
                 (ev) => {
                     const wrap = document.createElement('div');
                     wrap.className = 'claim-line';
                     const meta = document.createElement('div');
                     meta.className = 'claim-line-meta';
-                    const other = pickOtherPTag(ev.tags, currentPublicKey);
-                    meta.textContent = other ? `About: ${formatPubkeyShort(other)}` : 'Experience suggestion';
+                    const disp = experienceCounterpartyDisplay(ev.tags, currentPublicKey);
+                    if (disp.type === 'hex') {
+                        meta.textContent = `About: ${formatPubkeyShort(disp.hex)}`;
+                    } else if (disp.type === 'user' && disp.username) {
+                        const u = disp.username;
+                        meta.appendChild(document.createTextNode('About: '));
+                        const a = document.createElement('a');
+                        a.href = trustrootsProfileUrl(u);
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        a.textContent = `@${u}`;
+                        meta.appendChild(a);
+                    } else {
+                        meta.textContent = 'Experience suggestion';
+                    }
                     const body = document.createElement('div');
                     body.className = 'claim-line-body';
                     body.textContent = truncateClaimBody(ev.content, 400);
@@ -6828,7 +6893,10 @@
             }
             const targets = extractRelationshipTargetsFromClaims(claims, currentPublicKey);
             if (!targets.size) {
-                showStatus('No relationships for this pubkey in claim events.', 'info');
+                showStatus(
+                    'No hex pubkeys to merge from these suggestions—some may only list a Trustroots username for your contact. Add their npub on Trustroots (or wait for export) before they appear in your follow list.',
+                    'info',
+                );
                 return;
             }
             try {
@@ -6865,28 +6933,51 @@
                 return;
             }
             let successCount = 0;
+            let skippedCount = 0;
+            let failCount = 0;
+            const publishable = claims.filter((claim) => {
+                const plan = getExperienceClaimSignPlan(claim.tags, currentPublicKey);
+                const sourceID = (claim.tags || []).find((t) => Array.isArray(t) && t[0] === 'source_id' && t[1])?.[1];
+                return plan.canSign && !!sourceID;
+            }).length;
             for (const claim of claims) {
+                const plan = getExperienceClaimSignPlan(claim.tags, currentPublicKey);
+                const sourceID = (claim.tags || []).find((t) => Array.isArray(t) && t[0] === 'source_id' && t[1])?.[1];
+                if (!sourceID) {
+                    skippedCount++;
+                    continue;
+                }
+                if (!plan.canSign) {
+                    skippedCount++;
+                    continue;
+                }
                 try {
-                    const targetHex = pickOtherPTag(claim.tags, currentPublicKey);
-                    const sourceID = (claim.tags || []).find(t => Array.isArray(t) && t[0] === 'source_id' && t[1])?.[1];
-                    if (!targetHex || !sourceID) continue;
                     const template = {
                         kind: NIP32_LABEL_KIND,
                         created_at: Math.floor(Date.now() / 1000),
                         tags: [
-                            ['p', targetHex],
+                            ['p', plan.targetHex],
                             ['d', sourceID],
                             ['L', 'org.trustroots:experience'],
-                            ['l', 'positive', 'org.trustroots:experience']
+                            ['l', 'positive', 'org.trustroots:experience'],
                         ],
-                        content: claim.content || 'positive'
+                        content: claim.content || 'positive',
                     };
                     await publishSignedEventTemplate(template);
                     successCount++;
-                } catch (_) {}
+                } catch (_) {
+                    failCount++;
+                }
             }
-            showStatus(`Claimed ${successCount}/${claims.length} positive experiences as kind ${NIP32_LABEL_KIND}.`, successCount > 0 ? 'success' : 'error');
-            if (successCount > 0 && successCount === claims.length) {
+            const parts = [
+                `Signed ${successCount} positive experience label(s) (kind ${NIP32_LABEL_KIND}).`,
+                skippedCount ? `Skipped ${skippedCount} (not the author, missing target npub on Trustroots, or missing source_id).` : '',
+                failCount ? `${failCount} publish error(s).` : '',
+            ].filter(Boolean);
+            const tone =
+                failCount > 0 ? 'error' : successCount > 0 ? 'success' : skippedCount === claims.length ? 'info' : 'error';
+            showStatus(parts.join(' '), tone);
+            if (publishable > 0 && successCount === publishable && failCount === 0) {
                 fadeOutClaimButton(document.getElementById('claim-btn-experiences'), 'experiences');
             }
         }

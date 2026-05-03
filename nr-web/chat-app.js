@@ -1917,10 +1917,8 @@ import {
             if (eventLike?.relayScope === 'public' || eventLike?.relayScope === 'auth') {
                 return eventLike.relayScope;
             }
-            // Backward-compatible fallback for older cached/received events without relay scope metadata.
-            // We default to public marker so every message has a transport icon.
-            if (conversation?.type === 'channel') return 'public';
-            return 'public';
+            // No metadata: do not guess "public" (NIP-42-only traffic was incorrectly shown as 🌍).
+            return null;
         }
 
         function getChannelTagsSummary(events) {
@@ -2372,13 +2370,13 @@ import {
                     metaMain.appendChild(confidentialityPill);
                 }
                 const relayScopeForDisplay = getRelayScopeForDisplay(ev, conv);
-                /* Channels: show public vs auth relay scope. DMs/groups: lock already signals encryption — omit relay globe to reduce noise. */
-                if (!isEncryptedConversation) {
+                /* Channels: show public vs auth relay scope when we know it. DMs/groups: lock already signals encryption — omit relay globe to reduce noise. */
+                if (!isEncryptedConversation && (relayScopeForDisplay === 'public' || relayScopeForDisplay === 'auth')) {
                     const relayPill = document.createElement('span');
                     relayPill.className = 'message-relay-pill';
                     relayPill.textContent = relayScopeForDisplay === 'auth' ? RELAY_SCOPE_AUTH : RELAY_SCOPE_PUBLIC;
                     relayPill.title = relayScopeForDisplay === 'auth'
-                        ? 'Posted only to auth-required relays'
+                        ? 'Posted only to auth-required relay(s)'
                         : 'Posted to public relay(s)';
                     metaMain.appendChild(relayPill);
                 }
@@ -2541,7 +2539,7 @@ import {
                         created_at: template.created_at,
                         raw: signed,
                         nip: result.nip,
-                        relayScope: getRelayScopeFromRelayUrls(publishRelayUrls)
+                        relayScope: null
                     });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
                     invalidateConversationSearchIndex(conv.id);
@@ -2639,7 +2637,7 @@ import {
                         content: text,
                         created_at: template.created_at,
                         raw: signed,
-                        relayScope: getRelayScopeFromRelayUrls(publishRelayUrls)
+                        relayScope: getRelayScopeFromRelayUrls(succeeded.map((r) => r.url))
                     });
                     conv.events.sort((a, b) => a.created_at - b.created_at);
                     invalidateConversationSearchIndex(conv.id);

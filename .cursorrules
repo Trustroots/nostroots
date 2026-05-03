@@ -40,6 +40,7 @@ When making changes to `nr-web`:
 - Add new tests if it makes sense (e.g., for new features, bug fixes, or edge cases)
 - Run the tests after making changes using Docker:
   ```bash
-  make test
+  make test-fast
   ```
+  Use `make test` (full Playwright matrix including iOS WebKit) when you need CI-parity before merge.
   This ensures that changes don't break existing functionality and that new features are properly tested.

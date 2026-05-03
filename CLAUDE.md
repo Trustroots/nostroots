@@ -46,14 +46,17 @@ pnpm build:ios-production
 ### nr-web (Web App)
 ```bash
 cd nr-web
-make test                 # Run all tests in Docker (recommended)
+make test-fast           # Fast: Vitest + Playwright Chromium (recommended for iteration)
+make test                # Full: all Playwright projects (CI-parity, slower)
 make test-watch          # Run tests in watch mode
-make test-e2e            # Run end-to-end tests only
+make test-e2e            # Run end-to-end tests only (all projects)
+make test-e2e-fast       # E2E Chromium only
 make test-ui             # Run tests with UI on http://localhost:51204
 
 # Local testing (not recommended, use Docker instead)
 pnpm install
 pnpm test:local
+pnpm test:local:fast
 ```
 
 When changing first-impression UX or onboarding copy in `nr-web`, follow `nr-web/STYLE_GUIDE.md`.
@@ -222,6 +225,6 @@ Each layer has distinct marker colors and Nostr filters.
 
 **EAS build expired:** Run GitHub action workflow "Build in EAS Cloud" manually or run build commands locally.
 
-**nr-web test failures:** Always use Docker (`make test`). Local execution may have environment inconsistencies.
+**nr-web test failures:** Always use Docker (`make test-fast` or `make test`). Local execution may have environment inconsistencies.
 
 **pnpm workspace issues:** Run `pnpm i` at root after making changes to nr-common.

@@ -511,8 +511,11 @@
             setDisplayById('update-trustroots-profile-group', 'none');
         }
 
-        var keysBtn = global.document.getElementById('keys-icon-btn');
-        if (keysBtn) keysBtn.title = hasPublicKey ? 'Keys' : 'Connect key to post';
+        var keysTitle = hasPublicKey ? 'Keys' : 'Connect key to post';
+        ['keys-icon-btn', 'keys-icon-btn-mobile'].forEach(function (id) {
+            var keysBtn = global.document.getElementById(id);
+            if (keysBtn) keysBtn.title = keysTitle;
+        });
 
         var usernameGuidance = global.document.getElementById('keys-username-guidance-text');
         if (usernameGuidance) {
@@ -938,10 +941,53 @@
         }).join('');
     }
 
-    function buildSupportDropdownMenuHtml() {
-        return '<button type="button" role="menuitem" class="nr-nav-menu-item" id="nav-support-help-btn">Help / FAQ</button>' +
+    function buildSupportDropdownMenuHtml(supportChatHref, supportChatLinkId) {
+        var sch = supportChatHref || '#support';
+        var idAttr =
+            supportChatLinkId && String(supportChatLinkId)
+                ? ' id="' + escapeHtml(String(supportChatLinkId)) + '"'
+                : '';
+        return (
+            '<a role="menuitem" class="nr-nav-menu-item nr-nav-support-chat-link"' +
+            idAttr +
+            ' href="' +
+            escapeHtml(sch) +
+            '">Support chat</a>' +
             '<a role="menuitem" class="nr-nav-menu-external" href="https://github.com/Trustroots/nostroots/issues/new" target="_blank" rel="noopener noreferrer">Report a bug</a>' +
-            '<a role="menuitem" class="nr-nav-menu-external" href="https://www.trustroots.org/support" target="_blank" rel="noopener noreferrer">Trustroots support</a>';
+            '<a role="menuitem" class="nr-nav-menu-external" href="https://www.trustroots.org/support" target="_blank" rel="noopener noreferrer">Trustroots support</a>'
+        );
+    }
+
+    /** Desktop Account dropdown (identity + keys + settings + footer). */
+    function buildUserDropdownMenuBody(settingsTitle) {
+        return (
+            '<span class="nr-nav-menu-identity header-identity-text empty" id="header-identity" title=""></span>' +
+            '<button type="button" role="menuitem" class="nr-nav-menu-item" id="keys-icon-btn" title="Connect key to post">' +
+            '<span class="keys-icon-symbol" aria-hidden="true">🔑</span><span>Keys</span></button>' +
+            '<button type="button" role="menuitem" class="nr-nav-menu-item" id="settings-icon-btn" title="' +
+            escapeHtml(settingsTitle) +
+            '">' +
+            '<span aria-hidden="true">⚙️</span><span>Settings</span></button>' +
+            '<div class="menu-divider" role="presentation"></div>' +
+            buildTrustrootsFooterLinksMenuHtml() +
+            buildMobileAppLinksMarkup()
+        );
+    }
+
+    /** Mobile hamburger menu: same actions as Account menu (separate DOM for small screens). */
+    function buildUserDropdownMenuBodyMobile(settingsTitle) {
+        return (
+            '<span class="nr-nav-menu-identity header-identity-text empty" id="header-identity-mobile" title=""></span>' +
+            '<button type="button" role="menuitem" class="nr-nav-menu-item" id="keys-icon-btn-mobile" title="Connect key to post">' +
+            '<span class="keys-icon-symbol" aria-hidden="true">🔑</span><span>Keys</span></button>' +
+            '<button type="button" role="menuitem" class="nr-nav-menu-item" id="settings-icon-btn-mobile" title="' +
+            escapeHtml(settingsTitle) +
+            '">' +
+            '<span aria-hidden="true">⚙️</span><span>Settings</span></button>' +
+            '<div class="menu-divider" role="presentation"></div>' +
+            buildTrustrootsFooterLinksMenuHtml() +
+            buildMobileAppLinksMarkup()
+        );
     }
 
     var nrNavOpenDropdown = null;
@@ -988,22 +1034,25 @@
         var t = e.target;
         if (!t || !t.closest) return;
         var header = e.currentTarget;
-        if (t.closest('#nav-support-help-btn')) {
-            e.preventDefault();
+        if (t.closest('.nr-nav-support-chat-link')) {
             closeAllNrNavDropdowns();
-            if (typeof global.window.openHelpModal === 'function') {
-                global.window.openHelpModal();
-            } else {
-                try {
-                    global.window.open('https://github.com/Trustroots/nostroots', '_blank', 'noopener,noreferrer');
-                } catch (_) {}
-            }
             return;
         }
         if (t.closest('#nav-map-btn')) {
             e.preventDefault();
             closeAllNrNavDropdowns();
             if (typeof global.window.openSearchUi === 'function') {
+                try {
+                    var bodMap = global.document.body;
+                    if (bodMap && bodMap.classList && bodMap.classList.contains('nr-surface-chat')) {
+                        try {
+                            global.location.hash = '';
+                        } catch (_) {}
+                        if (typeof global.window.applyNrUnifiedHash === 'function') {
+                            void global.window.applyNrUnifiedHash();
+                        }
+                    }
+                } catch (_) {}
                 global.window.openSearchUi();
                 return;
             }
@@ -1027,6 +1076,23 @@
             e.preventDefault();
             closeAllNrNavDropdowns();
             if (typeof global.window.openHostNoteFlow === 'function') {
+                try {
+                    var bodHost = global.document.body;
+                    if (bodHost && bodHost.classList && bodHost.classList.contains('nr-surface-chat')) {
+                        try {
+                            global.location.hash = '';
+                        } catch (_) {}
+                        if (typeof global.window.applyNrUnifiedHash === 'function') {
+                            void global.window.applyNrUnifiedHash();
+                        }
+                        global.setTimeout(function () {
+                            try {
+                                global.window.openHostNoteFlow();
+                            } catch (_) {}
+                        }, 50);
+                        return;
+                    }
+                } catch (_) {}
                 global.window.openHostNoteFlow();
                 return;
             }
@@ -1064,15 +1130,46 @@
         var header = global.document && global.document.getElementById('app-header');
         if (!header) return;
         var settingsTitle = header.getAttribute('data-settings-title') || 'Settings';
+        var hpfx = '';
+        try {
+            if (global.window.NR_WEB_HEADER_PREFIX != null && global.window.NR_WEB_HEADER_PREFIX !== '') {
+                hpfx = String(global.window.NR_WEB_HEADER_PREFIX);
+            }
+        } catch (_) {}
+        var baseHome = hpfx + 'index.html';
+        var convHref = hpfx ? hpfx + 'index.html#chat' : '#chat';
+        var supportChatHref = hpfx ? hpfx + 'index.html#support' : '#support';
 
         var path = '';
         try {
             path = (global.location && global.location.pathname) || '';
         } catch (_) {}
-        var onChat = /chat\.html$/i.test(path) || path.endsWith('/chat.html');
+        var onChat = false;
+        try {
+            var bod = global.document && global.document.body;
+            if (bod && bod.classList && bod.classList.contains('nr-surface-chat')) {
+                onChat = true;
+            }
+        } catch (_) {}
+        if (!onChat) {
+            try {
+                if (/chat\.html$/i.test(path) || path.endsWith('/chat.html')) {
+                    onChat = true;
+                }
+            } catch (_) {}
+        }
         var conversationsAttrs = onChat
-            ? ' href="chat.html" class="nr-nav-link is-active" aria-current="page" data-nr-page-switch="1"'
-            : ' href="chat.html" class="nr-nav-link" data-nr-page-switch="1"';
+            ? ' href="' + convHref + '" class="nr-nav-link is-active" aria-current="page" aria-label="Chats"'
+            : ' href="' + convHref + '" class="nr-nav-link" aria-label="Chats"';
+
+        var svgMsg =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
+        var svgSearch =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
+        var svgHome =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
+        var svgMenu =
+            '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>';
 
         header.setAttribute('aria-label', 'Site');
         header.innerHTML =
@@ -1080,35 +1177,76 @@
             '<img src="https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/vines-top.png" alt="" width="1200" height="400">' +
             '</div>' +
             '<div class="app-header-inner">' +
-            '<a class="app-header-logo-link" href="index.html" data-nr-page-switch="1" aria-label="Nostroots home">' +
-            '<img src="logo.svg" alt="NOSTROOTS" class="app-header-logo" width="175" height="32">' +
+            '<a class="app-header-logo-link" href="' + baseHome + '" data-nr-page-switch="1" aria-label="Nostroots home">' +
+            '<img src="' + hpfx + 'logo.svg" alt="NOSTROOTS" class="app-header-logo" width="175" height="32">' +
             '</a>' +
             '<nav class="nr-nav nr-nav-left" aria-label="Support">' +
             '<div class="nr-nav-dropdown" data-dropdown="support">' +
             '<button type="button" class="nr-nav-dropdown-toggle" id="nav-support-btn" aria-haspopup="menu" aria-expanded="false">' +
             'Support<span class="nr-caret" aria-hidden="true">▾</span></button>' +
             '<div class="nr-nav-menu nr-nav-menu--left" role="menu" id="nav-support-menu" aria-labelledby="nav-support-btn">' +
-            buildSupportDropdownMenuHtml() +
+            buildSupportDropdownMenuHtml(supportChatHref, 'nav-support-chat-link') +
             '</div></div></nav></div>' +
             '<nav class="nr-nav nr-nav-main" aria-label="Main">' +
-            '<a' + conversationsAttrs + '>Conversations</a>' +
-            '<button type="button" class="nr-nav-link" id="nav-map-btn" data-nav="map">Map</button>' +
-            '<button type="button" class="nr-nav-link" id="nav-host-btn" data-nav="host">Host</button>' +
+            '<a' +
+            conversationsAttrs +
+            '><span class="nr-nav-icon" aria-hidden="true">' +
+            svgMsg +
+            '</span><span class="nr-nav-link-text">Chats</span></a>' +
+            '<button type="button" class="nr-nav-link" id="nav-map-btn" data-nav="map" aria-label="Map">' +
+            '<span class="nr-nav-icon" aria-hidden="true">' +
+            svgSearch +
+            '</span><span class="nr-nav-link-text">Map</span></button>' +
+            '<button type="button" class="nr-nav-link" id="nav-host-btn" data-nav="host" aria-label="Host and meet travelers">' +
+            '<span class="nr-nav-icon" aria-hidden="true">' +
+            svgHome +
+            '</span><span class="nr-nav-link-text">Host & meet</span></button>' +
             '<div class="nr-nav-dropdown" data-dropdown="user">' +
             '<button type="button" class="nr-nav-dropdown-toggle nr-nav-user-toggle" id="nav-user-btn" aria-haspopup="menu" aria-expanded="false">' +
             '<span class="nr-nav-user-label">Account</span><span class="nr-caret" aria-hidden="true">▾</span></button>' +
             '<div class="nr-nav-menu nr-nav-menu--right" role="menu" id="nav-user-menu" aria-labelledby="nav-user-btn">' +
-            '<span class="nr-nav-menu-identity header-identity-text empty" id="header-identity" title=""></span>' +
-            '<button type="button" role="menuitem" class="nr-nav-menu-item" id="keys-icon-btn" title="Connect key to post">' +
-            '<span class="keys-icon-symbol" aria-hidden="true">🔑</span><span>Keys</span></button>' +
-            '<button type="button" role="menuitem" class="nr-nav-menu-item" id="settings-icon-btn" title="' + escapeHtml(settingsTitle) + '">' +
-            '<span aria-hidden="true">⚙️</span><span>Settings</span></button>' +
+            buildUserDropdownMenuBody(settingsTitle) +
+            '</div></div>' +
+            '<div class="nr-nav-dropdown nr-nav-dropdown-more" data-dropdown="more">' +
+            '<button type="button" class="nr-nav-dropdown-toggle nr-nav-more-toggle" id="nav-more-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Menu">' +
+            '<span class="nr-nav-icon nr-nav-icon--menu" aria-hidden="true">' +
+            svgMenu +
+            '</span></button>' +
+            '<div class="nr-nav-menu nr-nav-menu--right nr-nav-menu--more" role="menu" id="nav-more-menu" aria-labelledby="nav-more-btn">' +
+            '<div class="nr-nav-menu-section-label" role="presentation">Support</div>' +
+            buildSupportDropdownMenuHtml(supportChatHref, null) +
             '<div class="menu-divider" role="presentation"></div>' +
-            buildTrustrootsFooterLinksMenuHtml() +
-            buildMobileAppLinksMarkup() +
-            '</div></div></nav>';
+            '<div class="nr-nav-menu-section-label" role="presentation">Account</div>' +
+            buildUserDropdownMenuBodyMobile(settingsTitle) +
+            '</div></div>' +
+            '</nav>';
 
         wireNrNavDropdowns(header);
+        // Re-bind each time: fillAppHeader replaces innerHTML (e.g. map/chat shell), which drops prior listeners.
+        function bindKeysOpen(btn) {
+            if (!btn) return;
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                closeAllNrNavDropdowns();
+                if (typeof global.window.openKeysModal === 'function') {
+                    global.window.openKeysModal();
+                }
+            });
+        }
+        function bindSettingsOpen(btn) {
+            if (!btn) return;
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                closeAllNrNavDropdowns();
+                if (typeof global.window.openSettingsModal === 'function') {
+                    global.window.openSettingsModal();
+                }
+            });
+        }
+        bindKeysOpen(global.document.getElementById('keys-icon-btn'));
+        bindKeysOpen(global.document.getElementById('keys-icon-btn-mobile'));
+        bindSettingsOpen(global.document.getElementById('settings-icon-btn'));
+        bindSettingsOpen(global.document.getElementById('settings-icon-btn-mobile'));
     }
 
     function escapeHtml(s) {
@@ -1287,7 +1425,11 @@
         var doc = global.document;
         if (!doc || !doc.body) return;
         if (doc.getElementById('keys-modal')) return; /* already injected */
-        fetch('modals-keys-settings.html')
+        var modalsPath = 'modals-keys-settings.html';
+        try {
+            if (global.window.NR_WEB_MODALS_PATH) modalsPath = String(global.window.NR_WEB_MODALS_PATH);
+        } catch (_) {}
+        fetch(modalsPath)
             .then(function (r) { return r.text(); })
             .then(function (html) {
                 if (doc.body && !doc.getElementById('keys-modal')) {

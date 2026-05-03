@@ -1,12 +1,22 @@
 import { test, expect } from './fixtures.js';
 
-/** Keys / Settings live in the Account dropdown in the shared header */
+function settingsMenuBtn(page) {
+  return page.locator('#settings-icon-btn').or(page.locator('#settings-icon-btn-mobile'));
+}
+
+/** Keys / Settings live in the Account or mobile “more” menu in the shared header */
 async function openUserMenuIfNeeded(page) {
-  const settingsBtn = page.locator('#settings-icon-btn');
+  const settingsBtn = settingsMenuBtn(page);
   if (await settingsBtn.isVisible()) return;
   const menuBtn = page.locator('#nav-user-btn');
   if (await menuBtn.isVisible()) {
     await menuBtn.click();
+    await page.waitForTimeout(200);
+    return;
+  }
+  const moreBtn = page.locator('#nav-more-btn');
+  if (await moreBtn.isVisible()) {
+    await moreBtn.click();
     await page.waitForTimeout(200);
   }
 }
@@ -197,9 +207,10 @@ test.describe('Settings Management', () => {
     }
 
     await settingsBtn.click();
-    const toggle = page.locator('#theme-toggle');
-    await expect(toggle).toBeAttached();
-    await toggle.check();
+    const settingsModal = page.locator('#settings-modal');
+    await expect(settingsModal).toBeVisible();
+    // Checkbox is visually hidden (opacity 0); toggle via the switch label the user actually clicks.
+    await settingsModal.locator('label.toggle-switch').click();
 
     const afterDark = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
     expect(afterDark).toBe('dark');

@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel — Trustroots Circles</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+    --background: hsl(40, 28%, 96%);
+    --foreground: hsl(168, 25%, 18%);
+    --card: hsl(45, 22%, 98%);
+    --primary: hsl(168, 48%, 32%);
+    --primary-foreground: hsl(45, 30%, 98%);
+    --secondary: hsl(88, 18%, 92%);
+    --secondary-foreground: hsl(168, 25%, 20%);
+    --muted: hsl(40, 20%, 93%);
+    --muted-foreground: hsl(168, 15%, 38%);
+    --destructive: hsl(12, 48%, 48%);
+    --border: hsl(168, 20%, 80%);
+    --border-outer: hsl(168, 45%, 28%);
+    --input: hsl(40, 20%, 91%);
+    --radius: 0.875rem;
+    --radius-lg: 1.25rem;
+    --content-link: hsl(168, 62%, 36%);
+    --content-link-visited: hsl(178, 46%, 34%);
+    --content-link-hover: hsl(168, 72%, 28%);
+}
+[data-theme="dark"] {
+    --background: hsl(30, 14%, 11%);
+    --foreground: hsl(40, 28%, 92%);
+    --card: hsl(30, 12%, 15%);
+    --primary: hsl(88, 22%, 42%);
+    --primary-foreground: hsl(30, 14%, 11%);
+    --secondary: hsl(30, 12%, 22%);
+    --secondary-foreground: hsl(40, 28%, 92%);
+    --muted: hsl(30, 10%, 20%);
+    --muted-foreground: hsl(40, 15%, 62%);
+    --destructive: hsl(12, 45%, 52%);
+    --border: hsl(30, 12%, 24%);
+    --border-outer: hsl(88, 18%, 35%);
+    --input: hsl(30, 12%, 20%);
+    --content-link: hsl(188, 78%, 68%);
+    --content-link-visited: hsl(196, 65%, 72%);
+    --content-link-hover: hsl(188, 85%, 76%);
+}
+body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    margin: 0;
+    height: 100vh;
+    overflow: hidden;
+}
+.pixel-site-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    flex-shrink: 0;
+}
+.pixel-site-header .pixel-home-link {
+    color: var(--content-link);
+    text-decoration: none;
+    font-weight: 600;
+    white-space: nowrap;
+}
+.pixel-site-header .pixel-home-link:hover { color: var(--content-link-hover); }
+.pixel-site-title { font-size: 1.1rem; flex: 1; margin: 0; min-width: 0; }
+.pixel-site-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.pixel-header-identity {
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.pixel-header-identity.empty { display: none; }
+#keys-modal, #settings-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+#keys-modal.active, #settings-modal.active { display: flex; }
+#keys-modal .modal-content, #settings-modal .modal-content {
+    background: var(--card);
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    max-width: 500px;
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    border: 2px solid var(--border-outer, var(--border));
+    position: relative;
+}
+#keys-modal .modal-content {
+    max-width: min(96vw, 820px);
+    width: min(96vw, 820px);
+    padding: 2rem 2.25rem;
+}
+#keys-modal .modal-content::after, #settings-modal .modal-content::after {
+    content: "";
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.75rem;
+    width: 80px;
+    height: 80px;
+    background: url("https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/mushroom-single.png") no-repeat center/contain;
+    opacity: 0.12;
+    pointer-events: none;
+}
+#keys-modal .modal-header, #settings-modal .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+#keys-modal .keys-modal-header-titles { flex: 1; min-width: 0; }
+#keys-modal .modal-header h2, #settings-modal .modal-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+}
+#keys-modal .modal-close, #settings-modal .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--muted-foreground);
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: calc(var(--radius) - 2px);
+}
+#keys-modal .modal-close:hover, #settings-modal .modal-close:hover {
+    background: var(--secondary);
+    color: var(--foreground);
+}
+#keys-modal .modal-content a:not(.btn):not(.copy-btn):not(.github-icon-link):not(.settings-footer-meta-value),
+#settings-modal .modal-content a:not(.btn):not(.copy-btn):not(.github-icon-link):not(.settings-footer-meta-value) {
+    color: var(--content-link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+.keys-option-section {
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    padding: 1.25rem;
+}
+.keys-option-heading { margin: 0 0 0.5rem 0; font-size: 0.9375rem; font-weight: 600; }
+.keys-onboarding-option-text, .keys-onboarding-two-options-intro {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0 0 0.75rem 0;
+}
+.keys-import-npub-hint {
+    margin: 0 0 0.75rem 0;
+    padding: 0.55rem 0.65rem;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--foreground);
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+}
+.action-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.key-section-divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
+#keys-modal .settings-section, #settings-modal .settings-section {
+    background: var(--card);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--border);
+}
+#keys-modal .settings-section h2, #settings-modal .settings-section h2 {
+    margin-bottom: 1rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+}
+#keys-modal .form-group, #settings-modal .form-group { margin-bottom: 1rem; }
+#keys-modal .form-group label, #settings-modal .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+#keys-modal .form-group input, #keys-modal .form-group textarea,
+#settings-modal .form-group input, #settings-modal .form-group textarea {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--input);
+    border-radius: calc(var(--radius) - 2px);
+    font-size: 0.875rem;
+    background: var(--background);
+    color: var(--foreground);
+}
+#keys-modal .keys-step-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--muted-foreground);
+    font-weight: 400;
+    line-height: 1.4;
+}
+#keys-modal .key-input-wrapper, #settings-modal .key-input-wrapper {
+    position: relative;
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+#keys-modal .key-input-wrapper input[readonly] { background: var(--muted); cursor: default; }
+#keys-modal .copy-btn, #settings-modal .copy-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    padding: 0.25rem 0.5rem;
+    border-radius: calc(var(--radius) - 2px);
+}
+#settings-modal .relays-list { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem; }
+#settings-modal .relay-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+}
+.relay-status-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: #6b7280;
+}
+.relay-status-indicator.connected { background: var(--primary) !important; }
+.relay-status-indicator.connecting { background: #f59e0b !important; animation: modals-pulse 2s infinite; }
+.relay-status-indicator.disconnected { background: #6b7280 !important; }
+.relay-status-indicator.error { background: var(--destructive) !important; }
+@keyframes modals-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.relay-url { flex: 1; font-family: Monaco, Menlo, monospace; font-size: 0.75rem; word-break: break-all; }
+#settings-modal .relay-url-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.25rem; }
+#settings-modal .relay-privacy-hint { font-size: 0.7rem; color: var(--muted-foreground); }
+.relay-controls { display: flex; align-items: center; gap: 0.75rem; }
+#settings-modal .relay-post-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--muted-foreground);
+}
+#settings-modal .relay-delete-btn {
+    border: none;
+    border-radius: calc(var(--radius) - 2px);
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+}
+.layer-control {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 8px 0;
+    padding: 8px 4px;
+}
+.layer-control label:not(.toggle-switch) {
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.875rem;
+    flex: 1;
+}
+.toggle-switch { position: relative; width: 51px; height: 31px; cursor: pointer; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: var(--muted);
+    border-radius: 31px;
+    transition: background-color 0.3s ease;
+}
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 27px;
+    width: 27px;
+    left: 2px;
+    bottom: 2px;
+    background: var(--card);
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+.toggle-switch input:checked + .toggle-slider { background: #34c759; }
+.toggle-switch input:checked + .toggle-slider:before { transform: translateX(20px); }
+#settings-modal .settings-footer-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 0.75rem;
+}
+#settings-modal .github-icon-link { display: inline-flex; color: var(--foreground); opacity: 0.5; }
+#settings-modal .github-icon-link:hover { opacity: 1; }
+.btn-danger { background: var(--destructive); color: #fff; }
+.pixel-page { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.pixel-main { display: flex; flex: 1; min-height: 0; }
+.pixel-editor { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; gap: 1rem; min-width: 0; }
+.pixel-feed { width: 320px; flex-shrink: 0; border-left: 1px solid var(--border); background: var(--card); display: flex; flex-direction: column; overflow: hidden; }
+.pixel-feed h3 { padding: 0.75rem 1rem; font-size: 1rem; border-bottom: 1px solid var(--border); }
+.pixel-feed-list { flex: 1; overflow-y: auto; padding: 0.5rem; }
+.pixel-feed-item { padding: 0.5rem; border-radius: var(--radius); margin-bottom: 0.5rem; background: var(--muted); cursor: pointer; }
+.pixel-feed-item:hover { background: var(--secondary); }
+.pixel-feed-preview { width: 64px; height: 64px; image-rendering: pixelated; border: 1px solid var(--border); border-radius: 4px; margin-bottom: 0.25rem; }
+.pixel-feed-meta { font-size: 0.75rem; color: var(--muted-foreground); }
+.pixel-feed-meta .location { color: var(--primary); }
+.pixel-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
+.pixel-palette { display: flex; gap: 2px; }
+.pixel-swatch { width: 28px; height: 28px; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; cursor: pointer; }
+.pixel-swatch:hover { transform: translateY(-1px); }
+.pixel-swatch.selected { border-color: var(--foreground); box-shadow: 0 0 0 1px var(--foreground); }
+#pixel-grid-wrap { border: 2px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--muted); }
+#pixel-grid { display: block; image-rendering: pixelated; cursor: crosshair; touch-action: none; }
+.pixel-publish-section { display: flex; flex-direction: column; gap: 0.5rem; max-width: 320px; }
+.pixel-publish-section input[type="text"] {
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--input);
+    color: var(--foreground);
+}
+.pixel-publish-section label { font-size: 0.875rem; display: flex; align-items: center; gap: 0.5rem; }
+.pixel-status { font-size: 0.875rem; color: var(--muted-foreground); min-height: 1.5em; }
+.btn { padding: 0.5rem 1rem; border: none; border-radius: calc(var(--radius) - 2px); background: var(--primary); color: var(--primary-foreground); cursor: pointer; font-family: inherit; font-weight: 500; }
+.btn:hover { filter: brightness(1.1); }
+.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-secondary { background: var(--secondary); color: var(--secondary-foreground); }
+.circle-tabs { display: flex; gap: 2px; }
+.circle-tabs button { padding: 0.35rem 0.75rem; border: 1px solid var(--border); background: var(--muted); color: var(--foreground); border-radius: 4px; cursor: pointer; font-size: 0.875rem; }
+.circle-tabs button.active { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+
+    </style>
+</head>
+<body>
+    <div class="pixel-page">
+        <header class="pixel-site-header" id="app-header">
+            <a class="pixel-home-link" href="../index.html">← Map</a>
+            <h1 class="pixel-site-title">Pixel — Circles</h1>
+            <span id="header-identity" class="pixel-header-identity empty" title=""></span>
+            <nav class="pixel-site-actions">
+                <button type="button" class="btn btn-secondary" id="keys-icon-btn" title="Keys">Keys</button>
+                <button type="button" class="btn btn-secondary" id="settings-icon-btn" title="Settings">Settings</button>
+            </nav>
+        </header>
+
+        <div class="pixel-main">
+            <div class="pixel-editor">
+                <div class="circle-tabs" id="circle-tabs"></div>
+                <div class="pixel-toolbar">
+                    <div class="pixel-palette" id="pixel-palette"></div>
+                    <button type="button" class="btn btn-secondary" id="pixel-clear">Clear</button>
+                </div>
+                <div id="pixel-grid-wrap">
+                    <canvas id="pixel-grid" width="256" height="256"></canvas>
+                </div>
+                <div class="pixel-publish-section">
+                    <input type="text" id="pixel-title" placeholder="Title (optional)">
+                    <input type="text" id="pixel-where" placeholder="Where (city/place)">
+                    <label><input type="checkbox" id="pixel-is-invite"> This is an invite / jam (meetup)</label>
+                    <input type="text" id="pixel-when" placeholder="When (e.g. Thursday 8pm)" style="display:none">
+                    <button type="button" class="btn" id="pixel-publish">Publish to circle</button>
+                    <div class="pixel-status" id="pixel-status"></div>
+                </div>
+            </div>
+            <aside class="pixel-feed">
+                <h3>Feed</h3>
+                <div class="pixel-feed-list" id="pixel-feed-list"></div>
+            </aside>
+        </div>
+    </div>
+
+<!-- Keys Modal (shared by index.html and chat.html) -->
+<div class="modal" id="keys-modal" onclick="if(event.target===this)typeof closeKeysModal==='function'&&closeKeysModal()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="keys-modal-header-titles">
+                <h2 id="keys-modal-header-title" style="display: none;">Keys</h2>
+                <h2 id="keys-welcome-modal-title" style="display: none;">Welcome to Nostroots</h2>
+            </div>
+            <button class="modal-close" id="keys-modal-close-btn" onclick="closeKeysModal()" type="button">&times;</button>
+        </div>
+
+        <!-- Welcome message (only shown when no key is set) -->
+        <div id="keys-welcome-section" style="display: none; margin-bottom: 2rem;">
+            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">Nostroots is an attempt to rebuild Trustroots on open protocols so travelers and hosts keep more power: less should ride on whoever runs the core Trustroots service, and anyone should be able to build new applications on the same trust network—more freedom for users and other developers alike.</p>
+            <p class="keys-onboarding-two-options-intro"><strong>Two ways to get started:</strong> import an existing private key, or generate a new one below.</p>
+        </div>
+
+        <!-- Import nsec or mnemonic (only shown when no key) -->
+        <div class="keys-option-section" id="keys-import-section" style="display: none;">
+            <h3 class="keys-option-heading">Option 1: Import an existing key</h3>
+            <p class="keys-onboarding-option-text">If you already have a Nostr private key (nsec), paste it below (for example from the Nostroots mobile app or your password manager).</p>
+            <p class="keys-import-npub-hint" role="note"><strong>npub1…</strong> is your <strong>public</strong> id. It cannot log you in here. Use <strong>nsec1…</strong> or your <strong>recovery phrase</strong>.</p>
+            <div class="keys-option-content">
+                <textarea id="onboarding-import" placeholder="Enter nsec1... or mnemonic phrase (12 or 24 words)..." onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); onboardingImport();}" style="width: 100%; min-height: 80px; margin-bottom: 0.75rem; font-family: monospace; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); background: var(--input); color: var(--foreground);"></textarea>
+                <button class="btn btn-secondary" onclick="onboardingImport()" type="button" style="width: 100%;">Import</button>
+            </div>
+        </div>
+
+        <!-- Generate New Key (only shown when no key) -->
+        <div class="keys-option-section" id="keys-generate-section" style="display: none;">
+            <h3 class="keys-option-heading">Option 2: Generate a new key</h3>
+            <p id="keys-generate-intro" class="keys-onboarding-option-text">If you do not have one yet, generate a key below, then export and store your nsec in your password manager. If you do not have a password manager yet, we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>.</p>
+            <div class="keys-option-content">
+                <button class="btn btn-secondary" onclick="onboardingGenerate()" type="button" style="width: 100%;">Generate New Key</button>
+            </div>
+        </div>
+
+        <!-- Keys section (only shown when key is set) -->
+        <div class="settings-section" id="keys-manage-section" style="display: none;">
+            <div class="form-group keys-step-group">
+                <label class="keys-step-label">
+                    <input type="checkbox" id="keys-step-backup" disabled>
+                    <span>Export your <strong>nsec</strong> and copy it into your password manager (we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>).</span>
+                </label>
+            </div>
+
+            <!-- Local Key Actions (above npub) -->
+            <div class="form-group" id="nsec-actions-group" style="display: none;">
+                <div class="action-buttons">
+                    <button class="btn" onclick="exportNsec()" type="button">Export nsec</button>
+                    <button class="btn btn-danger" onclick="deleteNsec()" type="button">Delete Key</button>
+                </div>
+            </div>
+
+            <!-- Public Key Display -->
+            <div class="form-group" id="npub-display-group" style="display: none;">
+                <label>Public Key (npub)</label>
+                <div class="key-input-wrapper">
+                    <input type="text" id="npub-display" readonly>
+                    <button class="copy-btn" id="copy-npub-btn" onclick="copyPublicKey()" title="Copy to clipboard" type="button">
+                        <span id="copy-npub-text">📋</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="key-section-divider" id="key-section-divider" style="display: none;"></div>
+
+            <!-- Update Trustroots Profile button -->
+            <div class="form-group" id="update-trustroots-profile-group" style="display: none; margin-top: 0.75rem;">
+                <label class="keys-step-label">
+                    <input type="checkbox" id="keys-step-profile" disabled>
+                    <span>Add your npub to your Trustroots profile.</span>
+                </label>
+                <button class="btn btn-secondary" onclick="updateTrustrootsProfile()" type="button" style="width: 100%;">
+                    <span style="margin-right: 0.5rem;">🌐</span>
+                    Update Trustroots Profile
+                </button>
+            </div>
+
+            <!-- Import/Generate Section -->
+            <div class="form-group" id="no-nsec-actions-group">
+                <label>Import nsec</label>
+                <input type="text" id="nsec-import" placeholder="nsec1..." onkeydown="if(event.key==='Enter'){event.preventDefault(); importNsec();}">
+                <small style="display: block; margin-top: 0.5rem; color: var(--muted-foreground);">Paste your private key (nsec) here. If you do not have one yet, generate a new key, then export and store your nsec in your password manager (we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>).</small>
+                <button class="btn" onclick="importNsec()" type="button" style="margin-top: 0.5rem;">Import</button>
+            </div>
+
+            <div class="form-group" id="generate-key-group">
+                <button class="btn" id="generate-key-btn" onclick="generateKeyPair()" type="button">Generate New Key</button>
+            </div>
+        </div>
+
+        <!-- Trustroots username section (only shown when key is set) -->
+        <div class="settings-section" id="keys-trustroots-section" style="display: none;">
+            <h2>Trustroots username</h2>
+            <label class="keys-step-label keys-step-group">
+                <input type="checkbox" id="keys-step-username" disabled>
+                <span id="keys-username-guidance-text">Enter your Trustroots username and verify it.</span>
+            </label>
+            <small style="display: block; margin: -0.25rem 0 0.75rem 0; color: var(--muted-foreground);">This links your Trustroots identity so Trustroots relays can verify your posts.</small>
+            <div class="form-group">
+                <input type="text" id="trustroots-username" placeholder="your-username" onkeydown="if(event.key === 'Enter') linkTrustrootsProfile()">
+                <div id="username-nostr-indicator" class="username-nostr-indicator" style="display: none;">
+                    <small>Trustroots profile linked successfully. You can now close this modal and explore the application. Please make sure you have a safe backup of your nsec (for example in your password manager). This username is from a Nostr event and cannot be edited here.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Settings Modal (shared by index.html and chat.html) -->
+<div class="modal" id="settings-modal" onclick="if(event.target===this)typeof closeSettingsModal==='function'&&closeSettingsModal()">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Settings</h2>
+            <button class="modal-close" onclick="closeSettingsModal()" type="button">&times;</button>
+        </div>
+        <div class="settings-section">
+            <h2>Appearance</h2>
+            <div class="layer-control">
+                <label for="theme-toggle">Dark mode</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="theme-toggle" aria-describedby="theme-sync-status">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <small id="theme-sync-status" style="display: block; margin-top: 0.5rem; color: var(--muted-foreground);"></small>
+        </div>
+        <div class="settings-section">
+            <h2>Relays</h2>
+            <div id="relays-list" class="relays-list"></div>
+            <div class="form-group" style="margin-top: 1rem;">
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="new-relay-url" placeholder="wss://relay.example.com" style="flex: 1;" onkeydown="if(event.key === 'Enter') addRelay()">
+                    <button class="btn" onclick="addRelay()" type="button">Add Relay</button>
+                </div>
+            </div>
+        </div>
+        <div class="settings-section" id="settings-notifications-section">
+            <!-- Filled by renderSettingsNotificationsSection() when present -->
+        </div>
+
+        <div class="settings-footer-wrap">
+            <a href="https://github.com/Trustroots/nostroots/tree/main/nr-web" target="_blank" rel="noopener noreferrer" class="github-icon-link">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                </svg>
+            </a>
+            <div class="settings-footer-meta" aria-live="polite">
+                <div class="settings-footer-meta-row">
+                    <span>Last commit (nr-web)</span>
+                    <a id="settings-last-commit-datetime" href="https://github.com/Trustroots/nostroots/commits/main/nr-web" target="_blank" rel="noopener noreferrer" class="settings-footer-meta-value">loading...</a>
+                </div>
+                <div class="settings-footer-meta-row">
+                    <span>Last deploy (GitHub Pages)</span>
+                    <a id="settings-last-deploy-datetime" href="https://github.com/Trustroots/nostroots/actions/workflows/deploy-web.yml" target="_blank" rel="noopener noreferrer" class="settings-footer-meta-value">loading...</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <script>
+(function (global) {
+'use strict';
+    // --- Shared relay settings helpers (index + chat) ---
+    var RELAY_URLS_STORAGE_KEY = 'relay_urls';
+    var RELAY_WRITE_ENABLED_STORAGE_KEY = 'relay_write_enabled';
+    var DEFAULT_RELAYS = ['wss://nip42.trustroots.org', 'wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
+
+    function getRelayUrls(defaultRelays) {
+        var saved = null;
+        try { saved = global.localStorage.getItem(RELAY_URLS_STORAGE_KEY); } catch (_) {}
+        var list = null;
+        if (saved) {
+            list = saved.split('\n').filter(function (url) { return !!(url && url.trim()); });
+        } else {
+            list = Array.isArray(defaultRelays) ? defaultRelays.slice() : [];
+        }
+
+        // Dev ergonomics: when running nr-web on localhost, include local relay by default
+        // so pages see the same events as nip42-nip5-test.html.
+        var isLocalHost = false;
+        try {
+            var host = (global.location && global.location.hostname) ? global.location.hostname : '';
+            isLocalHost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+        } catch (_) {}
+        if (isLocalHost) {
+            var localRelay = 'wss://nip42.trustroots.org';
+            var hasLocal = list.some(function (url) {
+                return String(url).trim().toLowerCase() === localRelay;
+            });
+            if (!hasLocal) list = [localRelay].concat(list);
+        }
+
+        return list;
+    }
+
+    function getDefaultRelays() {
+        return DEFAULT_RELAYS.slice();
+    }
+
+    function saveRelayUrls(urls) {
+        var list = Array.isArray(urls) ? urls.filter(function (url) { return !!(url && url.trim()); }) : [];
+        try {
+            if (list.length) global.localStorage.setItem(RELAY_URLS_STORAGE_KEY, list.join('\n'));
+            else global.localStorage.removeItem(RELAY_URLS_STORAGE_KEY);
+        } catch (_) {}
+        return list;
+    }
+
+    function getRelayWritePreferences() {
+        try {
+            var raw = global.localStorage.getItem(RELAY_WRITE_ENABLED_STORAGE_KEY);
+            if (!raw) return {};
+            var parsed = JSON.parse(raw);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function saveRelayWritePreferences(urls, relayWriteEnabledMap) {
+        var preferences = {};
+        var list = Array.isArray(urls) ? urls : [];
+        list.forEach(function (url) {
+            var canWrite = relayWriteEnabledMap && typeof relayWriteEnabledMap.get === 'function'
+                ? relayWriteEnabledMap.get(url) !== false
+                : true;
+            preferences[url] = canWrite;
+        });
+        try { global.localStorage.setItem(RELAY_WRITE_ENABLED_STORAGE_KEY, JSON.stringify(preferences)); } catch (_) {}
+        return preferences;
+    }
+
+    function isLocalRelayUrl(url) {
+        try {
+            var parsed = new URL(url);
+            var host = parsed.hostname;
+            return host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function normalizeRelayUrlInput(rawUrl, defaultScheme) {
+        var input = (rawUrl || '').trim();
+        if (!input) return { ok: false, value: '', error: 'empty' };
+        if (input.indexOf('ws://') === 0 || input.indexOf('wss://') === 0) {
+            return { ok: true, value: input };
+        }
+        if (input.indexOf('://') !== -1) {
+            return { ok: false, value: input, error: 'invalid_scheme' };
+        }
+        var scheme = defaultScheme === 'wss' ? 'wss://' : 'ws://';
+        return { ok: true, value: scheme + input };
+    }
+
+    function relayStatusText(statusClass) {
+        if (statusClass === 'connected') return 'Connected';
+        if (statusClass === 'connecting') return 'Connecting...';
+        if (statusClass === 'error') return 'Error';
+        return 'Disconnected';
+    }
+
+    function relayAccessHint(url) {
+        if (!url) return '';
+        var normalized = String(url).trim().toLowerCase();
+        if (normalized === 'wss://nip42.trustroots.org') {
+            return '🔐 Auth relay (NIP-42): reading from and writing to this relay requires a Trustroots profile linked to your Nostr identity.';
+        }
+        if (normalized === 'wss://relay.trustroots.org' || normalized === 'wss://relay.nomadwiki.org') {
+            return '🌍 PUBLIC relay: anyone can read this. If "Post" is enabled, your message/note is publicly visible.';
+        }
+        return '';
+    }
+
+    function isPublicRelayUrl(url) {
+        if (!url) return false;
+        var normalized = String(url).trim().toLowerCase();
+        return normalized === 'wss://relay.trustroots.org' || normalized === 'wss://relay.nomadwiki.org';
+    }
+
+    function getDefaultRelayPostEnabled(url) {
+        if (!url) return false;
+        var normalized = String(url).trim().toLowerCase();
+        return normalized === 'wss://nip42.trustroots.org';
+    }
+
+    function renderRelayPostWarnings(container, urls, relayWriteEnabledMap, options) {
+        if (!container) return;
+        var opts = options || {};
+        var disabledWarningId = opts.disabledWarningId || 'relay-post-disabled-warning';
+        var publicWarningId = opts.publicWarningId || 'relay-post-public-warning';
+        var disabledClassName = opts.disabledClassName || 'status error';
+        var publicClassName = opts.publicClassName || 'status info';
+        var disabledMessage = opts.disabledMessage || 'Posting is off. Enable "Post" for at least one relay to publish notes. You can still read notes.';
+        var publicMessage = opts.publicMessage || 'PUBLIC posting is enabled. Anything posted there is publicly visible.';
+        var pointerEvents = opts.pointerEvents || '';
+        var list = Array.isArray(urls) ? urls : [];
+        var hasWritableRelay = list.some(function (url) {
+            return relayWriteEnabledMap && typeof relayWriteEnabledMap.get === 'function'
+                ? relayWriteEnabledMap.get(url) !== false
+                : true;
+        });
+        var shouldShowDisabled = list.length > 0 && !hasWritableRelay;
+        var hasPublicWritableRelay = list.some(function (url) {
+            var writable = relayWriteEnabledMap && typeof relayWriteEnabledMap.get === 'function'
+                ? relayWriteEnabledMap.get(url) !== false
+                : true;
+            return writable && isPublicRelayUrl(url);
+        });
+
+        var disabledEl = global.document.getElementById(disabledWarningId);
+        if (!shouldShowDisabled) {
+            if (disabledEl) disabledEl.remove();
+        } else {
+            if (!disabledEl) {
+                disabledEl = global.document.createElement('div');
+                disabledEl.id = disabledWarningId;
+                disabledEl.className = disabledClassName;
+                disabledEl.style.marginBottom = '0.5rem';
+                if (pointerEvents) disabledEl.style.pointerEvents = pointerEvents;
+                container.parentNode && container.parentNode.insertBefore(disabledEl, container);
+            }
+            disabledEl.textContent = disabledMessage;
+        }
+
+        var publicEl = global.document.getElementById(publicWarningId);
+        if (!hasPublicWritableRelay) {
+            if (publicEl) publicEl.remove();
+        } else {
+            if (!publicEl) {
+                publicEl = global.document.createElement('div');
+                publicEl.id = publicWarningId;
+                publicEl.className = publicClassName;
+                publicEl.style.marginBottom = '0.5rem';
+                if (pointerEvents) publicEl.style.pointerEvents = pointerEvents;
+                container.parentNode && container.parentNode.insertBefore(publicEl, container);
+            }
+            publicEl.textContent = publicMessage;
+        }
+    }
+
+    function initializeRelaySettingsState(urls, relayWriteEnabledMap, statusMap, options) {
+        var opts = options || {};
+        var list = Array.isArray(urls) ? urls : [];
+        var status = opts.status || 'disconnected';
+        var savePreferences = opts.savePreferences !== false;
+        var writePreferences = getRelayWritePreferences();
+        list.forEach(function (url) {
+            var hasSavedPreference = Object.prototype.hasOwnProperty.call(writePreferences, url);
+            var canWrite = hasSavedPreference
+                ? writePreferences[url] !== false
+                : getDefaultRelayPostEnabled(url);
+            if (relayWriteEnabledMap && typeof relayWriteEnabledMap.set === 'function') {
+                relayWriteEnabledMap.set(url, canWrite);
+            }
+            if (statusMap && typeof statusMap.set === 'function') {
+                var current = statusMap.get(url) || { status: status, canWrite: true };
+                statusMap.set(url, { status: status, canWrite: canWrite !== false ? canWrite : false, previousStatus: current.status });
+            }
+        });
+        if (savePreferences) {
+            saveRelayWritePreferences(list, relayWriteEnabledMap);
+        }
+    }
+
+    function getPublishRelayUrls(urls, relayWriteEnabledMap, defaultRelays) {
+        var configured = Array.isArray(urls) ? urls.filter(function (url) { return !!(url && String(url).trim()); }) : [];
+        var writable = configured.filter(function (url) {
+            return relayWriteEnabledMap && typeof relayWriteEnabledMap.get === 'function'
+                ? relayWriteEnabledMap.get(url) !== false
+                : true;
+        });
+        if (writable.length > 0) return writable;
+        if (configured.length > 0) return configured;
+        return Array.isArray(defaultRelays) ? defaultRelays.slice() : [];
+    }
+
+    function renderRelaysList(container, options) {
+        if (!container) return;
+        var opts = options || {};
+        var urls = Array.isArray(opts.urls) ? opts.urls : [];
+        var statusMap = opts.statusMap;
+        var relayWriteEnabledMap = opts.relayWriteEnabledMap;
+        var allowPostToggle = opts.allowPostToggle !== false;
+        var allowRemove = opts.allowRemove !== false;
+        var removeButtonLabel = opts.removeButtonLabel || 'DELETE';
+        var removeHandlerName = opts.removeHandlerName || 'removeRelay';
+        var toggleHandlerName = opts.toggleHandlerName || 'toggleRelayWriteForEncodedUrl';
+        var emptyMessage = opts.emptyMessage || 'No relays configured';
+        var showLocalPrivacyHint = opts.showLocalPrivacyHint !== false;
+        var requireSigningForConnected = opts.requireSigningForConnected === true;
+        var hasSigningCapability = opts.hasSigningCapability !== false;
+
+        container.innerHTML = '';
+        if (!urls.length) {
+            container.innerHTML = '<p style="color: var(--muted-foreground); font-size: 0.875rem; padding: 1rem; text-align: center;">' + escapeHtml(emptyMessage) + '</p>';
+            return;
+        }
+
+        urls.forEach(function (url) {
+            var status = statusMap && typeof statusMap.get === 'function'
+                ? (statusMap.get(url) || { status: 'disconnected', canWrite: true })
+                : { status: 'disconnected', canWrite: true };
+            var statusClass = (status && status.status) ? status.status : 'disconnected';
+            var statusText = relayStatusText(statusClass);
+            var indicatorStatusClass = statusClass;
+            var indicatorStatusText = statusText;
+            if (requireSigningForConnected && statusClass === 'connected' && !hasSigningCapability) {
+                indicatorStatusClass = 'disconnected';
+                indicatorStatusText = 'Connected (no nsec/signer)';
+            }
+            var postEnabled = relayWriteEnabledMap && typeof relayWriteEnabledMap.get === 'function'
+                ? relayWriteEnabledMap.get(url) !== false
+                : (status && status.canWrite !== false);
+            var encodedUrl = encodeURIComponent(url);
+            var accessHint = relayAccessHint(url);
+            var localPrivacyHint = showLocalPrivacyHint && isLocalRelayUrl(url)
+                ? '<div class="relay-privacy-hint">🔐 More private (local relay)</div>'
+                : '';
+            var relayHintHtml = accessHint
+                ? '<div class="relay-privacy-hint">' + escapeHtml(accessHint) + '</div>'
+                : localPrivacyHint;
+            var postToggleHtml = allowPostToggle
+                ? '<label class="relay-post-toggle" title="When off, this relay is read-only">' +
+                  '<input type="checkbox" ' + (postEnabled ? 'checked' : '') +
+                  ' onchange="' + escapeHtml(toggleHandlerName) + '(\'' + encodedUrl + '\', this.checked)">' +
+                  '<span>Post</span></label>'
+                : '';
+            var removeButtonHtml = allowRemove
+                ? '<button class="relay-delete-btn" onclick="' + escapeHtml(removeHandlerName) + '(decodeURIComponent(\'' + encodedUrl + '\'))">' +
+                  escapeHtml(removeButtonLabel) + '</button>'
+                : '';
+
+            var item = global.document.createElement('div');
+            item.className = 'relay-item';
+            item.innerHTML =
+                '<div class="relay-status-indicator ' + escapeHtml(indicatorStatusClass) + '" title="' + escapeHtml(indicatorStatusText) + '"></div>' +
+                '<div class="relay-url-wrap"><div class="relay-url">' + escapeHtml(url) + '</div>' + relayHintHtml + '</div>' +
+                '<div class="relay-controls">' + postToggleHtml + removeButtonHtml + '</div>';
+            container.appendChild(item);
+        });
+    }
+
+    global.NrWebRelaySettings = {
+        RELAY_URLS_STORAGE_KEY: RELAY_URLS_STORAGE_KEY,
+        RELAY_WRITE_ENABLED_STORAGE_KEY: RELAY_WRITE_ENABLED_STORAGE_KEY,
+        getRelayUrls: getRelayUrls,
+        getDefaultRelays: getDefaultRelays,
+        saveRelayUrls: saveRelayUrls,
+        getRelayWritePreferences: getRelayWritePreferences,
+        saveRelayWritePreferences: saveRelayWritePreferences,
+        getDefaultRelayPostEnabled: getDefaultRelayPostEnabled,
+        isPublicRelayUrl: isPublicRelayUrl,
+        isLocalRelayUrl: isLocalRelayUrl,
+        normalizeRelayUrlInput: normalizeRelayUrlInput,
+        renderRelaysList: renderRelaysList,
+        renderRelayPostWarnings: renderRelayPostWarnings,
+        initializeRelaySettingsState: initializeRelaySettingsState,
+        getPublishRelayUrls: getPublishRelayUrls
+    };
+    // --- Shared NIP-42 WS auth subscription helper (index + chat + pixel) ---
+
+    function normalizeRelayTagUrl(relayUrl) {
+        var relayTag = (relayUrl || '').trim();
+        try {
+            var parsed = new URL(relayTag);
+            if ((parsed.pathname === '' || parsed.pathname === '/') && !parsed.search && !parsed.hash) {
+                relayTag = parsed.protocol + '//' + parsed.host;
+            } else {
+                relayTag = parsed.toString();
+            }
+        } catch (_) {}
+        return relayTag;
+    }
+
+    var NIP42_PUBLISH_AUTH_KIND = 22242;
+    var NIP42_PUBLISH_TIMEOUT_MS = 10000;
+
+    /**
+     * Publish a signed Nostr event over a raw WebSocket with NIP-42 AUTH (same behavior as chat.html).
+     * @param {string} relayUrl
+     * @param {object} signedEvent
+     * @param {function} signAuthEvent async (template) => signedEvent for kind 22242
+     */
+    function publishSignedEventViaWebSocket(relayUrl, signedEvent, signAuthEvent) {
+        if (!relayUrl || !signedEvent || typeof signAuthEvent !== 'function') {
+            return Promise.resolve({ success: false, url: relayUrl, error: 'invalid_args' });
+        }
+        return new Promise(function (resolve) {
+            var settled = false;
+            var ws = null;
+            var authEventId = null;
+            var authCompleted = false;
+            var authChallengeSeen = false;
+            var eventRejectedForAuth = false;
+            var eventSent = false;
+            var delayedSendTimer = null;
+            var timeoutId = setTimeout(function () {
+                finish({ success: false, url: relayUrl, error: 'timeout waiting for relay OK' });
+            }, NIP42_PUBLISH_TIMEOUT_MS);
+
+            function finish(result) {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeoutId);
+                if (delayedSendTimer) clearTimeout(delayedSendTimer);
+                try {
+                    if (ws) ws.close();
+                } catch (_) {}
+                resolve(result);
+            }
+
+            function sendEvent() {
+                if (!ws || ws.readyState !== WebSocket.OPEN) return;
+                eventSent = true;
+                ws.send(JSON.stringify(['EVENT', signedEvent]));
+            }
+
+            try {
+                ws = new WebSocket(relayUrl);
+            } catch (error) {
+                finish({ success: false, url: relayUrl, error: error.message || String(error) });
+                return;
+            }
+
+            ws.addEventListener('open', function () {
+                delayedSendTimer = setTimeout(function () {
+                    if (!authChallengeSeen && !eventSent) sendEvent();
+                }, 120);
+            });
+
+            ws.addEventListener('message', function (msg) {
+                var data;
+                try {
+                    data = JSON.parse(msg.data);
+                } catch (_) {
+                    return;
+                }
+                var type = data[0];
+                var a = data[1];
+                var b = data[2];
+                var c = data[3];
+
+                if (type === 'AUTH') {
+                    authChallengeSeen = true;
+                    if (delayedSendTimer) {
+                        clearTimeout(delayedSendTimer);
+                        delayedSendTimer = null;
+                    }
+                    Promise.resolve()
+                        .then(function () {
+                            var relayTagUrl = ws && ws.url ? ws.url : relayUrl;
+                            var tag = normalizeRelayTagUrl(relayTagUrl);
+                            var authTemplate = {
+                                kind: NIP42_PUBLISH_AUTH_KIND,
+                                created_at: Math.floor(Date.now() / 1000),
+                                tags: [
+                                    ['relay', tag],
+                                    ['challenge', a]
+                                ],
+                                content: '',
+                                pubkey: signedEvent.pubkey
+                            };
+                            return signAuthEvent(authTemplate);
+                        })
+                        .then(function (signedAuth) {
+                            authEventId = signedAuth.id;
+                            ws.send(JSON.stringify(['AUTH', signedAuth]));
+                        })
+                        .catch(function (err) {
+                            finish({ success: false, url: relayUrl, error: err.message || String(err) });
+                        });
+                    return;
+                }
+
+                if (type === 'OK' && a === signedEvent.id) {
+                    if (b === true) {
+                        finish({ success: true, url: relayUrl });
+                    } else {
+                        var reason = (c || '').toString();
+                        if (reason.toLowerCase().indexOf('auth-required') !== -1 && !authCompleted) {
+                            eventRejectedForAuth = true;
+                            return;
+                        }
+                        finish({ success: false, url: relayUrl, error: reason || 'relay rejected event' });
+                    }
+                    return;
+                }
+
+                if (type === 'OK' && authEventId && a === authEventId) {
+                    if (b === true) {
+                        authCompleted = true;
+                        if (!eventSent || eventRejectedForAuth) {
+                            eventRejectedForAuth = false;
+                            sendEvent();
+                        }
+                    } else {
+                        finish({ success: false, url: relayUrl, error: (c || '').toString() || 'relay rejected auth event' });
+                    }
+                }
+            });
+
+            ws.addEventListener('error', function () {
+                finish({ success: false, url: relayUrl, error: 'websocket error' });
+            });
+
+            ws.addEventListener('close', function () {
+                if (!settled) finish({ success: false, url: relayUrl, error: 'connection closed before relay OK' });
+            });
+        });
+    }
+
+    /**
+     * One-shot NIP-42 read: open WS, AUTH if challenged, collect events for waitMs, then close.
+     */
+    function nip42SubscribeOnce(options) {
+        var opts = options || {};
+        var waitMs = typeof opts.waitMs === 'number' ? Math.max(100, opts.waitMs) : 6500;
+        var sub = startNip42WsSubscription({
+            relayUrl: opts.relayUrl,
+            filter: opts.filter || {},
+            signEvent: opts.signEvent,
+            authPubkey: opts.authPubkey,
+            onEvent: opts.onEvent,
+            onAuthChallenge: opts.onAuthChallenge,
+            onAuthSuccess: opts.onAuthSuccess,
+            onAuthFail: opts.onAuthFail,
+            onOpen: opts.onOpen,
+            onClose: opts.onClose,
+            onError: opts.onError,
+            connectDelayMs: opts.connectDelayMs,
+            maxReconnectAttempts: opts.maxReconnectAttempts,
+            reconnectBaseDelayMs: opts.reconnectBaseDelayMs
+        });
+        return new Promise(function (resolve) {
+            setTimeout(function () {
+                try {
+                    sub.close();
+                } catch (_) {}
+                resolve();
+            }, waitMs);
+        });
+    }
+
+    function startNip42WsSubscription(options) {
+        var opts = options || {};
+        var relayUrl = opts.relayUrl;
+        var filter = opts.filter || {};
+        var signEvent = opts.signEvent;
+        var authPubkey = opts.authPubkey;
+        var onEvent = opts.onEvent;
+        var onAuthChallenge = opts.onAuthChallenge;
+        var onAuthSuccess = opts.onAuthSuccess;
+        var onAuthFail = opts.onAuthFail;
+        var onOpen = opts.onOpen;
+        var onClose = opts.onClose;
+        var onError = opts.onError;
+        var connectDelayMs = typeof opts.connectDelayMs === 'number' ? Math.max(0, opts.connectDelayMs) : 350;
+        var maxReconnectAttempts = typeof opts.maxReconnectAttempts === 'number' ? Math.max(0, opts.maxReconnectAttempts) : 2;
+        var reconnectBaseDelayMs = typeof opts.reconnectBaseDelayMs === 'number' ? Math.max(50, opts.reconnectBaseDelayMs) : 500;
+        if (!relayUrl) throw new Error('relayUrl is required');
+        if (typeof onEvent !== 'function') throw new Error('onEvent callback is required');
+        if (typeof signEvent !== 'function') throw new Error('signEvent callback is required');
+
+        var subId = 'ws-sub-' + Date.now() + '-' + Math.random().toString(16).slice(2, 8);
+        var ws = null;
+        var closedByUser = false;
+        var attempt = 0;
+        var connectTimer = null;
+
+        function sendReq() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(['REQ', subId, filter]));
+            }
+        }
+
+        function clearConnectTimer() {
+            if (connectTimer) {
+                clearTimeout(connectTimer);
+                connectTimer = null;
+            }
+        }
+
+        function scheduleConnect(delayMs) {
+            if (closedByUser) return;
+            clearConnectTimer();
+            connectTimer = setTimeout(function () {
+                connectTimer = null;
+                connect();
+            }, Math.max(0, delayMs));
+        }
+
+        function scheduleReconnect(lastError) {
+            if (closedByUser) return;
+            if (attempt >= maxReconnectAttempts) {
+                if (typeof onError === 'function' && lastError) onError(relayUrl, lastError);
+                return;
+            }
+            attempt += 1;
+            var backoffMs = reconnectBaseDelayMs * attempt;
+            scheduleConnect(backoffMs);
+        }
+
+        function connect() {
+            if (closedByUser) return;
+            try {
+                ws = new WebSocket(relayUrl);
+            } catch (err) {
+                scheduleReconnect(err);
+                return;
+            }
+
+            var hasOpened = false;
+            var reconnectScheduled = false;
+
+            function maybeReconnect(err) {
+                if (reconnectScheduled || closedByUser) return;
+                reconnectScheduled = true;
+                scheduleReconnect(err);
+            }
+
+            ws.addEventListener('open', function () {
+                hasOpened = true;
+                attempt = 0;
+                if (typeof onOpen === 'function') onOpen(relayUrl);
+                sendReq();
+            });
+
+            ws.addEventListener('message', function (msg) {
+                var data = null;
+                try {
+                    data = JSON.parse(msg.data);
+                } catch (_) {
+                    return;
+                }
+                var type = data[0];
+                var a = data[1];
+                var b = data[2];
+
+                if (type === 'AUTH') {
+                    if (typeof onAuthChallenge === 'function') onAuthChallenge(relayUrl, a);
+                    Promise.resolve().then(function () {
+                        var template = {
+                            kind: 22242,
+                            created_at: Math.floor(Date.now() / 1000),
+                            tags: [
+                                ['relay', normalizeRelayTagUrl(relayUrl)],
+                                ['challenge', a]
+                            ],
+                            content: '',
+                            pubkey: authPubkey
+                        };
+                        return signEvent(template);
+                    }).then(function (signedAuth) {
+                        ws.send(JSON.stringify(['AUTH', signedAuth]));
+                        if (typeof onAuthSuccess === 'function') onAuthSuccess(relayUrl);
+                        // Retry reads after AUTH, matching test page behavior.
+                        sendReq();
+                    }).catch(function (err) {
+                        if (typeof onAuthFail === 'function') onAuthFail(relayUrl, err);
+                    });
+                    return;
+                }
+
+                if (type === 'EVENT') {
+                    onEvent(b, relayUrl, data);
+                }
+            });
+
+            ws.addEventListener('error', function (err) {
+                // Browser may emit transient errors during initial page load. Reconnect first,
+                // and only surface onError after retries are exhausted.
+                if (!hasOpened) maybeReconnect(err);
+                if (typeof onError === 'function' && hasOpened) onError(relayUrl, err);
+            });
+
+            ws.addEventListener('close', function (ev) {
+                if (typeof onClose === 'function') onClose(relayUrl, ev);
+                if (!closedByUser && !hasOpened) maybeReconnect(ev);
+            });
+        }
+        scheduleConnect(connectDelayMs);
+
+        return {
+            close: function () {
+                closedByUser = true;
+                clearConnectTimer();
+                try { if (ws) ws.close(); } catch (_) {}
+            }
+        };
+    }
+
+    global.NrWebRelayAuth = {
+        startNip42WsSubscription: startNip42WsSubscription,
+        nip42SubscribeOnce: nip42SubscribeOnce
+    };
+
+    global.NrWebRelayPublish = {
+        publishSignedEventViaWebSocket: publishSignedEventViaWebSocket
+    };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var t = document.getElementById('theme-toggle');
+            if (!t) return;
+            t.checked = document.documentElement.getAttribute('data-theme') === 'dark';
+            t.addEventListener('change', function () {
+                document.documentElement.setAttribute('data-theme', t.checked ? 'dark' : 'light');
+            });
+        });
+    </script>
+
+    <script type="module">
+
+        const PIXEL_KIND = 1923;
+        const DEFAULT_RELAYS = ['wss://nip42.trustroots.org', 'wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
+        const GRID_SIZE = 16;
+        const CELL_PX = 16;
+        const DEFAULT_PALETTE = [
+            '#1b1f3b', // deep indigo
+            '#264653', // slate teal
+            '#2a9d8f', // teal
+            '#8ab17d', // moss green
+            '#f4a261', // warm orange
+            '#e76f51', // terracotta
+            '#ef476f', // pink-red
+            '#7b5bd6', // violet
+            '#f8f9fa'  // near-white
+        ];
+
+        const PIXEL_CIRCLES = [
+            { slug: 'artists', title: 'Artists' },
+            { slug: 'burners', title: 'Burners' },
+            { slug: 'punks', title: 'Punks' }
+        ];
+        const relaySettings = window.NrWebRelaySettings;
+        const relayAuth = window.NrWebRelayAuth;
+
+        let currentCircle = 'artists';
+        let selectedColorIndex = 8;
+        let grid = [];
+        let currentPrivateKeyBytes = null;
+        let currentPublicKey = null;
+        let feedEvents = [];
+        let activeFeedConnections = [];
+        let feedSubscriptionToken = 0;
+        const relayStatus = new Map(); // url -> { status, canWrite }
+        const relayWriteEnabled = new Map(); // url -> boolean
+
+        function getCircleFromUrl() {
+            const params = new URLSearchParams(location.search);
+            const c = params.get('circle');
+            if (PIXEL_CIRCLES.some(x => x.slug === c)) return c;
+            return 'artists';
+        }
+
+        const getRelayUrls = () => relaySettings?.getRelayUrls ? relaySettings.getRelayUrls(DEFAULT_RELAYS) : DEFAULT_RELAYS.slice();
+        const getSavedRelayWritePreferences = () => relaySettings?.getRelayWritePreferences ? relaySettings.getRelayWritePreferences() : {};
+        const getDefaultRelayPostEnabled = (url) => relaySettings?.getDefaultRelayPostEnabled
+            ? relaySettings.getDefaultRelayPostEnabled(url)
+            : (url || '').trim().toLowerCase() === 'wss://nip42.trustroots.org';
+        const saveRelayWritePreferences = () => {
+            if (relaySettings?.saveRelayWritePreferences) relaySettings.saveRelayWritePreferences(getRelayUrls(), relayWriteEnabled);
+        };
+
+        function initializeRelaySettingsState(urls, status = 'disconnected') {
+            if (relaySettings?.initializeRelaySettingsState) {
+                relaySettings.initializeRelaySettingsState(urls, relayWriteEnabled, relayStatus, {
+                    status,
+                    savePreferences: true
+                });
+                return;
+            }
+            const prefs = getSavedRelayWritePreferences();
+            urls.forEach((url) => {
+                const hasSavedPreference = Object.prototype.hasOwnProperty.call(prefs, url);
+                const canWrite = hasSavedPreference
+                    ? prefs[url] !== false
+                    : getDefaultRelayPostEnabled(url);
+                relayWriteEnabled.set(url, canWrite);
+                relayStatus.set(url, { status, canWrite });
+            });
+            saveRelayWritePreferences();
+        }
+
+        function getWritableRelayUrls() {
+            return getRelayUrls().filter((url) => relayWriteEnabled.get(url) !== false);
+        }
+
+        function getPublishRelayUrls() {
+            const configured = getRelayUrls();
+            if (relaySettings?.getPublishRelayUrls) {
+                return relaySettings.getPublishRelayUrls(configured, relayWriteEnabled, DEFAULT_RELAYS);
+            }
+            const writable = getWritableRelayUrls();
+            if (writable.length > 0) return writable;
+            if (configured.length > 0) return configured;
+            return DEFAULT_RELAYS;
+        }
+
+        function setRelayWriteEnabled(url, enabled) {
+            relayWriteEnabled.set(url, enabled);
+            const current = relayStatus.get(url) || { status: 'disconnected', canWrite: true };
+            relayStatus.set(url, { ...current, canWrite: enabled });
+            saveRelayWritePreferences();
+            renderRelaysList();
+        }
+
+        function toggleRelayWriteForEncodedUrl(encodedUrl, enabled) {
+            try {
+                const url = decodeURIComponent(encodedUrl);
+                setRelayWriteEnabled(url, enabled);
+            } catch (_) {}
+        }
+
+        function initGrid() {
+            grid = Array(GRID_SIZE * GRID_SIZE).fill(0);
+            drawGrid();
+        }
+
+        function drawGrid() {
+            const canvas = document.getElementById('pixel-grid');
+            const ctx = canvas.getContext('2d');
+            const palette = DEFAULT_PALETTE;
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const i = y * GRID_SIZE + x;
+                    ctx.fillStyle = palette[grid[i]] || palette[0];
+                    ctx.fillRect(x * CELL_PX, y * CELL_PX, CELL_PX, CELL_PX);
+                }
+            }
+            updateFavicon();
+        }
+        function updateFavicon() {
+            const size = 32;
+            const fav = document.createElement('canvas');
+            fav.width = size;
+            fav.height = size;
+            const ctx = fav.getContext('2d');
+            const palette = DEFAULT_PALETTE;
+            const cs = size / GRID_SIZE;
+            for (let y = 0; y < GRID_SIZE; y++) {
+                for (let x = 0; x < GRID_SIZE; x++) {
+                    const i = y * GRID_SIZE + x;
+                    ctx.fillStyle = palette[grid[i]] || palette[0];
+                    ctx.fillRect(x * cs, y * cs, Math.ceil(cs) + 1, Math.ceil(cs) + 1);
+                }
+            }
+            let link = document.querySelector('link[rel="icon"]');
+            if (!link) {
+                link = document.createElement('link');
+                link.rel = 'icon';
+                document.head.appendChild(link);
+            }
+            link.href = fav.toDataURL('image/png');
+        }
+
+        function renderToCanvas(ctx, data, maxSize) {
+            const palette = data.palette && data.palette.length ? data.palette : DEFAULT_PALETTE;
+            const g = data.grid || [];
+            const width = data.w || GRID_SIZE;
+            const height = data.h || GRID_SIZE;
+            const size = maxSize || 64;
+            const cs = size / Math.max(width, height, 1);
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const i = y * width + x;
+                    const idx = g[i] !== undefined ? g[i] : 0;
+                    ctx.fillStyle = palette[idx] || palette[0];
+                    ctx.fillRect(x * cs, y * cs, Math.ceil(cs) + 1, Math.ceil(cs) + 1);
+                }
+            }
+        }
+
+        function cellFromEvent(canvas, e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = Math.floor((e.clientX - rect.left) / rect.width * GRID_SIZE);
+            const y = Math.floor((e.clientY - rect.top) / rect.height * GRID_SIZE);
+            return { x, y };
+        }
+        function setCell(x, y) {
+            if (x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE)
+                grid[y * GRID_SIZE + x] = selectedColorIndex;
+        }
+        function drawAtCell(x, y) {
+            setCell(x, y);
+            drawGrid();
+        }
+        function drawLine(x0, y0, x1, y1) {
+            const dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+            const dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+            let err = dx + dy;
+            while (true) {
+                setCell(x0, y0);
+                if (x0 === x1 && y0 === y1) break;
+                const e2 = 2 * err;
+                if (e2 >= dy) { err += dy; x0 += sx; }
+                if (e2 <= dx) { err += dx; y0 += sy; }
+            }
+            drawGrid();
+        }
+        let isDrawing = false;
+        let lastCell = null;
+        const canvasEl = document.getElementById('pixel-grid');
+        canvasEl.addEventListener('pointerdown', (e) => {
+            if (e.button !== undefined && e.button !== 0) return;
+            e.preventDefault();
+            canvasEl.setPointerCapture?.(e.pointerId);
+            isDrawing = true;
+            const { x, y } = cellFromEvent(canvasEl, e);
+            lastCell = { x, y };
+            drawAtCell(x, y);
+        });
+        canvasEl.addEventListener('pointermove', (e) => {
+            if (!isDrawing) return;
+            e.preventDefault();
+            const { x, y } = cellFromEvent(canvasEl, e);
+            if (lastCell !== null && (lastCell.x !== x || lastCell.y !== y)) {
+                drawLine(lastCell.x, lastCell.y, x, y);
+                lastCell = { x, y };
+            }
+        });
+        function stopDrawing(e) {
+            if (e?.pointerId !== undefined) canvasEl.releasePointerCapture?.(e.pointerId);
+            isDrawing = false;
+            lastCell = null;
+        }
+        canvasEl.addEventListener('pointerup', stopDrawing);
+        canvasEl.addEventListener('pointercancel', stopDrawing);
+        canvasEl.addEventListener('lostpointercapture', stopDrawing);
+
+        document.getElementById('pixel-clear').addEventListener('click', () => { initGrid(); });
+
+        function buildPalette() {
+            const el = document.getElementById('pixel-palette');
+            el.innerHTML = '';
+            DEFAULT_PALETTE.forEach((hex, i) => {
+                const sw = document.createElement('button');
+                sw.type = 'button';
+                sw.className = 'pixel-swatch' + (i === selectedColorIndex ? ' selected' : '');
+                sw.style.background = hex;
+                sw.title = i;
+                sw.addEventListener('click', () => {
+                    selectedColorIndex = i;
+                    document.querySelectorAll('.pixel-swatch').forEach((s, j) => s.classList.toggle('selected', j === i));
+                });
+                el.appendChild(sw);
+            });
+        }
+
+        function buildCircleTabs() {
+            currentCircle = getCircleFromUrl();
+            const el = document.getElementById('circle-tabs');
+            el.innerHTML = '';
+            PIXEL_CIRCLES.forEach(({ slug, title }) => {
+                const b = document.createElement('button');
+                b.textContent = title;
+                b.classList.toggle('active', slug === currentCircle);
+                b.addEventListener('click', () => {
+                    currentCircle = slug;
+                    window.history.replaceState({}, '', '?circle=' + slug);
+                    document.querySelectorAll('.circle-tabs button').forEach((btn, i) => btn.classList.toggle('active', PIXEL_CIRCLES[i].slug === slug));
+                    subscribeFeed();
+                });
+                el.appendChild(b);
+            });
+        }
+
+        document.getElementById('pixel-is-invite').addEventListener('change', (e) => {
+            document.getElementById('pixel-when').style.display = e.target.checked ? 'block' : 'none';
+        });
+
+        async function loadNostr() {
+            const { finalizeEvent, getPublicKey, nip19 } = await import('https://cdn.jsdelivr.net/npm/nostr-tools@2.10.3/+esm');
+            const { Relay } = await import('https://cdn.jsdelivr.net/npm/nostr-tools@2.10.3/+esm');
+            return { finalizeEvent, getPublicKey, nip19, Relay };
+        }
+        async function ensureNostr() {
+            if (!nostrTools) nostrTools = await loadNostr();
+            getPublicKey = nostrTools.getPublicKey;
+            return nostrTools;
+        }
+
+        function loadKeys() {
+            try {
+                const hex = localStorage.getItem('nostr_private_key');
+                if (hex && hex.length === 64 && /^[0-9a-f]+$/i.test(hex)) {
+                    const bytes = new Uint8Array(32);
+                    for (let i = 0; i < 32; i++) bytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+                    currentPrivateKeyBytes = bytes;
+                    currentPublicKey = getPublicKey(bytes);
+                    return true;
+                }
+            } catch (_) {}
+            currentPrivateKeyBytes = null;
+            currentPublicKey = null;
+            return false;
+        }
+
+        let nostrTools = null;
+        let getPublicKey = null;
+
+        async function initKeys() {
+            await ensureNostr();
+            const has = loadKeys();
+            updateKeyDisplay();
+            return has;
+        }
+
+        async function savePrivateKey(hex) {
+            localStorage.setItem('nostr_private_key', hex);
+            await ensureNostr();
+            loadKeys();
+            updateKeyDisplay();
+        }
+
+        async function importPrivateKey(raw) {
+            const input = (raw || '').trim();
+            if (!input) { setStatus('Paste an nsec or hex key.', 'error'); return false; }
+            if (input.startsWith('npub1')) {
+                setStatus('That is an npub (public id). Paste nsec1… or a 64-char hex private key, not an npub.', 'error');
+                return false;
+            }
+            await ensureNostr();
+            try {
+                let hex = null;
+                if (input.length === 64 && /^[0-9a-f]+$/i.test(input)) {
+                    hex = input;
+                } else if (input.startsWith('nsec1')) {
+                    const decoded = nostrTools.nip19.decode(input);
+                    if (decoded.type === 'nsec') hex = Array.from(decoded.data).map(b => b.toString(16).padStart(2, '0')).join('');
+                }
+                if (!hex) { setStatus('Invalid nsec or hex key.', 'error'); return false; }
+                await savePrivateKey(hex);
+                setStatus('Key imported.', 'success');
+                return true;
+            } catch (e) { setStatus('Invalid key: ' + (e.message || e), 'error'); return false; }
+        }
+
+        async function generateKeyPair() {
+            await ensureNostr();
+            const bytes = new Uint8Array(32);
+            crypto.getRandomValues(bytes);
+            const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+            await savePrivateKey(hex);
+            setStatus('New key generated.', 'success');
+            openKeysModal();
+        }
+
+        function setStatus(msg, type) {
+            const el = document.getElementById('pixel-status');
+            el.textContent = msg || '';
+            el.style.color = type === 'error' ? 'var(--destructive)' : type === 'success' ? 'var(--primary)' : 'var(--muted-foreground)';
+        }
+
+        const seenIds = new Set();
+        function closeFeedSubscriptions() {
+            activeFeedConnections.forEach((conn) => {
+                try { conn?.close?.(); } catch (_) {}
+            });
+            activeFeedConnections = [];
+        }
+
+        function subscribeFeed() {
+            if (!nostrTools) return;
+            const urls = getRelayUrls();
+            initializeRelaySettingsState(urls, 'connecting');
+            closeFeedSubscriptions();
+            const token = ++feedSubscriptionToken;
+            feedEvents = [];
+            seenIds.clear();
+            renderFeed();
+            const filter = { kinds: [PIXEL_KIND], '#L': ['trustroots-circle'], '#l': [currentCircle] };
+            urls.forEach(url => {
+                if (!relayAuth?.startNip42WsSubscription) return;
+                try {
+                    const connection = relayAuth.startNip42WsSubscription({
+                        relayUrl: url,
+                        filter,
+                        authPubkey: currentPublicKey,
+                        signEvent: async (eventTemplate) => {
+                            await ensureNostr();
+                            if (!currentPrivateKeyBytes) throw new Error('No local key loaded');
+                            return nostrTools.finalizeEvent(eventTemplate, currentPrivateKeyBytes);
+                        },
+                        onEvent: (event) => {
+                            if (token !== feedSubscriptionToken) return;
+                            if (!event || event.kind !== PIXEL_KIND || seenIds.has(event.id)) return;
+                            seenIds.add(event.id);
+                            try {
+                                const c = JSON.parse(event.content || '{}');
+                                if (c.v && c.grid) {
+                                    feedEvents.unshift({ ...event, parsed: c });
+                                    feedEvents = feedEvents.slice(0, 100);
+                                    renderFeed();
+                                }
+                            } catch (_) {}
+                        },
+                        onOpen: () => {
+                            relayStatus.set(url, { status: 'connected', canWrite: relayWriteEnabled.get(url) !== false });
+                            renderRelaysList();
+                        },
+                        onAuthFail: () => {
+                            relayStatus.set(url, { status: 'error', canWrite: relayWriteEnabled.get(url) !== false });
+                            renderRelaysList();
+                        },
+                        onError: () => {
+                            relayStatus.set(url, { status: 'error', canWrite: relayWriteEnabled.get(url) !== false });
+                            renderRelaysList();
+                        }
+                    });
+                    activeFeedConnections.push(connection);
+                } catch (_) {}
+            });
+        }
+
+        function renderFeed() {
+            const list = document.getElementById('pixel-feed-list');
+            list.innerHTML = '';
+            feedEvents.forEach(ev => {
+                const item = document.createElement('div');
+                item.className = 'pixel-feed-item';
+                const preview = document.createElement('canvas');
+                preview.width = 64;
+                preview.height = 64;
+                preview.className = 'pixel-feed-preview';
+                const ctx = preview.getContext('2d');
+                renderToCanvas(ctx, ev.parsed, 64);
+                const meta = document.createElement('div');
+                meta.className = 'pixel-feed-meta';
+                const title = ev.parsed.title || 'Untitled';
+                let loc = ev.parsed.location ? `📍 ${ev.parsed.location}` : '';
+                if (ev.parsed.type === 'invite' || ev.parsed.type === 'jam') loc += (loc ? ' · ' : '') + 'Meetup';
+                meta.innerHTML = `<strong>${escapeHtml(title)}</strong><br>${loc ? `<span class="location">${escapeHtml(loc)}</span>` : ''}`;
+                item.appendChild(preview);
+                item.appendChild(meta);
+                item.addEventListener('click', () => {
+                    grid = (ev.parsed.grid || []).slice();
+                    while (grid.length < GRID_SIZE * GRID_SIZE) grid.push(0);
+                    grid = grid.slice(0, GRID_SIZE * GRID_SIZE);
+                    drawGrid();
+                });
+                list.appendChild(item);
+            });
+            if (feedEvents.length === 0) list.innerHTML = '<p style="color: var(--muted-foreground); font-size: 0.875rem;">No pieces in this circle yet. Publish one!</p>';
+        }
+
+        function escapeHtml(s) {
+            if (s == null) return '';
+            return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        document.getElementById('pixel-publish').addEventListener('click', async () => {
+            if (!currentPrivateKeyBytes || !currentPublicKey) {
+                setStatus('Import or generate a key first (Keys button).', 'error');
+                return;
+            }
+            const { finalizeEvent, Relay } = await ensureNostr();
+            const title = document.getElementById('pixel-title').value.trim() || undefined;
+            const where = document.getElementById('pixel-where').value.trim() || undefined;
+            const isInvite = document.getElementById('pixel-is-invite').checked;
+            const when = document.getElementById('pixel-when').value.trim() || undefined;
+            const content = {
+                v: 1,
+                title,
+                palette: DEFAULT_PALETTE,
+                grid: grid.slice(),
+                w: GRID_SIZE,
+                h: GRID_SIZE,
+                location: where,
+                type: isInvite ? (when ? 'invite' : 'jam') : 'art',
+                when: isInvite ? when : undefined
+            };
+            const tags = [
+                ['L', 'trustroots-circle'],
+                ['l', currentCircle, 'trustroots-circle']
+            ];
+            if (where) tags.push(['location', where]);
+            if (content.type !== 'art') tags.push(['type', content.type]);
+            const event = {
+                kind: PIXEL_KIND,
+                content: JSON.stringify(content),
+                created_at: Math.floor(Date.now() / 1000),
+                pubkey: currentPublicKey,
+                tags
+            };
+            const signed = finalizeEvent(event, currentPrivateKeyBytes);
+            const urls = getPublishRelayUrls();
+            const relayPublish = globalThis.NrWebRelayPublish;
+            setStatus('Publishing…', 'info');
+            let ok = 0;
+            const errors = [];
+            for (const url of urls) {
+                try {
+                    if (relayPublish?.publishSignedEventViaWebSocket) {
+                        const res = await relayPublish.publishSignedEventViaWebSocket(
+                            url,
+                            signed,
+                            async (tpl) => finalizeEvent(tpl, currentPrivateKeyBytes)
+                        );
+                        if (res.success) ok += 1;
+                        else errors.push(`${url}: ${res.error || 'relay rejected'}`);
+                    } else {
+                        const relay = await Relay.connect(url);
+                        await relay.publish(signed);
+                        relay.close();
+                        ok += 1;
+                    }
+                } catch (err) {
+                    errors.push(`${url}: ${err?.message || err}`);
+                }
+            }
+            if (ok > 0) {
+                seenIds.add(signed.id);
+                feedEvents.unshift({ ...signed, parsed: content });
+                renderFeed();
+                setStatus(`Published to ${ok} relay(s).`, 'success');
+            } else {
+                setStatus(
+                    errors.length
+                        ? `Publish failed: ${errors.join(' | ')}`
+                        : 'Publish failed. Check relays on Map settings.',
+                    'error'
+                );
+            }
+        });
+
+        function renderRelaysList() {
+            const list = document.getElementById('relays-list');
+            if (!list) return;
+            const urls = getRelayUrls();
+            if (relaySettings?.renderRelaysList) {
+                relaySettings.renderRelaysList(list, {
+                    urls,
+                    statusMap: relayStatus,
+                    relayWriteEnabledMap: relayWriteEnabled,
+                    allowPostToggle: true,
+                    allowRemove: true,
+                    removeHandlerName: 'removeRelay',
+                    toggleHandlerName: 'toggleRelayWriteForEncodedUrl',
+                    removeButtonLabel: 'DELETE',
+                    emptyMessage: 'No relays configured',
+                    showLocalPrivacyHint: true
+                });
+            }
+        }
+
+        function saveRelayUrls(urls) {
+            const cleaned = [...new Set(urls.map(u => u.trim()).filter(Boolean))];
+            if (relaySettings?.saveRelayUrls) {
+                relaySettings.saveRelayUrls(cleaned);
+            } else if (cleaned.length) {
+                localStorage.setItem('relay_urls', cleaned.join('\n'));
+            } else {
+                localStorage.removeItem('relay_urls');
+            }
+            initializeRelaySettingsState(cleaned.length ? cleaned : DEFAULT_RELAYS, 'disconnected');
+            subscribeFeed();
+            renderRelaysList();
+        }
+
+        function addRelay() {
+            const input = document.getElementById('new-relay-url');
+            const rawUrl = input?.value?.trim();
+            if (!rawUrl) return;
+            let url = rawUrl;
+            if (relaySettings?.normalizeRelayUrlInput) {
+                const normalized = relaySettings.normalizeRelayUrlInput(rawUrl, 'ws');
+                if (!normalized.ok) {
+                    setStatus('Relay URL must start with ws:// or wss://', 'error');
+                    return;
+                }
+                url = normalized.value;
+            }
+            if (!url) return;
+            saveRelayUrls([...getRelayUrls(), url]);
+            if (input) input.value = '';
+            setStatus('Relay added.', 'success');
+        }
+
+        function removeRelay(url) {
+            saveRelayUrls(getRelayUrls().filter(u => u !== url));
+            setStatus('Relay removed.', 'success');
+        }
+
+        function setHeaderIdentity() {
+            const el = document.getElementById('header-identity');
+            if (!el) return;
+            if (!currentPublicKey || !nostrTools) {
+                el.textContent = '';
+                el.title = '';
+                el.classList.add('empty');
+                return;
+            }
+            try {
+                const npub = nostrTools.nip19.npubEncode(currentPublicKey);
+                el.textContent = npub.slice(0, 12) + '…' + npub.slice(-8);
+                el.title = npub;
+                el.classList.remove('empty');
+            } catch (_) {
+                el.textContent = 'Key loaded';
+                el.title = currentPublicKey;
+                el.classList.remove('empty');
+            }
+        }
+
+        function updateKeyDisplay() {
+            const hasKey = !!currentPublicKey;
+            const keysModalTitle = document.getElementById('keys-modal-header-title');
+            const welcomeModalTitle = document.getElementById('keys-welcome-modal-title');
+            const welcomeSection = document.getElementById('keys-welcome-section');
+            const importSection = document.getElementById('keys-import-section');
+            const generateSection = document.getElementById('keys-generate-section');
+            const manageSection = document.getElementById('keys-manage-section');
+            const trustrootsSection = document.getElementById('keys-trustroots-section');
+            const nsecActionsGroup = document.getElementById('nsec-actions-group');
+            const noNsecActionsGroup = document.getElementById('no-nsec-actions-group');
+            const generateKeyGroup = document.getElementById('generate-key-group');
+            const updateTrustrootsGroup = document.getElementById('update-trustroots-profile-group');
+            const npubDisplayGroup = document.getElementById('npub-display-group');
+            const keySectionDivider = document.getElementById('key-section-divider');
+            const npubDisplay = document.getElementById('npub-display');
+
+            if (keysModalTitle) keysModalTitle.style.display = hasKey ? 'block' : 'none';
+            if (welcomeModalTitle) welcomeModalTitle.style.display = hasKey ? 'none' : 'block';
+            if (welcomeSection) welcomeSection.style.display = hasKey ? 'none' : 'block';
+            if (importSection) importSection.style.display = hasKey ? 'none' : 'block';
+            if (generateSection) generateSection.style.display = hasKey ? 'none' : 'block';
+            if (manageSection) manageSection.style.display = hasKey ? 'block' : 'none';
+            if (trustrootsSection) trustrootsSection.style.display = 'none';
+            if (nsecActionsGroup) nsecActionsGroup.style.display = hasKey ? 'block' : 'none';
+            if (noNsecActionsGroup) noNsecActionsGroup.style.display = hasKey ? 'none' : 'block';
+            if (generateKeyGroup) generateKeyGroup.style.display = hasKey ? 'none' : 'block';
+            if (updateTrustrootsGroup) updateTrustrootsGroup.style.display = 'none';
+            if (npubDisplayGroup) npubDisplayGroup.style.display = hasKey ? 'block' : 'none';
+            if (keySectionDivider) keySectionDivider.style.display = hasKey ? 'block' : 'none';
+            if (npubDisplay && hasKey && nostrTools) npubDisplay.value = nostrTools.nip19.npubEncode(currentPublicKey);
+            if (npubDisplay && !hasKey) npubDisplay.value = '';
+            setHeaderIdentity();
+        }
+
+        function openKeysModal() {
+            const keysEl = document.getElementById('keys-modal');
+            const settingsEl = document.getElementById('settings-modal');
+            if (settingsEl) settingsEl.classList.remove('active');
+            updateKeyDisplay();
+            if (keysEl) keysEl.classList.add('active');
+        }
+
+        function closeKeysModal() {
+            document.getElementById('keys-modal')?.classList.remove('active');
+        }
+
+        function openSettingsModal() {
+            const keysEl = document.getElementById('keys-modal');
+            const settingsEl = document.getElementById('settings-modal');
+            if (keysEl) keysEl.classList.remove('active');
+            renderRelaysList();
+            if (settingsEl) settingsEl.classList.add('active');
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('settings-modal')?.classList.remove('active');
+        }
+
+        async function onboardingImport() {
+            const input = document.getElementById('onboarding-import');
+            if (await importPrivateKey(input?.value || '')) {
+                if (input) input.value = '';
+                openKeysModal();
+            }
+        }
+
+        async function importNsec() {
+            const input = document.getElementById('nsec-import');
+            if (await importPrivateKey(input?.value || '')) {
+                if (input) input.value = '';
+                openKeysModal();
+            }
+        }
+
+        function onboardingGenerate() {
+            generateKeyPair();
+        }
+
+        function deleteNsec() {
+            if (!confirm('Delete your private key? You will need to import or generate a new key.')) return;
+            localStorage.removeItem('nostr_private_key');
+            currentPrivateKeyBytes = null;
+            currentPublicKey = null;
+            updateKeyDisplay();
+            setStatus('Private key deleted.', 'success');
+            openKeysModal();
+        }
+
+        function exportNsec() {
+            if (!currentPrivateKeyBytes || !nostrTools) {
+                setStatus('No private key to export.', 'error');
+                return;
+            }
+            try {
+                const nsec = nostrTools.nip19.nsecEncode(currentPrivateKeyBytes);
+                navigator.clipboard.writeText(nsec).then(() => setStatus('nsec copied to clipboard.', 'success')).catch(() => {
+                    prompt('Your nsec (copy this):', nsec);
+                    setStatus('nsec displayed.', 'info');
+                });
+            } catch (e) {
+                setStatus('Error exporting nsec: ' + (e.message || e), 'error');
+            }
+        }
+
+        function copyPublicKey() {
+            const value = document.getElementById('npub-display')?.value;
+            if (!value) {
+                setStatus('No public key to copy.', 'error');
+                return;
+            }
+            navigator.clipboard.writeText(value).then(() => setStatus('npub copied to clipboard.', 'success')).catch(() => setStatus('Could not copy npub.', 'error'));
+        }
+
+        function updateTrustrootsProfile() {}
+        function linkTrustrootsProfile() {}
+
+        function attachSharedHeaderButtons() {
+            const header = document.getElementById('app-header');
+            if (!header) return;
+            header.addEventListener('click', function (e) {
+                if (e.target.closest('#keys-icon-btn')) {
+                    e.preventDefault();
+                    openKeysModal();
+                } else if (e.target.closest('#settings-icon-btn')) {
+                    e.preventDefault();
+                    openSettingsModal();
+                }
+            });
+        }
+
+        Object.assign(window, {
+            addRelay,
+            removeRelay,
+            setRelayWriteEnabled,
+            toggleRelayWriteForEncodedUrl,
+            openKeysModal,
+            closeKeysModal,
+            openSettingsModal,
+            closeSettingsModal,
+            onboardingImport,
+            onboardingGenerate,
+            importNsec,
+            generateKeyPair,
+            exportNsec,
+            deleteNsec,
+            copyPublicKey,
+            updateTrustrootsProfile,
+            linkTrustrootsProfile
+        });
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', attachSharedHeaderButtons);
+        } else {
+            attachSharedHeaderButtons();
+        }
+
+        (async () => {
+            buildPalette();
+            buildCircleTabs();
+            initGrid();
+            await initKeys();
+            initializeRelaySettingsState(getRelayUrls(), 'disconnected');
+            renderRelaysList();
+            subscribeFeed();
+        })();
+
+    </script>
+</body>
+</html>

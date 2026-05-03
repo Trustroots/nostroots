@@ -18,12 +18,30 @@ This web app provides similar functionality to the `nr-app` mobile app:
 - **Note Posting**: Add notes to any pluscode location by clicking on the map
 - **Key Management**: Generate new keys or import existing ones (nsec or mnemonic)
 - **Persistent Settings**: Preferences and keys are stored locally
-- **Pixel**: Circle-scoped pixel sequencer (artists, burners, punks) — draw a 16×16, publish to Nostr, optional "Where" and invite/jam for IRL meetups. [pixel.html](pixel.html)
+- **Pixel**: Circle-scoped pixel sequencer (artists, burners, punks) — draw a 16×16, publish to Nostr, optional "Where" and invite/jam for IRL meetups. [examples/pixel.html](examples/pixel.html)
+- **Examples hub**: [examples/index.html](examples/index.html) — overview of demo pages and fork patterns.
 
+## URL routing (hash)
+
+The main app (`index.html`) uses **`location.hash`** only (no path router; static hosting friendly). Parser order is implemented in [`nr-hash-router.js`](nr-hash-router.js) and wired in `index.html`.
+
+| Fragment | Meaning |
+|----------|---------|
+| *(empty)* | Map home |
+| `keys` / `settings` | Keys or Settings modal |
+| `map`, `chat`, `help`, `welcome`, `start` | Reserved actions (e.g. `#chat` opens chats with empty picker; `#map` clears hash and returns to map) |
+| Contains `+` as a full Open Location Code (prefix may end with `+` and no refinement, e.g. `9G000000+`) | Map — notes for that plus code |
+| `npub1…` or 64-char hex | Chat — DM |
+| Looks like NIP-05 (e.g. `alice%40trustroots.org`) | Chat — DM |
+| Otherwise | Chat — circle / channel slug |
+
+Bookmarks to `chat.html` redirect to `index.html` with the same hash. Circle slugs cannot match reserved words (`welcome`, `start`, etc.); see `NrWebHashRouter.EXTENDED_RESERVED` in `nr-hash-router.js`.
+
+Query shortcuts (stripped after load): `?action=map|host|search`, `?welcome=1`, `?start=1` (see `processNrWebUrlAction()` in `index.html`).
 
 ## Getting Started
 
-It's just one file with HTML, CSS and JS.
+Core UI is `index.html` with small helpers: `common.js`, `nr-hash-router.js`, `chat-app.js` (embedded chat), plus shared CSS fragments.
 
 
 

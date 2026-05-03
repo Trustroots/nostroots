@@ -439,6 +439,17 @@
     margin: 0 0 1rem 0;
 }
 
+.keys-import-npub-hint {
+    margin: 0 0 0.75rem 0;
+    padding: 0.55rem 0.65rem;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--foreground);
+    background: var(--secondary);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+}
+
 .action-buttons {
     display: flex;
     gap: 0.5rem;

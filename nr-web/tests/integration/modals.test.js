@@ -99,6 +99,7 @@ describe('Modal Behavior', () => {
       expect(text).toContain('new applications');
       expect(text).toContain('rebuild Trustroots');
       expect(text).toContain('Nostr private key');
+      expect(text).toContain('public id');
       expect(text).toContain('Nostroots mobile app');
       expect(text).toContain('Bitwarden');
       expect(text).toContain('Export your nsec');

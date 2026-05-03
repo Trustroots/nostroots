@@ -1046,12 +1046,16 @@
     top: 56px; /* below header (header min-height) */
     left: 0;
     right: 0;
+    bottom: auto;
     z-index: 3000;
     display: flex;
     flex-direction: column;
     align-items: center;
     padding-top: 0.5rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
     pointer-events: none;
+    transform: none; /* do not combine with translateX from other sheets */
 }
 
 .status {

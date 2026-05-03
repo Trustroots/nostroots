@@ -19,6 +19,7 @@
         <div class="keys-option-section" id="keys-import-section" style="display: none;">
             <h3 class="keys-option-heading">Option 1: Import an existing key</h3>
             <p class="keys-onboarding-option-text">If you already have a Nostr private key (nsec), paste it below (for example from the Nostroots mobile app or your password manager).</p>
+            <p class="keys-import-npub-hint" role="note"><strong>npub1…</strong> is your <strong>public</strong> id (like a username). It cannot log you in here. Use <strong>nsec1…</strong> or your <strong>recovery phrase</strong> — the same secret you would use to restore the app in a new install.</p>
             <div class="keys-option-content">
                 <textarea id="onboarding-import" placeholder="Enter nsec1... or mnemonic phrase (12 or 24 words)..." onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); onboardingImport();}" style="width: 100%; min-height: 80px; margin-bottom: 0.75rem; font-family: monospace; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); background: var(--input); color: var(--foreground);"></textarea>
                 <button class="btn btn-secondary" onclick="onboardingImport()" type="button" style="width: 100%;">Import</button>

@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nostroots Web</title>
-    <meta name="description" content="Nostroots is a social map on Nostr for travelers and hosts. Read traveler notes by area, host other travelers, and start conversations on open relays.">
+    <meta name="description" content="Nostroots is a social map on Nostr for travelers and hosts. Read traveler notes by area, host other travelers, and start chats on open relays.">
     <meta name="theme-color" content="#12b591">
     <link rel="canonical" href="https://nos.trustroots.org/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Nostroots">
     <meta property="og:title" content="Nostroots Web">
-    <meta property="og:description" content="A social map on Nostr for travelers and hosts. Read notes by area, host travelers, and start conversations on open relays.">
+    <meta property="og:description" content="A social map on Nostr for travelers and hosts. Read notes by area, host travelers, and start chats on open relays.">
     <meta property="og:url" content="https://nos.trustroots.org/">
     <meta property="og:image" content="https://nos.trustroots.org/og-image.png">
     <meta property="og:image:secure_url" content="https://nos.trustroots.org/og-image.png">
@@ -20,7 +20,7 @@
     <meta property="og:image:alt" content="Nostroots - social map for travelers on Nostr">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Nostroots Web">
-    <meta name="twitter:description" content="A social map on Nostr for travelers and hosts. Read notes by area, host travelers, and start conversations on open relays.">
+    <meta name="twitter:description" content="A social map on Nostr for travelers and hosts. Read notes by area, host travelers, and start chats on open relays.">
     <meta name="twitter:image" content="https://nos.trustroots.org/og-image.png">
     <meta name="twitter:image:alt" content="Nostroots - social map for travelers on Nostr">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -39,15 +39,16 @@
     <script>
         (function loadLocalStylesheets() {
             const version = Date.now();
-            ['common.css', 'modals.css', 'index.css'].forEach((href) => {
+            ['common.css', 'modals.css', 'chat.css', 'index.css'].forEach((href) => {
                 document.write('<link rel="stylesheet" href="' + href + '?v=' + version + '">');
             });
         })();
     </script>
     <script>
         document.write('<script src="common.js?v=' + Date.now() + '"><\/script>');
+        document.write('<script src="nr-hash-router.js?v=' + Date.now() + '"><\/script>');
     </script>
-    <style type="text/template-removed">
+    <style>
         * {
             margin: 0;
             padding: 0;
@@ -201,6 +202,22 @@
             flex: 1;
             overflow: hidden;
             min-height: 0;
+        }
+
+        /* Embedded chat shell (see chat.css for layout) */
+        .nr-chat-view {
+            display: flex;
+            flex-direction: column;
+            flex: 1 1 0;
+            min-height: 0;
+            overflow: hidden;
+            width: 100%;
+        }
+        body.nr-surface-chat #map-view {
+            display: none !important;
+        }
+        body.nr-surface-chat .nr-chat-view {
+            display: flex !important;
         }
         
         /* Bottom mycelium strip (notes.trustroots.org style) */
@@ -1323,6 +1340,90 @@
             <div id="map"></div>
         </div>
     </div>
+
+    <!-- Chats (embedded chat; hash router shows/hides vs map) -->
+    <div id="nr-chat-view" class="nr-chat-view" hidden style="display:none;">
+        <main class="main">
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-header-top">
+                        <h2 class="sidebar-header-title">Chats</h2>
+                        <button type="button" class="sidebar-header-new-btn" onclick="openNewDmModal()" title="New conversation" aria-label="New conversation"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                    </div>
+                    <input type="search" id="conv-filter" class="conv-filter" placeholder="Search chats and messages" aria-label="Filter chats" autocomplete="off" spellcheck="false">
+                </div>
+                <div class="conv-list" id="conv-list"></div>
+            </aside>
+            <section class="thread-area">
+                <div class="thread-header" id="thread-header" style="display:none;">
+                    <button type="button" class="back-btn" id="thread-back-btn" title="Back to chats" aria-label="Back to chats"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button>
+                    <span class="enc-icon" id="thread-enc-icon" title=""></span>
+                    <span class="enc-label" id="thread-enc-label"></span>
+                    <span id="thread-title"></span>
+                </div>
+                <div class="thread-messages" id="thread-messages"></div>
+                <div class="empty-state" id="empty-state">Select a conversation or start a new one.</div>
+                <div class="compose" id="compose" style="display:none;">
+                    <div class="compose-input-row">
+                        <button id="compose-posting-icon" class="compose-posting-icon" title="Posting scope (open relay settings)" aria-label="Posting scope (open relay settings)" type="button" onclick="openSettingsModal()">🌍</button>
+                        <div class="compose-input-cell">
+                            <textarea id="compose-input" placeholder="Type a message..." rows="2" onkeydown="if(event.key==='Enter'){if(!event.shiftKey){event.preventDefault();sendMessage();}}"></textarea>
+                        </div>
+                        <div class="compose-options" id="compose-note-duration" style="display:none;">
+                            <label for="compose-expiry">EXPIRY</label>
+                            <select id="compose-expiry" aria-label="Expiry">
+                                <option value="3600">1h</option>
+                                <option value="86400">24h</option>
+                                <option value="604800">7d</option>
+                                <option value="2592000">30d</option>
+                                <option value="31536000">1y</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <div id="new-dm-modal" class="modal">
+            <div class="modal-content">
+                <h2>Start a private conversation or create a #hashtag channel</h2>
+                <div class="form-group">
+                    <label>Enter an npub or NIP-05 for a private chat, or enter a hashtag for a channel</label>
+                    <input type="text" id="new-dm-pubkey" placeholder="npub1..., nostroots@trustroots.org, or #travel">
+                </div>
+                <button type="button" class="btn" onclick="startDm()">Start conversation</button>
+                <button type="button" class="btn btn-secondary" onclick="closeNewDmModal()">Cancel</button>
+            </div>
+        </div>
+        <div id="new-group-modal" class="modal">
+            <div class="modal-content">
+                <h2>New group</h2>
+                <div class="form-group">
+                    <label>Add members (npub, nip5 or hashtag e.g. nostroots@trustroots.org)</label>
+                    <div class="add-member-row">
+                        <input type="text" id="new-group-one-pubkey" placeholder="npub1... or nostroots@trustroots.org" onkeydown="if(event.key==='Enter')addGroupParticipant()">
+                        <button type="button" class="btn" onclick="addGroupParticipant()">Add</button>
+                    </div>
+                </div>
+                <div id="new-group-members-list" class="new-group-members-list" aria-label="Added members"></div>
+                <button type="button" class="btn" id="new-group-start-btn" onclick="startGroup()" disabled>Start group</button>
+                <button type="button" class="btn btn-secondary" onclick="closeNewGroupModal()">Cancel</button>
+            </div>
+        </div>
+        <div id="delete-confirm-modal" class="modal" onclick="if(event.target===this)closeDeleteConfirmModal()">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Delete message?</h2>
+                    <button type="button" class="modal-close" onclick="closeDeleteConfirmModal()" aria-label="Close">&times;</button>
+                </div>
+                <p class="modal-body">This will request deletion of the message from relays. <strong>Deletion cannot be guaranteed</strong>—relays and other clients may keep or have already stored the message.</p>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeDeleteConfirmModal()">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="delete-confirm-btn" onclick="confirmDeleteMessage()">Delete</button>
+                </div>
+            </div>
+        </div>
+        <div id="nr-chat-status-container" class="status-container"></div>
+    </div>
     
     <!-- Bottom mycelium decoration -->
     <div class="mycelium-bottom" aria-hidden="true">
@@ -1388,7 +1489,7 @@
         </div>
     </div>
     
-    <!-- Help (Support → Help / FAQ) -->
+    <!-- Help modal (#help); Support menu links to #support as “Support chat” -->
     <div class="modal" id="help-modal">
         <div class="modal-content" style="max-width: 520px;">
             <div class="modal-header">
@@ -1397,7 +1498,7 @@
             </div>
             <div class="form-group" style="font-size: 0.9rem; color: var(--muted-foreground); line-height: 1.45;">
                 <p style="margin-bottom: 0.75rem;"><strong>Nostroots</strong> is a map for traveler notes on Nostr. You can read notes without a key; connect a key when you want to post.</p>
-                <p style="margin-bottom: 0.75rem;">Use <strong>Map</strong> to focus the map and browse by area, <strong>Host</strong> to draft a hosting note, and <strong>Conversations</strong> for chat.</p>
+                <p style="margin-bottom: 0.75rem;">Use <strong>Map</strong> to focus the map and browse by area, <strong>Host & meet</strong> to offer hosting and connect on the map, and <strong>Chats</strong> for messaging.</p>
                 <ul style="margin: 0 0 0.75rem 1.1rem; padding: 0;">
                     <li><a class="nr-content-link" href="https://github.com/Trustroots/nostroots" target="_blank" rel="noopener noreferrer">GitHub — Nostroots</a></li>
                     <li><a class="nr-content-link" href="https://github.com/Trustroots/nostroots/issues/new" target="_blank" rel="noopener noreferrer">Report a bug</a></li>
@@ -1478,6 +1579,21 @@
         const DEFAULT_RELAYS = (window.NrWebRelaySettings?.getDefaultRelays?.() || ['wss://nip42.trustroots.org', 'wss://relay.trustroots.org', 'wss://relay.nomadwiki.org']);
         const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2;
 
+        let nrChatBundlePromise = null;
+        function ensureChatEmbeddedReady() {
+            if (!nrChatBundlePromise) {
+                nrChatBundlePromise = import('./chat-app.js').then((m) => {
+                    try {
+                        m.bootEmbeddedChat();
+                    } catch (err) {
+                        console.warn('[nr-web] embedded chat boot failed', err);
+                    }
+                    return m;
+                });
+            }
+            return nrChatBundlePromise;
+        }
+
         // Decode blocklist npubs to hex (shared blocklist in common.js)
         if (typeof NrBlocklist !== 'undefined' && NrBlocklist.BLOCKLIST_NPUBS && nip19) {
             const blocklistHex = NrBlocklist.BLOCKLIST_NPUBS.map((n) => {
@@ -1514,7 +1630,7 @@
             const hasProfileMissingRestriction = failed.some(f => isTrustrootsProfileMissingRelayError(f.error));
             const hasInternalError = failed.some(f => (f.error || '').toLowerCase().includes('internal error'));
             if (hasProfileMissingRestriction) {
-                return ' Add your npub to your Trustroots profile, then try again.';
+                return '';
             }
             return hasInternalError
                 ? ' Try again in a moment—relay errors are often temporary.'
@@ -1884,8 +2000,7 @@
             const want = encoded ? '#' + encoded : '';
             if (location.hash !== want) location.hash = want;
         }
-        function applyHashToState() {
-            const route = getHashRoute();
+        function legacyApplyMapHashToState(route) {
             const keysEl = document.getElementById('keys-modal');
             const settingsEl = document.getElementById('settings-modal');
             if (route === 'keys') {
@@ -1910,6 +2025,132 @@
             if (settingsEl) settingsEl.classList.remove('active');
             closePlusCodeNotesModal();
         }
+
+        async function applyUnifiedHash() {
+            const H = window.NrWebHashRouter;
+            const route = H && typeof H.getHashRoute === 'function' ? H.getHashRoute() : getHashRoute();
+            if (!H || typeof H.classify !== 'function') {
+                legacyApplyMapHashToState(route);
+                return;
+            }
+            const c = H.classify(route);
+            const mapView = document.getElementById('map-view');
+            const chatView = document.getElementById('nr-chat-view');
+
+            function showMapShell() {
+                document.body.classList.remove('nr-surface-chat');
+                if (mapView) mapView.style.display = '';
+                if (chatView) {
+                    chatView.hidden = true;
+                    chatView.style.display = 'none';
+                }
+                try {
+                    if (window.NrWeb && typeof window.NrWeb.fillAppHeader === 'function') {
+                        window.NrWeb.fillAppHeader();
+                    }
+                } catch (_) {}
+            }
+            function showChatShell() {
+                document.body.classList.add('nr-surface-chat');
+                if (mapView) mapView.style.display = 'none';
+                if (chatView) {
+                    chatView.hidden = false;
+                    chatView.style.display = 'flex';
+                }
+                try {
+                    if (window.NrWeb && typeof window.NrWeb.fillAppHeader === 'function') {
+                        window.NrWeb.fillAppHeader();
+                    }
+                } catch (_) {}
+            }
+
+            if (c.kind === 'map_home') {
+                showMapShell();
+                closePlusCodeNotesModal(true);
+                return;
+            }
+            if (c.kind === 'modal') {
+                showMapShell();
+                closePlusCodeNotesModal(true);
+                const keysEl = document.getElementById('keys-modal');
+                const settingsEl = document.getElementById('settings-modal');
+                if (c.modal === 'keys') {
+                    if (settingsEl) settingsEl.classList.remove('active');
+                    openKeysModal();
+                } else if (c.modal === 'settings') {
+                    if (keysEl) keysEl.classList.remove('active');
+                    openSettingsModal();
+                }
+                return;
+            }
+            if (c.kind === 'reserved') {
+                if (c.token === 'map') {
+                    showMapShell();
+                    closePlusCodeNotesModal(true);
+                    if (location.hash) {
+                        try {
+                            history.replaceState({}, '', location.pathname + location.search);
+                        } catch (_) {}
+                    }
+                    return;
+                }
+                if (c.token === 'chat') {
+                    await ensureChatEmbeddedReady();
+                    showChatShell();
+                    const bundle = await nrChatBundlePromise;
+                    bundle.applyEmbeddedChatRoute('', { emptyPicker: true });
+                    return;
+                }
+                if (c.token === 'help') {
+                    showMapShell();
+                    if (typeof openHelpModal === 'function') openHelpModal();
+                    return;
+                }
+                if (c.token === 'welcome' || c.token === 'start') {
+                    showMapShell();
+                    closePlusCodeNotesModal(true);
+                    const keysEl2 = document.getElementById('keys-modal');
+                    const settingsEl2 = document.getElementById('settings-modal');
+                    if (settingsEl2) settingsEl2.classList.remove('active');
+                    if (keysEl2) keysEl2.classList.remove('active');
+                    openKeysModal();
+                    return;
+                }
+                showMapShell();
+                return;
+            }
+            if (c.kind === 'map_pluscode') {
+                const pNorm = normalizePlusCodeForHashSuppress(c.plusCode);
+                if (nrMapPlusCodeSuppressedUntil && nrMapPlusCodeSuppressedUntil === pNorm) {
+                    nrMapPlusCodeSuppressedUntil = null;
+                    return;
+                }
+                showMapShell();
+                const keysEl3 = document.getElementById('keys-modal');
+                const settingsEl3 = document.getElementById('settings-modal');
+                if (keysEl3) keysEl3.classList.remove('active');
+                if (settingsEl3) settingsEl3.classList.remove('active');
+                showNotesForPlusCode(c.plusCode);
+                return;
+            }
+            if (c.kind === 'chat') {
+                await ensureChatEmbeddedReady();
+                showChatShell();
+                const bundle = await nrChatBundlePromise;
+                bundle.applyEmbeddedChatRoute(c.chatRoute, {});
+            }
+        }
+
+        window.NrWebUnifiedNavigateToMapPlusCode = function (plusCode) {
+            if (!plusCode) return;
+            const enc = encodeURIComponent(plusCode).replace(/%2B/g, '+');
+            try {
+                location.hash = '#' + enc;
+            } catch (_) {}
+        };
+
+        window.applyNrUnifiedHash = applyUnifiedHash;
+
         let isDragging = false; // Track dragging state to prevent grid updates during drag
         let pendingGridUpdate = false; // Track if grid update is needed after drag ends
         let currentPrivateKey = null;
@@ -2460,7 +2701,7 @@
         function getNsecInputErrorMessage(input) {
             if (!input) return 'Please enter an nsec';
             if (input.startsWith('npub1')) {
-                return 'You entered an npub (public key). Paste your nsec (private key) or your mnemonic phrase instead. You may have it in the Nostroots mobile app or in your password manager.';
+                return 'You pasted an npub — that is your public profile id (safe to share), not a signing key. Import your nsec1… private key or your 12/24-word recovery phrase instead. In the Nostroots app: export nsec from settings, or use “Reveal recovery phrase” if you only have a phrase.';
             }
             return 'Invalid nsec format';
         }
@@ -2630,31 +2871,45 @@
         
         function setHeaderIdentity() {
             const el = document.getElementById('header-identity');
+            const elM = document.getElementById('header-identity-mobile');
             const btn = document.getElementById('keys-icon-btn');
+            const btnM = document.getElementById('keys-icon-btn-mobile');
             if (!el) return;
             const hasKey = !!currentPublicKey;
+            function applyTo(node) {
+                if (!node) return;
+                if (!hasKey) {
+                    node.textContent = '';
+                    node.title = '';
+                    node.classList.add('empty');
+                    node.classList.remove('nip5');
+                    return;
+                }
+                let npubStr = '';
+                try { npubStr = nip19.npubEncode(currentPublicKey); } catch (_) {}
+                const trUsername = document.getElementById('trustroots-username')?.value?.trim() || pubkeyToUsername.get(currentPublicKey) || null;
+                node.classList.remove('empty');
+                if (trUsername) {
+                    node.textContent = trUsername + '@trustroots.org';
+                    node.title = node.textContent + (npubStr ? '\n' + npubStr : '');
+                    node.classList.remove('nip5');
+                } else {
+                    node.textContent = npubStr ? (npubStr.slice(0, 12) + '…' + npubStr.slice(-8)) : '';
+                    node.title = npubStr || '';
+                    node.classList.remove('nip5');
+                }
+            }
             if (!hasKey) {
-                el.textContent = '';
-                el.title = '';
-                el.classList.add('empty');
-                el.classList.remove('nip5');
+                applyTo(el);
+                applyTo(elM);
                 if (btn) btn.classList.remove('has-identity');
+                if (btnM) btnM.classList.remove('has-identity');
                 return;
             }
             if (btn) btn.classList.add('has-identity');
-            let npubStr = '';
-            try { npubStr = nip19.npubEncode(currentPublicKey); } catch (_) {}
-            const trUsername = document.getElementById('trustroots-username')?.value?.trim() || pubkeyToUsername.get(currentPublicKey) || null;
-            el.classList.remove('empty');
-            if (trUsername) {
-                el.textContent = trUsername + '@trustroots.org';
-                el.title = el.textContent + (npubStr ? '\n' + npubStr : '');
-                el.classList.remove('nip5');
-            } else {
-                el.textContent = npubStr ? (npubStr.slice(0, 12) + '…' + npubStr.slice(-8)) : '';
-                el.title = npubStr || '';
-                el.classList.remove('nip5');
-            }
+            if (btnM) btnM.classList.add('has-identity');
+            applyTo(el);
+            applyTo(elM);
         }
         
         // Relay status tracking
@@ -4021,7 +4276,7 @@
         }
 
         function linkifyHashtags(html) {
-            return html.replace(/#(\w+)/g, '<a href="chat.html#$1" class="nr-content-link">#$1</a>');
+            return html.replace(/#(\w+)/g, '<a href="#$1" class="nr-content-link">#$1</a>');
         }
 
         function linkifyTrustrootsUrls(html) {
@@ -5200,18 +5455,23 @@
                     }, 100);
                 } else {
                     markRelaysWithPublishFailures(failed);
-                    const errorDetails = failed.map(f => {
-                        const hostname = f.url;
-                        const errorMsg = f.error ? ` (${formatRelayError(f.error)})` : '';
-                        return `${hostname}${errorMsg}`;
-                    }).join(', ');
-                    const hint = getRelayPublishFailureHint(failed);
                     const relayWord = failed.length === 1 ? 'relay' : 'relays';
                     const hasProfileMissingRestriction = failed.some(f => isTrustrootsProfileMissingRelayError(f.error));
-                    const actions = hasProfileMissingRestriction
-                        ? [{ label: 'Open Keys', onClick: () => openKeysModal() }]
-                        : [];
-                    showStatus(`Failed to publish to ${relayWord}: ${errorDetails}.${hint}`, 'error', { eventPayload: signedEvent, actions });
+                    if (hasProfileMissingRestriction) {
+                        showStatus(
+                            `Could not publish to ${relayWord}: relays did not find a Trustroots profile for this public key. Link your Trustroots username in Keys & profile, then try again.`,
+                            'error',
+                            { actions: [{ label: 'Open Keys & profile', onClick: () => openKeysModal() }] }
+                        );
+                    } else {
+                        const errorDetails = failed.map(f => {
+                            const hostname = f.url;
+                            const errorMsg = f.error ? ` (${formatRelayError(f.error)})` : '';
+                            return `${hostname}${errorMsg}`;
+                        }).join(', ');
+                        const hint = getRelayPublishFailureHint(failed);
+                        showStatus(`Failed to publish to ${relayWord}: ${errorDetails}.${hint}`, 'error', { eventPayload: signedEvent, actions: [] });
+                    }
                 }
             } catch (error) {
                 console.error('Error publishing note:', error);
@@ -5219,6 +5479,12 @@
             }
         }
         
+        /** When setHashRoute(plusCode) is called from showNotesForPlusCode, skip the next hash-driven map_pluscode apply (avoids re-entry that clears compose options). */
+        let nrMapPlusCodeSuppressedUntil = null;
+        function normalizePlusCodeForHashSuppress(pc) {
+            return String(pc || '').replace(/\s/g, '').toUpperCase();
+        }
+
         function showNotesForPlusCode(plusCode, options = {}) {
             selectedPlusCode = plusCode;
             updateNoteComposePostingIcon();
@@ -5372,8 +5638,8 @@
             // Update the grid to highlight the selected plus code (moss green) BEFORE panning
             updatePlusCodeGrid();
             
-            // Pan map to ensure selected area is visible above the modal
-            if (map) {
+            // Pan/zoom map so the selected cell is visible (skipped for e.g. Host & meet — keep viewport).
+            if (map && !options.preserveMapView) {
                 const rectangle = plusCodeToRectangle(plusCode);
                 if (rectangle && rectangle.length >= 4) {
                     // Get bounds from rectangle: [sw, se, ne, nw, sw]
@@ -5409,7 +5675,13 @@
             
             // Show modal
             document.getElementById('pluscode-notes-modal').classList.add('active');
+            const pcNorm = normalizePlusCodeForHashSuppress(plusCode);
+            nrMapPlusCodeSuppressedUntil = pcNorm;
+            const hashBefore = location.hash;
             setHashRoute(plusCode);
+            if (location.hash === hashBefore && nrMapPlusCodeSuppressedUntil === pcNorm) {
+                nrMapPlusCodeSuppressedUntil = null;
+            }
 
             // Scroll to bottom and focus on textarea after modal is shown
             setTimeout(() => {
@@ -5459,7 +5731,7 @@
             const username = pubkeyToUsername.get(event.pubkey);
             if (username) {
                 const nip05 = `${username}@trustroots.org`.toLowerCase();
-                const chatHref = 'chat.html#' + encodeURIComponent(nip05).replace(/%2B/g, '+');
+                const chatHref = '#' + encodeURIComponent(nip05).replace(/%2B/g, '+');
                 const authorLink = document.createElement('a');
                 authorLink.className = 'nr-content-link';
                 authorLink.href = chatHref;
@@ -5727,6 +5999,11 @@
             const modals = document.querySelectorAll('.modal.active');
             modals.forEach(modal => {
                 if (modal.id === 'keys-modal') {
+                    let hasStoredKey = false;
+                    try {
+                        hasStoredKey = !!localStorage.getItem('nostr_private_key');
+                    } catch (_) {}
+                    if (!hasStoredKey) return;
                     closeKeysModal();
                 } else if (modal.id === 'pluscode-notes-modal') {
                     closePlusCodeNotesModal();
@@ -5812,7 +6089,10 @@
                 status.appendChild(pre);
             }
             
-            const hideMs = options.eventPayload ? 15000 : 5000;
+            let hideMs = options.eventPayload ? 15000 : 5000;
+            if (Array.isArray(options.actions) && options.actions.length > 0) {
+                hideMs = Math.max(hideMs, 14000);
+            }
             status._hideTimer = setTimeout(() => {
                 if (status.parentNode) status.parentNode.removeChild(status);
             }, hideMs);
@@ -6704,7 +6984,8 @@
                 const pc = encodePlusCode(c.lat, c.lng);
                 showNotesForPlusCode(pc, {
                     initialContent: 'Hosting travelers here — reach out to connect. ',
-                    circleSlug: 'hosts'
+                    circleSlug: 'hosts',
+                    preserveMapView: true
                 });
             }
             run();
@@ -6714,8 +6995,12 @@
             try {
                 const u = new URL(window.location.href);
                 const a = (u.searchParams.get('action') || '').toLowerCase();
-                if (!a) return;
-                u.searchParams.delete('action');
+                const welcomeOn = ['1', 'true', 'yes'].includes((u.searchParams.get('welcome') || '').toLowerCase());
+                const startOn = ['1', 'true', 'yes'].includes((u.searchParams.get('start') || '').toLowerCase());
+                if (!a && !welcomeOn && !startOn) return;
+                if (a) u.searchParams.delete('action');
+                if (welcomeOn) u.searchParams.delete('welcome');
+                if (startOn) u.searchParams.delete('start');
                 const qs = u.searchParams.toString();
                 const clean = u.pathname + (qs ? '?' + qs : '') + u.hash;
                 history.replaceState({}, '', clean);
@@ -6723,6 +7008,15 @@
                     openSearchUi();
                 } else if (a === 'host') {
                     openHostNoteFlow();
+                }
+                if (welcomeOn) {
+                    try {
+                        location.hash = '#welcome';
+                    } catch (_) {}
+                } else if (startOn) {
+                    try {
+                        location.hash = '#start';
+                    } catch (_) {}
                 }
             } catch (err) {
                 console.warn('[nr-web] processNrWebUrlAction', err);
@@ -6970,17 +7264,23 @@
                             await refreshClaimSuggestions({ silent: true });
                         } else {
                             markRelaysWithPublishFailures(failed);
-                            const errorDetails = failed.map(f => {
-                                const hostname = f.url;
-                                const errorMsg = f.error ? ` (${formatRelayError(f.error)})` : '';
-                                return `${hostname}${errorMsg}`;
-                            }).join(', ');
-                            const hint = getRelayPublishFailureHint(failed);
-                            const hasProfileMissingRestriction = failed.some(f => isTrustrootsProfileMissingRelayError(f.error));
-                            const actions = hasProfileMissingRestriction
-                                ? [{ label: 'Open Keys', onClick: () => openKeysModal() }]
-                                : [];
-                            showStatus(`Profile validated but failed to publish: ${errorDetails}.${hint}`, 'error', { eventPayload: signedEvent, actions });
+                            const relayWordPf = failed.length === 1 ? 'relay' : 'relays';
+                            const hasProfileMissingRestrictionPf = failed.some(f => isTrustrootsProfileMissingRelayError(f.error));
+                            if (hasProfileMissingRestrictionPf) {
+                                showStatus(
+                                    `Profile validated but could not publish to ${relayWordPf}: relays still did not see a Trustroots profile for this key. Try again after a moment, or check relay settings.`,
+                                    'error',
+                                    { actions: [{ label: 'Open Keys & profile', onClick: () => openKeysModal() }] }
+                                );
+                            } else {
+                                const errorDetails = failed.map(f => {
+                                    const hostname = f.url;
+                                    const errorMsg = f.error ? ` (${formatRelayError(f.error)})` : '';
+                                    return `${hostname}${errorMsg}`;
+                                }).join(', ');
+                                const hint = getRelayPublishFailureHint(failed);
+                                showStatus(`Profile validated but failed to publish: ${errorDetails}.${hint}`, 'error', { eventPayload: signedEvent, actions: [] });
+                            }
                         }
                     } else {
                         showStatus(`Username ${username} is linked to a different npub. This profile does not belong to you.`, 'error');
@@ -7072,22 +7372,8 @@
             // Initialize relay list
             initializeRelayList();
             
-            // Keys icon button click handler (in header, injected synchronously)
-            const keysBtn = document.getElementById('keys-icon-btn');
-            if (keysBtn) {
-                keysBtn.addEventListener('click', () => {
-                    openKeysModal();
-                });
-            }
-            
-            // Settings icon button click handler (in header, injected synchronously)
-            const settingsBtn = document.getElementById('settings-icon-btn');
-            if (settingsBtn) {
-                settingsBtn.addEventListener('click', () => {
-                    openSettingsModal();
-                });
-            }
-            
+            // Keys / Settings header buttons: wired in common.js fillAppHeader() so listeners survive header rebuilds.
+
             // When user focuses the window after clicking a notification, open the notes modal for that plus code
             window.addEventListener('focus', () => {
                 if (pendingNotificationPlusCode) {
@@ -7212,9 +7498,13 @@
             // Start checking if map is ready after giving it time to initialize
             setTimeout(loadDataWhenReady, 200);
 
-            window.addEventListener('hashchange', applyHashToState);
-            document.addEventListener('nostroots-modals-injected', applyHashToState);
-            applyHashToState();
+            window.addEventListener('hashchange', () => {
+                void applyUnifiedHash();
+            });
+            document.addEventListener('nostroots-modals-injected', () => {
+                void applyUnifiedHash();
+            });
+            void applyUnifiedHash();
             setTimeout(() => processNrWebUrlAction(), 900);
         });
         

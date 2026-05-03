@@ -3,8 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nostroots Chat</title>
+    <title>Nostroots Conversations</title>
+    <meta name="description" content="Chat with travelers and hosts on Nostr. Join Trustroots circles, message hosts, and start conversations across open relays.">
+    <meta name="theme-color" content="#12b591">
+    <link rel="canonical" href="https://nos.trustroots.org/chat.html">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Nostroots">
+    <meta property="og:title" content="Nostroots Conversations">
+    <meta property="og:description" content="Chat with travelers and hosts on Nostr. Join Trustroots circles, message hosts, and start conversations across open relays.">
+    <meta property="og:url" content="https://nos.trustroots.org/chat.html">
+    <meta property="og:image" content="https://nos.trustroots.org/og-image.png">
+    <meta property="og:image:secure_url" content="https://nos.trustroots.org/og-image.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Nostroots - chat with travelers and hosts on Nostr">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Nostroots Conversations">
+    <meta name="twitter:description" content="Chat with travelers and hosts on Nostr. Join Trustroots circles, message hosts, and start conversations across open relays.">
+    <meta name="twitter:image" content="https://nos.trustroots.org/og-image.png">
+    <meta name="twitter:image:alt" content="Nostroots - chat with travelers and hosts on Nostr">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -633,14 +654,7 @@
     </script>
 </head>
 <body>
-    <header class="app-header" id="app-header"
-        data-page-title="Nostroots Chat"
-        data-nav-href="index.html"
-        data-nav-title="Map"
-        data-nav-aria-label="Open Map"
-        data-nav-icon="🌐"
-        data-settings-title="Relays">
-    </header>
+    <header class="app-header" id="app-header"></header>
     <main class="main">
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -1472,7 +1486,7 @@
         function setHeaderIdentity() {
             const el = document.getElementById('header-identity');
             const btn = document.getElementById('keys-icon-btn');
-            if (!el || !btn) return;
+            if (!el) return;
             const hasKey = !!currentPublicKey;
             const nip5 = currentUserNip05 || (currentPublicKey ? pubkeyToNip05.get(currentPublicKey) : '');
             const trUsername = currentPublicKey ? pubkeyToUsername.get(currentPublicKey) : null;
@@ -1482,10 +1496,10 @@
                 el.title = '';
                 el.classList.add('empty');
                 el.classList.remove('nip5');
-                btn.classList.remove('has-identity');
+                if (btn) btn.classList.remove('has-identity');
                 return;
             }
-            btn.classList.add('has-identity');
+            if (btn) btn.classList.add('has-identity');
             el.classList.remove('empty');
             if (nip5) {
                 el.textContent = nip5;

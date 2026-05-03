@@ -1,4 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
+
+/** Keys / Settings live in the Account dropdown in the shared header */
+async function openUserMenuIfNeeded(page) {
+  const settingsBtn = page.locator('#settings-icon-btn');
+  if (await settingsBtn.isVisible()) return;
+  const menuBtn = page.locator('#nav-user-btn');
+  if (await menuBtn.isVisible()) {
+    await menuBtn.click();
+    await page.waitForTimeout(200);
+  }
+}
 
 test.describe('Settings Management', () => {
   test.beforeEach(async ({ page }) => {
@@ -31,6 +42,7 @@ test.describe('Settings Management', () => {
   });
 
   test('can open settings modal', async ({ page }) => {
+    await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
@@ -44,6 +56,7 @@ test.describe('Settings Management', () => {
   });
 
   test('settings modal has relays section', async ({ page }) => {
+    await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
@@ -64,6 +77,7 @@ test.describe('Settings Management', () => {
   });
 
   test('can add new relay URL', async ({ page }) => {
+    await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
@@ -103,6 +117,7 @@ test.describe('Settings Management', () => {
   });
 
   test('settings modal has notifications section', async ({ page }) => {
+    await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
@@ -120,6 +135,7 @@ test.describe('Settings Management', () => {
   });
 
   test('settings modal shows commit and deploy metadata', async ({ page }) => {
+    await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
@@ -174,6 +190,7 @@ test.describe('Settings Management', () => {
       }
     });
 
+    await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (!(await settingsBtn.isVisible())) {
       test.skip();
@@ -196,6 +213,7 @@ test.describe('Settings Management', () => {
   });
 
   test('can close settings modal', async ({ page }) => {
+    await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();

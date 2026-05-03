@@ -7,11 +7,15 @@ Simple, effective, and easily expandable test framework for nr-web.
 ## Quick Start (Docker - Recommended)
 
 ```bash
-# Run all tests (builds image if needed)
+# Fast suite (recommended for local iteration): Vitest + Playwright desktop Chromium only
+make test-fast
+
+# Full suite (CI-parity): Vitest + Chromium + iOS WebKit emulation — slower
 make test
 
 # Or use docker-compose directly
-docker-compose run --rm tests
+docker-compose run --rm tests pnpm test:local:fast   # fast
+docker-compose run --rm tests                        # full (image default CMD)
 
 # Run tests in watch mode
 make test-watch
@@ -21,11 +25,14 @@ make test-ui
 # Then open http://localhost:51204
 
 # Run E2E tests only
-make test-e2e
+make test-e2e          # all Playwright projects
+make test-e2e-fast     # Chromium only
 
 # Run with coverage
 make test-coverage
 ```
+
+**Fast vs extensive:** `test:local:fast` / `make test-fast` skips the `ios-safari` Playwright project. Use `test:local:extensive` or `make test` for the full matrix. (Additional splits, e.g. tagged slow tests, can be added later.)
 
 ## Local Execution (Not Recommended)
 
@@ -39,6 +46,8 @@ pnpm install
 pnpm test:local
 pnpm test:local:watch
 pnpm test:local:e2e
+pnpm test:local:fast
+pnpm test:local:extensive
 ```
 
 **Note**: Local execution may have inconsistencies due to:

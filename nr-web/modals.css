@@ -268,7 +268,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 0.75rem;
     margin-bottom: 1rem;
+}
+
+#keys-modal .keys-modal-header-titles {
+    flex: 1;
+    min-width: 0;
+}
+
+#keys-modal .keys-modal-header-titles h2 {
+    margin: 0;
 }
 
 #keys-modal .modal-header h2,
@@ -406,6 +416,27 @@
     margin-bottom: 0;
     text-align: center;
     line-height: 1.5;
+}
+
+.keys-option-heading {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--foreground);
+}
+
+.keys-onboarding-option-text {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0 0 0.75rem 0;
+}
+
+.keys-onboarding-two-options-intro {
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0 0 1rem 0;
 }
 
 .action-buttons {

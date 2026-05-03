@@ -86,15 +86,18 @@ describe('Modal Behavior', () => {
       const keysModal = document.getElementById('keys-modal');
       expect(keysModal).toBeTruthy();
       expect(document.getElementById('keys-welcome-section')).toBeTruthy();
+      expect(document.getElementById('keys-welcome-modal-title')).toBeTruthy();
       expect(document.getElementById('keys-import-section')).toBeTruthy();
       expect(document.getElementById('keys-generate-section')).toBeTruthy();
+      expect(document.getElementById('keys-generate-intro')).toBeTruthy();
       expect(document.getElementById('onboarding-import')).toBeTruthy();
     });
 
     it('keys modal includes guidance about nsec and password manager', () => {
       const keysModal = document.getElementById('keys-modal');
       const text = keysModal?.textContent || '';
-      expect(text).toContain('read and share traveler notes on the map');
+      expect(text).toContain('new applications');
+      expect(text).toContain('rebuild Trustroots');
       expect(text).toContain('Nostr private key');
       expect(text).toContain('Nostroots mobile app');
       expect(text).toContain('Bitwarden');

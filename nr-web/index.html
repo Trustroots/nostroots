@@ -4,7 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nostroots Web</title>
+    <meta name="description" content="Nostroots is a social map on Nostr for travelers and hosts. Read traveler notes by area, host other travelers, and start conversations on open relays.">
+    <meta name="theme-color" content="#12b591">
+    <link rel="canonical" href="https://nos.trustroots.org/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Nostroots">
+    <meta property="og:title" content="Nostroots Web">
+    <meta property="og:description" content="A social map on Nostr for travelers and hosts. Read notes by area, host travelers, and start conversations on open relays.">
+    <meta property="og:url" content="https://nos.trustroots.org/">
+    <meta property="og:image" content="https://nos.trustroots.org/og-image.png">
+    <meta property="og:image:secure_url" content="https://nos.trustroots.org/og-image.png">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Nostroots - social map for travelers on Nostr">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Nostroots Web">
+    <meta name="twitter:description" content="A social map on Nostr for travelers and hosts. Read notes by area, host travelers, and start conversations on open relays.">
+    <meta name="twitter:image" content="https://nos.trustroots.org/og-image.png">
+    <meta name="twitter:image:alt" content="Nostroots - social map for travelers on Nostr">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -119,10 +140,10 @@
             justify-content: space-between;
             gap: 0.75rem;
             position: relative;
-            overflow: hidden;
+            overflow: visible;
             border: none;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            z-index: 100;
+            z-index: 1500;
         }
         .app-header .vines {
             position: absolute;
@@ -131,6 +152,7 @@
             align-items: center;
             justify-content: center;
             pointer-events: none;
+            overflow: hidden;
         }
         .app-header .vines img {
             width: 100%;
@@ -545,6 +567,27 @@
             margin-bottom: 0;
             text-align: center;
             line-height: 1.5;
+        }
+        
+        .keys-option-heading {
+            margin: 0 0 0.5rem 0;
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: var(--foreground);
+        }
+        
+        .keys-onboarding-option-text {
+            color: var(--muted-foreground);
+            font-size: 0.875rem;
+            line-height: 1.5;
+            margin: 0 0 0.75rem 0;
+        }
+        
+        .keys-onboarding-two-options-intro {
+            color: var(--muted-foreground);
+            font-size: 0.875rem;
+            line-height: 1.5;
+            margin: 0 0 1rem 0;
         }
         
         .action-buttons {
@@ -1272,14 +1315,7 @@
     </style>
 </head>
 <body>
-    <header class="app-header" id="app-header"
-        data-page-title="Nostroots Map"
-        data-nav-href="chat.html"
-        data-nav-title="Chat"
-        data-nav-aria-label="Open Chat"
-        data-nav-icon="💬"
-        data-settings-title="Settings">
-    </header>
+    <header class="app-header" id="app-header"></header>
     
     <!-- Map View -->
     <div class="view active" id="map-view">
@@ -1348,6 +1384,25 @@
                 <div id="circles-list" class="circles-list">
                     <!-- Circles will be populated here -->
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help (Support → Help / FAQ) -->
+    <div class="modal" id="help-modal">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h2>Help</h2>
+                <button type="button" class="modal-close" onclick="closeHelpModal()" aria-label="Close">&times;</button>
+            </div>
+            <div class="form-group" style="font-size: 0.9rem; color: var(--muted-foreground); line-height: 1.45;">
+                <p style="margin-bottom: 0.75rem;"><strong>Nostroots</strong> is a map for traveler notes on Nostr. You can read notes without a key; connect a key when you want to post.</p>
+                <p style="margin-bottom: 0.75rem;">Use <strong>Map</strong> to focus the map and browse by area, <strong>Host</strong> to draft a hosting note, and <strong>Conversations</strong> for chat.</p>
+                <ul style="margin: 0 0 0.75rem 1.1rem; padding: 0;">
+                    <li><a class="nr-content-link" href="https://github.com/Trustroots/nostroots" target="_blank" rel="noopener noreferrer">GitHub — Nostroots</a></li>
+                    <li><a class="nr-content-link" href="https://github.com/Trustroots/nostroots/issues/new" target="_blank" rel="noopener noreferrer">Report a bug</a></li>
+                    <li><a class="nr-content-link" href="https://www.trustroots.org/support" target="_blank" rel="noopener noreferrer">Trustroots support</a></li>
+                </ul>
             </div>
         </div>
     </div>
@@ -2276,6 +2331,7 @@
         
         function getTrustrootsCircles() {
             return [
+                { slug: 'hosts' },
                 { slug: 'hitch' },
                 { slug: 'dumpsterdivers' },
                 { slug: 'families' },
@@ -2575,17 +2631,17 @@
         function setHeaderIdentity() {
             const el = document.getElementById('header-identity');
             const btn = document.getElementById('keys-icon-btn');
-            if (!el || !btn) return;
+            if (!el) return;
             const hasKey = !!currentPublicKey;
             if (!hasKey) {
                 el.textContent = '';
                 el.title = '';
                 el.classList.add('empty');
                 el.classList.remove('nip5');
-                btn.classList.remove('has-identity');
+                if (btn) btn.classList.remove('has-identity');
                 return;
             }
-            btn.classList.add('has-identity');
+            if (btn) btn.classList.add('has-identity');
             let npubStr = '';
             try { npubStr = nip19.npubEncode(currentPublicKey); } catch (_) {}
             const trUsername = document.getElementById('trustroots-username')?.value?.trim() || pubkeyToUsername.get(currentPublicKey) || null;
@@ -5163,7 +5219,7 @@
             }
         }
         
-        function showNotesForPlusCode(plusCode) {
+        function showNotesForPlusCode(plusCode, options = {}) {
             selectedPlusCode = plusCode;
             updateNoteComposePostingIcon();
             
@@ -5303,9 +5359,15 @@
                 notesContent.appendChild(noNotes);
             }
             
-            // Clear form when opening modal
-            document.getElementById('note-content-in-modal').value = '';
+            // Clear / seed form when opening modal
+            const noteTa = document.getElementById('note-content-in-modal');
+            if (noteTa) {
+                noteTa.value = typeof options.initialContent === 'string' ? options.initialContent : '';
+            }
             document.getElementById('note-expiration-in-modal').value = getExpirationSetting();
+            if (options.circleSlug) {
+                selectCircle(options.circleSlug);
+            }
             
             // Update the grid to highlight the selected plus code (moss green) BEFORE panning
             updatePlusCodeGrid();
@@ -5670,6 +5732,8 @@
                     closePlusCodeNotesModal();
                 } else if (modal.id === 'settings-modal') {
                     closeSettingsModal();
+                } else if (modal.id === 'help-modal') {
+                    closeHelpModal();
                 } else {
                     modal.classList.remove('active');
                 }
@@ -6599,13 +6663,81 @@
             setHashRoute(selectedPlusCode || '');
         }
 
+        function openHelpModal() {
+            const el = document.getElementById('help-modal');
+            if (el) el.classList.add('active');
+        }
+
+        function closeHelpModal() {
+            const el = document.getElementById('help-modal');
+            if (el) el.classList.remove('active');
+        }
+
+        function normalizeUserPlusCodeInput(raw) {
+            if (raw == null || typeof raw !== 'string') return '';
+            let s = raw.trim().replace(/\s+/g, '').toUpperCase();
+            if (!s) return '';
+            if (!s.includes('+') && s.length > 2) {
+                s = s.slice(0, -2) + '+' + s.slice(-2);
+            }
+            return s;
+        }
+
+        function openSearchUi() {
+            const mapEl = document.getElementById('map');
+            const canvas = mapEl && mapEl.querySelector && (mapEl.querySelector('.maplibregl-canvas') || mapEl.querySelector('canvas'));
+            if (canvas && typeof canvas.focus === 'function') {
+                try { canvas.focus({ preventScroll: true }); } catch (_) { try { canvas.focus(); } catch (_) {} }
+            } else if (mapEl && typeof mapEl.focus === 'function') {
+                try { mapEl.focus({ preventScroll: true }); } catch (_) { try { mapEl.focus(); } catch (_) {} }
+            }
+            showStatus('Map: click a cell to open notes for that area.', 'info');
+        }
+
+        function openHostNoteFlow() {
+            function run() {
+                if (!map) {
+                    setTimeout(run, 200);
+                    return;
+                }
+                const c = map.getCenter();
+                const pc = encodePlusCode(c.lat, c.lng);
+                showNotesForPlusCode(pc, {
+                    initialContent: 'Hosting travelers here — reach out to connect. ',
+                    circleSlug: 'hosts'
+                });
+            }
+            run();
+        }
+
+        function processNrWebUrlAction() {
+            try {
+                const u = new URL(window.location.href);
+                const a = (u.searchParams.get('action') || '').toLowerCase();
+                if (!a) return;
+                u.searchParams.delete('action');
+                const qs = u.searchParams.toString();
+                const clean = u.pathname + (qs ? '?' + qs : '') + u.hash;
+                history.replaceState({}, '', clean);
+                if (a === 'map' || a === 'search') {
+                    openSearchUi();
+                } else if (a === 'host') {
+                    openHostNoteFlow();
+                }
+            } catch (err) {
+                console.warn('[nr-web] processNrWebUrlAction', err);
+            }
+        }
+
         // Make functions globally accessible for onclick handlers
         window.openKeysModal = openKeysModal;
         window.closeKeysModal = closeKeysModal;
         window.openSettingsModal = openSettingsModal;
         window.closeSettingsModal = closeSettingsModal;
-        window.openKeysModal = openKeysModal;
-        window.closeKeysModal = closeKeysModal;
+        window.openHelpModal = openHelpModal;
+        window.closeHelpModal = closeHelpModal;
+        window.openSearchUi = openSearchUi;
+        window.openHostNoteFlow = openHostNoteFlow;
         window.saveExpirationSetting = saveExpirationSetting;
         window.addRelay = addRelay;
         window.removeRelay = removeRelay;
@@ -7017,6 +7149,15 @@
                 });
             }
             
+            const helpModal = document.getElementById('help-modal');
+            if (helpModal) {
+                helpModal.addEventListener('click', (e) => {
+                    if (e.target.id === 'help-modal') {
+                        closeHelpModal();
+                    }
+                });
+            }
+            
             // Note: Enter key handler for note textarea is set up in showNotesForPlusCode()
             // with proper deduplication via enterHandlerSetup flag
             
@@ -7074,6 +7215,7 @@
             window.addEventListener('hashchange', applyHashToState);
             document.addEventListener('nostroots-modals-injected', applyHashToState);
             applyHashToState();
+            setTimeout(() => processNrWebUrlAction(), 900);
         });
         
         // Make functions available globally

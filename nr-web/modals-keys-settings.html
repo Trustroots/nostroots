@@ -2,20 +2,23 @@
 <div class="modal" id="keys-modal" onclick="if(event.target===this)typeof closeKeysModal==='function'&&closeKeysModal()">
     <div class="modal-content">
         <div class="modal-header">
-            <h2>Keys</h2>
+            <div class="keys-modal-header-titles">
+                <h2 id="keys-modal-header-title" style="display: none;">Keys</h2>
+                <h2 id="keys-welcome-modal-title" style="display: none;">Welcome to Nostroots</h2>
+            </div>
             <button class="modal-close" id="keys-modal-close-btn" onclick="closeKeysModal()" type="button">&times;</button>
         </div>
 
         <!-- Welcome message (only shown when no key is set) -->
         <div id="keys-welcome-section" style="display: none; margin-bottom: 2rem;">
-            <h2 style="margin-bottom: 0.5rem;">Welcome to Nostroots</h2>
-            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">Nostroots lets you read and share traveler notes on the map. You can read first, and add your own notes once your key is connected.</p>
-            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">If you already have a Nostr private key (nsec), paste it below (for example from the Nostroots mobile app or your password manager).</p>
-            <p style="color: var(--muted-foreground); margin: 0;">If you do not have one yet, generate a key here, then export and store your nsec in your password manager. If you do not have a password manager yet, we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>.</p>
+            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">Nostroots is an attempt to rebuild Trustroots on open protocols so travelers and hosts keep more power: less should ride on whoever runs the core Trustroots service, and anyone should be able to build new applications on the same trust network—more freedom for users and other developers alike.</p>
+            <p class="keys-onboarding-two-options-intro"><strong>Two ways to get started:</strong> import an existing private key, or generate a new one below.</p>
         </div>
 
         <!-- Import nsec or mnemonic (only shown when no key) -->
         <div class="keys-option-section" id="keys-import-section" style="display: none;">
+            <h3 class="keys-option-heading">Option 1: Import an existing key</h3>
+            <p class="keys-onboarding-option-text">If you already have a Nostr private key (nsec), paste it below (for example from the Nostroots mobile app or your password manager).</p>
             <div class="keys-option-content">
                 <textarea id="onboarding-import" placeholder="Enter nsec1... or mnemonic phrase (12 or 24 words)..." onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); onboardingImport();}" style="width: 100%; min-height: 80px; margin-bottom: 0.75rem; font-family: monospace; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); background: var(--input); color: var(--foreground);"></textarea>
                 <button class="btn btn-secondary" onclick="onboardingImport()" type="button" style="width: 100%;">Import</button>
@@ -24,8 +27,10 @@
 
         <!-- Generate New Key (only shown when no key) -->
         <div class="keys-option-section" id="keys-generate-section" style="display: none;">
+            <h3 class="keys-option-heading">Option 2: Generate a new key</h3>
+            <p id="keys-generate-intro" class="keys-onboarding-option-text">If you do not have one yet, generate a key below, then export and store your nsec in your password manager. If you do not have a password manager yet, we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>.</p>
             <div class="keys-option-content">
-                <button class="btn" onclick="onboardingGenerate()" type="button" style="width: 100%;">Generate New Key</button>
+                <button class="btn btn-secondary" onclick="onboardingGenerate()" type="button" style="width: 100%;">Generate New Key</button>
             </div>
         </div>
 

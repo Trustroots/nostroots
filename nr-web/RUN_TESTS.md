@@ -13,23 +13,27 @@
 
 ```bash
 # From the nr-web directory
-make test
+make test-fast
 ```
 
 This will:
 1. Build the Docker image (if needed)
-2. Run all tests (unit, integration, and E2E)
+2. Run Vitest plus Playwright on **Chromium desktop only** (skips the slower iOS WebKit project)
 3. Clean up the container after completion
+
+Use `make test` for the full suite (both Playwright projects), matching exhaustive CI-style runs.
 
 ## Available Commands
 
 ### Using Make (Recommended)
 
 ```bash
-make test          # Run all tests
+make test-fast     # Fast: Vitest + Playwright Chromium only
+make test          # Full: Vitest + all Playwright projects
 make test-watch    # Watch mode for development
 make test-ui       # Run with Vitest UI (http://localhost:51204)
-make test-e2e      # E2E tests only
+make test-e2e      # E2E all projects
+make test-e2e-fast # E2E Chromium only
 make test-unit     # Unit/integration tests only
 make test-coverage # Run with coverage report
 make build         # Build Docker image manually
@@ -40,12 +44,14 @@ make help          # Show all commands
 ### Using Docker Compose Directly
 
 ```bash
-# Run all tests
-docker-compose run --rm tests
+# Run fast or full suite
+docker-compose run --rm tests pnpm test:local:fast
+docker-compose run --rm tests pnpm test:local:all
 
 # Run specific test suite
 docker-compose run --rm tests pnpm test:local
 docker-compose run --rm tests pnpm test:local:e2e
+docker-compose run --rm tests pnpm test:local:e2e:fast
 
 # Watch mode
 docker-compose run --rm tests pnpm test:local:watch
@@ -79,11 +85,11 @@ pnpm test:local:e2e
 In CI environments, tests automatically run in Docker:
 
 ```yaml
-# Example GitHub Actions
+# Example GitHub Actions — use `make test` for full matrix in CI; `make test-fast` for quick checks
 - name: Run tests
   run: |
     cd nr-web
-    make test
+    make test-fast
 ```
 
 ## Troubleshooting

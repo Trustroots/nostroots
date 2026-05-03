@@ -127,10 +127,12 @@ h1, h2, .modal-header h2 {
     justify-content: space-between;
     gap: 0.75rem;
     position: relative;
-    overflow: hidden;
+    /* Allow Support / Account dropdowns to extend below the header (overflow:hidden clipped them). */
+    overflow: visible;
     border: none;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    z-index: 100;
+    /* Above map internals (e.g. layer-controls z-index 1000); below modals (z-index 2000). */
+    z-index: 1500;
 }
 
 .app-header .vines {
@@ -140,6 +142,8 @@ h1, h2, .modal-header h2 {
     align-items: center;
     justify-content: center;
     pointer-events: none;
+    /* Clip decoration to the header bar (header uses overflow:visible for dropdowns). */
+    overflow: hidden;
 }
 
 .app-header .vines img {
@@ -156,8 +160,22 @@ h1, h2, .modal-header h2 {
     justify-content: flex-start;
     gap: 0.6rem 1.25rem;
     position: relative;
-    z-index: 1;
+    /* Above .nr-nav-main so Support dropdown menus are not covered by Search/Host */
+    z-index: 20;
     min-width: 0;
+    flex: 1;
+}
+
+.app-header-logo-link {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    text-decoration: none;
+    border-radius: 0.5rem;
+}
+
+.app-header-logo-link:hover {
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .app-header-logo {
@@ -165,6 +183,193 @@ h1, h2, .modal-header h2 {
     width: auto;
     position: relative;
     flex-shrink: 0;
+}
+
+/* Trustroots-style primary nav (index + chat) */
+.nr-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+}
+
+.nr-nav-main {
+    margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 100%;
+    position: relative;
+    z-index: 10;
+}
+
+.nr-nav-link {
+    color: rgba(255, 255, 255, 0.95);
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.875rem;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.nr-nav-link:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+.nr-nav-link.is-active,
+.nr-nav-link[aria-current="page"] {
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.nr-nav-dropdown {
+    position: relative;
+    z-index: 0;
+}
+
+.nr-nav-dropdown.is-open {
+    /* Stack open dropdown above sibling nav controls in the same header row. */
+    z-index: 2;
+}
+
+.nr-nav-dropdown-toggle {
+    color: rgba(255, 255, 255, 0.95);
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.875rem;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.nr-nav-dropdown-toggle:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.nr-caret {
+    font-size: 0.65rem;
+    opacity: 0.9;
+    margin-left: 0.1rem;
+}
+
+.nr-nav-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    min-width: 220px;
+    max-width: min(320px, 92vw);
+    background: var(--card);
+    color: var(--card-foreground);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    padding: 0.35rem;
+    z-index: 10;
+}
+
+.nr-nav-menu--left {
+    left: 0;
+    right: auto;
+}
+
+.nr-nav-menu--right {
+    right: 0;
+    left: auto;
+}
+
+.nr-nav-dropdown.is-open .nr-nav-menu {
+    display: block;
+}
+
+.nr-nav-menu .menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.35rem 0.25rem;
+}
+
+.nr-nav-menu-item,
+.nr-nav-menu-external {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 0.4rem;
+    background: transparent;
+    border: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    box-sizing: border-box;
+}
+
+.nr-nav-menu-item:hover,
+.nr-nav-menu-external:hover {
+    background: var(--muted);
+}
+
+.nr-nav-menu-identity {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    padding: 0.35rem 0.5rem 0.15rem;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nr-nav-menu-identity.empty {
+    display: none;
+}
+
+.nr-nav-menu .app-header-mobile-links-wrap {
+    margin: 0.25rem 0 0;
+    width: 100%;
+    max-width: none;
+    background: var(--muted);
+    border-color: var(--border);
+}
+
+.nr-nav-menu .app-header-mobile-links {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.nr-nav-menu .app-header-mobile-link {
+    width: 100%;
+    height: auto;
+    min-height: 32px;
+    padding: 0.35rem 0.5rem;
+    color: var(--card-foreground);
+    background: transparent;
+    border: none;
+    border-radius: 0.35rem;
+}
+
+.nr-nav-menu .app-header-mobile-link:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.nr-nav-menu .app-header-mobile-hint {
+    color: var(--muted-foreground);
+    font-size: 0.65rem;
+    max-width: none;
 }
 
 /* Nav link: Map/Chat switcher (same size as keys/settings icons) */
@@ -307,6 +512,11 @@ h1, h2, .modal-header h2 {
     transform: scale(0.95);
 }
 
+.nr-nav-menu-item .keys-icon-symbol {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
 /* Header identity (npub/nip5) – shared by index and chat */
 .header-identity {
     font-size: 0.8125rem;
@@ -326,7 +536,7 @@ h1, h2, .modal-header h2 {
 .header-identity.nip5 { font-weight: 600; }
 .header-identity.empty { display: none; }
 
-/* Combined NIP-05 + keys button: one rectangular rounded button (index + chat) */
+/* Combined NIP-05 + keys button: one rectangular rounded button (legacy app-header-actions) */
 .app-header-actions .keys-icon.header-identity-btn {
     border-radius: 0.875rem;
     gap: 0.375rem;
@@ -413,11 +623,14 @@ h1, h2, .modal-header h2 {
 }
 
 @media (max-width: 768px) {
-    .app-header { padding: 0 0.75rem; }
-    .app-header-inner { justify-content: flex-start; gap: 0.45rem; }
+    .app-header { padding: 0 0.75rem; flex-wrap: wrap; row-gap: 0.35rem; }
+    .app-header-inner { justify-content: flex-start; gap: 0.45rem; flex: 1 1 auto; }
     .app-header h1 { font-size: 1.35rem; }
     .app-header-purpose { display: none; }
-    .app-header-logo { display: none; }
+    .app-header-logo { height: 28px; }
+    .nr-nav-main { flex: 1 1 100%; justify-content: flex-start; margin-left: 0; }
+    .nr-nav-link { padding: 0.35rem 0.45rem; font-size: 0.78rem; }
+    .nr-nav-dropdown-toggle { padding: 0.35rem 0.45rem; font-size: 0.78rem; }
     .app-header-mobile-links-wrap { margin-left: 0; }
     .app-header-mobile-link { height: 26px; padding: 0 0.45rem; }
     .app-header-mobile-link-label { display: none; }

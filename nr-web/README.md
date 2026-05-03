@@ -39,9 +39,11 @@ Tests are designed to run in Docker by default for consistency and safety. See [
 
 **Quick test commands:**
 ```bash
-make test          # Run all tests
+make test-fast     # Fast: Vitest + Playwright Chromium only (default for quick feedback)
+make test          # Full: Vitest + every Playwright project (CI-parity, slower)
 make test-watch    # Watch mode
-make test-e2e      # E2E tests only
+make test-e2e      # E2E tests only (all projects)
+make test-e2e-fast # E2E Chromium only
 ```
 
 **NIP-42 (`wss://nip42.trustroots.org`):** Automated tests mostly use public relays. For AUTH challenge/response behavior, use the manual client in [`test.html`](test.html). NIP-42 read/publish paths are not fully covered in CI.

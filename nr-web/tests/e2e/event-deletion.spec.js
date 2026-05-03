@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 test.describe('Event Deletion E2E', () => {
   test.beforeEach(async ({ page }) => {

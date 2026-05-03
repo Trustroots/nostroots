@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pixel — Trustroots Circles</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -56,7 +57,7 @@
 </head>
 <body>
     <div class="pixel-page">
-        <header class="app-header" id="app-header" data-page-title="Pixel" data-nav-href="index.html" data-nav-title="Map" data-nav-aria-label="Back to map" data-nav-icon="←" data-settings-title="Settings"></header>
+        <header class="app-header" id="app-header"></header>
 
         <div class="pixel-main">
             <div class="pixel-editor">
@@ -675,6 +676,8 @@
 
         function updateKeyDisplay() {
             const hasKey = !!currentPublicKey;
+            const keysModalTitle = document.getElementById('keys-modal-header-title');
+            const welcomeModalTitle = document.getElementById('keys-welcome-modal-title');
             const welcomeSection = document.getElementById('keys-welcome-section');
             const importSection = document.getElementById('keys-import-section');
             const generateSection = document.getElementById('keys-generate-section');
@@ -688,6 +691,8 @@
             const keySectionDivider = document.getElementById('key-section-divider');
             const npubDisplay = document.getElementById('npub-display');
 
+            if (keysModalTitle) keysModalTitle.style.display = hasKey ? 'block' : 'none';
+            if (welcomeModalTitle) welcomeModalTitle.style.display = hasKey ? 'none' : 'block';
             if (welcomeSection) welcomeSection.style.display = hasKey ? 'none' : 'block';
             if (importSection) importSection.style.display = hasKey ? 'none' : 'block';
             if (generateSection) generateSection.style.display = hasKey ? 'none' : 'block';

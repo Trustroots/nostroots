@@ -425,6 +425,8 @@
 
     function setKeysModalSections(hasKey) {
         if (!hasKey) {
+            setDisplayById('keys-modal-header-title', 'none');
+            setDisplayById('keys-welcome-modal-title', 'block');
             setDisplayById('keys-welcome-section', 'block');
             setDisplayById('keys-import-section', 'block');
             setDisplayById('keys-generate-section', 'block');
@@ -432,6 +434,8 @@
             setDisplayById('keys-trustroots-section', 'none');
             return;
         }
+        setDisplayById('keys-modal-header-title', 'block');
+        setDisplayById('keys-welcome-modal-title', 'none');
         setDisplayById('keys-welcome-section', 'none');
         setDisplayById('keys-import-section', 'none');
         setDisplayById('keys-generate-section', 'none');
@@ -921,37 +925,190 @@
             '</div>';
     }
 
+    function buildTrustrootsFooterLinksMenuHtml() {
+        var items = [
+            { label: 'About', href: 'https://notes.trustroots.org/' },
+            { label: 'Contribute', href: 'https://github.com/Trustroots/nostroots' },
+            { label: 'Rules', href: 'https://www.trustroots.org/rules' },
+            { label: 'Blog', href: 'https://ideas.trustroots.org/' }
+        ];
+        return items.map(function (it) {
+            return '<a role="menuitem" class="nr-nav-menu-external" href="' + escapeHtml(it.href) + '" target="_blank" rel="noopener noreferrer">' +
+                escapeHtml(it.label) + '</a>';
+        }).join('');
+    }
+
+    function buildSupportDropdownMenuHtml() {
+        return '<button type="button" role="menuitem" class="nr-nav-menu-item" id="nav-support-help-btn">Help / FAQ</button>' +
+            '<a role="menuitem" class="nr-nav-menu-external" href="https://github.com/Trustroots/nostroots/issues/new" target="_blank" rel="noopener noreferrer">Report a bug</a>' +
+            '<a role="menuitem" class="nr-nav-menu-external" href="https://www.trustroots.org/support" target="_blank" rel="noopener noreferrer">Trustroots support</a>';
+    }
+
+    var nrNavOpenDropdown = null;
+    var nrNavGlobalsBound = false;
+
+    function closeAllNrNavDropdowns() {
+        var doc = global.document;
+        if (!doc) return;
+        var nodes = doc.querySelectorAll('.nr-nav-dropdown.is-open');
+        for (var i = 0; i < nodes.length; i++) {
+            var el = nodes[i];
+            el.classList.remove('is-open');
+            var btn = el.querySelector('button[aria-expanded]');
+            if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+        nrNavOpenDropdown = null;
+    }
+
+    function toggleNrNavDropdown(dropRoot, open) {
+        if (!dropRoot) return;
+        var wantOpen = typeof open === 'boolean' ? open : !dropRoot.classList.contains('is-open');
+        if (wantOpen && nrNavOpenDropdown && nrNavOpenDropdown !== dropRoot) {
+            closeAllNrNavDropdowns();
+        }
+        dropRoot.classList.toggle('is-open', wantOpen);
+        var btn = dropRoot.querySelector('button[aria-expanded]');
+        if (btn) btn.setAttribute('aria-expanded', wantOpen ? 'true' : 'false');
+        nrNavOpenDropdown = wantOpen ? dropRoot : null;
+    }
+
+    function initNrNavGlobalListenersOnce() {
+        if (nrNavGlobalsBound || !global.document) return;
+        nrNavGlobalsBound = true;
+        global.document.addEventListener('click', function (e) {
+            var h = global.document.getElementById('app-header');
+            if (!h || !e.target || !h.contains(e.target)) closeAllNrNavDropdowns();
+        });
+        global.document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeAllNrNavDropdowns();
+        });
+    }
+
+    function nrHeaderNavClickDelegate(e) {
+        var t = e.target;
+        if (!t || !t.closest) return;
+        var header = e.currentTarget;
+        if (t.closest('#nav-support-help-btn')) {
+            e.preventDefault();
+            closeAllNrNavDropdowns();
+            if (typeof global.window.openHelpModal === 'function') {
+                global.window.openHelpModal();
+            } else {
+                try {
+                    global.window.open('https://github.com/Trustroots/nostroots', '_blank', 'noopener,noreferrer');
+                } catch (_) {}
+            }
+            return;
+        }
+        if (t.closest('#nav-map-btn')) {
+            e.preventDefault();
+            closeAllNrNavDropdowns();
+            if (typeof global.window.openSearchUi === 'function') {
+                global.window.openSearchUi();
+                return;
+            }
+            try {
+                var path = (global.location && global.location.pathname) || '';
+                if (/chat\.html$/i.test(path) || path.endsWith('/chat.html')) {
+                    global.location.href = 'index.html?action=map';
+                    return;
+                }
+            } catch (_) {}
+            var mapEl = global.document.getElementById('map');
+            if (mapEl && typeof mapEl.focus === 'function') {
+                try { mapEl.focus(); } catch (_) {}
+            }
+            try {
+                global.document.dispatchEvent(new CustomEvent('nostroots-search-requested'));
+            } catch (_) {}
+            return;
+        }
+        if (t.closest('#nav-host-btn')) {
+            e.preventDefault();
+            closeAllNrNavDropdowns();
+            if (typeof global.window.openHostNoteFlow === 'function') {
+                global.window.openHostNoteFlow();
+                return;
+            }
+            try {
+                var path2 = (global.location && global.location.pathname) || '';
+                if (/chat\.html$/i.test(path2) || path2.endsWith('/chat.html')) {
+                    global.location.href = 'index.html?action=host';
+                }
+            } catch (_) {}
+            return;
+        }
+        var dropBtn = t.closest('.nr-nav-dropdown > button');
+        if (dropBtn && header.contains(dropBtn)) {
+            var root = dropBtn.closest('.nr-nav-dropdown');
+            if (root) {
+                e.preventDefault();
+                toggleNrNavDropdown(root);
+            }
+            return;
+        }
+        if (t.closest('.nr-nav-menu')) return;
+        closeAllNrNavDropdowns();
+    }
+
+    function wireNrNavDropdowns(header) {
+        if (!header) return;
+        initNrNavGlobalListenersOnce();
+        header.removeEventListener('click', nrHeaderNavClickDelegate);
+        header.addEventListener('click', nrHeaderNavClickDelegate);
+    }
+
     // --- Shared header (index + chat) ---
-    // Fill <header id="app-header" data-page-title="..." data-nav-href="..." ...>
+    // Fill <header id="app-header"> (optional legacy data-* attrs ignored)
     function fillAppHeader() {
         var header = global.document && global.document.getElementById('app-header');
-        if (!header || !header.getAttribute('data-page-title')) return;
-        var pageTitle = header.getAttribute('data-page-title');
-        var navHref = header.getAttribute('data-nav-href') || '#';
-        var navTitle = header.getAttribute('data-nav-title') || '';
-        var navAriaLabel = header.getAttribute('data-nav-aria-label') || navTitle;
-        var navIcon = header.getAttribute('data-nav-icon') || '';
+        if (!header) return;
         var settingsTitle = header.getAttribute('data-settings-title') || 'Settings';
 
-        header.setAttribute('aria-label', 'Brand');
+        var path = '';
+        try {
+            path = (global.location && global.location.pathname) || '';
+        } catch (_) {}
+        var onChat = /chat\.html$/i.test(path) || path.endsWith('/chat.html');
+        var conversationsAttrs = onChat
+            ? ' href="chat.html" class="nr-nav-link is-active" aria-current="page" data-nr-page-switch="1"'
+            : ' href="chat.html" class="nr-nav-link" data-nr-page-switch="1"';
+
+        header.setAttribute('aria-label', 'Site');
         header.innerHTML =
             '<div class="vines">' +
             '<img src="https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/vines-top.png" alt="" width="1200" height="400">' +
             '</div>' +
             '<div class="app-header-inner">' +
-            '<img src="https://notes.trustroots.org/logo.svg" alt="Trustroots" class="app-header-logo" width="140" height="32">' +
-            '<h1>' + escapeHtml(pageTitle) + '</h1>' +
-            '<p class="app-header-purpose">Read traveler notes by area. Click the map to explore, and connect a key when you want to post.</p>' +
-            '<a href="' + escapeHtml(navHref) + '" class="app-header-nav-link" title="' + escapeHtml(navTitle) + '" aria-label="' + escapeHtml(navAriaLabel) + '">' + escapeHtml(navIcon) + '</a>' +
+            '<a class="app-header-logo-link" href="index.html" data-nr-page-switch="1" aria-label="Nostroots home">' +
+            '<img src="logo.svg" alt="NOSTROOTS" class="app-header-logo" width="175" height="32">' +
+            '</a>' +
+            '<nav class="nr-nav nr-nav-left" aria-label="Support">' +
+            '<div class="nr-nav-dropdown" data-dropdown="support">' +
+            '<button type="button" class="nr-nav-dropdown-toggle" id="nav-support-btn" aria-haspopup="menu" aria-expanded="false">' +
+            'Support<span class="nr-caret" aria-hidden="true">▾</span></button>' +
+            '<div class="nr-nav-menu nr-nav-menu--left" role="menu" id="nav-support-menu" aria-labelledby="nav-support-btn">' +
+            buildSupportDropdownMenuHtml() +
+            '</div></div></nav></div>' +
+            '<nav class="nr-nav nr-nav-main" aria-label="Main">' +
+            '<a' + conversationsAttrs + '>Conversations</a>' +
+            '<button type="button" class="nr-nav-link" id="nav-map-btn" data-nav="map">Map</button>' +
+            '<button type="button" class="nr-nav-link" id="nav-host-btn" data-nav="host">Host</button>' +
+            '<div class="nr-nav-dropdown" data-dropdown="user">' +
+            '<button type="button" class="nr-nav-dropdown-toggle nr-nav-user-toggle" id="nav-user-btn" aria-haspopup="menu" aria-expanded="false">' +
+            '<span class="nr-nav-user-label">Account</span><span class="nr-caret" aria-hidden="true">▾</span></button>' +
+            '<div class="nr-nav-menu nr-nav-menu--right" role="menu" id="nav-user-menu" aria-labelledby="nav-user-btn">' +
+            '<span class="nr-nav-menu-identity header-identity-text empty" id="header-identity" title=""></span>' +
+            '<button type="button" role="menuitem" class="nr-nav-menu-item" id="keys-icon-btn" title="Connect key to post">' +
+            '<span class="keys-icon-symbol" aria-hidden="true">🔑</span><span>Keys</span></button>' +
+            '<button type="button" role="menuitem" class="nr-nav-menu-item" id="settings-icon-btn" title="' + escapeHtml(settingsTitle) + '">' +
+            '<span aria-hidden="true">⚙️</span><span>Settings</span></button>' +
+            '<div class="menu-divider" role="presentation"></div>' +
+            buildTrustrootsFooterLinksMenuHtml() +
             buildMobileAppLinksMarkup() +
-            '</div>' +
-            '<div class="app-header-actions">' +
-            '<button type="button" class="keys-icon header-identity-btn" id="keys-icon-btn" title="Connect key to post">' +
-            '<span class="header-identity-text empty" id="header-identity" title=""></span>' +
-            '<span class="keys-icon-symbol" aria-hidden="true">🔑</span>' +
-            '</button>' +
-            '<button type="button" class="settings-icon" id="settings-icon-btn" title="' + escapeHtml(settingsTitle) + '">⚙️</button>' +
-            '</div>';
+            '</div></div></nav>';
+
+        wireNrNavDropdowns(header);
     }
 
     function escapeHtml(s) {
@@ -965,7 +1122,7 @@
     }
 
     function onNavLinkClick(e) {
-        if (e.target && e.target.closest && e.target.closest('.app-header-nav-link')) {
+        if (e.target && e.target.closest && e.target.closest('[data-nr-page-switch="1"]')) {
             try { global.sessionStorage.setItem('nostroots_switching_page', '1'); } catch (err) {}
         }
     }
@@ -1332,4 +1489,17 @@
     global.NrWeb.fillAppHeader = fillAppHeader;
     global.NrWeb.applySettingsFooterMetadataFromCache = applySettingsFooterMetadataFromCache;
     global.NrWeb.refreshSettingsFooterMetadata = refreshSettingsFooterMetadata;
+
+    // Some environments (e.g. Vitest + JSDOM) can miss DOMContentLoaded relative to script init;
+    // ensure the header is populated once the document is ready.
+    setTimeout(function () {
+        try {
+            var doc = global.document;
+            if (!doc) return;
+            var h = doc.getElementById('app-header');
+            if (h && !h.querySelector('#nav-user-btn')) {
+                fillAppHeader();
+            }
+        } catch (_) {}
+    }, 0);
 })(typeof window !== 'undefined' ? window : typeof globalThis !== 'undefined' ? globalThis : this);

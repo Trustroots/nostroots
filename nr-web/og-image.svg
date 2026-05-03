@@ -1,0 +1,54 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F3EA"/>
+      <stop offset="1" stop-color="#EFE8DA"/>
+    </linearGradient>
+    <linearGradient id="band" x1="0" y1="0" x2="1200" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#12B591"/>
+      <stop offset="1" stop-color="#0E9A7B"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1200" height="134" fill="url(#band)"/>
+
+  <g opacity="0.15" stroke="#0E9A7B" stroke-width="1.5">
+    <path d="M0 210H1200"/>
+    <path d="M0 280H1200"/>
+    <path d="M0 350H1200"/>
+    <path d="M0 420H1200"/>
+    <path d="M0 490H1200"/>
+    <path d="M180 134V630"/>
+    <path d="M360 134V630"/>
+    <path d="M540 134V630"/>
+    <path d="M720 134V630"/>
+    <path d="M900 134V630"/>
+    <path d="M1080 134V630"/>
+  </g>
+
+  <g opacity="0.85" stroke="#12B591" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M170 465C280 380 335 510 450 445C560 380 610 495 730 445C830 403 910 360 1020 408"/>
+  </g>
+
+  <g transform="translate(988 332)">
+    <circle cx="0" cy="0" r="58" fill="#12B591" opacity="0.15"/>
+    <circle cx="0" cy="0" r="43" stroke="#0E9A7B" stroke-width="4"/>
+    <path d="M-43 0H43M0-43V43" stroke="#0E9A7B" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="0" cy="0" r="7" fill="#0E9A7B"/>
+  </g>
+
+  <g transform="translate(185 332)">
+    <path d="M0 0C0-34 27-61 61-61C95-61 122-34 122 0C122 45 61 112 61 112C61 112 0 45 0 0Z" fill="#0E9A7B"/>
+    <circle cx="61" cy="0" r="22" fill="#F7F3EA"/>
+  </g>
+
+  <text x="320" y="332" fill="#0E9A7B" font-size="96" font-family="Nunito, Arial, sans-serif" font-weight="700">Nostroots</text>
+  <text x="322" y="396" fill="#2C5D53" font-size="40" font-family="Nunito, Arial, sans-serif" font-weight="600">
+    Social map for travelers on Nostr
+  </text>
+
+  <text x="322" y="454" fill="#3C6E64" font-size="30" font-family="Nunito, Arial, sans-serif" font-weight="500">
+    Discover nearby people, notes, and conversations
+  </text>
+</svg>

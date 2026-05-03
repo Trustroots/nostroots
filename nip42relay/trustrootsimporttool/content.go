@@ -129,6 +129,18 @@ func isEligibleUser(user User) bool {
 	return hasValidNpub(user)
 }
 
+// isRelaxedTrustrootsUser is the same gate as isEligibleUser but does not require an npub.
+// Used for contact/experience endpoints so pairs can export when only one side has a pubkey.
+func isRelaxedTrustrootsUser(user User) bool {
+	if !user.Public || user.Username == "" {
+		return false
+	}
+	if hasBlockedRole(user) || !isEmailConfirmed(user) {
+		return false
+	}
+	return true
+}
+
 func isPositiveExperience(experience Experience) bool {
 	if experience.Hidden {
 		return false

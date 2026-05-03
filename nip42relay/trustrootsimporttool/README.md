@@ -7,8 +7,8 @@ Outputs (in this order):
 
 - **Profile claims** (`kind 30390`) — Nostr profile JSON for each eligible user (from Mongo; not a live kind-0 fetch)
 - **Host mirrors** (`kind 30398`) — verified map note reposts for public host offers
-- **Relationship suggestions** (`kind 30392`) — contacts between two eligible users (both have npubs)
-- **Positive experience suggestions** (`kind 30393`) — experiences between two eligible users
+- **Relationship suggestions** (`kind 30392`) — contacts where both endpoints pass a relaxed Trustroots gate (public, username, email/roles) and **at least one** has a valid npub; missing npubs appear as NIP-32 username labels (`L` / `l` under `org.trustroots:username`)
+- **Positive experience suggestions** (`kind 30393`) — same relaxed pair rule; author and target are tagged in stable order (`userFrom` then `userTo`) with `p` hex and/or username labels
 
 There are **no relay-side dedupe checks**; stricter validation can live in clients (e.g. `nr-web`).
 
@@ -43,7 +43,9 @@ skipped instead of aborting the run.
 
 **Contacts & experiences:** BSON fields match Trustroots Mongoose models (`userFrom` /
 `userTo`, etc.). Experiences must be **`public: true`**
-with **`recommend: "yes"`** (Trustroots enum). Both endpoints must be eligible users.
+with **`recommend: "yes"`** (Trustroots enum). Both endpoints must pass the **relaxed** user gate (public profile, username, confirmed email, no blocked roles). **At least one** endpoint must have a **valid npub** so the JSONL row includes a real `p` tag (clients typically filter suggestions with `#p`). Rows with **no** valid npub on either side are skipped.
+
+Each exported `30392` / `30393` has **one or two** hex `p` tags (never a fake pubkey) plus optional **`L` / `l`** username labels for users without an npub. Downstream importers should tolerate this shape.
 
 The `-limit` / `LIMIT` flag applies **only** to the host-offers query, not contacts or
 experiences (so a small host limit no longer starves relationship/experience export).

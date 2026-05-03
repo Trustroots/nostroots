@@ -138,7 +138,7 @@ func fetchEligibleUsers(ctx context.Context, db *mongo.Database) ([]User, map[pr
 	return list, byID, nil
 }
 
-func fetchContactRecords(ctx context.Context, db *mongo.Database, usersByID map[primitive.ObjectID]User, limit int64) ([]ContactRecord, error) {
+func fetchContactRecords(ctx context.Context, db *mongo.Database, limit int64) ([]ContactRecord, error) {
 	findOptions := options.Find().SetSort(bson.D{{Key: "_id", Value: 1}})
 	if limit > 0 {
 		findOptions.SetLimit(limit)
@@ -155,9 +155,24 @@ func fetchContactRecords(ctx context.Context, db *mongo.Database, usersByID map[
 		if err := cursor.Decode(&contact); err != nil {
 			return nil, err
 		}
-		user, okUser := usersByID[contact.UserFrom]
-		other, okOther := usersByID[contact.UserTo]
-		if !okUser || !okOther {
+		user, errU := fetchUser(ctx, db, contact.UserFrom)
+		if errU == mongo.ErrNoDocuments {
+			continue
+		}
+		if errU != nil {
+			return nil, errU
+		}
+		other, errO := fetchUser(ctx, db, contact.UserTo)
+		if errO == mongo.ErrNoDocuments {
+			continue
+		}
+		if errO != nil {
+			return nil, errO
+		}
+		if !isRelaxedTrustrootsUser(user) || !isRelaxedTrustrootsUser(other) {
+			continue
+		}
+		if !hasValidNpub(user) && !hasValidNpub(other) {
 			continue
 		}
 		records = append(records, ContactRecord{
@@ -172,7 +187,7 @@ func fetchContactRecords(ctx context.Context, db *mongo.Database, usersByID map[
 	return records, nil
 }
 
-func fetchExperienceRecords(ctx context.Context, db *mongo.Database, usersByID map[primitive.ObjectID]User, limit int64) ([]ExperienceRecord, error) {
+func fetchExperienceRecords(ctx context.Context, db *mongo.Database, limit int64) ([]ExperienceRecord, error) {
 	findOptions := options.Find().SetSort(bson.D{{Key: "_id", Value: 1}})
 	if limit > 0 {
 		findOptions.SetLimit(limit)
@@ -194,9 +209,24 @@ func fetchExperienceRecords(ctx context.Context, db *mongo.Database, usersByID m
 		}
 		authorID := experience.UserFrom
 		targetID := experience.UserTo
-		author, okAuthor := usersByID[authorID]
-		target, okTarget := usersByID[targetID]
-		if !okAuthor || !okTarget {
+		author, errA := fetchUser(ctx, db, authorID)
+		if errA == mongo.ErrNoDocuments {
+			continue
+		}
+		if errA != nil {
+			return nil, errA
+		}
+		target, errT := fetchUser(ctx, db, targetID)
+		if errT == mongo.ErrNoDocuments {
+			continue
+		}
+		if errT != nil {
+			return nil, errT
+		}
+		if !isRelaxedTrustrootsUser(author) || !isRelaxedTrustrootsUser(target) {
+			continue
+		}
+		if !hasValidNpub(author) && !hasValidNpub(target) {
 			continue
 		}
 		records = append(records, ExperienceRecord{

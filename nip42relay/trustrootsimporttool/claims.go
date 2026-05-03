@@ -40,35 +40,82 @@ func eventForProfileClaim(user User, privateKey string) (nostr.Event, error) {
 	return event, event.Sign(privateKey)
 }
 
+// appendParticipantPTagOrUsernameLabels adds either a pubkey `p` tag (when npub is valid)
+// or NIP-32 username labels for Trustroots (when npub is missing). Order is stable per caller.
+func appendParticipantPTagOrUsernameLabels(tags *nostr.Tags, u User) {
+	if hex, ok := decodeNpubToHex(u.NostrNpub); ok && hex != "" {
+		*tags = append(*tags, nostr.Tag{"p", hex})
+		return
+	}
+	name := strings.TrimSpace(u.Username)
+	if name == "" {
+		return
+	}
+	*tags = append(*tags,
+		nostr.Tag{"L", TrustrootsUsernameLabelNamespace},
+		nostr.Tag{"l", strings.ToLower(name), TrustrootsUsernameLabelNamespace},
+	)
+}
+
+func tagsContainHexPubkeyPTag(tags nostr.Tags) bool {
+	for _, t := range tags {
+		if len(t) >= 2 && t[0] == "p" && isLikelyHexPubkey(t[1]) {
+			return true
+		}
+	}
+	return false
+}
+
+func isLikelyHexPubkey(s string) bool {
+	s = strings.ToLower(strings.TrimSpace(s))
+	if len(s) != 64 {
+		return false
+	}
+	for _, c := range s {
+		if (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') {
+			continue
+		}
+		return false
+	}
+	return true
+}
+
 func eventForRelationshipClaim(record ContactRecord, privateKey string) (nostr.Event, error) {
-	sourceHex, _ := decodeNpubToHex(record.User.NostrNpub)
-	targetHex, _ := decodeNpubToHex(record.Other.NostrNpub)
 	createdAt := record.Contact.Created
 	if createdAt.IsZero() {
 		createdAt = time.Now()
 	}
 	dTag := fmt.Sprintf("trustroots:contact:%s:%s", record.User.ID.Hex(), record.Other.ID.Hex())
 	content := fmt.Sprintf("Trustroots relationship suggestion: @%s -> @%s", record.User.Username, record.Other.Username)
+
+	var pairTags nostr.Tags
+	appendParticipantPTagOrUsernameLabels(&pairTags, record.User)
+	appendParticipantPTagOrUsernameLabels(&pairTags, record.Other)
+	if !tagsContainHexPubkeyPTag(pairTags) {
+		return nostr.Event{}, fmt.Errorf("relationship claim needs at least one valid npub (hex p tag)")
+	}
+
+	tags := nostr.Tags{
+		{"d", dTag},
+	}
+	tags = append(tags, pairTags...)
+	tags = append(tags,
+		nostr.Tag{"L", "org.trustroots:relationship"},
+		nostr.Tag{"l", "contact", "org.trustroots:relationship"},
+		nostr.Tag{"source", "trustroots-import"},
+		nostr.Tag{"source_id", record.Contact.ID.Hex()},
+	)
+
 	event := nostr.Event{
 		CreatedAt: nostr.Timestamp(createdAt.Unix()),
 		Kind:      relationClaimKind,
-		Tags: nostr.Tags{
-			{"d", dTag},
-			{"p", sourceHex},
-			{"p", targetHex},
-			{"L", "org.trustroots:relationship"},
-			{"l", "contact", "org.trustroots:relationship"},
-			{"source", "trustroots-import"},
-			{"source_id", record.Contact.ID.Hex()},
-		},
-		Content: content,
+		Tags:      tags,
+		Content:   content,
 	}
 	return event, event.Sign(privateKey)
 }
 
 func eventForExperienceClaim(record ExperienceRecord, privateKey string) (nostr.Event, error) {
-	authorHex, _ := decodeNpubToHex(record.Author.NostrNpub)
-	targetHex, _ := decodeNpubToHex(record.Target.NostrNpub)
 	createdAt := record.Experience.Created
 	if createdAt.IsZero() {
 		createdAt = time.Now()
@@ -77,19 +124,30 @@ func eventForExperienceClaim(record ExperienceRecord, privateKey string) (nostr.
 	if text == "" {
 		text = "Trustroots positive experience"
 	}
+
+	var pairTags nostr.Tags
+	appendParticipantPTagOrUsernameLabels(&pairTags, record.Author)
+	appendParticipantPTagOrUsernameLabels(&pairTags, record.Target)
+	if !tagsContainHexPubkeyPTag(pairTags) {
+		return nostr.Event{}, fmt.Errorf("experience claim needs at least one valid npub (hex p tag)")
+	}
+
+	tags := nostr.Tags{
+		{"d", "trustroots:experience:" + record.Experience.ID.Hex()},
+	}
+	tags = append(tags, pairTags...)
+	tags = append(tags,
+		nostr.Tag{"L", "org.trustroots:experience"},
+		nostr.Tag{"l", "positive", "org.trustroots:experience"},
+		nostr.Tag{"source", "trustroots-import"},
+		nostr.Tag{"source_id", record.Experience.ID.Hex()},
+	)
+
 	event := nostr.Event{
 		CreatedAt: nostr.Timestamp(createdAt.Unix()),
 		Kind:      experienceClaimKind,
-		Tags: nostr.Tags{
-			{"d", "trustroots:experience:" + record.Experience.ID.Hex()},
-			{"p", authorHex},
-			{"p", targetHex},
-			{"L", "org.trustroots:experience"},
-			{"l", "positive", "org.trustroots:experience"},
-			{"source", "trustroots-import"},
-			{"source_id", record.Experience.ID.Hex()},
-		},
-		Content: text,
+		Tags:      tags,
+		Content:   text,
 	}
 	return event, event.Sign(privateKey)
 }

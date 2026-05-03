@@ -64,7 +64,7 @@ func run(args []string) error {
 	defer client.Disconnect(ctx)
 	logf("connected in %s", time.Since(t0).Truncate(time.Millisecond))
 
-	eligibleUsers, usersByID, err := fetchEligibleUsers(ctx, db)
+	eligibleUsers, _, err := fetchEligibleUsers(ctx, db)
 	if err != nil {
 		return fmt.Errorf("fetch eligible users: %w", err)
 	}
@@ -72,17 +72,17 @@ func run(args []string) error {
 
 	// Do not apply -limit to contacts/experiences: it only constrained early _id
 	// rows and often returned zero pairs overlapping eligible users.
-	contacts, err := fetchContactRecords(ctx, db, usersByID, 0)
+	contacts, err := fetchContactRecords(ctx, db, 0)
 	if err != nil {
 		return fmt.Errorf("fetch contacts: %w", err)
 	}
-	logf("loaded %d contact pair(s) (both users eligible)", len(contacts))
+	logf("loaded %d contact pair(s) (relaxed users, ≥1 npub)", len(contacts))
 
-	experiences, err := fetchExperienceRecords(ctx, db, usersByID, 0)
+	experiences, err := fetchExperienceRecords(ctx, db, 0)
 	if err != nil {
 		return fmt.Errorf("fetch experiences: %w", err)
 	}
-	logf("loaded %d positive experience(s) (both users eligible)", len(experiences))
+	logf("loaded %d positive experience(s) (relaxed users, ≥1 npub)", len(experiences))
 
 	logf("opening output file %q", cfg.Output)
 	outputFile, err := os.Create(cfg.Output)
@@ -98,7 +98,7 @@ func run(args []string) error {
 	exported := 0
 	relationshipLines := 0
 	experienceLines := 0
-	relationPairs := map[string]struct{}{}
+	seenContactClaims := map[string]struct{}{}
 	seenExperienceSource := map[string]struct{}{}
 
 	logf("phase 1/4: profile claim events (kind %d) — %d user(s)…", profileClaimKind, len(eligibleUsers))
@@ -147,23 +147,19 @@ func run(args []string) error {
 
 	logf("phase 3/4: relationship claims (kind %d) — %d contact row(s)…", relationClaimKind, len(contacts))
 	for i, record := range contacts {
-		sourceHex, okSource := decodeNpubToHex(record.User.NostrNpub)
-		targetHex, okTarget := decodeNpubToHex(record.Other.NostrNpub)
-		if !okSource || !okTarget {
-			continue
-		}
-		pairKey := sourceHex + ":" + targetHex
-		if _, seen := relationPairs[pairKey]; seen {
+		contactID := record.Contact.ID.Hex()
+		if _, seen := seenContactClaims[contactID]; seen {
 			continue
 		}
 		event, err := eventForRelationshipClaim(record, cfg.NostrSK)
 		if err != nil {
-			return fmt.Errorf("create relationship claim for %s: %w", pairKey, err)
+			logf("skip relationship %s: %v", contactID, err)
+			continue
 		}
 		if err := writeJSONLine(writer, event); err != nil {
 			return err
 		}
-		relationPairs[pairKey] = struct{}{}
+		seenContactClaims[contactID] = struct{}{}
 		relationshipLines++
 		if cfg.LogEvery > 0 && (i+1)%cfg.LogEvery == 0 {
 			logf("…relationship phase: scanned %d/%d contacts, %d line(s) emitted", i+1, len(contacts), relationshipLines)
@@ -173,19 +169,14 @@ func run(args []string) error {
 
 	logf("phase 4/4: experience claims (kind %d) — %d experience row(s)…", experienceClaimKind, len(experiences))
 	for i, record := range experiences {
-		if _, ok := decodeNpubToHex(record.Author.NostrNpub); !ok {
-			continue
-		}
-		if _, ok := decodeNpubToHex(record.Target.NostrNpub); !ok {
-			continue
-		}
 		sourceID := record.Experience.ID.Hex()
 		if _, seen := seenExperienceSource[sourceID]; seen {
 			continue
 		}
 		event, err := eventForExperienceClaim(record, cfg.NostrSK)
 		if err != nil {
-			return fmt.Errorf("create experience claim %s: %w", sourceID, err)
+			logf("skip experience %s: %v", sourceID, err)
+			continue
 		}
 		if err := writeJSONLine(writer, event); err != nil {
 			return err

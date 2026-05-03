@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/nbd-wtf/go-nostr"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -28,5 +29,108 @@ func TestEventForProfileClaim(t *testing.T) {
 	}
 	if event.Tags.GetD() != "trustroots:profile:alice" {
 		t.Fatalf("d tag = %q", event.Tags.GetD())
+	}
+}
+
+func countPTags(tags nostr.Tags) int {
+	n := 0
+	for _, row := range tags {
+		if len(row) >= 2 && row[0] == "p" {
+			n++
+		}
+	}
+	return n
+}
+
+func hasUsernameLabelPair(tags nostr.Tags, usernameLower string) bool {
+	for i := 0; i+1 < len(tags); i++ {
+		if len(tags[i]) >= 2 && tags[i][0] == "L" && tags[i][1] == TrustrootsUsernameLabelNamespace {
+			if len(tags[i+1]) >= 3 && tags[i+1][0] == "l" && tags[i+1][1] == usernameLower {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func TestEventForRelationshipClaim_bothNpubs(t *testing.T) {
+	// Two valid npubs (here the same fixture npub twice) → two `p` tags, no username labels.
+	idA := primitive.NewObjectID()
+	idB := primitive.NewObjectID()
+	cid := primitive.NewObjectID()
+	np := "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj"
+	ev, err := eventForRelationshipClaim(ContactRecord{
+		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB},
+		User:    User{ID: idA, Username: "alice", NostrNpub: np, Public: true},
+		Other:   User{ID: idB, Username: "bob", NostrNpub: np, Public: true},
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ev.Kind != relationClaimKind {
+		t.Fatalf("kind = %d", ev.Kind)
+	}
+	if countPTags(ev.Tags) != 2 {
+		t.Fatalf("want 2 p tags, got %d tags=%v", countPTags(ev.Tags), ev.Tags)
+	}
+	if hasUsernameLabelPair(ev.Tags, "alice") || hasUsernameLabelPair(ev.Tags, "bob") {
+		t.Fatal("did not expect username label pairs when both have npubs")
+	}
+}
+
+func TestEventForRelationshipClaim_oneNpubUsernameLabels(t *testing.T) {
+	idA := primitive.NewObjectID()
+	idB := primitive.NewObjectID()
+	cid := primitive.NewObjectID()
+	ev, err := eventForRelationshipClaim(ContactRecord{
+		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB},
+		User:    User{ID: idA, Username: "alice", NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj", Public: true},
+		Other:   User{ID: idB, Username: "bobnopub", NostrNpub: "", Public: true},
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if countPTags(ev.Tags) != 1 {
+		t.Fatalf("want 1 p tag, got %d", countPTags(ev.Tags))
+	}
+	if !hasUsernameLabelPair(ev.Tags, "bobnopub") {
+		t.Fatalf("expected username labels for bobnopub, tags=%v", ev.Tags)
+	}
+}
+
+func TestEventForRelationshipClaim_neitherNpub(t *testing.T) {
+	idA := primitive.NewObjectID()
+	idB := primitive.NewObjectID()
+	cid := primitive.NewObjectID()
+	_, err := eventForRelationshipClaim(ContactRecord{
+		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB},
+		User:    User{ID: idA, Username: "a", NostrNpub: "", Public: true},
+		Other:   User{ID: idB, Username: "b", NostrNpub: "", Public: true},
+	}, testPrivateKey)
+	if err == nil {
+		t.Fatal("expected error when neither side has npub")
+	}
+}
+
+func TestEventForExperienceClaim_oneNpub(t *testing.T) {
+	eid := primitive.NewObjectID()
+	idA := primitive.NewObjectID()
+	idB := primitive.NewObjectID()
+	ev, err := eventForExperienceClaim(ExperienceRecord{
+		Experience: Experience{ID: eid, UserFrom: idA, UserTo: idB, Public: true, Recommend: true},
+		Author:     User{ID: idA, Username: "author", NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj", Public: true},
+		Target:     User{ID: idB, Username: "guest", NostrNpub: "", Public: true},
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ev.Kind != experienceClaimKind {
+		t.Fatalf("kind = %d", ev.Kind)
+	}
+	if countPTags(ev.Tags) != 1 {
+		t.Fatalf("want 1 p tag, got %d", countPTags(ev.Tags))
+	}
+	if !hasUsernameLabelPair(ev.Tags, "guest") {
+		t.Fatalf("expected username labels for guest, tags=%v", ev.Tags)
 	}
 }

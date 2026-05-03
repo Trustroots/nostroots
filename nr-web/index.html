@@ -219,6 +219,43 @@
         body.nr-surface-chat .nr-chat-view {
             display: flex !important;
         }
+
+        /* Public profile shell (hash #profile/…) */
+        .nr-profile-view {
+            display: none;
+            flex-direction: column;
+            flex: 1 1 0;
+            min-height: 0;
+            overflow: hidden;
+            width: 100%;
+            background: var(--background);
+        }
+        body.nr-surface-profile #map-view {
+            display: none !important;
+        }
+        body.nr-surface-profile .nr-chat-view {
+            display: none !important;
+        }
+        body.nr-surface-profile #nr-profile-view {
+            display: flex !important;
+        }
+        .nr-profile-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.65rem 1rem;
+            border-bottom: 1px solid var(--border);
+            background: var(--card);
+            flex-shrink: 0;
+        }
+        .nr-profile-scroll {
+            flex: 1;
+            overflow: auto;
+            padding: 1rem 1rem 2rem;
+            max-width: 40rem;
+            margin: 0 auto;
+            width: 100%;
+        }
         
         /* Bottom mycelium strip (notes.trustroots.org style) */
         .mycelium-bottom {
@@ -1357,9 +1394,20 @@
             <section class="thread-area">
                 <div class="thread-header" id="thread-header" style="display:none;">
                     <button type="button" class="back-btn" id="thread-back-btn" title="Back to chats" aria-label="Back to chats"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button>
-                    <span class="enc-icon" id="thread-enc-icon" title=""></span>
-                    <span class="enc-label" id="thread-enc-label"></span>
-                    <span id="thread-title"></span>
+                    <span class="thread-header-enc-wrap">
+                        <span class="enc-icon" id="thread-enc-icon" title=""></span>
+                        <span class="enc-label" id="thread-enc-label"></span>
+                    </span>
+                    <div class="thread-header-main">
+                        <div class="thread-header-text-block">
+                            <span id="thread-title"></span>
+                            <div id="thread-header-circle-stack" class="thread-header-circle-stack" style="display:none">
+                                <p id="thread-circle-subtitle" class="thread-circle-subtitle"></p>
+                                <a id="thread-circle-link" class="thread-circle-link" href="#" target="_blank" rel="noopener noreferrer" style="display:none">View on Trustroots</a>
+                            </div>
+                        </div>
+                        <img id="thread-circle-avatar" class="thread-circle-avatar" alt="" width="40" height="40" loading="lazy" decoding="async" style="display:none" />
+                    </div>
                 </div>
                 <div class="thread-messages" id="thread-messages"></div>
                 <div class="empty-state" id="empty-state">Select a conversation or start a new one.</div>
@@ -1423,6 +1471,15 @@
             </div>
         </div>
         <div id="nr-chat-status-container" class="status-container"></div>
+    </div>
+
+    <!-- Public profile (#profile/…) -->
+    <div id="nr-profile-view" class="nr-profile-view" hidden style="display:none;">
+        <div class="nr-profile-toolbar">
+            <button type="button" class="btn btn-secondary" id="nr-profile-back-map" aria-label="Back to map">← Map</button>
+            <span class="nr-profile-toolbar-title" id="nr-profile-toolbar-title">Profile</span>
+        </div>
+        <div id="nr-profile-root" class="nr-profile-scroll" aria-live="polite"></div>
     </div>
     
     <!-- Bottom mycelium decoration -->
@@ -1920,7 +1977,16 @@
         // Global state
         let ndk = null;
         let relays = [];
+        /** Bumped on each relay pool reconnect so overlapping inits cannot inflate `relays` or status toasts. */
+        let relayConnectGeneration = 0;
+        let relayKeepAliveIntervalIds = [];
         let wsMapSubscriptions = [];
+
+        function closeRelaysArray(list) {
+            (list || []).forEach((r) => {
+                try { r?.close?.(); } catch (_) {}
+            });
+        }
         let map = null;
         let mapFallbackMode = null;
         let leafletGridLayer = null;
@@ -2047,9 +2113,48 @@
             const c = H.classify(route);
             const mapView = document.getElementById('map-view');
             const chatView = document.getElementById('nr-chat-view');
+            const profileView = document.getElementById('nr-profile-view');
+
+            let claimsSectionRestoreAnchor = null;
+            function restoreClaimsSectionFromKeysModal() {
+                window.NrWebClaimsUiSurface = 'keys';
+                const sec = document.getElementById('keys-claim-section');
+                if (!sec || !claimsSectionRestoreAnchor) return;
+                const parent = claimsSectionRestoreAnchor.parent;
+                const next = claimsSectionRestoreAnchor.next;
+                if (parent) {
+                    if (next && next.parentNode === parent) parent.insertBefore(sec, next);
+                    else parent.appendChild(sec);
+                }
+                claimsSectionRestoreAnchor = null;
+                const keysModal = document.getElementById('keys-modal');
+                if (!keysModal || !keysModal.classList.contains('active')) sec.style.display = 'none';
+                if (typeof renderClaimSummary === 'function') renderClaimSummary();
+            }
+            function mountClaimsSectionToProfileRoot() {
+                const sec = document.getElementById('keys-claim-section');
+                const root = document.getElementById('nr-profile-root');
+                if (!sec || !root) return;
+                if (!claimsSectionRestoreAnchor) {
+                    claimsSectionRestoreAnchor = { parent: sec.parentElement, next: sec.nextSibling };
+                }
+                window.NrWebClaimsUiSurface = 'profile';
+                root.appendChild(sec);
+                sec.style.display = 'block';
+                if (typeof renderClaimSummary === 'function') renderClaimSummary();
+                if (typeof refreshClaimSuggestions === 'function') void refreshClaimSuggestions({ silent: true });
+            }
+            window.NrWebMountClaimTrustrootsSection = mountClaimsSectionToProfileRoot;
+            window.NrWebUnmountClaimTrustrootsSection = restoreClaimsSectionFromKeysModal;
 
             function showMapShell() {
+                restoreClaimsSectionFromKeysModal();
                 document.body.classList.remove('nr-surface-chat');
+                document.body.classList.remove('nr-surface-profile');
+                if (profileView) {
+                    profileView.hidden = true;
+                    profileView.style.display = 'none';
+                }
                 if (mapView) mapView.style.display = '';
                 if (chatView) {
                     chatView.hidden = true;
@@ -2062,6 +2167,12 @@
                 } catch (_) {}
             }
             function showChatShell() {
+                restoreClaimsSectionFromKeysModal();
+                document.body.classList.remove('nr-surface-profile');
+                if (profileView) {
+                    profileView.hidden = true;
+                    profileView.style.display = 'none';
+                }
                 document.body.classList.add('nr-surface-chat');
                 if (mapView) mapView.style.display = 'none';
                 if (chatView) {
@@ -2073,6 +2184,44 @@
                         window.NrWeb.fillAppHeader();
                     }
                 } catch (_) {}
+            }
+            async function showProfileShell(profileId, invalid, mode) {
+                const m = mode || 'public';
+                if (m !== 'contacts') restoreClaimsSectionFromKeysModal();
+                document.body.classList.remove('nr-surface-chat');
+                document.body.classList.add('nr-surface-profile');
+                if (mapView) mapView.style.display = 'none';
+                if (chatView) {
+                    chatView.hidden = true;
+                    chatView.style.display = 'none';
+                }
+                if (profileView) {
+                    profileView.hidden = false;
+                    profileView.style.display = 'flex';
+                }
+                const tt = document.getElementById('nr-profile-toolbar-title');
+                if (tt) {
+                    tt.textContent = invalid ? 'Profile' : m === 'edit' ? 'Edit profile' : m === 'contacts' ? 'Contacts' : 'Profile';
+                }
+                try {
+                    if (window.NrWeb && typeof window.NrWeb.fillAppHeader === 'function') {
+                        window.NrWeb.fillAppHeader();
+                    }
+                } catch (_) {}
+                const mod = await import('./nr-profile-page.js');
+                if (invalid) {
+                    mod.renderInvalidProfile(profileId);
+                    return;
+                }
+                if (m === 'contacts') {
+                    mod.renderProfileContacts(profileId);
+                    return;
+                }
+                if (m === 'edit') {
+                    void mod.renderProfileEdit(profileId);
+                    return;
+                }
+                void mod.renderPublicProfile(profileId);
             }
 
             if (c.kind === 'map_home') {
@@ -2108,6 +2257,7 @@
                 if (c.token === 'chat') {
                     await ensureChatEmbeddedReady();
                     showChatShell();
+                    closePlusCodeNotesModal(true);
                     const bundle = await nrChatBundlePromise;
                     bundle.applyEmbeddedChatRoute('', { emptyPicker: true });
                     return;
@@ -2144,9 +2294,16 @@
                 showNotesForPlusCode(c.plusCode);
                 return;
             }
+            if (c.kind === 'profile' || c.kind === 'profile_edit' || c.kind === 'profile_contacts' || c.kind === 'profile_invalid') {
+                closePlusCodeNotesModal(true);
+                const mode = c.kind === 'profile_edit' ? 'edit' : c.kind === 'profile_contacts' ? 'contacts' : 'public';
+                await showProfileShell(c.profileId, c.kind === 'profile_invalid', mode);
+                return;
+            }
             if (c.kind === 'chat') {
                 await ensureChatEmbeddedReady();
                 showChatShell();
+                closePlusCodeNotesModal(true);
                 const bundle = await nrChatBundlePromise;
                 bundle.applyEmbeddedChatRoute(c.chatRoute, {});
             }
@@ -2172,14 +2329,22 @@
         let usernameFromNostr = false; // Track if username came from a Nostr event
         
         // Caching and performance optimization state
+        /** @deprecated Legacy localStorage keys — removed after IndexedDB opens */
         const EVENTS_CACHE_KEY = 'nostroots_events_cache';
         const EVENTS_CACHE_TIMESTAMP_KEY = 'nostroots_events_cache_timestamp';
         const CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        const NR_MAP_CACHE_DB_NAME = 'nostroots_map';
+        const NR_MAP_CACHE_DB_VERSION = 1;
+        const NR_MAP_CACHE_STORE = 'map_cache';
+        const NR_MAP_CACHE_RECORD_KEY = 'events_v1';
         const EXPIRATION_SETTING_KEY = 'nostroots_expiration_seconds';
         let cachedFilteredEvents = null;
         let filteredEventsCacheKey = null;
         let localStorageWriteTimeout = null;
         let gridUpdateAnimationFrame = null;
+        let nrMapCacheDbPromise = null;
+        let eventsCacheWriteSuppressed = false;
+        let eventsCacheSuppressLogged = false;
         
         // Expiration constants (matching nr-app)
         const MINUTE_IN_SECONDS = 60;
@@ -2878,6 +3043,10 @@
             setHeaderIdentity();
             renderRelaysList();
             renderClaimSummary();
+            try {
+                if (currentPublicKey) document.body.classList.add('nr-web-has-key');
+                else document.body.classList.remove('nr-web-has-key');
+            } catch (_) {}
         }
         
         function setHeaderIdentity() {
@@ -3294,8 +3463,8 @@
         }
         
         // Load cached events on initialization
-        function loadCachedEvents() {
-            const cachedEvents = loadEventsFromCache();
+        async function loadCachedEvents() {
+            const cachedEvents = await loadEventsFromCache();
             if (cachedEvents && cachedEvents.length > 0) {
                 events = cachedEvents;
                 cachedFilteredEvents = null; // Invalidate filtered events cache
@@ -3398,6 +3567,12 @@
         }
         
         async function initializeRelays(relayUrls) {
+            const gen = ++relayConnectGeneration;
+            relayKeepAliveIntervalIds.forEach((id) => {
+                try { clearInterval(id); } catch (_) {}
+            });
+            relayKeepAliveIntervalIds = [];
+            closeRelaysArray(relays);
             relays = [];
             const connectableRelayUrls = getConnectableRelayUrls(relayUrls);
             startWsMapSubscriptions(connectableRelayUrls);
@@ -3422,6 +3597,10 @@
                 try {
                     updateRelayStatus(url, 'connecting');
                     const relay = await Relay.connect(url);
+                    if (gen !== relayConnectGeneration) {
+                        try { relay.close(); } catch (_) {}
+                        continue;
+                    }
                     relays.push(relay);
                     // Ensure relayWriteEnabled is set before updating status
                     if (!relayWriteEnabled.has(url)) {
@@ -3432,6 +3611,7 @@
                     
                     let didResubscribeAfterAuth = false;
                     const subscribeToRelayReads = () => {
+                        if (gen !== relayConnectGeneration) return;
                         // Subscribe to events - profiles/deletions plus map notes and reposts.
                         const kinds = [0, DELETION_KIND, TRUSTROOTS_PROFILE_KIND, ...MAP_NOTE_KINDS];
                         
@@ -3473,6 +3653,7 @@
 
                     setupRelayAuthHandler(relay, url, {
                         onAuthenticated: () => {
+                            if (gen !== relayConnectGeneration) return;
                             // NIP-42 relays may reject REQ before AUTH completes.
                             // Mirror nip42 test client behavior by issuing read REQs again after AUTH.
                             if (!didResubscribeAfterAuth) {
@@ -3488,7 +3669,8 @@
                     // Once connected, we trust the connection is good until we get a publish error
                     
                     // Keep subscription alive
-                    setInterval(() => {
+                    const keepAliveId = setInterval(() => {
+                        if (gen !== relayConnectGeneration) return;
                         if (relay.status === 1) { // OPEN
                             relay.subscribe([{ kinds: [0, DELETION_KIND, TRUSTROOTS_PROFILE_KIND, ...MAP_NOTE_KINDS], limit: 1 }], {
                                 onevent: () => {},
@@ -3496,12 +3678,17 @@
                             });
                         }
                     }, 30000); // Every 30 seconds
+                    relayKeepAliveIntervalIds.push(keepAliveId);
                 } catch (error) {
                     console.error(`[Relay] Error connecting to ${url}:`, error.message || error);
-                    updateRelayStatus(url, 'error', false);
+                    if (gen === relayConnectGeneration) {
+                        updateRelayStatus(url, 'error', false);
+                    }
                 }
             }
             
+            if (gen !== relayConnectGeneration) return;
+
             // Show summary message
             const connectedCount = relays.length;
             const totalCount = connectableRelayUrls.length;
@@ -3542,9 +3729,9 @@
                     });
                 } catch (error) {
                     console.error('Error setting up NDK subscription:', error);
-                    // Fallback to direct relays
+                    // Fallback to direct relays (void: overlaps initializeNDK; generation guard dedupes pool)
                     const relayUrls = getRelayUrls();
-                    initializeRelays(relayUrls);
+                    void initializeRelays(relayUrls).catch((e) => console.error('[Relay] initializeRelays fallback failed:', e?.message || e));
                 }
             }
             // Direct relay subscriptions are handled in initializeRelays
@@ -3657,78 +3844,170 @@
             return id;
         }
         
-        // localStorage caching functions
-        function saveEventsToCache() {
+        function removeLegacyEventsLocalStorageCache() {
             try {
-                const cacheData = {
-                    events: events,
+                localStorage.removeItem(EVENTS_CACHE_KEY);
+                localStorage.removeItem(EVENTS_CACHE_TIMESTAMP_KEY);
+            } catch (_) {}
+        }
+
+        function slimEventForCache(event) {
+            if (!event || typeof event !== 'object') return null;
+            return {
+                id: event.id,
+                pubkey: event.pubkey,
+                kind: event.kind,
+                created_at: event.created_at,
+                content: event.content != null ? String(event.content) : '',
+                tags: Array.isArray(event.tags) ? event.tags : []
+            };
+        }
+
+        function isStorageQuotaError(err) {
+            return !!(err && (err.name === 'QuotaExceededError' || err.code === 22));
+        }
+
+        function openNrMapCacheDB() {
+            if (nrMapCacheDbPromise) return nrMapCacheDbPromise;
+            nrMapCacheDbPromise = new Promise((resolve, reject) => {
+                if (typeof indexedDB === 'undefined') {
+                    nrMapCacheDbPromise = null;
+                    reject(new Error('indexedDB unavailable'));
+                    return;
+                }
+                const req = indexedDB.open(NR_MAP_CACHE_DB_NAME, NR_MAP_CACHE_DB_VERSION);
+                req.onupgradeneeded = (e) => {
+                    const idb = e.target.result;
+                    if (!idb.objectStoreNames.contains(NR_MAP_CACHE_STORE)) {
+                        idb.createObjectStore(NR_MAP_CACHE_STORE, { keyPath: 'key' });
+                    }
+                };
+                req.onerror = () => {
+                    nrMapCacheDbPromise = null;
+                    reject(req.error);
+                };
+                req.onsuccess = () => {
+                    try {
+                        removeLegacyEventsLocalStorageCache();
+                    } catch (_) {}
+                    resolve(req.result);
+                };
+            });
+            return nrMapCacheDbPromise;
+        }
+
+        function idbPutEventsRecord(db, record) {
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(NR_MAP_CACHE_STORE, 'readwrite');
+                tx.onerror = () => reject(tx.error);
+                tx.oncomplete = () => resolve();
+                const store = tx.objectStore(NR_MAP_CACHE_STORE);
+                const r = store.put(record);
+                r.onerror = () => reject(r.error);
+            });
+        }
+
+        async function saveEventsToCache() {
+            if (eventsCacheWriteSuppressed) return;
+            if (typeof indexedDB === 'undefined') return;
+            let db;
+            try {
+                db = await openNrMapCacheDB();
+            } catch (e) {
+                console.warn('Map cache DB unavailable:', e);
+                return;
+            }
+            const sorted = [...events].sort((a, b) => (a.created_at || 0) - (b.created_at || 0));
+            const len = sorted.length;
+            if (len === 0) {
+                try {
+                    await idbPutEventsRecord(db, {
+                        key: NR_MAP_CACHE_RECORD_KEY,
+                        events: [],
+                        timestamp: Date.now()
+                    });
+                    eventsCacheWriteSuppressed = false;
+                    eventsCacheSuppressLogged = false;
+                } catch (err) {
+                    console.warn('Failed to save empty events cache:', err);
+                }
+                return;
+            }
+            const caps = [];
+            const seen = new Set();
+            for (const n of [len, 2000, 1000, 500, 250, 100, 50, 25]) {
+                const c = Math.min(len, n);
+                if (c >= 1 && !seen.has(c)) {
+                    seen.add(c);
+                    caps.push(c);
+                }
+            }
+            for (const cap of caps) {
+                const slimmed = sorted
+                    .slice(-cap)
+                    .map(slimEventForCache)
+                    .filter(Boolean);
+                const record = {
+                    key: NR_MAP_CACHE_RECORD_KEY,
+                    events: slimmed,
                     timestamp: Date.now()
                 };
-                localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(cacheData));
-                localStorage.setItem(EVENTS_CACHE_TIMESTAMP_KEY, cacheData.timestamp.toString());
-            } catch (error) {
-                console.warn('Failed to save events to cache:', error);
-                // Handle quota exceeded error
-                if (error.name === 'QuotaExceededError') {
-                    // Try to clear old cache or reduce size
-                    try {
-                        // Remove oldest events if cache is too large
-                        const sortedEvents = [...events].sort((a, b) => a.created_at - b.created_at);
-                        const reducedEvents = sortedEvents.slice(-1000); // Keep last 1000 events
-                        const cacheData = {
-                            events: reducedEvents,
-                            timestamp: Date.now()
-                        };
-                        localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify(cacheData));
-                        localStorage.setItem(EVENTS_CACHE_TIMESTAMP_KEY, cacheData.timestamp.toString());
-                        console.log('Reduced cache size to 1000 events');
-                    } catch (e) {
-                        console.error('Failed to save reduced cache:', e);
+                try {
+                    await idbPutEventsRecord(db, record);
+                    eventsCacheWriteSuppressed = false;
+                    eventsCacheSuppressLogged = false;
+                    return;
+                } catch (err) {
+                    if (!isStorageQuotaError(err)) {
+                        console.warn('Failed to save events cache:', err);
+                        return;
                     }
                 }
             }
+            if (!eventsCacheSuppressLogged) {
+                console.warn(
+                    'Map events cache: persistence disabled after repeated quota errors. Live data only until refresh.'
+                );
+                eventsCacheSuppressLogged = true;
+            }
+            eventsCacheWriteSuppressed = true;
         }
-        
-        function loadEventsFromCache() {
+
+        async function loadEventsFromCache() {
             try {
-                const cacheDataStr = localStorage.getItem(EVENTS_CACHE_KEY);
-                const timestampStr = localStorage.getItem(EVENTS_CACHE_TIMESTAMP_KEY);
-                
-                if (!cacheDataStr || !timestampStr) {
-                    return null;
+                if (typeof indexedDB === 'undefined') return null;
+                const db = await openNrMapCacheDB();
+                const row = await new Promise((resolve, reject) => {
+                    const tx = db.transaction(NR_MAP_CACHE_STORE, 'readonly');
+                    tx.onerror = () => reject(tx.error);
+                    const store = tx.objectStore(NR_MAP_CACHE_STORE);
+                    const req = store.get(NR_MAP_CACHE_RECORD_KEY);
+                    req.onerror = () => reject(req.error);
+                    req.onsuccess = () => resolve(req.result);
+                });
+                if (!row || !Array.isArray(row.events)) return null;
+                const age = Date.now() - (row.timestamp || 0);
+                if (age > CACHE_MAX_AGE) return null;
+                let out = row.events;
+                if (NrBlocklist && NrBlocklist.isBlocked) {
+                    out = out.filter((e) => !NrBlocklist.isBlocked(e.pubkey));
                 }
-                
-                const timestamp = parseInt(timestampStr);
-                const age = Date.now() - timestamp;
-                
-                // Check if cache is still valid (within 24 hours)
-                if (age > CACHE_MAX_AGE) {
-                    return null;
-                }
-                
-                const cacheData = JSON.parse(cacheDataStr);
-                if (cacheData && cacheData.events && Array.isArray(cacheData.events)) {
-                    const events = cacheData.events;
-                    if (NrBlocklist && NrBlocklist.isBlocked) {
-                        return events.filter((e) => !NrBlocklist.isBlocked(e.pubkey));
-                    }
-                    return events;
-                }
+                return out;
             } catch (error) {
                 console.warn('Failed to load events from cache:', error);
             }
             return null;
         }
-        
-        // Batched localStorage write - debounced to avoid excessive writes
+
+        // Debounced IndexedDB write after last map event change
         function scheduleCacheWrite() {
             if (localStorageWriteTimeout) {
                 clearTimeout(localStorageWriteTimeout);
             }
             localStorageWriteTimeout = setTimeout(() => {
-                saveEventsToCache();
+                void saveEventsToCache().catch((e) => console.warn('saveEventsToCache:', e));
                 localStorageWriteTimeout = null;
-            }, 2000); // Write to cache 2 seconds after last event
+            }, 2000);
         }
         
         // Expiration setting functions (matching nr-app)
@@ -4125,7 +4404,7 @@
                     console.log(`Sync complete: Removed ${removedCount} event(s) that no longer exist on relays (${initialCount} -> ${events.length})`);
                     
                     // Update cache
-                    saveEventsToCache();
+                    void saveEventsToCache().catch((e) => console.warn('saveEventsToCache:', e));
                     cachedFilteredEvents = null;
                     filteredEventsCacheKey = null;
                     
@@ -4480,7 +4759,7 @@
                 console.log(`Flushed ${removedCount} expired event(s) (${initialCount} -> ${events.length})`);
                 
                 // Update cache
-                saveEventsToCache();
+                void saveEventsToCache().catch((e) => console.warn('saveEventsToCache:', e));
                 cachedFilteredEvents = null;
                 filteredEventsCacheKey = null;
                 
@@ -5753,7 +6032,7 @@
             const username = pubkeyToUsername.get(event.pubkey);
             if (username) {
                 const nip05 = `${username}@trustroots.org`.toLowerCase();
-                const chatHref = '#' + encodeURIComponent(nip05).replace(/%2B/g, '+');
+                const chatHref = '#profile/' + encodeURIComponent(nip05).replace(/%2B/g, '+');
                 const authorLink = document.createElement('a');
                 authorLink.className = 'nr-content-link';
                 authorLink.href = chatHref;
@@ -5971,7 +6250,7 @@
                 events.push(deletionEventData);
                 
                 // Update cache
-                saveEventsToCache();
+                void saveEventsToCache().catch((e) => console.warn('saveEventsToCache:', e));
                 cachedFilteredEvents = null;
                 filteredEventsCacheKey = null;
                 
@@ -6631,7 +6910,10 @@
             const section = document.getElementById('keys-claim-section');
             const summary = document.getElementById('claim-summary');
             if (!section || !summary) return;
-            const canShow = !!currentPublicKey && !!currentPrivateKeyBytes && isProfileLinked === true;
+            const onProfileClaims = window.NrWebClaimsUiSurface === 'profile';
+            const canShow =
+                (!!currentPublicKey && !!currentPrivateKeyBytes && isProfileLinked === true) ||
+                (onProfileClaims && !!currentPublicKey && !!currentPrivateKeyBytes);
             section.style.display = canShow ? 'block' : 'none';
             if (!canShow) {
                 const scopeEl = document.getElementById('claim-relay-scope');
@@ -6647,7 +6929,8 @@
         }
 
         function scheduleRefreshClaimSuggestions() {
-            if (!currentPublicKey || !currentPrivateKeyBytes || isProfileLinked !== true) return;
+            if (!currentPublicKey || !currentPrivateKeyBytes) return;
+            if (isProfileLinked !== true && window.NrWebClaimsUiSurface !== 'profile') return;
             if (claimSuggestionsDebounce) clearTimeout(claimSuggestionsDebounce);
             claimSuggestionsDebounce = setTimeout(() => {
                 claimSuggestionsDebounce = null;
@@ -6661,7 +6944,10 @@
                 if (!silent) showStatus('Load a key first to fetch claim suggestions.', 'error');
                 return;
             }
-            if (!currentPrivateKeyBytes || isProfileLinked !== true) {
+            if (!currentPrivateKeyBytes) {
+                return;
+            }
+            if (isProfileLinked !== true && window.NrWebClaimsUiSurface !== 'profile') {
                 return;
             }
             const relayUrls = getRelayUrls();
@@ -6732,6 +7018,38 @@
             }
             return { signedEvent, results };
         }
+
+        window.NrWebPublishKind0Metadata = async function (contentObj) {
+            const template = {
+                kind: 0,
+                created_at: Math.floor(Date.now() / 1000),
+                tags: [],
+                content: JSON.stringify(contentObj || {})
+            };
+            await publishSignedEventTemplate(template);
+        };
+        window.NrWebGetCurrentPubkeyHex = () => currentPublicKey;
+        window.NrWebGoOwnProfile = function (action) {
+            if (!currentPublicKey) return;
+            const trU =
+                document.getElementById('trustroots-username')?.value?.trim() ||
+                (pubkeyToUsername && pubkeyToUsername.get && pubkeyToUsername.get(currentPublicKey));
+            let idPart;
+            if (trU) idPart = `${String(trU).toLowerCase()}@trustroots.org`;
+            else {
+                try {
+                    idPart = nip19.npubEncode(currentPublicKey);
+                } catch (_) {
+                    return;
+                }
+            }
+            const base = 'profile/' + encodeURIComponent(idPart).replace(/%2B/g, '+');
+            const suf = action === 'edit' ? '/edit' : action === 'contacts' ? '/contacts' : '';
+            try {
+                location.hash = '#' + base + suf;
+            } catch (_) {}
+            if (typeof applyNrUnifiedHash === 'function') void applyNrUnifiedHash();
+        };
 
         /** Register theme publish + fetch encrypted kind 30078 from relays (see NrWebTheme in common.js). */
         async function fetchThemePreferenceFromRelaysIndex() {
@@ -6992,6 +7310,9 @@
                     route: 'keys',
                     setRoute: setHashRoute,
                     onOpenManagedSection: () => {
+                        try {
+                            window.NrWebUnmountClaimTrustrootsSection?.();
+                        } catch (_) {}
                         updateKeyDisplay();
                     }
                 });
@@ -7462,6 +7783,14 @@
             
             // Initialize relay list
             initializeRelayList();
+
+            document.getElementById('nr-profile-back-map')?.addEventListener('click', () => {
+                try {
+                    history.replaceState({}, '', location.pathname + location.search);
+                } catch (_) {}
+                location.hash = '';
+                void applyUnifiedHash();
+            });
             
             // Keys / Settings header buttons: wired in common.js fillAppHeader() so listeners survive header rebuilds.
 
@@ -7546,40 +7875,34 @@
             // Function to load data and connect to relays
             function loadDataWhenReady() {
                 if (mapFallbackMode) {
-                    loadCachedEvents();
-                    setTimeout(async () => {
-                        await initializeNDK();
-                        startPeriodicFlushingOfExpiredEvents();
-                        setTimeout(() => {
-                            syncLocalStorageWithRelays();
-                        }, 60000);
-                    }, 500);
+                    void (async () => {
+                        await loadCachedEvents();
+                        setTimeout(async () => {
+                            await initializeNDK();
+                            startPeriodicFlushingOfExpiredEvents();
+                            setTimeout(() => {
+                                syncLocalStorageWithRelays();
+                            }, 60000);
+                        }, 500);
+                    })();
                     return;
                 }
 
                 // Check if map is ready
                 if (map && map.loaded() && map.getSource('pluscode-grid')) {
-                    // Map is ready, load cached events
-                    loadCachedEvents();
-                    
-                    // Force a grid update after loading cached events
-                    setTimeout(() => {
-                        updatePlusCodeGrid();
-                    }, 100);
-                    
-                    // Then connect to relays
-                    setTimeout(async () => {
-                        await initializeNDK();
-                        
-                        // Start periodic flushing of expired events (matching nr-app)
-                        startPeriodicFlushingOfExpiredEvents();
-                        
-                        // After everything is loaded and displayed, wait a bit then sync localStorage with relays
-                        // This removes events that have been deleted/expired from relays
+                    void (async () => {
+                        await loadCachedEvents();
                         setTimeout(() => {
-                            syncLocalStorageWithRelays();
-                        }, 60000); // Wait 60 seconds after initialization
-                    }, 500);
+                            updatePlusCodeGrid();
+                        }, 100);
+                        setTimeout(async () => {
+                            await initializeNDK();
+                            startPeriodicFlushingOfExpiredEvents();
+                            setTimeout(() => {
+                                syncLocalStorageWithRelays();
+                            }, 60000);
+                        }, 500);
+                    })();
                 } else {
                     // Map not ready yet, try again
                     setTimeout(loadDataWhenReady, 100);

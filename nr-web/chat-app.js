@@ -8,6 +8,12 @@ import {
             generateSecretKey,
             SimplePool,
         } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.23.0/+esm';
+import { resolveNip05 } from './nip05-resolve.js';
+import {
+    TRUSTROOTS_CIRCLE_META_KIND,
+    mergeCircleMetadataMapEntry,
+    isSafeHttpUrl
+} from './circle-metadata.js';
 
         // nostr-tools may access window.printer.maybe for debug; avoid ReferenceError
         if (typeof window !== 'undefined' && !window.printer) {
@@ -30,6 +36,11 @@ import {
         const HOSTING_OFFER_CHANNEL_SLUG = 'hostingoffers';
         const HOSTING_OFFER_CHANNEL_ALIASES = ['hostingoffer', 'hostingoffers'];
         const relaySettings = window.NrWebRelaySettings;
+        const TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX = String(
+            globalThis.NrWebTrustrootsCircleMeta?.IMPORT_TOOL_PUBKEY_HEX || ''
+        )
+            .trim()
+            .toLowerCase();
         const NIP42_AUTH_KIND = 22242;
         const RELAY_PUBLISH_TIMEOUT_MS = 10000;
         /** Same key / option set as map note composer in index.html */
@@ -148,6 +159,51 @@ import {
         const relayStatus = new Map(); // url -> { status, canWrite }
         const relayWriteEnabled = new Map(); // url -> boolean
         const conversations = new Map();
+        /** @type {Map<string, { name: string, about: string, picture: string, created_at: number, eventId: string }>} */
+        const circleMetaBySlug = new Map();
+
+        const TRUSTROOTS_CIRCLE_SLUGS_SET = new Set(
+            getTrustrootsCircles()
+                .map((c) => String(c.slug || '').trim().toLowerCase())
+                .filter(Boolean)
+        );
+
+        function normalizeCircleSlug(slug) {
+            return String(slug || '').trim().toLowerCase();
+        }
+
+        /** True when this slug matches a Trustroots tribe (relay 30410 or known slug list), not only ad-hoc #channels. */
+        function hasPublishedTrustrootsCircle(slug) {
+            const key = normalizeCircleSlug(slug);
+            if (!key) return false;
+            if (circleMetaBySlug.has(key)) return true;
+            return TRUSTROOTS_CIRCLE_SLUGS_SET.has(key);
+        }
+
+        function isTrustrootsCircleConversation(entry) {
+            if (!entry || entry.type !== 'channel') return false;
+            const idRaw = String(entry.id || '').trim();
+            if (!idRaw || idRaw === GLOBAL_CHANNEL_SLUG) return false;
+            const idKey = normalizeCircleSlug(idRaw);
+            if (circleMetaBySlug.has(idKey)) return true;
+            if (TRUSTROOTS_CIRCLE_SLUGS_SET.has(idKey)) return true;
+            const evs = entry.events || [];
+            for (let i = 0; i < evs.length; i++) {
+                const raw = evs[i]?.raw;
+                if (!raw?.tags) continue;
+                const row = raw.tags.find(
+                    (t) =>
+                        Array.isArray(t) &&
+                        t.length >= 3 &&
+                        (t[0] === 'l' || t[0] === 'L') &&
+                        t[2] === TRUSTROOTS_CIRCLE_LABEL &&
+                        normalizeCircleSlug(t[1]) === idKey
+                );
+                if (row) return true;
+            }
+            return false;
+        }
+
         let selectedConversationId = null;
         let conversationFilterQuery = '';
         let backgroundContentMatches = new Set();
@@ -264,6 +320,47 @@ import {
         const CHAT_CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
         const CHAT_CACHE_MAX_EVENTS_PER_CONV = 500;
         let chatCacheWriteTimeout = null;
+
+        /** Last-opened chat per account (e.g. restore after #map clears the hash). */
+        function getSelectedChatStorageKey() {
+            return currentPublicKey ? 'nostroots_selected_chat_' + currentPublicKey : '';
+        }
+        function readPersistedSelectedChatId() {
+            const key = getSelectedChatStorageKey();
+            if (!key || typeof localStorage === 'undefined') return '';
+            try {
+                const v = localStorage.getItem(key);
+                return typeof v === 'string' && v ? v : '';
+            } catch (_) {
+                return '';
+            }
+        }
+        function writePersistedSelectedChatId(id) {
+            const key = getSelectedChatStorageKey();
+            if (!key || typeof localStorage === 'undefined') return;
+            try {
+                if (id) localStorage.setItem(key, id);
+                else localStorage.removeItem(key);
+            } catch (_) {}
+        }
+        /** Ensure a conversation row exists for an id saved from a prior session (channel / DM / group). */
+        function ensureConversationExistsForRestore(storedId) {
+            if (!storedId || conversations.has(storedId)) return storedId;
+            if (/^[0-9a-f]{64}$/i.test(storedId)) {
+                getOrCreateConversation('dm', storedId, [storedId]);
+                return storedId;
+            }
+            if (/^[0-9a-f]{64}(,[0-9a-f]{64})+$/i.test(storedId)) {
+                getOrCreateConversation('group', storedId, storedId.split(','));
+                return storedId;
+            }
+            const slug = normalizeChannelSlug(storedId);
+            if (/^[a-zA-Z0-9_-]+$/.test(slug) && slug !== 'keys' && slug !== 'settings') {
+                const conv = getOrCreateConversation('channel', slug, []);
+                return conv && conv.id ? conv.id : slug;
+            }
+            return '';
+        }
 
         function saveChatToCache() {
             if (!currentPublicKey || typeof localStorage === 'undefined') return;
@@ -483,6 +580,15 @@ import {
             if (settingsEl) settingsEl.classList.remove('active');
             if (!route) {
                 if (o.emptyPicker) {
+                    const saved = readPersistedSelectedChatId();
+                    if (saved) {
+                        const effectiveId = ensureConversationExistsForRestore(saved);
+                        if (effectiveId && conversations.has(effectiveId)) {
+                            selectConversation(effectiveId);
+                            return;
+                        }
+                        writePersistedSelectedChatId('');
+                    }
                     selectedConversationId = null;
                     document.body.classList.remove('chat-open');
                     renderConvList();
@@ -676,34 +782,6 @@ import {
             return null;
         }
 
-        /** Resolve NIP-05 (e.g. nostroots@trustroots.org) to hex. trustroots.org use www.trustroots.org. Falls back to CORS proxy when direct fetch is blocked (missing Access-Control-Allow-Origin or 502). */
-        async function resolveNip05(nip05) {
-            const s = (nip05 || '').trim().toLowerCase();
-            const at = s.indexOf('@');
-            if (at <= 0 || at === s.length - 1) return null;
-            const local = s.slice(0, at);
-            let domain = s.slice(at + 1).replace(/^www\./, '');
-            const base = (domain === 'trustroots.org' || domain === 'nos.trustroots.org') ? 'https://www.trustroots.org' : `https://${domain}`;
-            const url = `${base}/.well-known/nostr.json?name=${encodeURIComponent(local)}`;
-            let data = null;
-            try {
-                const res = await fetch(url);
-                if (res.ok) data = await res.json();
-            } catch (_) {}
-            if (!data) {
-                try {
-                    const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-                    const text = await fetch(proxyUrl).then(r => r.text());
-                    data = JSON.parse(text);
-                } catch (_) {
-                    return null;
-                }
-            }
-            if (!data || !data.names || !data.names[local]) return null;
-            const hex = (data.names[local] + '').toLowerCase();
-            return (hex.length === 64 && /^[0-9a-f]+$/.test(hex)) ? hex : null;
-        }
-
         /** Resolve npub/hex synchronously, or NIP-05 (async) to hex. Returns Promise<hex|null>. */
         async function resolvePubkeyInput(raw) {
             const s = (raw || '').trim();
@@ -788,6 +866,7 @@ import {
         }
 
         function disconnect() {
+            const selChatKey = getSelectedChatStorageKey();
             currentPublicKey = null;
             currentSecretKeyHex = null;
             currentSecretKeyBytes = null;
@@ -799,6 +878,11 @@ import {
                 window.NrWebTheme.registerThemePublish(null);
             }
             localStorage.removeItem('nostr_private_key');
+            if (selChatKey) {
+                try {
+                    localStorage.removeItem(selChatKey);
+                } catch (_) {}
+            }
             conversations.clear();
             selectedConversationId = null;
             if (pool) {
@@ -1598,6 +1682,33 @@ import {
                 }
             } });
 
+            if (TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX) {
+                pool.subscribe(
+                    relays,
+                    {
+                        kinds: [TRUSTROOTS_CIRCLE_META_KIND],
+                        authors: [TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX],
+                        limit: 5000
+                    },
+                    {
+                        onevent(event) {
+                            if (NrBlocklist && NrBlocklist.isBlocked(event.pubkey)) return;
+                            const changed = mergeCircleMetadataMapEntry(circleMetaBySlug, event, {
+                                expectedPubkey: TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX,
+                                kind: TRUSTROOTS_CIRCLE_META_KIND
+                            });
+                            if (!changed) return;
+                            scheduleRender('convList');
+                            const sel = selectedConversationId ? conversations.get(selectedConversationId) : null;
+                            if (sel && isTrustrootsCircleConversation(sel)) {
+                                syncThreadHeaderForConversation(sel);
+                                scheduleRender('thread');
+                            }
+                        }
+                    }
+                );
+            }
+
             relays.forEach((url) => {
                 updateRelayStatus(url, 'connected', relayWriteEnabled.get(url) !== false);
             });
@@ -1959,15 +2070,27 @@ import {
 
         function getConversationLabel(entry) {
             const id = String(entry.id || '');
-            if (entry.type === 'channel') return id === GLOBAL_CHANNEL_SLUG ? 'Global' : '#' + id;
+            if (entry.type === 'channel') {
+                if (id === GLOBAL_CHANNEL_SLUG) return 'Global';
+                if (isTrustrootsCircleConversation(entry)) {
+                    return '#' + id;
+                }
+                return id;
+            }
             if (entry.type === 'group') return `Group (${entry.members?.length || 0})`;
             return getDisplayNameShort(id) || getDisplayName(id) || hexToNpub(id) || id;
         }
 
         /** Sidebar rail icon (matches thread header: globe vs lock vs channel marker). */
-        function getConversationListEncIcon(id, type) {
+        function getConversationListEncIcon(entry) {
+            const id = String(entry.id || '');
+            const type = entry.type;
             if (type === 'dm' || type === 'group') return ENC_LOCK;
-            if (type === 'channel') return String(id) === GLOBAL_CHANNEL_SLUG ? ENC_GLOBE : '#';
+            if (type === 'channel') {
+                if (id === GLOBAL_CHANNEL_SLUG) return ENC_GLOBE;
+                if (isTrustrootsCircleConversation(entry)) return '∞';
+                return '#';
+            }
             return ENC_GLOBE;
         }
 
@@ -1975,6 +2098,9 @@ import {
             const list = document.getElementById('conv-list');
             if (!list) return;
             list.innerHTML = '';
+            function escConvHtml(s) {
+                return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+            }
             const entries = Array.from(conversations.entries())
                 .map(([id, c]) => ({ id, ...c }));
             const globalEntry = entries.find(e => e.id === GLOBAL_CHANNEL_SLUG);
@@ -1983,15 +2109,41 @@ import {
             const query = normalizeSearchQuery(conversationFilterQuery);
             const filtered = query ? ordered.filter((entry) => conversationMatchesFilter(entry, query)) : ordered;
             filtered.forEach(({ id, type, members, events }) => {
-                const label = getConversationLabel({ id, type, members, events });
+                const entry = { id, type, members, events };
+                const label = getConversationLabel(entry);
                 const item = document.createElement('div');
-                item.className = 'conv-item' + (selectedConversationId === id ? ' selected' : '');
+                const enc = getConversationListEncIcon(entry);
+                const isCircle = type === 'channel' && isTrustrootsCircleConversation(entry);
+                item.className =
+                    'conv-item' +
+                    (selectedConversationId === id ? ' selected' : '') +
+                    (isCircle ? ' conv-item-circle' : '');
                 item.dataset.convId = id;
-                const safeLabel = (function escape(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); })(label);
-                const enc = getConversationListEncIcon(id, type);
-                item.innerHTML =
-                    `<span class="enc-icon" aria-hidden="true">${enc}</span>` +
-                    `<div class="label-wrap"><span class="label">${safeLabel}</span></div>`;
+                const eLab = escConvHtml(label);
+                const eGlyph = escConvHtml(enc);
+                if (isCircle) {
+                    const meta = circleMetaBySlug.get(normalizeCircleSlug(id)) || {};
+                    const slug = id;
+                    const pic = meta.picture && isSafeHttpUrl(meta.picture) ? meta.picture : '';
+                    const about = meta.about && String(meta.about).trim();
+                    const hashEsc = escConvHtml('#' + slug);
+                    const line =
+                        about
+                            ? `${escConvHtml(about.length > 88 ? about.slice(0, 85) + '…' : about)} · ${hashEsc}`
+                            : hashEsc;
+                    const imgHtml = pic
+                        ? `<img class="conv-item-avatar" src="${escConvHtml(pic)}" alt="" loading="lazy" decoding="async" />`
+                        : '';
+                    item.innerHTML =
+                        '<span class="conv-item-stack">' +
+                        `<span class="conv-item-title-row conv-item-circle-hashline">${line}</span>` +
+                        '</span>' +
+                        imgHtml;
+                } else {
+                    // Emoji rail (🌐 🔒) on the right; keep # as a normal hashtag prefix on the left.
+                    const oneLine = enc === '#' ? eGlyph + eLab : eLab + '\u2009' + eGlyph;
+                    item.innerHTML = `<span class="conv-item-label">${oneLine}</span>`;
+                }
                 item.onclick = () => selectConversation(id);
                 list.appendChild(item);
             });
@@ -1999,9 +2151,7 @@ import {
             if (!filtered.length) {
                 const empty = document.createElement('div');
                 empty.className = 'conv-item conv-item-empty';
-                empty.innerHTML =
-                    '<span class="enc-icon" aria-hidden="true">\u2014</span>' +
-                    '<div class="label-wrap"><span class="label">No matching chats</span></div>';
+                empty.innerHTML = '<span class="conv-item-label">\u2014 No matching chats</span>';
                 list.appendChild(empty);
             }
         }
@@ -2015,7 +2165,17 @@ import {
             const id = String(entry.id || '');
             const baseLabel = getConversationLabel(entry);
             const channelAlias = entry.type === 'channel' ? id : '';
-            return [baseLabel, channelAlias, id].some((value) => String(value || '').toLowerCase().includes(query));
+            const tokens = [baseLabel, channelAlias, id];
+            if (entry.type === 'channel' && id && id !== GLOBAL_CHANNEL_SLUG) {
+                tokens.push('#' + id);
+            }
+            if (entry.type === 'channel' && isTrustrootsCircleConversation(entry)) {
+                const meta = circleMetaBySlug.get(normalizeCircleSlug(id));
+                if (meta) {
+                    tokens.push(meta.name, meta.about);
+                }
+            }
+            return tokens.some((value) => String(value || '').toLowerCase().includes(query));
         }
 
         function bindConversationFilterInput() {
@@ -2092,6 +2252,94 @@ import {
             }
         }
 
+        function syncThreadHeaderForConversation(conv) {
+            const titleEl = document.getElementById('thread-title');
+            const avatarEl = document.getElementById('thread-circle-avatar');
+            const subEl = document.getElementById('thread-circle-subtitle');
+            const linkEl = document.getElementById('thread-circle-link');
+            const stackEl = document.getElementById('thread-header-circle-stack');
+            if (!titleEl) return;
+
+            const resetCircleChrome = () => {
+                if (stackEl) stackEl.style.display = 'none';
+                if (avatarEl) {
+                    avatarEl.removeAttribute('src');
+                    avatarEl.style.display = 'none';
+                }
+                if (subEl) {
+                    subEl.textContent = '';
+                    subEl.style.display = 'none';
+                }
+                if (linkEl) {
+                    linkEl.style.display = 'none';
+                    linkEl.removeAttribute('href');
+                }
+            };
+
+            if (!conv) {
+                resetCircleChrome();
+                return;
+            }
+
+            if (conv.type === 'dm' || conv.type === 'group') {
+                resetCircleChrome();
+                titleEl.textContent =
+                    conv.type === 'group'
+                        ? `Group (${conv.members.length})`
+                        : getDisplayNameShort(conv.id) || getDisplayName(conv.id) || conv.id;
+                return;
+            }
+
+            if (conv.type === 'channel') {
+                if (conv.id === GLOBAL_CHANNEL_SLUG) {
+                    resetCircleChrome();
+                    titleEl.textContent = 'Global';
+                    return;
+                }
+                if (isTrustrootsCircleConversation(conv)) {
+                    const slug = conv.id;
+                    const slugKey = normalizeCircleSlug(slug);
+                    const meta = circleMetaBySlug.get(slugKey) || {};
+                    const hash = '#' + slug;
+                    titleEl.textContent = hash;
+                    const about = meta.about && String(meta.about).trim();
+                    const showTrustrootsLink = hasPublishedTrustrootsCircle(slug);
+                    if (stackEl) stackEl.style.display = about || showTrustrootsLink ? 'flex' : 'none';
+                    if (avatarEl) {
+                        if (meta.picture && isSafeHttpUrl(meta.picture)) {
+                            avatarEl.src = meta.picture;
+                            avatarEl.alt = hash;
+                            avatarEl.style.display = '';
+                        } else {
+                            avatarEl.removeAttribute('src');
+                            avatarEl.style.display = 'none';
+                        }
+                    }
+                    if (subEl) {
+                        if (about) {
+                            subEl.textContent = about.length > 160 ? about.slice(0, 157) + '…' : about;
+                            subEl.style.display = 'block';
+                        } else {
+                            subEl.textContent = '';
+                            subEl.style.display = 'none';
+                        }
+                    }
+                    if (linkEl) {
+                        if (showTrustrootsLink) {
+                            linkEl.href = `https://www.trustroots.org/circle/${encodeURIComponent(slugKey)}`;
+                            linkEl.style.display = 'inline';
+                        } else {
+                            linkEl.removeAttribute('href');
+                            linkEl.style.display = 'none';
+                        }
+                    }
+                    return;
+                }
+                resetCircleChrome();
+                titleEl.textContent = '#' + conv.id;
+            }
+        }
+
         function selectConversation(id) {
             selectedConversationId = id;
             setHashRoute(getConversationRouteId(id));
@@ -2100,6 +2348,11 @@ import {
             if (keysEl) keysEl.classList.remove('active');
             if (settingsEl) settingsEl.classList.remove('active');
             const conv = conversations.get(id);
+            if (conv) {
+                writePersistedSelectedChatId(String(id));
+            } else {
+                writePersistedSelectedChatId('');
+            }
             document.body.classList.toggle('chat-open', !!conv);
             const list = document.getElementById('conv-list');
             if (list) list.querySelectorAll('.conv-item').forEach(el => el.classList.toggle('selected', el.dataset.convId === id));
@@ -2117,7 +2370,7 @@ import {
                 document.getElementById('thread-enc-icon').textContent = isEnc ? ENC_LOCK : ENC_GLOBE;
                 document.getElementById('thread-enc-icon').title = isEnc ? 'Encrypted' : 'Unencrypted (public)';
                 document.getElementById('thread-enc-label').textContent = isEnc ? 'Encrypted' : 'Unencrypted';
-                document.getElementById('thread-title').textContent = conv.type === 'channel' ? (conv.id === GLOBAL_CHANNEL_SLUG ? 'Global' : '#' + conv.id) : (conv.type === 'group' ? `Group (${conv.members.length})` : (getDisplayNameShort(conv.id) || getDisplayName(conv.id) || conv.id));
+                syncThreadHeaderForConversation(conv);
                 if (conv._pendingEncrypted?.length) decryptPendingForConversation(conv);
             }
             const container = document.getElementById('thread-messages');
@@ -2430,7 +2683,7 @@ import {
                 (match, prefix, nip05) => {
                     const normalized = String(nip05 || '').trim().toLowerCase();
                     if (!normalized) return match;
-                    const href = '#' + encodeURIComponent(normalized).replace(/%2B/g, '+');
+                    const href = '#profile/' + encodeURIComponent(normalized).replace(/%2B/g, '+');
                     return `${prefix}<a href="${href}" class="message-inline-link nr-content-link">${nip05}</a>`;
                 }
             );
@@ -2441,7 +2694,7 @@ import {
             if (!label) return '';
             if (!label.includes('@')) return label;
             const route = encodeURIComponent(label.toLowerCase()).replace(/%2B/g, '+');
-            return `<a href="#${route}" class="nr-content-link">${label}</a>`;
+            return `<a href="#profile/${route}" class="nr-content-link">${label}</a>`;
         }
 
         async function startDm() {

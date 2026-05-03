@@ -45,11 +45,11 @@ test.describe('Header navigation', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     const header = page.locator('#app-header');
-    await expect(header.locator('#nav-support-btn').or(header.locator('#nav-more-btn'))).toBeVisible();
+    await expect(header.locator('#nav-support-btn').or(header.locator('#nav-more-btn')).first()).toBeVisible();
     await expect(header.getByRole('link', { name: 'Chats' })).toBeVisible();
     await expect(header.locator('#nav-map-btn')).toBeVisible();
     await expect(header.locator('#nav-host-btn')).toBeVisible();
-    await expect(header.locator('#nav-user-btn').or(header.locator('#nav-more-btn'))).toBeVisible();
+    await expect(header.locator('#nav-user-btn').or(header.locator('#nav-more-btn')).first()).toBeVisible();
     const conv = header.getByRole('link', { name: 'Chats' });
     await expect(conv).toHaveAttribute('href', '#chat');
     await expect(header.locator('a[href="index.html"].app-header-logo-link')).toBeAttached();
@@ -74,7 +74,7 @@ test.describe('Header navigation', () => {
     await page.waitForLoadState('networkidle');
     await openUserMenuIfNeeded(page);
     await expect(
-      page.locator('#settings-icon-btn').or(page.locator('#settings-icon-btn-mobile')),
+      page.locator('#settings-icon-btn').or(page.locator('#settings-icon-btn-mobile')).first(),
     ).toBeVisible();
   });
 

@@ -49,7 +49,7 @@
 
     /**
      * @param {string} route decoded hash fragment (no leading #)
-     * @returns {{ kind: string, modal?: string, token?: string, plusCode?: string, chatRoute?: string }}
+     * @returns {{ kind: string, modal?: string, token?: string, plusCode?: string, chatRoute?: string, profileId?: string }}
      */
     function classify(route) {
         if (!route) return { kind: 'map_home' };
@@ -58,6 +58,34 @@
         if (lower === 'settings') return { kind: 'modal', modal: 'settings' };
         if (RESERVED_SET.has(lower)) return { kind: 'reserved', token: lower };
         if (looksLikeMapPlusCode(route)) return { kind: 'map_pluscode', plusCode: route.replace(/\s/g, '') };
+        if (/^profile\//i.test(route)) {
+            var rest = String(route).replace(/^profile\//i, '').trim();
+            var tabM = rest.match(/^(.+)\/(edit|contacts)$/i);
+            var tab = '';
+            var idPart = rest;
+            if (tabM) {
+                idPart = tabM[1].trim();
+                tab = String(tabM[2]).toLowerCase();
+            }
+            var idRaw = idPart;
+            try {
+                idRaw = decodeURIComponent(idPart);
+            } catch (_) {
+                idRaw = idPart;
+            }
+            var kindSuffix = tab === 'edit' ? '_edit' : tab === 'contacts' ? '_contacts' : '';
+            var profileKind = 'profile' + kindSuffix;
+            if (looksLikeNpub(idPart) || looksLikeHex64(idPart)) {
+                return { kind: profileKind, profileId: idPart };
+            }
+            if (looksLikeNip05(idRaw)) {
+                return { kind: profileKind, profileId: idRaw.trim().toLowerCase() };
+            }
+            if (looksLikeNpub(idRaw) || looksLikeHex64(idRaw)) {
+                return { kind: profileKind, profileId: idRaw.trim() };
+            }
+            return { kind: 'profile_invalid', profileId: rest };
+        }
         if (looksLikeNpub(route) || looksLikeHex64(route)) return { kind: 'chat', chatRoute: route };
         if (looksLikeNip05(route)) {
             var dr = route;

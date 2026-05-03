@@ -1,7 +1,8 @@
 import { test, expect } from './fixtures.js';
 
 function settingsMenuBtn(page) {
-  return page.locator('#settings-icon-btn').or(page.locator('#settings-icon-btn-mobile'));
+  // Desktop + mobile can both be in the DOM and visible; strict mode rejects bare `.or()`.
+  return page.locator('#settings-icon-btn').or(page.locator('#settings-icon-btn-mobile')).first();
 }
 
 /** Keys / Settings live in the Account or mobile “more” menu in the shared header */

@@ -35,6 +35,15 @@
         isBlocked: isBlocked
     };
 
+    /**
+     * Trustroots Mongo JSONL import pubkey (hex, lowercase). nr-web chat subscribes to kind 30410 only from this author.
+     * Default: secp256k1 test private key 0x1 (same as trustrootsimporttool unit tests). Production: set to the pubkey of your import -nsec.
+     */
+    global.NrWebTrustrootsCircleMeta = {
+        CIRCLE_META_KIND: 30410,
+        IMPORT_TOOL_PUBKEY_HEX: '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798'
+    };
+
     // --- Shared relay settings helpers (index + chat) ---
     var RELAY_URLS_STORAGE_KEY = 'relay_urls';
     var RELAY_WRITE_ENABLED_STORAGE_KEY = 'relay_write_enabled';
@@ -962,6 +971,9 @@
     function buildUserDropdownMenuBody(settingsTitle) {
         return (
             '<span class="nr-nav-menu-identity header-identity-text empty" id="header-identity" title=""></span>' +
+            '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="view">My profile</button>' +
+            '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="edit">Edit profile</button>' +
+            '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="contacts">Contacts</button>' +
             '<button type="button" role="menuitem" class="nr-nav-menu-item" id="keys-icon-btn" title="Connect key to post">' +
             '<span class="keys-icon-symbol" aria-hidden="true">🔑</span><span>Keys</span></button>' +
             '<button type="button" role="menuitem" class="nr-nav-menu-item" id="settings-icon-btn" title="' +
@@ -978,6 +990,9 @@
     function buildUserDropdownMenuBodyMobile(settingsTitle) {
         return (
             '<span class="nr-nav-menu-identity header-identity-text empty" id="header-identity-mobile" title=""></span>' +
+            '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="view">My profile</button>' +
+            '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="edit">Edit profile</button>' +
+            '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="contacts">Contacts</button>' +
             '<button type="button" role="menuitem" class="nr-nav-menu-item" id="keys-icon-btn-mobile" title="Connect key to post">' +
             '<span class="keys-icon-symbol" aria-hidden="true">🔑</span><span>Keys</span></button>' +
             '<button type="button" role="menuitem" class="nr-nav-menu-item" id="settings-icon-btn-mobile" title="' +
@@ -1034,6 +1049,18 @@
         var t = e.target;
         if (!t || !t.closest) return;
         var header = e.currentTarget;
+        var profAct = t.closest('[data-nr-profile-action]');
+        if (profAct && header.contains(profAct)) {
+            e.preventDefault();
+            closeAllNrNavDropdowns();
+            var pact = profAct.getAttribute('data-nr-profile-action') || 'view';
+            if (typeof global.window.NrWebGoOwnProfile === 'function') {
+                try {
+                    global.window.NrWebGoOwnProfile(pact);
+                } catch (_) {}
+            }
+            return;
+        }
         if (t.closest('.nr-nav-support-chat-link')) {
             closeAllNrNavDropdowns();
             return;
@@ -1044,7 +1071,12 @@
             if (typeof global.window.openSearchUi === 'function') {
                 try {
                     var bodMap = global.document.body;
-                    if (bodMap && bodMap.classList && bodMap.classList.contains('nr-surface-chat')) {
+                    if (
+                        bodMap &&
+                        bodMap.classList &&
+                        (bodMap.classList.contains('nr-surface-chat') ||
+                            bodMap.classList.contains('nr-surface-profile'))
+                    ) {
                         try {
                             global.location.hash = '';
                         } catch (_) {}
@@ -1078,7 +1110,12 @@
             if (typeof global.window.openHostNoteFlow === 'function') {
                 try {
                     var bodHost = global.document.body;
-                    if (bodHost && bodHost.classList && bodHost.classList.contains('nr-surface-chat')) {
+                    if (
+                        bodHost &&
+                        bodHost.classList &&
+                        (bodHost.classList.contains('nr-surface-chat') ||
+                            bodHost.classList.contains('nr-surface-profile'))
+                    ) {
                         try {
                             global.location.hash = '';
                         } catch (_) {}

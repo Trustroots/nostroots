@@ -1,3 +1,11 @@
+/** @param {number} ms */
+function fetchWithTimeout(url, ms = 8000) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { signal: ctrl.signal })
+    .finally(() => clearTimeout(t));
+}
+
 /**
  * Resolve NIP-05 to hex pubkey (shared by chat-app and profile page).
  * trustroots.org uses www.trustroots.org for .well-known. Falls back to CORS proxy when needed.
@@ -17,13 +25,14 @@ export async function resolveNip05(nip05) {
   const url = `${base}/.well-known/nostr.json?name=${encodeURIComponent(local)}`;
   let data = null;
   try {
-    const res = await fetch(url);
+    const res = await fetchWithTimeout(url, 8000);
     if (res.ok) data = await res.json();
   } catch (_) {}
   if (!data) {
     try {
       const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
-      const text = await fetch(proxyUrl).then((r) => r.text());
+      const res = await fetchWithTimeout(proxyUrl, 8000);
+      const text = await res.text();
       data = JSON.parse(text);
     } catch (_) {
       return null;

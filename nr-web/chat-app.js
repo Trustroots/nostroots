@@ -53,7 +53,8 @@ import {
             if (HOSTING_OFFER_CHANNEL_ALIASES.includes(normalized)) {
                 return HOSTING_OFFER_CHANNEL_SLUG;
             }
-            return slug;
+            // Must match kind 30410 `d` tags (lowercase) so circle metadata pictures resolve.
+            return normalized;
         }
 
         // Decode blocklist npubs to hex (shared blocklist in common.js)
@@ -2326,7 +2327,7 @@ import {
                     }
                     if (linkEl) {
                         if (showTrustrootsLink) {
-                            linkEl.href = `https://www.trustroots.org/circle/${encodeURIComponent(slugKey)}`;
+                            linkEl.href = `https://www.trustroots.org/circles/${encodeURIComponent(slugKey)}`;
                             linkEl.style.display = 'inline';
                         } else {
                             linkEl.removeAttribute('href');
@@ -2450,7 +2451,7 @@ import {
             if (!raw?.tags) return null;
             const circleTag = raw.tags.find(t => Array.isArray(t) && t.length >= 3 && (t[0] === 'l' || t[0] === 'L') && t[2] === TRUSTROOTS_CIRCLE_LABEL);
             const circleSlug = (circleTag?.[1] || '').trim();
-            if (/^[a-zA-Z0-9_-]+$/.test(circleSlug)) return circleSlug;
+            if (/^[a-zA-Z0-9_-]+$/.test(circleSlug)) return normalizeChannelSlug(circleSlug);
 
             const circleHashtagTag = raw.tags.find(t =>
                 Array.isArray(t) &&

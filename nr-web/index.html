@@ -251,10 +251,9 @@
         .nr-profile-scroll {
             flex: 1;
             overflow: auto;
-            padding: 1rem 1rem 2rem;
-            max-width: 40rem;
-            margin: 0 auto;
+            padding: 0;
             width: 100%;
+            background: hsl(42, 22%, 97%);
         }
         
         /* Bottom mycelium strip (notes.trustroots.org style) */
@@ -2337,6 +2336,9 @@
         const NR_MAP_CACHE_DB_VERSION = 1;
         const NR_MAP_CACHE_STORE = 'map_cache';
         const NR_MAP_CACHE_RECORD_KEY = 'events_v1';
+        const NR_MAP_CACHE_PROFILES_RECORD_KEY = 'profiles_v1';
+        /** Max pubkey→username pairs persisted (map insertion order, newest wins when trimming). */
+        const PROFILE_USERNAME_CACHE_MAX_ENTRIES = 2500;
         const EXPIRATION_SETTING_KEY = 'nostroots_expiration_seconds';
         let cachedFilteredEvents = null;
         let filteredEventsCacheKey = null;
@@ -3464,7 +3466,10 @@
         
         // Load cached events on initialization
         async function loadCachedEvents() {
-            const cachedEvents = await loadEventsFromCache();
+            const [cachedEvents] = await Promise.all([
+                loadEventsFromCache(),
+                loadProfilesFromCache()
+            ]);
             if (cachedEvents && cachedEvents.length > 0) {
                 events = cachedEvents;
                 cachedFilteredEvents = null; // Invalidate filtered events cache
@@ -3999,13 +4004,72 @@
             return null;
         }
 
-        // Debounced IndexedDB write after last map event change
+        async function loadProfilesFromCache() {
+            try {
+                if (typeof indexedDB === 'undefined') return;
+                const db = await openNrMapCacheDB();
+                const row = await new Promise((resolve, reject) => {
+                    const tx = db.transaction(NR_MAP_CACHE_STORE, 'readonly');
+                    tx.onerror = () => reject(tx.error);
+                    const store = tx.objectStore(NR_MAP_CACHE_STORE);
+                    const req = store.get(NR_MAP_CACHE_PROFILES_RECORD_KEY);
+                    req.onerror = () => reject(req.error);
+                    req.onsuccess = () => resolve(req.result);
+                });
+                if (!row || !Array.isArray(row.entries)) return;
+                const age = Date.now() - (row.timestamp || 0);
+                if (age > CACHE_MAX_AGE) return;
+                for (const pair of row.entries) {
+                    if (!Array.isArray(pair) || pair.length < 2) continue;
+                    const pk = pair[0];
+                    const name = pair[1];
+                    if (typeof pk !== 'string' || typeof name !== 'string' || !name) continue;
+                    if (NrBlocklist && NrBlocklist.isBlocked && NrBlocklist.isBlocked(pk)) continue;
+                    pubkeyToUsername.set(pk, name);
+                }
+            } catch (error) {
+                console.warn('Failed to load profiles from cache:', error);
+            }
+        }
+
+        async function saveProfilesToCache() {
+            if (typeof indexedDB === 'undefined') return;
+            let db;
+            try {
+                db = await openNrMapCacheDB();
+            } catch (e) {
+                console.warn('Map cache DB unavailable (profiles):', e);
+                return;
+            }
+            let entries = Array.from(pubkeyToUsername.entries());
+            if (NrBlocklist && NrBlocklist.isBlocked) {
+                entries = entries.filter(([pk]) => !NrBlocklist.isBlocked(pk));
+            }
+            if (entries.length > PROFILE_USERNAME_CACHE_MAX_ENTRIES) {
+                entries = entries.slice(-PROFILE_USERNAME_CACHE_MAX_ENTRIES);
+            }
+            try {
+                await idbPutEventsRecord(db, {
+                    key: NR_MAP_CACHE_PROFILES_RECORD_KEY,
+                    entries,
+                    timestamp: Date.now()
+                });
+            } catch (err) {
+                console.warn('Failed to save profiles cache:', err);
+            }
+        }
+
+        async function flushMapCacheToIndexedDB() {
+            await Promise.all([saveEventsToCache(), saveProfilesToCache()]);
+        }
+
+        // Debounced IndexedDB write after last map event / profile change
         function scheduleCacheWrite() {
             if (localStorageWriteTimeout) {
                 clearTimeout(localStorageWriteTimeout);
             }
             localStorageWriteTimeout = setTimeout(() => {
-                void saveEventsToCache().catch((e) => console.warn('saveEventsToCache:', e));
+                void flushMapCacheToIndexedDB().catch((e) => console.warn('flushMapCacheToIndexedDB:', e));
                 localStorageWriteTimeout = null;
             }, 2000);
         }
@@ -4080,6 +4144,7 @@
                 const username = getTrustrootsUsernameFromProfileEvent(event);
                 if (username) {
                     pubkeyToUsername.set(event.pubkey, username);
+                    scheduleCacheWrite();
                 }
                 return; // Don't process these as map notes
             }
@@ -4404,7 +4469,7 @@
                     console.log(`Sync complete: Removed ${removedCount} event(s) that no longer exist on relays (${initialCount} -> ${events.length})`);
                     
                     // Update cache
-                    void saveEventsToCache().catch((e) => console.warn('saveEventsToCache:', e));
+                    void flushMapCacheToIndexedDB().catch((e) => console.warn('flushMapCacheToIndexedDB:', e));
                     cachedFilteredEvents = null;
                     filteredEventsCacheKey = null;
                     
@@ -4759,7 +4824,7 @@
                 console.log(`Flushed ${removedCount} expired event(s) (${initialCount} -> ${events.length})`);
                 
                 // Update cache
-                void saveEventsToCache().catch((e) => console.warn('saveEventsToCache:', e));
+                void flushMapCacheToIndexedDB().catch((e) => console.warn('flushMapCacheToIndexedDB:', e));
                 cachedFilteredEvents = null;
                 filteredEventsCacheKey = null;
                 
@@ -6250,7 +6315,7 @@
                 events.push(deletionEventData);
                 
                 // Update cache
-                void saveEventsToCache().catch((e) => console.warn('saveEventsToCache:', e));
+                void flushMapCacheToIndexedDB().catch((e) => console.warn('flushMapCacheToIndexedDB:', e));
                 cachedFilteredEvents = null;
                 filteredEventsCacheKey = null;
                 

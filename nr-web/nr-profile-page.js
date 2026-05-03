@@ -170,6 +170,18 @@ async function resolveProfileIdToHex(profileId) {
   return parsePubkeyInput(raw);
 }
 
+/** Local Trustroots username from a profile fragment like `user@trustroots.org` (before relay fetch). */
+function trustrootsLocalFromProfileId(profileId) {
+  const s = (profileId || '').trim().toLowerCase();
+  if (!s.includes('@')) return '';
+  const at = s.lastIndexOf('@');
+  if (at <= 0) return '';
+  const local = s.slice(0, at);
+  const domain = s.slice(at + 1).replace(/^www\./, '');
+  if (domain === 'trustroots.org') return local;
+  return '';
+}
+
 function dedupeById(events) {
   const m = new Map();
   for (const ev of events || []) {
@@ -196,24 +208,61 @@ function pickLatest30390(events, subjectHex) {
   return list.reduce((a, b) => (a.created_at >= b.created_at ? a : b));
 }
 
-async function collectFromRelays(filter, timeoutMs = 2600) {
+/**
+ * REQ one relay; finish soon after EOSE (plus grace), or after a cap if the relay never EOSEs.
+ * @param {Record<string, unknown>} filter
+ * @param {{ eoseGraceMs?: number; noEoseCapMs?: number; absoluteMaxMs?: number; connectTimeoutMs?: number }} [opts]
+ */
+async function collectFromRelays(filter, opts = {}) {
+  const eoseGraceMs = opts.eoseGraceMs ?? 400;
+  const noEoseCapMs = opts.noEoseCapMs ?? 2000;
+  const absoluteMaxMs = opts.absoluteMaxMs ?? 5500;
+  const connectTimeoutMs = opts.connectTimeoutMs ?? 4500;
   const urls = relayUrls();
   const all = [];
   await Promise.all(
     urls.map(async (url) => {
+      let relay;
       try {
-        const relay = await Relay.connect(url);
-        const sub = relay.subscribe([filter], {
-          onevent: (ev) => all.push(ev),
+        relay = await Promise.race([
+          Relay.connect(url),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('connect timeout')), connectTimeoutMs)),
+        ]);
+      } catch (_) {
+        return;
+      }
+      try {
+        await new Promise((resolve) => {
+          let settled = false;
+          const settle = () => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(tNoEose);
+            clearTimeout(tAbs);
+            try {
+              sub.close();
+            } catch (_) {}
+            try {
+              relay.close();
+            } catch (_) {}
+            resolve();
+          };
+          const tNoEose = setTimeout(settle, noEoseCapMs);
+          const tAbs = setTimeout(settle, absoluteMaxMs);
+          let sub;
+          sub = relay.subscribe([filter], {
+            onevent: (ev) => all.push(ev),
+            oneose: () => {
+              clearTimeout(tNoEose);
+              setTimeout(settle, eoseGraceMs);
+            },
+          });
         });
-        await new Promise((r) => setTimeout(r, timeoutMs));
-        try {
-          sub.close();
-        } catch (_) {}
+      } catch (_) {
         try {
           relay.close();
         } catch (_) {}
-      } catch (_) {}
+      }
     })
   );
   return dedupeById(all);
@@ -276,6 +325,25 @@ function truncateBody(s, max) {
   const t = String(s || '').replace(/\s+/g, ' ').trim();
   if (t.length <= max) return t;
   return t.slice(0, max - 1) + '…';
+}
+
+function bindProfileTrTabs(shell) {
+  const tabs = shell.querySelectorAll('.nr-profile-tr-tab');
+  const panels = shell.querySelectorAll('.nr-profile-tr-panel');
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const id = tab.getAttribute('data-tab');
+      tabs.forEach((t) => {
+        const on = t.getAttribute('data-tab') === id;
+        t.classList.toggle('nr-profile-tr-tab--active', on);
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      panels.forEach((p) => {
+        const on = p.getAttribute('data-panel') === id;
+        p.toggleAttribute('hidden', !on);
+      });
+    });
+  });
 }
 
 function chatHashForSubject(hex, nip05Lower, trUsername) {
@@ -392,11 +460,15 @@ export async function renderPublicProfile(profileId) {
   })();
 
   try {
-    const [evAuthors, evP30390, evPClaims, evNotes] = await Promise.all([
+    const earlyTrUser = trustrootsLocalFromProfileId(profileId);
+    const avatarFromApiP = earlyTrUser ? tryTrustrootsApiAvatar(earlyTrUser) : Promise.resolve('');
+
+    const [evAuthors, evP30390, evPClaims, evNotes, avatarFromApi] = await Promise.all([
       collectFromRelays({ kinds: [0, TRUSTROOTS_PROFILE_KIND], authors: [hex], limit: 30 }),
       collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 20 }),
       collectFromRelays({ kinds: [RELATIONSHIP_CLAIM_KIND, EXPERIENCE_CLAIM_KIND], '#p': [hex], limit: 60 }),
       collectFromRelays({ kinds: MAP_NOTE_KINDS, authors: [hex], limit: 40 }),
+      avatarFromApiP,
     ]);
 
     const mergedEvents = dedupeById([...evAuthors, ...evP30390]);
@@ -411,8 +483,14 @@ export async function renderPublicProfile(profileId) {
       getTrustrootsUsernameFromKind0(ev0 || {});
 
     let picture = meta.picture;
-    if (!picture && trUser) {
-      picture = await tryTrustrootsApiAvatar(trUser);
+    if (!picture) {
+      if (trUser && trUser === earlyTrUser && avatarFromApi) {
+        picture = avatarFromApi;
+      } else if (trUser) {
+        picture = await tryTrustrootsApiAvatar(trUser);
+      } else if (avatarFromApi) {
+        picture = avatarFromApi;
+      }
     }
 
     const nip05Resolved = meta.nip05 || (trUser ? `${trUser}@trustroots.org` : '');
@@ -567,6 +645,14 @@ export async function renderPublicProfile(profileId) {
     card.appendChild(expBox);
 
     root.appendChild(card);
+
+    if (isSelfHex(hex)) {
+      try {
+        window.NrWebMountClaimTrustrootsSection?.();
+      } catch (e) {
+        console.warn('[nr-profile] mount claims on own public profile', e);
+      }
+    }
 
     card.querySelector('.nr-profile-copy')?.addEventListener('click', async () => {
       const v = npub;
@@ -735,4 +821,10 @@ export async function renderProfileEdit(profileId) {
 
   card.appendChild(form);
   root.appendChild(card);
+
+  try {
+    window.NrWebMountClaimTrustrootsSection?.();
+  } catch (e) {
+    console.warn('[nr-profile] mount claims on profile edit', e);
+  }
 }

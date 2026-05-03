@@ -279,13 +279,12 @@ func fetchPublicCircleSlugs(ctx context.Context, db *mongo.Database, memberships
 		if err != nil {
 			return nil, err
 		}
-		circle := tribe.Slug
+		// Use tribe slug only so map notes match kind 30410 `d` tags (slug-based directory).
+		circle := strings.TrimSpace(tribe.Slug)
 		if circle == "" {
-			circle = tribe.Label
+			continue
 		}
-		if circle != "" {
-			circles = append(circles, circle)
-		}
+		circles = append(circles, strings.ToLower(circle))
 	}
 	return circles, nil
 }

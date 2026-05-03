@@ -50,18 +50,19 @@ func eventForHost(record HostRecord, privateKey string) (nostr.Event, error) {
 
 	if len(record.Circles) > 0 {
 		tags = append(tags, nostr.Tag{"L", "trustroots-circle"})
-		seenCircleHashtags := map[string]struct{}{}
+		seenCircleSlugs := map[string]struct{}{}
 		for _, circle := range record.Circles {
-			tags = append(tags, nostr.Tag{"l", circle, "trustroots-circle"})
-			hashtag := strings.ToLower(strings.TrimSpace(circle))
-			if hashtag == "" {
+			slug := strings.ToLower(strings.TrimSpace(circle))
+			if slug == "" {
 				continue
 			}
-			if _, exists := seenCircleHashtags[hashtag]; exists {
+			if _, exists := seenCircleSlugs[slug]; exists {
 				continue
 			}
-			seenCircleHashtags[hashtag] = struct{}{}
-			tags = append(tags, nostr.Tag{"t", hashtag})
+			seenCircleSlugs[slug] = struct{}{}
+			// Lowercase to match kind 30410 `d` tag and NIP-32 label value.
+			tags = append(tags, nostr.Tag{"l", slug, "trustroots-circle"})
+			tags = append(tags, nostr.Tag{"t", slug})
 		}
 	}
 

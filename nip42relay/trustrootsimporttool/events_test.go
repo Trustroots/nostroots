@@ -102,6 +102,54 @@ func TestEventForHost(t *testing.T) {
 	}
 }
 
+func TestEventForHostCircleTagsLowercaseAndDeduped(t *testing.T) {
+	offerID := primitive.NewObjectID()
+	userID := primitive.NewObjectID()
+	created := time.Unix(1700000000, 0)
+	updated := time.Unix(1700000100, 0)
+	event, err := eventForHost(HostRecord{
+		Offer: Offer{
+			ID:            offerID,
+			Type:          "host",
+			Status:        "yes",
+			MaxGuests:     1,
+			Description:   "Hi",
+			LocationFuzzy: []float64{52.5, 13.4},
+			CreatedAt:     created,
+			Updated:       updated,
+			UserID:        userID,
+		},
+		User: User{
+			ID:        userID,
+			Username:  "bob",
+			NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+			Public:    true,
+		},
+		Circles: []string{"Musicians", "musicians", " MUSICIANS "},
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var circleLTags, circleTTags int
+	for _, tag := range event.Tags {
+		if len(tag) >= 3 && tag[0] == "l" && tag[2] == trustrootsCircleLabelNamespace {
+			circleLTags++
+			if tag[1] != "musicians" {
+				t.Fatalf("circle l value = %q want musicians", tag[1])
+			}
+		}
+		if len(tag) >= 2 && tag[0] == "t" && tag[1] == "musicians" {
+			circleTTags++
+		}
+	}
+	if circleLTags != 1 {
+		t.Fatalf("want 1 trustroots-circle l tag, got %d tags=%#v", circleLTags, event.Tags)
+	}
+	if circleTTags != 1 {
+		t.Fatalf("want 1 musicians t tag, got %d", circleTTags)
+	}
+}
+
 func TestEventForCircleMetadata(t *testing.T) {
 	event, err := eventForCircleMetadata(Tribe{
 		ID:          primitive.NewObjectID(),

@@ -70,6 +70,37 @@ func TestProfileClaimPictureURL_gravatar(t *testing.T) {
 	}
 }
 
+func TestEventForProfileClaim_usesTrustrootsLocalUploadPicture(t *testing.T) {
+	oid := primitive.NewObjectID()
+	updated := time.Date(2024, 3, 1, 12, 0, 0, 0, time.UTC)
+	user := User{
+		ID:             oid,
+		Username:       "Nostroots",
+		NostrNpub:      "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+		AvatarSource:   "local",
+		AvatarUploaded: true,
+		Updated:        updated,
+	}
+	event, err := eventForProfileClaim(user, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var meta map[string]string
+	if err := json.Unmarshal([]byte(event.Content), &meta); err != nil {
+		t.Fatal(err)
+	}
+	wantPic := fmt.Sprintf("https://www.trustroots.org/uploads-profile/%s/avatar/256.jpg?%d", oid.Hex(), updated.UnixMilli())
+	if meta["picture"] != wantPic {
+		t.Fatalf("picture = %q want %q", meta["picture"], wantPic)
+	}
+	if tag := event.Tags.GetFirst([]string{"source", "trustroots-import"}); tag == nil {
+		t.Fatalf("missing source tag: %#v", event.Tags)
+	}
+	if tag := event.Tags.GetFirst([]string{"l", "nostroots", TrustrootsUsernameLabelNamespace}); tag == nil {
+		t.Fatalf("missing username label tag: %#v", event.Tags)
+	}
+}
+
 
 func countPTags(tags nostr.Tags) int {
 	n := 0

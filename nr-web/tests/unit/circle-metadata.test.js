@@ -64,4 +64,20 @@ describe('circle-metadata', () => {
         expect(mergeCircleMetadataMapEntry(map, oldEv, { expectedPubkey: importPk })).toBe(false);
         expect(map.get('hitch').name).toBe('New');
     });
+
+    it('keeps trustroots uploads-circle picture for hitchhikers', () => {
+        const map = new Map();
+        const pic = 'https://www.trustroots.org/uploads-circle/hitchhikers/1400x900.webp';
+        const ev = {
+            kind: TRUSTROOTS_CIRCLE_META_KIND,
+            pubkey: importPk,
+            created_at: 30,
+            id: 'h1',
+            tags: [['d', 'HitchHikers']],
+            content: JSON.stringify({ name: 'Hitchhikers', about: 'Road travel', picture: pic })
+        };
+        expect(mergeCircleMetadataMapEntry(map, ev, { expectedPubkey: importPk })).toBe(true);
+        expect(map.get('hitchhikers').picture).toBe(pic);
+        expect(isSafeHttpUrl(map.get('hitchhikers').picture)).toBe(true);
+    });
 });

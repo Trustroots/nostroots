@@ -3,6 +3,10 @@
 
 specific nr-web Events documentation:
 
+## Map-note trust model (`30397` / `30398`)
+
+For Trustroots map-note validation context in `nr-web` (including the `30397 -> nr-server -> 30398` path and the NIP-42 auth-relay `30397` path), see [`TRUSTROOTS_MAP_NOTES.md`](TRUSTROOTS_MAP_NOTES.md).
+
 ## Kind 30410 — Trustroots circle metadata (directory)
 
 Signed by the **same** key as the Trustroots Mongo JSONL export (`trustrootsimporttool` `-nsec`). Clients trust only this author’s pubkey (hardcoded in nr-web next to relay docs).

@@ -58,6 +58,10 @@ Use [`STYLE_GUIDE.md`](STYLE_GUIDE.md) for `nr-web` copy tone and lightweight vi
 
 See [`RELAY_SCOPE_UI.md`](RELAY_SCOPE_UI.md) for how `relayScope` is set on map notes and chat, why subscription-only events often have no 🌍/🔐 pill, and safe options if we extend this later.
 
+### Trustroots validation and relays
+
+See [`docs/TRUSTROOTS_MAP_NOTES.md`](docs/TRUSTROOTS_MAP_NOTES.md) for the dual map-note trust model in this repo: `30397 -> nr-server -> 30398` and the nr-web auth-relay path (`wss://nip42.trustroots.org` + NIP-42) where `30397` is treated as Trustroots-scoped in product behavior.
+
 ### Testing
 
 The repo still iterates quickly on `nr-web`: tests exist to guard important behavior, not to drive every small UI change. Prefer meaningful coverage over a large suite; run the stack when you are changing critical paths or preparing to merge.
@@ -74,6 +78,20 @@ make test-e2e-fast # E2E Chromium only
 ```
 
 **NIP-42 (`wss://nip42.trustroots.org`):** Automated tests mostly use public relays. For AUTH challenge/response behavior, use the manual client in [`test.html`](test.html). NIP-42 read/publish paths are not fully covered in CI.
+
+### Manual image verification (imported Trustroots data)
+
+When validating importer output and route rendering together:
+
+1. Open [`test.html`](test.html) and run **Image tests** for expected Trustroots URLs.
+2. Open profile route:
+   - `#profile/nostroots%40trustroots.org`
+   - confirm the avatar is loaded from `uploads-profile` (or expected fallback).
+3. Open circle route:
+   - `#hitchhikers`
+   - confirm circle metadata image (from importer `30410` `content.picture`) is visible where circle image chrome is shown (chat/sidebar/thread header).
+
+If image tests pass in `test.html` but a route does not show the image, check importer event shape first (`30390`/`30410`) and then client metadata wiring (`nr-profile-page.js`, `chat-app.js`, `circle-metadata.js`).
 
 ### Real Apple iOS Simulator (Xcode) automation
 

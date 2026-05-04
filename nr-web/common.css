@@ -641,7 +641,7 @@ h1, h2, .modal-header h2 {
     right: 0;
     height: 140px;
     pointer-events: none;
-    z-index: 5;
+    z-index: 0;
     display: flex;
     align-items: flex-end;
     justify-content: center;
@@ -990,6 +990,8 @@ h1, h2, .modal-header h2 {
     border-radius: 4px;
     padding: 1rem 1.1rem 1.15rem;
     margin-bottom: 1rem;
+    position: relative;
+    z-index: 1;
 }
 .nr-profile-tr-box-title {
     display: flex;
@@ -1025,6 +1027,8 @@ h1, h2, .modal-header h2 {
     border: 1px solid var(--tr-card-edge);
     border-radius: 4px;
     padding: 0.85rem 1rem 1rem;
+    position: relative;
+    z-index: 1;
 }
 .nr-profile-tr-rail-head {
     display: flex;

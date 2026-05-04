@@ -249,6 +249,8 @@
             padding: 0;
             width: 100%;
             background: hsl(42, 22%, 97%);
+            position: relative;
+            z-index: 1;
         }
         
         /* Bottom mycelium strip (notes.trustroots.org style) */
@@ -259,7 +261,7 @@
             right: 0;
             height: 140px;
             pointer-events: none;
-            z-index: 5;
+            z-index: 0;
             display: flex;
             align-items: flex-end;
             justify-content: center;
@@ -2081,6 +2083,7 @@
                 title: 'Trustroots',
                 filter: { kinds: MAP_NOTE_KINDS },
                 kind: MAP_NOTE_KIND,
+                // Reserved for future filtering/display context; getLayerForEvent currently keys on filter.kinds/authors.
                 pubkey: NOSTROOTS_VALIDATION_PUBKEY,
                 markerColor: 'green',
                 rectangleColor: 'grey'
@@ -3536,7 +3539,8 @@
         
         // Browser notifications (only work while this tab is open).
         // Nostr: we use the same map-note stream as the map (kind 30397). Subscribed plus codes
-        // are stored in IndexedDB (see nr-web-kv-idb.js). When a new 30397 event arrives and its plus code
+        // are stored in IndexedDB (see nr-web-kv-idb.js). This ingest includes NIP-42 auth-relay 30397 reads
+        // and public-relay 30397/30398 reads. When a new 30397 event arrives and its plus code
         // matches a subscribed area, we show a browser Notification. No kind 10395, no server.
         // nr-app differs: it publishes kind 10395 (encrypted for the notification server) with
         // push tokens + Nostr filters; the server subscribes to kind 30398 (reposts) per filter
@@ -6291,9 +6295,10 @@
                 return !isExpired && !isDeleted;
             });
             
-            // De-duplicate near-identical notes for display. Relays can return both
-            // original map notes (30397) and validation reposts (30398) for the same
-            // user-visible note. Prefer entries with a Trustroots username and reposts.
+            // De-duplicate near-identical notes for display. Relays can return auth-relay
+            // map notes (30397) and validation reposts (30398) for the same user-visible
+            // note, or only auth-relay 30397 when no sibling repost is present. Prefer
+            // entries with a Trustroots username and reposts when both exist.
             const repostTargets = new Set();
             nonExpiredEvents.forEach(event => {
                 if (event.kind !== MAP_NOTE_REPOST_KIND || !Array.isArray(event.tags)) return;

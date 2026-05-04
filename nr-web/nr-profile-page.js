@@ -367,7 +367,7 @@ async function collectFromRelays(filter, opts = {}) {
 
 /**
  * Circle slugs from Trustroots Mongo import kind 30398 host mirrors that tag this pubkey (`p`).
- * Only events authored by {@link circleImportToolPubkeyHex} count: nr-server validation 30398 reposts
+ * Only events authored by {@link circleImportToolPubkeyHex} count: other 30398 reposts may
  * copy map-note tags and would otherwise surface chat circle slugs (e.g. `nostroots`) as tribes.
  * @param {unknown[]} events
  * @param {string} subjectHex

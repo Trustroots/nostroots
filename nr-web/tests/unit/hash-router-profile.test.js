@@ -38,6 +38,13 @@ describe('NrWebHashRouter profile routes', () => {
     });
   });
 
+  it('classifies encoded nostroots trustroots profile route', () => {
+    expect(classify('profile/nostroots%40trustroots.org')).toEqual({
+      kind: 'profile',
+      profileId: 'nostroots@trustroots.org',
+    });
+  });
+
   it('classifies profile npub with /edit and /contacts (case-insensitive)', () => {
     const npub = 'npub10xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqpkge6d';
     expect(classify(`profile/${npub}/edit`)).toEqual({ kind: 'profile_edit', profileId: npub });

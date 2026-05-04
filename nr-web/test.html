@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>NIP-42/NIP-5 Relay Test</title>
+    <title>Nostroots Tests</title>
     <style>
       :root {
         color-scheme: dark;
@@ -22,6 +22,27 @@
       h1 {
         margin: 0 0 10px;
         font-size: 1.15rem;
+      }
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .tab-btn {
+        width: auto;
+        padding: 7px 12px;
+        border-radius: 999px;
+        border: 1px solid #4b5563;
+        background: #111827;
+        color: #e5e7eb;
+        font-weight: 600;
+      }
+      .tab-btn.active {
+        background: #2563eb;
+        border-color: #2563eb;
+      }
+      .tab-panel[hidden] {
+        display: none !important;
       }
       .layout {
         display: grid;
@@ -162,6 +183,25 @@
         overflow-wrap: anywhere;
         word-break: break-word;
       }
+      .image-tests {
+        display: grid;
+        gap: 10px;
+      }
+      .image-url-input {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .image-preview {
+        max-width: min(100%, 700px);
+        max-height: 340px;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        background: #0b1220;
+        object-fit: contain;
+      }
+      .image-test-row {
+        display: grid;
+        gap: 8px;
+      }
       @media (min-width: 900px) {
         .layout {
           grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1.25fr);
@@ -176,8 +216,14 @@
   </head>
   <body>
     <div class="wrap">
-      <h1>NIP-42 / NIP-5 Relay Test</h1>
-      <div class="layout">
+      <h1>Nostroots Tests</h1>
+      <div class="tabs">
+        <button id="relayTabBtn" class="tab-btn active" type="button">Relay tests</button>
+        <button id="imageTabBtn" class="tab-btn" type="button">Image tests</button>
+      </div>
+
+      <section id="relayTabPanel" class="tab-panel">
+        <div class="layout">
         <div class="controls">
           <section class="card">
             <div>
@@ -222,7 +268,50 @@
           <div style="margin-bottom: 6px;"><strong>Notes</strong></div>
           <div id="notes" class="notes"></div>
         </section>
-      </div>
+        </div>
+      </section>
+
+      <section id="imageTabPanel" class="tab-panel" hidden>
+        <div class="image-tests">
+          <section class="card status-card">
+            <div><strong>Image test status</strong></div>
+            <div id="imageStatus" class="status">Idle.</div>
+          </section>
+
+          <section class="card image-test-row">
+            <label for="imageUrl1">Image URL 1</label>
+            <input
+              id="imageUrl1"
+              class="image-url-input"
+              value="https://www.trustroots.org/uploads-circle/hitchhikers/1400x900.webp"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="testImageBtn1" type="button">Test image 1</button>
+            <div id="imageResult1" class="status">Not tested yet.</div>
+            <img id="imagePreview1" class="image-preview" alt="Image test preview 1" hidden />
+          </section>
+
+          <section class="card image-test-row">
+            <label for="imageUrl2">Image URL 2</label>
+            <input
+              id="imageUrl2"
+              class="image-url-input"
+              value="https://www.trustroots.org/uploads-profile/6656f7f1874d670038f5aa94/avatar/256.jpg"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="testImageBtn2" type="button">Test image 2</button>
+            <div id="imageResult2" class="status">Not tested yet.</div>
+            <img id="imagePreview2" class="image-preview" alt="Image test preview 2" hidden />
+          </section>
+
+          <section class="card row two">
+            <button id="testAllImagesBtn" type="button">Test both images</button>
+            <button id="clearImageResultsBtn" type="button" class="secondary">Clear image results</button>
+          </section>
+        </div>
+      </section>
     </div>
 
     <script type="module">
@@ -239,6 +328,21 @@
       const kindsAllBtn = document.getElementById("kindsAllBtn");
       const kindsNoneBtn = document.getElementById("kindsNoneBtn");
       const kindFilterListEl = document.getElementById("kindFilterList");
+      const relayTabBtn = document.getElementById("relayTabBtn");
+      const imageTabBtn = document.getElementById("imageTabBtn");
+      const relayTabPanel = document.getElementById("relayTabPanel");
+      const imageTabPanel = document.getElementById("imageTabPanel");
+      const imageStatusEl = document.getElementById("imageStatus");
+      const imageUrl1Input = document.getElementById("imageUrl1");
+      const imageUrl2Input = document.getElementById("imageUrl2");
+      const testImageBtn1 = document.getElementById("testImageBtn1");
+      const testImageBtn2 = document.getElementById("testImageBtn2");
+      const testAllImagesBtn = document.getElementById("testAllImagesBtn");
+      const clearImageResultsBtn = document.getElementById("clearImageResultsBtn");
+      const imageResult1El = document.getElementById("imageResult1");
+      const imageResult2El = document.getElementById("imageResult2");
+      const imagePreview1El = document.getElementById("imagePreview1");
+      const imagePreview2El = document.getElementById("imagePreview2");
 
       let ws = null;
       let subId = null;
@@ -254,6 +358,81 @@
       const relayUrlStorageKey = "nip42test.relayUrl";
       const STATUS_MAX_LINES = 20;
       const RAW_MAX_LINES = 120;
+      const imageUrlStorageKey1 = "trustroots.imageTestUrl1";
+      const imageUrlStorageKey2 = "trustroots.imageTestUrl2";
+
+      function showTab(tabName) {
+        const isRelay = tabName === "relay";
+        relayTabPanel.hidden = !isRelay;
+        imageTabPanel.hidden = isRelay;
+        relayTabBtn.classList.toggle("active", isRelay);
+        imageTabBtn.classList.toggle("active", !isRelay);
+      }
+
+      function setImageStatus(message) {
+        imageStatusEl.textContent = message;
+      }
+
+      function formatImageResult(ok, details) {
+        return ok ? `PASS: ${details}` : `FAIL: ${details}`;
+      }
+
+      function testImage(url, previewEl, resultEl) {
+        return new Promise((resolve) => {
+          const value = String(url || "").trim();
+          if (!value) {
+            previewEl.hidden = true;
+            previewEl.removeAttribute("src");
+            const msg = "URL is empty.";
+            resultEl.textContent = formatImageResult(false, msg);
+            resolve({ ok: false, message: msg });
+            return;
+          }
+
+          const startedAt = performance.now();
+          const tester = new Image();
+          const bust = value.includes("?") ? "&" : "?";
+          tester.src = `${value}${bust}_ts=${Date.now()}`;
+
+          tester.onload = () => {
+            const elapsedMs = Math.round(performance.now() - startedAt);
+            previewEl.src = value;
+            previewEl.hidden = false;
+            const msg = `Loaded in ${elapsedMs} ms (${tester.naturalWidth}x${tester.naturalHeight})`;
+            resultEl.textContent = formatImageResult(true, msg);
+            resolve({ ok: true, message: msg });
+          };
+
+          tester.onerror = () => {
+            previewEl.hidden = true;
+            previewEl.removeAttribute("src");
+            const msg = "Image failed to load (network/auth/hotlink/CORS policy may block it).";
+            resultEl.textContent = formatImageResult(false, msg);
+            resolve({ ok: false, message: msg });
+          };
+        });
+      }
+
+      async function runImageTests() {
+        const originLabel = window.location.origin || "file://";
+        setImageStatus(`Testing from ${originLabel} ...`);
+        const [r1, r2] = await Promise.all([
+          testImage(imageUrl1Input.value, imagePreview1El, imageResult1El),
+          testImage(imageUrl2Input.value, imagePreview2El, imageResult2El)
+        ]);
+        const passed = [r1, r2].filter((item) => item.ok).length;
+        setImageStatus(`Done from ${originLabel}: ${passed}/2 passed.`);
+      }
+
+      function clearImageResults() {
+        imageResult1El.textContent = "Not tested yet.";
+        imageResult2El.textContent = "Not tested yet.";
+        imagePreview1El.hidden = true;
+        imagePreview2El.hidden = true;
+        imagePreview1El.removeAttribute("src");
+        imagePreview2El.removeAttribute("src");
+        setImageStatus("Idle.");
+      }
 
       function setStatus(message) {
         statusLines = [message];
@@ -483,6 +662,14 @@
         localStorage.setItem(relayUrlStorageKey, relayUrlInput.value);
       });
 
+      imageUrl1Input.addEventListener("input", () => {
+        localStorage.setItem(imageUrlStorageKey1, imageUrl1Input.value);
+      });
+
+      imageUrl2Input.addEventListener("input", () => {
+        localStorage.setItem(imageUrlStorageKey2, imageUrl2Input.value);
+      });
+
       window.addEventListener("load", () => {
         const savedRelayUrl = localStorage.getItem(relayUrlStorageKey);
         if (savedRelayUrl) {
@@ -506,8 +693,29 @@
             connectBtn.click();
           }, 50);
         }
+        const savedImageUrl1 = localStorage.getItem(imageUrlStorageKey1);
+        if (savedImageUrl1) imageUrl1Input.value = savedImageUrl1;
+        const savedImageUrl2 = localStorage.getItem(imageUrlStorageKey2);
+        if (savedImageUrl2) imageUrl2Input.value = savedImageUrl2;
         nsecInput.focus();
       });
+
+      relayTabBtn.addEventListener("click", () => showTab("relay"));
+      imageTabBtn.addEventListener("click", () => showTab("image"));
+      testImageBtn1.addEventListener("click", async () => {
+        const originLabel = window.location.origin || "file://";
+        setImageStatus(`Testing image 1 from ${originLabel} ...`);
+        const result = await testImage(imageUrl1Input.value, imagePreview1El, imageResult1El);
+        setImageStatus(`Image 1 ${result.ok ? "passed" : "failed"} from ${originLabel}.`);
+      });
+      testImageBtn2.addEventListener("click", async () => {
+        const originLabel = window.location.origin || "file://";
+        setImageStatus(`Testing image 2 from ${originLabel} ...`);
+        const result = await testImage(imageUrl2Input.value, imagePreview2El, imageResult2El);
+        setImageStatus(`Image 2 ${result.ok ? "passed" : "failed"} from ${originLabel}.`);
+      });
+      testAllImagesBtn.addEventListener("click", runImageTests);
+      clearImageResultsBtn.addEventListener("click", clearImageResults);
 
       connectBtn.addEventListener("click", async () => {
         notesEl.innerHTML = "";

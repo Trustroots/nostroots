@@ -56,6 +56,32 @@ experiences (so a small host limit no longer starves relationship/experience exp
 The JSONL file can be copied to the strfry host and imported with the operator’s
 normal strfry import workflow.
 
+## Export invariants for image + route consumption
+
+Use these checks to verify that import output matches `nr-web` rendering expectations.
+
+- `30390` profile claim:
+  - content `picture` follows Trustroots profile image rules:
+    - explicit `avatar` URL when present
+    - local upload fallback: `https://www.trustroots.org/uploads-profile/<userId>/avatar/256.jpg[?<updatedMs>]`
+    - gravatar fallback: `https://www.gravatar.com/avatar/<emailHash>?s=256&d=identicon`
+  - tags include:
+    - `d=trustroots:profile:<username-lower>`
+    - `l=<username-lower>` under `org.trustroots:username`
+    - `source=trustroots-import`
+- `30398` host mirror:
+  - includes a real hex `p` tag from user `npub`
+  - includes plus-code labels (`L/l`) and prefix labels for map routing
+  - includes circle tags for every public membership slug:
+    - `l=<slug-lower>` under `trustroots-circle`
+    - `t=<slug-lower>`
+- `30410` circle metadata:
+  - `d=<slug-lower>` (lowercased + trimmed)
+  - content has `name`, `about`, and optional `picture`
+  - `picture` is emitted only when tribe image exists:
+    - `https://www.trustroots.org/uploads-circle/<slug-lower>/742x496.jpg`
+  - includes `source=trustroots-import`
+
 ## Smoke test
 
 ```sh
@@ -63,3 +89,22 @@ go test ./trustrootsimporttool
 LIMIT=5 go run ./trustrootsimporttool -nsec "$NSEC"
 head -n 5 trustroots-hosts.jsonl
 ```
+
+## Manual verification with nr-web routes
+
+After import, verify route-level behavior in `nr-web`:
+
+1. Generate sample JSONL:
+   ```sh
+   cd nip42relay
+   LIMIT=20 go run ./trustrootsimporttool -nsec "$NSEC" -output trustroots-hosts.jsonl
+   ```
+2. Inspect JSONL lines quickly:
+   - `30390` should include `uploads-profile/.../avatar/256.jpg` where expected
+   - `30410` should include circle `picture` for circles with images
+   - `30398` should include `trustroots-circle` + `t` tags for the same slugs
+3. Import JSONL into your local strfry / nip42 setup.
+4. Open `nr-web/test.html` and run **Image tests** for known profile/circle URLs.
+5. Open `nr-web/index.html` and verify:
+   - `#profile/nostroots%40trustroots.org` shows expected profile avatar
+   - `#hitchhikers` surfaces the circle image in chat/circle UI when metadata is present

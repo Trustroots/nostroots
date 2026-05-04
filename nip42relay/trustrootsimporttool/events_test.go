@@ -73,6 +73,9 @@ func TestEventForHost(t *testing.T) {
 	if tag := event.Tags.GetFirst([]string{"t", "hitchhikers"}); tag == nil {
 		t.Fatalf("missing t circle tag: %#v", event.Tags)
 	}
+	if tag := event.Tags.GetFirst([]string{"l", "hitchhikers", trustrootsCircleLabelNamespace}); tag == nil {
+		t.Fatalf("missing trustroots-circle l tag: %#v", event.Tags)
+	}
 	expectedPubKey, ok := decodeNpubToHex("npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj")
 	if !ok {
 		t.Fatal("failed to decode expected test npub")
@@ -154,7 +157,7 @@ func TestEventForCircleMetadata(t *testing.T) {
 	event, err := eventForCircleMetadata(Tribe{
 		ID:          primitive.NewObjectID(),
 		Label:       "Hitchhikers",
-		Slug:        "hitch",
+		Slug:        " Hitch ",
 		Public:      true,
 		Description: "Get lifts and share the road.",
 		Image:       true,
@@ -170,6 +173,9 @@ func TestEventForCircleMetadata(t *testing.T) {
 	}
 	if tag := event.Tags.GetFirst([]string{"l", "hitch", trustrootsCircleLabelNamespace}); tag == nil {
 		t.Fatalf("missing circle l tag: %#v", event.Tags)
+	}
+	if tag := event.Tags.GetFirst([]string{"source", "trustroots-import"}); tag == nil {
+		t.Fatalf("missing source tag: %#v", event.Tags)
 	}
 	var payload map[string]string
 	if err := json.Unmarshal([]byte(event.Content), &payload); err != nil {

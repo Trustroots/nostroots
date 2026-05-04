@@ -6,28 +6,6 @@
     min-height: 0;
 }
 
-/* Bottom mycelium strip (notes.trustroots.org style) */
-.mycelium-bottom {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 140px;
-    pointer-events: none;
-    z-index: 0;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-}
-.mycelium-bottom img {
-    width: 100%;
-    min-width: 600px;
-    height: 100%;
-    object-fit: cover;
-    object-position: center bottom;
-    opacity: 0.22;
-}
-
 /* Mobile-first responsive adjustments */
 @media (max-width: 768px) {
     .app-header {
@@ -41,12 +19,6 @@
     }
     .app-header-logo {
         height: 28px;
-    }
-    .mycelium-bottom {
-        height: 100px;
-    }
-    .mycelium-bottom img {
-        min-width: 100%;
     }
     .layer-controls {
         max-width: calc(100vw - 20px);

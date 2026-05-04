@@ -135,24 +135,6 @@ h1, h2, .modal-header h2 {
     z-index: 1500;
 }
 
-.app-header .vines {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: none;
-    /* Clip decoration to the header bar (header uses overflow:visible for dropdowns). */
-    overflow: hidden;
-}
-
-.app-header .vines img {
-    width: 100%;
-    min-height: 100%;
-    object-fit: cover;
-    opacity: 0.15;
-}
-
 .app-header-inner {
     display: flex;
     flex-direction: row;
@@ -634,28 +616,6 @@ h1, h2, .modal-header h2 {
 .btn-danger { background: var(--destructive); color: #fff; }
 .btn-danger:hover { filter: brightness(1.1); }
 
-.mycelium-bottom {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 140px;
-    pointer-events: none;
-    z-index: 0;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-}
-
-.mycelium-bottom img {
-    width: 100%;
-    min-width: 600px;
-    height: 100%;
-    object-fit: cover;
-    object-position: center bottom;
-    opacity: 0.22;
-}
-
 @media (max-width: 768px) {
     .app-header { padding: 0 0.75rem; flex-wrap: nowrap; row-gap: 0; align-items: center; }
     .app-header-inner { justify-content: flex-start; gap: 0.45rem; flex: 0 1 auto; min-width: 0; }
@@ -737,8 +697,6 @@ h1, h2, .modal-header h2 {
     .header-identity { max-width: 120px; font-size: 0.75rem; padding: 0.3rem 0.5rem; }
     .app-header-actions .keys-icon .header-identity-text { display: none; }
     .app-header-actions .keys-icon.header-identity-btn.has-identity { padding: 0; width: 44px; }
-    .mycelium-bottom { height: 100px; }
-    .mycelium-bottom img { min-width: 100%; }
 }
 @media (max-width: 480px) {
     .app-header h1 { font-size: 1.15rem; }
@@ -930,6 +888,13 @@ h1, h2, .modal-header h2 {
 .nr-profile-tr-aside {
     position: sticky;
     top: 0.5rem;
+    /* Keep left-column stats (NIP-05) below the fixed-size avatar block. */
+    margin-top: calc(200px + 0.75rem);
+}
+@media (max-width: 640px) {
+    .nr-profile-tr-aside {
+        margin-top: 0;
+    }
 }
 .nr-profile-tr-avatar-wrap {
     position: absolute;
@@ -1436,4 +1401,27 @@ body:not(.nr-web-has-key) .nr-nav-menu-profile-only {
 }
 [data-theme="dark"] .nr-note-intent-event {
     color: hsl(24, 60%, 70%);
+}
+
+.nr-profile-debug {
+    margin-top: 1rem;
+    padding: 0.6rem 0.85rem;
+    border: 1px dashed var(--border);
+    border-radius: 0.6rem;
+    background: var(--muted);
+    color: var(--foreground);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.nr-profile-debug > summary {
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+.nr-profile-debug-body {
+    margin-top: 0.5rem;
+    font-size: 0.78rem;
+    word-break: break-word;
+}
+.nr-profile-debug-body a {
+    color: var(--primary);
 }

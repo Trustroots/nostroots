@@ -150,21 +150,6 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             z-index: 1500;
         }
-        .app-header .vines {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-            overflow: hidden;
-        }
-        .app-header .vines img {
-            width: 100%;
-            min-height: 100%;
-            object-fit: cover;
-            opacity: 0.15;
-        }
         .app-header-inner {
             display: flex;
             flex-direction: row;
@@ -253,28 +238,6 @@
             z-index: 1;
         }
         
-        /* Bottom mycelium strip (notes.trustroots.org style) */
-        .mycelium-bottom {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 140px;
-            pointer-events: none;
-            z-index: 0;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-        }
-        .mycelium-bottom img {
-            width: 100%;
-            min-width: 600px;
-            height: 100%;
-            object-fit: cover;
-            object-position: center bottom;
-            opacity: 0.22;
-        }
-        
         /* Mobile-first responsive adjustments */
         @media (max-width: 768px) {
             .app-header {
@@ -288,12 +251,6 @@
             }
             .app-header-logo {
                 height: 28px;
-            }
-            .mycelium-bottom {
-                height: 100px;
-            }
-            .mycelium-bottom img {
-                min-width: 100%;
             }
             .layer-controls {
                 max-width: calc(100vw - 20px);
@@ -1468,11 +1425,6 @@
         <div id="nr-profile-root" class="nr-profile-scroll" aria-live="polite"></div>
     </div>
     
-    <!-- Bottom mycelium decoration -->
-    <div class="mycelium-bottom" aria-hidden="true">
-        <img src="https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/mycelium-roots.svg" alt="">
-    </div>
-    
     <!-- Modals -->
     <!-- Plus Code Notes Modal -->
     <div class="modal" id="pluscode-notes-modal">
@@ -1561,11 +1513,23 @@
     <script>
         // Firefox logs this deprecation for non-DOM texture uploads used by MapLibre internals.
         // Keep console noise down while preserving all other warnings/errors.
+        const normalizeConsoleArg = (arg) => {
+            if (typeof arg === 'string') return arg;
+            if (arg instanceof Error) return arg.message || String(arg);
+            if (arg && typeof arg === 'object' && typeof arg.message === 'string') return arg.message;
+            try {
+                return JSON.stringify(arg);
+            } catch {
+                return String(arg);
+            }
+        };
+
         const isDeprecatedWebGLUploadWarning = (...args) => {
-            const message = args.join(' ');
+            const message = args.map(normalizeConsoleArg).join(' ').toLowerCase();
             return (
-                (message.includes('texImage') || message.includes('texSubImage')) &&
-                (message.includes('Alpha-premult') || message.includes('y-flip'))
+                (message.includes('teximage') || message.includes('texsubimage')) &&
+                (message.includes('alpha-premult') || message.includes('y-flip')) &&
+                message.includes('non-dom')
             );
         };
 
@@ -1580,6 +1544,58 @@
             if (isDeprecatedWebGLUploadWarning(...args)) return;
             originalError.apply(console, args);
         };
+
+        // Firefox emits a deprecation warning when unpack flags are set for non-DOM uploads.
+        // Temporarily disable those flags around typed-array/null uploads to avoid the warning.
+        (() => {
+            const contexts = [window.WebGLRenderingContext, window.WebGL2RenderingContext].filter(Boolean);
+            if (contexts.length === 0) return;
+
+            const withSafeUnpackState = (gl, uploadFn) => {
+                const premult = gl.getParameter(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL);
+                const flipY = gl.getParameter(gl.UNPACK_FLIP_Y_WEBGL);
+                if (!premult && !flipY) return uploadFn();
+
+                gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+                gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+                try {
+                    return uploadFn();
+                } finally {
+                    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, premult);
+                    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, flipY);
+                }
+            };
+
+            const isNonDomTexImageUpload = (args) => {
+                if (args.length !== 9) return false;
+                const pixels = args[8];
+                return pixels == null || ArrayBuffer.isView(pixels);
+            };
+
+            contexts.forEach((Ctx) => {
+                const proto = Ctx && Ctx.prototype;
+                if (!proto) return;
+
+                const originalTexImage2D = proto.texImage2D;
+                const originalTexSubImage2D = proto.texSubImage2D;
+                if (typeof originalTexImage2D === 'function') {
+                    proto.texImage2D = function(...args) {
+                        if (!isNonDomTexImageUpload(args)) {
+                            return originalTexImage2D.apply(this, args);
+                        }
+                        return withSafeUnpackState(this, () => originalTexImage2D.apply(this, args));
+                    };
+                }
+                if (typeof originalTexSubImage2D === 'function') {
+                    proto.texSubImage2D = function(...args) {
+                        if (!isNonDomTexImageUpload(args)) {
+                            return originalTexSubImage2D.apply(this, args);
+                        }
+                        return withSafeUnpackState(this, () => originalTexSubImage2D.apply(this, args));
+                    };
+                }
+            });
+        })();
     </script>
     
     <script type="module">
@@ -5404,6 +5420,8 @@
                 map = new maplibregl.Map({
                     container: 'map',
                     style: getMapStyle(),
+                    // Avoid local CJK font probing in Firefox (can trigger blocked-font warnings).
+                    localIdeographFontFamily: false,
                     center: savedCenter,
                     zoom: savedZoom,
                     renderWorldCopies: false, // Improve performance
@@ -7568,6 +7586,12 @@
                 content: JSON.stringify(contentObj || {})
             };
             await publishSignedEventTemplate(template);
+        };
+        window.NrWebSignEventTemplate = async function (eventTemplate) {
+            return signEventTemplate(eventTemplate);
+        };
+        window.NrWebCanSignEventTemplate = function () {
+            return hasSigningCapability();
         };
         window.NrWebGetCurrentPubkeyHex = () => currentPublicKey;
         window.NrWebGoOwnProfile = function (action) {

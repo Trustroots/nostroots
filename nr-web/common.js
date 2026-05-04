@@ -1206,9 +1206,6 @@
 
         header.setAttribute('aria-label', 'Site');
         header.innerHTML =
-            '<div class="vines">' +
-            '<img src="https://raw.githubusercontent.com/Trustroots/notes.trustroots.org/main/images/vines-top.png" alt="" width="1200" height="400">' +
-            '</div>' +
             '<div class="app-header-inner">' +
             '<a class="app-header-logo-link" href="' + baseHome + '" data-nr-page-switch="1" aria-label="Nostroots home">' +
             '<img src="' + hpfx + 'logo.svg" alt="NOSTROOTS" class="app-header-logo" width="175" height="32">' +

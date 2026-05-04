@@ -2,7 +2,7 @@
  * Public profile surface for #profile/<npub|hex|nip05>
  * Fetches kind 30390 (Trustroots import), 0, 10390, map notes, 30392/30393, 30398 (#p) circle tags, 30410 circle directory.
  */
-import { Relay, nip19 } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.10.3/+esm';
+import { Relay, nip19, finalizeEvent, getPublicKey } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.10.3/+esm';
 import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.2/+esm';
 import { resolveNip05 } from './nip05-resolve.js';
 import {
@@ -181,6 +181,61 @@ function sanitizePictureUrl(url) {
   }
 }
 
+function isLikelyImageUrl(url) {
+  const u = String(url || '').trim();
+  if (!/^https?:\/\//i.test(u)) return false;
+  return /\.(?:png|jpe?g|gif|webp|avif|bmp|svg)(?:$|[?#])/i.test(u) || /\/avatar\/\d+\.(?:jpg|png|webp)/i.test(u);
+}
+
+/**
+ * Aggressively pull anything that looks like a profile picture URL out of a list of nostr events.
+ * Used as a debug/fallback when {@link mergeProfile30390AndKind0} finds nothing.
+ * @param {unknown[]} events
+ * @returns {Array<{ url: string; via: string; kind: number; created_at: number; pubkey: string; eventId?: string }>}
+ */
+function extractPictureCandidatesFromEvents(events) {
+  const out = [];
+  const seen = new Set();
+  const push = (url, via, ev) => {
+    const clean = sanitizePictureUrl(url);
+    if (!clean || seen.has(clean)) return;
+    seen.add(clean);
+    out.push({
+      url: clean,
+      via,
+      kind: ev?.kind ?? -1,
+      created_at: ev?.created_at ?? 0,
+      pubkey: String(ev?.pubkey || '').toLowerCase(),
+      eventId: ev?.id || '',
+    });
+  };
+  for (const ev of events || []) {
+    if (!ev || typeof ev !== 'object') continue;
+    const content = String(ev.content || '');
+    try {
+      const parsed = JSON.parse(content);
+      if (parsed && typeof parsed === 'object') {
+        ['picture', 'image', 'avatar', 'banner'].forEach((key) => {
+          if (typeof parsed[key] === 'string' && parsed[key]) push(parsed[key], `content.${key}`, ev);
+        });
+      }
+    } catch (_) {}
+    const text = content.match(/https?:\/\/[^\s<)"']+/gi) || [];
+    text.forEach((u) => {
+      if (isLikelyImageUrl(u)) push(u, 'content-url', ev);
+    });
+    (ev.tags || []).forEach((tag) => {
+      if (!Array.isArray(tag) || tag.length < 2) return;
+      const v = tag[1];
+      if (typeof v !== 'string') return;
+      if (tag[0] === 'r' && isLikelyImageUrl(v)) push(v, 'r-tag', ev);
+      if (tag[0] === 'image' && isLikelyImageUrl(v)) push(v, 'image-tag', ev);
+      if (tag[0] === 'picture' && isLikelyImageUrl(v)) push(v, 'picture-tag', ev);
+    });
+  }
+  return out;
+}
+
 function getTrustrootsUsernameFrom10390(event) {
   if (!event || event.kind !== TRUSTROOTS_PROFILE_KIND) return '';
   const t = (event.tags || []).find(
@@ -296,22 +351,76 @@ function pickLatest30390(events, subjectHex, trustrootsUser = '') {
   const tr = String(trustrootsUser || '').trim().toLowerCase();
   const list = (events || []).filter((e) => {
     if (e.kind !== PROFILE_CLAIM_KIND) return false;
+    if (h && String(e.pubkey || '').toLowerCase() === h) return true;
     const tags = e.tags || [];
     const ps = tags.filter((t) => t[0] === 'p' && t[1]);
     const pMatch = h ? ps.some((t) => String(t[1]).toLowerCase() === h) : false;
     if (pMatch) return true;
-    if (!tr) return false;
-    return tags.some(
-      (t) =>
-        Array.isArray(t) &&
-        t.length >= 3 &&
-        t[0] === 'l' &&
-        String(t[1] || '').trim().toLowerCase() === tr &&
-        String(t[2] || '').trim().toLowerCase() === TRUSTROOTS_USERNAME_LABEL_NAMESPACE
-    );
+    const labelMatch =
+      !!tr &&
+      tags.some(
+        (t) =>
+          Array.isArray(t) &&
+          t.length >= 3 &&
+          t[0] === 'l' &&
+          String(t[1] || '').trim().toLowerCase() === tr &&
+          String(t[2] || '').trim().toLowerCase() === TRUSTROOTS_USERNAME_LABEL_NAMESPACE
+      );
+    if (labelMatch) return true;
+    if (!tr || !e.content) return false;
+    // Fallback: some imports may omit/lose p and l tags, but keep identity in JSON content.
+    try {
+      const c = JSON.parse(String(e.content || '{}'));
+      const trUser = String(c.trustrootsUsername || c.name || '').trim().toLowerCase();
+      if (trUser && trUser === tr) return true;
+      const nip05 = String(c.nip05 || '').trim().toLowerCase();
+      if (nip05) {
+        const at = nip05.lastIndexOf('@');
+        if (at > 0) {
+          const local = nip05.slice(0, at);
+          const domain = nip05.slice(at + 1).replace(/^www\./, '');
+          if (domain === 'trustroots.org' && local === tr) return true;
+        }
+      }
+    } catch (_) {}
+    return false;
   });
   if (!list.length) return null;
-  return list.reduce((a, b) => (a.created_at >= b.created_at ? a : b));
+  const sorted = [...list].sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+  const withPicture = sorted.find((ev) => {
+    try {
+      const c = JSON.parse(String(ev?.content || '{}'));
+      return !!sanitizePictureUrl(c?.picture);
+    } catch (_) {
+      return false;
+    }
+  });
+  return withPicture || sorted[0];
+}
+
+/**
+ * @param {string} trustrootsUser
+ * @returns {Promise<unknown[]>}
+ */
+async function collectProfileClaimsForTrustrootsUser(trustrootsUser) {
+  const tr = String(trustrootsUser || '').trim().toLowerCase();
+  if (!tr) return [];
+  const baseQueries = [
+    collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], '#l': [tr], limit: 40 }),
+    collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], limit: 1200 }),
+    collectFromNip42RelayAuth({ kinds: [PROFILE_CLAIM_KIND], '#l': [tr], limit: 120 }),
+    collectFromNip42RelayAuth({ kinds: [PROFILE_CLAIM_KIND], limit: 2000 }),
+  ];
+  const importPub = circleImportToolPubkeyHex();
+  const importHex =
+    importPub && String(importPub).trim().length === 64 && /^[0-9a-fA-F]+$/.test(String(importPub).trim())
+      ? String(importPub).trim().toLowerCase()
+      : '';
+  if (importHex) {
+    baseQueries.push(collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], authors: [importHex], limit: 2000 }));
+  }
+  const chunks = await Promise.all(baseQueries);
+  return dedupeById(chunks.flat());
 }
 
 /**
@@ -375,6 +484,125 @@ async function collectFromRelays(filter, opts = {}) {
     })
   );
   return dedupeById(all);
+}
+
+/**
+ * One-shot authenticated read from NIP-42 relay when signer is available in index context.
+ * Falls back to [] when auth/signer is unavailable.
+ * @param {Record<string, unknown>} filter
+ * @param {number} [waitMs]
+ * @returns {Promise<unknown[]>}
+ */
+async function collectFromNip42RelayAuth(filter, waitMs = 3200, diagSink = null) {
+  const diag = {
+    relayAuthAvailable: false,
+    signerSource: 'none',
+    pubkeyHex: '',
+    error: '',
+    authChallenge: false,
+    authSuccess: false,
+    authFail: '',
+    eventCount: 0,
+  };
+  try {
+    const relayAuth = typeof window !== 'undefined' ? window.NrWebRelayAuth : null;
+    const signFn = typeof window !== 'undefined' ? window.NrWebSignEventTemplate : null;
+    const getPubkey = typeof window !== 'undefined' ? window.NrWebGetCurrentPubkeyHex : null;
+    const canSign = typeof window !== 'undefined' ? window.NrWebCanSignEventTemplate : null;
+    if (!relayAuth?.nip42SubscribeOnce) {
+      diag.error = 'NrWebRelayAuth.nip42SubscribeOnce missing';
+      if (diagSink) diagSink.push(diag);
+      return [];
+    }
+    diag.relayAuthAvailable = true;
+
+    let authPubkey = '';
+    /** @type {(eventTemplate: Record<string, unknown>) => Promise<unknown>} */
+    let signEventFn = null;
+    const hasWindowSigner = typeof signFn === 'function' && typeof getPubkey === 'function';
+    if (hasWindowSigner && (typeof canSign !== 'function' || canSign())) {
+      authPubkey = String(getPubkey() || '').trim().toLowerCase();
+      if (/^[0-9a-f]{64}$/.test(authPubkey)) {
+        signEventFn = async (eventTemplate) => signFn(eventTemplate);
+        diag.signerSource = 'window';
+      }
+    }
+    if (!/^[0-9a-f]{64}$/.test(authPubkey) || typeof signEventFn !== 'function') {
+      let skBytes = null;
+      const skHex = String(localStorage.getItem('nostr_private_key') || '').trim().toLowerCase();
+      if (/^[0-9a-f]{64}$/.test(skHex)) {
+        const bytes = new Uint8Array(32);
+        for (let i = 0; i < 32; i += 1) {
+          bytes[i] = parseInt(skHex.slice(i * 2, i * 2 + 2), 16);
+        }
+        skBytes = bytes;
+        diag.signerSource = 'localStorage:nostr_private_key';
+      } else {
+        const nsec = String(localStorage.getItem('nip42test.nsec') || '').trim();
+        if (nsec.toLowerCase().startsWith('nsec1')) {
+          try {
+            const decoded = nip19.decode(nsec);
+            if (decoded?.type === 'nsec' && decoded.data instanceof Uint8Array && decoded.data.length === 32) {
+              skBytes = decoded.data;
+              diag.signerSource = 'localStorage:nip42test.nsec';
+            }
+          } catch (e) {
+            diag.error = `nsec decode failed: ${e?.message || e}`;
+          }
+        }
+      }
+      if (!(skBytes instanceof Uint8Array) || skBytes.length !== 32) {
+        if (!diag.error) diag.error = 'no signer available (no nostr_private_key, no nip42test.nsec)';
+        if (diagSink) diagSink.push(diag);
+        return [];
+      }
+      authPubkey = String(getPublicKey(skBytes) || '').trim().toLowerCase();
+      if (!/^[0-9a-f]{64}$/.test(authPubkey)) {
+        diag.error = 'derived pubkey invalid';
+        if (diagSink) diagSink.push(diag);
+        return [];
+      }
+      signEventFn = async (eventTemplate) => finalizeEvent(eventTemplate, skBytes);
+    }
+    diag.pubkeyHex = authPubkey;
+
+    const relayUrl = 'wss://nip42.trustroots.org';
+    const out = [];
+    await relayAuth.nip42SubscribeOnce({
+      relayUrl,
+      filter: filter || {},
+      authPubkey,
+      signEvent: async (eventTemplate) => signEventFn(eventTemplate),
+      onEvent: (event) => {
+        if (event && typeof event === 'object') {
+          try {
+            event._nrCollectRelay = relayUrl;
+          } catch (_) {}
+          out.push(event);
+        }
+      },
+      onAuthChallenge: () => {
+        diag.authChallenge = true;
+      },
+      onAuthSuccess: () => {
+        diag.authSuccess = true;
+      },
+      onAuthFail: (err) => {
+        diag.authFail = String((err && err.error) || err || 'auth failed');
+      },
+      onError: (err) => {
+        if (!diag.error) diag.error = String(err?.message || err || 'ws error');
+      },
+      waitMs,
+    });
+    diag.eventCount = out.length;
+    if (diagSink) diagSink.push(diag);
+    return dedupeById(out);
+  } catch (e) {
+    diag.error = String(e?.message || e || 'unknown error');
+    if (diagSink) diagSink.push(diag);
+    return [];
+  }
 }
 
 /**
@@ -1038,6 +1266,14 @@ function createStagedProfileShell(root, ctx) {
   grid.appendChild(rail);
 
   shell.appendChild(grid);
+
+  const debugMount = document.createElement('details');
+  debugMount.className = 'nr-profile-debug';
+  debugMount.open = true;
+  debugMount.innerHTML =
+    '<summary>Profile image debug (collected nostr events)</summary><div class="nr-profile-debug-body">Loading…</div>';
+  shell.appendChild(debugMount);
+
   root.appendChild(shell);
 
   const refs = {
@@ -1059,14 +1295,90 @@ function createStagedProfileShell(root, ctx) {
     circListMount,
     nameEditBtn,
     aboutEditBtn,
+    debugMount,
   };
   return { shell, refs };
 }
 
+function renderProfileDebugPanel(mount, info) {
+  const body = mount.querySelector('.nr-profile-debug-body') || mount;
+  body.replaceChildren();
+  const lines = [];
+  const counts = {};
+  const tally = (arr) => {
+    for (const ev of arr || []) {
+      const k = String(ev?.kind ?? '?');
+      counts[k] = (counts[k] || 0) + 1;
+    }
+  };
+  tally(info.evAuthors);
+  tally(info.evP30390);
+  const head = document.createElement('div');
+  head.style.fontSize = '0.78rem';
+  head.style.lineHeight = '1.35';
+  head.style.color = 'var(--muted-foreground)';
+  head.appendChild(document.createTextNode(`subject hex: ${info.hex.slice(0, 12)}…  trUser: ${info.earlyTrUser || '∅'}`));
+  head.appendChild(document.createElement('br'));
+  head.appendChild(
+    document.createTextNode(
+      `authors:${info.authorsReady ? '✓' : '…'}  30390:${info.p90Ready ? '✓' : '…'}  claims:${info.claimsReady ? '✓' : '…'}  notes:${info.notesReady ? '✓' : '…'}  host303:${info.host303Ready ? '✓' : '…'}`
+    )
+  );
+  head.appendChild(document.createElement('br'));
+  const countStr = Object.keys(counts)
+    .sort()
+    .map((k) => `kind ${k}:${counts[k]}`)
+    .join('  ');
+  head.appendChild(document.createTextNode(`event counts → ${countStr || '(none yet)'}`));
+  head.appendChild(document.createElement('br'));
+  head.appendChild(document.createTextNode(`matched 30390: ${info.ev30390 ? `id=${String(info.ev30390.id || '').slice(0, 10)}… created_at=${info.ev30390.created_at}` : '∅'}`));
+  head.appendChild(document.createElement('br'));
+  head.appendChild(document.createTextNode(`matched kind 0:  ${info.ev0 ? `id=${String(info.ev0.id || '').slice(0, 10)}… created_at=${info.ev0.created_at}` : '∅'}`));
+  head.appendChild(document.createElement('br'));
+  head.appendChild(document.createTextNode(`merged picture from content: ${info.pictureChosen || '∅'}`));
+  body.appendChild(head);
+
+  if (info.candidates.length) {
+    const list = document.createElement('ul');
+    list.style.cssText = 'margin: 0.5rem 0 0; padding-left: 1.1rem; font-size: 0.75rem;';
+    for (const c of info.candidates) {
+      const li = document.createElement('li');
+      li.style.marginBottom = '0.25rem';
+      const a = document.createElement('a');
+      a.href = c.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = c.url;
+      a.style.wordBreak = 'break-all';
+      li.appendChild(a);
+      const meta = document.createElement('span');
+      meta.style.color = 'var(--muted-foreground)';
+      meta.style.marginLeft = '0.4rem';
+      meta.textContent = ` ← kind ${c.kind} via ${c.via}`;
+      li.appendChild(meta);
+      list.appendChild(li);
+    }
+    body.appendChild(list);
+  } else if (info.authorsReady && info.p90Ready) {
+    const empty = document.createElement('p');
+    empty.style.cssText = 'margin: 0.5rem 0 0; font-size: 0.78rem;';
+    empty.textContent =
+      'No image URLs found in any collected nostr event for this user (checked content.picture/image/avatar/banner, http(s) URLs in content, and r/image/picture tags).';
+    body.appendChild(empty);
+  }
+
+  if (info.tryList.length) {
+    const tried = document.createElement('p');
+    tried.style.cssText = 'margin: 0.5rem 0 0; font-size: 0.75rem; color: var(--muted-foreground);';
+    tried.textContent = `Trying in order: ${info.tryList.join('  →  ')}`;
+    body.appendChild(tried);
+  }
+}
+
 /**
  * @param {Record<string, HTMLElement>} refs
- * @param {{ evAuthors?: unknown[]; evP30390?: unknown[]; evPClaims?: unknown[]; evNotes?: unknown[]; evHost30398?: unknown[]; circleMetaBySlug?: Map<string, { name: string; about: string; picture: string; created_at?: number }>; avatarFromApi: string | null; avatarExtra?: string }} viewState
- * @param {{ hex: string; npub: string; profileId: string; earlyTrUser: string; avatarSecondaryStarted?: boolean; circleDirStarted?: boolean; scheduleBump?: () => void }} ctx
+ * @param {{ evAuthors?: unknown[]; evP30390?: unknown[]; evPClaims?: unknown[]; evNotes?: unknown[]; evHost30398?: unknown[]; circleMetaBySlug?: Map<string, { name: string; about: string; picture: string; created_at?: number }>; avatarExtra?: string }} viewState
+ * @param {{ hex: string; npub: string; profileId: string; earlyTrUser: string; circleDirStarted?: boolean; scheduleBump?: () => void }} ctx
  */
 function applyStagedProfileView(refs, viewState, ctx) {
   const { hex, npub, profileId, earlyTrUser } = ctx;
@@ -1075,7 +1387,6 @@ function applyStagedProfileView(refs, viewState, ctx) {
   const claimsReady = viewState.evPClaims !== undefined;
   const notesReady = viewState.evNotes !== undefined;
   const host303Ready = viewState.evHost30398 !== undefined;
-  const avatarReady = viewState.avatarFromApi !== null;
 
   const evAuthors = authorsReady ? viewState.evAuthors || [] : [];
   const evP30390 = p90Ready ? viewState.evP30390 || [] : [];
@@ -1095,22 +1406,8 @@ function applyStagedProfileView(refs, viewState, ctx) {
   const nip05Resolved = meta.nip05 || (trUser ? `${trUser}@trustroots.org` : '') || profileNip05Guess(profileId, earlyTrUser);
 
   let picture = meta.picture;
-  const apiEarly = avatarReady ? viewState.avatarFromApi || '' : '';
-  if (!picture && trUser && trUser === earlyTrUser && apiEarly) {
-    picture = apiEarly;
-  }
   if (!picture && trUser && viewState.avatarExtra) {
     picture = viewState.avatarExtra;
-  }
-
-  if (authorsReady && p90Ready && !picture && trUser && !ctx.avatarSecondaryStarted) {
-    ctx.avatarSecondaryStarted = true;
-    void tryTrustrootsApiAvatar(trUser).then((u) => {
-      if (u) {
-        viewState.avatarExtra = u;
-        applyStagedProfileView(refs, viewState, ctx);
-      }
-    });
   }
 
   const notesSorted = notesReady
@@ -1165,13 +1462,38 @@ function applyStagedProfileView(refs, viewState, ctx) {
     refs.statNipLi.classList.add('nr-profile-muted');
     refs.statNipLi.textContent = 'No NIP-05 on latest profile export yet.';
   }
+  const allCollectedForDebug = [
+    ...(authorsReady ? evAuthors : []),
+    ...(p90Ready ? evP30390 : []),
+  ];
+  const candidates = extractPictureCandidatesFromEvents(allCollectedForDebug);
+  /** Ordered list of URLs to try in <img> (primary first, fallbacks second). */
+  const tryList = [];
+  if (picture) tryList.push(picture);
+  for (const c of candidates) {
+    if (!tryList.includes(c.url)) tryList.push(c.url);
+  }
+
   refs.avatarWrap.replaceChildren();
-  if (picture) {
+  if (tryList.length) {
     const img = document.createElement('img');
     img.className = 'nr-profile-avatar';
     img.alt = '';
-    img.src = picture;
     img.referrerPolicy = 'no-referrer';
+    let idx = 0;
+    img.src = tryList[idx];
+    img.addEventListener('error', () => {
+      idx += 1;
+      if (idx < tryList.length) {
+        img.src = tryList[idx];
+      } else {
+        const ph = document.createElement('div');
+        ph.className = 'nr-profile-tr-avatar-ph';
+        ph.setAttribute('aria-hidden', 'true');
+        ph.textContent = '👤';
+        img.replaceWith(ph);
+      }
+    });
     refs.avatarWrap.appendChild(img);
   } else {
     const ph = document.createElement('div');
@@ -1179,6 +1501,26 @@ function applyStagedProfileView(refs, viewState, ctx) {
     ph.setAttribute('aria-hidden', 'true');
     ph.textContent = '👤';
     refs.avatarWrap.appendChild(ph);
+  }
+
+  if (refs.debugMount) {
+    renderProfileDebugPanel(refs.debugMount, {
+      hex,
+      earlyTrUser,
+      authorsReady,
+      p90Ready,
+      claimsReady,
+      notesReady,
+      host303Ready,
+      evAuthors,
+      evP30390,
+      ev30390,
+      ev0,
+      meta,
+      candidates,
+      tryList,
+      pictureChosen: picture,
+    });
   }
 
   refs.aboutMount.replaceChildren();
@@ -1441,7 +1783,6 @@ export async function renderPublicProfile(profileId) {
 
   try {
     const earlyTrUser = trustrootsLocalFromProfileId(profileId);
-    const avatarFromApiP = earlyTrUser ? tryTrustrootsApiAvatar(earlyTrUser) : Promise.resolve('');
 
     const titleGuess = profileTitleGuess(profileId, npub, hex);
     const handleGuess = profileHandleGuess(profileId, earlyTrUser, npub, hex);
@@ -1454,10 +1795,9 @@ export async function renderPublicProfile(profileId) {
       evNotes: undefined,
       evHost30398: undefined,
       circleMetaBySlug: undefined,
-      avatarFromApi: null,
       avatarExtra: '',
     };
-    const ctx = { hex, npub, profileId, earlyTrUser, avatarSecondaryStarted: false, circleDirStarted: false };
+    const ctx = { hex, npub, profileId, earlyTrUser, circleDirStarted: false };
 
     const { shell, refs } = createStagedProfileShell(root, {
       hex,
@@ -1498,14 +1838,33 @@ export async function renderPublicProfile(profileId) {
     if (earlyTrUser) {
       void Promise.all([
         collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 20 }),
-        collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], '#l': [earlyTrUser], limit: 20 }),
-      ]).then(([byP, byLabel]) => {
-        viewState.evP30390 = dedupeById([...(byP || []), ...(byLabel || [])]);
+        collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], authors: [hex], limit: 20 }),
+        collectFromNip42RelayAuth({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 120 }),
+        collectFromNip42RelayAuth({ kinds: [PROFILE_CLAIM_KIND], authors: [hex], limit: 120 }),
+        collectProfileClaimsForTrustrootsUser(earlyTrUser),
+      ]).then(([byP, bySelf, byPAuth, bySelfAuth, byIdentity]) => {
+        viewState.evP30390 = dedupeById([
+          ...(byP || []),
+          ...(bySelf || []),
+          ...(byPAuth || []),
+          ...(bySelfAuth || []),
+          ...(byIdentity || []),
+        ]);
         bump();
       });
     } else {
-      void collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 20 }).then((x) => {
-        viewState.evP30390 = x;
+      void Promise.all([
+        collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 20 }),
+        collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], authors: [hex], limit: 20 }),
+        collectFromNip42RelayAuth({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 120 }),
+        collectFromNip42RelayAuth({ kinds: [PROFILE_CLAIM_KIND], authors: [hex], limit: 120 }),
+      ]).then(([byP, bySelf, byPAuth, bySelfAuth]) => {
+        viewState.evP30390 = dedupeById([
+          ...(byP || []),
+          ...(bySelf || []),
+          ...(byPAuth || []),
+          ...(bySelfAuth || []),
+        ]);
         bump();
       });
     }
@@ -1538,10 +1897,6 @@ export async function renderPublicProfile(profileId) {
         bump();
       });
     }
-    void avatarFromApiP.then((a) => {
-      viewState.avatarFromApi = a || '';
-      bump();
-    });
   } catch (err) {
     console.warn('[nr-profile]', err);
     root.innerHTML = `<p class="nr-profile-error">Something went wrong loading this profile.</p>`;

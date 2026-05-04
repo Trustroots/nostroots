@@ -206,27 +206,6 @@ h1, h2, .modal-header h2 {
 .copy-btn:active { transform: translateY(-50%) scale(0.95); }
 .copy-btn.copied { color: var(--primary); }
 .nip05-input { background: var(--muted); cursor: default; }
-/* Bottom mycelium strip (notes.trustroots.org style) */
-.mycelium-bottom {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 140px;
-    pointer-events: none;
-    z-index: 0;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-}
-.mycelium-bottom img {
-    width: 100%;
-    min-width: 600px;
-    height: 100%;
-    object-fit: cover;
-    object-position: center bottom;
-    opacity: 0.22;
-}
 .main {
     display: flex;
     flex: 1 1 0;
@@ -988,8 +967,6 @@ h1, h2, .modal-header h2 {
     .app-header-inner { justify-content: flex-start; }
     .app-header h1 { font-size: 1.35rem; }
     .app-header-logo { height: 28px; }
-    .mycelium-bottom { height: 100px; }
-    .mycelium-bottom img { min-width: 100%; }
     .sidebar { width: 100%; flex-shrink: 1; }
     .thread-area { display: none; }
 

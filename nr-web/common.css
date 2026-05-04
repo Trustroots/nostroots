@@ -533,6 +533,13 @@ h1, h2, .modal-header h2 {
     flex-shrink: 0;
 }
 
+.nr-nav-menu-profile-image {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
 /* Header identity (npub/nip5) – shared by index and chat */
 .header-identity {
     font-size: 0.8125rem;

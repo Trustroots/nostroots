@@ -967,11 +967,20 @@
         );
     }
 
+    function buildMyProfileMenuItemHtml() {
+        return (
+            '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="view">' +
+            '<img class="nr-nav-menu-profile-image" src="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27%3E%3Crect width=%2720%27 height=%2720%27 rx=%2710%27 fill=%27%23dfe5e8%27/%3E%3Ccircle cx=%2710%27 cy=%277.2%27 r=%273.5%27 fill=%27%23697d86%27/%3E%3Cpath d=%27M4.2 16.4c.8-2.8 3.2-4.6 5.8-4.6s5 1.8 5.8 4.6%27 fill=%27%23697d86%27/%3E%3C/svg%3E" alt="" aria-hidden="true" loading="lazy" decoding="async" />' +
+            '<span>My profile</span>' +
+            '</button>'
+        );
+    }
+
     /** Desktop Account dropdown (identity + keys + settings + footer). */
     function buildUserDropdownMenuBody(settingsTitle) {
         return (
             '<span class="nr-nav-menu-identity header-identity-text empty" id="header-identity" title=""></span>' +
-            '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="view">My profile</button>' +
+            buildMyProfileMenuItemHtml() +
             '<button type="button" role="menuitem" class="nr-nav-menu-item" id="keys-icon-btn" title="Connect key to post">' +
             '<span class="keys-icon-symbol" aria-hidden="true">🔑</span><span>Keys</span></button>' +
             '<button type="button" role="menuitem" class="nr-nav-menu-item" id="settings-icon-btn" title="' +
@@ -988,7 +997,7 @@
     function buildUserDropdownMenuBodyMobile(settingsTitle) {
         return (
             '<span class="nr-nav-menu-identity header-identity-text empty" id="header-identity-mobile" title=""></span>' +
-            '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="view">My profile</button>' +
+            buildMyProfileMenuItemHtml() +
             '<button type="button" role="menuitem" class="nr-nav-menu-item" id="keys-icon-btn-mobile" title="Connect key to post">' +
             '<span class="keys-icon-symbol" aria-hidden="true">🔑</span><span>Keys</span></button>' +
             '<button type="button" role="menuitem" class="nr-nav-menu-item" id="settings-icon-btn-mobile" title="' +
@@ -1660,7 +1669,98 @@
         mergeThemeFromRemote: mergeThemeFromRemote
     };
 
+    // --- Profile image URL resolution (session cache + Trustroots circle webp→jpg) ---
+    var PROFILE_IMAGE_RESOLVED_MAX = 800;
+    var profileImageResolvedByPrimary = new Map();
+
+    function jpgFallbackForTrustrootsCircleWebp(url) {
+        var value = String(url || '').trim();
+        if (!value) return '';
+        return value.replace(/\/1400x900\.webp(?:[?#].*)?$/i, '/742x496.jpg');
+    }
+
+    function profileImageResolvedCacheRemember(primary, resolved) {
+        var p = String(primary || '').trim();
+        var r = String(resolved || '').trim();
+        if (!p || !r) return;
+        if (profileImageResolvedByPrimary.size >= PROFILE_IMAGE_RESOLVED_MAX && !profileImageResolvedByPrimary.has(p)) {
+            var first = profileImageResolvedByPrimary.keys().next();
+            if (!first.done) profileImageResolvedByPrimary.delete(first.value);
+        }
+        profileImageResolvedByPrimary.set(p, r);
+    }
+
+    /**
+     * Set a profile-related <img> src with optional Trustroots circle webp→jpg fallback
+     * and remember which URL actually loaded (per primary URL) for the rest of the session.
+     * @param {HTMLImageElement|null|undefined} imgEl
+     * @param {string} primaryUrl
+     * @param {string|null|undefined} altText
+     */
+    function setProfileImageWithResolvedCache(imgEl, primaryUrl, altText) {
+        if (!imgEl) return;
+        if (typeof imgEl._nrProfilePicCancel === 'function') {
+            try {
+                imgEl._nrProfilePicCancel();
+            } catch (_) {}
+            delete imgEl._nrProfilePicCancel;
+        }
+        var primary = String(primaryUrl || '').trim();
+        if (!primary) {
+            imgEl.removeAttribute('src');
+            imgEl.style.display = 'none';
+            imgEl.onerror = null;
+            return;
+        }
+        var cached = profileImageResolvedByPrimary.get(primary);
+        if (cached) {
+            imgEl.onerror = null;
+            imgEl.src = cached;
+            if (altText != null) imgEl.alt = altText;
+            imgEl.style.display = 'block';
+            return;
+        }
+        var fallback = jpgFallbackForTrustrootsCircleWebp(primary);
+        function rememberFromImg() {
+            try {
+                var resolved = imgEl.currentSrc || imgEl.src || '';
+                if (resolved) profileImageResolvedCacheRemember(primary, resolved);
+            } catch (_) {}
+        }
+        function onLoadOnce() {
+            rememberFromImg();
+            if (imgEl._nrProfilePicCancel === cancelPending) delete imgEl._nrProfilePicCancel;
+        }
+        function cancelPending() {
+            imgEl.removeEventListener('load', onLoadOnce);
+            imgEl.onerror = null;
+            if (imgEl._nrProfilePicCancel === cancelPending) delete imgEl._nrProfilePicCancel;
+        }
+        imgEl._nrProfilePicCancel = cancelPending;
+        imgEl.addEventListener('load', onLoadOnce, { once: true });
+        if (fallback && fallback !== primary) {
+            imgEl.onerror = function () {
+                imgEl.onerror = null;
+                imgEl.src = fallback;
+                imgEl.onerror = function () {
+                    imgEl.onerror = null;
+                    cancelPending();
+                };
+            };
+        } else {
+            imgEl.onerror = function () {
+                imgEl.onerror = null;
+                cancelPending();
+            };
+        }
+        imgEl.src = primary;
+        if (altText != null) imgEl.alt = altText;
+        imgEl.style.display = 'block';
+    }
+
     global.NrWeb = global.NrWeb || {};
+    global.NrWeb.jpgFallbackForTrustrootsCircleWebp = jpgFallbackForTrustrootsCircleWebp;
+    global.NrWeb.setProfileImageWithResolvedCache = setProfileImageWithResolvedCache;
     global.NrWeb.fillAppHeader = fillAppHeader;
     global.NrWeb.applySettingsFooterMetadataFromCache = applySettingsFooterMetadataFromCache;
     global.NrWeb.refreshSettingsFooterMetadata = refreshSettingsFooterMetadata;

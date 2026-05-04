@@ -1351,13 +1351,13 @@
                 <div class="thread-header" id="thread-header" style="display:none;">
                     <img id="thread-chat-image" class="thread-chat-image" alt="" loading="lazy" decoding="async" style="display:none" />
                     <button type="button" class="back-btn" id="thread-back-btn" title="Back to chats" aria-label="Back to chats"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button>
-                    <span class="thread-header-enc-wrap">
-                        <span class="enc-icon" id="thread-enc-icon" title=""></span>
-                        <span class="enc-label" id="thread-enc-label"></span>
-                    </span>
                     <div class="thread-header-main">
                         <div class="thread-header-text-block">
                             <span id="thread-title"></span>
+                            <span class="thread-header-enc-wrap">
+                                <span class="enc-icon" id="thread-enc-icon" title=""></span>
+                                <span class="enc-label" id="thread-enc-label"></span>
+                            </span>
                             <div id="thread-header-circle-stack" class="thread-header-circle-stack" style="display:none">
                                 <p id="thread-circle-subtitle" class="thread-circle-subtitle"></p>
                                 <a id="thread-circle-link" class="thread-circle-link" href="#" target="_blank" rel="noopener noreferrer" style="display:none">Trustroots</a>
@@ -2461,7 +2461,7 @@
                     showChatShell();
                     closePlusCodeNotesModal(true);
                     const bundle = await nrChatBundlePromise;
-                    bundle.applyEmbeddedChatRoute('', { emptyPicker: true });
+                    await bundle.applyEmbeddedChatRoute('', { emptyPicker: true });
                     return;
                 }
                 if (c.token === 'help') {
@@ -2529,7 +2529,7 @@
                 showChatShell();
                 closePlusCodeNotesModal(true);
                 const bundle = await nrChatBundlePromise;
-                bundle.applyEmbeddedChatRoute(c.chatRoute, {});
+                await bundle.applyEmbeddedChatRoute(c.chatRoute, {});
             }
         }
 
@@ -6613,11 +6613,15 @@
             if (authorPic) {
                 const avatar = document.createElement('img');
                 avatar.className = 'note-author-avatar';
-                avatar.src = authorPic;
                 avatar.alt = '';
                 avatar.loading = 'lazy';
                 avatar.decoding = 'async';
                 avatar.referrerPolicy = 'no-referrer';
+                if (window.NrWeb && typeof window.NrWeb.setProfileImageWithResolvedCache === 'function') {
+                    window.NrWeb.setProfileImageWithResolvedCache(avatar, authorPic, '');
+                } else {
+                    avatar.src = authorPic;
+                }
                 metaRow.appendChild(avatar);
             }
             

@@ -189,13 +189,11 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             return `https://www.trustroots.org/uploads-circle/${encodeURIComponent(key)}/1400x900.webp`;
         }
 
-        function jpgFallbackForImageUrl(url) {
-            const value = String(url || '').trim();
-            if (!value) return '';
-            return value.replace(/\/1400x900\.webp(?:[?#].*)?$/i, '/742x496.jpg');
-        }
-
         function setImageWithFallback(imgEl, url, altText) {
+            if (window.NrWeb && typeof window.NrWeb.setProfileImageWithResolvedCache === 'function') {
+                window.NrWeb.setProfileImageWithResolvedCache(imgEl, url, altText);
+                return;
+            }
             if (!imgEl) return;
             const primary = String(url || '').trim();
             if (!primary) {
@@ -204,7 +202,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                 imgEl.onerror = null;
                 return;
             }
-            const fallback = jpgFallbackForImageUrl(primary);
+            const fallback = String(primary).replace(/\/1400x900\.webp(?:[?#].*)?$/i, '/742x496.jpg');
             imgEl.onerror = fallback && fallback !== primary
                 ? () => {
                     imgEl.onerror = null;
@@ -643,7 +641,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             if (location.hash !== want) location.hash = want;
         }
         /** Keys/settings are handled by index unified router when embedded. */
-        function applyChatHashToState(routeForced, opts) {
+        async function applyChatHashToState(routeForced, opts) {
             const o = opts || {};
             const route = routeForced !== undefined && routeForced !== null ? String(routeForced) : getHashRoute();
             const normalizedRoute = normalizeChannelSlug(route);
@@ -690,6 +688,17 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                 if (preferredRoute && route !== preferredRoute) setHashRoute(preferredRoute);
                 selectConversation(mappedConversationId);
                 return;
+            }
+            const routeForDmResolve = (route || '').trim();
+            if (routeForDmResolve.includes('@')) {
+                const dmPubkey = await resolvePubkeyInput(routeForDmResolve);
+                if (dmPubkey) {
+                    getOrCreateConversation('dm', dmPubkey, [dmPubkey]);
+                    const preferredDmRoute = getConversationRouteId(dmPubkey);
+                    if (preferredDmRoute && route !== preferredDmRoute) setHashRoute(preferredDmRoute);
+                    selectConversation(dmPubkey);
+                    return;
+                }
             }
             if (normalizedRoute && route !== normalizedRoute) {
                 setHashRoute(normalizedRoute);
@@ -2535,6 +2544,9 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     const pic = getDmPictureByConversationId(conv.id);
                     if (pic && isSafeHttpUrl(pic)) {
                         setImageWithFallback(heroEl, pic, '');
+                        if (avatarEl) {
+                            setImageWithFallback(avatarEl, pic, '');
+                        }
                         if (headerEl) headerEl.classList.add('thread-header-has-image');
                     }
                 }
@@ -2565,17 +2577,20 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                         if (heroEl) {
                             setImageWithFallback(heroEl, circlePicture, '');
                         }
+                        if (avatarEl) {
+                            setImageWithFallback(avatarEl, circlePicture, '');
+                        }
                         if (headerEl) headerEl.classList.add('thread-header-has-image');
                     } else {
                         if (heroEl) {
                             heroEl.removeAttribute('src');
                             heroEl.style.display = 'none';
                         }
+                        if (avatarEl) {
+                            avatarEl.removeAttribute('src');
+                            avatarEl.style.display = 'none';
+                        }
                         if (headerEl) headerEl.classList.remove('thread-header-has-image');
-                    }
-                    if (avatarEl) {
-                        avatarEl.removeAttribute('src');
-                        avatarEl.style.display = 'none';
                     }
                     if (subEl) {
                         if (about) {
@@ -3337,7 +3352,7 @@ export function bootEmbeddedChat() {
  * @param {string} route - decoded hash fragment (channel slug, npub, nip-05, etc.)
  * @param {{ emptyPicker?: boolean }} [opts]
  */
-export function applyEmbeddedChatRoute(route, opts) {
-    applyChatHashToState(typeof route === 'string' ? route : '', opts || {});
+export async function applyEmbeddedChatRoute(route, opts) {
+    await applyChatHashToState(typeof route === 'string' ? route : '', opts || {});
 }
 

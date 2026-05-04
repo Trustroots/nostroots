@@ -50,6 +50,21 @@ function isMapNoteTrustrootsValidated(ev, authorHex) {
 
 const DEFAULT_RELAYS = ['wss://nip42.trustroots.org', 'wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
 
+/** Session memo: first successful avatar URL per tryList fingerprint (avoids re-probing on relay-driven re-renders). */
+const AVATAR_TRY_MEMO_MAX = 200;
+const avatarTryListResolvedByKey = new Map();
+
+function rememberAvatarTryListSuccess(tryKey, resolvedUrl) {
+  const k = String(tryKey || '').trim();
+  const u = String(resolvedUrl || '').trim();
+  if (!k || !u) return;
+  if (avatarTryListResolvedByKey.size >= AVATAR_TRY_MEMO_MAX && !avatarTryListResolvedByKey.has(k)) {
+    const first = avatarTryListResolvedByKey.keys().next();
+    if (!first.done) avatarTryListResolvedByKey.delete(first.value);
+  }
+  avatarTryListResolvedByKey.set(k, u);
+}
+
 /** `location.hash` segment encoding (keep `+` for spaces). */
 function hashEncodeSegment(s) {
   return encodeURIComponent(String(s ?? '')).replace(/%2B/g, '+');
@@ -1261,6 +1276,21 @@ function createStagedProfileShell(root, ctx) {
   hostCard.appendChild(hostMount);
   rail.appendChild(hostCard);
 
+  const trustCard = document.createElement('div');
+  trustCard.className = 'nr-profile-tr-rail-card';
+  const trustTitle = document.createElement('h3');
+  trustTitle.className = 'nr-profile-tr-rail-title';
+  trustTitle.textContent = 'Trust';
+  trustCard.appendChild(trustTitle);
+  const trustSub = document.createElement('p');
+  trustSub.className = 'nr-profile-tr-circles-sub';
+  trustSub.textContent = 'Imported from Trustroots';
+  trustCard.appendChild(trustSub);
+  const trustMount = document.createElement('div');
+  trustMount.className = 'nr-profile-tr-circ-list';
+  trustCard.appendChild(trustMount);
+  rail.appendChild(trustCard);
+
   const circCard = document.createElement('div');
   circCard.className = 'nr-profile-tr-rail-card';
   const circTitle = document.createElement('h3');
@@ -1297,6 +1327,7 @@ function createStagedProfileShell(root, ctx) {
     expTrustBlock: expBlock,
     trustRelayListsWrap,
     hostMount,
+    trustMount,
     circListMount,
     nameEditBtn,
     aboutEditBtn,
@@ -1403,27 +1434,38 @@ function applyStagedProfileView(refs, viewState, ctx) {
     if (!tryList.includes(c.url)) tryList.push(c.url);
   }
 
+  const tryKey = tryList.length ? `${hex}|${tryList.join('|')}` : '';
+  const memoResolved = tryKey ? avatarTryListResolvedByKey.get(tryKey) : '';
+
   refs.avatarWrap.replaceChildren();
   if (tryList.length) {
     const img = document.createElement('img');
     img.className = 'nr-profile-avatar';
     img.alt = '';
     img.referrerPolicy = 'no-referrer';
-    let idx = 0;
-    img.src = tryList[idx];
-    img.addEventListener('error', () => {
-      idx += 1;
-      if (idx < tryList.length) {
-        img.src = tryList[idx];
-      } else {
-        const ph = document.createElement('div');
-        ph.className = 'nr-profile-tr-avatar-ph';
-        ph.setAttribute('aria-hidden', 'true');
-        ph.textContent = '👤';
-        img.replaceWith(ph);
-      }
-    });
-    refs.avatarWrap.appendChild(img);
+    if (memoResolved && tryList.includes(memoResolved)) {
+      img.src = memoResolved;
+      refs.avatarWrap.appendChild(img);
+    } else {
+      let idx = 0;
+      img.src = tryList[idx];
+      img.addEventListener('load', () => {
+        rememberAvatarTryListSuccess(tryKey, img.currentSrc || img.src || '');
+      }, { once: true });
+      img.addEventListener('error', () => {
+        idx += 1;
+        if (idx < tryList.length) {
+          img.src = tryList[idx];
+        } else {
+          const ph = document.createElement('div');
+          ph.className = 'nr-profile-tr-avatar-ph';
+          ph.setAttribute('aria-hidden', 'true');
+          ph.textContent = '👤';
+          img.replaceWith(ph);
+        }
+      });
+      refs.avatarWrap.appendChild(img);
+    }
   } else {
     const ph = document.createElement('div');
     ph.className = 'nr-profile-tr-avatar-ph';
@@ -1576,6 +1618,34 @@ function applyStagedProfileView(refs, viewState, ctx) {
       hostBody.appendChild(hostMeta);
     }
     refs.hostMount.appendChild(hostBody);
+  }
+
+  refs.trustMount.replaceChildren();
+  if (!claimsReady) {
+    const p = document.createElement('p');
+    p.className = 'nr-profile-tr-skeleton';
+    p.textContent = 'Loading trust summary…';
+    refs.trustMount.appendChild(p);
+  } else if (isSelfHex(hex)) {
+    const p = document.createElement('p');
+    p.className = 'nr-profile-muted';
+    p.textContent = 'Open the Trust tab to sign relationship and experience suggestions.';
+    refs.trustMount.appendChild(p);
+  } else if (!rels.length && !exps.length) {
+    const p = document.createElement('p');
+    p.className = 'nr-profile-muted';
+    p.textContent = 'No relationship or experience suggestions found on your relays yet.';
+    refs.trustMount.appendChild(p);
+  } else {
+    const relRow = document.createElement('p');
+    relRow.className = 'nr-profile-muted';
+    relRow.textContent = `${rels.length} relationship suggestion${rels.length === 1 ? '' : 's'}.`;
+    refs.trustMount.appendChild(relRow);
+    const expRow = document.createElement('p');
+    expRow.className = 'nr-profile-muted';
+    expRow.style.marginTop = '0.35rem';
+    expRow.textContent = `${exps.length} experience suggestion${exps.length === 1 ? '' : 's'}.`;
+    refs.trustMount.appendChild(expRow);
   }
 
   refs.circListMount.replaceChildren();

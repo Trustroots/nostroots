@@ -378,7 +378,7 @@ h1, h2, .modal-header h2 {
     background: var(--card);
 }
 .thread-header.thread-header-has-image {
-    min-height: 150px;
+    min-height: 176px;
     align-items: flex-end;
 }
 .thread-header.thread-header-has-image::after {
@@ -405,7 +405,7 @@ h1, h2, .modal-header h2 {
     align-items: center;
     gap: 0.35rem;
     flex-shrink: 0;
-    padding-top: 0.15rem;
+    padding-top: 0;
 }
 .thread-header-main {
     display: flex;
@@ -418,6 +418,7 @@ h1, h2, .modal-header h2 {
 }
 .thread-header.thread-header-has-image .thread-header-main {
     align-items: flex-end;
+    margin-top: auto;
 }
 .thread-header-text-block {
     display: flex;
@@ -425,6 +426,10 @@ h1, h2, .modal-header h2 {
     gap: 0.22rem;
     min-width: 0;
     flex: 1;
+}
+.thread-header.thread-header-has-image .thread-header-text-block {
+    justify-content: flex-end;
+    gap: 0.16rem;
 }
 .thread-header #thread-title {
     font-weight: 600;
@@ -438,6 +443,14 @@ h1, h2, .modal-header h2 {
     font-size: clamp(1.2rem, 2.1vw, 1.85rem);
     font-weight: 700;
     letter-spacing: 0.01em;
+    line-height: 1.1;
+}
+.thread-header.thread-header-has-image #thread-title a,
+.thread-header.thread-header-has-image #thread-title a:visited,
+.thread-header.thread-header-has-image #thread-title a:hover,
+.thread-header.thread-header-has-image #thread-title a:active {
+    color: #f8fafc;
+    text-decoration-color: rgba(248, 250, 252, 0.7);
 }
 .thread-header-circle-stack {
     display: none;
@@ -475,6 +488,9 @@ h1, h2, .modal-header h2 {
     font-weight: 700;
     color: #f8fafc;
 }
+.thread-header.thread-header-has-image .thread-header-circle-stack {
+    align-items: flex-end;
+}
 .thread-circle-link:hover {
     text-decoration: underline;
 }
@@ -487,7 +503,16 @@ h1, h2, .modal-header h2 {
     align-self: flex-start;
     width: 56px;
     height: 56px;
-    display: none !important;
+    display: none;
+}
+.thread-header.thread-header-has-image .thread-circle-avatar {
+    display: block;
+    width: clamp(112px, 18vw, 148px);
+    height: clamp(112px, 18vw, 148px);
+    border-color: rgba(248, 250, 252, 0.85);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.34);
+    align-self: flex-end;
+    margin-bottom: 0.1rem;
 }
 .thread-chat-image {
     display: none;

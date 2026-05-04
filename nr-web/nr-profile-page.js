@@ -291,12 +291,24 @@ function pickLatest(events, kind, authorHex) {
   return list.reduce((a, b) => (a.created_at >= b.created_at ? a : b));
 }
 
-function pickLatest30390(events, subjectHex) {
+function pickLatest30390(events, subjectHex, trustrootsUser = '') {
   const h = (subjectHex || '').toLowerCase();
+  const tr = String(trustrootsUser || '').trim().toLowerCase();
   const list = (events || []).filter((e) => {
     if (e.kind !== PROFILE_CLAIM_KIND) return false;
-    const ps = (e.tags || []).filter((t) => t[0] === 'p' && t[1]);
-    return ps.some((t) => String(t[1]).toLowerCase() === h);
+    const tags = e.tags || [];
+    const ps = tags.filter((t) => t[0] === 'p' && t[1]);
+    const pMatch = h ? ps.some((t) => String(t[1]).toLowerCase() === h) : false;
+    if (pMatch) return true;
+    if (!tr) return false;
+    return tags.some(
+      (t) =>
+        Array.isArray(t) &&
+        t.length >= 3 &&
+        t[0] === 'l' &&
+        String(t[1] || '').trim().toLowerCase() === tr &&
+        String(t[2] || '').trim().toLowerCase() === TRUSTROOTS_USERNAME_LABEL_NAMESPACE
+    );
   });
   if (!list.length) return null;
   return list.reduce((a, b) => (a.created_at >= b.created_at ? a : b));
@@ -1072,7 +1084,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
 
   const ev0 = authorsReady ? pickLatest(evAuthors, 0, hex) : null;
   const ev10390 = authorsReady ? pickLatest(evAuthors, TRUSTROOTS_PROFILE_KIND, hex) : null;
-  const ev30390 = p90Ready ? pickLatest30390(evP30390, hex) : null;
+  const ev30390 = p90Ready ? pickLatest30390(evP30390, hex, earlyTrUser) : null;
 
   const meta = mergeProfile30390AndKind0(ev30390, ev0);
   let trUser =
@@ -1483,10 +1495,20 @@ export async function renderPublicProfile(profileId) {
       viewState.evAuthors = x;
       bump();
     });
-    void collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 20 }).then((x) => {
-      viewState.evP30390 = x;
-      bump();
-    });
+    if (earlyTrUser) {
+      void Promise.all([
+        collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 20 }),
+        collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], '#l': [earlyTrUser], limit: 20 }),
+      ]).then(([byP, byLabel]) => {
+        viewState.evP30390 = dedupeById([...(byP || []), ...(byLabel || [])]);
+        bump();
+      });
+    } else {
+      void collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 20 }).then((x) => {
+        viewState.evP30390 = x;
+        bump();
+      });
+    }
     void collectFromRelays({ kinds: [RELATIONSHIP_CLAIM_KIND, EXPERIENCE_CLAIM_KIND], '#p': [hex], limit: 60 }).then(
       (x) => {
         viewState.evPClaims = x;

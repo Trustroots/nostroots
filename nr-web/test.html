@@ -23,6 +23,13 @@
         margin: 0 0 10px;
         font-size: 1.15rem;
       }
+      .header-controls {
+        margin-bottom: 10px;
+      }
+      .header-controls-grid {
+        display: grid;
+        gap: 10px;
+      }
       .tabs {
         display: flex;
         gap: 8px;
@@ -148,6 +155,20 @@
         padding: 8px;
         background: #111827;
       }
+      .note-images {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      .note-image {
+        max-width: min(100%, 260px);
+        max-height: 180px;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        object-fit: cover;
+        background: #0b1220;
+      }
       .meta {
         color: #9ca3af;
         font-size: 0.8rem;
@@ -202,6 +223,46 @@
         display: grid;
         gap: 8px;
       }
+      .image-import-log {
+        margin-top: 8px;
+        max-height: 11em;
+        overflow-y: auto;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        padding: 8px;
+        background: #0b1220;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+      .image-import-hint {
+        font-size: 0.82rem;
+        color: #9ca3af;
+        line-height: 1.35;
+        margin: 0 0 8px;
+      }
+      .diag-log {
+        margin-top: 8px;
+        max-height: 14em;
+        overflow-y: auto;
+        border: 1px solid #374151;
+        border-radius: 8px;
+        padding: 8px;
+        background: #0b1220;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+        line-height: 1.4;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      @media (min-width: 900px) {
+        .header-controls-grid {
+          grid-template-columns: 1.2fr 1fr;
+        }
+      }
       @media (min-width: 900px) {
         .layout {
           grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1.25fr);
@@ -217,21 +278,13 @@
   <body>
     <div class="wrap">
       <h1>Nostroots Tests</h1>
-      <div class="tabs">
-        <button id="relayTabBtn" class="tab-btn active" type="button">Relay tests</button>
-        <button id="imageTabBtn" class="tab-btn" type="button">Image tests</button>
-      </div>
-
-      <section id="relayTabPanel" class="tab-panel">
-        <div class="layout">
-        <div class="controls">
-          <section class="card">
-            <div>
-              <label for="relayUrl">Relay URL</label>
-              <input id="relayUrl" value="wss://relay.trustroots.org" />
-            </div>
-          </section>
-          <section class="card">
+      <section class="card header-controls">
+        <div class="header-controls-grid">
+          <div>
+            <label for="relayUrl">Relay URL</label>
+            <input id="relayUrl" value="wss://relay.trustroots.org" />
+          </div>
+          <div>
             <label for="nsec">Private key for AUTH (optional)</label>
             <input
               id="nsec"
@@ -241,13 +294,21 @@
               placeholder="nsec1..."
               autofocus
             />
-          </section>
+          </div>
+        </div>
+        <div class="row two" style="margin-top: 10px;">
+          <button id="connectBtn">Connect + Subscribe Notes</button>
+          <button id="closeBtn" class="secondary">Disconnect</button>
+        </div>
+      </section>
+      <div class="tabs">
+        <button id="relayTabBtn" class="tab-btn active" type="button">General</button>
+        <button id="imageTabBtn" class="tab-btn" type="button">Image tests</button>
+      </div>
 
-          <section class="card row two">
-            <button id="connectBtn">Connect + Subscribe Notes</button>
-            <button id="closeBtn" class="secondary">Disconnect</button>
-          </section>
-
+      <section id="relayTabPanel" class="tab-panel">
+        <div class="layout">
+        <div class="controls">
           <section class="card status-card">
             <div><strong>Status</strong></div>
             <div id="status" class="status">Idle.</div>
@@ -310,6 +371,28 @@
             <button id="testAllImagesBtn" type="button">Test both images</button>
             <button id="clearImageResultsBtn" type="button" class="secondary">Clear image results</button>
           </section>
+
+          <section class="card">
+            <div><strong>Import-shape URL checks</strong></div>
+            <p class="image-import-hint">
+              Fixed URLs matching <code>trustrootsimporttool</code> output: kind <code>30410</code> circle
+              <code>picture</code> (<code>742x496.jpg</code>) and kind <code>30390</code> local avatar
+              (<code>uploads-profile/…/avatar/256.jpg</code>). Loads each image and checks dimensions from this origin.
+            </p>
+            <button id="runImportShapeImageTestsBtn" type="button">Run import-shape checks</button>
+            <div id="imageImportTestLog" class="image-import-log" aria-live="polite">Not run yet.</div>
+          </section>
+
+          <section class="card">
+            <div><strong>Relay data diagnostics</strong></div>
+            <p class="image-import-hint">
+              Checks current relay URLs and probes for imported data needed by image UI:
+              kind <code>30410</code> for <code>d=climbers</code> and kind <code>30390</code>
+              for <code>nostroots@trustroots.org</code>.
+            </p>
+            <button id="runRelayDiagnosticsBtn" type="button">Run relay diagnostics</button>
+            <div id="relayDiagnosticsLog" class="diag-log" aria-live="polite">Not run yet.</div>
+          </section>
         </div>
       </section>
     </div>
@@ -343,6 +426,10 @@
       const imageResult2El = document.getElementById("imageResult2");
       const imagePreview1El = document.getElementById("imagePreview1");
       const imagePreview2El = document.getElementById("imagePreview2");
+      const runImportShapeImageTestsBtn = document.getElementById("runImportShapeImageTestsBtn");
+      const imageImportTestLogEl = document.getElementById("imageImportTestLog");
+      const runRelayDiagnosticsBtn = document.getElementById("runRelayDiagnosticsBtn");
+      const relayDiagnosticsLogEl = document.getElementById("relayDiagnosticsLog");
 
       let ws = null;
       let subId = null;
@@ -360,13 +447,32 @@
       const RAW_MAX_LINES = 120;
       const imageUrlStorageKey1 = "trustroots.imageTestUrl1";
       const imageUrlStorageKey2 = "trustroots.imageTestUrl2";
+      const importToolPubkeyHex = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
+      const tabHashByName = {
+        relay: "general",
+        image: "images"
+      };
 
-      function showTab(tabName) {
+      function normalizeTabFromHash() {
+        const raw = String(window.location.hash || "").replace(/^#/, "").trim().toLowerCase();
+        if (raw === "images" || raw === "image") return "image";
+        if (raw === "general" || raw === "relay" || raw === "") return "relay";
+        return null;
+      }
+
+      function setTabHash(tabName) {
+        const hash = tabHashByName[tabName] || "general";
+        if (window.location.hash === `#${hash}`) return;
+        window.location.hash = hash;
+      }
+
+      function showTab(tabName, { updateHash = false } = {}) {
         const isRelay = tabName === "relay";
         relayTabPanel.hidden = !isRelay;
         imageTabPanel.hidden = isRelay;
         relayTabBtn.classList.toggle("active", isRelay);
         imageTabBtn.classList.toggle("active", !isRelay);
+        if (updateHash) setTabHash(tabName);
       }
 
       function setImageStatus(message) {
@@ -432,6 +538,221 @@
         imagePreview1El.removeAttribute("src");
         imagePreview2El.removeAttribute("src");
         setImageStatus("Idle.");
+      }
+
+      /** @returns {Promise<{ ok: boolean; w: number; h: number; ms: number; err?: string }>} */
+      function probeImageLoad(url) {
+        return new Promise((resolve) => {
+          const value = String(url || "").trim();
+          if (!value) {
+            resolve({ ok: false, w: 0, h: 0, ms: 0, err: "empty URL" });
+            return;
+          }
+          const img = new Image();
+          const t0 = performance.now();
+          const bust = value.includes("?") ? "&" : "?";
+          img.onload = () => {
+            resolve({
+              ok: true,
+              w: img.naturalWidth,
+              h: img.naturalHeight,
+              ms: Math.round(performance.now() - t0)
+            });
+          };
+          img.onerror = () => {
+            resolve({
+              ok: false,
+              w: 0,
+              h: 0,
+              ms: Math.round(performance.now() - t0),
+              err: "onerror"
+            });
+          };
+          img.src = `${value}${bust}_probe=${Date.now()}`;
+        });
+      }
+
+      const IMPORT_SHAPE_IMAGE_CASES = [
+        {
+          label: "30410 picture (uploads-circle/…/742x496.jpg)",
+          url: "https://www.trustroots.org/uploads-circle/hitchhikers/742x496.jpg",
+          expectW: 742,
+          expectH: 496
+        },
+        {
+          label: "30390 local avatar (uploads-profile/…/avatar/256.jpg)",
+          url: "https://www.trustroots.org/uploads-profile/6656f7f1874d670038f5aa94/avatar/256.jpg",
+          expectW: 256,
+          expectH: 256
+        }
+      ];
+
+      async function runImportShapeImageTests() {
+        if (!imageImportTestLogEl) return;
+        const originLabel = window.location.origin || "file://";
+        imageImportTestLogEl.textContent = `Running from ${originLabel} …`;
+        const lines = [];
+        let pass = 0;
+        let fail = 0;
+        for (const c of IMPORT_SHAPE_IMAGE_CASES) {
+          const r = await probeImageLoad(c.url);
+          if (!r.ok) {
+            fail += 1;
+            lines.push(`FAIL  ${c.label}`);
+            lines.push(`      ${c.url}`);
+            lines.push(`      ${r.err || "load failed"} (${r.ms} ms)`);
+            lines.push("");
+            continue;
+          }
+          const dimOk = r.w === c.expectW && r.h === c.expectH;
+          if (dimOk) {
+            pass += 1;
+            lines.push(`PASS  ${c.label}`);
+            lines.push(`      ${r.w}x${r.h} in ${r.ms} ms`);
+          } else {
+            fail += 1;
+            lines.push(`FAIL  ${c.label} (expected ${c.expectW}x${c.expectH}, got ${r.w}x${r.h})`);
+            lines.push(`      ${c.url}`);
+          }
+          lines.push("");
+        }
+        lines.push(`Summary: ${pass} passed, ${fail} failed (${IMPORT_SHAPE_IMAGE_CASES.length} cases).`);
+        imageImportTestLogEl.textContent = lines.join("\n").trimEnd();
+        setImageStatus(`Import-shape checks: ${pass}/${IMPORT_SHAPE_IMAGE_CASES.length} passed from ${originLabel}.`);
+      }
+
+      function isHex64(value) {
+        const s = String(value || "").trim().toLowerCase();
+        return s.length === 64 && /^[0-9a-f]+$/.test(s);
+      }
+
+      function getRelayListForDiagnostics() {
+        const relayInput = relayUrlInput.value.trim();
+        const fromInput = relayInput ? [relayInput] : [];
+        const fromStorage = (localStorage.getItem("relay_urls") || "")
+          .split(/\r?\n/)
+          .map((u) => u.trim())
+          .filter(Boolean);
+        const merged = [...new Set([...fromInput, ...fromStorage])];
+        return merged.filter((u) => u.startsWith("ws://") || u.startsWith("wss://")).slice(0, 8);
+      }
+
+      function subscribeOnceForDiagnostics(relayUrl, filter, waitMs = 2800) {
+        return new Promise((resolve) => {
+          let ws;
+          let settled = false;
+          let authChallenge = false;
+          const events = [];
+          const notices = [];
+          const subId = `diag-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+          const timer = setTimeout(() => finish("timeout"), waitMs);
+
+          const finish = (reason) => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            try {
+              if (ws && ws.readyState <= WebSocket.OPEN) ws.close();
+            } catch (_) {}
+            resolve({ relayUrl, reason, authChallenge, events, notices });
+          };
+
+          try {
+            ws = new WebSocket(relayUrl);
+          } catch (err) {
+            resolve({ relayUrl, reason: "open_error", authChallenge, events, notices, error: String(err?.message || err) });
+            return;
+          }
+
+          ws.addEventListener("open", () => {
+            ws.send(JSON.stringify(["REQ", subId, filter]));
+          });
+          ws.addEventListener("message", (msg) => {
+            let data;
+            try {
+              data = JSON.parse(msg.data);
+            } catch {
+              return;
+            }
+            const [type, a, b] = data;
+            if (type === "AUTH") {
+              authChallenge = true;
+              notices.push("AUTH challenge (no auth sent in diagnostics)");
+              return;
+            }
+            if (type === "NOTICE") {
+              notices.push(String(a || ""));
+              return;
+            }
+            if (type === "EVENT") {
+              if (b && typeof b === "object") events.push(b);
+              return;
+            }
+            if (type === "EOSE") {
+              finish("eose");
+            }
+          });
+          ws.addEventListener("error", () => finish("ws_error"));
+          ws.addEventListener("close", () => finish("closed"));
+        });
+      }
+
+      async function runRelayDiagnostics() {
+        const relays = getRelayListForDiagnostics();
+        const lines = [];
+        lines.push(`Origin: ${window.location.origin || "file://"}`);
+        lines.push(`Import pubkey configured: ${importToolPubkeyHex}`);
+        lines.push(`Relay count: ${relays.length}`);
+        if (!isHex64(importToolPubkeyHex)) {
+          lines.push("FAIL: import pubkey is not valid hex64.");
+          relayDiagnosticsLogEl.textContent = lines.join("\n");
+          return;
+        }
+        if (!relays.length) {
+          lines.push("FAIL: no relays configured (relay input + relay_urls empty).");
+          relayDiagnosticsLogEl.textContent = lines.join("\n");
+          return;
+        }
+        lines.push("");
+
+        const circleFilter = {
+          kinds: [30410],
+          authors: [importToolPubkeyHex],
+          "#d": ["climbers"],
+          limit: 5
+        };
+        const profileFilter = {
+          kinds: [30390],
+          "#l": ["nostroots"],
+          limit: 10
+        };
+
+        let circleFound = 0;
+        let profileFound = 0;
+        for (const relay of relays) {
+          const [circleRes, profileRes] = await Promise.all([
+            subscribeOnceForDiagnostics(relay, circleFilter, 2500),
+            subscribeOnceForDiagnostics(relay, profileFilter, 2500)
+          ]);
+          const circleCount = circleRes.events.length;
+          const profileCount = profileRes.events.length;
+          circleFound += circleCount;
+          profileFound += profileCount;
+          lines.push(`Relay: ${relay}`);
+          lines.push(`  30410 d=climbers: ${circleCount} event(s) [${circleRes.reason}]${circleRes.authChallenge ? " AUTH-challenged" : ""}`);
+          lines.push(`  30390 #l nostroots: ${profileCount} event(s) [${profileRes.reason}]${profileRes.authChallenge ? " AUTH-challenged" : ""}`);
+          const n = [...circleRes.notices, ...profileRes.notices].filter(Boolean);
+          if (n.length) lines.push(`  Notices: ${n.slice(0, 2).join(" | ")}`);
+          lines.push("");
+        }
+        lines.push(`Summary: 30410(climbers) total=${circleFound}, 30390(nostroots) total=${profileFound}`);
+        if (circleFound === 0) {
+          lines.push("Likely cause for missing #climbers image: no matching 30410 metadata found on checked relays.");
+        }
+        if (profileFound === 0) {
+          lines.push("Likely cause for missing profile image: no matching 30390 claim found and API fallback may be blocked.");
+        }
+        relayDiagnosticsLogEl.textContent = lines.join("\n");
       }
 
       function setStatus(message) {
@@ -535,7 +856,71 @@
           </div>
           <pre>${linkifyTrustrootsUrls(escapeHtml(event.content || ""))}</pre>
         `;
+        const imageUrls = extractImageUrlsFromEvent(event);
+        if (imageUrls.length) {
+          const imagesWrap = document.createElement("div");
+          imagesWrap.className = "note-images";
+          imageUrls.forEach((url) => {
+            const img = document.createElement("img");
+            img.className = "note-image";
+            img.src = url;
+            img.alt = "";
+            img.loading = "lazy";
+            img.decoding = "async";
+            img.referrerPolicy = "no-referrer";
+            imagesWrap.appendChild(img);
+          });
+          box.appendChild(imagesWrap);
+        }
         return box;
+      }
+
+      function isLikelyImageUrl(url) {
+        const u = String(url || "").trim();
+        if (!/^https?:\/\//i.test(u)) return false;
+        return /\.(?:png|jpe?g|gif|webp|avif|bmp|svg)(?:$|[?#])/i.test(u);
+      }
+
+      function uniqueUrls(list) {
+        const seen = new Set();
+        const out = [];
+        list.forEach((url) => {
+          const value = String(url || "").trim();
+          if (!value || seen.has(value)) return;
+          seen.add(value);
+          out.push(value);
+        });
+        return out;
+      }
+
+      function extractImageUrlsFromEvent(event) {
+        const urls = [];
+        const content = String(event?.content || "");
+
+        // For kinds like 30390 / 30410, picture is usually in JSON content.
+        try {
+          const parsed = JSON.parse(content);
+          if (parsed && typeof parsed === "object") {
+            ["picture", "image", "avatar", "banner"].forEach((key) => {
+              const value = parsed[key];
+              if (isLikelyImageUrl(value)) urls.push(value);
+            });
+          }
+        } catch (_) {}
+
+        // Also surface explicit image URLs from plain-text content.
+        const textMatches = content.match(/https?:\/\/[^\s<)"']+/gi) || [];
+        textMatches.forEach((url) => {
+          if (isLikelyImageUrl(url)) urls.push(url);
+        });
+
+        // Include image-looking r tags when present.
+        (event?.tags || []).forEach((tag) => {
+          if (!Array.isArray(tag) || tag[0] !== "r" || tag.length < 2) return;
+          if (isLikelyImageUrl(tag[1])) urls.push(tag[1]);
+        });
+
+        return uniqueUrls(urls);
       }
 
       function renderNotesList() {
@@ -671,6 +1056,12 @@
       });
 
       window.addEventListener("load", () => {
+        const tabFromHash = normalizeTabFromHash();
+        if (tabFromHash) {
+          showTab(tabFromHash, { updateHash: false });
+        } else {
+          setTabHash("relay");
+        }
         const savedRelayUrl = localStorage.getItem(relayUrlStorageKey);
         if (savedRelayUrl) {
           relayUrlInput.value = savedRelayUrl;
@@ -700,8 +1091,13 @@
         nsecInput.focus();
       });
 
-      relayTabBtn.addEventListener("click", () => showTab("relay"));
-      imageTabBtn.addEventListener("click", () => showTab("image"));
+      window.addEventListener("hashchange", () => {
+        const tabFromHash = normalizeTabFromHash();
+        if (tabFromHash) showTab(tabFromHash, { updateHash: false });
+      });
+
+      relayTabBtn.addEventListener("click", () => showTab("relay", { updateHash: true }));
+      imageTabBtn.addEventListener("click", () => showTab("image", { updateHash: true }));
       testImageBtn1.addEventListener("click", async () => {
         const originLabel = window.location.origin || "file://";
         setImageStatus(`Testing image 1 from ${originLabel} ...`);
@@ -716,6 +1112,8 @@
       });
       testAllImagesBtn.addEventListener("click", runImageTests);
       clearImageResultsBtn.addEventListener("click", clearImageResults);
+      runImportShapeImageTestsBtn.addEventListener("click", runImportShapeImageTests);
+      runRelayDiagnosticsBtn.addEventListener("click", runRelayDiagnostics);
 
       connectBtn.addEventListener("click", async () => {
         notesEl.innerHTML = "";

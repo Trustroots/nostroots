@@ -69,7 +69,7 @@ func eventForHost(record HostRecord, privateKey string) (nostr.Event, error) {
 	tags = append(tags,
 		nostr.Tag{"linkLabel", "posted by @" + record.User.Username},
 		nostr.Tag{"linkPath", "/profile/" + record.User.Username},
-		nostr.Tag{"t", "hostingoffers"},
+		nostr.Tag{"t", "hosting"},
 	)
 	profileURL := "https://www.trustroots.org/profile/" + record.User.Username
 	tags = append(tags,

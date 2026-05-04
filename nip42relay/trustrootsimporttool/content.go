@@ -37,7 +37,7 @@ func truncateRunes(value string, limit int) string {
 func buildNoteContent(description string, user User) string {
 	base := cleanContent(description)
 	profileURL := "https://www.trustroots.org/profile/" + user.Username
-	suffix := "\n\n#hostingoffers\n" + profileURL + "\n" + strings.TrimSpace(user.NostrNpub)
+	suffix := "\n\n#hosting\n" + profileURL + "\n" + strings.TrimSpace(user.NostrNpub)
 	suffixRunes := len([]rune(suffix))
 
 	if suffixRunes >= maxContentLength {

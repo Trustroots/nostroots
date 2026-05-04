@@ -33,8 +33,8 @@ func TestBuildNoteContent(t *testing.T) {
 	if !strings.Contains(got, "https://www.trustroots.org/profile/alice") {
 		t.Fatalf("missing Trustroots profile link in content: %q", got)
 	}
-	if !strings.Contains(got, "#hostingoffers") {
-		t.Fatalf("missing #hostingoffers in content: %q", got)
+	if !strings.Contains(got, "#hosting") {
+		t.Fatalf("missing #hosting in content: %q", got)
 	}
 	if !strings.Contains(got, user.NostrNpub) {
 		t.Fatalf("missing npub in content: %q", got)

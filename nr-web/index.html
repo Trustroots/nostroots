@@ -978,13 +978,6 @@
             align-items: center;
             gap: 0.5rem;
         }
-        .notes-mushroom-icon {
-            width: 22px;
-            height: 22px;
-            flex-shrink: 0;
-            color: var(--terracotta);
-            opacity: 0.9;
-        }
         
         .notes-modal-content .notes-list {
             flex: 1;
@@ -1389,6 +1382,7 @@
             </aside>
             <section class="thread-area">
                 <div class="thread-header" id="thread-header" style="display:none;">
+                    <img id="thread-chat-image" class="thread-chat-image" alt="" loading="lazy" decoding="async" style="display:none" />
                     <button type="button" class="back-btn" id="thread-back-btn" title="Back to chats" aria-label="Back to chats"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg></button>
                     <span class="thread-header-enc-wrap">
                         <span class="enc-icon" id="thread-enc-icon" title=""></span>
@@ -1399,7 +1393,7 @@
                             <span id="thread-title"></span>
                             <div id="thread-header-circle-stack" class="thread-header-circle-stack" style="display:none">
                                 <p id="thread-circle-subtitle" class="thread-circle-subtitle"></p>
-                                <a id="thread-circle-link" class="thread-circle-link" href="#" target="_blank" rel="noopener noreferrer" style="display:none">View on Trustroots</a>
+                                <a id="thread-circle-link" class="thread-circle-link" href="#" target="_blank" rel="noopener noreferrer" style="display:none">Trustroots</a>
                             </div>
                         </div>
                         <img id="thread-circle-avatar" class="thread-circle-avatar" alt="" width="40" height="40" loading="lazy" decoding="async" style="display:none" />
@@ -1485,11 +1479,6 @@
         <div class="modal-content notes-modal-content">
             <div class="modal-header">
                 <div class="modal-header-title-row">
-                    <svg class="notes-mushroom-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" aria-hidden="true">
-                        <ellipse cx="12" cy="10" rx="6" ry="4"/>
-                        <path d="M8 10v8h8v-8"/>
-                        <path d="M6 8q6 0 12 0" stroke-dasharray="2 1.5" opacity="0.6"/>
-                    </svg>
                     <h2 id="pluscode-notes-title">Notes</h2>
                 </div>
                 <div id="notification-subscribe-block" class="notification-subscribe-block" style="display: none; padding: 0 0.5rem; font-size: 0.9rem;"></div>

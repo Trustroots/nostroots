@@ -67,8 +67,8 @@ func TestEventForHost(t *testing.T) {
 	if tag := event.Tags.GetFirst([]string{"trustroots", "alice"}); tag == nil {
 		t.Fatalf("missing trustroots tag: %#v", event.Tags)
 	}
-	if tag := event.Tags.GetFirst([]string{"t", "hostingoffers"}); tag == nil {
-		t.Fatalf("missing t hostingoffers tag: %#v", event.Tags)
+	if tag := event.Tags.GetFirst([]string{"t", "hosting"}); tag == nil {
+		t.Fatalf("missing t hosting tag: %#v", event.Tags)
 	}
 	if tag := event.Tags.GetFirst([]string{"t", "hitchhikers"}); tag == nil {
 		t.Fatalf("missing t circle tag: %#v", event.Tags)

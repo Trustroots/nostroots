@@ -742,13 +742,6 @@
     align-items: center;
     gap: 0.5rem;
 }
-.notes-mushroom-icon {
-    width: 22px;
-    height: 22px;
-    flex-shrink: 0;
-    color: var(--terracotta);
-    opacity: 0.9;
-}
 
 .notes-modal-content .notes-list {
     flex: 1;

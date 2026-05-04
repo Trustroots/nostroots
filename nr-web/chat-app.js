@@ -27,6 +27,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
 
         const MAP_NOTE_KIND = 30397;
         const MAP_NOTE_REPOST_KIND = 30398;
+        const PROFILE_CLAIM_KIND = 30390;
         const TRUSTROOTS_PROFILE_KIND = 10390;
         const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = 'org.trustroots:username';
         const TRUSTROOTS_USERNAME_CACHE_STORAGE_KEY = 'trustroots_username_by_pubkey';
@@ -77,6 +78,8 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
         const pubkeyToUsername = new Map();
         /** NIP-05 from kind 0 (any domain). Used for display; prefer over npub. */
         const pubkeyToNip05 = new Map();
+        /** Profile/circle picture by pubkey for chat headers and DM avatars. */
+        const pubkeyToPicture = new Map();
 
         function isTrustrootsNip05Lower(s) {
             const n = String(s || '').trim().toLowerCase();
@@ -178,6 +181,40 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
 
         function normalizeCircleSlug(slug) {
             return String(slug || '').trim().toLowerCase();
+        }
+
+        function trustrootsCirclePictureFallback(slug) {
+            const key = normalizeCircleSlug(slug);
+            if (!key) return '';
+            if (!TRUSTROOTS_CIRCLE_SLUGS_SET.has(key)) return '';
+            return `https://www.trustroots.org/uploads-circle/${encodeURIComponent(key)}/1400x900.webp`;
+        }
+
+        function jpgFallbackForImageUrl(url) {
+            const value = String(url || '').trim();
+            if (!value) return '';
+            return value.replace(/\/1400x900\.webp(?:[?#].*)?$/i, '/742x496.jpg');
+        }
+
+        function setImageWithFallback(imgEl, url, altText) {
+            if (!imgEl) return;
+            const primary = String(url || '').trim();
+            if (!primary) {
+                imgEl.removeAttribute('src');
+                imgEl.style.display = 'none';
+                imgEl.onerror = null;
+                return;
+            }
+            const fallback = jpgFallbackForImageUrl(primary);
+            imgEl.onerror = fallback && fallback !== primary
+                ? () => {
+                    imgEl.onerror = null;
+                    imgEl.src = fallback;
+                }
+                : null;
+            imgEl.src = primary;
+            if (altText != null) imgEl.alt = altText;
+            imgEl.style.display = 'block';
         }
 
         /** True when this slug matches a Trustroots tribe (relay 30410 or known slug list), not only ad-hoc #channels. */
@@ -398,6 +435,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     conversations: convArr,
                     pubkeyToUsername: Array.from(pubkeyToUsername.entries()),
                     pubkeyToNip05: Array.from(pubkeyToNip05.entries()),
+                    pubkeyToPicture: Array.from(pubkeyToPicture.entries()),
                     deletedEventIds: Array.from(deletedEventIds),
                     eventAuthorById: Array.from(eventAuthorById.entries()),
                     timestamp: Date.now()
@@ -468,6 +506,8 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                 for (const [k, v] of (data.pubkeyToUsername || [])) pubkeyToUsername.set(k, v);
                 pubkeyToNip05.clear();
                 for (const [k, v] of (data.pubkeyToNip05 || [])) pubkeyToNip05.set(k, v);
+                pubkeyToPicture.clear();
+                for (const [k, v] of (data.pubkeyToPicture || [])) pubkeyToPicture.set(k, v);
                 if (currentPublicKey) currentUserNip05 = pubkeyToNip05.get(currentPublicKey) || '';
                 deletedEventIds.clear();
                 for (const id of (data.deletedEventIds || [])) deletedEventIds.add(id);
@@ -764,6 +804,23 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             if (full.includes('@') && full.length <= 32) return full;
             if (full.length <= 20) return full;
             return full.slice(0, 12) + '…' + full.slice(-8);
+        }
+
+        function profileHrefFromId(id) {
+            const raw = String(id || '').trim();
+            if (!raw) return '';
+            return '#profile/' + encodeURIComponent(raw).replace(/%2B/g, '+');
+        }
+
+        function setThreadTitleAsProfileLink(titleEl, profileId, label) {
+            if (!titleEl) return;
+            const href = profileHrefFromId(profileId);
+            const text = String(label || '').trim();
+            if (!href || !text) {
+                titleEl.textContent = text;
+                return;
+            }
+            titleEl.innerHTML = `<a href="${href}" class="message-inline-link nr-content-link">${escapeHtml(text)}</a>`;
         }
 
         /** Display label for a pubkey (nip5 or npub); used in thread author and meta. */
@@ -1694,6 +1751,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     try {
                         const profile = JSON.parse(event.content);
                         const nip05 = (profile.nip05 || '').trim();
+                        const picture = String(profile.picture || '').trim();
                         if (nip05) {
                             pubkeyToNip05.set(event.pubkey, nip05);
                             if (event.pubkey === currentPublicKey) {
@@ -1703,7 +1761,38 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                             scheduleChatCacheWrite();
                             scheduleRender('both');
                         }
+                        if (picture && isSafeHttpUrl(picture)) {
+                            pubkeyToPicture.set(event.pubkey, picture);
+                            scheduleChatCacheWrite();
+                            scheduleRender('both');
+                            const selDm = selectedConversationId ? conversations.get(selectedConversationId) : null;
+                            if (selDm && selDm.type === 'dm' && selDm.id === event.pubkey) {
+                                syncThreadHeaderForConversation(selDm);
+                            }
+                        }
                     } catch (_) {}
+                }
+            } });
+
+            pool.subscribe(relays, { kinds: [PROFILE_CLAIM_KIND], limit: 1000 }, { onevent(event) {
+                if (event.kind !== PROFILE_CLAIM_KIND || !event.content) return;
+                let picture = '';
+                try {
+                    const profile = JSON.parse(event.content);
+                    picture = String(profile.picture || '').trim();
+                } catch (_) {
+                    picture = '';
+                }
+                if (!picture || !isSafeHttpUrl(picture)) return;
+                const pTag = (event.tags || []).find((t) => Array.isArray(t) && t[0] === 'p' && t[1]);
+                const targetPubkey = String(pTag?.[1] || '').trim().toLowerCase();
+                if (!/^[0-9a-f]{64}$/.test(targetPubkey)) return;
+                pubkeyToPicture.set(targetPubkey, picture);
+                scheduleChatCacheWrite();
+                scheduleRender('both');
+                const selDm = selectedConversationId ? conversations.get(selectedConversationId) : null;
+                if (selDm && selDm.type === 'dm' && selDm.id === targetPubkey) {
+                    syncThreadHeaderForConversation(selDm);
                 }
             } });
 
@@ -2149,7 +2238,9 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                 if (isCircle) {
                     const meta = circleMetaBySlug.get(normalizeCircleSlug(id)) || {};
                     const slug = id;
-                    const pic = meta.picture && isSafeHttpUrl(meta.picture) ? meta.picture : '';
+                    const pic = meta.picture && isSafeHttpUrl(meta.picture)
+                        ? meta.picture
+                        : trustrootsCirclePictureFallback(slug);
                     const about = meta.about && String(meta.about).trim();
                     const hashEsc = escConvHtml('#' + slug);
                     const line =
@@ -2278,8 +2369,10 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
         }
 
         function syncThreadHeaderForConversation(conv) {
+            const headerEl = document.getElementById('thread-header');
             const titleEl = document.getElementById('thread-title');
             const avatarEl = document.getElementById('thread-circle-avatar');
+            const heroEl = document.getElementById('thread-chat-image');
             const subEl = document.getElementById('thread-circle-subtitle');
             const linkEl = document.getElementById('thread-circle-link');
             const stackEl = document.getElementById('thread-header-circle-stack');
@@ -2291,6 +2384,11 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     avatarEl.removeAttribute('src');
                     avatarEl.style.display = 'none';
                 }
+                if (heroEl) {
+                    heroEl.removeAttribute('src');
+                    heroEl.style.display = 'none';
+                }
+                if (headerEl) headerEl.classList.remove('thread-header-has-image');
                 if (subEl) {
                     subEl.textContent = '';
                     subEl.style.display = 'none';
@@ -2308,10 +2406,20 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
 
             if (conv.type === 'dm' || conv.type === 'group') {
                 resetCircleChrome();
-                titleEl.textContent =
-                    conv.type === 'group'
-                        ? `Group (${conv.members.length})`
-                        : getDisplayNameShort(conv.id) || getDisplayName(conv.id) || conv.id;
+                if (conv.type === 'dm') {
+                    const pic = pubkeyToPicture.get(conv.id);
+                    if (pic && isSafeHttpUrl(pic)) {
+                        setImageWithFallback(heroEl, pic, '');
+                        if (headerEl) headerEl.classList.add('thread-header-has-image');
+                    }
+                }
+                if (conv.type === 'group') {
+                    titleEl.textContent = `Group (${conv.members.length})`;
+                } else {
+                    const profileId = getDisplayName(conv.id) || hexToNpub(conv.id) || conv.id;
+                    const label = profileId.includes('@') ? profileId : (getDisplayNameShort(conv.id) || profileId);
+                    setThreadTitleAsProfileLink(titleEl, profileId, label);
+                }
                 return;
             }
 
@@ -2325,20 +2433,29 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     const slug = conv.id;
                     const slugKey = normalizeCircleSlug(slug);
                     const meta = circleMetaBySlug.get(slugKey) || {};
+                    const circlePicture = meta.picture && isSafeHttpUrl(meta.picture)
+                        ? meta.picture
+                        : trustrootsCirclePictureFallback(slugKey);
                     const hash = '#' + slug;
                     titleEl.textContent = hash;
                     const about = meta.about && String(meta.about).trim();
                     const showTrustrootsLink = hasPublishedTrustrootsCircle(slug);
                     if (stackEl) stackEl.style.display = about || showTrustrootsLink ? 'flex' : 'none';
-                    if (avatarEl) {
-                        if (meta.picture && isSafeHttpUrl(meta.picture)) {
-                            avatarEl.src = meta.picture;
-                            avatarEl.alt = hash;
-                            avatarEl.style.display = '';
-                        } else {
-                            avatarEl.removeAttribute('src');
-                            avatarEl.style.display = 'none';
+                    if (circlePicture) {
+                        if (heroEl) {
+                            setImageWithFallback(heroEl, circlePicture, '');
                         }
+                        if (headerEl) headerEl.classList.add('thread-header-has-image');
+                    } else {
+                        if (heroEl) {
+                            heroEl.removeAttribute('src');
+                            heroEl.style.display = 'none';
+                        }
+                        if (headerEl) headerEl.classList.remove('thread-header-has-image');
+                    }
+                    if (avatarEl) {
+                        avatarEl.removeAttribute('src');
+                        avatarEl.style.display = 'none';
                     }
                     if (subEl) {
                         if (about) {
@@ -2675,7 +2792,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     delBtn.className = 'message-delete';
                     delBtn.title = 'Delete message (NIP-09)';
                     delBtn.setAttribute('aria-label', 'Delete message');
-                    delBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+                    delBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
                     delBtn.onclick = (e) => { e.preventDefault(); openDeleteConfirmModal(ev.id); };
                     row.appendChild(delBtn);
                 }

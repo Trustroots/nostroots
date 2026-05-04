@@ -706,9 +706,7 @@ export function parseKeyImportToHex(raw) {
         try {
             const decoded = nip19.decode(input);
             if (decoded && decoded.type === 'nsec' && decoded.data) {
-                const bytes = decoded.data;
-                const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('');
-                return { ok: true, hex };
+                return { ok: true, hex: bytesToHex(decoded.data) };
             }
         } catch (_) {}
         return { ok: false, kind: 'invalid' };
@@ -721,9 +719,7 @@ export function parseKeyImportToHex(raw) {
         try {
             if (!validateMnemonic(input)) return { ok: false, kind: 'invalid' };
             const seed = mnemonicToSeedSync(input);
-            const privateKeyBytes = seed.slice(0, 32);
-            const hex = Array.from(privateKeyBytes).map((b) => b.toString(16).padStart(2, '0')).join('');
-            return { ok: true, hex };
+            return { ok: true, hex: bytesToHex(seed.slice(0, 32)) };
         } catch (_) {
             return { ok: false, kind: 'invalid' };
         }
@@ -747,6 +743,168 @@ export function getKeyImportErrorMessage(input) {
 /** Encode a 64-char hex secret key as nsec1…; useful for export-to-clipboard flows. */
 export function nsecEncodeFromHex64(hex) {
     return nip19.nsecEncode(secretKeyBytesFromHex64(hex));
+}
+
+/** Lowercase hex of a 32-byte Uint8Array. Empty string for null/undefined. */
+export function bytesToHex(bytes) {
+    if (!bytes) return '';
+    let out = '';
+    for (let i = 0; i < bytes.length; i++) out += bytes[i].toString(16).padStart(2, '0');
+    return out;
+}
+
+/** Decode an `npub1…` string to lowercase 64-char hex, or '' on error. */
+export function npubToHex(npub) {
+    try {
+        const d = nip19.decode(String(npub || '').trim());
+        if (d.type !== 'npub') return '';
+        return bytesToHex(d.data);
+    } catch (_) {
+        return '';
+    }
+}
+
+/** Encode a 64-char hex public key as `npub1…`. Returns '' on error. */
+export function hexToNpub(hex) {
+    try {
+        return nip19.npubEncode(String(hex || '').trim().toLowerCase());
+    } catch (_) {
+        return '';
+    }
+}
+
+/**
+ * Cached `npub1…` for the current signed-in pubkey. Invalidates whenever `currentPublicKey`
+ * changes (login / import / logout). Returns '' when no key is loaded.
+ */
+let _nrCurrentNpubCache = { hex: '', npub: '' };
+export function getCurrentNpub() {
+    const hex = (typeof currentPublicKey === 'string' && currentPublicKey) || '';
+    if (hex && hex === _nrCurrentNpubCache.hex) return _nrCurrentNpubCache.npub;
+    const npub = hex ? hexToNpub(hex) : '';
+    _nrCurrentNpubCache = { hex, npub };
+    return npub;
+}
+
+// ---------------------------------------------------------------------------
+// DRY localStorage helpers
+//
+// Single place for "read / write / remove with a swallowed try/catch", plus typed
+// store objects for the highest-volume keys (relay URLs, map view, map renderer,
+// notifications-enabled). Direct localStorage access is still used for niche
+// one-off keys; consolidate further if any of those grow more call sites.
+// ---------------------------------------------------------------------------
+
+/** Read a string from localStorage; returns '' if missing or unavailable. */
+export function lsGet(key) {
+    try { return (typeof localStorage !== 'undefined' && localStorage.getItem(key)) || ''; }
+    catch (_) { return ''; }
+}
+
+/** Write a string to localStorage; no-op on failure. */
+export function lsSet(key, value) {
+    try { localStorage.setItem(key, value); } catch (_) {}
+}
+
+/** Remove a key from localStorage; no-op on failure. */
+export function lsRemove(key) {
+    try { localStorage.removeItem(key); } catch (_) {}
+}
+
+/** Relay URL list — newline-separated string, normalized to wss/ws-only. */
+export const relayUrlsStore = {
+    KEY: 'relay_urls',
+    read() {
+        const raw = lsGet(this.KEY);
+        if (!raw) return [];
+        return raw.split('\n').map((s) => s.trim()).filter(Boolean);
+    },
+    write(urls) {
+        const list = Array.isArray(urls) ? urls.map((s) => String(s || '').trim()).filter(Boolean) : [];
+        if (list.length) lsSet(this.KEY, list.join('\n'));
+        else lsRemove(this.KEY);
+    },
+    clear() { lsRemove(this.KEY); },
+};
+
+/** Map viewport persistence (center as [lng,lat], integer zoom). */
+export const mapViewStore = {
+    CENTER_KEY: 'map_center',
+    ZOOM_KEY: 'map_zoom',
+    readCenter() {
+        try {
+            const raw = lsGet(this.CENTER_KEY);
+            if (!raw) return null;
+            const v = JSON.parse(raw);
+            if (!Array.isArray(v) || v.length !== 2) return null;
+            const [lng, lat] = v;
+            if (typeof lng !== 'number' || typeof lat !== 'number') return null;
+            return [lng, lat];
+        } catch (_) { return null; }
+    },
+    readZoom() {
+        const raw = lsGet(this.ZOOM_KEY);
+        if (!raw) return null;
+        const z = parseFloat(raw);
+        return Number.isFinite(z) ? z : null;
+    },
+    writeCenter(lng, lat) { lsSet(this.CENTER_KEY, JSON.stringify([lng, lat])); },
+    writeZoom(zoom) { lsSet(this.ZOOM_KEY, String(zoom)); },
+};
+
+/** Active map renderer ('maplibre' | 'leaflet' | ''). */
+export const mapRendererStore = {
+    KEY: 'nr-web.mapRenderer',
+    read() { return lsGet(this.KEY).toLowerCase(); },
+    write(value) { lsSet(this.KEY, String(value || '').toLowerCase()); },
+};
+
+/** Notifications opt-in toggle (boolean stored as 'true'/'false'). */
+export const notificationsEnabledStore = {
+    KEY: 'notifications_enabled',
+    read() { return lsGet(this.KEY) === 'true'; },
+    write(enabled) { lsSet(this.KEY, enabled ? 'true' : 'false'); },
+};
+
+/**
+ * Expiration setting (seconds) shared by map (EXPIRATION_SETTING_KEY) and chat
+ * (NR_EXPIRATION_STORAGE_KEY) — same string, so consolidate to a single store.
+ */
+export const expirationSecondsStore = {
+    KEY: 'nostroots_expiration_seconds',
+    read() {
+        const raw = lsGet(this.KEY);
+        if (!raw) return null;
+        const n = parseInt(raw, 10);
+        return Number.isFinite(n) ? n : null;
+    },
+    write(seconds) { lsSet(this.KEY, String(seconds)); },
+};
+
+/** Diagnostic-only nsec for the nip42 test page; never used in production flows. */
+export const NIP42_TEST_NSEC_KEY = 'nip42test.nsec';
+
+/**
+ * Run `fn` and swallow any thrown error, returning `fallback` instead.
+ * Replaces the very common `try { fn(); } catch (_) {}` and `try { return fn(); } catch (_) { return X; }`
+ * boilerplate.
+ */
+export function safe(fn, fallback) {
+    try { return fn(); } catch (_) { return fallback; }
+}
+
+/**
+ * Tiny modal helper: `modal('keys-modal').open()` / `.close()`.
+ * Replaces `el.classList.add('active')` / `remove('active')` boilerplate at modal toggle sites.
+ */
+export function modal(id) {
+    const el = (typeof document !== 'undefined') ? document.getElementById(id) : null;
+    return {
+        el,
+        open() { if (el) el.classList.add('active'); },
+        close() { if (el) el.classList.remove('active'); },
+        isOpen() { return !!(el && el.classList.contains('active')); },
+    };
 }
 
 /** Same string as legacy localStorage keys; values live in IndexedDB after migrate. */
@@ -858,11 +1016,7 @@ function ensureChatEmbeddedReady() {
 // Decode blocklist npubs to hex (shared blocklist in common.js)
 if (typeof NrBlocklist !== 'undefined' && NrBlocklist.BLOCKLIST_NPUBS && nip19) {
     const blocklistHex = NrBlocklist.BLOCKLIST_NPUBS.map((n) => {
-        try {
-            const d = nip19.decode(n);
-            if (d.type === 'npub') return Array.from(d.data).map(b => b.toString(16).padStart(2, '0')).join('');
-        } catch (_) {}
-        return null;
+        return npubToHex(n) || null;
     }).filter(Boolean);
     NrBlocklist.setBlocklistHex(blocklistHex);
 }
@@ -935,6 +1089,38 @@ async function authenticateRelay(relay, relayUrl, challenge) {
     }
     const signedAuth = await signEventTemplate(authTemplate);
     await relay.auth(signedAuth);
+}
+
+/**
+ * One-shot REQ to a single relay. Subscribes, collects events via `onEvent`, closes
+ * on EOSE or after `waitMs`. Always closes the subscription and relay socket.
+ * Errors and EOSE timeouts resolve quietly so callers can wrap in `Promise.allSettled`.
+ */
+async function oneshotQuery(url, filter, { onEvent, waitMs = 2000 } = {}) {
+    let relay = null;
+    let sub = null;
+    try {
+        relay = await Relay.connect(url);
+        await new Promise((resolve) => {
+            let settled = false;
+            const finish = () => {
+                if (settled) return;
+                settled = true;
+                try { sub?.close(); } catch (_) {}
+                try { relay?.close(); } catch (_) {}
+                resolve();
+            };
+            const filters = Array.isArray(filter) ? filter : [filter];
+            sub = relay.subscribe(filters, {
+                onevent: (event) => { try { onEvent?.(event); } catch (_) {} },
+                oneose: finish,
+            });
+            setTimeout(finish, waitMs);
+        });
+    } catch (_) {
+        try { sub?.close?.(); } catch (_) {}
+        try { relay?.close?.(); } catch (_) {}
+    }
 }
 
 async function publishToRelayViaRawWebSocket(url, signedEvent) {
@@ -1680,7 +1866,8 @@ const NR_MAP_CACHE_RECORD_KEY = 'events_v1';
 const NR_MAP_CACHE_PROFILES_RECORD_KEY = 'profiles_v1';
 /** Max pubkey→username pairs persisted (map insertion order, newest wins when trimming). */
 const PROFILE_USERNAME_CACHE_MAX_ENTRIES = 2500;
-const EXPIRATION_SETTING_KEY = 'nostroots_expiration_seconds';
+// expirationSecondsStore (module-scope) owns this key — keep the constant for legacy refs.
+const EXPIRATION_SETTING_KEY = expirationSecondsStore.KEY;
 let cachedFilteredEvents = null;
 let filteredEventsCacheKey = null;
 let localStorageWriteTimeout = null;
@@ -2129,9 +2316,7 @@ function getPlusCodePrefixes(plusCode, minimumLength = 2) {
 
 // Key management
 function generateKeyPair() {
-    const privateKey = new Uint8Array(32);
-    crypto.getRandomValues(privateKey);
-    const privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('');
+    const privateKeyHex = bytesToHex(generateSecretKey());
     savePrivateKey(privateKeyHex);
     if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
         window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'generated');
@@ -2286,12 +2471,8 @@ function updateKeyDisplay(options = {}) {
     const showChecklist = keySource === 'generated';
     const isNsecBackedUp = keysModal?.isKeyBackedUpForPubkey?.(currentPublicKey) === true;
     if (currentPublicKey) {
-        try {
-            npub = nip19.npubEncode(currentPublicKey);
-        } catch (error) {
-            console.error('Error encoding npub:', error);
-            npubError = 'Error encoding npub';
-        }
+        npub = getCurrentNpub();
+        if (!npub) npubError = 'Error encoding npub';
     } else {
         isProfileLinked = false;
         updateLinkProfileButton();
@@ -2365,8 +2546,7 @@ function setHeaderIdentity() {
             node.classList.remove('nip5');
             return;
         }
-        let npubStr = '';
-        try { npubStr = nip19.npubEncode(currentPublicKey); } catch (_) {}
+        const npubStr = getCurrentNpub();
         const trUsername = document.getElementById('trustroots-username')?.value?.trim() || pubkeyToUsername.get(currentPublicKey) || null;
         node.classList.remove('empty');
         if (trUsername) {
@@ -2480,7 +2660,7 @@ function saveRelays() {
     if (relaySettings?.saveRelayUrls) {
         relaySettings.saveRelayUrls(urls);
     } else {
-        localStorage.setItem('relay_urls', urls.join('\n'));
+        relayUrlsStore.write(urls);
     }
     showStatus('Relays saved! Reconnecting...', 'info');
     initializeNDK();
@@ -2595,7 +2775,7 @@ function addRelay() {
     if (relaySettings?.saveRelayUrls) {
         relaySettings.saveRelayUrls(allUrls);
     } else {
-        localStorage.setItem('relay_urls', allUrls.join('\n'));
+        relayUrlsStore.write(allUrls);
     }
     saveRelayWritePreferences();
     
@@ -2619,9 +2799,9 @@ function removeRelay(url) {
     if (relaySettings?.saveRelayUrls) {
         relaySettings.saveRelayUrls(urls);
     } else if (urls.length > 0) {
-        localStorage.setItem('relay_urls', urls.join('\n'));
+        relayUrlsStore.write(urls);
     } else {
-        localStorage.removeItem('relay_urls');
+        relayUrlsStore.clear();
     }
     saveRelayWritePreferences();
     
@@ -2639,7 +2819,8 @@ function removeRelay(url) {
 // push tokens + Nostr filters; the server subscribes to kind 30398 (reposts) per filter
 // and sends push when matching events appear. So nr-web = same notes, local-only UI;
 // nr-app = 10395 + push server + 30398 filters for delivery when app is closed.
-const NOTIFICATIONS_ENABLED_KEY = 'notifications_enabled';
+// notificationsEnabledStore (module-scope) owns the storage key 'notifications_enabled'.
+const NOTIFICATIONS_ENABLED_KEY = notificationsEnabledStore.KEY;
 let pendingNotificationPlusCode = null;
 
 function getNotificationPlusCodes() {
@@ -2680,11 +2861,11 @@ function isSubscribedToPlusCode(plusCode) {
 }
 
 function isNotificationsEnabled() {
-    return localStorage.getItem(NOTIFICATIONS_ENABLED_KEY) === 'true';
+    return notificationsEnabledStore.read();
 }
 
 function setNotificationsEnabled(enabled) {
-    localStorage.setItem(NOTIFICATIONS_ENABLED_KEY, enabled ? 'true' : 'false');
+    notificationsEnabledStore.write(enabled);
 }
 
 function requestNotificationPermission() {
@@ -3423,25 +3604,17 @@ function scheduleCacheWrite() {
 
 // Expiration setting functions (matching nr-app)
 function getExpirationSetting() {
-    const saved = localStorage.getItem(EXPIRATION_SETTING_KEY);
-    if (saved) {
-        const parsed = parseInt(saved);
-        // Validate it's one of the allowed values
-        const validValues = [HOUR_IN_SECONDS, DAY_IN_SECONDS, WEEK_IN_SECONDS, MONTH_IN_SECONDS, YEAR_IN_SECONDS];
-        if (!isNaN(parsed) && validValues.includes(parsed)) {
-            return parsed;
-        }
-    }
+    const saved = expirationSecondsStore.read();
+    const validValues = [HOUR_IN_SECONDS, DAY_IN_SECONDS, WEEK_IN_SECONDS, MONTH_IN_SECONDS, YEAR_IN_SECONDS];
+    if (saved != null && validValues.includes(saved)) return saved;
     return WEEK_IN_SECONDS; // Default to 1 week (matching nr-app)
 }
 
 function saveExpirationSetting(value) {
     const parsed = parseInt(value);
-    // Validate it's one of the allowed values
     const validValues = [HOUR_IN_SECONDS, DAY_IN_SECONDS, WEEK_IN_SECONDS, MONTH_IN_SECONDS, YEAR_IN_SECONDS];
     if (!isNaN(parsed) && validValues.includes(parsed)) {
-        localStorage.setItem(EXPIRATION_SETTING_KEY, parsed.toString());
-        // Sync expiration input
+        expirationSecondsStore.write(parsed);
         document.getElementById('note-expiration-in-modal').value = parsed;
     }
 }
@@ -4012,17 +4185,8 @@ function linkifyTrustrootsUrls(html) {
 function linkifyNpubsWithKnownTrustrootsProfiles(html) {
     if (!html || typeof nip19 === 'undefined' || !nip19.decode) return html || '';
     return html.replace(/\bnpub1[023456789acdefghjkmnpqrstuvwxyz]{20,}\b/gi, (npubStr) => {
-        let hex = '';
-        try {
-            const d = nip19.decode(npubStr);
-            if (d.type !== 'npub') return npubStr;
-            hex = Array.from(d.data)
-                .map((b) => b.toString(16).padStart(2, '0'))
-                .join('')
-                .toLowerCase();
-        } catch (_) {
-            return npubStr;
-        }
+        const hex = npubToHex(npubStr);
+        if (!hex) return npubStr;
         let nip05 = (pubkeyToNip05.get(hex) || '').trim().toLowerCase();
         if (!nip05 || !isTrustrootsNip05Lower(nip05)) {
             const u = pubkeyToUsername.get(hex);
@@ -4035,17 +4199,7 @@ function linkifyNpubsWithKnownTrustrootsProfiles(html) {
 }
 
 function npubBech32ToHex(npubStr) {
-    if (typeof nip19 === 'undefined' || !nip19.decode) return '';
-    try {
-        const d = nip19.decode(npubStr);
-        if (d.type !== 'npub') return '';
-        return Array.from(d.data)
-            .map((b) => b.toString(16).padStart(2, '0'))
-            .join('')
-            .toLowerCase();
-    } catch (_) {
-        return '';
-    }
+    return npubToHex(npubStr);
 }
 
 function collectNpubHexesFromNoteText(text) {
@@ -4485,19 +4639,9 @@ function initializeLeafletFallback(reason) {
         mapContainer.innerHTML = '';
         mapContainer.dataset.mapFallback = 'leaflet';
 
-        let savedCenter = [0, 0];
-        let savedZoom = 2;
-        try {
-            const savedCenterStr = localStorage.getItem('map_center');
-            const savedZoomStr = localStorage.getItem('map_zoom');
-            if (savedCenterStr) {
-                const parsed = JSON.parse(savedCenterStr);
-                if (Array.isArray(parsed) && parsed.length === 2) savedCenter = parsed;
-            }
-            if (savedZoomStr) savedZoom = parseFloat(savedZoomStr);
-        } catch (e) {
-            console.warn('Failed to load saved map position for Leaflet fallback:', e);
-        }
+        let savedCenter = mapViewStore.readCenter() || [0, 0];
+        let savedZoom = mapViewStore.readZoom();
+        if (savedZoom == null) savedZoom = 2;
 
         const isTouchDevice = (typeof window !== 'undefined') &&
             (('ontouchstart' in window) ||
@@ -4598,8 +4742,8 @@ function initializeLeafletFallback(reason) {
         const onLeafMove = () => {
             const center = leafMap.getCenter();
             const zoom = leafMap.getZoom();
-            localStorage.setItem('map_center', JSON.stringify([center.lng, center.lat]));
-            localStorage.setItem('map_zoom', zoom.toString());
+            mapViewStore.writeCenter(center.lng, center.lat);
+            mapViewStore.writeZoom(zoom);
 
             clearTimeout(leafMoveTimeout);
             leafMoveTimeout = setTimeout(() => {
@@ -4629,10 +4773,10 @@ function getMapRendererPreference() {
         const u = new URL(window.location.href);
         const q = (u.searchParams.get('map') || '').toLowerCase();
         if (q === 'leaflet' || q === 'maplibre') {
-            try { localStorage.setItem('nr-web.mapRenderer', q); } catch (_) {}
+            mapRendererStore.write(q);
             return q;
         }
-        const stored = (localStorage.getItem('nr-web.mapRenderer') || '').toLowerCase();
+        const stored = mapRendererStore.read();
         if (stored === 'leaflet' || stored === 'maplibre') return stored;
     } catch (_) {}
     return '';
@@ -4658,21 +4802,9 @@ function initializeMap() {
             return initializeLeafletFallback('webgl-unavailable');
         }
         
-        // Load saved map position from localStorage
-        let savedCenter = [0, 0];
-        let savedZoom = 2;
-        try {
-            const savedCenterStr = localStorage.getItem('map_center');
-            const savedZoomStr = localStorage.getItem('map_zoom');
-            if (savedCenterStr) {
-                savedCenter = JSON.parse(savedCenterStr);
-            }
-            if (savedZoomStr) {
-                savedZoom = parseFloat(savedZoomStr);
-            }
-        } catch (e) {
-            console.warn('Failed to load saved map position:', e);
-        }
+        let savedCenter = mapViewStore.readCenter() || [0, 0];
+        let savedZoom = mapViewStore.readZoom();
+        if (savedZoom == null) savedZoom = 2;
         
         map = new maplibregl.Map({
             container: 'map',
@@ -4868,8 +5000,8 @@ function initializeMap() {
         // Save map position and zoom to localStorage
         const center = map.getCenter();
         const zoom = map.getZoom();
-        localStorage.setItem('map_center', JSON.stringify([center.lng, center.lat]));
-        localStorage.setItem('map_zoom', zoom.toString());
+        mapViewStore.writeCenter(center.lng, center.lat);
+        mapViewStore.writeZoom(zoom);
         
         // Don't update grid during active dragging - wait for dragend
         if (isDragging) {
@@ -4888,9 +5020,8 @@ function initializeMap() {
     });
     
     map.on('zoomend', () => {
-        // Save map zoom to localStorage
         const zoom = map.getZoom();
-        localStorage.setItem('map_zoom', zoom.toString());
+        mapViewStore.writeZoom(zoom);
         
         clearTimeout(moveTimeout);
         moveTimeout = setTimeout(() => {
@@ -5223,7 +5354,7 @@ function updatePlusCodeGrid() {
 }
 
 function closePlusCodeNotesModal(skipHashUpdate) {
-    document.getElementById('pluscode-notes-modal').classList.remove('active');
+    modal('pluscode-notes-modal').close();
     document.getElementById('note-content-in-modal').value = '';
     document.getElementById('note-expiration-in-modal').value = getExpirationSetting();
     // Clear selected circle when closing modal
@@ -5698,7 +5829,7 @@ function showNotesForPlusCode(plusCode, options = {}) {
     updatePlusCodeGrid();
 
     // Show modal FIRST so any subsequent fitBounds error never blocks opening it.
-    document.getElementById('pluscode-notes-modal').classList.add('active');
+    modal('pluscode-notes-modal').open();
 
     // Pan/zoom map so the selected cell is visible (skipped for e.g. Host & meet — keep viewport).
     if (map && !options.preserveMapView) {
@@ -6289,18 +6420,10 @@ async function checkProfileLinked() {
                     });
                     return;
                 }
-                const relay = await Relay.connect(url);
-                const sub = relay.subscribe([profileFilter], {
-                    onevent: (event) => applyProfileEvent(event),
-                    oneose: () => {
-                        relay.close();
-                    }
+                await oneshotQuery(url, profileFilter, {
+                    onEvent: (event) => applyProfileEvent(event),
+                    waitMs: 2000,
                 });
-                
-                // Wait a bit for events, then close
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                sub.close();
-                relay.close();
             } catch (error) {
                 console.error(`Error checking profile link on ${url}:`, error);
             }
@@ -6825,25 +6948,10 @@ async function refreshClaimSuggestions(options = {}) {
                 });
                 return;
             }
-            const relay = await Relay.connect(url);
-            const sub = relay.subscribe([filter], {
-                onevent: (event) => upsertClaimEvent(event),
-                oneose: () => {
-                    try {
-                        sub.close();
-                    } catch (_) {}
-                    try {
-                        relay.close();
-                    } catch (_) {}
-                }
+            await oneshotQuery(url, filter, {
+                onEvent: (event) => upsertClaimEvent(event),
+                waitMs: publicWaitMs,
             });
-            await new Promise((resolve) => setTimeout(resolve, publicWaitMs));
-            try {
-                sub.close();
-            } catch (_) {}
-            try {
-                relay.close();
-            } catch (_) {}
         } catch (_) {}
     };
 
@@ -6875,13 +6983,7 @@ function ownProfileHashRoute() {
         (pubkeyToUsername && pubkeyToUsername.get && pubkeyToUsername.get(currentPublicKey));
     let idPart = '';
     if (trU) idPart = `${String(trU).toLowerCase()}@trustroots.org`;
-    else {
-        try {
-            idPart = nip19.npubEncode(currentPublicKey);
-        } catch (_) {
-            idPart = String(currentPublicKey || '');
-        }
-    }
+    else idPart = getCurrentNpub() || String(currentPublicKey || '');
     if (!idPart) return '';
     return 'profile/' + encodeURIComponent(idPart).replace(/%2B/g, '+');
 }
@@ -6934,30 +7036,12 @@ async function fetchThemePreferenceFromRelaysIndex() {
     }];
     let best = null;
     for (const url of relayUrls) {
-        try {
-            const relay = await Relay.connect(url);
-            await new Promise((resolve) => {
-                let settled = false;
-                const sub = relay.subscribe(filter, {
-                    onevent: (ev) => {
-                        if (!best || ev.created_at > best.created_at) best = ev;
-                    },
-                    oneose: () => {
-                        settled = true;
-                        try { sub.close(); } catch (_) {}
-                        try { relay.close(); } catch (_) {}
-                        resolve();
-                    }
-                });
-                setTimeout(() => {
-                    if (settled) return;
-                    settled = true;
-                    try { sub.close(); } catch (_) {}
-                    try { relay.close(); } catch (_) {}
-                    resolve();
-                }, 4000);
-            });
-        } catch (_) {}
+        await oneshotQuery(url, filter, {
+            onEvent: (ev) => {
+                if (!best || ev.created_at > best.created_at) best = ev;
+            },
+            waitMs: 4000,
+        });
     }
     if (best) {
         const parsed = NT.parseThemeFromKind78Event(best, nip44, currentPrivateKeyBytes, currentPublicKey);
@@ -7055,17 +7139,10 @@ async function queryLatestUserEvent(kind, extraFilter) {
                 });
                 return;
             }
-            const relay = await Relay.connect(url);
-            const sub = relay.subscribe([filter], {
-                onevent: (event) => consider(event),
-                oneose: () => {
-                    try { sub.close(); } catch (_) {}
-                    try { relay.close(); } catch (_) {}
-                }
+            await oneshotQuery(url, filter, {
+                onEvent: (event) => consider(event),
+                waitMs: 1200,
             });
-            await new Promise(resolve => setTimeout(resolve, 1200));
-            try { sub.close(); } catch (_) {}
-            try { relay.close(); } catch (_) {}
         } catch (_) {}
     });
     await Promise.allSettled(tasks);
@@ -7170,69 +7247,75 @@ async function claimExperiences() {
 }
 
 // Settings Modal Functions (modals injected by common.js)
-function openKeysModal(options = {}) {
+/**
+ * Shared open/close primitives for the Keys and Settings modals.
+ * Surface-specific behavior (hasKey check, fallback route after close, post-open callback)
+ * is supplied by the caller as a small options bag.
+ */
+function _openKeysModalShared({ hasKey, route = 'keys', onOpenManagedSection }) {
     const keysModal = window.NrWebKeysModal;
-    const hasKey = !!(currentPublicKey || currentPrivateKey);
     if (keysModal?.openKeysModal) {
-        keysModal.openKeysModal({
-            hasKey,
-            route: 'keys',
-            setRoute: setHashRoute,
-            onOpenManagedSection: () => {
-                try {
-                    window.NrWebUnmountClaimTrustrootsSection?.();
-                } catch (_) {}
-                updateKeyDisplay();
-            }
-        });
+        keysModal.openKeysModal({ hasKey, route, setRoute: setHashRoute, onOpenManagedSection });
         return;
     }
-    // Fallback if shared helper is unavailable.
     const keysEl = document.getElementById('keys-modal');
     if (keysEl) keysEl.classList.add('active');
-    setHashRoute('keys');
+    setHashRoute(route);
 }
 
-function closeKeysModal() {
+function _closeKeysModalShared({ fallbackRoute }) {
     const keysModal = window.NrWebKeysModal;
     if (keysModal?.closeKeysModal) {
-        keysModal.closeKeysModal({
-            fallbackRoute: selectedPlusCode || '',
-            setRoute: setHashRoute
-        });
+        keysModal.closeKeysModal({ fallbackRoute, setRoute: setHashRoute });
         return;
     }
     const el = document.getElementById('keys-modal');
     if (el) el.classList.remove('active');
-    setHashRoute(selectedPlusCode || '');
+    setHashRoute(fallbackRoute);
 }
 
-function openSettingsModal() {
+function _openSettingsModalShared({ extraSetup } = {}) {
     const keysEl = document.getElementById('keys-modal');
     const settingsEl = document.getElementById('settings-modal');
     if (keysEl) keysEl.classList.remove('active');
     if (settingsEl) settingsEl.classList.add('active');
     setHashRoute('settings');
-    renderSettingsNotificationsSection();
+    if (typeof renderSettingsNotificationsSection === 'function') renderSettingsNotificationsSection();
     window.NrWeb?.applySettingsFooterMetadataFromCache?.();
     window.NrWeb?.refreshSettingsFooterMetadata?.();
+    if (typeof extraSetup === 'function') extraSetup();
+}
+
+function _closeSettingsModalShared({ fallbackRoute }) {
+    const el = document.getElementById('settings-modal');
+    if (el) el.classList.remove('active');
+    setHashRoute(fallbackRoute);
+}
+
+function openKeysModal(options = {}) {
+    _openKeysModalShared({
+        hasKey: !!(currentPublicKey || currentPrivateKey),
+        onOpenManagedSection: () => {
+            try { window.NrWebUnmountClaimTrustrootsSection?.(); } catch (_) {}
+            updateKeyDisplay();
+        },
+    });
+}
+
+function closeKeysModal() {
+    _closeKeysModalShared({ fallbackRoute: selectedPlusCode || '' });
+}
+
+function openSettingsModal() {
+    _openSettingsModalShared();
 }
 
 function closeSettingsModal() {
-    const el = document.getElementById('settings-modal');
-    if (el) el.classList.remove('active');
-    setHashRoute(selectedPlusCode || '');
+    _closeSettingsModalShared({ fallbackRoute: selectedPlusCode || '' });
 }
 
-function openHelpModal() {
-    const el = document.getElementById('help-modal');
-    if (el) el.classList.add('active');
-}
-
-function closeHelpModal() {
-    const el = document.getElementById('help-modal');
-    if (el) el.classList.remove('active');
-}
+function openHelpModal() { modal('help-modal').open(); }
+function closeHelpModal() { modal('help-modal').close(); }
 
 function normalizeUserPlusCodeInput(raw) {
     if (raw == null || typeof raw !== 'string') return '';
@@ -7402,8 +7485,7 @@ async function updateTrustrootsProfile() {
         if (npubDisplay && npubDisplay.value) {
             npub = npubDisplay.value;
         } else {
-            // Generate npub if not in display
-            npub = nip19.npubEncode(currentPublicKey);
+            npub = getCurrentNpub();
         }
         
         // Copy to clipboard
@@ -7814,8 +7896,7 @@ const __nrChatApp = (() => {
             .toLowerCase();
         const NIP42_AUTH_KIND = 22242;
         const RELAY_PUBLISH_TIMEOUT_MS = 10000;
-        /** Same key / option set as map note composer in index.html */
-        const NR_EXPIRATION_STORAGE_KEY = 'nostroots_expiration_seconds';
+        /** Same option set as map note composer; storage is via expirationSecondsStore at module scope. */
         const NR_EXPIRATION_OPTION_SECONDS = [3600, 86400, 604800, 2592000, 31536000];
 
         function normalizeChannelSlug(slug) {
@@ -7828,15 +7909,11 @@ const __nrChatApp = (() => {
             return normalized;
         }
 
-        // Decode blocklist npubs to hex (shared blocklist in common.js)
+        // Decode blocklist npubs to hex (shared blocklist in common.js).
+        // The map surface ran the same loop on module init (~line 880); this branch only triggers
+        // if chat boots before that ran, e.g. in tests. Keep idempotent.
         if (typeof NrBlocklist !== 'undefined' && NrBlocklist.BLOCKLIST_NPUBS && nip19) {
-            const blocklistHex = NrBlocklist.BLOCKLIST_NPUBS.map((n) => {
-                try {
-                    const d = nip19.decode(n);
-                    if (d.type === 'npub') return Array.from(d.data).map(b => b.toString(16).padStart(2, '0')).join('');
-                } catch (_) {}
-                return null;
-            }).filter(Boolean);
+            const blocklistHex = NrBlocklist.BLOCKLIST_NPUBS.map((n) => npubToHex(n) || null).filter(Boolean);
             NrBlocklist.setBlocklistHex(blocklistHex);
         }
 
@@ -7850,10 +7927,7 @@ const __nrChatApp = (() => {
         /** Profile/circle picture by pubkey for chat headers and DM avatars. */
         const pubkeyToPicture = new Map();
 
-        function isTrustrootsNip05Lower(s) {
-            const n = String(s || '').trim().toLowerCase();
-            return n.endsWith('@trustroots.org') || n.endsWith('@www.trustroots.org');
-        }
+        // isTrustrootsNip05Lower lives at module scope; chat re-uses that.
 
         let isProfileLinked = false;
         let usernameFromNostr = false;
@@ -7913,8 +7987,8 @@ const __nrChatApp = (() => {
                 relaySettings.saveRelayUrls(urls);
                 return;
             }
-            if (urls.length) localStorage.setItem('relay_urls', urls.join('\n'));
-            else localStorage.removeItem('relay_urls');
+            if (urls.length) relayUrlsStore.write(urls);
+            else relayUrlsStore.clear();
         }
 
         const getSavedRelayWritePreferences = () => relaySettings?.getRelayWritePreferences ? relaySettings.getRelayWritePreferences() : {};
@@ -8367,11 +8441,7 @@ const __nrChatApp = (() => {
             }
             return '';
         }
-        function setHashRoute(route) {
-            const encoded = route ? encodeURIComponent(route).replace(/%2B/g, '+') : '';
-            const want = encoded ? '#' + encoded : '';
-            if (location.hash !== want) location.hash = want;
-        }
+        // setHashRoute lives at module scope; chat re-uses that.
         /** Keys/settings are handled by index unified router when embedded. */
         async function applyChatHashToState(routeForced, opts) {
             const o = opts || {};
@@ -8606,22 +8676,7 @@ const __nrChatApp = (() => {
             return getDisplayName(hex) || getDisplayNameShort(hex) || '';
         }
 
-        function hexToNpub(hex) {
-            try {
-                if (!hex || typeof hex !== 'string') return '';
-                const s = hex.trim().toLowerCase().replace(/^0x/, '');
-                if (s.startsWith('npub1')) return hex.trim();
-                if (s.length !== 64 || !/^[0-9a-f]+$/.test(s)) return '';
-                const bytes = new Uint8Array(32);
-                for (let i = 0; i < 32; i++) bytes[i] = parseInt(s.slice(i * 2, i * 2 + 2), 16);
-                return nip19.npubEncode(bytes);
-            } catch (_) {}
-            try {
-                const s = (hex || '').trim().toLowerCase().replace(/^0x/, '');
-                if (s.length === 64 && /^[0-9a-f]+$/.test(s)) return nip19.npubEncode(s);
-            } catch (_) {}
-            return '';
-        }
+        // hexToNpub lives at module scope; chat re-uses that.
 
         function getDisplayNpub() {
             if (!currentPublicKey) return '';
@@ -8634,10 +8689,9 @@ const __nrChatApp = (() => {
             if (/^[0-9a-f]{64}$/i.test(s)) return s;
             try {
                 const decoded = nip19.decode(s);
-                if (decoded.type === 'npub') return Array.from(decoded.data).map(b => b.toString(16).padStart(2, '0')).join('');
                 if (decoded.type === 'nsec') return null;
             } catch (_) {}
-            return null;
+            return npubToHex(s) || null;
         }
 
         /** Resolve npub/hex synchronously, or NIP-05 (async) to hex. Returns Promise<hex|null>. */
@@ -8815,54 +8869,23 @@ const __nrChatApp = (() => {
         }
 
         function openKeysModal() {
-            const keysModal = window.NrWebKeysModal;
-            const hasKey = !!(currentPublicKey || currentSecretKeyHex);
-            if (keysModal?.openKeysModal) {
-                keysModal.openKeysModal({
-                    hasKey,
-                    route: 'keys',
-                    setRoute: setHashRoute,
-                    onOpenManagedSection: () => {
-                        updateKeyDisplay({ skipProfileLookup: true });
-                        checkProfileLinked();
-                    }
-                });
-                return;
-            }
-            const keysEl = document.getElementById('keys-modal');
-            if (!keysEl) return;
-            keysEl.classList.add('active');
-            setHashRoute('keys');
+            _openKeysModalShared({
+                hasKey: !!(currentPublicKey || currentSecretKeyHex),
+                onOpenManagedSection: () => {
+                    updateKeyDisplay({ skipProfileLookup: true });
+                    checkProfileLinked();
+                },
+            });
         }
         function closeKeysModal() {
-            const keysModal = window.NrWebKeysModal;
-            if (keysModal?.closeKeysModal) {
-                keysModal.closeKeysModal({
-                    fallbackRoute: getConversationRouteId(selectedConversationId),
-                    setRoute: setHashRoute
-                });
-                return;
-            }
-            const el = document.getElementById('keys-modal');
-            if (el) el.classList.remove('active');
-            setHashRoute(getConversationRouteId(selectedConversationId));
+            _closeKeysModalShared({ fallbackRoute: getConversationRouteId(selectedConversationId) });
         }
 
         function openSettingsModal() {
-            const keysEl = document.getElementById('keys-modal');
-            const settingsEl = document.getElementById('settings-modal');
-            if (keysEl) keysEl.classList.remove('active');
-            if (settingsEl) settingsEl.classList.add('active');
-            setHashRoute('settings');
-            renderRelaysList();
-            if (typeof renderSettingsNotificationsSection === 'function') renderSettingsNotificationsSection();
-            window.NrWeb?.applySettingsFooterMetadataFromCache?.();
-            window.NrWeb?.refreshSettingsFooterMetadata?.();
+            _openSettingsModalShared({ extraSetup: () => renderRelaysList() });
         }
         function closeSettingsModal() {
-            const el = document.getElementById('settings-modal');
-            if (el) el.classList.remove('active');
-            setHashRoute(getConversationRouteId(selectedConversationId));
+            _closeSettingsModalShared({ fallbackRoute: getConversationRouteId(selectedConversationId) });
         }
 
         function updateKeyDisplay(options = {}) {
@@ -8873,11 +8896,8 @@ const __nrChatApp = (() => {
             const showChecklist = keySource === 'generated';
             const isNsecBackedUp = keysModal?.isKeyBackedUpForPubkey?.(currentPublicKey) === true;
             if (currentPublicKey) {
-                try {
-                    npub = nip19.npubEncode(currentPublicKey);
-                } catch (_) {
-                    npubError = 'Error encoding npub';
-                }
+                npub = getCurrentNpub();
+                if (!npub) npubError = 'Error encoding npub';
             }
             if (keysModal?.updateKeyDisplay) {
                 keysModal.updateKeyDisplay({
@@ -8943,9 +8963,7 @@ const __nrChatApp = (() => {
             showStatus('nsec imported successfully!', 'success');
         }
         function generateKeyPair() {
-            const privateKey = new Uint8Array(32);
-            crypto.getRandomValues(privateKey);
-            const privateKeyHex = Array.from(privateKey).map(b => b.toString(16).padStart(2, '0')).join('');
+            const privateKeyHex = bytesToHex(generateSecretKey());
             savePrivateKey(privateKeyHex);
             if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
                 window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'generated');
@@ -8962,9 +8980,7 @@ const __nrChatApp = (() => {
                 return;
             }
             try {
-                const bytes = new Uint8Array(32);
-                for (let i = 0; i < 32; i++) bytes[i] = parseInt(currentSecretKeyHex.substring(i * 2, i * 2 + 2), 16);
-                const nsec = nip19.nsecEncode(bytes);
+                const nsec = nsecEncodeFromHex64(currentSecretKeyHex);
                 navigator.clipboard.writeText(nsec).then(() => {
                     window.NrWebKeysModal?.setKeyBackedUpForPubkey?.(currentPublicKey, true);
                     updateKeyDisplay({ skipProfileLookup: true });
@@ -9011,22 +9027,18 @@ const __nrChatApp = (() => {
         }
 
         function openNewDmModal() {
-            document.getElementById('new-dm-modal').classList.add('active');
+            modal('new-dm-modal').open();
             const input = document.getElementById('new-dm-pubkey');
             if (input) input.focus();
         }
-        function closeNewDmModal() {
-            document.getElementById('new-dm-modal').classList.remove('active');
-        }
+        function closeNewDmModal() { modal('new-dm-modal').close(); }
         function openNewGroupModal() {
             groupModalMembers = [];
             renderGroupModalMembers();
             document.getElementById('new-group-one-pubkey').value = '';
-            document.getElementById('new-group-modal').classList.add('active');
+            modal('new-group-modal').open();
         }
-        function closeNewGroupModal() {
-            document.getElementById('new-group-modal').classList.remove('active');
-        }
+        function closeNewGroupModal() { modal('new-group-modal').close(); }
 
         function renderGroupModalMembers() {
             const list = document.getElementById('new-group-members-list');
@@ -9626,11 +9638,7 @@ const __nrChatApp = (() => {
             setupChatNrWebThemeSync();
         }
 
-        function getTrustrootsUsernameFromProfileEvent(event) {
-            if (event.kind !== TRUSTROOTS_PROFILE_KIND) return undefined;
-            const tag = (event.tags || []).find(t => t.length >= 3 && t[0] === 'l' && t[2] === TRUSTROOTS_USERNAME_LABEL_NAMESPACE);
-            return tag && tag[1] ? tag[1] : undefined;
-        }
+        // getTrustrootsUsernameFromProfileEvent lives at module scope; chat re-uses that.
 
         function getTrustrootsUsernameFromKind0(event) {
             if (event.kind !== 0 || !event.content) return undefined;
@@ -9896,7 +9904,7 @@ const __nrChatApp = (() => {
 
         async function updateTrustrootsProfile() {
             if (!currentPublicKey) { showStatus('No key connected.', 'error'); return; }
-            const npub = getDisplayNpub() || nip19.npubEncode(currentPublicKey);
+            const npub = getDisplayNpub() || getCurrentNpub();
             await navigator.clipboard.writeText(npub);
             alert('Your npub has been copied to the clipboard. Please paste it into the Nostr field on Trustroots.');
             window.open('https://www.trustroots.org/profile/edit/networks', '_blank');
@@ -10156,16 +10164,8 @@ const __nrChatApp = (() => {
         function syncComposeExpiryFromStorage() {
             const sel = document.getElementById('compose-expiry');
             if (!sel) return;
-            let v = 604800;
-            try {
-                const raw = localStorage.getItem(NR_EXPIRATION_STORAGE_KEY);
-                if (raw != null) {
-                    const n = parseInt(raw, 10);
-                    if (Number.isFinite(n) && NR_EXPIRATION_OPTION_SECONDS.includes(n)) {
-                        v = n;
-                    }
-                }
-            } catch (_) {}
+            const raw = expirationSecondsStore.read();
+            const v = (raw != null && NR_EXPIRATION_OPTION_SECONDS.includes(raw)) ? raw : 604800;
             sel.value = String(v);
         }
 
@@ -10179,7 +10179,7 @@ const __nrChatApp = (() => {
                     if (typeof window.saveExpirationSetting === 'function') {
                         window.saveExpirationSetting(val);
                     } else {
-                        localStorage.setItem(NR_EXPIRATION_STORAGE_KEY, val);
+                        expirationSecondsStore.write(val);
                         const noteSel = document.getElementById('note-expiration-in-modal');
                         if (noteSel) noteSel.value = val;
                     }
@@ -10657,14 +10657,10 @@ const __nrChatApp = (() => {
             return m ? normalizeChannelSlug(m[1]) : null;
         }
 
-        function escapeHtml(text) {
-            if (text == null) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        // escapeHtml is defined at module scope (folded above); chat re-uses that.
 
         function linkifyTrustrootsUrls(html) {
+            // Chat-only variant: also adds .message-inline-link so chat bubbles can style links separately.
             return html.replace(
                 /https:\/\/(?:www\.)?trustroots\.org\/[^\s<)]+/gi,
                 (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="message-inline-link nr-content-link">${url}</a>`
@@ -10687,17 +10683,8 @@ const __nrChatApp = (() => {
         function linkifyNpubsWithTrustrootsProfiles(html) {
             if (!html) return html || '';
             return html.replace(/\bnpub1[023456789acdefghjkmnpqrstuvwxyz]{20,}\b/gi, (npubStr) => {
-                let hex = '';
-                try {
-                    const d = nip19.decode(npubStr);
-                    if (d.type !== 'npub') return npubStr;
-                    hex = Array.from(d.data)
-                        .map((b) => b.toString(16).padStart(2, '0'))
-                        .join('')
-                        .toLowerCase();
-                } catch (_) {
-                    return npubStr;
-                }
+                const hex = npubToHex(npubStr);
+                if (!hex) return npubStr;
                 let nip05 = (pubkeyToNip05.get(hex) || '').trim().toLowerCase();
                 if (!isTrustrootsNip05Lower(nip05)) nip05 = '';
                 if (!nip05) {
@@ -10955,11 +10942,11 @@ const __nrChatApp = (() => {
 
         function openDeleteConfirmModal(eventId) {
             pendingDeleteEventId = eventId;
-            document.getElementById('delete-confirm-modal').classList.add('active');
+            modal('delete-confirm-modal').open();
         }
         function closeDeleteConfirmModal() {
             pendingDeleteEventId = null;
-            document.getElementById('delete-confirm-modal').classList.remove('active');
+            modal('delete-confirm-modal').close();
         }
         function confirmDeleteMessage() {
             if (pendingDeleteEventId) {
@@ -11267,24 +11254,9 @@ function relayUrls() {
   return DEFAULT_RELAYS.slice();
 }
 
-function escapeHtml(s) {
-  if (s == null) return '';
-  const d = document.createElement('div');
-  d.textContent = String(s);
-  return d.innerHTML;
-}
-
-function sanitizePictureUrl(url) {
-  const u = String(url || '').trim();
-  if (!u) return '';
-  try {
-    const p = new URL(u, 'https://nos.trustroots.org');
-    if (p.protocol !== 'https:' && p.protocol !== 'http:') return '';
-    return p.href;
-  } catch (_) {
-    return '';
-  }
-}
+// escapeHtml + sanitizePictureUrl: see module-scope escapeHtml + sanitizeProfileImageUrl above.
+// Local alias so the rest of the profile IIFE can keep calling sanitizePictureUrl.
+const sanitizePictureUrl = sanitizeProfileImageUrl;
 
 function isLikelyImageUrl(url) {
   const u = String(url || '').trim();
@@ -11391,19 +11363,7 @@ function parsePubkeyInput(input) {
   const s = (input || '').trim();
   if (!s) return null;
   if (/^[0-9a-f]{64}$/i.test(s)) return s.toLowerCase();
-  try {
-    const decoded = nip19.decode(s);
-    if (decoded.type === 'npub') {
-      if (typeof decoded.data === 'string') {
-        const h = decoded.data.toLowerCase();
-        return h.length === 64 && /^[0-9a-f]+$/.test(h) ? h : null;
-      }
-      return Array.from(decoded.data)
-        .map((b) => b.toString(16).padStart(2, '0'))
-        .join('');
-    }
-  } catch (_) {}
-  return null;
+  return npubToHex(s) || null;
 }
 
 async function resolveProfileIdToHex(profileId) {
@@ -11646,22 +11606,18 @@ async function collectFromNip42RelayAuth(filter, waitMs = 3200, diagSink = null)
     }
     if (!/^[0-9a-f]{64}$/.test(authPubkey) || typeof signEventFn !== 'function') {
       let skBytes = null;
-      const skHex = String(localStorage.getItem('nostr_private_key') || '').trim().toLowerCase();
-      if (/^[0-9a-f]{64}$/.test(skHex)) {
-        const bytes = new Uint8Array(32);
-        for (let i = 0; i < 32; i += 1) {
-          bytes[i] = parseInt(skHex.slice(i * 2, i * 2 + 2), 16);
-        }
-        skBytes = bytes;
-        diag.signerSource = 'localStorage:nostr_private_key';
+      const skHex = readValidStoredKeyHex();
+      if (skHex) {
+        skBytes = secretKeyBytesFromHex64(skHex);
+        diag.signerSource = `localStorage:${NR_WEB_PRIVATE_KEY_STORAGE_KEY}`;
       } else {
-        const nsec = String(localStorage.getItem('nip42test.nsec') || '').trim();
+        const nsec = lsGet(NIP42_TEST_NSEC_KEY).trim();
         if (nsec.toLowerCase().startsWith('nsec1')) {
           try {
             const decoded = nip19.decode(nsec);
             if (decoded?.type === 'nsec' && decoded.data instanceof Uint8Array && decoded.data.length === 32) {
               skBytes = decoded.data;
-              diag.signerSource = 'localStorage:nip42test.nsec';
+              diag.signerSource = `localStorage:${NIP42_TEST_NSEC_KEY}`;
             }
           } catch (e) {
             diag.error = `nsec decode failed: ${e?.message || e}`;
@@ -11669,7 +11625,7 @@ async function collectFromNip42RelayAuth(filter, waitMs = 3200, diagSink = null)
         }
       }
       if (!(skBytes instanceof Uint8Array) || skBytes.length !== 32) {
-        if (!diag.error) diag.error = 'no signer available (no nostr_private_key, no nip42test.nsec)';
+        if (!diag.error) diag.error = `no signer available (no ${NR_WEB_PRIVATE_KEY_STORAGE_KEY}, no ${NIP42_TEST_NSEC_KEY})`;
         if (diagSink) diagSink.push(diag);
         return [];
       }

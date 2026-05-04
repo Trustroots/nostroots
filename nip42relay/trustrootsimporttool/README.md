@@ -73,13 +73,13 @@ Use these checks to verify that import output matches `nr-web` rendering expecta
   - includes a real hex `p` tag from user `npub`
   - includes plus-code labels (`L/l`) and prefix labels for map routing
   - includes circle tags for every public membership slug:
-    - `l=<slug-lower>` under `trustroots-circle`
-    - `t=<slug-lower>`
+    - `l=<slug-lower-no-hyphens>` under `trustroots-circle`
+    - `t=<slug-lower-no-hyphens>`
 - `30410` circle metadata:
-  - `d=<slug-lower>` (lowercased + trimmed)
+  - `d=<slug-lower-no-hyphens>` (lowercased + trimmed; ASCII hyphens removed for Nostr tags)
   - content has `name`, `about`, and optional `picture`
   - `picture` is emitted only when tribe image exists:
-    - `https://www.trustroots.org/uploads-circle/<slug-lower>/742x496.jpg`
+    - `https://www.trustroots.org/uploads-circle/<mongo-slug-lower>/742x496.jpg` (Mongo slug segment, hyphens preserved when present)
   - includes `source=trustroots-import`
 
 ## Smoke test

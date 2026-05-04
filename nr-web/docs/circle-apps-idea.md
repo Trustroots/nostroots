@@ -160,7 +160,7 @@ Concise ideas for each circle: map + notes, discovery, coordination — the same
 | cooking | Cook-together map — “community kitchen tonight”, “help me use this produce”. |
 | beerbrewers | Brew spots and tastings — homebrew meetups, “tasting at my place”, swap bottles. |
 | winemakers | Wine spots — vineyards, tastings, “help with harvest”, casual meetups. |
-| zero-wasters | Zero-waste map — bulk shops, refill, repair cafés; “free stuff at …”. |
+| zerowasters | Zero-waste map — bulk shops, refill, repair cafés; “free stuff at …”. |
 
 ### Living and values
 

@@ -105,6 +105,42 @@ func TestEventForHost(t *testing.T) {
 	}
 }
 
+func TestEventForHostCircleTagStripsHyphens(t *testing.T) {
+	offerID := primitive.NewObjectID()
+	userID := primitive.NewObjectID()
+	created := time.Unix(1700000000, 0)
+	updated := time.Unix(1700000100, 0)
+	event, err := eventForHost(HostRecord{
+		Offer: Offer{
+			ID:            offerID,
+			Type:          "host",
+			Status:        "yes",
+			MaxGuests:     1,
+			Description:   "Hi",
+			LocationFuzzy: []float64{52.5, 13.4},
+			CreatedAt:     created,
+			Updated:       updated,
+			UserID:        userID,
+		},
+		User: User{
+			ID:        userID,
+			Username:  "carol",
+			NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+			Public:    true,
+		},
+		Circles: []string{"beer-brewers"},
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag := event.Tags.GetFirst([]string{"t", "beerbrewers"}); tag == nil {
+		t.Fatalf("missing t circle tag: %#v", event.Tags)
+	}
+	if tag := event.Tags.GetFirst([]string{"l", "beerbrewers", trustrootsCircleLabelNamespace}); tag == nil {
+		t.Fatalf("missing trustroots-circle l tag: %#v", event.Tags)
+	}
+}
+
 func TestEventForHostCircleTagsLowercaseAndDeduped(t *testing.T) {
 	offerID := primitive.NewObjectID()
 	userID := primitive.NewObjectID()
@@ -197,6 +233,34 @@ func TestEventForCircleMetadata(t *testing.T) {
 	}
 	if !ok {
 		t.Fatal("signature did not verify")
+	}
+}
+
+func TestEventForCircleMetadataHyphenSlugUsesDashlessDTagAndMongoPicturePath(t *testing.T) {
+	event, err := eventForCircleMetadata(Tribe{
+		ID:          primitive.NewObjectID(),
+		Label:       "Beer brewers",
+		Slug:        "beer-brewers",
+		Public:      true,
+		Description: "Brew spots",
+		Image:       true,
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if event.Tags.GetD() != "beerbrewers" {
+		t.Fatalf("d tag = %q want beerbrewers", event.Tags.GetD())
+	}
+	if tag := event.Tags.GetFirst([]string{"l", "beerbrewers", trustrootsCircleLabelNamespace}); tag == nil {
+		t.Fatalf("missing circle l tag: %#v", event.Tags)
+	}
+	var payload map[string]string
+	if err := json.Unmarshal([]byte(event.Content), &payload); err != nil {
+		t.Fatal(err)
+	}
+	wantPic := "https://www.trustroots.org/uploads-circle/beer-brewers/742x496.jpg"
+	if payload["picture"] != wantPic {
+		t.Fatalf("picture = %q want %q", payload["picture"], wantPic)
 	}
 }
 

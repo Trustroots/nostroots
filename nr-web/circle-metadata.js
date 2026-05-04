@@ -9,6 +9,14 @@ export function getCircleMetaDTagFromTags(tags) {
     return row ? String(row[1]).trim().toLowerCase() : '';
 }
 
+/** Lowercase slug for map keys / matching; strips ASCII hyphens (matches import tool + nr-web list). */
+export function normalizeTrustrootsCircleSlugKey(slug) {
+    return String(slug || '')
+        .trim()
+        .toLowerCase()
+        .replace(/-/g, '');
+}
+
 export function parseCircleMetaContent(jsonStr) {
     try {
         const o = JSON.parse(jsonStr || '{}');
@@ -45,8 +53,9 @@ export function mergeCircleMetadataMapEntry(map, ev, opts) {
         .trim()
         .toLowerCase();
     if (exp && String(ev.pubkey || '').trim().toLowerCase() !== exp) return false;
-    const slug = getCircleMetaDTagFromTags(ev.tags);
-    if (!slug) return false;
+    const rawSlug = getCircleMetaDTagFromTags(ev.tags);
+    if (!rawSlug) return false;
+    const slug = normalizeTrustrootsCircleSlugKey(rawSlug);
     const parsed = parseCircleMetaContent(ev.content);
     const prev = map.get(slug);
     if (prev && prev.created_at >= ev.created_at) return false;

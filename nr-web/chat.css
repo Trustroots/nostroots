@@ -355,7 +355,7 @@ h1, h2, .modal-header h2 {
     line-height: 1.25;
 }
 .conv-item .tags-line { font-size: 0.7rem; color: var(--muted-foreground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Flex column matches legacy standalone chat.html: scrollable messages + shrink-0 compose
+/* Flex column matches legacy standalone chat page: scrollable messages + shrink-0 compose
    (grid here regressed in index.html embed — message list could paint under the composer). */
 .thread-area {
     flex: 1 1 0;
@@ -587,7 +587,7 @@ h1, h2, .modal-header h2 {
     gap: 0.65rem;
 }
 /* Eat extra vertical space above the first message so the thread sits on the composer
-   (same idea as legacy standalone chat.html: messages + input read as one block). */
+   (same idea as legacy standalone chat page: messages + input read as one block). */
 .thread-messages::before {
     content: '';
     flex: 1 1 0;
@@ -700,7 +700,7 @@ h1, h2, .modal-header h2 {
     opacity: 0.95;
 }
 .message-nip-pill { font-size: inherit; opacity: 0.5; white-space: nowrap; }
-/* Compose bar — aligned with legacy standalone chat.html (e6ba47e inline <style>) */
+/* Compose bar — aligned with legacy standalone chat page (e6ba47e inline <style>) */
 .compose {
     padding: 0.2rem 0.35rem;
     border-top: 1px solid var(--border);
@@ -986,6 +986,17 @@ h1, h2, .modal-header h2 {
     border-radius: calc(var(--radius) - 2px);
 }
 .thread-header .back-btn:hover { background: var(--muted); }
+/* Hero image header: same readable chrome as title (light theme foreground is dark on photo). */
+.thread-header.thread-header-has-image .back-btn {
+    color: #f8fafc;
+    filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, 0.65));
+}
+.thread-header.thread-header-has-image .back-btn svg {
+    stroke-width: 2.25;
+}
+.thread-header.thread-header-has-image .back-btn:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
 
 @media (max-width: 768px) {
     .app-header { padding: 0 0.75rem; }

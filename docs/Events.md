@@ -70,6 +70,7 @@ Third party derived content notes can take this format:
     ["L", "open-location-code-prefix"],
     ["l", "8GM87X00+", "8GM80000+", "8G000000+", "open-location-code-prefix"],
     // OPTIONAL - The event can optionally include which trustroots circles this event relates to
+    // Circle `l` values are lowercase slugs with ASCII hyphens removed (e.g. beerbrewers), matching trustrootsimporttool.
     ["L", "trustroots-circle"],
     ["l", "hitchhikers", "trustroots-circle"],
     // OPTIONAL - The text that will appear in the link when this event is displayed

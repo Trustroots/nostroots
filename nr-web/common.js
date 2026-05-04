@@ -581,7 +581,7 @@
     var NIP42_PUBLISH_TIMEOUT_MS = 10000;
 
     /**
-     * Publish a signed Nostr event over a raw WebSocket with NIP-42 AUTH (same behavior as chat.html).
+     * Publish a signed Nostr event over a raw WebSocket with NIP-42 AUTH.
      * @param {string} relayUrl
      * @param {object} signedEvent
      * @param {function} signAuthEvent async (template) => signedEvent for kind 22242
@@ -908,33 +908,29 @@
             id: 'android',
             href: 'https://github.com/Trustroots/nostroots/releases',
             label: 'Android',
-            icon: '🤖',
             title: 'Download Android APK from GitHub releases'
         },
         {
             id: 'ios',
             href: 'https://testflight.apple.com/join/n5WGu8Hu',
             label: 'iOS',
-            icon: '🍎',
             title: 'Join iOS beta on TestFlight'
         }
     ];
 
     function buildMobileAppLinksMarkup() {
         var links = MOBILE_APP_LINKS.map(function (item) {
-            return '<a class="app-header-mobile-link app-header-mobile-link-' + escapeHtml(item.id) + '"' +
-                ' href="' + escapeHtml(item.href) + '"' +
-                ' title="' + escapeHtml(item.title) + '"' +
-                ' aria-label="' + escapeHtml(item.title) + '"' +
-                ' target="_blank" rel="noopener noreferrer">' +
-                '<span class="app-header-mobile-link-icon" aria-hidden="true">' + escapeHtml(item.icon) + '</span>' +
-                '<span class="app-header-mobile-link-label">' + escapeHtml(item.label) + '</span>' +
-                '</a>';
+            return (
+                '<a role="menuitem" class="nr-nav-menu-external" href="' +
+                escapeHtml(item.href) +
+                '" title="' +
+                escapeHtml(item.title) +
+                '" target="_blank" rel="noopener noreferrer">' +
+                escapeHtml(item.label) +
+                '</a>'
+            );
         }).join('');
-        return '<div class="app-header-mobile-links-wrap" aria-label="Mobile apps">' +
-            '<div class="app-header-mobile-links">' + links + '</div>' +
-            '<p class="app-header-mobile-hint">Mobile app is more stable. Web is more experimental and has more features.</p>' +
-            '</div>';
+        return '<div class="menu-divider" role="presentation"></div>' + links;
     }
 
     function buildTrustrootsFooterLinksMenuHtml() {
@@ -1093,13 +1089,6 @@
                 global.window.openSearchUi();
                 return;
             }
-            try {
-                var path = (global.location && global.location.pathname) || '';
-                if (/chat\.html$/i.test(path) || path.endsWith('/chat.html')) {
-                    global.location.href = 'index.html?action=map';
-                    return;
-                }
-            } catch (_) {}
             var mapEl = global.document.getElementById('map');
             if (mapEl && typeof mapEl.focus === 'function') {
                 try { mapEl.focus(); } catch (_) {}
@@ -1138,12 +1127,6 @@
                 global.window.openHostNoteFlow();
                 return;
             }
-            try {
-                var path2 = (global.location && global.location.pathname) || '';
-                if (/chat\.html$/i.test(path2) || path2.endsWith('/chat.html')) {
-                    global.location.href = 'index.html?action=host';
-                }
-            } catch (_) {}
             return;
         }
         var dropBtn = t.closest('.nr-nav-dropdown > button');
@@ -1166,7 +1149,44 @@
         header.addEventListener('click', nrHeaderNavClickDelegate);
     }
 
-    // --- Shared header (index + chat) ---
+    /** Sync profile circle in Account + mobile menu toggles (HTTPS picture URL or empty for placeholder). */
+    function updateNrNavAccountAvatars(pictureUrl) {
+        var doc = global.document;
+        if (!doc || !doc.querySelectorAll) return;
+        var url = String(pictureUrl || '').trim();
+        var wraps = doc.querySelectorAll('.nr-nav-avatar-wrap[data-nr-nav-account]');
+        for (var i = 0; i < wraps.length; i++) {
+            var wrap = wraps[i];
+            var img = wrap.querySelector('img.nr-nav-account-avatar');
+            if (!img) continue;
+            wrap.classList.remove('has-image');
+            img.onload = null;
+            img.onerror = null;
+            if (!url) {
+                try {
+                    img.removeAttribute('src');
+                } catch (_) {}
+                continue;
+            }
+            img.onload = function (ev) {
+                var t = ev && ev.target;
+                var w = t && t.closest && t.closest('.nr-nav-avatar-wrap[data-nr-nav-account]');
+                if (w && t && t.naturalWidth > 0) w.classList.add('has-image');
+            };
+            img.onerror = function (ev) {
+                var t = ev && ev.target;
+                var w = t && t.closest && t.closest('.nr-nav-avatar-wrap[data-nr-nav-account]');
+                if (w) w.classList.remove('has-image');
+                try {
+                    if (t) t.removeAttribute('src');
+                } catch (_) {}
+            };
+            img.src = url;
+            if (img.complete && img.naturalWidth > 0) wrap.classList.add('has-image');
+        }
+    }
+
+    // --- Shared header (index + embedded chat surface) ---
     // Fill <header id="app-header"> (optional legacy data-* attrs ignored)
     function fillAppHeader() {
         var header = global.document && global.document.getElementById('app-header');
@@ -1182,10 +1202,6 @@
         var convHref = hpfx ? hpfx + 'index.html#chat' : '#chat';
         var supportChatHref = hpfx ? hpfx + 'index.html#support' : '#support';
 
-        var path = '';
-        try {
-            path = (global.location && global.location.pathname) || '';
-        } catch (_) {}
         var onChat = false;
         try {
             var bod = global.document && global.document.body;
@@ -1193,13 +1209,6 @@
                 onChat = true;
             }
         } catch (_) {}
-        if (!onChat) {
-            try {
-                if (/chat\.html$/i.test(path) || path.endsWith('/chat.html')) {
-                    onChat = true;
-                }
-            } catch (_) {}
-        }
         var conversationsAttrs = onChat
             ? ' href="' + convHref + '" class="nr-nav-link is-active" aria-current="page" aria-label="Chats"'
             : ' href="' + convHref + '" class="nr-nav-link" aria-label="Chats"';
@@ -1212,6 +1221,14 @@
             '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>';
         var svgMenu =
             '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="18" y2="18"/></svg>';
+        var svgNavAvatarFallback =
+            '<svg class="nr-nav-avatar-fallback-svg" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+        var navAccountAvatarHtml =
+            '<span class="nr-nav-avatar-wrap" data-nr-nav-account="1" aria-hidden="true">' +
+            '<img class="nr-nav-account-avatar" alt="" width="26" height="26" decoding="async" />' +
+            '<span class="nr-nav-avatar-fallback">' +
+            svgNavAvatarFallback +
+            '</span></span>';
 
         header.setAttribute('aria-label', 'Site');
         header.innerHTML =
@@ -1242,12 +1259,14 @@
             '</span><span class="nr-nav-link-text">Host & meet</span></button>' +
             '<div class="nr-nav-dropdown" data-dropdown="user">' +
             '<button type="button" class="nr-nav-dropdown-toggle nr-nav-user-toggle" id="nav-user-btn" aria-haspopup="menu" aria-expanded="false">' +
+            navAccountAvatarHtml +
             '<span class="nr-nav-user-label">Account</span><span class="nr-caret" aria-hidden="true">▾</span></button>' +
             '<div class="nr-nav-menu nr-nav-menu--right" role="menu" id="nav-user-menu" aria-labelledby="nav-user-btn">' +
             buildUserDropdownMenuBody(settingsTitle) +
             '</div></div>' +
             '<div class="nr-nav-dropdown nr-nav-dropdown-more" data-dropdown="more">' +
             '<button type="button" class="nr-nav-dropdown-toggle nr-nav-more-toggle" id="nav-more-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Menu">' +
+            navAccountAvatarHtml +
             '<span class="nr-nav-icon nr-nav-icon--menu" aria-hidden="true">' +
             svgMenu +
             '</span></button>' +
@@ -1286,6 +1305,17 @@
         bindKeysOpen(global.document.getElementById('keys-icon-btn-mobile'));
         bindSettingsOpen(global.document.getElementById('settings-icon-btn'));
         bindSettingsOpen(global.document.getElementById('settings-icon-btn-mobile'));
+
+        try {
+            var ev = new CustomEvent('nrweb-app-header-filled', { bubbles: false });
+            global.document.dispatchEvent(ev);
+        } catch (_) {
+            try {
+                var legacyEv = global.document.createEvent('Event');
+                legacyEv.initEvent('nrweb-app-header-filled', false, false);
+                global.document.dispatchEvent(legacyEv);
+            } catch (e2) {}
+        }
     }
 
     function escapeHtml(s) {
@@ -1462,7 +1492,7 @@
         });
     }
 
-    /** Inject shared Keys + Settings modals (used by index.html and chat.html). Dispatches 'nostroots-modals-injected' when done. */
+    /** Inject shared Keys + Settings modals (used by index.html). Dispatches 'nostroots-modals-injected' when done. */
     function injectKeysSettingsModals() {
         var doc = global.document;
         if (!doc || !doc.body) return;
@@ -1763,6 +1793,7 @@
     global.NrWeb.jpgFallbackForTrustrootsCircleWebp = jpgFallbackForTrustrootsCircleWebp;
     global.NrWeb.setProfileImageWithResolvedCache = setProfileImageWithResolvedCache;
     global.NrWeb.fillAppHeader = fillAppHeader;
+    global.NrWeb.updateNrNavAccountAvatars = updateNrNavAccountAvatars;
     global.NrWeb.applySettingsFooterMetadataFromCache = applySettingsFooterMetadataFromCache;
     global.NrWeb.refreshSettingsFooterMetadata = refreshSettingsFooterMetadata;
 

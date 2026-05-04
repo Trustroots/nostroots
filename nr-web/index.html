@@ -1639,6 +1639,8 @@
             pushIntentTag,
             stripLeadingIntentHashtag,
         } from './note-intents.js';
+        import { containsPrivateKeyNsec as containsDecodedNsecInText } from './nsec-guard.js';
+        import { getTrustrootsCircleEntries } from './trustroots-circles-list.js';
         
         // Import BIP39 for mnemonic support
         import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm';
@@ -2056,6 +2058,8 @@
         const pubkeyToNip05 = new Map();
         /** Pubkey hex -> profile picture URL (kind 0 and 30390). */
         const pubkeyToPicture = new Map();
+        /** Lowercase hex pubkeys with an in-flight relay profile fetch (npub mentions in map notes). */
+        const mentionProfilePrefetchInFlight = new Set();
 
         function sanitizeProfileImageUrl(url) {
             const raw = String(url || '').trim();
@@ -2084,6 +2088,15 @@
             }
             const pic = sanitizeProfileImageUrl(meta.picture);
             if (pic) pubkeyToPicture.set(String(event.pubkey || '').toLowerCase(), pic);
+            if (
+                pic &&
+                currentPublicKey &&
+                String(event.pubkey || '').toLowerCase() === String(currentPublicKey).toLowerCase()
+            ) {
+                try {
+                    applyNrNavAccountAvatarForActiveSurface();
+                } catch (_) {}
+            }
             const nip05 = String(meta.nip05 || '').trim().toLowerCase();
             if (nip05 && isTrustrootsNip05Lower(nip05)) {
                 pubkeyToNip05.set(event.pubkey, nip05);
@@ -2114,6 +2127,11 @@
             if (tru) pubkeyToUsername.set(subjectHex, tru);
             const pic = sanitizeProfileImageUrl(meta.picture);
             if (pic) pubkeyToPicture.set(subjectHex, pic);
+            if (pic && currentPublicKey && subjectHex === String(currentPublicKey).toLowerCase()) {
+                try {
+                    applyNrNavAccountAvatarForActiveSurface();
+                } catch (_) {}
+            }
             scheduleCacheWrite();
         }
         
@@ -2995,60 +3013,7 @@
         }
         
         function getTrustrootsCircles() {
-            return [
-                { slug: 'hosts' },
-                { slug: 'hitch' },
-                { slug: 'dumpsterdivers' },
-                { slug: 'families' },
-                { slug: 'musicians' },
-                { slug: 'buskers' },
-                { slug: 'veg' },
-                { slug: 'hackers' },
-                { slug: 'lgbtq' },
-                { slug: 'ecoliving' },
-                { slug: 'lindyhoppers' },
-                { slug: 'nomads' },
-                { slug: 'punks' },
-                { slug: 'cyclists' },
-                { slug: 'foodsharing' },
-                { slug: 'yoga' },
-                { slug: 'climbers' },
-                { slug: 'hikers' },
-                { slug: 'sailors' },
-                { slug: 'artists' },
-                { slug: 'rainbowgathering' },
-                { slug: 'slackline' },
-                { slug: 'spirituals' },
-                { slug: 'dancers' },
-                { slug: 'acroyoga' },
-                { slug: 'jugglers' },
-                { slug: 'vanlife' },
-                { slug: 'volunteers' },
-                { slug: 'winemakers' },
-                { slug: 'squatters' },
-                { slug: 'surfers' },
-                { slug: 'skateboarders' },
-                { slug: 'pilgrims' },
-                { slug: 'photographers' },
-                { slug: 'naturists' },
-                { slug: 'motorcyclists' },
-                { slug: 'feminists' },
-                { slug: 'circus' },
-                { slug: 'cooking' },
-                { slug: 'burners' },
-                { slug: 'beerbrewers' },
-                { slug: 'anarchists' },
-                { slug: 'gardeners' },
-                { slug: 'scubadivers' },
-                { slug: 'ravers' },
-                { slug: 'zero-wasters' },
-                { slug: 'activists' },
-                { slug: 'runners' },
-                { slug: 'filmmakers' },
-                { slug: 'books' },
-                { slug: 'cypherpunks' },
-                { slug: 'lightfoot' }
-            ];
+            return getTrustrootsCircleEntries();
         }
         
         function getPlusCodePrefixes(plusCode, minimumLength = 2) {
@@ -3297,6 +3262,37 @@
             } catch (_) {}
         }
         
+        function syncNrNavAccountAvatars() {
+            let pic = '';
+            if (currentPublicKey && window.NrWeb && typeof window.NrWeb.updateNrNavAccountAvatars === 'function') {
+                pic =
+                    sanitizeProfileImageUrl(pubkeyToPicture.get(String(currentPublicKey).toLowerCase())) || '';
+                window.NrWeb.updateNrNavAccountAvatars(pic);
+            } else if (window.NrWeb && typeof window.NrWeb.updateNrNavAccountAvatars === 'function') {
+                window.NrWeb.updateNrNavAccountAvatars('');
+            }
+        }
+
+        function applyNrNavAccountAvatarForActiveSurface() {
+            try {
+                if (
+                    document.body &&
+                    document.body.classList.contains('nr-surface-chat') &&
+                    typeof window.NrWebChatSyncNavAccountAvatar === 'function'
+                ) {
+                    window.NrWebChatSyncNavAccountAvatar();
+                    return;
+                }
+                syncNrNavAccountAvatars();
+            } catch (_) {}
+        }
+
+        document.addEventListener('nrweb-app-header-filled', function () {
+            try {
+                applyNrNavAccountAvatarForActiveSurface();
+            } catch (_) {}
+        });
+
         function setHeaderIdentity() {
             const el = document.getElementById('header-identity');
             const elM = document.getElementById('header-identity-mobile');
@@ -3332,12 +3328,14 @@
                 applyTo(elM);
                 if (btn) btn.classList.remove('has-identity');
                 if (btnM) btnM.classList.remove('has-identity');
+                applyNrNavAccountAvatarForActiveSurface();
                 return;
             }
             if (btn) btn.classList.add('has-identity');
             if (btnM) btnM.classList.add('has-identity');
             applyTo(el);
             applyTo(elM);
+            applyNrNavAccountAvatarForActiveSurface();
         }
         
         // Relay status tracking
@@ -4948,6 +4946,10 @@
             );
         }
 
+        function containsPrivateKeyNsec(text) {
+            return containsDecodedNsecInText(text, nip19);
+        }
+
         /**
          * After escapeHtml: replace bech32 npubs with Trustroots NIP-05 labels and #profile links when we have
          * a matching kind 0 / 30390 NIP-05 or kind 10390 username (same resolution as note author line).
@@ -4975,6 +4977,124 @@
                 if (!nip05 || !isTrustrootsNip05Lower(nip05)) return npubStr;
                 const href = '#profile/' + encodeURIComponent(nip05).replace(/%2B/g, '+');
                 return `<a href="${href}" class="nr-content-link" title="${escapeHtml(npubStr)}">${escapeHtml(nip05)}</a>`;
+            });
+        }
+
+        function npubBech32ToHex(npubStr) {
+            if (typeof nip19 === 'undefined' || !nip19.decode) return '';
+            try {
+                const d = nip19.decode(npubStr);
+                if (d.type !== 'npub') return '';
+                return Array.from(d.data)
+                    .map((b) => b.toString(16).padStart(2, '0'))
+                    .join('')
+                    .toLowerCase();
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function collectNpubHexesFromNoteText(text) {
+            const out = new Set();
+            if (!text) return out;
+            const re = /\bnpub1[023456789acdefghjkmnpqrstuvwxyz]{20,}\b/gi;
+            let m;
+            while ((m = re.exec(text)) !== null) {
+                const hex = npubBech32ToHex(m[0]);
+                if (hex.length === 64) out.add(hex);
+            }
+            return out;
+        }
+
+        function collectMapNoteMentionNpubHexes(events) {
+            const out = new Set();
+            if (!Array.isArray(events)) return out;
+            for (const ev of events) {
+                collectNpubHexesFromNoteText(String(ev?.content || '')).forEach((h) => out.add(h));
+            }
+            return out;
+        }
+
+        function hexHasTrustrootsInlineIdentity(hex) {
+            const h = String(hex || '').toLowerCase();
+            if (!/^[0-9a-f]{64}$/.test(h)) return false;
+            let nip05 = (pubkeyToNip05.get(h) || '').trim().toLowerCase();
+            if (!nip05 || !isTrustrootsNip05Lower(nip05)) {
+                const u = (pubkeyToUsername.get(h) || '').trim();
+                if (u) nip05 = `${u.toLowerCase()}@trustroots.org`;
+            }
+            return !!(nip05 && isTrustrootsNip05Lower(nip05));
+        }
+
+        /**
+         * Load kind 0 / 30390 / 10390 for npubs mentioned in note bodies so linkify can show Trustroots NIP-05.
+         * Refreshes the open notes modal once when new metadata arrives (preserves compose + map view).
+         */
+        function prefetchTrustrootsProfilesForNoteMentions(hexList, plusCodeForRefresh) {
+            const unique = [...new Set((hexList || []).map((x) => String(x || '').toLowerCase()))].filter((h) =>
+                /^[0-9a-f]{64}$/.test(h)
+            );
+            const pending = unique.filter(
+                (h) => !hexHasTrustrootsInlineIdentity(h) && !mentionProfilePrefetchInFlight.has(h)
+            );
+            if (!pending.length || !relays || relays.length === 0) return;
+
+            pending.forEach((h) => mentionProfilePrefetchInFlight.add(h));
+            const hadIdentity = new Map(pending.map((h) => [h, hexHasTrustrootsInlineIdentity(h)]));
+
+            const batches = [];
+            for (let i = 0; i < pending.length; i += 20) batches.push(pending.slice(i, i + 20));
+
+            let subsRemaining = relays.length * batches.length;
+
+            const finishOneSub = () => {
+                subsRemaining--;
+                if (subsRemaining > 0) return;
+                pending.forEach((h) => mentionProfilePrefetchInFlight.delete(h));
+                const upgraded = pending.some((h) => !hadIdentity.get(h) && hexHasTrustrootsInlineIdentity(h));
+                const modal = document.getElementById('pluscode-notes-modal');
+                if (
+                    upgraded &&
+                    modal &&
+                    modal.classList.contains('active') &&
+                    plusCodeForRefresh &&
+                    selectedPlusCode === plusCodeForRefresh
+                ) {
+                    showNotesForPlusCode(plusCodeForRefresh, {
+                        preserveCompose: true,
+                        preserveMapView: true,
+                    });
+                }
+            };
+
+            relays.forEach((relay) => {
+                batches.forEach((authors) => {
+                    try {
+                        const sub = relay.subscribe(
+                            [
+                                {
+                                    kinds: [0, PROFILE_CLAIM_KIND, TRUSTROOTS_PROFILE_KIND],
+                                    authors,
+                                    limit: 120,
+                                },
+                            ],
+                            {
+                                onevent: (event) => {
+                                    processIncomingEvent(event);
+                                },
+                                oneose: () => {
+                                    try {
+                                        sub.close();
+                                    } catch (_) {}
+                                    finishOneSub();
+                                },
+                            }
+                        );
+                    } catch (e) {
+                        console.warn('[prefetch mention profiles]', e);
+                        finishOneSub();
+                    }
+                });
             });
         }
         
@@ -6195,9 +6315,24 @@
                 return;
             }
             
-            let content = document.getElementById('note-content-in-modal').value.trim();
+            const noteContentEl = document.getElementById('note-content-in-modal');
+            const rawNote = String(noteContentEl?.value ?? '');
+            let content = rawNote.trim();
             if (!content || content.length < 3) {
                 showStatus('Note content must be at least 3 characters', 'error');
+                return;
+            }
+            if (containsPrivateKeyNsec(rawNote)) {
+                const msg =
+                    'Note not posted: your text contains an nsec (private key). Remove it before posting. Your draft was kept in the box.';
+                showStatus(msg, 'error');
+                try {
+                    alert(msg);
+                } catch (_) {}
+                try {
+                    noteContentEl?.focus({ preventScroll: false });
+                    noteContentEl?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                } catch (_) {}
                 return;
             }
             
@@ -6445,6 +6580,8 @@
             const sortedAll = Array.from(dedupedForDisplay.values())
                 .map(item => item.event)
                 .sort((a, b) => a.created_at - b.created_at);
+
+            void prefetchTrustrootsProfilesForNoteMentions([...collectMapNoteMentionNpubHexes(sortedAll)], plusCode);
             
             // Update modal title
             document.getElementById('pluscode-notes-title').textContent = 
@@ -6481,22 +6618,25 @@
                 notesContent.appendChild(noNotes);
             }
             
-            // Clear / seed form when opening modal
+            // Clear / seed form when opening modal (skip when refreshing list after async profile fetch)
             const noteTa = document.getElementById('note-content-in-modal');
-            if (noteTa) {
-                noteTa.value = typeof options.initialContent === 'string' ? options.initialContent : '';
-            }
-            document.getElementById('note-expiration-in-modal').value = getExpirationSetting();
-            if (options.circleSlug) {
-                selectCircle(options.circleSlug);
-            }
+            if (!options.preserveCompose) {
+                if (noteTa) {
+                    noteTa.value = typeof options.initialContent === 'string' ? options.initialContent : '';
+                }
+                const expEl = document.getElementById('note-expiration-in-modal');
+                if (expEl) expEl.value = getExpirationSetting();
+                if (options.circleSlug) {
+                    selectCircle(options.circleSlug);
+                }
 
-            // Resolve initial intent: explicit option > sticky last choice > none
-            if (Object.prototype.hasOwnProperty.call(options, 'intent')) {
-                selectedIntent = isIntentId(options.intent) ? options.intent : null;
-                persistStickyIntent(selectedIntent);
-            } else if (!selectedIntent) {
-                selectedIntent = getStickyIntent();
+                // Resolve initial intent: explicit option > sticky last choice > none
+                if (Object.prototype.hasOwnProperty.call(options, 'intent')) {
+                    selectedIntent = isIntentId(options.intent) ? options.intent : null;
+                    persistStickyIntent(selectedIntent);
+                } else if (!selectedIntent) {
+                    selectedIntent = getStickyIntent();
+                }
             }
             renderIntentChips();
 
@@ -6551,16 +6691,18 @@
                     console.warn('[showNotesForPlusCode] fitBounds failed (modal still opens):', fitErr && fitErr.message ? fitErr.message : fitErr);
                 }
             }
-            const pcNorm = normalizePlusCodeForHashSuppress(plusCode);
-            nrMapPlusCodeSuppressedUntil = pcNorm;
-            const hashBefore = location.hash;
-            setHashRoute(plusCode);
-            if (location.hash === hashBefore && nrMapPlusCodeSuppressedUntil === pcNorm) {
-                nrMapPlusCodeSuppressedUntil = null;
+            if (!options.preserveCompose) {
+                const pcNorm = normalizePlusCodeForHashSuppress(plusCode);
+                nrMapPlusCodeSuppressedUntil = pcNorm;
+                const hashBefore = location.hash;
+                setHashRoute(plusCode);
+                if (location.hash === hashBefore && nrMapPlusCodeSuppressedUntil === pcNorm) {
+                    nrMapPlusCodeSuppressedUntil = null;
+                }
             }
 
             // Scroll to bottom and focus on textarea after modal is shown
-            setTimeout(() => {
+            if (!options.preserveCompose) setTimeout(() => {
                 // Scroll notes list to bottom
                 const notesList = document.getElementById('pluscode-notes-content');
                 if (notesList) {
@@ -7657,6 +7799,9 @@
 
         async function publishSignedEventTemplate(eventTemplate) {
             if (!currentPrivateKeyBytes) throw new Error('No private key available');
+            if (eventTemplate?.kind === MAP_NOTE_KIND && containsPrivateKeyNsec(String(eventTemplate?.content || ''))) {
+                throw new Error('Posting blocked: notes cannot include nsec private keys.');
+            }
             const signedEvent = finalizeEvent(eventTemplate, currentPrivateKeyBytes);
             const relayUrls = getWritableRelayUrls();
             if (relayUrls.length === 0) throw new Error('No relays enabled for posting');

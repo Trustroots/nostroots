@@ -12,9 +12,12 @@ import { resolveNip05 } from './nip05-resolve.js';
 import {
     TRUSTROOTS_CIRCLE_META_KIND,
     mergeCircleMetadataMapEntry,
-    isSafeHttpUrl
+    isSafeHttpUrl,
+    normalizeTrustrootsCircleSlugKey
 } from './circle-metadata.js';
+import { getTrustrootsCircleEntries } from './trustroots-circles-list.js';
 import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-kv-idb.js';
+import { containsPrivateKeyNsec } from './nsec-guard.js';
 
         // nostr-tools may access window.printer.maybe for debug; avoid ReferenceError
         if (typeof window !== 'undefined' && !window.printer) {
@@ -132,13 +135,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
         }
 
         function getTrustrootsCircles() {
-            return [
-                { slug: 'hitch' }, { slug: 'hackers' }, { slug: 'nomads' }, { slug: 'veg' }, { slug: 'climbers' },
-                { slug: 'cyclists' }, { slug: 'artists' }, { slug: 'photographers' }, { slug: 'vanlife' },
-                { slug: 'sailors' }, { slug: 'musicians' }, { slug: 'punks' }, { slug: 'ecoliving' },
-                { slug: 'foodsharing' }, { slug: 'yoga' }, { slug: 'hikers' }, { slug: 'dancers' },
-                { slug: 'volunteers' }, { slug: 'activists' }, { slug: 'burners' }, { slug: 'lightfoot' }
-            ];
+            return getTrustrootsCircleEntries();
         }
 
         /** Shared relay list storage (same as index.html). */
@@ -174,16 +171,12 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
 
         const TRUSTROOTS_CIRCLE_SLUGS_SET = new Set(
             getTrustrootsCircles()
-                .map((c) => String(c.slug || '').trim().toLowerCase())
+                .map((c) => normalizeTrustrootsCircleSlugKey(c.slug))
                 .filter(Boolean)
         );
 
-        function normalizeCircleSlug(slug) {
-            return String(slug || '').trim().toLowerCase();
-        }
-
         function trustrootsCirclePictureFallback(slug) {
-            const key = normalizeCircleSlug(slug);
+            const key = normalizeTrustrootsCircleSlugKey(slug);
             if (!key) return '';
             if (!TRUSTROOTS_CIRCLE_SLUGS_SET.has(key)) return '';
             return `https://www.trustroots.org/uploads-circle/${encodeURIComponent(key)}/1400x900.webp`;
@@ -216,7 +209,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
 
         /** True when this slug matches a Trustroots tribe (relay 30410 or known slug list), not only ad-hoc #channels. */
         function hasPublishedTrustrootsCircle(slug) {
-            const key = normalizeCircleSlug(slug);
+            const key = normalizeTrustrootsCircleSlugKey(slug);
             if (!key) return false;
             if (circleMetaBySlug.has(key)) return true;
             return TRUSTROOTS_CIRCLE_SLUGS_SET.has(key);
@@ -226,7 +219,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             if (!entry || entry.type !== 'channel') return false;
             const idRaw = String(entry.id || '').trim();
             if (!idRaw) return false;
-            const idKey = normalizeCircleSlug(idRaw);
+            const idKey = normalizeTrustrootsCircleSlugKey(idRaw);
             if (circleMetaBySlug.has(idKey)) return true;
             if (TRUSTROOTS_CIRCLE_SLUGS_SET.has(idKey)) return true;
             const evs = entry.events || [];
@@ -239,7 +232,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                         t.length >= 3 &&
                         (t[0] === 'l' || t[0] === 'L') &&
                         t[2] === TRUSTROOTS_CIRCLE_LABEL &&
-                        normalizeCircleSlug(t[1]) === idKey
+                        normalizeTrustrootsCircleSlugKey(t[1]) === idKey
                 );
                 if (row) return true;
             }
@@ -366,16 +359,6 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
         function getSelectedChatStorageKey() {
             return currentPublicKey ? 'nostroots_selected_chat_' + currentPublicKey : '';
         }
-        function readPersistedSelectedChatId() {
-            const key = getSelectedChatStorageKey();
-            if (!key || typeof localStorage === 'undefined') return '';
-            try {
-                const v = localStorage.getItem(key);
-                return typeof v === 'string' && v ? v : '';
-            } catch (_) {
-                return '';
-            }
-        }
         function writePersistedSelectedChatId(id) {
             const key = getSelectedChatStorageKey();
             if (!key || typeof localStorage === 'undefined') return;
@@ -383,24 +366,6 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                 if (id) localStorage.setItem(key, id);
                 else localStorage.removeItem(key);
             } catch (_) {}
-        }
-        /** Ensure a conversation row exists for an id saved from a prior session (channel / DM / group). */
-        function ensureConversationExistsForRestore(storedId) {
-            if (!storedId || conversations.has(storedId)) return storedId;
-            if (/^[0-9a-f]{64}$/i.test(storedId)) {
-                getOrCreateConversation('dm', storedId, [storedId]);
-                return storedId;
-            }
-            if (/^[0-9a-f]{64}(,[0-9a-f]{64})+$/i.test(storedId)) {
-                getOrCreateConversation('group', storedId, storedId.split(','));
-                return storedId;
-            }
-            const slug = normalizeChannelSlug(storedId);
-            if (/^[a-zA-Z0-9_-]+$/.test(slug) && slug !== 'keys' && slug !== 'settings') {
-                const conv = getOrCreateConversation('channel', slug, []);
-                return conv && conv.id ? conv.id : slug;
-            }
-            return '';
         }
 
         async function saveChatToCache() {
@@ -651,15 +616,8 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             if (settingsEl) settingsEl.classList.remove('active');
             if (!route) {
                 if (o.emptyPicker) {
-                    const saved = readPersistedSelectedChatId();
-                    if (saved) {
-                        const effectiveId = ensureConversationExistsForRestore(saved);
-                        if (effectiveId && conversations.has(effectiveId)) {
-                            selectConversation(effectiveId);
-                            return;
-                        }
-                        writePersistedSelectedChatId('');
-                    }
+                    // Explicit #chat (index): show conversation list, not the previously open thread.
+                    writePersistedSelectedChatId('');
                     selectedConversationId = null;
                     document.body.classList.remove('chat-open');
                     renderConvList();
@@ -1028,12 +986,30 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             showThreadEmpty();
         }
 
+        function applyChatNavAccountAvatar() {
+            try {
+                if (!window.NrWeb || typeof window.NrWeb.updateNrNavAccountAvatars !== 'function') return;
+                let pic = '';
+                if (currentPublicKey) {
+                    pic =
+                        pubkeyToPicture.get(currentPublicKey) ||
+                        pubkeyToPicture.get(String(currentPublicKey).toLowerCase()) ||
+                        '';
+                    if (pic && !isSafeHttpUrl(pic)) pic = '';
+                }
+                window.NrWeb.updateNrNavAccountAvatars(pic);
+            } catch (_) {}
+        }
+
         function setHeaderIdentity() {
             const el = document.getElementById('header-identity');
             const elM = document.getElementById('header-identity-mobile');
             const btn = document.getElementById('keys-icon-btn');
             const btnM = document.getElementById('keys-icon-btn-mobile');
-            if (!el) return;
+            if (!el) {
+                applyChatNavAccountAvatar();
+                return;
+            }
             const hasKey = !!currentPublicKey;
             const nip5 = currentUserNip05 || (currentPublicKey ? pubkeyToNip05.get(currentPublicKey) : '');
             const trUsername = currentPublicKey ? pubkeyToUsername.get(currentPublicKey) : null;
@@ -1067,12 +1043,14 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                 applyTo(elM);
                 if (btn) btn.classList.remove('has-identity');
                 if (btnM) btnM.classList.remove('has-identity');
+                applyChatNavAccountAvatar();
                 return;
             }
             if (btn) btn.classList.add('has-identity');
             if (btnM) btnM.classList.add('has-identity');
             applyTo(el);
             applyTo(elM);
+            applyChatNavAccountAvatar();
         }
 
         function updateUI() {
@@ -2359,7 +2337,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                 const eLab = escConvHtml(label);
                 const eGlyph = escConvHtml(enc);
                 if (isCircle) {
-                    const meta = circleMetaBySlug.get(normalizeCircleSlug(id)) || {};
+                    const meta = circleMetaBySlug.get(normalizeTrustrootsCircleSlugKey(id)) || {};
                     const slug = id;
                     const pic = meta.picture && isSafeHttpUrl(meta.picture)
                         ? meta.picture
@@ -2420,7 +2398,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                 tokens.push('#' + id);
             }
             if (entry.type === 'channel' && isTrustrootsCircleConversation(entry)) {
-                const meta = circleMetaBySlug.get(normalizeCircleSlug(id));
+                const meta = circleMetaBySlug.get(normalizeTrustrootsCircleSlugKey(id));
                 if (meta) {
                     tokens.push(meta.name, meta.about);
                 }
@@ -2563,7 +2541,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             if (conv.type === 'channel') {
                 if (isTrustrootsCircleConversation(conv)) {
                     const slug = conv.id;
-                    const slugKey = normalizeCircleSlug(slug);
+                    const slugKey = normalizeTrustrootsCircleSlugKey(slug);
                     const meta = circleMetaBySlug.get(slugKey) || {};
                     const circlePicture = meta.picture && isSafeHttpUrl(meta.picture)
                         ? meta.picture
@@ -2727,7 +2705,9 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             if (!raw?.tags) return null;
             const circleTag = raw.tags.find(t => Array.isArray(t) && t.length >= 3 && (t[0] === 'l' || t[0] === 'L') && t[2] === TRUSTROOTS_CIRCLE_LABEL);
             const circleSlug = (circleTag?.[1] || '').trim();
-            if (/^[a-zA-Z0-9_-]+$/.test(circleSlug)) return normalizeChannelSlug(circleSlug);
+            if (/^[a-zA-Z0-9_-]+$/.test(circleSlug)) {
+                return normalizeTrustrootsCircleSlugKey(normalizeChannelSlug(circleSlug));
+            }
 
             const circleHashtagTag = raw.tags.find(t =>
                 Array.isArray(t) &&
@@ -3058,10 +3038,33 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             return Math.floor(Date.now() / 1000) + sec;
         }
 
+        /**
+         * Blocks send: shows status + modal warning, keeps compose text, refocuses input.
+         * @returns {boolean} true if blocked
+         */
+        function warnAndBlockComposeIfNsec(rawPlaintext, inputEl) {
+            if (!containsPrivateKeyNsec(rawPlaintext, nip19)) return false;
+            const msg =
+                'Message not sent: your text contains an nsec (private key). Remove it before sending. Your draft was kept in the box.';
+            showStatus(msg, 'error');
+            try {
+                alert(msg);
+            } catch (_) {}
+            try {
+                if (inputEl) {
+                    inputEl.focus({ preventScroll: false });
+                    inputEl.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
+            } catch (_) {}
+            return true;
+        }
+
         async function sendMessage() {
             const input = document.getElementById('compose-input');
-            const text = (input?.value || '').trim();
+            const raw = String(input?.value ?? '');
+            const text = raw.trim();
             if (!text) return;
+            if (warnAndBlockComposeIfNsec(raw, input)) return;
             const conv = selectedConversationId ? conversations.get(selectedConversationId) : null;
             if (!conv) return;
             const publishRelayUrls = getWritableRelayUrls();
@@ -3103,7 +3106,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     invalidateConversationSearchIndex(conv.id);
                     scheduleChatCacheWrite();
                     input.value = '';
-                    renderThread();
+                    scheduleRender('both');
                     showStatus('Sent.', 'success');
                 }).catch((e) => {
                     const fb = formatSendCatchError(e);
@@ -3159,7 +3162,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     invalidateConversationSearchIndex(conv.id);
                     scheduleChatCacheWrite();
                     document.getElementById('compose-input').value = '';
-                    renderThread();
+                    scheduleRender('both');
                     showStatus('Sent to group.', 'success');
                 })();
                 return;
@@ -3201,7 +3204,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     invalidateConversationSearchIndex(conv.id);
                     scheduleChatCacheWrite();
                     document.getElementById('compose-input').value = '';
-                    renderThread();
+                    scheduleRender('both');
                     if (failed.length > 0) {
                         showStatus(`Sent to channel on ${succeeded.length}/${publishRelayUrls.length} relays.`, 'success');
                     } else {
@@ -3285,6 +3288,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
 export function bootEmbeddedChat() {
     if (typeof window !== 'undefined') {
         window.NrWebChatEmbedded = true;
+        window.NrWebChatSyncNavAccountAvatar = applyChatNavAccountAvatar;
     }
     window.importKey = importKey;
     window.openKeysModal = openKeysModal;

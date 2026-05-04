@@ -4,7 +4,8 @@ import {
     getCircleMetaDTagFromTags,
     parseCircleMetaContent,
     isSafeHttpUrl,
-    mergeCircleMetadataMapEntry
+    mergeCircleMetadataMapEntry,
+    normalizeTrustrootsCircleSlugKey
 } from '../../circle-metadata.js';
 
 describe('circle-metadata', () => {
@@ -63,6 +64,23 @@ describe('circle-metadata', () => {
         expect(map.get('hitch').name).toBe('New');
         expect(mergeCircleMetadataMapEntry(map, oldEv, { expectedPubkey: importPk })).toBe(false);
         expect(map.get('hitch').name).toBe('New');
+    });
+
+    it('normalizes hyphenated d tag to a single map key', () => {
+        const map = new Map();
+        const ev = {
+            kind: TRUSTROOTS_CIRCLE_META_KIND,
+            pubkey: importPk,
+            created_at: 40,
+            id: 'z1',
+            tags: [['d', 'zero-wasters']],
+            content: JSON.stringify({ name: 'Zero', about: '', picture: 'https://www.trustroots.org/uploads-circle/zero-wasters/742x496.jpg' })
+        };
+        expect(mergeCircleMetadataMapEntry(map, ev, { expectedPubkey: importPk })).toBe(true);
+        const key = normalizeTrustrootsCircleSlugKey('zero-wasters');
+        expect(key).toBe('zerowasters');
+        expect(map.get('zerowasters').name).toBe('Zero');
+        expect(map.has('zero-wasters')).toBe(false);
     });
 
     it('keeps trustroots uploads-circle picture for hitchhikers', () => {

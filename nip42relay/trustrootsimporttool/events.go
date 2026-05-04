@@ -52,7 +52,7 @@ func eventForHost(record HostRecord, privateKey string) (nostr.Event, error) {
 		tags = append(tags, nostr.Tag{"L", "trustroots-circle"})
 		seenCircleSlugs := map[string]struct{}{}
 		for _, circle := range record.Circles {
-			slug := strings.ToLower(strings.TrimSpace(circle))
+			slug := trustrootsCircleSlugForNostr(circle)
 			if slug == "" {
 				continue
 			}
@@ -60,7 +60,7 @@ func eventForHost(record HostRecord, privateKey string) (nostr.Event, error) {
 				continue
 			}
 			seenCircleSlugs[slug] = struct{}{}
-			// Lowercase to match kind 30410 `d` tag and NIP-32 label value.
+			// Match kind 30410 `d` tag and NIP-32 label value (hyphen-free).
 			tags = append(tags, nostr.Tag{"l", slug, "trustroots-circle"})
 			tags = append(tags, nostr.Tag{"t", slug})
 		}
@@ -131,11 +131,20 @@ func trustrootsCircleImageURL(tribe Tribe) string {
 	return "https://www.trustroots.org/uploads-circle/" + slug + "/742x496.jpg"
 }
 
+// trustrootsCircleSlugForNostr lowercases, trims, and strips ASCII hyphens from Mongo tribe
+// slugs for Nostr d / l / t tags (e.g. beer-brewers -> beerbrewers). CDN picture URLs keep
+// the Mongo path via trustrootsCircleImageURL (hyphens preserved there).
+func trustrootsCircleSlugForNostr(raw string) string {
+	s := strings.ToLower(strings.TrimSpace(raw))
+	return strings.ReplaceAll(s, "-", "")
+}
+
 func eventForCircleMetadata(tribe Tribe, privateKey string) (nostr.Event, error) {
-	slug := strings.TrimSpace(strings.ToLower(tribe.Slug))
-	if slug == "" {
+	rawSlug := strings.TrimSpace(strings.ToLower(tribe.Slug))
+	if rawSlug == "" {
 		return nostr.Event{}, fmt.Errorf("tribe has empty slug")
 	}
+	slug := trustrootsCircleSlugForNostr(tribe.Slug)
 	name := strings.TrimSpace(tribe.Label)
 	if name == "" {
 		return nostr.Event{}, fmt.Errorf("tribe has empty label")

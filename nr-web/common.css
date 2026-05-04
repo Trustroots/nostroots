@@ -279,6 +279,53 @@ h1, h2, .modal-header h2 {
     margin-left: 0.1rem;
 }
 
+.nr-nav-avatar-wrap[data-nr-nav-account] {
+    position: relative;
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.22);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.nr-nav-account-avatar {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+}
+
+.nr-nav-avatar-wrap[data-nr-nav-account].has-image .nr-nav-account-avatar {
+    display: block;
+}
+
+.nr-nav-avatar-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255, 255, 255, 0.92);
+    line-height: 0;
+}
+
+.nr-nav-avatar-wrap[data-nr-nav-account].has-image .nr-nav-avatar-fallback {
+    display: none;
+}
+
+.nr-nav-dropdown-toggle.nr-nav-user-toggle {
+    gap: 0.45rem;
+}
+
+.nr-nav-dropdown-toggle.nr-nav-more-toggle {
+    gap: 0.35rem;
+}
+
 .nr-nav-menu {
     display: none;
     position: absolute;
@@ -333,6 +380,12 @@ h1, h2, .modal-header h2 {
     box-sizing: border-box;
 }
 
+/* iOS Safari: strip default button chrome so menu rows match <a> items (Support vs Account). */
+.nr-nav-menu button.nr-nav-menu-item {
+    -webkit-appearance: none;
+    appearance: none;
+}
+
 .nr-nav-menu-item:hover,
 .nr-nav-menu-external:hover {
     background: var(--muted);
@@ -352,40 +405,6 @@ h1, h2, .modal-header h2 {
 
 .nr-nav-menu-identity.empty {
     display: none;
-}
-
-.nr-nav-menu .app-header-mobile-links-wrap {
-    margin: 0.25rem 0 0;
-    width: 100%;
-    max-width: none;
-    background: var(--muted);
-    border-color: var(--border);
-}
-
-.nr-nav-menu .app-header-mobile-links {
-    flex-direction: column;
-    align-items: stretch;
-}
-
-.nr-nav-menu .app-header-mobile-link {
-    width: 100%;
-    height: auto;
-    min-height: 32px;
-    padding: 0.35rem 0.5rem;
-    color: var(--card-foreground);
-    background: transparent;
-    border: none;
-    border-radius: 0.35rem;
-}
-
-.nr-nav-menu .app-header-mobile-link:hover {
-    background: rgba(0, 0, 0, 0.06);
-}
-
-.nr-nav-menu .app-header-mobile-hint {
-    color: var(--muted-foreground);
-    font-size: 0.65rem;
-    max-width: none;
 }
 
 /* Nav link: Map/Chat switcher (same size as keys/settings icons) */
@@ -412,64 +431,6 @@ h1, h2, .modal-header h2 {
 }
 .app-header-nav-link:active {
     transform: scale(0.95);
-}
-
-.app-header-mobile-links-wrap {
-    display: flex;
-    flex-direction: column;
-    gap: 0.12rem;
-    min-width: 0;
-    margin-left: 0.1rem;
-    background: rgba(255, 255, 255, 0.16);
-    border: 1px solid rgba(255, 255, 255, 0.26);
-    border-radius: 14px;
-    padding: 0.28rem 0.38rem 0.34rem;
-    width: fit-content;
-}
-
-.app-header-mobile-links {
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
-
-.app-header-mobile-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.2rem;
-    height: 28px;
-    padding: 0 0.5rem;
-    border-radius: 999px;
-    text-decoration: none;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.24);
-    color: #fff;
-    font-size: 0.72rem;
-    line-height: 1;
-    white-space: nowrap;
-}
-
-.app-header-mobile-link:hover {
-    background: rgba(255, 255, 255, 0.24);
-}
-
-.app-header-mobile-link-icon {
-    font-size: 0.82rem;
-}
-
-.app-header-mobile-link-label {
-    font-weight: 700;
-    letter-spacing: 0.01em;
-}
-
-.app-header-mobile-hint {
-    margin: 0.04rem 0 0;
-    color: rgba(255, 255, 255, 0.92);
-    font-size: 0.5rem;
-    line-height: 1.15;
-    max-width: 315px;
-    white-space: normal;
-    letter-spacing: 0.004em;
 }
 
 .app-header h1 {
@@ -697,10 +658,6 @@ h1, h2, .modal-header h2 {
         filter: none;
     }
     .nr-nav-dropdown-toggle { padding: 0.35rem 0.45rem; font-size: 0.78rem; }
-    .app-header-mobile-links-wrap { margin-left: 0; }
-    .app-header-mobile-links { flex-wrap: wrap; row-gap: 0.2rem; }
-    .app-header-mobile-link { height: auto; min-height: 26px; padding: 0.2rem 0.45rem; }
-    .app-header-mobile-hint { display: none; }
     .header-identity { max-width: 120px; font-size: 0.75rem; padding: 0.3rem 0.5rem; }
     .app-header-actions .keys-icon .header-identity-text { display: none; }
     .app-header-actions .keys-icon.header-identity-btn.has-identity { padding: 0; width: 44px; }
@@ -708,14 +665,6 @@ h1, h2, .modal-header h2 {
 @media (max-width: 480px) {
     .app-header h1 { font-size: 1.15rem; }
     .app-header-actions { gap: 0.35rem; }
-    .app-header-mobile-links { gap: 0.25rem; flex-wrap: wrap; row-gap: 0.2rem; }
-    .app-header-mobile-link {
-        width: auto;
-        min-width: 0;
-        max-width: 100%;
-        padding: 0.2rem 0.4rem;
-        justify-content: center;
-    }
 }
 
 /* --- Public profile (#profile/…) --- */

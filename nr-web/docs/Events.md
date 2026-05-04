@@ -17,7 +17,7 @@ Signed by the **same** key as the Trustroots Mongo JSONL export (`trustrootsimpo
 
 **Tags (recommended order):**
 
-- `["d", "<slug>"]` — lowercase circle slug (stable identifier; must match `l` value below).
+- `["d", "<slug>"]` — lowercase circle slug with **no ASCII hyphens** (stable identifier; must match `l` value below). The import tool strips hyphens from Mongo tribe slugs for tags; `picture` URLs may still use the Mongo path segment (hyphens allowed) so Trustroots CDN paths resolve.
 - `["L", "trustroots-circle"]`
 - `["l", "<slug>", "trustroots-circle"]`
 - `["source", "trustroots-import"]` — optional, for debugging.

@@ -38,7 +38,7 @@ The main app (`index.html`) uses **`location.hash`** only (no path router; stati
 | Looks like NIP-05 (e.g. `alice%40trustroots.org`) | Chat — DM |
 | Otherwise | Chat — circle / channel slug |
 
-Bookmarks to `chat.html` redirect to `index.html` with the same hash. Circle slugs cannot match reserved words (`welcome`, `start`, etc.); see `NrWebHashRouter.EXTENDED_RESERVED` in `nr-hash-router.js`.
+Circle slugs cannot match reserved words (`welcome`, `start`, etc.); see `NrWebHashRouter.EXTENDED_RESERVED` in `nr-hash-router.js`.
 
 Query shortcuts (stripped after load): `?action=map|host|search`, `?welcome=1`, `?start=1` (see `processNrWebUrlAction()` in `index.html`).
 

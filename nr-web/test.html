@@ -1066,7 +1066,7 @@
         if (savedRelayUrl) {
           relayUrlInput.value = savedRelayUrl;
         } else {
-          // Fallback to shared relay list used by other nr-web pages (e.g. chat.html).
+          // Fallback to shared relay list used by other nr-web pages (e.g. index.html).
           const sharedRelayList = localStorage.getItem("relay_urls");
           if (sharedRelayList) {
             const firstRelay = sharedRelayList

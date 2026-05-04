@@ -413,7 +413,7 @@ body {
         </div>
     </div>
 
-<!-- Keys Modal (shared by index.html and chat.html) -->
+<!-- Keys Modal (shared by index.html) -->
 <div class="modal" id="keys-modal" onclick="if(event.target===this)typeof closeKeysModal==='function'&&closeKeysModal()">
     <div class="modal-content">
         <div class="modal-header">
@@ -524,7 +524,7 @@ body {
     </div>
 </div>
 
-<!-- Settings Modal (shared by index.html and chat.html) -->
+<!-- Settings Modal (shared by index.html) -->
 <div class="modal" id="settings-modal" onclick="if(event.target===this)typeof closeSettingsModal==='function'&&closeSettingsModal()">
     <div class="modal-content">
         <div class="modal-header">
@@ -897,7 +897,7 @@ body {
     var NIP42_PUBLISH_TIMEOUT_MS = 10000;
 
     /**
-     * Publish a signed Nostr event over a raw WebSocket with NIP-42 AUTH (same behavior as chat.html).
+     * Publish a signed Nostr event over a raw WebSocket with NIP-42 AUTH.
      * @param {string} relayUrl
      * @param {object} signedEvent
      * @param {function} signAuthEvent async (template) => signedEvent for kind 22242

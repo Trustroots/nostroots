@@ -222,6 +222,14 @@ body {
     font-weight: 400;
     line-height: 1.4;
 }
+#keys-modal .keys-nsec-backup-hint {
+    display: block;
+    margin: 0 0 0.25rem 0;
+    padding-left: calc(1.125rem + 0.5rem);
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    line-height: 1.35;
+}
 #keys-modal .key-input-wrapper, #settings-modal .key-input-wrapper {
     position: relative;
     display: flex;
@@ -449,6 +457,7 @@ body {
                     <input type="checkbox" id="keys-step-backup" disabled>
                     <span>Export your <strong>nsec</strong> and copy it into your password manager (we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>).</span>
                 </label>
+                <small class="keys-nsec-backup-hint" role="note">Your <strong>nsec</strong> is your <strong>private key</strong>: anyone who has it can sign as you on Nostr. Do not share it with others, and keep a safe backup—if you lose it, you cannot recover this identity.</small>
             </div>
 
             <!-- Local Key Actions (above npub) -->

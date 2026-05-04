@@ -754,11 +754,6 @@ h1, h2, .modal-header h2 {
 }
 
 /* --- Public profile (#profile/…) --- */
-.nr-profile-toolbar-title {
-    font-weight: 600;
-    color: var(--foreground);
-    font-size: 1rem;
-}
 
 /* Trustroots-inspired public profile (see nr-profile-page.js .nr-profile-tr) */
 .nr-profile-tr {
@@ -771,6 +766,7 @@ h1, h2, .modal-header h2 {
     margin: 0 auto;
     padding: 1.25rem 1rem 2.5rem;
     font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    position: relative;
 }
 [data-theme='dark'] .nr-profile-tr {
     --tr-orange: #f5a84d;
@@ -782,30 +778,39 @@ h1, h2, .modal-header h2 {
 .nr-profile-tr-header {
     margin-bottom: 0.35rem;
 }
+.nr-profile-tr-hero {
+    display: block;
+    margin-bottom: 0;
+    position: relative;
+}
+.nr-profile-tr-hero-main {
+    min-width: 0;
+    margin-left: calc(200px + 1.2rem);
+}
+.nr-profile-tr-title-line {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
 .nr-profile-tr-name {
     font-size: 1.65rem;
     font-weight: 700;
     color: var(--foreground);
-    margin: 0 0 0.15rem;
+    margin: 0;
     letter-spacing: -0.02em;
 }
 .nr-profile-tr-handle {
-    display: block;
+    display: inline;
     font-size: 0.95rem;
     color: var(--tr-rail-muted);
-    margin-bottom: 0.85rem;
+    margin: 0;
 }
 .nr-profile-tr-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.65rem 1.25rem;
     margin-bottom: 0.75rem;
-    align-items: center;
-}
-.nr-profile-tr-tr-slot {
-    display: inline-flex;
-    flex-wrap: wrap;
-    gap: 0.65rem 1.25rem;
     align-items: center;
 }
 .nr-profile-tr-action {
@@ -822,12 +827,19 @@ h1, h2, .modal-header h2 {
     text-decoration: underline;
     text-underline-offset: 2px;
 }
+.nr-profile-tr-action-btn {
+    background: none;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+}
 .nr-profile-tr-tabs {
     display: flex;
     flex-wrap: wrap;
     gap: 0.25rem 1.25rem;
     border-bottom: 1px solid var(--tr-card-edge);
-    margin-bottom: 1.25rem;
+    margin-bottom: 0;
 }
 .nr-profile-tr-tab {
     background: none;
@@ -848,10 +860,18 @@ h1, h2, .modal-header h2 {
     color: var(--foreground);
     border-bottom-color: var(--tr-orange);
 }
+.nr-profile-tr-trust-exp-block {
+    margin-top: 1.15rem;
+}
+.nr-profile-tr-trust-claim-slot {
+    margin-top: 1.25rem;
+    padding-top: 1.1rem;
+    border-top: 1px solid var(--tr-card-edge);
+}
 .nr-profile-tr-grid {
     display: grid;
     grid-template-columns: 200px minmax(0, 1fr) 260px;
-    gap: 1.25rem 1.5rem;
+    gap: 0 1.5rem;
     align-items: start;
 }
 @media (max-width: 900px) {
@@ -866,6 +886,19 @@ h1, h2, .modal-header h2 {
     }
 }
 @media (max-width: 640px) {
+    .nr-profile-tr-hero {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    .nr-profile-tr-hero-main {
+        margin-left: 0;
+    }
+    .nr-profile-tr-avatar-wrap {
+        position: static;
+        max-width: 150px;
+        margin-bottom: 0;
+    }
     .nr-profile-tr-grid {
         grid-template-columns: 1fr;
     }
@@ -880,10 +913,13 @@ h1, h2, .modal-header h2 {
     top: 0.5rem;
 }
 .nr-profile-tr-avatar-wrap {
-    width: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 200px;
     aspect-ratio: 1;
     max-width: 200px;
-    margin-bottom: 1rem;
+    margin-bottom: 0;
     border: 1px solid var(--tr-card-edge);
     border-radius: 4px;
     overflow: hidden;
@@ -922,53 +958,6 @@ h1, h2, .modal-header h2 {
 }
 .nr-profile-tr-stats li:last-child {
     border-bottom: none;
-}
-.nr-profile-tr-elsewhere {
-    margin-top: 0.5rem;
-}
-.nr-profile-tr-elsewhere-label {
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    color: var(--tr-rail-muted);
-    margin: 0 0 0.4rem;
-}
-.nr-profile-tr-elsewhere a,
-.nr-profile-tr-elsewhere button {
-    display: block;
-    width: 100%;
-    text-align: left;
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: var(--tr-orange);
-    text-decoration: none;
-    background: none;
-    border: none;
-    padding: 0.35rem 0;
-    cursor: pointer;
-    font-family: inherit;
-}
-.nr-profile-tr-elsewhere a:hover,
-.nr-profile-tr-elsewhere button:hover {
-    text-decoration: underline;
-}
-.nr-profile-tr-mod {
-    margin-top: 1.25rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--tr-card-edge);
-    font-size: 0.78rem;
-}
-.nr-profile-tr-mod a {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    color: var(--header-green, #12b591);
-    font-weight: 600;
-    text-decoration: none;
-    margin-right: 0.75rem;
-}
-.nr-profile-tr-mod a:hover {
-    text-decoration: underline;
 }
 .nr-profile-tr-main {
     min-width: 0;
@@ -1055,6 +1044,15 @@ h1, h2, .modal-header h2 {
     font-size: 0.85rem;
     color: var(--tr-rail-muted);
     line-height: 1.45;
+}
+.nr-profile-tr-rail-body--accommodation {
+    text-align: left;
+}
+.nr-profile-tr-accommodation-text {
+    color: var(--tr-rail-fg, hsl(168, 18%, 22%));
+    font-size: 0.88rem;
+    line-height: 1.5;
+    word-break: break-word;
 }
 .nr-profile-tr-rail-icon {
     font-size: 2rem;

@@ -243,15 +243,6 @@
         body.nr-surface-profile #nr-profile-view {
             display: flex !important;
         }
-        .nr-profile-toolbar {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.65rem 1rem;
-            border-bottom: 1px solid var(--border);
-            background: var(--card);
-            flex-shrink: 0;
-        }
         .nr-profile-scroll {
             flex: 1;
             overflow: auto;
@@ -1478,10 +1469,6 @@
 
     <!-- Public profile (#profile/…) -->
     <div id="nr-profile-view" class="nr-profile-view" hidden style="display:none;">
-        <div class="nr-profile-toolbar">
-            <button type="button" class="btn btn-secondary" id="nr-profile-back-map" aria-label="Back to map">← Map</button>
-            <span class="nr-profile-toolbar-title" id="nr-profile-toolbar-title">Profile</span>
-        </div>
         <div id="nr-profile-root" class="nr-profile-scroll" aria-live="polite"></div>
     </div>
     
@@ -2231,6 +2218,46 @@
             const profileView = document.getElementById('nr-profile-view');
 
             let claimsSectionRestoreAnchor = null;
+            let claimsTrustPanelRestoreAnchor = null;
+
+            function restoreClaimTrustPanelToKeysModal() {
+                const panel = document.getElementById('keys-claim-trust-panel');
+                const slot = document.getElementById('nr-profile-trust-claim-slot');
+                const section = document.getElementById('keys-claim-section');
+                if (!panel || !section) return;
+                if (!slot?.contains(panel) && section.contains(panel)) return;
+                if (claimsTrustPanelRestoreAnchor) {
+                    const { parent, next } = claimsTrustPanelRestoreAnchor;
+                    if (parent && parent.isConnected) {
+                        if (next && next.parentNode === parent) parent.insertBefore(panel, next);
+                        else parent.appendChild(panel);
+                    } else {
+                        const details = document.getElementById('claim-details');
+                        if (details && details.parentElement === section) section.insertBefore(panel, details);
+                        else section.appendChild(panel);
+                    }
+                    claimsTrustPanelRestoreAnchor = null;
+                } else {
+                    const details = document.getElementById('claim-details');
+                    if (details && details.parentElement === section) section.insertBefore(panel, details);
+                    else section.appendChild(panel);
+                }
+                if (typeof renderClaimSummary === 'function') renderClaimSummary();
+            }
+
+            function mountClaimTrustPanelToProfileTrustTab() {
+                const panel = document.getElementById('keys-claim-trust-panel');
+                const slot = document.getElementById('nr-profile-trust-claim-slot');
+                if (!panel || !slot) return;
+                if (!claimsTrustPanelRestoreAnchor) {
+                    claimsTrustPanelRestoreAnchor = { parent: panel.parentElement, next: panel.nextSibling };
+                }
+                window.NrWebClaimsUiSurface = 'profile';
+                slot.appendChild(panel);
+                if (typeof renderClaimSummary === 'function') renderClaimSummary();
+                if (typeof refreshClaimSuggestions === 'function') void refreshClaimSuggestions({ silent: true });
+            }
+
             function restoreClaimsSectionFromKeysModal() {
                 window.NrWebClaimsUiSurface = 'keys';
                 const sec = document.getElementById('keys-claim-section');
@@ -2246,7 +2273,14 @@
                 if (!keysModal || !keysModal.classList.contains('active')) sec.style.display = 'none';
                 if (typeof renderClaimSummary === 'function') renderClaimSummary();
             }
+
+            function restoreAllClaimsProfileUi() {
+                restoreClaimTrustPanelToKeysModal();
+                restoreClaimsSectionFromKeysModal();
+            }
+
             function mountClaimsSectionToProfileRoot() {
+                restoreClaimTrustPanelToKeysModal();
                 const sec = document.getElementById('keys-claim-section');
                 const root = document.getElementById('nr-profile-root');
                 if (!sec || !root) return;
@@ -2260,10 +2294,11 @@
                 if (typeof refreshClaimSuggestions === 'function') void refreshClaimSuggestions({ silent: true });
             }
             window.NrWebMountClaimTrustrootsSection = mountClaimsSectionToProfileRoot;
-            window.NrWebUnmountClaimTrustrootsSection = restoreClaimsSectionFromKeysModal;
+            window.NrWebMountClaimTrustrootsTrustTab = mountClaimTrustPanelToProfileTrustTab;
+            window.NrWebUnmountClaimTrustrootsSection = restoreAllClaimsProfileUi;
 
             function showMapShell() {
-                restoreClaimsSectionFromKeysModal();
+                restoreAllClaimsProfileUi();
                 document.body.classList.remove('nr-surface-chat');
                 document.body.classList.remove('nr-surface-profile');
                 if (profileView) {
@@ -2282,7 +2317,7 @@
                 } catch (_) {}
             }
             function showChatShell() {
-                restoreClaimsSectionFromKeysModal();
+                restoreAllClaimsProfileUi();
                 document.body.classList.remove('nr-surface-profile');
                 if (profileView) {
                     profileView.hidden = true;
@@ -2302,7 +2337,7 @@
             }
             async function showProfileShell(profileId, invalid, mode) {
                 const m = mode || 'public';
-                if (m !== 'contacts') restoreClaimsSectionFromKeysModal();
+                if (m !== 'contacts') restoreAllClaimsProfileUi();
                 document.body.classList.remove('nr-surface-chat');
                 document.body.classList.add('nr-surface-profile');
                 if (mapView) mapView.style.display = 'none';
@@ -2313,10 +2348,6 @@
                 if (profileView) {
                     profileView.hidden = false;
                     profileView.style.display = 'flex';
-                }
-                const tt = document.getElementById('nr-profile-toolbar-title');
-                if (tt) {
-                    tt.textContent = invalid ? 'Profile' : m === 'edit' ? 'Edit profile' : m === 'contacts' ? 'Contacts' : 'Profile';
                 }
                 try {
                     if (window.NrWeb && typeof window.NrWeb.fillAppHeader === 'function') {
@@ -2409,8 +2440,30 @@
                 showNotesForPlusCode(c.plusCode);
                 return;
             }
-            if (c.kind === 'profile' || c.kind === 'profile_edit' || c.kind === 'profile_contacts' || c.kind === 'profile_invalid') {
+            if (c.kind === 'profile' || c.kind === 'profile_edit' || c.kind === 'profile_contacts' || c.kind === 'profile_invalid' || c.kind === 'profile_self') {
                 closePlusCodeNotesModal(true);
+                if (c.kind === 'profile_self') {
+                    if (!currentPublicKey) {
+                        showMapShell();
+                        openKeysModal();
+                        showStatus('Load a key first to open your profile.', 'info');
+                        return;
+                    }
+                    const trU =
+                        document.getElementById('trustroots-username')?.value?.trim() ||
+                        (pubkeyToUsername && pubkeyToUsername.get && pubkeyToUsername.get(currentPublicKey));
+                    let ownProfileId = '';
+                    if (trU) ownProfileId = `${String(trU).toLowerCase()}@trustroots.org`;
+                    else {
+                        try {
+                            ownProfileId = nip19.npubEncode(currentPublicKey);
+                        } catch (_) {
+                            ownProfileId = String(currentPublicKey || '');
+                        }
+                    }
+                    await showProfileShell(ownProfileId, false, 'edit');
+                    return;
+                }
                 const mode = c.kind === 'profile_edit' ? 'edit' : c.kind === 'profile_contacts' ? 'contacts' : 'public';
                 await showProfileShell(c.profileId, c.kind === 'profile_invalid', mode);
                 return;
@@ -4799,6 +4852,36 @@
                 (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="nr-content-link">${url}</a>`
             );
         }
+
+        /**
+         * After escapeHtml: replace bech32 npubs with Trustroots NIP-05 labels and #profile links when we have
+         * a matching kind 0 / 30390 NIP-05 or kind 10390 username (same resolution as note author line).
+         * Run on plain text before linkifyHashtags so #profile/… in href is not treated as a hashtag.
+         */
+        function linkifyNpubsWithKnownTrustrootsProfiles(html) {
+            if (!html || typeof nip19 === 'undefined' || !nip19.decode) return html || '';
+            return html.replace(/\bnpub1[023456789acdefghjkmnpqrstuvwxyz]{20,}\b/gi, (npubStr) => {
+                let hex = '';
+                try {
+                    const d = nip19.decode(npubStr);
+                    if (d.type !== 'npub') return npubStr;
+                    hex = Array.from(d.data)
+                        .map((b) => b.toString(16).padStart(2, '0'))
+                        .join('')
+                        .toLowerCase();
+                } catch (_) {
+                    return npubStr;
+                }
+                let nip05 = (pubkeyToNip05.get(hex) || '').trim().toLowerCase();
+                if (!nip05 || !isTrustrootsNip05Lower(nip05)) {
+                    const u = pubkeyToUsername.get(hex);
+                    if (u) nip05 = `${String(u).trim().toLowerCase()}@trustroots.org`;
+                }
+                if (!nip05 || !isTrustrootsNip05Lower(nip05)) return npubStr;
+                const href = '#profile/' + encodeURIComponent(nip05).replace(/%2B/g, '+');
+                return `<a href="${href}" class="nr-content-link" title="${escapeHtml(npubStr)}">${escapeHtml(nip05)}</a>`;
+            });
+        }
         
         function formatDate(timestamp) {
             const date = new Date(timestamp * 1000);
@@ -5579,11 +5662,7 @@
                         fillColor,
                         fillOpacity: 0.6
                     });
-                    polygon.on('click', (event) => {
-                        if (event && event.originalEvent) {
-                            event.originalEvent.preventDefault();
-                            event.originalEvent.stopPropagation();
-                        }
+                    polygon.on('click', () => {
                         showNotesForPlusCode(plusCode);
                     });
                     polygon.addTo(leafletGridLayer);
@@ -6379,7 +6458,9 @@
             
             const content = document.createElement('div');
             content.className = 'note-content';
-            content.innerHTML = linkifyHashtags(linkifyTrustrootsUrls(escapeHtml(event.content)));
+            content.innerHTML = linkifyTrustrootsUrls(
+                linkifyNpubsWithKnownTrustrootsProfiles(linkifyHashtags(escapeHtml(event.content)))
+            );
             noteItem.appendChild(content);
             
             return noteItem;
@@ -7109,7 +7190,10 @@
             while (el.firstChild) el.removeChild(el.firstChild);
             el.classList.remove('claim-relay-scope--warning');
             const section = document.getElementById('keys-claim-section');
-            if (!section || section.style.display === 'none') {
+            const trustPanel = document.getElementById('keys-claim-trust-panel');
+            const slot = document.getElementById('nr-profile-trust-claim-slot');
+            const panelOnProfile = !!(trustPanel && slot?.contains(trustPanel));
+            if (!section || (section.style.display === 'none' && !panelOnProfile)) {
                 el.setAttribute('hidden', '');
                 el.setAttribute('aria-hidden', 'true');
                 return;
@@ -7285,6 +7369,13 @@
         window.NrWebGetCurrentPubkeyHex = () => currentPublicKey;
         window.NrWebGoOwnProfile = function (action) {
             if (!currentPublicKey) return;
+            if (action === 'view') {
+                try {
+                    location.hash = '#profile';
+                } catch (_) {}
+                if (typeof applyNrUnifiedHash === 'function') void applyNrUnifiedHash();
+                return;
+            }
             const trU =
                 document.getElementById('trustroots-username')?.value?.trim() ||
                 (pubkeyToUsername && pubkeyToUsername.get && pubkeyToUsername.get(currentPublicKey));
@@ -8038,14 +8129,6 @@
             // Initialize relay list
             initializeRelayList();
 
-            document.getElementById('nr-profile-back-map')?.addEventListener('click', () => {
-                try {
-                    history.replaceState({}, '', location.pathname + location.search);
-                } catch (_) {}
-                location.hash = '';
-                void applyUnifiedHash();
-            });
-            
             // Keys / Settings header buttons: wired in common.js fillAppHeader() so listeners survive header rebuilds.
 
             // When user focuses the window after clicking a notification, open the notes modal for that plus code

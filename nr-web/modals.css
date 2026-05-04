@@ -78,8 +78,15 @@
     line-height: 1.5;
 }
 
-#keys-modal .claim-summary-bar {
-    margin-bottom: 1.25rem;
+.keys-claim-trust-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+#keys-modal .claim-summary-bar,
+.nr-profile-tr-trust-claim-slot .claim-summary-bar {
+    margin-bottom: 0;
     padding: 0.65rem 1rem;
     font-size: 0.8125rem;
     font-weight: 500;
@@ -92,12 +99,13 @@
     line-height: 1.45;
 }
 
-#keys-modal .claim-relay-scope {
+#keys-modal .claim-relay-scope,
+.nr-profile-tr-trust-claim-slot .claim-relay-scope {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem 0.75rem;
-    margin: -0.5rem 0 1.25rem 0;
+    margin: 0 0 0.25rem 0;
     padding: 0.6rem 0.85rem;
     font-size: 0.8125rem;
     line-height: 1.4;
@@ -107,23 +115,27 @@
     border-radius: var(--radius);
 }
 
-#keys-modal .claim-relay-scope.claim-relay-scope--warning {
+#keys-modal .claim-relay-scope.claim-relay-scope--warning,
+.nr-profile-tr-trust-claim-slot .claim-relay-scope.claim-relay-scope--warning {
     border-color: var(--destructive);
     background: var(--card);
 }
 
-#keys-modal .claim-relay-scope-label {
+#keys-modal .claim-relay-scope-label,
+.nr-profile-tr-trust-claim-slot .claim-relay-scope-label {
     font-weight: 600;
     color: var(--muted-foreground);
 }
 
-#keys-modal .claim-relay-scope-icons {
+#keys-modal .claim-relay-scope-icons,
+.nr-profile-tr-trust-claim-slot .claim-relay-scope-icons {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
 }
 
-#keys-modal .claim-relay-icon {
+#keys-modal .claim-relay-icon,
+.nr-profile-tr-trust-claim-slot .claim-relay-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -137,7 +149,8 @@
     border: 1px solid var(--border);
 }
 
-#keys-modal .claim-relay-scope-detail {
+#keys-modal .claim-relay-scope-detail,
+.nr-profile-tr-trust-claim-slot .claim-relay-scope-detail {
     flex: 1 1 100%;
     margin: 0;
     font-size: 0.75rem;
@@ -151,7 +164,14 @@
     gap: 1.125rem;
 }
 
-#keys-modal .claim-detail-block {
+.keys-claim-trust-blocks {
+    display: flex;
+    flex-direction: column;
+    gap: 1.125rem;
+}
+
+#keys-modal .claim-detail-block,
+.nr-profile-tr-trust-claim-slot .claim-detail-block {
     position: relative;
     padding: 1rem 1.1rem 1.1rem 1.15rem;
     border: 1px solid var(--border);
@@ -161,7 +181,8 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
 }
 
-#keys-modal .claim-detail-heading {
+#keys-modal .claim-detail-heading,
+.nr-profile-tr-trust-claim-slot .claim-detail-heading {
     margin: 0 0 0.4rem 0;
     font-size: 1.02rem;
     font-weight: 600;
@@ -169,14 +190,16 @@
     letter-spacing: -0.01em;
 }
 
-#keys-modal .claim-detail-hint {
+#keys-modal .claim-detail-hint,
+.nr-profile-tr-trust-claim-slot .claim-detail-hint {
     margin: 0 0 0.75rem 0;
     font-size: 0.8125rem;
     color: var(--muted-foreground);
     line-height: 1.45;
 }
 
-#keys-modal .claim-preview-pre {
+#keys-modal .claim-preview-pre,
+.nr-profile-tr-trust-claim-slot .claim-preview-pre {
     margin: 0 0 1rem 0;
     max-height: 14rem;
     overflow: auto;
@@ -191,7 +214,8 @@
     font-family: ui-monospace, 'SF Mono', 'Monaco', 'Menlo', 'Courier New', monospace;
 }
 
-#keys-modal .claim-preview-list {
+#keys-modal .claim-preview-list,
+.nr-profile-tr-trust-claim-slot .claim-preview-list {
     margin-bottom: 1rem;
     max-height: 16rem;
     overflow-y: auto;
@@ -201,7 +225,8 @@
     padding-right: 0.15rem;
 }
 
-#keys-modal .claim-line {
+#keys-modal .claim-line,
+.nr-profile-tr-trust-claim-slot .claim-line {
     padding: 0.65rem 0.75rem;
     background: var(--muted);
     border: 1px solid var(--border);
@@ -210,12 +235,14 @@
     transition: border-color 0.15s ease;
 }
 
-#keys-modal .claim-line:hover {
+#keys-modal .claim-line:hover,
+.nr-profile-tr-trust-claim-slot .claim-line:hover {
     border-color: var(--primary);
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
-#keys-modal .claim-line-meta {
+#keys-modal .claim-line-meta,
+.nr-profile-tr-trust-claim-slot .claim-line-meta {
     font-size: 0.72rem;
     text-transform: uppercase;
     letter-spacing: 0.04em;
@@ -225,13 +252,15 @@
     word-break: break-all;
 }
 
-#keys-modal .claim-line-body {
+#keys-modal .claim-line-body,
+.nr-profile-tr-trust-claim-slot .claim-line-body {
     white-space: pre-wrap;
     word-break: break-word;
     color: var(--foreground);
 }
 
-#keys-modal .claim-empty-note {
+#keys-modal .claim-empty-note,
+.nr-profile-tr-trust-claim-slot .claim-empty-note {
     margin: 0;
     font-size: 0.875rem;
     color: var(--muted-foreground);
@@ -239,13 +268,15 @@
     padding: 0.35rem 0;
 }
 
-#keys-modal .claim-detail-block .btn {
+#keys-modal .claim-detail-block .btn,
+.nr-profile-tr-trust-claim-slot .claim-detail-block .btn {
     width: 100%;
     padding: 0.55rem 1rem;
     font-weight: 600;
 }
 
-#keys-modal .claim-detail-block .btn.claim-sign-exiting {
+#keys-modal .claim-detail-block .btn.claim-sign-exiting,
+.nr-profile-tr-trust-claim-slot .claim-detail-block .btn.claim-sign-exiting {
     opacity: 0 !important;
     transform: translateY(6px);
     pointer-events: none;
@@ -253,13 +284,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    #keys-modal .claim-detail-block .btn.claim-sign-exiting {
+    #keys-modal .claim-detail-block .btn.claim-sign-exiting,
+    .nr-profile-tr-trust-claim-slot .claim-detail-block .btn.claim-sign-exiting {
         transition-duration: 0.15s;
         transform: none;
     }
 }
 
-#keys-modal .claim-detail-block .btn.claim-sign-gone {
+#keys-modal .claim-detail-block .btn.claim-sign-gone,
+.nr-profile-tr-trust-claim-slot .claim-detail-block .btn.claim-sign-gone {
     display: none !important;
 }
 
@@ -534,6 +567,15 @@
     width: auto;
     flex: 0 0 auto;
     margin-top: 0.1rem;
+}
+
+#keys-modal .keys-nsec-backup-hint {
+    display: block;
+    margin: 0 0 0.25rem 0;
+    padding-left: calc(1.125rem + 0.5rem);
+    color: var(--muted-foreground);
+    font-size: 0.8125rem;
+    line-height: 1.35;
 }
 
 #keys-modal .key-input-wrapper,

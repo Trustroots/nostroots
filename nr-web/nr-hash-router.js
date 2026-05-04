@@ -54,6 +54,7 @@
     function classify(route) {
         if (!route) return { kind: 'map_home' };
         var lower = String(route).toLowerCase();
+        if (lower === 'profile') return { kind: 'profile_self' };
         if (lower === 'keys') return { kind: 'modal', modal: 'keys' };
         if (lower === 'settings') return { kind: 'modal', modal: 'settings' };
         if (RESERVED_SET.has(lower)) return { kind: 'reserved', token: lower };

@@ -77,6 +77,12 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
         const pubkeyToUsername = new Map();
         /** NIP-05 from kind 0 (any domain). Used for display; prefer over npub. */
         const pubkeyToNip05 = new Map();
+
+        function isTrustrootsNip05Lower(s) {
+            const n = String(s || '').trim().toLowerCase();
+            return n.endsWith('@trustroots.org') || n.endsWith('@www.trustroots.org');
+        }
+
         let isProfileLinked = false;
         let usernameFromNostr = false;
         let currentUserNip05 = '';
@@ -2595,7 +2601,9 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                 }
                 const div = document.createElement('div');
                 div.className = 'message ' + (isSelf ? 'self' : 'other');
-                div.innerHTML = linkifyNip05Identifiers(linkifyTrustrootsUrls(escapeHtml(ev.content || '')));
+                div.innerHTML = linkifyTrustrootsUrls(
+                    linkifyNpubsWithTrustrootsProfiles(linkifyNip05Identifiers(escapeHtml(ev.content || '')))
+                );
                 const pluscode = getPluscodeFromEvent(ev.raw);
                 if (pluscode) {
                     const pluscodeEl = document.createElement('div');
@@ -2706,6 +2714,33 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     return `${prefix}<a href="${href}" class="message-inline-link nr-content-link">${nip05}</a>`;
                 }
             );
+        }
+
+        /** Replace npub1… with Trustroots NIP-05 + #profile when known (run after escapeHtml, before NIP-05 linkify). */
+        function linkifyNpubsWithTrustrootsProfiles(html) {
+            if (!html) return html || '';
+            return html.replace(/\bnpub1[023456789acdefghjkmnpqrstuvwxyz]{20,}\b/gi, (npubStr) => {
+                let hex = '';
+                try {
+                    const d = nip19.decode(npubStr);
+                    if (d.type !== 'npub') return npubStr;
+                    hex = Array.from(d.data)
+                        .map((b) => b.toString(16).padStart(2, '0'))
+                        .join('')
+                        .toLowerCase();
+                } catch (_) {
+                    return npubStr;
+                }
+                let nip05 = (pubkeyToNip05.get(hex) || '').trim().toLowerCase();
+                if (!isTrustrootsNip05Lower(nip05)) nip05 = '';
+                if (!nip05) {
+                    const u = pubkeyToUsername.get(hex);
+                    if (u) nip05 = `${String(u).trim().toLowerCase()}@trustroots.org`;
+                }
+                if (!nip05 || !isTrustrootsNip05Lower(nip05)) return npubStr;
+                const href = '#profile/' + encodeURIComponent(nip05).replace(/%2B/g, '+');
+                return `<a href="${href}" class="message-inline-link nr-content-link" title="${escapeHtml(npubStr)}">${escapeHtml(nip05)}</a>`;
+            });
         }
 
         function renderPubkeyLabelHtml(hex) {

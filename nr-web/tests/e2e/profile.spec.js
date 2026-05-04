@@ -21,7 +21,6 @@ test.describe('Public profile (#profile/)', () => {
     await page.waitForLoadState('networkidle');
     await page.locator('#nav-user-btn').click();
     await expect(page.getByRole('menuitem', { name: 'My profile' })).toBeVisible();
-    await expect(page.getByRole('menuitem', { name: 'Edit profile' })).toBeVisible();
     await expect(page.getByRole('menuitem', { name: 'Contacts' })).toBeVisible();
   });
 
@@ -29,15 +28,16 @@ test.describe('Public profile (#profile/)', () => {
     await page.goto(`/#profile/${PROFILE_NPUB}/edit`);
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body.nr-surface-profile')).toBeVisible({ timeout: 25000 });
-    await expect(page.locator('#nr-profile-toolbar-title')).toHaveText('Edit profile');
+    await expect(page.locator('.nr-profile-section-title')).toHaveText('Nostr profile (kind 0)');
     await expect(page.locator('.nr-profile-edit-form')).toBeVisible({ timeout: 30000 });
   });
 
-  test('profile hash shows profile shell; Map returns to map', async ({ page }) => {
-    await page.goto(`/#profile/${PROFILE_NPUB}`);
+  test('profile hash for own account opens edit form; Map returns to map', async ({ page }) => {
+    await page.goto('/#profile');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body.nr-surface-profile')).toBeVisible({ timeout: 25000 });
-    await expect(page.locator('#nr-profile-view')).toBeVisible();
+    await expect(page.locator('.nr-profile-section-title')).toHaveText('Nostr profile (kind 0)');
+    await expect(page.locator('.nr-profile-edit-form')).toBeVisible({ timeout: 30000 });
     await expect(page.locator('#map-view')).toBeHidden();
 
     await page.locator('#nav-map-btn').click();

@@ -30,6 +30,25 @@ async function openUserMenuIfNeeded(page) {
   }
 }
 
+async function clickVisible(first, second) {
+  if (await first.isVisible()) {
+    await first.click();
+    return true;
+  }
+  if (await second.isVisible()) {
+    await second.click();
+    return true;
+  }
+  return false;
+}
+
+async function expectAnyVisible(...locators) {
+  for (const loc of locators) {
+    if (await loc.isVisible()) return;
+  }
+  throw new Error('Expected at least one locator to be visible');
+}
+
 async function openSupportMenuIfNeeded(page) {
   const supportBtn = page.locator('#nav-support-btn');
   if (await supportBtn.isVisible()) {
@@ -45,11 +64,11 @@ test.describe('Header navigation', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     const header = page.locator('#app-header');
-    await expect(header.locator('#nav-support-btn').or(header.locator('#nav-more-btn')).first()).toBeVisible();
+    await expectAnyVisible(header.locator('#nav-support-btn'), header.locator('#nav-more-btn'));
     await expect(header.getByRole('link', { name: 'Chats' })).toBeVisible();
     await expect(header.locator('#nav-map-btn')).toBeVisible();
     await expect(header.locator('#nav-host-btn')).toBeVisible();
-    await expect(header.locator('#nav-user-btn').or(header.locator('#nav-more-btn')).first()).toBeVisible();
+    await expectAnyVisible(header.locator('#nav-user-btn'), header.locator('#nav-more-btn'));
     const conv = header.getByRole('link', { name: 'Chats' });
     await expect(conv).toHaveAttribute('href', '#chat');
     await expect(header.locator('a[href="index.html"].app-header-logo-link')).toBeAttached();
@@ -59,8 +78,18 @@ test.describe('Header navigation', () => {
   test('index: Support dropdown opens and Support chat goes to #support', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
-    await openSupportMenuIfNeeded(page);
-    const supportChat = page.locator('#nav-support-chat-link').or(page.locator('.nr-nav-support-chat-link')).first();
+    const supportBtn = page.locator('#nav-support-btn');
+    const moreBtn = page.locator('#nav-more-btn');
+    let supportChat;
+    if (await supportBtn.isVisible()) {
+      await supportBtn.click();
+      await expect(page.locator('#nav-support-menu')).toBeVisible();
+      supportChat = page.locator('#nav-support-menu a[href="#support"]').first();
+    } else {
+      await moreBtn.click();
+      await expect(page.locator('#nav-more-menu')).toBeVisible();
+      supportChat = page.locator('#nav-more-menu a[href="#support"]').first();
+    }
     await expect(supportChat).toBeVisible();
     await expect(supportChat).toHaveAttribute('href', '#support');
     await expect(supportChat).toHaveText('Support chat');
@@ -73,9 +102,12 @@ test.describe('Header navigation', () => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     await openUserMenuIfNeeded(page);
-    await expect(
-      page.locator('#settings-icon-btn').or(page.locator('#settings-icon-btn-mobile')).first(),
-    ).toBeVisible();
+    const settingsBtn = page.locator('#settings-icon-btn');
+    const settingsBtnMobile = page.locator('#settings-icon-btn-mobile');
+    if (!(await settingsBtn.isVisible()) && !(await settingsBtnMobile.isVisible())) {
+      await clickVisible(page.locator('#nav-user-btn'), page.locator('#nav-more-btn'));
+    }
+    await expectAnyVisible(settingsBtn, settingsBtnMobile);
   });
 
   test('index: Map focuses map without blocking dialog', async ({ page }) => {

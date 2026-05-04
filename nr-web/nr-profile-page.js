@@ -366,18 +366,26 @@ async function collectFromRelays(filter, opts = {}) {
 }
 
 /**
- * Circle slugs from Trustroots-import kind 30398 reposts that tag this pubkey (`p`).
+ * Circle slugs from Trustroots Mongo import kind 30398 host mirrors that tag this pubkey (`p`).
+ * Only events authored by {@link circleImportToolPubkeyHex} count: nr-server validation 30398 reposts
+ * copy map-note tags and would otherwise surface chat circle slugs (e.g. `nostroots`) as tribes.
  * @param {unknown[]} events
  * @param {string} subjectHex
  * @returns {string[]}
  */
 function extractCircleSlugsFromHostReposts30398(events, subjectHex) {
   const h = String(subjectHex || '').toLowerCase();
-  if (h.length !== 64) return [];
+  if (h.length !== 64 || !/^[0-9a-f]+$/.test(h)) return [];
+  const importAuthor = circleImportToolPubkeyHex();
+  const ia = String(importAuthor || '')
+    .trim()
+    .toLowerCase();
+  if (ia.length !== 64 || !/^[0-9a-f]+$/.test(ia)) return [];
   const seen = new Set();
   const out = [];
   for (const ev of events || []) {
     if (!ev || ev.kind !== MAP_NOTE_REPOST_KIND) continue;
+    if (String(ev.pubkey || '').toLowerCase() !== ia) continue;
     const tags = Array.isArray(ev.tags) ? ev.tags : [];
     const mentions = tags.some((t) => Array.isArray(t) && t[0] === 'p' && String(t[1] || '').toLowerCase() === h);
     if (!mentions) continue;
@@ -479,6 +487,126 @@ function truncateBody(s, max) {
   const t = String(s || '').replace(/\s+/g, ' ').trim();
   if (t.length <= max) return t;
   return t.slice(0, max - 1) + '…';
+}
+
+function inferHostingBadgeFromBody(body) {
+  const low = String(body || '').toLowerCase();
+  let badgeText = 'Can host';
+  let badgeVariant = 'host';
+  if (/(can'?t host|cannot host|no hosting|not hosting|unable to host|no guests)/i.test(low)) {
+    badgeText = 'Cannot host';
+    badgeVariant = 'warn';
+  } else if (/(maybe|depends|sometimes|if it works out|might host|ask first|limited)/i.test(low)) {
+    badgeText = 'Maybe host';
+    badgeVariant = 'warn';
+  }
+  return { badgeText, badgeVariant };
+}
+
+/** Kind 30397/30398 with Trustroots circle tribe tag (hosting-style map note). */
+function eventHasTrustrootsCircleTag(ev) {
+  const tags = Array.isArray(ev?.tags) ? ev.tags : [];
+  return tags.some((t) => Array.isArray(t) && t[0] === 'l' && t[2] === TRUSTROOTS_CIRCLE_LABEL);
+}
+
+function eventContentHasHostingChannelHashtag(ev) {
+  const c = String(ev?.content || '').toLowerCase();
+  return /#hostingoffers?\b/i.test(c) || /#hostingoffer\b/i.test(c);
+}
+
+/**
+ * Latest Trustroots-import mirror (kind 30398) for this profile — same payload as claimable hosting in Keys.
+ * @param {unknown[]} hostMirrorEvents from collect: import-tool author + `#p` subject
+ */
+function pickLatestHostMirrorOffer(hostMirrorEvents) {
+  const list = [...(hostMirrorEvents || [])].sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+  for (const ev of list) {
+    if (String(ev?.content || '').trim()) return ev;
+  }
+  return list[0] || null;
+}
+
+/**
+ * Author's own kind 30397 that looks like a hosting offer (circle tag or #hostingoffers), newest first.
+ * @param {unknown[]} notesSorted
+ * @param {string} subjectHex
+ */
+function pickLatestHostLikeMapNote(notesSorted, subjectHex) {
+  const h = String(subjectHex || '').toLowerCase();
+  const list = Array.isArray(notesSorted) ? notesSorted : [];
+  for (const ev of list) {
+    if (!ev || ev.kind !== MAP_NOTE_KIND) continue;
+    if (String(ev.pubkey || '').toLowerCase() !== h) continue;
+    if (eventHasTrustrootsCircleTag(ev) || eventContentHasHostingChannelHashtag(ev)) return ev;
+  }
+  return null;
+}
+
+/**
+ * Accommodation card: prefer mirrored Trustroots host offer (30398 import), else circle / hosting-tagged 30397.
+ * @param {unknown[]} hostMirrorEvents
+ * @param {unknown[]} notesSorted
+ * @param {number} validatedCount
+ * @param {string} subjectHex
+ * @param {boolean} notesReady
+ * @param {boolean} host303Ready
+ */
+function accommodationSnapshot(hostMirrorEvents, notesSorted, validatedCount, subjectHex, notesReady, host303Ready) {
+  const mirrorEv = pickLatestHostMirrorOffer(hostMirrorEvents);
+  const mirrorBody = mirrorEv ? String(mirrorEv.content || '').trim() : '';
+  if (mirrorBody) {
+    const { badgeText, badgeVariant } = inferHostingBadgeFromBody(mirrorBody);
+    return {
+      title: 'Accommodation',
+      badgeText,
+      badgeVariant,
+      summary: truncateBody(mirrorBody, 1200),
+      source: '',
+    };
+  }
+
+  if (notesReady) {
+    const hostLike = pickLatestHostLikeMapNote(notesSorted, subjectHex);
+    const pubBody = hostLike ? String(hostLike.content || '').trim() : '';
+    if (pubBody) {
+      const validated = hostLike ? isMapNoteTrustrootsValidated(hostLike, subjectHex) : false;
+      const inferred = inferHostingBadgeFromBody(pubBody);
+      return {
+        title: 'Accommodation',
+        badgeText: validated ? inferred.badgeText : 'Cannot host currently',
+        badgeVariant: validated ? inferred.badgeVariant : 'warn',
+        summary: truncateBody(pubBody, 1200),
+        source: validated || validatedCount > 0 ? '' : 'Publish this offer on the Trustroots auth relay to verify it.',
+      };
+    }
+  }
+
+  if (!notesReady && host303Ready) {
+    return {
+      title: 'Accommodation',
+      badgeText: '…',
+      badgeVariant: 'muted',
+      summary: 'Loading public map notes…',
+      source: '',
+    };
+  }
+  if (notesReady && !host303Ready) {
+    return {
+      title: 'Accommodation',
+      badgeText: '…',
+      badgeVariant: 'muted',
+      summary: 'Loading Trustroots hosting mirror…',
+      source: '',
+    };
+  }
+
+  return {
+    title: 'Accommodation',
+    badgeText: 'No hosting yet',
+    badgeVariant: 'muted',
+    summary: 'No mirrored hosting offer or circle-tagged host note found on your relays yet.',
+    source: '',
+  };
 }
 
 function bindProfileTrTabs(shell) {
@@ -628,34 +756,54 @@ function createStagedProfileShell(root, ctx) {
   const shell = document.createElement('div');
   shell.className = 'nr-profile-tr';
 
+  const avWrap = document.createElement('div');
+  avWrap.className = 'nr-profile-tr-avatar-wrap';
+  const ph = document.createElement('div');
+  ph.className = 'nr-profile-tr-avatar-ph';
+  ph.setAttribute('aria-hidden', 'true');
+  ph.textContent = '👤';
+  avWrap.appendChild(ph);
+
+  const hero = document.createElement('div');
+  hero.className = 'nr-profile-tr-hero';
+  hero.appendChild(avWrap);
+
+  const heroMain = document.createElement('div');
+  heroMain.className = 'nr-profile-tr-hero-main';
+
   const header = document.createElement('header');
   header.className = 'nr-profile-tr-header';
+  const titleLine = document.createElement('div');
+  titleLine.className = 'nr-profile-tr-title-line';
   const h1 = document.createElement('h1');
   h1.className = 'nr-profile-tr-name';
   h1.textContent = titleGuess;
+  titleLine.appendChild(h1);
   const handleEl = document.createElement('span');
   handleEl.className = 'nr-profile-tr-handle';
   handleEl.textContent = handleGuess;
-  header.appendChild(h1);
-  header.appendChild(handleEl);
+  titleLine.appendChild(handleEl);
+  header.appendChild(titleLine);
 
   const actionsRow = document.createElement('div');
   actionsRow.className = 'nr-profile-tr-actions';
-  const msg = document.createElement('a');
-  msg.className = 'nr-profile-tr-action';
-  msg.href = chatHashForSubject(hex, nip05Guess || '', earlyTrUser);
-  msg.innerHTML = '💬 <span>Send a message</span>';
-  actionsRow.appendChild(msg);
-  const mapL = document.createElement('a');
-  mapL.className = 'nr-profile-tr-action';
-  mapL.href = '#map';
-  mapL.innerHTML = '🗺 <span>Open map</span>';
-  actionsRow.appendChild(mapL);
-  const trSlot = document.createElement('span');
-  trSlot.className = 'nr-profile-tr-tr-slot';
-  actionsRow.appendChild(trSlot);
-  header.appendChild(actionsRow);
-  shell.appendChild(header);
+  const selfProfile = isSelfHex(hex);
+  let msg = null;
+  let addTrustBtn = null;
+  if (!selfProfile) {
+    msg = document.createElement('a');
+    msg.className = 'nr-profile-tr-action';
+    msg.href = chatHashForSubject(hex, nip05Guess || '', earlyTrUser);
+    msg.innerHTML = '💬 <span>Send a message</span>';
+    actionsRow.appendChild(msg);
+    addTrustBtn = document.createElement('button');
+    addTrustBtn.type = 'button';
+    addTrustBtn.className = 'nr-profile-tr-action nr-profile-tr-action-btn';
+    addTrustBtn.innerHTML = '⊞ <span>Add trust</span>';
+    actionsRow.appendChild(addTrustBtn);
+    header.appendChild(actionsRow);
+  }
+  heroMain.appendChild(header);
 
   const tabBar = document.createElement('div');
   tabBar.className = 'nr-profile-tr-tabs';
@@ -671,35 +819,23 @@ function createStagedProfileShell(root, ctx) {
     return b;
   }
   const tabAbout = makeTab('about', 'About', true);
-  const tabNotes = makeTab('notes', 'Map notes …', false);
-  const tabRel = makeTab('relationships', 'Relationships …', false);
-  const tabExp = makeTab('experiences', 'Experiences …', false);
+  const tabNotes = makeTab('notes', 'Notes …', false);
+  const tabTrust = makeTab('trust', 'Trust …', false);
   tabBar.appendChild(tabAbout);
   tabBar.appendChild(tabNotes);
-  tabBar.appendChild(tabRel);
-  tabBar.appendChild(tabExp);
-  shell.appendChild(tabBar);
+  tabBar.appendChild(tabTrust);
+  if (addTrustBtn) addTrustBtn.addEventListener('click', () => tabTrust.click());
+  heroMain.appendChild(tabBar);
+  hero.appendChild(heroMain);
+  shell.appendChild(hero);
 
   const grid = document.createElement('div');
   grid.className = 'nr-profile-tr-grid';
 
   const aside = document.createElement('aside');
   aside.className = 'nr-profile-tr-aside';
-  const avWrap = document.createElement('div');
-  avWrap.className = 'nr-profile-tr-avatar-wrap';
-  const ph = document.createElement('div');
-  ph.className = 'nr-profile-tr-avatar-ph';
-  ph.setAttribute('aria-hidden', 'true');
-  ph.textContent = '👤';
-  avWrap.appendChild(ph);
-  aside.appendChild(avWrap);
-
   const stats = document.createElement('ul');
   stats.className = 'nr-profile-tr-stats';
-  const liNostr = document.createElement('li');
-  liNostr.className = 'nr-profile-tr-skeleton';
-  liNostr.textContent = 'Loading profile from your relays…';
-  stats.appendChild(liNostr);
   const liNip = document.createElement('li');
   if (nip05Guess) {
     liNip.textContent = `NIP-05: ${nip05Guess}`;
@@ -708,56 +844,12 @@ function createStagedProfileShell(root, ctx) {
     liNip.textContent = 'NIP-05: …';
   }
   stats.appendChild(liNip);
-  const liNotes = document.createElement('li');
-  liNotes.className = 'nr-profile-tr-skeleton';
-  liNotes.textContent = 'Map notes: loading…';
-  stats.appendChild(liNotes);
+  const liTrProfile = document.createElement('li');
+  liTrProfile.className = 'nr-profile-tr-skeleton';
+  liTrProfile.textContent = 'Trustroots: …';
+  stats.appendChild(liTrProfile);
   aside.appendChild(stats);
 
-  const elsewhere = document.createElement('div');
-  elsewhere.className = 'nr-profile-tr-elsewhere';
-  const ewLabel = document.createElement('p');
-  ewLabel.className = 'nr-profile-tr-elsewhere-label';
-  ewLabel.textContent = 'ELSEWHERE';
-  elsewhere.appendChild(ewLabel);
-  if (npub) {
-    const copyB = document.createElement('button');
-    copyB.type = 'button';
-    copyB.className = 'nr-profile-copy';
-    copyB.textContent = 'Copy npub';
-    copyB.setAttribute('data-copy-npub', npub);
-    elsewhere.appendChild(copyB);
-  }
-  if (npub) {
-    const nj = document.createElement('a');
-    nj.href = `https://njump.me/${encodeURIComponent(npub)}`;
-    setExternalAnchorRel(nj);
-    nj.textContent = 'View on njump';
-    elsewhere.appendChild(nj);
-  }
-  aside.appendChild(elsewhere);
-
-  const mod = document.createElement('div');
-  mod.className = 'nr-profile-tr-mod';
-  if (earlyTrUser) {
-    const rep = document.createElement('a');
-    rep.href = trustrootsProfileUrl(earlyTrUser);
-    setExternalAnchorRel(rep);
-    rep.appendChild(document.createTextNode('🚩 '));
-    const repS = document.createElement('span');
-    repS.textContent = 'Trustroots profile';
-    rep.appendChild(repS);
-    mod.appendChild(rep);
-  }
-  const safe = document.createElement('a');
-  safe.href = 'https://www.trustroots.org/faq#is-trustroots-safe';
-  setExternalAnchorRel(safe);
-  safe.appendChild(document.createTextNode('🔒 '));
-  const safeSpan = document.createElement('span');
-  safeSpan.textContent = 'Safety & blocking';
-  safe.appendChild(safeSpan);
-  mod.appendChild(safe);
-  aside.appendChild(mod);
   grid.appendChild(aside);
 
   const main = document.createElement('div');
@@ -811,22 +903,58 @@ function createStagedProfileShell(root, ctx) {
 
   const { panel: panelNotes, listMount: notesListMount } = panelWithList(
     'notes',
-    'Map notes',
-    'Tap a plus code to open that area on the map.'
+    'Notes',
+    'Recent map notes from this person. Tap a plus code to open that area on the map.'
   );
-  const { panel: panelRel, listMount: relListMount } = panelWithList(
-    'relationships',
-    'Relationship suggestions',
-    'Mirrored from relays (kind 30392), same source as Keys — not edited on this page.'
-  );
-  const { panel: panelExp, listMount: expListMount } = panelWithList(
-    'experiences',
-    'Experience suggestions',
-    'Mirrored from relays (kind 30393), same source as Keys — not edited on this page.'
-  );
+  const panelTrust = document.createElement('div');
+  panelTrust.className = 'nr-profile-tr-panel';
+  panelTrust.setAttribute('data-panel', 'trust');
+  panelTrust.setAttribute('role', 'tabpanel');
+  panelTrust.hidden = true;
+  const trustWrap = document.createElement('div');
+  trustWrap.className = 'nr-profile-tr-box';
+  const trustH = document.createElement('h2');
+  trustH.textContent = 'Trust';
+  trustWrap.appendChild(trustH);
+  const trustHint = document.createElement('p');
+  trustHint.className = 'nr-profile-muted';
+  trustHint.style.marginTop = '-0.35rem';
+  trustHint.textContent = selfProfile
+    ? 'Sign mirrored Trustroots contact suggestions (kind 30392) and experiences (kind 30393). Counts and where events are sent update when your key is loaded and relays are configured.'
+    : 'Relationship and experience suggestions from relays (kinds 30392 and 30393), same source as Keys — not edited on this page.';
+  trustWrap.appendChild(trustHint);
+  const claimTrustSlot = document.createElement('div');
+  claimTrustSlot.id = 'nr-profile-trust-claim-slot';
+  claimTrustSlot.className = 'nr-profile-tr-trust-claim-slot';
+  claimTrustSlot.setAttribute('aria-label', 'Sign Trustroots contact and experience suggestions');
+  trustWrap.appendChild(claimTrustSlot);
+  const trustRelayListsWrap = document.createElement('div');
+  trustRelayListsWrap.className = 'nr-profile-tr-trust-relay-lists';
+  if (selfProfile) {
+    trustRelayListsWrap.hidden = true;
+    trustRelayListsWrap.setAttribute('aria-hidden', 'true');
+  }
+  const relListMount = document.createElement('div');
+  relListMount.className = 'nr-profile-list';
+  const relSk = document.createElement('p');
+  relSk.className = 'nr-profile-tr-skeleton';
+  relSk.textContent = 'Loading…';
+  relListMount.appendChild(relSk);
+  trustRelayListsWrap.appendChild(relListMount);
+  const expBlock = document.createElement('div');
+  expBlock.className = 'nr-profile-tr-trust-exp-block';
+  const expListMount = document.createElement('div');
+  expListMount.className = 'nr-profile-list';
+  const expSk = document.createElement('p');
+  expSk.className = 'nr-profile-tr-skeleton';
+  expSk.textContent = 'Loading…';
+  expListMount.appendChild(expSk);
+  expBlock.appendChild(expListMount);
+  trustRelayListsWrap.appendChild(expBlock);
+  trustWrap.appendChild(trustRelayListsWrap);
+  panelTrust.appendChild(trustWrap);
   main.appendChild(panelNotes);
-  main.appendChild(panelRel);
-  main.appendChild(panelExp);
+  main.appendChild(panelTrust);
   grid.appendChild(main);
 
   const rail = document.createElement('aside');
@@ -838,7 +966,7 @@ function createStagedProfileShell(root, ctx) {
   const hsk = document.createElement('p');
   hsk.className = 'nr-profile-tr-skeleton';
   hsk.style.textAlign = 'center';
-  hsk.textContent = 'Loading map summary…';
+  hsk.textContent = 'Loading accommodation summary…';
   hostMount.appendChild(hsk);
   hostCard.appendChild(hostMount);
   rail.appendChild(hostCard);
@@ -851,19 +979,11 @@ function createStagedProfileShell(root, ctx) {
   circCard.appendChild(circTitle);
   const circSub = document.createElement('p');
   circSub.className = 'nr-profile-tr-circles-sub';
-  circSub.textContent = 'FROM NIP-42 IMPORT';
+  circSub.textContent = 'Imported from Trustroots';
   circCard.appendChild(circSub);
   const circListMount = document.createElement('div');
   circListMount.className = 'nr-profile-tr-circ-list';
   circCard.appendChild(circListMount);
-  const circP = document.createElement('p');
-  circP.className = 'nr-profile-tr-circles-note';
-  circP.textContent =
-    'Slugs come from Trustroots-verified host mirrors (kind 30398). Names and images use the circle directory (kind 30410) from the import pubkey.';
-  circCard.appendChild(circP);
-  const circMount = document.createElement('div');
-  circMount.className = 'nr-profile-tr-circ-mount';
-  circCard.appendChild(circMount);
   rail.appendChild(circCard);
   grid.appendChild(rail);
 
@@ -875,22 +995,19 @@ function createStagedProfileShell(root, ctx) {
     titleEl: h1,
     handleEl,
     msgLink: msg,
-    trSlot,
     tabNotes,
-    tabRel,
-    tabExp,
+    tabTrust,
     avatarWrap: avWrap,
-    statNostrLi: liNostr,
     statNipLi: liNip,
-    statNotesLi: liNotes,
+    statTrProfileLi: liTrProfile,
     aboutMount,
     notesListMount,
     relListMount,
     expListMount,
+    expTrustBlock: expBlock,
+    trustRelayListsWrap,
     hostMount,
     circListMount,
-    circP,
-    circMount,
   };
   return { shell, refs };
 }
@@ -951,12 +1068,11 @@ function applyStagedProfileView(refs, viewState, ctx) {
         .sort((a, b) => b.created_at - a.created_at)
         .slice(0, 25)
     : [];
-  const rels = claimsReady ? evPClaims.filter((e) => e.kind === RELATIONSHIP_CLAIM_KIND).slice(0, 20) : [];
-  const exps = claimsReady ? evPClaims.filter((e) => e.kind === EXPERIENCE_CLAIM_KIND).slice(0, 20) : [];
   const validatedMapNoteCount = notesReady
     ? evNotes.filter((e) => isMapNoteTrustrootsValidated(e, hex)).length
     : 0;
-
+  const rels = claimsReady ? evPClaims.filter((e) => e.kind === RELATIONSHIP_CLAIM_KIND).slice(0, 20) : [];
+  const exps = claimsReady ? evPClaims.filter((e) => e.kind === EXPERIENCE_CLAIM_KIND).slice(0, 20) : [];
   const displayTitle = meta.displayName || profileTitleGuess(profileId, npub, hex);
   let handleLine = '';
   if (trUser) handleLine = `@${trUser}`;
@@ -971,24 +1087,11 @@ function applyStagedProfileView(refs, viewState, ctx) {
 
   refs.titleEl.textContent = displayTitle;
   refs.handleEl.textContent = handleLine;
-  refs.msgLink.href = chatHashForSubject(hex, nip05Resolved, trUser);
+  if (refs.msgLink) refs.msgLink.href = chatHashForSubject(hex, nip05Resolved, trUser);
 
-  refs.trSlot.replaceChildren();
-  if (trUser) {
-    const tr = document.createElement('a');
-    tr.className = 'nr-profile-tr-action';
-    tr.href = trustrootsProfileUrl(trUser);
-    setExternalAnchorRel(tr);
-    tr.innerHTML = '➕ <span>Open on Trustroots</span>';
-    refs.trSlot.appendChild(tr);
-  }
+  refs.tabNotes.textContent = notesReady ? `Notes (${notesSorted.length})` : 'Notes …';
+  refs.tabTrust.textContent = claimsReady ? 'Trust' : 'Trust …';
 
-  refs.tabNotes.textContent = notesReady ? `Map notes (${notesSorted.length})` : 'Map notes …';
-  refs.tabRel.textContent = claimsReady ? `Relationships (${rels.length})` : 'Relationships …';
-  refs.tabExp.textContent = claimsReady ? `Experiences (${exps.length})` : 'Experiences …';
-
-  refs.statNostrLi.classList.remove('nr-profile-tr-skeleton');
-  refs.statNostrLi.textContent = 'Profile from Nostr relays you use in this app.';
   if (nip05Resolved) {
     refs.statNipLi.classList.remove('nr-profile-tr-skeleton');
     refs.statNipLi.textContent = `NIP-05: ${nip05Resolved}`;
@@ -997,16 +1100,34 @@ function applyStagedProfileView(refs, viewState, ctx) {
     refs.statNipLi.classList.add('nr-profile-muted');
     refs.statNipLi.textContent = 'No NIP-05 on latest profile export yet.';
   }
-  refs.statNotesLi.classList.remove('nr-profile-tr-skeleton');
-  if (!notesReady) {
-    refs.statNotesLi.classList.add('nr-profile-tr-skeleton');
-    refs.statNotesLi.textContent = 'Map notes: loading…';
-  } else if (notesSorted.length === 0) {
-    refs.statNotesLi.textContent = 'No traveller map notes loaded yet.';
+  refs.statTrProfileLi.replaceChildren();
+  refs.statTrProfileLi.classList.remove('nr-profile-tr-skeleton', 'nr-profile-muted');
+  const trustrootsUserFromNip05 = (() => {
+    const n = String(nip05Resolved || '').trim().toLowerCase();
+    if (!n || !n.includes('@')) return '';
+    const at = n.lastIndexOf('@');
+    if (at <= 0) return '';
+    const local = n.slice(0, at);
+    const domain = n.slice(at + 1).replace(/^www\./, '');
+    if (domain !== 'trustroots.org') return '';
+    return local;
+  })();
+  if (trustrootsUserFromNip05) {
+    const label = document.createTextNode('Trustroots: ');
+    const a = document.createElement('a');
+    a.className = 'nr-content-link';
+    a.href = trustrootsProfileUrl(trustrootsUserFromNip05);
+    setExternalAnchorRel(a);
+    a.textContent = `@${trustrootsUserFromNip05}`;
+    refs.statTrProfileLi.appendChild(label);
+    refs.statTrProfileLi.appendChild(a);
+  } else if (!authorsReady && !p90Ready) {
+    refs.statTrProfileLi.classList.add('nr-profile-tr-skeleton');
+    refs.statTrProfileLi.textContent = 'Trustroots: …';
   } else {
-    refs.statNotesLi.textContent = `${notesSorted.length} map note(s)${validatedMapNoteCount ? ` · ${validatedMapNoteCount} validated` : ''}.`;
+    refs.statTrProfileLi.classList.add('nr-profile-muted');
+    refs.statTrProfileLi.textContent = 'No Trustroots profile link from NIP-05.';
   }
-
   refs.avatarWrap.replaceChildren();
   if (picture) {
     const img = document.createElement('img');
@@ -1070,7 +1191,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
     refs.notesListMount,
     notesReady,
     notesSorted,
-    'No map notes found on your relays for this author yet.',
+    'No notes found on your relays for this person yet.',
     (ev) => {
       const pc = getPlusCodeFromEvent(ev);
       const row = document.createElement('div');
@@ -1093,60 +1214,84 @@ function applyStagedProfileView(refs, viewState, ctx) {
     }
   );
 
-  fillList(
-    refs.relListMount,
-    claimsReady,
-    rels,
-    'None loaded.',
-    (ev) => renderClaimLineRelationship(ev, hex, trUser)
-  );
-
-  fillList(refs.expListMount, claimsReady, exps, 'None loaded.', (ev) => renderClaimLineExperience(ev, hex));
+  if (!isSelfHex(hex)) {
+    if (!claimsReady) {
+      fillList(refs.relListMount, false, [], '', () => document.createElement('div'));
+      fillList(refs.expListMount, false, [], '', () => document.createElement('div'));
+    } else if (!rels.length && !exps.length) {
+      refs.relListMount.replaceChildren();
+      const p = document.createElement('p');
+      p.className = 'nr-profile-muted';
+      p.textContent = 'None loaded.';
+      refs.relListMount.appendChild(p);
+      refs.expListMount.replaceChildren();
+      if (refs.expTrustBlock) refs.expTrustBlock.style.display = 'none';
+    } else {
+      if (refs.expTrustBlock) refs.expTrustBlock.style.display = '';
+      fillList(
+        refs.relListMount,
+        true,
+        rels,
+        'No relationship suggestions.',
+        (ev) => renderClaimLineRelationship(ev, hex, trUser)
+      );
+      fillList(refs.expListMount, true, exps, 'No experience suggestions.', (ev) => renderClaimLineExperience(ev, hex));
+    }
+  } else {
+    refs.relListMount.replaceChildren();
+    refs.expListMount.replaceChildren();
+    if (refs.expTrustBlock) refs.expTrustBlock.style.display = 'none';
+  }
 
   refs.hostMount.replaceChildren();
-  if (!notesReady) {
+  if (!notesReady && !host303Ready) {
     const p = document.createElement('p');
     p.className = 'nr-profile-tr-skeleton';
     p.style.textAlign = 'center';
-    p.textContent = 'Loading map summary…';
+    p.textContent = 'Loading accommodation summary…';
     refs.hostMount.appendChild(p);
   } else {
+    const accommodation = accommodationSnapshot(
+      viewState.evHost30398 || [],
+      notesSorted,
+      validatedMapNoteCount,
+      hex,
+      notesReady,
+      host303Ready
+    );
     const hostHead = document.createElement('div');
     hostHead.className = 'nr-profile-tr-rail-head';
     const hostTitle = document.createElement('h3');
     hostTitle.className = 'nr-profile-tr-rail-title';
-    hostTitle.textContent = 'On the map';
+    hostTitle.textContent = accommodation.title;
     const hostBadge = document.createElement('span');
     hostBadge.className = 'nr-profile-tr-badge';
-    let hostBodyText = '';
-    if (validatedMapNoteCount > 0) {
-      hostBadge.classList.add('nr-profile-tr-badge--host');
-      hostBadge.textContent = 'Validated notes';
-      hostBodyText = `This account has traveller map notes treated as validated (${validatedMapNoteCount}): kind 30398 reposts and/or kind 30397 published on the Trustroots authenticated relay (nip42). Open the map to browse areas.`;
-    } else if (notesSorted.length > 0) {
-      hostBadge.classList.add('nr-profile-tr-badge--warn');
-      hostBadge.textContent = 'Unverified only';
-      hostBodyText =
-        'Only kind 30397 notes from public relays showed up — none from the Trustroots auth relay (nip42) or kind 30398 yet.';
-    } else {
-      hostBadge.classList.add('nr-profile-tr-badge--muted');
-      hostBadge.textContent = 'No notes yet';
-      hostBodyText = 'No traveller map notes loaded from your relays for this person.';
-    }
+    hostBadge.classList.add(`nr-profile-tr-badge--${accommodation.badgeVariant}`);
+    hostBadge.textContent = accommodation.badgeText;
     hostHead.appendChild(hostTitle);
     hostHead.appendChild(hostBadge);
     refs.hostMount.appendChild(hostHead);
     const hostBody = document.createElement('div');
-    hostBody.className = 'nr-profile-tr-rail-body';
+    hostBody.className = 'nr-profile-tr-rail-body nr-profile-tr-rail-body--accommodation';
     const hostIcon = document.createElement('div');
     hostIcon.className = 'nr-profile-tr-rail-icon';
     hostIcon.setAttribute('aria-hidden', 'true');
     hostIcon.textContent = '🛋';
     hostBody.appendChild(hostIcon);
     const hostP = document.createElement('p');
+    hostP.className = 'nr-profile-tr-accommodation-text';
+    if (/^Loading\b/i.test(accommodation.summary || '')) hostP.classList.add('nr-profile-tr-skeleton');
     hostP.style.margin = '0';
-    hostP.textContent = hostBodyText;
+    hostP.style.whiteSpace = 'pre-wrap';
+    hostP.textContent = accommodation.summary || '';
     hostBody.appendChild(hostP);
+    if (accommodation.source) {
+      const hostMeta = document.createElement('p');
+      hostMeta.className = 'nr-profile-muted';
+      hostMeta.style.margin = '0.45rem 0 0';
+      hostMeta.textContent = accommodation.source;
+      hostBody.appendChild(hostMeta);
+    }
     refs.hostMount.appendChild(hostBody);
   }
 
@@ -1235,17 +1380,6 @@ function applyStagedProfileView(refs, viewState, ctx) {
     }
   }
 
-  refs.circMount.replaceChildren();
-  if (trUser) {
-    const circA = document.createElement('a');
-    circA.className = 'nr-profile-tr-action';
-    circA.style.marginTop = '0.65rem';
-    circA.style.display = 'inline-flex';
-    circA.href = trustrootsProfileUrl(trUser);
-    setExternalAnchorRel(circA);
-    circA.textContent = 'Open Trustroots profile →';
-    refs.circMount.appendChild(circA);
-  }
 }
 
 /**
@@ -1312,19 +1446,11 @@ export async function renderPublicProfile(profileId) {
 
     if (isSelfHex(hex)) {
       try {
-        window.NrWebMountClaimTrustrootsSection?.();
+        window.NrWebMountClaimTrustrootsTrustTab?.();
       } catch (e) {
-        console.warn('[nr-profile] mount claims on own public profile', e);
+        console.warn('[nr-profile] mount claim trust blocks on own public profile', e);
       }
     }
-
-    shell.querySelector('.nr-profile-copy')?.addEventListener('click', async () => {
-      const v = npub;
-      if (!v) return;
-      try {
-        await navigator.clipboard.writeText(v);
-      } catch (_) {}
-    });
 
     void collectFromRelays({ kinds: [0, TRUSTROOTS_PROFILE_KIND], authors: [hex], limit: 30 }).then((x) => {
       viewState.evAuthors = x;
@@ -1344,10 +1470,25 @@ export async function renderPublicProfile(profileId) {
       viewState.evNotes = x;
       bump();
     });
-    void collectFromRelays({ kinds: [MAP_NOTE_REPOST_KIND], '#p': [hex], limit: 100 }).then((x) => {
-      viewState.evHost30398 = x;
+    const importPub = circleImportToolPubkeyHex();
+    const importHex =
+      importPub && String(importPub).trim().length === 64 && /^[0-9a-fA-F]+$/.test(String(importPub).trim())
+        ? String(importPub).trim().toLowerCase()
+        : '';
+    if (!importHex) {
+      viewState.evHost30398 = [];
       bump();
-    });
+    } else {
+      void collectFromRelays({
+        kinds: [MAP_NOTE_REPOST_KIND],
+        authors: [importHex],
+        '#p': [hex],
+        limit: 100,
+      }).then((x) => {
+        viewState.evHost30398 = x;
+        bump();
+      });
+    }
     void avatarFromApiP.then((a) => {
       viewState.avatarFromApi = a || '';
       bump();
@@ -1508,10 +1649,4 @@ export async function renderProfileEdit(profileId) {
 
   card.appendChild(form);
   root.appendChild(card);
-
-  try {
-    window.NrWebMountClaimTrustrootsSection?.();
-  } catch (e) {
-    console.warn('[nr-profile] mount claims on profile edit', e);
-  }
 }

@@ -42,6 +42,7 @@
                     <input type="checkbox" id="keys-step-backup" disabled>
                     <span>Export your <strong>nsec</strong> and copy it into your password manager (we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>).</span>
                 </label>
+                <small class="keys-nsec-backup-hint" role="note">Your <strong>nsec</strong> is your <strong>private key</strong>: anyone who has it can sign as you on Nostr. Do not share it with others, and keep a safe backup—if you lose it, you cannot recover this identity.</small>
             </div>
 
             <!-- Local Key Actions (above npub) -->
@@ -109,8 +110,24 @@
         <div class="settings-section keys-claim-wrap" id="keys-claim-section" style="display: none;">
             <h2>Claim Trustroots data</h2>
             <p class="claim-lead">Review what will be published, then sign each part. Hosting mirrors from Trustroots often appear as kind 30398; profile, contacts, and experiences use kinds 30390–30393.</p>
-            <div id="claim-summary" class="claim-summary-bar" role="status" aria-live="polite"></div>
-            <div id="claim-relay-scope" class="claim-relay-scope" role="note" aria-live="polite"></div>
+            <div id="keys-claim-trust-panel" class="keys-claim-trust-panel">
+                <div id="claim-summary" class="claim-summary-bar" role="status" aria-live="polite"></div>
+                <div id="claim-relay-scope" class="claim-relay-scope" role="note" aria-live="polite"></div>
+                <div id="keys-claim-trust-blocks" class="keys-claim-trust-blocks">
+                    <div class="claim-detail-block">
+                        <h3 class="claim-detail-heading">Relationships (Trustroots contacts)</h3>
+                        <p class="claim-detail-hint">Mirrored contact suggestions (kind 30392). Signing merges them into your follow list (kind 3) and Trustroots contact set (kind 30000).</p>
+                        <div id="claim-preview-relationships" class="claim-preview-list"></div>
+                        <button class="btn" id="claim-btn-relationships" onclick="claimRelationships()" type="button" disabled>Sign Relationships</button>
+                    </div>
+                    <div class="claim-detail-block">
+                        <h3 class="claim-detail-heading">Experiences</h3>
+                        <p class="claim-detail-hint">Each line becomes a positive experience label (kind 1985) on the other person’s pubkey.</p>
+                        <div id="claim-preview-experiences" class="claim-preview-list"></div>
+                        <button class="btn" id="claim-btn-experiences" onclick="claimExperiences()" type="button" disabled>Sign Experiences</button>
+                    </div>
+                </div>
+            </div>
             <div id="claim-details" class="claim-details">
                 <div class="claim-detail-block">
                     <h3 class="claim-detail-heading">Profile</h3>
@@ -123,18 +140,6 @@
                     <p class="claim-detail-hint">Each item becomes a map note (kind 30397) with your signature.</p>
                     <div id="claim-preview-hosting" class="claim-preview-list"></div>
                     <button class="btn" id="claim-btn-hosting" onclick="claimHostingOffers()" type="button" disabled>Sign Hosting</button>
-                </div>
-                <div class="claim-detail-block">
-                    <h3 class="claim-detail-heading">Relationships</h3>
-                    <p class="claim-detail-hint">Contacts are merged into your follow list (kind 3) and Trustroots contact set (kind 30000).</p>
-                    <div id="claim-preview-relationships" class="claim-preview-list"></div>
-                    <button class="btn" id="claim-btn-relationships" onclick="claimRelationships()" type="button" disabled>Sign Relationships</button>
-                </div>
-                <div class="claim-detail-block">
-                    <h3 class="claim-detail-heading">Experiences</h3>
-                    <p class="claim-detail-hint">Each line becomes a positive experience label (kind 1985) on the other person’s pubkey.</p>
-                    <div id="claim-preview-experiences" class="claim-preview-list"></div>
-                    <button class="btn" id="claim-btn-experiences" onclick="claimExperiences()" type="button" disabled>Sign Experiences</button>
                 </div>
             </div>
         </div>

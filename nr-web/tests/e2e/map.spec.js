@@ -91,3 +91,62 @@ test.describe('Map hash (coarse plus code)', () => {
   });
 });
 
+/**
+ * iPhone Safari regression: tapping a Leaflet fallback rectangle must open
+ * the pluscode notes modal. We force Leaflet via ?map=leaflet so we don't
+ * depend on WebKit's WebGL detection in CI.
+ */
+test.describe('Leaflet fallback tap on iPhone Safari', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript((hex) => {
+      try {
+        localStorage.clear();
+        localStorage.setItem('nostr_private_key', hex);
+        localStorage.setItem('nr-web.mapRenderer', 'leaflet');
+      } catch (_) {}
+    }, '0000000000000000000000000000000000000000000000000000000000000001');
+  });
+
+  test('touchscreen tap on the Leaflet fallback opens pluscode notes modal', async ({ page, browserName }) => {
+    test.skip(browserName !== 'webkit', 'Reproduces the iPhone Safari Leaflet fallback regression');
+
+    await page.goto('/?map=leaflet');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('#map[data-map-fallback="leaflet"]')).toBeVisible({ timeout: 20000 });
+
+    // Wait for Leaflet's container to be ready and have stable size.
+    await page.waitForFunction(() => {
+      const c = document.querySelector('.leaflet-container');
+      if (!c) return false;
+      const r = c.getBoundingClientRect();
+      return r.width > 50 && r.height > 50 && typeof window.__nrwebLeafletTap === 'function';
+    }, { timeout: 20000 });
+
+    const box = await page.locator('.leaflet-container').boundingBox();
+    expect(box).toBeTruthy();
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+
+    await page.touchscreen.tap(x, y);
+
+    await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible({ timeout: 20000 });
+  });
+
+  test('direct __nrwebLeafletTap helper opens pluscode notes modal', async ({ page, browserName }) => {
+    test.skip(browserName !== 'webkit', 'Validates the canonical Leaflet tap helper used by iPhone Safari fallback');
+
+    await page.goto('/?map=leaflet');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('#map[data-map-fallback="leaflet"]')).toBeVisible({ timeout: 20000 });
+
+    await page.waitForFunction(() => typeof window.__nrwebLeafletTap === 'function', { timeout: 20000 });
+
+    await page.evaluate(() => {
+      const r = document.querySelector('.leaflet-container').getBoundingClientRect();
+      window.__nrwebLeafletTap(r.left + r.width / 2, r.top + r.height / 2);
+    });
+
+    await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible({ timeout: 20000 });
+  });
+});
+

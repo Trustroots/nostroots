@@ -5346,27 +5346,58 @@
                 map.loaded = () => true;
                 map.getSource = (sourceId) => sourceId === 'pluscode-grid' ? {} : null;
 
+                /**
+                 * Single canonical tap handler for the Leaflet fallback.
+                 * Triggered both by Leaflet's synthesized click and by a raw touchend
+                 * fallback (iOS Safari occasionally drops the synthetic click on
+                 * SVG paths inside Leaflet).
+                 */
+                function handleLeafContainerTap(clientX, clientY) {
+                    const containerEl = leafMap.getContainer && leafMap.getContainer();
+                    if (!containerEl) return;
+                    const rect = containerEl.getBoundingClientRect();
+                    const cx = clientX - rect.left;
+                    const cy = clientY - rect.top;
+                    if (cx < 0 || cy < 0 || cx > rect.width || cy > rect.height) return;
+                    const latLng = leafMap.containerPointToLatLng(L.point(cx, cy));
+                    if (!latLng) return;
+                    const plusCode = encodePlusCode(latLng.lat, latLng.lng);
+                    if (!plusCode) return;
+                    const now = Date.now();
+                    if (now - leafPolygonOpenAt < 350) return;
+                    leafPolygonOpenAt = now;
+                    showNotesForPlusCode(plusCode);
+                }
+                // Expose for tests/diagnostics.
+                window.__nrwebLeafletTap = handleLeafContainerTap;
+
                 leafMap.on('click', (e) => {
-                    const plusCode = encodePlusCode(e.latlng.lat, e.latlng.lng);
-                    if (plusCode) showNotesForPlusCode(plusCode);
+                    const oe = e.originalEvent;
+                    if (oe && typeof oe.clientX === 'number' && typeof oe.clientY === 'number') {
+                        handleLeafContainerTap(oe.clientX, oe.clientY);
+                    } else {
+                        const plusCode = encodePlusCode(e.latlng.lat, e.latlng.lng);
+                        if (plusCode) {
+                            const now = Date.now();
+                            if (now - leafPolygonOpenAt < 350) return;
+                            leafPolygonOpenAt = now;
+                            showNotesForPlusCode(plusCode);
+                        }
+                    }
                 });
-                // iPhone Safari can occasionally skip Leaflet's synthetic click when tapping
-                // vector layers; add a direct touchend tap path as fallback.
+
+                // iOS Safari fallback: when synthesized click is missed for SVG paths
+                // inside Leaflet, derive the tap from raw touch events.
                 const leafContainer = leafMap.getContainer && leafMap.getContainer();
-                let leafTouchStart = null;
                 if (leafContainer) {
+                    let leafTouchStart = null;
                     leafContainer.addEventListener('touchstart', (e) => {
                         const t = e.touches && e.touches[0];
-                        if (!t || (e.touches && e.touches.length !== 1)) {
+                        if (!t || e.touches.length !== 1) {
                             leafTouchStart = null;
                             return;
                         }
-                        leafTouchStart = {
-                            x: t.clientX,
-                            y: t.clientY,
-                            at: Date.now(),
-                            moved: false
-                        };
+                        leafTouchStart = { x: t.clientX, y: t.clientY, at: Date.now(), moved: false };
                     }, { passive: true });
                     leafContainer.addEventListener('touchmove', (e) => {
                         if (!leafTouchStart) return;
@@ -5384,27 +5415,7 @@
                         if (Date.now() - started.at > 700) return;
                         const t = e.changedTouches && e.changedTouches[0];
                         if (!t) return;
-                        const rect = leafContainer.getBoundingClientRect();
-                        const containerPoint = L.point(t.clientX - rect.left, t.clientY - rect.top);
-                        const latLng = leafMap.containerPointToLatLng(containerPoint);
-                        if (!latLng) return;
-                        const plusCode = encodePlusCode(latLng.lat, latLng.lng);
-                        if (!plusCode) return;
-                        if (Date.now() - leafPolygonOpenAt < 300) return;
-                        leafPolygonOpenAt = Date.now();
-                        showNotesForPlusCode(plusCode);
-                    }, { passive: true });
-                    leafContainer.addEventListener('pointerup', (e) => {
-                        if (!e || e.pointerType !== 'touch') return;
-                        const rect = leafContainer.getBoundingClientRect();
-                        const containerPoint = L.point(e.clientX - rect.left, e.clientY - rect.top);
-                        const latLng = leafMap.containerPointToLatLng(containerPoint);
-                        if (!latLng) return;
-                        const plusCode = encodePlusCode(latLng.lat, latLng.lng);
-                        if (!plusCode) return;
-                        if (Date.now() - leafPolygonOpenAt < 300) return;
-                        leafPolygonOpenAt = Date.now();
-                        showNotesForPlusCode(plusCode);
+                        handleLeafContainerTap(t.clientX, t.clientY);
                     }, { passive: true });
                 }
 
@@ -5437,11 +5448,31 @@
             }
         }
 
+        /** Read once-per-load preference for the map renderer. URL ?map=leaflet|maplibre wins; otherwise sticky localStorage flag. */
+        function getMapRendererPreference() {
+            try {
+                const u = new URL(window.location.href);
+                const q = (u.searchParams.get('map') || '').toLowerCase();
+                if (q === 'leaflet' || q === 'maplibre') {
+                    try { localStorage.setItem('nr-web.mapRenderer', q); } catch (_) {}
+                    return q;
+                }
+                const stored = (localStorage.getItem('nr-web.mapRenderer') || '').toLowerCase();
+                if (stored === 'leaflet' || stored === 'maplibre') return stored;
+            } catch (_) {}
+            return '';
+        }
+
         function initializeMap() {
             try {
                 const mapContainer = document.getElementById('map');
                 if (!mapContainer) {
                     throw new Error('Map container not found');
+                }
+
+                const rendererPref = getMapRendererPreference();
+                if (rendererPref === 'leaflet') {
+                    return initializeLeafletFallback('forced');
                 }
 
                 if (typeof maplibregl === 'undefined') {

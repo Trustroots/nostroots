@@ -34,7 +34,6 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
         const DEFAULT_RELAY_URL = 'wss://nip42.trustroots.org';
         const DEFAULT_RELAYS = (window.NrWebRelaySettings?.getDefaultRelays?.() || ['wss://nip42.trustroots.org', 'wss://relay.trustroots.org', 'wss://relay.nomadwiki.org']);
         const TRUSTROOTS_CIRCLE_LABEL = 'trustroots-circle';
-        const GLOBAL_CHANNEL_SLUG = 'global';
         const HOSTING_OFFER_CHANNEL_SLUG = 'hostingoffers';
         const HOSTING_OFFER_CHANNEL_ALIASES = ['hostingoffer', 'hostingoffers'];
         const relaySettings = window.NrWebRelaySettings;
@@ -73,7 +72,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
 
         function isPlusCodeChannelId(id) {
             // OLC alphabet plus '0' for padded/prefix codes (e.g. 9F000000+)
-            return typeof id === 'string' && id !== GLOBAL_CHANNEL_SLUG && /^[023456789CFGHJMPQRVWX]{4,}\+?$/i.test(id.replace(/\s/g, ''));
+            return typeof id === 'string' && /^[023456789CFGHJMPQRVWX]{4,}\+?$/i.test(id.replace(/\s/g, ''));
         }
         const pubkeyToUsername = new Map();
         /** NIP-05 from kind 0 (any domain). Used for display; prefer over npub. */
@@ -228,7 +227,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
         function isTrustrootsCircleConversation(entry) {
             if (!entry || entry.type !== 'channel') return false;
             const idRaw = String(entry.id || '').trim();
-            if (!idRaw || idRaw === GLOBAL_CHANNEL_SLUG) return false;
+            if (!idRaw) return false;
             const idKey = normalizeCircleSlug(idRaw);
             if (circleMetaBySlug.has(idKey)) return true;
             if (TRUSTROOTS_CIRCLE_SLUGS_SET.has(idKey)) return true;
@@ -500,6 +499,17 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                             ...(ev.nip ? { nip: ev.nip } : {}),
                             ...(ev.relayScope ? { relayScope: ev.relayScope } : {})
                         }));
+                    const normalizedConversationId = normalizeChannelSlug(String(c.id || ''));
+                    if (c.type === 'channel' && normalizedConversationId === 'global') {
+                        // Migration: legacy caches mirrored all map notes into #global.
+                        // Keep only events that explicitly include the global channel slug.
+                        const explicitGlobalEvents = events.filter((ev) =>
+                            getChannelSlugsFromEvent(ev.raw || {}).includes('global')
+                        );
+                        if (!explicitGlobalEvents.length) continue;
+                        conversations.set(c.id, { type: c.type, id: c.id, members: c.members || [], events: explicitGlobalEvents });
+                        continue;
+                    }
                     conversations.set(c.id, { type: c.type, id: c.id, members: c.members || [], events });
                 }
                 pubkeyToUsername.clear();
@@ -666,7 +676,12 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     if (tm) tm.innerHTML = '';
                     return;
                 }
-                selectConversation(GLOBAL_CHANNEL_SLUG);
+                const firstConversationId = Array.from(conversations.entries())
+                    .map(([id, c]) => ({ id, ...c }))
+                    .sort((a, b) => convSortKey(b) - convSortKey(a))[0]?.id;
+                if (firstConversationId) {
+                    selectConversation(firstConversationId);
+                }
                 return;
             }
             const mappedConversationId = findConversationIdByRoute(route);
@@ -692,7 +707,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     }
                     return;
                 }
-                if (/^[a-zA-Z0-9_-]+$/.test(normalizedRoute) && normalizedRoute !== 'keys' && normalizedRoute !== 'settings' && normalizedRoute !== GLOBAL_CHANNEL_SLUG) {
+                if (/^[a-zA-Z0-9_-]+$/.test(normalizedRoute) && normalizedRoute !== 'keys' && normalizedRoute !== 'settings') {
                     getOrCreateConversation('channel', normalizedRoute, []);
                     selectConversation(normalizedRoute);
                 } else {
@@ -804,6 +819,35 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             if (full.includes('@') && full.length <= 32) return full;
             if (full.length <= 20) return full;
             return full.slice(0, 12) + '…' + full.slice(-8);
+        }
+
+        /**
+         * Resolve best profile picture for a DM identifier.
+         * Conversation IDs are usually pubkeys, but legacy/cache entries may be NIP-05/usernames.
+         */
+        function getDmPictureByConversationId(id) {
+            const raw = String(id || '').trim();
+            if (!raw) return '';
+            const direct = pubkeyToPicture.get(raw);
+            if (direct && isSafeHttpUrl(direct)) return direct;
+            const low = raw.toLowerCase();
+            // Match by known NIP-05 mapping (pubkey -> nip05).
+            for (const [pk, nip05] of pubkeyToNip05.entries()) {
+                if (String(nip05 || '').trim().toLowerCase() !== low) continue;
+                const pic = pubkeyToPicture.get(pk);
+                if (pic && isSafeHttpUrl(pic)) return pic;
+            }
+            // Match by trustroots username mapping (pubkey -> username).
+            const lowNoAt = low.startsWith('@') ? low.slice(1) : low;
+            for (const [pk, username] of pubkeyToUsername.entries()) {
+                const u = String(username || '').trim().toLowerCase();
+                if (!u) continue;
+                if (u === lowNoAt || `${u}@trustroots.org` === lowNoAt) {
+                    const pic = pubkeyToPicture.get(pk);
+                    if (pic && isSafeHttpUrl(pic)) return pic;
+                }
+            }
+            return '';
         }
 
         function profileHrefFromId(id) {
@@ -1670,9 +1714,13 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             renderRelaysList();
             if (!pool) pool = new SimplePool();
 
-            getOrCreateConversation('channel', GLOBAL_CHANNEL_SLUG, []);
             renderConvList();
-            if (!getHashRoute()) selectConversation(GLOBAL_CHANNEL_SLUG);
+            if (!getHashRoute()) {
+                const firstConversationId = Array.from(conversations.entries())
+                    .map(([id, c]) => ({ id, ...c }))
+                    .sort((a, b) => convSortKey(b) - convSortKey(a))[0]?.id;
+                if (firstConversationId) selectConversation(firstConversationId);
+            }
 
             function onChannelEvent(event) {
                 const slugs = getChannelSlugsFromEvent(event);
@@ -1731,66 +1779,13 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                 scheduleRender('both');
             } });
 
-            pool.subscribe(relays, { kinds: [TRUSTROOTS_PROFILE_KIND] }, { onevent(event) {
-                const username = getTrustrootsUsernameFromProfileEvent(event);
-                if (username) {
-                    pubkeyToUsername.set(event.pubkey, username);
-                    scheduleChatCacheWrite();
-                    scheduleRender('both');
-                }
-            } });
+            pool.subscribe(relays, { kinds: [TRUSTROOTS_PROFILE_KIND] }, { onevent: handleKind10390ForProfile });
+            pool.subscribe(relays, { kinds: [0] }, { onevent: handleKind0ForProfile });
+            pool.subscribe(relays, { kinds: [PROFILE_CLAIM_KIND], limit: 1000 }, { onevent: handleKind30390ForProfile });
 
-            pool.subscribe(relays, { kinds: [0] }, { onevent(event) {
-                const username = getTrustrootsUsernameFromKind0(event);
-                if (username && !pubkeyToUsername.has(event.pubkey)) {
-                    pubkeyToUsername.set(event.pubkey, username);
-                    scheduleChatCacheWrite();
-                    scheduleRender('both');
-                }
-                if (event.content) {
-                    try {
-                        const profile = JSON.parse(event.content);
-                        const nip05 = (profile.nip05 || '').trim();
-                        const picture = String(profile.picture || '').trim();
-                        if (nip05) {
-                            pubkeyToNip05.set(event.pubkey, nip05);
-                            if (event.pubkey === currentPublicKey) {
-                                currentUserNip05 = nip05;
-                                updateAuthNip05Display();
-                            }
-                            scheduleChatCacheWrite();
-                            scheduleRender('both');
-                        }
-                        if (picture && isSafeHttpUrl(picture)) {
-                            pubkeyToPicture.set(event.pubkey, picture);
-                            scheduleChatCacheWrite();
-                            scheduleRender('both');
-                            const selDm = selectedConversationId ? conversations.get(selectedConversationId) : null;
-                            if (selDm && selDm.type === 'dm' && selDm.id === event.pubkey) {
-                                syncThreadHeaderForConversation(selDm);
-                            }
-                        }
-                    } catch (_) {}
-                }
-            } });
-
-            pool.subscribe(relays, { kinds: [PROFILE_CLAIM_KIND], limit: 1000 }, { onevent(event) {
-                const info = getProfileClaim30390PictureTarget(event);
-                if (!info) return;
-                pubkeyToPicture.set(info.targetPubkey, info.picture);
-                if (info.nip05 && isTrustrootsNip05Lower(info.nip05)) {
-                    pubkeyToNip05.set(info.targetPubkey, info.nip05);
-                }
-                if (info.trustrootsUsername && !pubkeyToUsername.has(info.targetPubkey)) {
-                    pubkeyToUsername.set(info.targetPubkey, info.trustrootsUsername);
-                }
-                scheduleChatCacheWrite();
-                scheduleRender('both');
-                const selDm = selectedConversationId ? conversations.get(selectedConversationId) : null;
-                if (selDm && selDm.type === 'dm' && selDm.id === info.targetPubkey) {
-                    syncThreadHeaderForConversation(selDm);
-                }
-            } });
+            // Also fetch profile-shaped events from the NIP-42 auth relay; SimplePool above
+            // is unauthenticated and won't receive them when restricted relays gate by AUTH.
+            startAuthRelayProfileFetch();
 
             if (TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX) {
                 pool.subscribe(
@@ -1929,6 +1924,102 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             } catch (_) {
                 return undefined;
             }
+        }
+
+        function handleKind10390ForProfile(event) {
+            const username = getTrustrootsUsernameFromProfileEvent(event);
+            if (username) {
+                pubkeyToUsername.set(event.pubkey, username);
+                scheduleChatCacheWrite();
+                scheduleRender('both');
+            }
+        }
+
+        function handleKind0ForProfile(event) {
+            const username = getTrustrootsUsernameFromKind0(event);
+            if (username && !pubkeyToUsername.has(event.pubkey)) {
+                pubkeyToUsername.set(event.pubkey, username);
+                scheduleChatCacheWrite();
+                scheduleRender('both');
+            }
+            if (!event.content) return;
+            try {
+                const profile = JSON.parse(event.content);
+                const nip05 = (profile.nip05 || '').trim();
+                const picture = String(profile.picture || '').trim();
+                if (nip05) {
+                    pubkeyToNip05.set(event.pubkey, nip05);
+                    if (event.pubkey === currentPublicKey) {
+                        currentUserNip05 = nip05;
+                        updateAuthNip05Display();
+                    }
+                    scheduleChatCacheWrite();
+                    scheduleRender('both');
+                }
+                if (picture && isSafeHttpUrl(picture)) {
+                    pubkeyToPicture.set(event.pubkey, picture);
+                    scheduleChatCacheWrite();
+                    scheduleRender('both');
+                    const selDm = selectedConversationId ? conversations.get(selectedConversationId) : null;
+                    if (selDm && selDm.type === 'dm' && selDm.id === event.pubkey) {
+                        syncThreadHeaderForConversation(selDm);
+                    }
+                }
+            } catch (_) {}
+        }
+
+        function handleKind30390ForProfile(event) {
+            const info = getProfileClaim30390PictureTarget(event);
+            if (!info) return;
+            pubkeyToPicture.set(info.targetPubkey, info.picture);
+            if (info.nip05 && isTrustrootsNip05Lower(info.nip05)) {
+                pubkeyToNip05.set(info.targetPubkey, info.nip05);
+            }
+            if (info.trustrootsUsername && !pubkeyToUsername.has(info.targetPubkey)) {
+                pubkeyToUsername.set(info.targetPubkey, info.trustrootsUsername);
+            }
+            scheduleChatCacheWrite();
+            scheduleRender('both');
+            const selDm = selectedConversationId ? conversations.get(selectedConversationId) : null;
+            if (selDm && selDm.type === 'dm' && selDm.id === info.targetPubkey) {
+                syncThreadHeaderForConversation(selDm);
+            }
+        }
+
+        /**
+         * After public SimplePool subscriptions start, also pull kind 0 / 30390 / 10390 from the
+         * NIP-42 restricted relay using the same signer as map note auth. Without this the chat
+         * UI would never receive Trustroots-imported profile pictures because they only live on
+         * the auth-required relay.
+         */
+        let _nrChatAuthProfileSub = null;
+        function startAuthRelayProfileFetch() {
+            try { _nrChatAuthProfileSub?.close?.(); } catch (_) {}
+            _nrChatAuthProfileSub = null;
+            const relayAuth = globalThis.NrWebRelayAuth;
+            if (!relayAuth?.startNip42WsSubscription || !currentPublicKey || !currentSecretKeyBytes) return;
+            const restrictedUrl = (relays || []).find(isRestrictedRelayUrl)
+                || 'wss://nip42.trustroots.org';
+            try {
+                _nrChatAuthProfileSub = relayAuth.startNip42WsSubscription({
+                    relayUrl: restrictedUrl,
+                    filter: { kinds: [0, TRUSTROOTS_PROFILE_KIND, PROFILE_CLAIM_KIND], limit: 5000 },
+                    authPubkey: currentPublicKey,
+                    signEvent: (template) => signEvent(template),
+                    onEvent: (event) => {
+                        if (!event || NrBlocklist?.isBlocked?.(event.pubkey)) return;
+                        if (event.kind === 0) handleKind0ForProfile(event);
+                        else if (event.kind === TRUSTROOTS_PROFILE_KIND) handleKind10390ForProfile(event);
+                        else if (event.kind === PROFILE_CLAIM_KIND) handleKind30390ForProfile(event);
+                    }
+                });
+            } catch (e) {
+                console.warn('[chat] auth-relay profile fetch failed:', e?.message || e);
+            }
+        }
+
+        function isRestrictedRelayUrl(url) {
+            return /nip42\.trustroots\.org/i.test(String(url || ''));
         }
 
         /**
@@ -2212,7 +2303,6 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
         function getConversationLabel(entry) {
             const id = String(entry.id || '');
             if (entry.type === 'channel') {
-                if (id === GLOBAL_CHANNEL_SLUG) return 'Global';
                 if (isTrustrootsCircleConversation(entry)) {
                     return '#' + id;
                 }
@@ -2228,7 +2318,6 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             const type = entry.type;
             if (type === 'dm' || type === 'group') return ENC_LOCK;
             if (type === 'channel') {
-                if (id === GLOBAL_CHANNEL_SLUG) return ENC_GLOBE;
                 if (isTrustrootsCircleConversation(entry)) return '∞';
                 return '#';
             }
@@ -2244,9 +2333,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             }
             const entries = Array.from(conversations.entries())
                 .map(([id, c]) => ({ id, ...c }));
-            const globalEntry = entries.find(e => e.id === GLOBAL_CHANNEL_SLUG);
-            const rest = entries.filter(e => e.id !== GLOBAL_CHANNEL_SLUG).sort((a, b) => convSortKey(b) - convSortKey(a));
-            const ordered = globalEntry ? [globalEntry, ...rest] : rest;
+            const ordered = entries.sort((a, b) => convSortKey(b) - convSortKey(a));
             const query = normalizeSearchQuery(conversationFilterQuery);
             const filtered = query ? ordered.filter((entry) => conversationMatchesFilter(entry, query)) : ordered;
             filtered.forEach(({ id, type, members, events }) => {
@@ -2283,7 +2370,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                         '</span>' +
                         imgHtml;
                 } else if (type === 'dm') {
-                    const dmPic = pubkeyToPicture.get(id);
+                    const dmPic = getDmPictureByConversationId(id);
                     const imgHtml = dmPic && isSafeHttpUrl(dmPic)
                         ? `<img class="conv-item-avatar" src="${escConvHtml(dmPic)}" alt="" loading="lazy" decoding="async" />`
                         : '';
@@ -2320,7 +2407,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             const baseLabel = getConversationLabel(entry);
             const channelAlias = entry.type === 'channel' ? id : '';
             const tokens = [baseLabel, channelAlias, id];
-            if (entry.type === 'channel' && id && id !== GLOBAL_CHANNEL_SLUG) {
+            if (entry.type === 'channel' && id) {
                 tokens.push('#' + id);
             }
             if (entry.type === 'channel' && isTrustrootsCircleConversation(entry)) {
@@ -2445,7 +2532,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             if (conv.type === 'dm' || conv.type === 'group') {
                 resetCircleChrome();
                 if (conv.type === 'dm') {
-                    const pic = pubkeyToPicture.get(conv.id);
+                    const pic = getDmPictureByConversationId(conv.id);
                     if (pic && isSafeHttpUrl(pic)) {
                         setImageWithFallback(heroEl, pic, '');
                         if (headerEl) headerEl.classList.add('thread-header-has-image');
@@ -2462,11 +2549,6 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             }
 
             if (conv.type === 'channel') {
-                if (conv.id === GLOBAL_CHANNEL_SLUG) {
-                    resetCircleChrome();
-                    titleEl.textContent = 'Global';
-                    return;
-                }
                 if (isTrustrootsCircleConversation(conv)) {
                     const slug = conv.id;
                     const slugKey = normalizeCircleSlug(slug);
@@ -2666,7 +2748,7 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
         }
 
         function getChannelSlugsFromEvent(raw) {
-            const slugs = new Set([GLOBAL_CHANNEL_SLUG]);
+            const slugs = new Set();
             const primarySlug = getChannelSlugFromEvent(raw);
             if (primarySlug) {
                 slugs.add(normalizeChannelSlug(primarySlug));
@@ -2691,7 +2773,6 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             if (!conv || !container) return;
             container.innerHTML = '';
             const isChannel = conv.type === 'channel';
-            const isGlobalChannel = isChannel && conv.id === GLOBAL_CHANNEL_SLUG;
             let eventsToShow = conv.events.filter(ev => !deletedEventIds.has(ev.id) && !isBlockedPubkey(ev.pubkey));
             if (isChannel) {
                 const deduped = new Map();
@@ -2771,8 +2852,8 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     pluscodeEl.appendChild(link);
                     div.appendChild(pluscodeEl);
                 }
-                const channelSlug = isGlobalChannel ? getChannelSlugFromEvent(ev.raw) : null;
-                if (channelSlug && channelSlug !== GLOBAL_CHANNEL_SLUG) {
+                const channelSlug = getChannelSlugFromEvent(ev.raw);
+                if (channelSlug && channelSlug !== conv.id) {
                     const channelEl = document.createElement('div');
                     channelEl.className = 'message-channel-tag';
                     const channelLink = document.createElement('a');

@@ -82,6 +82,10 @@
         }
         
         /* Dark mode theme (warm, cozy dark) */
+        [data-theme="dark"] .nr-profile-scroll {
+            background: var(--background);
+        }
+
         [data-theme="dark"] {
             --background: hsl(30, 14%, 11%);
             --foreground: hsl(40, 28%, 92%);
@@ -1623,7 +1627,79 @@
         
         // Import BIP39 for mnemonic support
         import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm';
-        
+        import { nrWebKvGet, nrWebKvPut, NR_WEB_KV_KEYS } from './nr-web-kv-idb.js';
+
+        /** Same string as legacy localStorage keys; values live in IndexedDB after migrate. */
+        const NOTIFICATION_PLUS_CODES_KEY = NR_WEB_KV_KEYS.NOTIFICATION_PLUS_CODES;
+        const CLAIM_SIGN_STORAGE_KEY = NR_WEB_KV_KEYS.CLAIM_SIGN_DONE;
+
+        let _nrKvNotificationCodes = null;
+        let _nrKvClaimSignAll = null;
+        let _nrKvHydratePromise = null;
+
+        function ensureNrWebKvPrefsHydrated() {
+            if (!_nrKvHydratePromise) {
+                _nrKvHydratePromise = hydrateNrWebKvPrefsStorage().catch((err) => {
+                    console.warn('nr-web KV (IndexedDB) hydrate failed:', err);
+                    _nrKvHydratePromise = null;
+                    return undefined;
+                });
+            }
+            return _nrKvHydratePromise;
+        }
+
+        async function hydrateNrWebKvPrefsStorage() {
+            let codes = await nrWebKvGet(NR_WEB_KV_KEYS.NOTIFICATION_PLUS_CODES);
+            if (codes !== undefined && Array.isArray(codes)) {
+                _nrKvNotificationCodes = codes;
+            } else {
+                let migrated = [];
+                if (_nrKvNotificationCodes !== null && Array.isArray(_nrKvNotificationCodes)) {
+                    migrated = _nrKvNotificationCodes;
+                } else {
+                    try {
+                        const raw = localStorage.getItem(NOTIFICATION_PLUS_CODES_KEY);
+                        migrated = raw ? JSON.parse(raw) : [];
+                    } catch (_) {
+                        migrated = [];
+                    }
+                    if (!Array.isArray(migrated)) migrated = [];
+                    _nrKvNotificationCodes = migrated;
+                }
+                await nrWebKvPut(NR_WEB_KV_KEYS.NOTIFICATION_PLUS_CODES, migrated);
+            }
+            try {
+                localStorage.removeItem(NOTIFICATION_PLUS_CODES_KEY);
+            } catch (_) {}
+
+            let all = await nrWebKvGet(NR_WEB_KV_KEYS.CLAIM_SIGN_DONE);
+            if (all !== undefined && all && typeof all === 'object' && !Array.isArray(all)) {
+                _nrKvClaimSignAll = all;
+            } else {
+                let migratedClaims = {};
+                if (_nrKvClaimSignAll !== null && typeof _nrKvClaimSignAll === 'object' && !Array.isArray(_nrKvClaimSignAll)) {
+                    migratedClaims = _nrKvClaimSignAll;
+                } else {
+                    try {
+                        const raw = localStorage.getItem(CLAIM_SIGN_STORAGE_KEY);
+                        migratedClaims = raw ? JSON.parse(raw) : {};
+                    } catch (_) {
+                        migratedClaims = {};
+                    }
+                    if (!migratedClaims || typeof migratedClaims !== 'object' || Array.isArray(migratedClaims)) {
+                        migratedClaims = {};
+                    }
+                    _nrKvClaimSignAll = migratedClaims;
+                }
+                await nrWebKvPut(NR_WEB_KV_KEYS.CLAIM_SIGN_DONE, migratedClaims);
+            }
+            try {
+                localStorage.removeItem(CLAIM_SIGN_STORAGE_KEY);
+            } catch (_) {}
+        }
+
+        void ensureNrWebKvPrefsHydrated();
+
         // NDK is not loaded from CDN due to CORS/MIME type issues
         // We use nostr-tools Relay directly instead, which works reliably
         const NDK = null;
@@ -1959,8 +2035,48 @@
         const DEV_PUBKEY = '80789235a71a388074abfa5c482e270456d2357425266270f82071cf2b1de74a';
         const TRUSTROOTS_RESTRICTED_RELAY_URL = 'wss://nip42.trustroots.org';
         
-        // Map to store pubkey -> Trustroots username
+        // Map to store pubkey -> Trustroots username (kind 10390 label)
         const pubkeyToUsername = new Map();
+        /** Pubkey hex -> lowercase Trustroots NIP-05 (kind 0 nip05 or kind 30390 import). */
+        const pubkeyToNip05 = new Map();
+
+        function isTrustrootsNip05Lower(s) {
+            const n = String(s || '').trim().toLowerCase();
+            return n.endsWith('@trustroots.org') || n.endsWith('@www.trustroots.org');
+        }
+
+        function ingestTrustrootsNip05FromKind0(event) {
+            if (!event || event.kind !== 0 || !event.pubkey || !event.content) return;
+            let meta = {};
+            try {
+                meta = JSON.parse(event.content);
+            } catch (_) {
+                return;
+            }
+            const nip05 = String(meta.nip05 || '').trim().toLowerCase();
+            if (!nip05 || !isTrustrootsNip05Lower(nip05)) return;
+            pubkeyToNip05.set(event.pubkey, nip05);
+            scheduleCacheWrite();
+        }
+
+        function ingestTrustrootsNip05From30390(event) {
+            if (!event || event.kind !== PROFILE_CLAIM_KIND || !event.content) return;
+            const pTags = (event.tags || []).filter((t) => Array.isArray(t) && t[0] === 'p' && t[1]);
+            const subjectHex = pTags.length ? String(pTags[0][1]) : '';
+            if (!subjectHex) return;
+            let meta = {};
+            try {
+                meta = JSON.parse(event.content);
+            } catch (_) {
+                return;
+            }
+            const nip05 = String(meta.nip05 || '').trim().toLowerCase();
+            if (!nip05 || !isTrustrootsNip05Lower(nip05)) return;
+            pubkeyToNip05.set(subjectHex, nip05);
+            const tru = String(meta.trustrootsUsername || '').trim().toLowerCase();
+            if (tru) pubkeyToUsername.set(subjectHex, tru);
+            scheduleCacheWrite();
+        }
         
         const MAP_LAYERS = {
             trustroots: {
@@ -3332,17 +3448,17 @@
         
         // Browser notifications (only work while this tab is open).
         // Nostr: we use the same map-note stream as the map (kind 30397). Subscribed plus codes
-        // are stored only in localStorage. When a new 30397 event arrives and its plus code
+        // are stored in IndexedDB (see nr-web-kv-idb.js). When a new 30397 event arrives and its plus code
         // matches a subscribed area, we show a browser Notification. No kind 10395, no server.
         // nr-app differs: it publishes kind 10395 (encrypted for the notification server) with
         // push tokens + Nostr filters; the server subscribes to kind 30398 (reposts) per filter
         // and sends push when matching events appear. So nr-web = same notes, local-only UI;
         // nr-app = 10395 + push server + 30398 filters for delivery when app is closed.
-        const NOTIFICATION_PLUS_CODES_KEY = 'notification_plus_codes';
         const NOTIFICATIONS_ENABLED_KEY = 'notifications_enabled';
         let pendingNotificationPlusCode = null;
         
         function getNotificationPlusCodes() {
+            if (_nrKvNotificationCodes !== null) return _nrKvNotificationCodes;
             try {
                 const raw = localStorage.getItem(NOTIFICATION_PLUS_CODES_KEY);
                 return raw ? JSON.parse(raw) : [];
@@ -3352,7 +3468,13 @@
         }
         
         function saveNotificationPlusCodes(codes) {
-            localStorage.setItem(NOTIFICATION_PLUS_CODES_KEY, JSON.stringify(codes));
+            _nrKvNotificationCodes = Array.isArray(codes) ? codes : [];
+            try {
+                localStorage.removeItem(NOTIFICATION_PLUS_CODES_KEY);
+            } catch (_) {}
+            void ensureNrWebKvPrefsHydrated()
+                .then(() => nrWebKvPut(NR_WEB_KV_KEYS.NOTIFICATION_PLUS_CODES, _nrKvNotificationCodes))
+                .catch((e) => console.warn('Failed to persist notification plus codes:', e));
         }
         
         function addNotificationPlusCode(plusCode) {
@@ -3411,7 +3533,12 @@
             if (!matches) return;
             if (document.visibilityState === 'visible') return;
             
-            const username = pubkeyToUsername.get(event.pubkey) || (event.pubkey || '').substring(0, 12) + '…';
+            const nip5ForNote = pubkeyToNip05.get(event.pubkey);
+            const username =
+                (nip5ForNote && isTrustrootsNip05Lower(nip5ForNote)
+                    ? nip5ForNote
+                    : pubkeyToUsername.get(event.pubkey)) ||
+                (event.pubkey || '').substring(0, 12) + '…';
             const body = (event.content || '').slice(0, 80) + ((event.content || '').length > 80 ? '…' : '');
             const n = new Notification('New note at ' + (plusCode || 'map'), {
                 body: username + (body ? ': ' + body : ''),
@@ -3468,7 +3595,8 @@
         async function loadCachedEvents() {
             const [cachedEvents] = await Promise.all([
                 loadEventsFromCache(),
-                loadProfilesFromCache()
+                loadProfilesFromCache(),
+                ensureNrWebKvPrefsHydrated()
             ]);
             if (cachedEvents && cachedEvents.length > 0) {
                 events = cachedEvents;
@@ -4027,6 +4155,15 @@
                     if (NrBlocklist && NrBlocklist.isBlocked && NrBlocklist.isBlocked(pk)) continue;
                     pubkeyToUsername.set(pk, name);
                 }
+                for (const pair of row.nip05Entries || []) {
+                    if (!Array.isArray(pair) || pair.length < 2) continue;
+                    const pk = pair[0];
+                    const n5 = pair[1];
+                    if (typeof pk !== 'string' || typeof n5 !== 'string' || !n5) continue;
+                    if (NrBlocklist && NrBlocklist.isBlocked && NrBlocklist.isBlocked(pk)) continue;
+                    const low = n5.trim().toLowerCase();
+                    if (isTrustrootsNip05Lower(low)) pubkeyToNip05.set(pk, low);
+                }
             } catch (error) {
                 console.warn('Failed to load profiles from cache:', error);
             }
@@ -4048,10 +4185,18 @@
             if (entries.length > PROFILE_USERNAME_CACHE_MAX_ENTRIES) {
                 entries = entries.slice(-PROFILE_USERNAME_CACHE_MAX_ENTRIES);
             }
+            let nip05Entries = Array.from(pubkeyToNip05.entries());
+            if (NrBlocklist && NrBlocklist.isBlocked) {
+                nip05Entries = nip05Entries.filter(([pk]) => !NrBlocklist.isBlocked(pk));
+            }
+            if (nip05Entries.length > PROFILE_USERNAME_CACHE_MAX_ENTRIES) {
+                nip05Entries = nip05Entries.slice(-PROFILE_USERNAME_CACHE_MAX_ENTRIES);
+            }
             try {
                 await idbPutEventsRecord(db, {
                     key: NR_MAP_CACHE_PROFILES_RECORD_KEY,
                     entries,
+                    nip05Entries,
                     timestamp: Date.now()
                 });
             } catch (err) {
@@ -4132,8 +4277,15 @@
         
         function processIncomingEvent(event) {
             if (NrBlocklist && NrBlocklist.isBlocked(event.pubkey)) return;
+            if (event.kind === 0) {
+                ingestTrustrootsNip05FromKind0(event);
+                return;
+            }
             if (getClaimKinds().includes(event.kind)) {
                 upsertClaimEvent(event);
+                if (event.kind === PROFILE_CLAIM_KIND) {
+                    ingestTrustrootsNip05From30390(event);
+                }
                 return;
             }
             if (event.kind === MAP_NOTE_REPOST_KIND && hasPTarget(event, currentPublicKey)) {
@@ -4220,11 +4372,7 @@
             
             // Only process map note kinds (30397 and 30398).
             if (!MAP_NOTE_KINDS.includes(event.kind)) {
-                // Allow kind 0 through but don't process it (it's handled elsewhere if needed)
-                if (event.kind === 0) {
-                    return; // Skip profile events in map note processing
-                }
-                return; // Skip all other kinds
+                return; // Skip all other kinds (kind 0 handled above)
             }
             
             // Only process events that have a plus code
@@ -5944,8 +6092,10 @@
                 }
 
                 const currentBest = dedupedForDisplay.get(dedupeKey);
-                const hasUsername = !!pubkeyToUsername.get(event.pubkey);
-                const score = (hasUsername ? 10 : 0) + (event.kind === MAP_NOTE_REPOST_KIND ? 1 : 0);
+                const trNip = pubkeyToNip05.get(canonicalAuthorPubkey);
+                const hasTrNip05 = !!(trNip && isTrustrootsNip05Lower(trNip));
+                const hasUsername = !!pubkeyToUsername.get(canonicalAuthorPubkey);
+                const score = ((hasTrNip05 || hasUsername) ? 10 : 0) + (event.kind === MAP_NOTE_REPOST_KIND ? 1 : 0);
 
                 if (!currentBest || score > currentBest.score) {
                     dedupedForDisplay.set(dedupeKey, { event, score });
@@ -6077,6 +6227,14 @@
             }, 150);
         }
         
+        /** Original map-note author (kind 30398 uses validator pubkey; `p` tags original). */
+        function getMapNoteDisplayAuthorPubkey(event) {
+            const tags = Array.isArray(event?.tags) ? event.tags : [];
+            const pTag = tags.find((t) => Array.isArray(t) && t[0] === 'p' && t[1]);
+            if (event?.kind === MAP_NOTE_REPOST_KIND && pTag) return String(pTag[1]);
+            return event?.pubkey;
+        }
+
         function createNoteItem(event) {
             const noteItem = document.createElement('div');
             noteItem.className = 'note-item';
@@ -6090,11 +6248,27 @@
             
             // Get plus code from event
             const plusCode = getPlusCodeFromEvent(event);
+            const authorPk = getMapNoteDisplayAuthorPubkey(event);
             
             const author = document.createElement('span');
             author.className = 'note-author';
-            // Show Trustroots username if available, otherwise show npub
-            const username = pubkeyToUsername.get(event.pubkey);
+            const trNip05Stored = (pubkeyToNip05.get(authorPk) || '').trim().toLowerCase();
+            // Prefer verified Trustroots NIP-05 (kind 0 / 30390); else @username from kind 10390; else npub snippet
+            if (trNip05Stored && isTrustrootsNip05Lower(trNip05Stored)) {
+                const profileHref = '#profile/' + encodeURIComponent(trNip05Stored).replace(/%2B/g, '+');
+                const authorLink = document.createElement('a');
+                authorLink.className = 'nr-content-link';
+                authorLink.href = profileHref;
+                authorLink.textContent = trNip05Stored;
+                try {
+                    const npub = nip19.npubEncode(authorPk);
+                    authorLink.title = npub;
+                } catch (error) {
+                    authorLink.title = String(authorPk || '').substring(0, 16) + '…';
+                }
+                author.appendChild(authorLink);
+            } else {
+            const username = pubkeyToUsername.get(authorPk);
             if (username) {
                 const nip05 = `${username}@trustroots.org`.toLowerCase();
                 const chatHref = '#profile/' + encodeURIComponent(nip05).replace(/%2B/g, '+');
@@ -6103,20 +6277,21 @@
                 authorLink.href = chatHref;
                 authorLink.textContent = `@${username}`;
                 try {
-                    const npub = nip19.npubEncode(event.pubkey);
+                    const npub = nip19.npubEncode(authorPk);
                     authorLink.title = `@${username} (${npub})`; // Show username and npub on hover
                 } catch (error) {
-                    authorLink.title = `@${username} (${event.pubkey.substring(0, 16)}...)`;
+                    authorLink.title = `@${username} (${String(authorPk || '').substring(0, 16)}...)`;
                 }
                 author.appendChild(authorLink);
             } else {
                 try {
-                    const npub = nip19.npubEncode(event.pubkey);
+                    const npub = nip19.npubEncode(authorPk);
                     author.textContent = npub.substring(0, 12) + '...';
                     author.title = npub; // Show full npub on hover
                 } catch (error) {
-                    author.textContent = event.pubkey.substring(0, 12) + '...';
+                    author.textContent = String(authorPk || '').substring(0, 12) + '...';
                 }
+            }
             }
             
             // Combine meta, author, expiry, and plus code on same line with pluscode on the right
@@ -6687,37 +6862,51 @@
             };
         }
 
-        const CLAIM_SIGN_STORAGE_KEY = 'nostroots_claim_sign_done';
+        function claimSignEnsureAllLoadedSync() {
+            if (_nrKvClaimSignAll !== null) return;
+            try {
+                const raw = localStorage.getItem(CLAIM_SIGN_STORAGE_KEY);
+                _nrKvClaimSignAll = raw ? JSON.parse(raw) : {};
+            } catch (_) {
+                _nrKvClaimSignAll = {};
+            }
+            if (!_nrKvClaimSignAll || typeof _nrKvClaimSignAll !== 'object' || Array.isArray(_nrKvClaimSignAll)) {
+                _nrKvClaimSignAll = {};
+            }
+        }
 
         function getClaimSignDoneMap() {
             if (!currentPublicKey) return {};
-            try {
-                const raw = localStorage.getItem(CLAIM_SIGN_STORAGE_KEY);
-                const all = raw ? JSON.parse(raw) : {};
-                return all[currentPublicKey] || {};
-            } catch (_) {
-                return {};
-            }
+            claimSignEnsureAllLoadedSync();
+            return _nrKvClaimSignAll[currentPublicKey] || {};
         }
 
         function setClaimSignDone(kind) {
             if (!currentPublicKey || !kind) return;
             try {
-                const raw = localStorage.getItem(CLAIM_SIGN_STORAGE_KEY);
-                const all = raw ? JSON.parse(raw) : {};
-                if (!all[currentPublicKey]) all[currentPublicKey] = {};
-                all[currentPublicKey][kind] = true;
-                localStorage.setItem(CLAIM_SIGN_STORAGE_KEY, JSON.stringify(all));
+                claimSignEnsureAllLoadedSync();
+                if (!_nrKvClaimSignAll[currentPublicKey]) _nrKvClaimSignAll[currentPublicKey] = {};
+                _nrKvClaimSignAll[currentPublicKey][kind] = true;
+                try {
+                    localStorage.removeItem(CLAIM_SIGN_STORAGE_KEY);
+                } catch (_) {}
+                void ensureNrWebKvPrefsHydrated()
+                    .then(() => nrWebKvPut(NR_WEB_KV_KEYS.CLAIM_SIGN_DONE, _nrKvClaimSignAll))
+                    .catch((e) => console.warn('Failed to persist claim-sign state:', e));
             } catch (_) {}
         }
 
         function clearClaimSignDoneForPubkey(pubkeyHex) {
             if (!pubkeyHex) return;
             try {
-                const raw = localStorage.getItem(CLAIM_SIGN_STORAGE_KEY);
-                const all = raw ? JSON.parse(raw) : {};
-                delete all[pubkeyHex];
-                localStorage.setItem(CLAIM_SIGN_STORAGE_KEY, JSON.stringify(all));
+                claimSignEnsureAllLoadedSync();
+                delete _nrKvClaimSignAll[pubkeyHex];
+                try {
+                    localStorage.removeItem(CLAIM_SIGN_STORAGE_KEY);
+                } catch (_) {}
+                void ensureNrWebKvPrefsHydrated()
+                    .then(() => nrWebKvPut(NR_WEB_KV_KEYS.CLAIM_SIGN_DONE, _nrKvClaimSignAll))
+                    .catch((e) => console.warn('Failed to persist claim-sign state:', e));
             } catch (_) {}
         }
 

@@ -14,6 +14,7 @@ import {
     mergeCircleMetadataMapEntry,
     isSafeHttpUrl
 } from './circle-metadata.js';
+import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-kv-idb.js';
 
         // nostr-tools may access window.printer.maybe for debug; avoid ReferenceError
         if (typeof window !== 'undefined' && !window.printer) {
@@ -315,9 +316,8 @@ import {
             saveRelayWritePreferences();
         }
 
-        // Chat cache (conversations, profiles, deletions) in localStorage.
+        // Chat cache (conversations, profiles, deletions) in IndexedDB (nr-web-kv-idb.js).
         // Includes NIP-04 DMs and NIP-44 group messages (decrypted content) so they load faster on next visit.
-        const CHAT_CACHE_KEY_PREFIX = 'nostroots_chat_cache_';
         const CHAT_CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
         const CHAT_CACHE_MAX_EVENTS_PER_CONV = 500;
         let chatCacheWriteTimeout = null;
@@ -363,8 +363,8 @@ import {
             return '';
         }
 
-        function saveChatToCache() {
-            if (!currentPublicKey || typeof localStorage === 'undefined') return;
+        async function saveChatToCache() {
+            if (!currentPublicKey || typeof indexedDB === 'undefined') return;
             try {
                 const convArr = [];
                 for (const [id, c] of conversations.entries()) {
@@ -396,26 +396,41 @@ import {
                     eventAuthorById: Array.from(eventAuthorById.entries()),
                     timestamp: Date.now()
                 };
-                const key = CHAT_CACHE_KEY_PREFIX + currentPublicKey;
-                localStorage.setItem(key, JSON.stringify(cacheData));
+                const key = chatCacheKvKey(currentPublicKey);
+                await nrWebKvPut(key, cacheData);
+                try {
+                    if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+                } catch (_) {}
             } catch (e) {
-                if (e.name === 'QuotaExceededError') {
+                if (e && e.name === 'QuotaExceededError') {
                     try {
-                        const key = CHAT_CACHE_KEY_PREFIX + currentPublicKey;
-                        localStorage.removeItem(key);
+                        await nrWebKvDelete(chatCacheKvKey(currentPublicKey));
                     } catch (_) {}
                 }
             }
         }
 
-        function loadChatFromCache() {
-            if (!currentPublicKey || typeof localStorage === 'undefined') return false;
+        async function loadChatFromCache() {
+            if (!currentPublicKey) return false;
             try {
-                const key = CHAT_CACHE_KEY_PREFIX + currentPublicKey;
-                const raw = localStorage.getItem(key);
-                if (!raw) return false;
-                const data = JSON.parse(raw);
-                if (!data || !data.timestamp || (Date.now() - data.timestamp > CHAT_CACHE_MAX_AGE)) return false;
+                const key = chatCacheKvKey(currentPublicKey);
+                let data = await nrWebKvGet(key);
+                if (data === undefined && typeof localStorage !== 'undefined') {
+                    const raw = localStorage.getItem(key);
+                    if (raw) {
+                        try {
+                            data = JSON.parse(raw);
+                            await nrWebKvPut(key, data);
+                        } catch (_) {
+                            data = null;
+                        }
+                        try {
+                            localStorage.removeItem(key);
+                        } catch (_) {}
+                    }
+                }
+                if (!data || typeof data !== 'object') return false;
+                if (!data.timestamp || (Date.now() - data.timestamp > CHAT_CACHE_MAX_AGE)) return false;
                 conversations.clear();
                 conversationSearchIndex.clear();
                 backgroundContentMatches.clear();
@@ -461,8 +476,9 @@ import {
         function scheduleChatCacheWrite() {
             if (chatCacheWriteTimeout) clearTimeout(chatCacheWriteTimeout);
             chatCacheWriteTimeout = setTimeout(() => {
-                saveChatToCache();
-                chatCacheWriteTimeout = null;
+                void saveChatToCache().finally(() => {
+                    chatCacheWriteTimeout = null;
+                });
             }, 2000);
         }
 
@@ -820,23 +836,22 @@ import {
             throw new Error('No local key loaded. Import an nsec to continue.');
         }
 
-        function loadKeysFromStorage() {
+        async function loadKeysFromStorage() {
             const hex = localStorage.getItem('nostr_private_key');
-            if (hex && hex.length === 64 && /^[0-9a-f]+$/i.test(hex)) {
-                currentSecretKeyHex = hex;
-                currentSecretKeyBytes = new Uint8Array(32);
-                for (let i = 0; i < 32; i++) currentSecretKeyBytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
-                currentPublicKey = getPublicKey(currentSecretKeyBytes);
-                const cachedUsername = getCachedValidatedTrustrootsUsername(currentPublicKey);
-                if (cachedUsername) {
-                    isProfileLinked = true;
-                    usernameFromNostr = true;
-                    pubkeyToUsername.set(currentPublicKey, cachedUsername);
-                }
-                loadChatFromCache();
-                updateUI();
-                startSubscriptions();
+            if (!(hex && hex.length === 64 && /^[0-9a-f]+$/i.test(hex))) return false;
+            currentSecretKeyHex = hex;
+            currentSecretKeyBytes = new Uint8Array(32);
+            for (let i = 0; i < 32; i++) currentSecretKeyBytes[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+            currentPublicKey = getPublicKey(currentSecretKeyBytes);
+            const cachedUsername = getCachedValidatedTrustrootsUsername(currentPublicKey);
+            if (cachedUsername) {
+                isProfileLinked = true;
+                usernameFromNostr = true;
+                pubkeyToUsername.set(currentPublicKey, cachedUsername);
             }
+            await startSubscriptions();
+            updateUI();
+            return true;
         }
 
         function savePrivateKey(hex) {
@@ -860,10 +875,11 @@ import {
             if (nsecImport) nsecImport.value = '';
             if (onboardingImport) onboardingImport.value = '';
             closeKeysModal();
-            updateUI();
-            startSubscriptions();
-            showStatus('Key imported. Shared with map app.', 'success');
-            openKeysModal();
+            void (async () => {
+                await loadKeysFromStorage();
+                showStatus('Key imported. Shared with map app.', 'success');
+                openKeysModal();
+            })();
         }
 
         function disconnect() {
@@ -1061,11 +1077,11 @@ import {
                 window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, true);
             }
             if (input) input.value = '';
-            loadKeysFromStorage(0);
-            updateUI();
-            startSubscriptions();
+            void (async () => {
+                await loadKeysFromStorage();
+                openKeysModal();
+            })();
             showStatus('Key imported.', 'success');
-            openKeysModal();
         }
         function onboardingGenerate() {
             generateKeyPair();
@@ -1089,9 +1105,11 @@ import {
                 window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, true);
             }
             if (el) el.value = '';
-            loadKeysFromStorage(0);
-            updateKeyDisplay();
-            openKeysModal();
+            void (async () => {
+                await loadKeysFromStorage();
+                updateKeyDisplay();
+                openKeysModal();
+            })();
             showStatus('nsec imported successfully!', 'success');
         }
         function generateKeyPair() {
@@ -1103,9 +1121,9 @@ import {
                 window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'generated');
                 window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, false);
             }
-            loadKeysFromStorage(0);
-            updateUI();
-            startSubscriptions();
+            void (async () => {
+                await loadKeysFromStorage();
+            })();
             showStatus('New key pair generated!', 'success');
         }
         function exportNsec() {
@@ -1717,14 +1735,14 @@ import {
             publicSubsStarted = true;
         }
 
-        function startSubscriptions() {
+        async function startSubscriptions() {
             relayUrlsForList = getRelayUrls();
             relays = relayUrlsForList.length ? relayUrlsForList : DEFAULT_RELAYS;
             const relayList = Array.isArray(relays) && relays.length ? relays : DEFAULT_RELAYS;
             if (!currentPublicKey || !relayList.length) return;
 
             // Restore NIP-04 (DM) and channel conversations from cache so UI shows immediately while relays stream
-            if (loadChatFromCache()) {
+            if (await loadChatFromCache()) {
                 setHeaderIdentity();
                 renderConvList();
                 if (selectedConversationId) renderThread();
@@ -1995,7 +2013,7 @@ import {
             if (currentPublicKey) {
                 relayUrlsForList = urls;
                 relays = urls;
-                startSubscriptions();
+                void startSubscriptions();
             }
             showStatus('Relay added.', 'success');
         }
@@ -2010,7 +2028,7 @@ import {
             if (currentPublicKey) {
                 relayUrlsForList = urls;
                 relays = urls.length ? urls : DEFAULT_RELAYS;
-                startSubscriptions();
+                void startSubscriptions();
             }
             showStatus('Relay removed.', 'success');
         }
@@ -3034,11 +3052,13 @@ export function bootEmbeddedChat() {
         else if (active.id === 'delete-confirm-modal') closeDeleteConfirmModal();
     }, true);
 
-    loadKeysFromStorage();
-    if (!currentPublicKey) {
-        updateUI();
-        startPublicSubscriptions();
-    }
+    void (async () => {
+        const ok = await loadKeysFromStorage();
+        if (!ok) {
+            updateUI();
+            startPublicSubscriptions();
+        }
+    })();
 }
 
 /**

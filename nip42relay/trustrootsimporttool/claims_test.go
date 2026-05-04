@@ -1,8 +1,11 @@
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/nbd-wtf/go-nostr"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -30,7 +33,43 @@ func TestEventForProfileClaim(t *testing.T) {
 	if event.Tags.GetD() != "trustroots:profile:alice" {
 		t.Fatalf("d tag = %q", event.Tags.GetD())
 	}
+	var meta map[string]string
+	if err := json.Unmarshal([]byte(event.Content), &meta); err != nil {
+		t.Fatal(err)
+	}
+	if meta["picture"] != "https://example.com/a.jpg" {
+		t.Fatalf("picture = %q", meta["picture"])
+	}
 }
+
+func TestProfileClaimPictureURL_localUpload(t *testing.T) {
+	oid := primitive.NewObjectID()
+	updated := time.Date(2024, 3, 1, 12, 0, 0, 0, time.UTC)
+	u := User{
+		ID:             oid,
+		AvatarSource:   "local",
+		AvatarUploaded: true,
+		Updated:        updated,
+	}
+	got := profileClaimPictureURL(u)
+	want := fmt.Sprintf("https://www.trustroots.org/uploads-profile/%s/avatar/256.jpg?%d", oid.Hex(), updated.UnixMilli())
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
+func TestProfileClaimPictureURL_gravatar(t *testing.T) {
+	u := User{
+		ID:           primitive.NewObjectID(),
+		AvatarSource: "gravatar",
+		EmailHash:    "abc",
+	}
+	got := profileClaimPictureURL(u)
+	if got != "https://www.gravatar.com/avatar/abc?s=256&d=identicon" {
+		t.Fatalf("got %q", got)
+	}
+}
+
 
 func countPTags(tags nostr.Tags) int {
 	n := 0

@@ -1369,8 +1369,11 @@
     function fetchSettingsFooterJson(url, key) {
         return fetch(url, { headers: { Accept: 'application/vnd.github+json' } })
             .then(function (response) {
-                if (!response.ok) throw new Error('HTTP ' + response.status);
-                return response.json();
+                if (response.ok) return response.json();
+                var status = response.status;
+                /* Browser requests without a token often get 403/401; 404/429 are also non-actionable here. */
+                if (status === 401 || status === 403 || status === 404 || status === 429) return null;
+                throw new Error('HTTP ' + status);
             })
             .catch(function (error) {
                 warnSettingsFooterMetadataOnce(key, error);

@@ -800,6 +800,13 @@ h1, h2, .modal-header h2 {
     flex-wrap: wrap;
     gap: 0.65rem 1.25rem;
     margin-bottom: 0.75rem;
+    align-items: center;
+}
+.nr-profile-tr-tr-slot {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.65rem 1.25rem;
+    align-items: center;
 }
 .nr-profile-tr-action {
     display: inline-flex;
@@ -1067,6 +1074,81 @@ h1, h2, .modal-header h2 {
     color: var(--tr-rail-muted);
     line-height: 1.45;
     margin: 0;
+}
+
+.nr-profile-tr-circ-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin: 0.35rem 0 0.75rem;
+}
+.nr-profile-tr-circ-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--tr-card-edge);
+}
+.nr-profile-tr-circ-row:last-child {
+    border-bottom: none;
+}
+.nr-profile-tr-circ-thumb,
+.nr-profile-tr-circ-thumb-ph {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    border: 1px solid var(--tr-card-edge);
+    object-fit: cover;
+}
+.nr-profile-tr-circ-thumb-ph {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: var(--tr-rail-muted);
+    background: var(--muted);
+}
+.nr-profile-tr-circ-row-text {
+    min-width: 0;
+    flex: 1;
+}
+.nr-profile-tr-circ-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--tr-orange);
+    text-decoration: none;
+}
+.nr-profile-tr-circ-name:hover {
+    text-decoration: underline;
+}
+.nr-profile-tr-circ-about {
+    font-size: 0.78rem;
+    color: var(--tr-rail-muted);
+    margin: 0.2rem 0 0;
+    line-height: 1.35;
+}
+
+.nr-profile-tr-box .nr-profile-list {
+    border-top: none;
+    padding-top: 0;
+}
+
+.nr-profile-tr-skeleton {
+    color: var(--muted-foreground);
+    font-size: 0.88rem;
+    line-height: 1.45;
+    margin: 0;
+    animation: nr-profile-pulse 1.15s ease-in-out infinite;
+}
+@keyframes nr-profile-pulse {
+    0%,
+    100% {
+        opacity: 0.42;
+    }
+    50% {
+        opacity: 0.95;
+    }
 }
 
 .nr-profile-card {

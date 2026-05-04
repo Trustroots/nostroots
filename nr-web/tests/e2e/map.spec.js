@@ -90,3 +90,4 @@ test.describe('Map hash (coarse plus code)', () => {
     await expect(page.locator('#map-view')).toBeVisible();
   });
 });
+

@@ -31,6 +31,7 @@ The main app (`index.html`) uses **`location.hash`** only (no path router; stati
 | `keys` / `settings` | Keys or Settings modal |
 | `map`, `chat`, `help`, `welcome`, `start` | Reserved actions (e.g. `#chat` opens chats with empty picker; `#map` clears hash and returns to map) |
 | Contains `+` as a full Open Location Code (prefix may end with `+` and no refinement, e.g. `9G000000+`) | Map — notes for that plus code |
+| `profile` | **My profile** — always opens your own profile in editable mode (prompts for key if not loaded) |
 | `profile/npub1…`, `profile/<64-char-hex>`, or `profile/<NIP-05>` (NIP-05 may be URL-encoded, e.g. `profile/alice%40trustroots.org`) | **Profile** — public Nostr-backed profile view (invalid remainder shows an error in the profile shell) |
 | Same as above with suffix `/edit` or `/contacts` (case-insensitive) | **Edit profile** (kind 0 metadata, signed-in user only) or **Contacts** (Trustroots claim / relationships / experiences panel moved from Keys; self only for signing) |
 | `npub1…` or 64-char hex | Chat — DM |

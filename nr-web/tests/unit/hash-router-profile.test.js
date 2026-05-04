@@ -17,6 +17,10 @@ function classify(route) {
 }
 
 describe('NrWebHashRouter profile routes', () => {
+  it('classifies bare profile as own profile route', () => {
+    expect(classify('profile')).toEqual({ kind: 'profile_self' });
+  });
+
   it('classifies profile npub', () => {
     const npub = 'npub10xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqpkge6d';
     expect(classify(`profile/${npub}`)).toEqual({ kind: 'profile', profileId: npub });

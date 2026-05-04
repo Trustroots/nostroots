@@ -1510,6 +1510,7 @@
                         </div>
                         <button id="circles-button-modal" class="circles-button" title="Select Trustroots Circle" onclick="showCirclesModal()">∞</button>
                     </div>
+                    <div id="note-intent-chips" class="note-intent-chips" role="radiogroup" aria-label="Note type"></div>
                     <textarea id="note-content-in-modal" rows="1" placeholder="Type a message... (Enter to send)" autofocus></textarea>
                     <div id="selected-circle-indicator-modal" style="display: none; margin-top: 4px; font-size: 0.85rem; color: var(--primary);">
                         <span id="selected-circle-text-modal"></span>
@@ -1611,6 +1612,16 @@
             relationshipCounterpartyDisplay,
             experienceCounterpartyDisplay,
         } from './claim-utils.js';
+        import {
+            MAP_NOTE_INTENTS,
+            MAP_NOTE_INTENT_IDS,
+            getIntentById,
+            isIntentId,
+            detectNoteIntent,
+            applyIntentHashtagToContent,
+            pushIntentTag,
+            stripLeadingIntentHashtag,
+        } from './note-intents.js';
         
         // Import BIP39 for mnemonic support
         import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm';
@@ -2092,12 +2103,15 @@
         let map = null;
         let mapFallbackMode = null;
         let leafletGridLayer = null;
+        let leafPolygonOpenAt = 0;
         let markers = [];
         let events = [];
         let claimEventsByKind = new Map();
         let claimSuggestionsDebounce = null;
         let selectedPlusCode = null;
         let selectedCircle = null; // Selected Trustroots circle slug
+        let selectedIntent = null; // Selected map-note intent (see note-intents.js)
+        const NR_WEB_LAST_INTENT_KEY = 'nr-web.lastIntent';
 
         function getClaimKinds() {
             return [PROFILE_CLAIM_KIND, HOST_CLAIM_KIND, RELATIONSHIP_CLAIM_KIND, EXPERIENCE_CLAIM_KIND];
@@ -2449,19 +2463,19 @@
                         showStatus('Load a key first to open your profile.', 'info');
                         return;
                     }
-                    const trU =
-                        document.getElementById('trustroots-username')?.value?.trim() ||
-                        (pubkeyToUsername && pubkeyToUsername.get && pubkeyToUsername.get(currentPublicKey));
-                    let ownProfileId = '';
-                    if (trU) ownProfileId = `${String(trU).toLowerCase()}@trustroots.org`;
-                    else {
-                        try {
-                            ownProfileId = nip19.npubEncode(currentPublicKey);
-                        } catch (_) {
-                            ownProfileId = String(currentPublicKey || '');
-                        }
+                    const ownProfileRoute = ownProfileHashRoute();
+                    if (!ownProfileRoute) {
+                        showMapShell();
+                        showStatus('Could not determine your profile route yet. Try reloading your key.', 'error');
+                        return;
                     }
-                    await showProfileShell(ownProfileId, false, 'edit');
+                    const targetHash = '#' + ownProfileRoute;
+                    if (location.hash !== targetHash) {
+                        try {
+                            location.hash = targetHash;
+                        } catch (_) {}
+                    }
+                    await showProfileShell(decodeURIComponent(ownProfileRoute.slice('profile/'.length)), false, 'public');
                     return;
                 }
                 const mode = c.kind === 'profile_edit' ? 'edit' : c.kind === 'profile_contacts' ? 'contacts' : 'public';
@@ -2834,6 +2848,27 @@
             if (length === 8) return 0.0025;
             // For longer codes, calculate based on grid size
             return 0.0025 / Math.pow(GRID_SIZE, (length - 8) / 2);
+        }
+
+        function plusCodePrecisionLength(plusCode) {
+            const clean = String(plusCode || '').replace('+', '').toUpperCase();
+            return clean.length;
+        }
+
+        function pickMostSpecificPlusCodeFromFeatures(features) {
+            if (!Array.isArray(features) || features.length === 0) return '';
+            let best = '';
+            let bestLen = -1;
+            for (const f of features) {
+                const pc = String(f?.properties?.plusCode || '').trim();
+                if (!pc) continue;
+                const len = plusCodePrecisionLength(pc);
+                if (len > bestLen) {
+                    best = pc;
+                    bestLen = len;
+                }
+            }
+            return best;
         }
         
         function getAllPlusCodesBetweenTwoPlusCodes(southWest, northEast, length) {
@@ -5230,10 +5265,14 @@
                     console.warn('Failed to load saved map position for Leaflet fallback:', e);
                 }
 
+                const isTouchDevice = (typeof window !== 'undefined') &&
+                    (('ontouchstart' in window) ||
+                        (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0));
                 const leafMap = L.map('map', {
                     zoomControl: true,
                     worldCopyJump: true,
-                    preferCanvas: true
+                    // iOS Safari has more reliable polygon tap handling with SVG renderer.
+                    preferCanvas: !isTouchDevice
                 }).setView([savedCenter[1], savedCenter[0]], savedZoom);
 
                 L.tileLayer(getLeafletTileUrl(), {
@@ -5251,6 +5290,63 @@
                     const plusCode = encodePlusCode(e.latlng.lat, e.latlng.lng);
                     if (plusCode) showNotesForPlusCode(plusCode);
                 });
+                // iPhone Safari can occasionally skip Leaflet's synthetic click when tapping
+                // vector layers; add a direct touchend tap path as fallback.
+                const leafContainer = leafMap.getContainer && leafMap.getContainer();
+                let leafTouchStart = null;
+                if (leafContainer) {
+                    leafContainer.addEventListener('touchstart', (e) => {
+                        const t = e.touches && e.touches[0];
+                        if (!t || (e.touches && e.touches.length !== 1)) {
+                            leafTouchStart = null;
+                            return;
+                        }
+                        leafTouchStart = {
+                            x: t.clientX,
+                            y: t.clientY,
+                            at: Date.now(),
+                            moved: false
+                        };
+                    }, { passive: true });
+                    leafContainer.addEventListener('touchmove', (e) => {
+                        if (!leafTouchStart) return;
+                        const t = e.touches && e.touches[0];
+                        if (!t) return;
+                        const dx = Math.abs(t.clientX - leafTouchStart.x);
+                        const dy = Math.abs(t.clientY - leafTouchStart.y);
+                        if (dx > 12 || dy > 12) leafTouchStart.moved = true;
+                    }, { passive: true });
+                    leafContainer.addEventListener('touchend', (e) => {
+                        if (!leafTouchStart) return;
+                        const started = leafTouchStart;
+                        leafTouchStart = null;
+                        if (started.moved) return;
+                        if (Date.now() - started.at > 700) return;
+                        const t = e.changedTouches && e.changedTouches[0];
+                        if (!t) return;
+                        const rect = leafContainer.getBoundingClientRect();
+                        const containerPoint = L.point(t.clientX - rect.left, t.clientY - rect.top);
+                        const latLng = leafMap.containerPointToLatLng(containerPoint);
+                        if (!latLng) return;
+                        const plusCode = encodePlusCode(latLng.lat, latLng.lng);
+                        if (!plusCode) return;
+                        if (Date.now() - leafPolygonOpenAt < 300) return;
+                        leafPolygonOpenAt = Date.now();
+                        showNotesForPlusCode(plusCode);
+                    }, { passive: true });
+                    leafContainer.addEventListener('pointerup', (e) => {
+                        if (!e || e.pointerType !== 'touch') return;
+                        const rect = leafContainer.getBoundingClientRect();
+                        const containerPoint = L.point(e.clientX - rect.left, e.clientY - rect.top);
+                        const latLng = leafMap.containerPointToLatLng(containerPoint);
+                        if (!latLng) return;
+                        const plusCode = encodePlusCode(latLng.lat, latLng.lng);
+                        if (!plusCode) return;
+                        if (Date.now() - leafPolygonOpenAt < 300) return;
+                        leafPolygonOpenAt = Date.now();
+                        showNotesForPlusCode(plusCode);
+                    }, { passive: true });
+                }
 
                 let leafMoveTimeout = null;
                 const onLeafMove = () => {
@@ -5585,7 +5681,7 @@
                         }
                         
                         if (e.features && e.features.length > 0) {
-                            const plusCode = e.features[0].properties.plusCode;
+                            const plusCode = pickMostSpecificPlusCodeFromFeatures(e.features);
                             if (plusCode) {
                                 selectedPlusCode = plusCode;
                                 showNotesForPlusCode(plusCode);
@@ -5662,9 +5758,17 @@
                         fillColor,
                         fillOpacity: 0.6
                     });
-                    polygon.on('click', () => {
+                    const openPlusCodeFromLeafletPolygon = () => {
+                        const now = Date.now();
+                        if (now - leafPolygonOpenAt < 300) return;
+                        leafPolygonOpenAt = now;
                         showNotesForPlusCode(plusCode);
-                    });
+                    };
+                    // On iPhone Safari with Leaflet fallback, taps can emit touch/pointer
+                    // without a reliable synthetic click.
+                    polygon.on('click', openPlusCodeFromLeafletPolygon);
+                    polygon.on('touchend', openPlusCodeFromLeafletPolygon);
+                    polygon.on('pointerup', openPlusCodeFromLeafletPolygon);
                     polygon.addTo(leafletGridLayer);
                     rendered++;
                 }
@@ -5930,6 +6034,56 @@
                 }
             }
         }
+
+        function getStickyIntent() {
+            try {
+                const v = localStorage.getItem(NR_WEB_LAST_INTENT_KEY);
+                return isIntentId(v) ? v : null;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function persistStickyIntent(id) {
+            try {
+                if (isIntentId(id)) {
+                    localStorage.setItem(NR_WEB_LAST_INTENT_KEY, id);
+                } else {
+                    localStorage.removeItem(NR_WEB_LAST_INTENT_KEY);
+                }
+            } catch (_) {}
+        }
+
+        function selectIntent(id) {
+            // Toggle off if the same chip is clicked again.
+            if (id && selectedIntent === id) {
+                selectedIntent = null;
+            } else {
+                selectedIntent = isIntentId(id) ? id : null;
+            }
+            persistStickyIntent(selectedIntent);
+            renderIntentChips();
+        }
+
+        function renderIntentChips() {
+            const host = document.getElementById('note-intent-chips');
+            if (!host) return;
+            host.replaceChildren();
+            for (const intent of MAP_NOTE_INTENTS) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `note-intent-chip nr-note-intent-${intent.id}`;
+                btn.dataset.intent = intent.id;
+                btn.setAttribute('role', 'radio');
+                const checked = selectedIntent === intent.id;
+                btn.setAttribute('aria-checked', checked ? 'true' : 'false');
+                btn.tabIndex = checked || (!selectedIntent && intent.id === MAP_NOTE_INTENTS[0].id) ? 0 : -1;
+                btn.title = intent.hint;
+                btn.textContent = `#${intent.id}`;
+                btn.addEventListener('click', () => selectIntent(intent.id));
+                host.appendChild(btn);
+            }
+        }
         
         async function publishNoteFromModal() {
             if (!currentPrivateKeyBytes) {
@@ -5962,7 +6116,12 @@
                     content = content + ' ' + hashtag;
                 }
             }
-            
+
+            // Prepend #intent hashtag (also written as a NIP-12 t-tag below)
+            if (isIntentId(selectedIntent)) {
+                content = applyIntentHashtagToContent(content, selectedIntent);
+            }
+
             const expirationSeconds = parseInt(document.getElementById('note-expiration-in-modal').value) || WEEK_IN_SECONDS;
             const expiration = getCurrentTimestamp() + expirationSeconds;
             
@@ -5985,7 +6144,10 @@
                     tags.push(['L', 'trustroots-circle']);
                     tags.push(['l', selectedCircle, 'trustroots-circle']);
                 }
-                
+
+                // Add intent tag (NIP-12) if an intent is selected
+                pushIntentTag(tags, selectedIntent);
+
                 // Create event template
                 const eventTemplate = {
                     kind: MAP_NOTE_KIND,
@@ -6042,6 +6204,10 @@
                     document.getElementById('note-expiration-in-modal').value = getExpirationSetting();
                     // Clear selected circle after posting
                     clearSelectedCircle('modal');
+                    // Clear selected intent after posting (don't persist as sticky default)
+                    selectedIntent = null;
+                    persistStickyIntent(null);
+                    renderIntentChips();
                     // Refresh the notes display after a short delay to ensure grid is updated
                     setTimeout(() => {
                         showNotesForPlusCode(selectedPlusCode);
@@ -6229,7 +6395,16 @@
             if (options.circleSlug) {
                 selectCircle(options.circleSlug);
             }
-            
+
+            // Resolve initial intent: explicit option > sticky last choice > none
+            if (Object.prototype.hasOwnProperty.call(options, 'intent')) {
+                selectedIntent = isIntentId(options.intent) ? options.intent : null;
+                persistStickyIntent(selectedIntent);
+            } else if (!selectedIntent) {
+                selectedIntent = getStickyIntent();
+            }
+            renderIntentChips();
+
             // Update the grid to highlight the selected plus code (moss green) BEFORE panning
             updatePlusCodeGrid();
             
@@ -6455,14 +6630,30 @@
             
             metaRow.appendChild(rightGroup);
             noteItem.appendChild(metaRow);
-            
+
+            const intentId = detectNoteIntent(event);
+            const intent = intentId ? getIntentById(intentId) : null;
+            const visibleContent = intentId
+                ? stripLeadingIntentHashtag(event.content || '', intentId)
+                : (event.content || '');
+
             const content = document.createElement('div');
             content.className = 'note-content';
-            content.innerHTML = linkifyTrustrootsUrls(
-                linkifyNpubsWithKnownTrustrootsProfiles(linkifyHashtags(escapeHtml(event.content)))
+            if (intent) {
+                const badge = document.createElement('span');
+                badge.className = `nr-note-intent-badge nr-note-intent-${intent.id}`;
+                badge.textContent = intent.label;
+                badge.title = intent.hint;
+                content.appendChild(badge);
+                content.appendChild(document.createTextNode(' '));
+            }
+            const textSpan = document.createElement('span');
+            textSpan.innerHTML = linkifyTrustrootsUrls(
+                linkifyNpubsWithKnownTrustrootsProfiles(linkifyHashtags(escapeHtml(visibleContent)))
             );
+            content.appendChild(textSpan);
             noteItem.appendChild(content);
-            
+
             return noteItem;
         }
         
@@ -7357,6 +7548,24 @@
             return { signedEvent, results };
         }
 
+        function ownProfileHashRoute() {
+            if (!currentPublicKey) return '';
+            const trU =
+                document.getElementById('trustroots-username')?.value?.trim() ||
+                (pubkeyToUsername && pubkeyToUsername.get && pubkeyToUsername.get(currentPublicKey));
+            let idPart = '';
+            if (trU) idPart = `${String(trU).toLowerCase()}@trustroots.org`;
+            else {
+                try {
+                    idPart = nip19.npubEncode(currentPublicKey);
+                } catch (_) {
+                    idPart = String(currentPublicKey || '');
+                }
+            }
+            if (!idPart) return '';
+            return 'profile/' + encodeURIComponent(idPart).replace(/%2B/g, '+');
+        }
+
         window.NrWebPublishKind0Metadata = async function (contentObj) {
             const template = {
                 kind: 0,
@@ -7369,26 +7578,15 @@
         window.NrWebGetCurrentPubkeyHex = () => currentPublicKey;
         window.NrWebGoOwnProfile = function (action) {
             if (!currentPublicKey) return;
+            const base = ownProfileHashRoute();
+            if (!base) return;
             if (action === 'view') {
                 try {
-                    location.hash = '#profile';
+                    location.hash = '#' + base;
                 } catch (_) {}
                 if (typeof applyNrUnifiedHash === 'function') void applyNrUnifiedHash();
                 return;
             }
-            const trU =
-                document.getElementById('trustroots-username')?.value?.trim() ||
-                (pubkeyToUsername && pubkeyToUsername.get && pubkeyToUsername.get(currentPublicKey));
-            let idPart;
-            if (trU) idPart = `${String(trU).toLowerCase()}@trustroots.org`;
-            else {
-                try {
-                    idPart = nip19.npubEncode(currentPublicKey);
-                } catch (_) {
-                    return;
-                }
-            }
-            const base = 'profile/' + encodeURIComponent(idPart).replace(/%2B/g, '+');
             const suf = action === 'edit' ? '/edit' : action === 'contacts' ? '/contacts' : '';
             try {
                 location.hash = '#' + base + suf;
@@ -7738,11 +7936,20 @@
                     return;
                 }
                 const c = map.getCenter();
-                const pc = encodePlusCode(c.lat, c.lng);
+                const b = map.getBounds && map.getBounds();
+                let hostCodeLength = 6;
+                if (b && typeof b.getNorth === 'function' && typeof b.getSouth === 'function' && typeof b.getEast === 'function' && typeof b.getWest === 'function') {
+                    const latDelta = Math.abs(b.getNorth() - b.getSouth());
+                    const lngDelta = Math.abs(b.getEast() - b.getWest());
+                    const viewLength = whatLengthOfPlusCodeToShow(latDelta, lngDelta);
+                    // Host flow should open a sensible area, not an overly precise micro-cell.
+                    hostCodeLength = Math.max(4, Math.min(6, viewLength || 6));
+                }
+                const pc = encodePlusCode(c.lat, c.lng, hostCodeLength);
                 showNotesForPlusCode(pc, {
-                    initialContent: 'Hosting travelers here — reach out to connect. ',
-                    circleSlug: 'hosts',
-                    preserveMapView: true
+                    initialContent: '',
+                    preserveMapView: true,
+                    intent: 'hosting'
                 });
             }
             run();

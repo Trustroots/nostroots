@@ -628,6 +628,24 @@ function bindProfileTrTabs(shell) {
   });
 }
 
+function bindBasicEditAction(button, label) {
+  if (!button) return;
+  button.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.alert(`${label} editing is coming soon.`);
+  });
+}
+
+function createInlineEditIcon(label) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'nr-profile-tr-edit-icon';
+  btn.title = label;
+  btn.setAttribute('aria-label', label);
+  btn.textContent = '✏️';
+  return btn;
+}
+
 function chatHashForSubject(hex, nip05Lower, trUsername) {
   if (nip05Lower) return hashRoute(nip05Lower);
   if (trUsername) return hashRoute(`${trUsername}@trustroots.org`);
@@ -656,6 +674,17 @@ function isSelfHex(subjectHex) {
   const self = window.NrWebGetCurrentPubkeyHex?.();
   if (!self || !subjectHex) return false;
   return String(self).toLowerCase() === String(subjectHex).toLowerCase();
+}
+
+function trustrootsUserFromNip05(nip05) {
+  const n = String(nip05 || '').trim().toLowerCase();
+  if (!n || !n.includes('@')) return '';
+  const at = n.lastIndexOf('@');
+  if (at <= 0) return '';
+  const local = n.slice(0, at);
+  const domain = n.slice(at + 1).replace(/^www\./, '');
+  if (domain !== 'trustroots.org') return '';
+  return local;
 }
 
 function createClaimLineShell() {
@@ -752,6 +781,7 @@ function profileNip05Guess(profileId, earlyTrUser) {
  */
 function createStagedProfileShell(root, ctx) {
   const { hex, npub, profileId, earlyTrUser, titleGuess, handleGuess, nip05Guess } = ctx;
+  const selfProfile = isSelfHex(hex);
   root.replaceChildren();
   const shell = document.createElement('div');
   shell.className = 'nr-profile-tr';
@@ -779,6 +809,11 @@ function createStagedProfileShell(root, ctx) {
   h1.className = 'nr-profile-tr-name';
   h1.textContent = titleGuess;
   titleLine.appendChild(h1);
+  let nameEditBtn = null;
+  if (selfProfile) {
+    nameEditBtn = createInlineEditIcon('Edit profile header');
+    titleLine.appendChild(nameEditBtn);
+  }
   const handleEl = document.createElement('span');
   handleEl.className = 'nr-profile-tr-handle';
   handleEl.textContent = handleGuess;
@@ -787,7 +822,6 @@ function createStagedProfileShell(root, ctx) {
 
   const actionsRow = document.createElement('div');
   actionsRow.className = 'nr-profile-tr-actions';
-  const selfProfile = isSelfHex(hex);
   let msg = null;
   let addTrustBtn = null;
   if (!selfProfile) {
@@ -844,10 +878,6 @@ function createStagedProfileShell(root, ctx) {
     liNip.textContent = 'NIP-05: …';
   }
   stats.appendChild(liNip);
-  const liTrProfile = document.createElement('li');
-  liTrProfile.className = 'nr-profile-tr-skeleton';
-  liTrProfile.textContent = 'Trustroots: …';
-  stats.appendChild(liTrProfile);
   aside.appendChild(stats);
 
   grid.appendChild(aside);
@@ -861,9 +891,17 @@ function createStagedProfileShell(root, ctx) {
   panelAbout.setAttribute('role', 'tabpanel');
   const aboutBox = document.createElement('div');
   aboutBox.className = 'nr-profile-tr-box nr-profile-tr-about';
+  const aboutHead = document.createElement('div');
+  aboutHead.className = 'nr-profile-tr-box-title';
   const aboutH = document.createElement('h2');
   aboutH.textContent = 'About me';
-  aboutBox.appendChild(aboutH);
+  aboutHead.appendChild(aboutH);
+  let aboutEditBtn = null;
+  if (selfProfile) {
+    aboutEditBtn = createInlineEditIcon('Edit about section');
+    aboutHead.appendChild(aboutEditBtn);
+  }
+  aboutBox.appendChild(aboutHead);
   const aboutMount = document.createElement('div');
   aboutMount.className = 'nr-profile-tr-about-mount';
   const skA = document.createElement('p');
@@ -999,7 +1037,6 @@ function createStagedProfileShell(root, ctx) {
     tabTrust,
     avatarWrap: avWrap,
     statNipLi: liNip,
-    statTrProfileLi: liTrProfile,
     aboutMount,
     notesListMount,
     relListMount,
@@ -1008,6 +1045,8 @@ function createStagedProfileShell(root, ctx) {
     trustRelayListsWrap,
     hostMount,
     circListMount,
+    nameEditBtn,
+    aboutEditBtn,
   };
   return { shell, refs };
 }
@@ -1092,41 +1131,27 @@ function applyStagedProfileView(refs, viewState, ctx) {
   refs.tabNotes.textContent = notesReady ? `Notes (${notesSorted.length})` : 'Notes …';
   refs.tabTrust.textContent = claimsReady ? 'Trust' : 'Trust …';
 
+  refs.statNipLi.replaceChildren();
+  refs.statNipLi.classList.remove('nr-profile-tr-skeleton', 'nr-profile-muted');
   if (nip05Resolved) {
-    refs.statNipLi.classList.remove('nr-profile-tr-skeleton');
-    refs.statNipLi.textContent = `NIP-05: ${nip05Resolved}`;
-  } else if (authorsReady && p90Ready) {
-    refs.statNipLi.classList.remove('nr-profile-tr-skeleton');
+    const trUser = trustrootsUserFromNip05(nip05Resolved);
+    if (trUser) {
+      refs.statNipLi.appendChild(document.createTextNode('NIP-05: '));
+      const a = document.createElement('a');
+      a.className = 'nr-content-link';
+      a.href = trustrootsProfileUrl(trUser);
+      setExternalAnchorRel(a);
+      a.textContent = nip05Resolved;
+      refs.statNipLi.appendChild(a);
+    } else {
+      refs.statNipLi.textContent = `NIP-05: ${nip05Resolved}`;
+    }
+  } else if (!authorsReady && !p90Ready) {
+    refs.statNipLi.classList.add('nr-profile-tr-skeleton');
+    refs.statNipLi.textContent = 'NIP-05: …';
+  } else {
     refs.statNipLi.classList.add('nr-profile-muted');
     refs.statNipLi.textContent = 'No NIP-05 on latest profile export yet.';
-  }
-  refs.statTrProfileLi.replaceChildren();
-  refs.statTrProfileLi.classList.remove('nr-profile-tr-skeleton', 'nr-profile-muted');
-  const trustrootsUserFromNip05 = (() => {
-    const n = String(nip05Resolved || '').trim().toLowerCase();
-    if (!n || !n.includes('@')) return '';
-    const at = n.lastIndexOf('@');
-    if (at <= 0) return '';
-    const local = n.slice(0, at);
-    const domain = n.slice(at + 1).replace(/^www\./, '');
-    if (domain !== 'trustroots.org') return '';
-    return local;
-  })();
-  if (trustrootsUserFromNip05) {
-    const label = document.createTextNode('Trustroots: ');
-    const a = document.createElement('a');
-    a.className = 'nr-content-link';
-    a.href = trustrootsProfileUrl(trustrootsUserFromNip05);
-    setExternalAnchorRel(a);
-    a.textContent = `@${trustrootsUserFromNip05}`;
-    refs.statTrProfileLi.appendChild(label);
-    refs.statTrProfileLi.appendChild(a);
-  } else if (!authorsReady && !p90Ready) {
-    refs.statTrProfileLi.classList.add('nr-profile-tr-skeleton');
-    refs.statTrProfileLi.textContent = 'Trustroots: …';
-  } else {
-    refs.statTrProfileLi.classList.add('nr-profile-muted');
-    refs.statTrProfileLi.textContent = 'No Trustroots profile link from NIP-05.';
   }
   refs.avatarWrap.replaceChildren();
   if (picture) {
@@ -1443,6 +1468,8 @@ export async function renderPublicProfile(profileId) {
     bump();
 
     bindProfileTrTabs(shell);
+    bindBasicEditAction(refs.nameEditBtn, 'Profile header');
+    bindBasicEditAction(refs.aboutEditBtn, 'About');
 
     if (isSelfHex(hex)) {
       try {

@@ -972,7 +972,6 @@
         return (
             '<span class="nr-nav-menu-identity header-identity-text empty" id="header-identity" title=""></span>' +
             '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="view">My profile</button>' +
-            '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="contacts">Contacts</button>' +
             '<button type="button" role="menuitem" class="nr-nav-menu-item" id="keys-icon-btn" title="Connect key to post">' +
             '<span class="keys-icon-symbol" aria-hidden="true">🔑</span><span>Keys</span></button>' +
             '<button type="button" role="menuitem" class="nr-nav-menu-item" id="settings-icon-btn" title="' +
@@ -990,7 +989,6 @@
         return (
             '<span class="nr-nav-menu-identity header-identity-text empty" id="header-identity-mobile" title=""></span>' +
             '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="view">My profile</button>' +
-            '<button type="button" role="menuitem" class="nr-nav-menu-item nr-nav-menu-profile-only" data-nr-profile-action="contacts">Contacts</button>' +
             '<button type="button" role="menuitem" class="nr-nav-menu-item" id="keys-icon-btn-mobile" title="Connect key to post">' +
             '<span class="keys-icon-symbol" aria-hidden="true">🔑</span><span>Keys</span></button>' +
             '<button type="button" role="menuitem" class="nr-nav-menu-item" id="settings-icon-btn-mobile" title="' +

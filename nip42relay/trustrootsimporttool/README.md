@@ -6,7 +6,7 @@ for direct import into the private strfry behind `nip42.trustroots.org`.
 Outputs (in this order):
 
 - **Profile claims** (`kind 30390`) — Nostr profile JSON for each eligible user (from Mongo; not a live kind-0 fetch)
-- **Host mirrors** (`kind 30398`) — verified map note reposts for public host offers
+- **Host mirrors** (`kind 30398`) — verified map note reposts for public host offers; circle `l` / `t` tags use **hyphen-free** slugs (Mongo tribe slugs are normalized when building host rows and events; see `trustrootsCircleSlugForNostr` in `events.go` / `fetchPublicCircleSlugs` in `mongo.go`)
 - **Relationship suggestions** (`kind 30392`) — contacts where both endpoints pass a relaxed Trustroots gate (public, username, email/roles) and **at least one** has a valid npub; missing npubs appear as NIP-32 username labels (`L` / `l` under `org.trustroots:username`)
 - **Positive experience suggestions** (`kind 30393`) — same relaxed pair rule; author and target are tagged in stable order (`userFrom` then `userTo`) with `p` hex and/or username labels
 - **Circle metadata** (`kind 30410`) — one parameterized replaceable per public Mongo `tribes` row: JSON `name` / `about` / optional `picture` (Trustroots `uploads-circle` URL when the tribe has `image: true`). See [`docs/Events.md`](../../docs/Events.md) in this repo.

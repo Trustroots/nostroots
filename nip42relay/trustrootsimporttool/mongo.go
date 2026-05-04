@@ -270,6 +270,7 @@ func fetchPublicTribes(ctx context.Context, db *mongo.Database) ([]Tribe, error)
 
 func fetchPublicCircleSlugs(ctx context.Context, db *mongo.Database, memberships []Membership) ([]string, error) {
 	circles := make([]string, 0, len(memberships))
+	seen := make(map[string]struct{}, len(memberships))
 	for _, membership := range memberships {
 		var tribe Tribe
 		err := db.Collection("tribes").FindOne(ctx, bson.M{"_id": membership.Tribe, "public": true}).Decode(&tribe)
@@ -279,12 +280,17 @@ func fetchPublicCircleSlugs(ctx context.Context, db *mongo.Database, memberships
 		if err != nil {
 			return nil, err
 		}
-		// Use tribe slug only so map notes match kind 30410 `d` tags (slug-based directory).
-		circle := strings.TrimSpace(tribe.Slug)
+		// Same normalization as kind 30410 / 30398 tags (trustrootsCircleSlugForNostr): hyphen-free
+		// slugs so JSONL `circles` matches `d` / `l` / `t` on exported events.
+		circle := trustrootsCircleSlugForNostr(tribe.Slug)
 		if circle == "" {
 			continue
 		}
-		circles = append(circles, strings.ToLower(circle))
+		if _, dup := seen[circle]; dup {
+			continue
+		}
+		seen[circle] = struct{}{}
+		circles = append(circles, circle)
 	}
 	return circles, nil
 }

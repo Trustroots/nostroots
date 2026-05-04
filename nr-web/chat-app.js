@@ -1775,23 +1775,19 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             } });
 
             pool.subscribe(relays, { kinds: [PROFILE_CLAIM_KIND], limit: 1000 }, { onevent(event) {
-                if (event.kind !== PROFILE_CLAIM_KIND || !event.content) return;
-                let picture = '';
-                try {
-                    const profile = JSON.parse(event.content);
-                    picture = String(profile.picture || '').trim();
-                } catch (_) {
-                    picture = '';
+                const info = getProfileClaim30390PictureTarget(event);
+                if (!info) return;
+                pubkeyToPicture.set(info.targetPubkey, info.picture);
+                if (info.nip05 && isTrustrootsNip05Lower(info.nip05)) {
+                    pubkeyToNip05.set(info.targetPubkey, info.nip05);
                 }
-                if (!picture || !isSafeHttpUrl(picture)) return;
-                const pTag = (event.tags || []).find((t) => Array.isArray(t) && t[0] === 'p' && t[1]);
-                const targetPubkey = String(pTag?.[1] || '').trim().toLowerCase();
-                if (!/^[0-9a-f]{64}$/.test(targetPubkey)) return;
-                pubkeyToPicture.set(targetPubkey, picture);
+                if (info.trustrootsUsername && !pubkeyToUsername.has(info.targetPubkey)) {
+                    pubkeyToUsername.set(info.targetPubkey, info.trustrootsUsername);
+                }
                 scheduleChatCacheWrite();
                 scheduleRender('both');
                 const selDm = selectedConversationId ? conversations.get(selectedConversationId) : null;
-                if (selDm && selDm.type === 'dm' && selDm.id === targetPubkey) {
+                if (selDm && selDm.type === 'dm' && selDm.id === info.targetPubkey) {
                     syncThreadHeaderForConversation(selDm);
                 }
             } });
@@ -1933,6 +1929,37 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
             } catch (_) {
                 return undefined;
             }
+        }
+
+        /**
+         * Kind 30390 profile claim may target a user via `p` tag, or be self-authored without `p`.
+         * Return normalized target pubkey + picture/nip05/username if picture is usable.
+         */
+        function getProfileClaim30390PictureTarget(event) {
+            if (!event || event.kind !== PROFILE_CLAIM_KIND || !event.content) return null;
+            let profile = null;
+            try {
+                profile = JSON.parse(event.content);
+            } catch (_) {
+                return null;
+            }
+            const picture = String(profile?.picture || '').trim();
+            if (!picture || !isSafeHttpUrl(picture)) return null;
+            const pTag = (event.tags || []).find((t) => Array.isArray(t) && t[0] === 'p' && t[1]);
+            const byTag = String(pTag?.[1] || '').trim().toLowerCase();
+            const byAuthor = String(event.pubkey || '').trim().toLowerCase();
+            const targetPubkey = /^[0-9a-f]{64}$/.test(byTag)
+                ? byTag
+                : /^[0-9a-f]{64}$/.test(byAuthor)
+                    ? byAuthor
+                    : '';
+            if (!targetPubkey) return null;
+            return {
+                targetPubkey,
+                picture,
+                nip05: String(profile?.nip05 || '').trim().toLowerCase(),
+                trustrootsUsername: String(profile?.trustrootsUsername || '').trim().toLowerCase(),
+            };
         }
 
         async function checkProfileLinked() {
@@ -2253,6 +2280,17 @@ import { nrWebKvGet, nrWebKvPut, nrWebKvDelete, chatCacheKvKey } from './nr-web-
                     item.innerHTML =
                         '<span class="conv-item-stack">' +
                         `<span class="conv-item-title-row conv-item-circle-hashline">${line}</span>` +
+                        '</span>' +
+                        imgHtml;
+                } else if (type === 'dm') {
+                    const dmPic = pubkeyToPicture.get(id);
+                    const imgHtml = dmPic && isSafeHttpUrl(dmPic)
+                        ? `<img class="conv-item-avatar" src="${escConvHtml(dmPic)}" alt="" loading="lazy" decoding="async" />`
+                        : '';
+                    const oneLine = enc === '#' ? eGlyph + eLab : eLab + '\u2009' + eGlyph;
+                    item.innerHTML =
+                        '<span class="conv-item-stack">' +
+                        `<span class="conv-item-title-row">${oneLine}</span>` +
                         '</span>' +
                         imgHtml;
                 } else {

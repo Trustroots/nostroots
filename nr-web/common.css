@@ -1403,25 +1403,3 @@ body:not(.nr-web-has-key) .nr-nav-menu-profile-only {
     color: hsl(24, 60%, 70%);
 }
 
-.nr-profile-debug {
-    margin-top: 1rem;
-    padding: 0.6rem 0.85rem;
-    border: 1px dashed var(--border);
-    border-radius: 0.6rem;
-    background: var(--muted);
-    color: var(--foreground);
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-.nr-profile-debug > summary {
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.85rem;
-}
-.nr-profile-debug-body {
-    margin-top: 0.5rem;
-    font-size: 0.78rem;
-    word-break: break-word;
-}
-.nr-profile-debug-body a {
-    color: var(--primary);
-}

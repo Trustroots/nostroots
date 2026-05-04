@@ -1059,6 +1059,16 @@
             font-family: inherit;
             opacity: 0.8;
         }
+
+        .note-author-avatar {
+            width: 1rem;
+            height: 1rem;
+            border-radius: 999px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+            background: var(--muted);
+            flex-shrink: 0;
+        }
         
         .note-expiry {
             font-size: 0.65rem;
@@ -2044,6 +2054,20 @@
         const pubkeyToUsername = new Map();
         /** Pubkey hex -> lowercase Trustroots NIP-05 (kind 0 nip05 or kind 30390 import). */
         const pubkeyToNip05 = new Map();
+        /** Pubkey hex -> profile picture URL (kind 0 and 30390). */
+        const pubkeyToPicture = new Map();
+
+        function sanitizeProfileImageUrl(url) {
+            const raw = String(url || '').trim();
+            if (!raw) return '';
+            try {
+                const u = new URL(raw, 'https://nos.trustroots.org');
+                if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+                return u.href;
+            } catch (_) {
+                return '';
+            }
+        }
 
         function isTrustrootsNip05Lower(s) {
             const n = String(s || '').trim().toLowerCase();
@@ -2058,16 +2082,25 @@
             } catch (_) {
                 return;
             }
+            const pic = sanitizeProfileImageUrl(meta.picture);
+            if (pic) pubkeyToPicture.set(String(event.pubkey || '').toLowerCase(), pic);
             const nip05 = String(meta.nip05 || '').trim().toLowerCase();
-            if (!nip05 || !isTrustrootsNip05Lower(nip05)) return;
-            pubkeyToNip05.set(event.pubkey, nip05);
+            if (nip05 && isTrustrootsNip05Lower(nip05)) {
+                pubkeyToNip05.set(event.pubkey, nip05);
+            }
             scheduleCacheWrite();
         }
 
         function ingestTrustrootsNip05From30390(event) {
             if (!event || event.kind !== PROFILE_CLAIM_KIND || !event.content) return;
             const pTags = (event.tags || []).filter((t) => Array.isArray(t) && t[0] === 'p' && t[1]);
-            const subjectHex = pTags.length ? String(pTags[0][1]) : '';
+            const byTag = pTags.length ? String(pTags[0][1]).trim().toLowerCase() : '';
+            const byAuthor = String(event.pubkey || '').trim().toLowerCase();
+            const subjectHex = /^[0-9a-f]{64}$/.test(byTag)
+                ? byTag
+                : /^[0-9a-f]{64}$/.test(byAuthor)
+                    ? byAuthor
+                    : '';
             if (!subjectHex) return;
             let meta = {};
             try {
@@ -2076,10 +2109,11 @@
                 return;
             }
             const nip05 = String(meta.nip05 || '').trim().toLowerCase();
-            if (!nip05 || !isTrustrootsNip05Lower(nip05)) return;
-            pubkeyToNip05.set(subjectHex, nip05);
+            if (nip05 && isTrustrootsNip05Lower(nip05)) pubkeyToNip05.set(subjectHex, nip05);
             const tru = String(meta.trustrootsUsername || '').trim().toLowerCase();
             if (tru) pubkeyToUsername.set(subjectHex, tru);
+            const pic = sanitizeProfileImageUrl(meta.picture);
+            if (pic) pubkeyToPicture.set(subjectHex, pic);
             scheduleCacheWrite();
         }
         
@@ -4261,6 +4295,15 @@
                     const low = n5.trim().toLowerCase();
                     if (isTrustrootsNip05Lower(low)) pubkeyToNip05.set(pk, low);
                 }
+                for (const pair of row.pictureEntries || []) {
+                    if (!Array.isArray(pair) || pair.length < 2) continue;
+                    const pk = pair[0];
+                    const picRaw = pair[1];
+                    if (typeof pk !== 'string' || typeof picRaw !== 'string' || !picRaw) continue;
+                    if (NrBlocklist && NrBlocklist.isBlocked && NrBlocklist.isBlocked(pk)) continue;
+                    const pic = sanitizeProfileImageUrl(picRaw);
+                    if (pic) pubkeyToPicture.set(pk, pic);
+                }
             } catch (error) {
                 console.warn('Failed to load profiles from cache:', error);
             }
@@ -4289,11 +4332,19 @@
             if (nip05Entries.length > PROFILE_USERNAME_CACHE_MAX_ENTRIES) {
                 nip05Entries = nip05Entries.slice(-PROFILE_USERNAME_CACHE_MAX_ENTRIES);
             }
+            let pictureEntries = Array.from(pubkeyToPicture.entries());
+            if (NrBlocklist && NrBlocklist.isBlocked) {
+                pictureEntries = pictureEntries.filter(([pk]) => !NrBlocklist.isBlocked(pk));
+            }
+            if (pictureEntries.length > PROFILE_USERNAME_CACHE_MAX_ENTRIES) {
+                pictureEntries = pictureEntries.slice(-PROFILE_USERNAME_CACHE_MAX_ENTRIES);
+            }
             try {
                 await idbPutEventsRecord(db, {
                     key: NR_MAP_CACHE_PROFILES_RECORD_KEY,
                     entries,
                     nip05Entries,
+                    pictureEntries,
                     timestamp: Date.now()
                 });
             } catch (err) {
@@ -6515,6 +6566,17 @@
             // Get plus code from event
             const plusCode = getPlusCodeFromEvent(event);
             const authorPk = getMapNoteDisplayAuthorPubkey(event);
+            const authorPic = sanitizeProfileImageUrl(pubkeyToPicture.get(String(authorPk || '').toLowerCase()));
+            if (authorPic) {
+                const avatar = document.createElement('img');
+                avatar.className = 'note-author-avatar';
+                avatar.src = authorPic;
+                avatar.alt = '';
+                avatar.loading = 'lazy';
+                avatar.decoding = 'async';
+                avatar.referrerPolicy = 'no-referrer';
+                metaRow.appendChild(avatar);
+            }
             
             const author = document.createElement('span');
             author.className = 'note-author';
@@ -7591,7 +7653,7 @@
             return signEventTemplate(eventTemplate);
         };
         window.NrWebCanSignEventTemplate = function () {
-            return hasSigningCapability();
+            return hasRelayAuthSigningCapability();
         };
         window.NrWebGetCurrentPubkeyHex = () => currentPublicKey;
         window.NrWebGoOwnProfile = function (action) {

@@ -520,8 +520,20 @@ async function collectFromNip42RelayAuth(filter, waitMs = 3200, diagSink = null)
     /** @type {(eventTemplate: Record<string, unknown>) => Promise<unknown>} */
     let signEventFn = null;
     const hasWindowSigner = typeof signFn === 'function' && typeof getPubkey === 'function';
-    if (hasWindowSigner && (typeof canSign !== 'function' || canSign())) {
-      authPubkey = String(getPubkey() || '').trim().toLowerCase();
+    let canSignResult = false;
+    try {
+      canSignResult = typeof canSign !== 'function' || canSign();
+    } catch (e) {
+      diag.error = `canSign threw: ${e?.message || e}`;
+      canSignResult = false;
+    }
+    if (hasWindowSigner && canSignResult) {
+      try {
+        authPubkey = String(getPubkey() || '').trim().toLowerCase();
+      } catch (e) {
+        diag.error = `getPubkey threw: ${e?.message || e}`;
+        authPubkey = '';
+      }
       if (/^[0-9a-f]{64}$/.test(authPubkey)) {
         signEventFn = async (eventTemplate) => signFn(eventTemplate);
         diag.signerSource = 'window';
@@ -1267,13 +1279,6 @@ function createStagedProfileShell(root, ctx) {
 
   shell.appendChild(grid);
 
-  const debugMount = document.createElement('details');
-  debugMount.className = 'nr-profile-debug';
-  debugMount.open = true;
-  debugMount.innerHTML =
-    '<summary>Profile image debug (collected nostr events)</summary><div class="nr-profile-debug-body">Loading…</div>';
-  shell.appendChild(debugMount);
-
   root.appendChild(shell);
 
   const refs = {
@@ -1295,84 +1300,8 @@ function createStagedProfileShell(root, ctx) {
     circListMount,
     nameEditBtn,
     aboutEditBtn,
-    debugMount,
   };
   return { shell, refs };
-}
-
-function renderProfileDebugPanel(mount, info) {
-  const body = mount.querySelector('.nr-profile-debug-body') || mount;
-  body.replaceChildren();
-  const lines = [];
-  const counts = {};
-  const tally = (arr) => {
-    for (const ev of arr || []) {
-      const k = String(ev?.kind ?? '?');
-      counts[k] = (counts[k] || 0) + 1;
-    }
-  };
-  tally(info.evAuthors);
-  tally(info.evP30390);
-  const head = document.createElement('div');
-  head.style.fontSize = '0.78rem';
-  head.style.lineHeight = '1.35';
-  head.style.color = 'var(--muted-foreground)';
-  head.appendChild(document.createTextNode(`subject hex: ${info.hex.slice(0, 12)}…  trUser: ${info.earlyTrUser || '∅'}`));
-  head.appendChild(document.createElement('br'));
-  head.appendChild(
-    document.createTextNode(
-      `authors:${info.authorsReady ? '✓' : '…'}  30390:${info.p90Ready ? '✓' : '…'}  claims:${info.claimsReady ? '✓' : '…'}  notes:${info.notesReady ? '✓' : '…'}  host303:${info.host303Ready ? '✓' : '…'}`
-    )
-  );
-  head.appendChild(document.createElement('br'));
-  const countStr = Object.keys(counts)
-    .sort()
-    .map((k) => `kind ${k}:${counts[k]}`)
-    .join('  ');
-  head.appendChild(document.createTextNode(`event counts → ${countStr || '(none yet)'}`));
-  head.appendChild(document.createElement('br'));
-  head.appendChild(document.createTextNode(`matched 30390: ${info.ev30390 ? `id=${String(info.ev30390.id || '').slice(0, 10)}… created_at=${info.ev30390.created_at}` : '∅'}`));
-  head.appendChild(document.createElement('br'));
-  head.appendChild(document.createTextNode(`matched kind 0:  ${info.ev0 ? `id=${String(info.ev0.id || '').slice(0, 10)}… created_at=${info.ev0.created_at}` : '∅'}`));
-  head.appendChild(document.createElement('br'));
-  head.appendChild(document.createTextNode(`merged picture from content: ${info.pictureChosen || '∅'}`));
-  body.appendChild(head);
-
-  if (info.candidates.length) {
-    const list = document.createElement('ul');
-    list.style.cssText = 'margin: 0.5rem 0 0; padding-left: 1.1rem; font-size: 0.75rem;';
-    for (const c of info.candidates) {
-      const li = document.createElement('li');
-      li.style.marginBottom = '0.25rem';
-      const a = document.createElement('a');
-      a.href = c.url;
-      a.target = '_blank';
-      a.rel = 'noopener noreferrer';
-      a.textContent = c.url;
-      a.style.wordBreak = 'break-all';
-      li.appendChild(a);
-      const meta = document.createElement('span');
-      meta.style.color = 'var(--muted-foreground)';
-      meta.style.marginLeft = '0.4rem';
-      meta.textContent = ` ← kind ${c.kind} via ${c.via}`;
-      li.appendChild(meta);
-      list.appendChild(li);
-    }
-    body.appendChild(list);
-  } else if (info.authorsReady && info.p90Ready) {
-    const empty = document.createElement('p');
-    empty.style.cssText = 'margin: 0.5rem 0 0; font-size: 0.78rem;';
-    empty.textContent =
-      'No image URLs found in any collected nostr event for this user (checked content.picture/image/avatar/banner, http(s) URLs in content, and r/image/picture tags).';
-    body.appendChild(empty);
-  }
-
-  if (info.tryList.length) {
-    const tried = document.createElement('p');
-    tried.style.cssText = 'margin: 0.5rem 0 0; font-size: 0.75rem; color: var(--muted-foreground);';
-    tried.textContent = `Trying in order: ${info.tryList.join('  →  ')}`;
-    body.appendChild(tried);
-  }
 }
 
 /**
@@ -1501,26 +1430,6 @@ function applyStagedProfileView(refs, viewState, ctx) {
     ph.setAttribute('aria-hidden', 'true');
     ph.textContent = '👤';
     refs.avatarWrap.appendChild(ph);
-  }
-
-  if (refs.debugMount) {
-    renderProfileDebugPanel(refs.debugMount, {
-      hex,
-      earlyTrUser,
-      authorsReady,
-      p90Ready,
-      claimsReady,
-      notesReady,
-      host303Ready,
-      evAuthors,
-      evP30390,
-      ev30390,
-      ev0,
-      meta,
-      candidates,
-      tryList,
-      pictureChosen: picture,
-    });
   }
 
   refs.aboutMount.replaceChildren();
@@ -1835,39 +1744,61 @@ export async function renderPublicProfile(profileId) {
       viewState.evAuthors = x;
       bump();
     });
-    if (earlyTrUser) {
-      void Promise.all([
-        collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 20 }),
-        collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], authors: [hex], limit: 20 }),
-        collectFromNip42RelayAuth({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 120 }),
-        collectFromNip42RelayAuth({ kinds: [PROFILE_CLAIM_KIND], authors: [hex], limit: 120 }),
-        collectProfileClaimsForTrustrootsUser(earlyTrUser),
-      ]).then(([byP, bySelf, byPAuth, bySelfAuth, byIdentity]) => {
-        viewState.evP30390 = dedupeById([
-          ...(byP || []),
-          ...(bySelf || []),
-          ...(byPAuth || []),
-          ...(bySelfAuth || []),
-          ...(byIdentity || []),
-        ]);
+    viewState.fetchDiag = { sources: [], authDiag: [] };
+    const trackUnauth = async (label, filter) => {
+      try {
+        const got = await collectFromRelays(filter);
+        viewState.fetchDiag.sources.push({ label, count: (got || []).length });
         bump();
-      });
-    } else {
-      void Promise.all([
-        collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 20 }),
-        collectFromRelays({ kinds: [PROFILE_CLAIM_KIND], authors: [hex], limit: 20 }),
-        collectFromNip42RelayAuth({ kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 120 }),
-        collectFromNip42RelayAuth({ kinds: [PROFILE_CLAIM_KIND], authors: [hex], limit: 120 }),
-      ]).then(([byP, bySelf, byPAuth, bySelfAuth]) => {
-        viewState.evP30390 = dedupeById([
-          ...(byP || []),
-          ...(bySelf || []),
-          ...(byPAuth || []),
-          ...(bySelfAuth || []),
-        ]);
+        return got;
+      } catch (e) {
+        viewState.fetchDiag.sources.push({ label, count: 0, error: String(e?.message || e) });
         bump();
-      });
-    }
+        return [];
+      }
+    };
+    const trackAuth = async (label, filter) => {
+      try {
+        const got = await collectFromNip42RelayAuth(filter, 4500, viewState.fetchDiag.authDiag);
+        viewState.fetchDiag.sources.push({ label, count: (got || []).length });
+        bump();
+        return got;
+      } catch (e) {
+        viewState.fetchDiag.sources.push({ label, count: 0, error: String(e?.message || e) });
+        bump();
+        return [];
+      }
+    };
+
+    void (async () => {
+      const queries = [
+        trackUnauth('30390 #p [unauth]', { kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 20 }),
+        trackUnauth('30390 authors=hex [unauth]', { kinds: [PROFILE_CLAIM_KIND], authors: [hex], limit: 20 }),
+        trackAuth('30390 #p [auth]', { kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 120 }),
+        trackAuth('30390 authors=hex [auth]', { kinds: [PROFILE_CLAIM_KIND], authors: [hex], limit: 120 }),
+      ];
+      if (earlyTrUser) {
+        queries.push(
+          trackUnauth('30390 #l=trUser [unauth]', { kinds: [PROFILE_CLAIM_KIND], '#l': [earlyTrUser], limit: 40 }),
+          trackAuth('30390 #l=trUser [auth]', { kinds: [PROFILE_CLAIM_KIND], '#l': [earlyTrUser], limit: 120 }),
+          trackUnauth('30390 broad scan [unauth]', { kinds: [PROFILE_CLAIM_KIND], limit: 1200 }),
+          trackAuth('30390 broad scan [auth]', { kinds: [PROFILE_CLAIM_KIND], limit: 1200 })
+        );
+        const importPub = circleImportToolPubkeyHex();
+        if (importPub) {
+          queries.push(
+            trackUnauth('30390 authors=importer [unauth]', {
+              kinds: [PROFILE_CLAIM_KIND],
+              authors: [importPub],
+              limit: 1200,
+            })
+          );
+        }
+      }
+      const results = await Promise.all(queries);
+      viewState.evP30390 = dedupeById(results.flat());
+      bump();
+    })();
     void collectFromRelays({ kinds: [RELATIONSHIP_CLAIM_KIND, EXPERIENCE_CLAIM_KIND], '#p': [hex], limit: 60 }).then(
       (x) => {
         viewState.evPClaims = x;

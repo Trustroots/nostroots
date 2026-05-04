@@ -1728,6 +1728,7 @@
             } catch (_) {}
         }
         function onLoadOnce() {
+            imgEl.onerror = null;
             rememberFromImg();
             if (imgEl._nrProfilePicCancel === cancelPending) delete imgEl._nrProfilePicCancel;
         }

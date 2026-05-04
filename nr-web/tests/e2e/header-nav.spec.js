@@ -122,7 +122,7 @@ test.describe('Header navigation', () => {
     expect(dialogSeen).toBe(false);
   });
 
-  test('index: Host & meet opens notes modal with hosting template', async ({ page }) => {
+  test('index: Host & meet opens notes modal with hosting intent selected', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('#map .maplibregl-canvas, #map canvas', { timeout: 30000 });
@@ -132,7 +132,10 @@ test.describe('Header navigation', () => {
     await expect(modal).toBeVisible({ timeout: 20000 });
     const ta = page.locator('#note-content-in-modal');
     await expect(ta).toBeVisible();
-    await expect(ta).toHaveValue(/Hosting travelers here/i);
+    // The hosting flow now starts with an empty textarea and the hosting intent chip pre-selected.
+    const hostingChip = page.locator('#note-intent-chips [data-intent="hosting"]');
+    await expect(hostingChip).toBeVisible();
+    await expect(hostingChip).toHaveAttribute('aria-checked', 'true');
   });
 
   test('index: Chats nav is active on #chat', async ({ page }) => {

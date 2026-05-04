@@ -92,11 +92,11 @@ test.describe('Map hash (coarse plus code)', () => {
 });
 
 /**
- * iPhone Safari regression: tapping a Leaflet fallback rectangle must open
- * the pluscode notes modal. We force Leaflet via ?map=leaflet so we don't
- * depend on WebKit's WebGL detection in CI.
+ * Leaflet fallback (?map=leaflet) tap-to-open regression suite.
+ * Reproduces the iPhone Safari issue where tapping the fallback map did not
+ * open the pluscode notes modal.
  */
-test.describe('Leaflet fallback tap on iPhone Safari', () => {
+test.describe('Leaflet fallback tap', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((hex) => {
       try {
@@ -107,45 +107,49 @@ test.describe('Leaflet fallback tap on iPhone Safari', () => {
     }, '0000000000000000000000000000000000000000000000000000000000000001');
   });
 
-  test('touchscreen tap on the Leaflet fallback opens pluscode notes modal', async ({ page, browserName }) => {
-    test.skip(browserName !== 'webkit', 'Reproduces the iPhone Safari Leaflet fallback regression');
-
+  async function gotoLeafletFallback(page) {
     await page.goto('/?map=leaflet');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('#map[data-map-fallback="leaflet"]')).toBeVisible({ timeout: 20000 });
-
-    // Wait for Leaflet's container to be ready and have stable size.
+    // Make sure Leaflet finished its initial setView (pixel origin set, sized).
     await page.waitForFunction(() => {
       const c = document.querySelector('.leaflet-container');
       if (!c) return false;
       const r = c.getBoundingClientRect();
-      return r.width > 50 && r.height > 50 && typeof window.__nrwebLeafletTap === 'function';
+      if (r.width < 50 || r.height < 50) return false;
+      if (typeof window.__nrwebLeafletTap !== 'function') return false;
+      try {
+        const m = window.__nrwebLeafletMap;
+        const center = m && m.getCenter && m.getCenter();
+        return !!(center && Number.isFinite(center.lat) && Number.isFinite(center.lng));
+      } catch (_) {
+        return false;
+      }
     }, { timeout: 20000 });
+  }
 
-    const box = await page.locator('.leaflet-container').boundingBox();
-    expect(box).toBeTruthy();
-    const x = box.x + box.width / 2;
-    const y = box.y + box.height / 2;
-
-    await page.touchscreen.tap(x, y);
-
-    await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible({ timeout: 20000 });
-  });
-
-  test('direct __nrwebLeafletTap helper opens pluscode notes modal', async ({ page, browserName }) => {
-    test.skip(browserName !== 'webkit', 'Validates the canonical Leaflet tap helper used by iPhone Safari fallback');
-
-    await page.goto('/?map=leaflet');
-    await page.waitForLoadState('networkidle');
-    await expect(page.locator('#map[data-map-fallback="leaflet"]')).toBeVisible({ timeout: 20000 });
-
-    await page.waitForFunction(() => typeof window.__nrwebLeafletTap === 'function', { timeout: 20000 });
-
+  test('canonical helper opens the modal', async ({ page }) => {
+    await gotoLeafletFallback(page);
     await page.evaluate(() => {
       const r = document.querySelector('.leaflet-container').getBoundingClientRect();
       window.__nrwebLeafletTap(r.left + r.width / 2, r.top + r.height / 2);
     });
+    await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible({ timeout: 20000 });
+  });
 
+  test('chromium mouse click opens the modal', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'Mouse click is the chromium-specific path');
+    await gotoLeafletFallback(page);
+    const box = await page.locator('.leaflet-container').boundingBox();
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible({ timeout: 20000 });
+  });
+
+  test('iOS Safari touchscreen tap opens the modal', async ({ page, browserName }) => {
+    test.skip(browserName !== 'webkit', 'Reproduces the iPhone Safari Leaflet fallback regression');
+    await gotoLeafletFallback(page);
+    const box = await page.locator('.leaflet-container').boundingBox();
+    await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
     await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible({ timeout: 20000 });
   });
 });

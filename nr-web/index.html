@@ -5370,6 +5370,7 @@
                 }
                 // Expose for tests/diagnostics.
                 window.__nrwebLeafletTap = handleLeafContainerTap;
+                window.__nrwebLeafletMap = leafMap;
 
                 leafMap.on('click', (e) => {
                     const oe = e.originalEvent;
@@ -6501,44 +6502,55 @@
 
             // Update the grid to highlight the selected plus code (moss green) BEFORE panning
             updatePlusCodeGrid();
-            
+
+            // Show modal FIRST so any subsequent fitBounds error never blocks opening it.
+            document.getElementById('pluscode-notes-modal').classList.add('active');
+
             // Pan/zoom map so the selected cell is visible (skipped for e.g. Host & meet — keep viewport).
             if (map && !options.preserveMapView) {
-                const rectangle = plusCodeToRectangle(plusCode);
-                if (rectangle && rectangle.length >= 4) {
-                    // Get bounds from rectangle: [sw, se, ne, nw, sw]
-                    const sw = rectangle[0]; // [lng, lat] of southwest corner
-                    const ne = rectangle[2]; // [lng, lat] of northeast corner
-                    
-                    // Check if we're on mobile
-                    const isMobile = window.innerWidth <= 768;
-                    
-                    if (isMobile) {
-                        // On mobile, modal covers bottom 60%, so add bottom padding
-                        // to ensure area is visible in top 40% of screen
-                        // Use 65% bottom padding to push area further up, and more top padding for visibility
-                        const bottomPadding = window.innerHeight * 0.65; // 65vh in pixels
-                        map.fitBounds([sw, ne], {
-                            padding: {
-                                top: 60, // More top padding to make area more visible
-                                bottom: bottomPadding,
-                                left: 20,
-                                right: 20
-                            },
-                            duration: 300 // Smooth animation
-                        });
-                    } else {
-                        // On desktop, just ensure it's visible with standard padding
-                        map.fitBounds([sw, ne], {
-                            padding: 50,
-                            duration: 300
-                        });
+                try {
+                    const rectangle = plusCodeToRectangle(plusCode);
+                    if (rectangle && rectangle.length >= 4) {
+                        // Rectangle is [lng, lat] pairs; MapLibre wants [lng, lat], Leaflet wants [lat, lng].
+                        const swLngLat = rectangle[0];
+                        const neLngLat = rectangle[2];
+                        const isLeaflet = mapFallbackMode === 'leaflet';
+                        const sw = isLeaflet ? [swLngLat[1], swLngLat[0]] : swLngLat;
+                        const ne = isLeaflet ? [neLngLat[1], neLngLat[0]] : neLngLat;
+
+                        const isMobile = window.innerWidth <= 768;
+
+                        if (isMobile) {
+                            // On mobile, modal covers bottom 60%, so add bottom padding
+                            // to ensure area is visible in top 40% of screen.
+                            const bottomPadding = window.innerHeight * 0.65;
+                            const opts = isLeaflet
+                                ? {
+                                    paddingTopLeft: [20, 60],
+                                    paddingBottomRight: [20, bottomPadding],
+                                    animate: true,
+                                    duration: 0.3,
+                                }
+                                : {
+                                    padding: {
+                                        top: 60,
+                                        bottom: bottomPadding,
+                                        left: 20,
+                                        right: 20,
+                                    },
+                                    duration: 300,
+                                };
+                            map.fitBounds([sw, ne], opts);
+                        } else {
+                            map.fitBounds([sw, ne], isLeaflet
+                                ? { padding: [50, 50], animate: true, duration: 0.3 }
+                                : { padding: 50, duration: 300 });
+                        }
                     }
+                } catch (fitErr) {
+                    console.warn('[showNotesForPlusCode] fitBounds failed (modal still opens):', fitErr && fitErr.message ? fitErr.message : fitErr);
                 }
             }
-            
-            // Show modal
-            document.getElementById('pluscode-notes-modal').classList.add('active');
             const pcNorm = normalizePlusCodeForHashSuppress(plusCode);
             nrMapPlusCodeSuppressedUntil = pcNorm;
             const hashBefore = location.hash;

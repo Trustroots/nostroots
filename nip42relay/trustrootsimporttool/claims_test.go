@@ -20,7 +20,7 @@ func TestEventForProfileClaim(t *testing.T) {
 		Avatar:      "https://example.com/a.jpg",
 		NostrNpub:   "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
 	}
-	event, err := eventForProfileClaim(user, testPrivateKey)
+	event, err := eventForProfileClaim(user, nil, testPrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -39,6 +39,26 @@ func TestEventForProfileClaim(t *testing.T) {
 	}
 	if meta["picture"] != "https://example.com/a.jpg" {
 		t.Fatalf("picture = %q", meta["picture"])
+	}
+}
+
+func TestEventForProfileClaim_includesNormalizedCircleTags(t *testing.T) {
+	user := User{
+		Username:  "nostroots",
+		NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+	}
+	event, err := eventForProfileClaim(user, []string{"hackers", "Hackers", "acme-campers"}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag := event.Tags.GetFirst([]string{"l", "hackers", trustrootsCircleLabelNamespace}); tag == nil {
+		t.Fatalf("missing hackers circle l tag: %#v", event.Tags)
+	}
+	if tag := event.Tags.GetFirst([]string{"t", "hackers"}); tag == nil {
+		t.Fatalf("missing hackers t tag: %#v", event.Tags)
+	}
+	if tag := event.Tags.GetFirst([]string{"l", "acmecampers", trustrootsCircleLabelNamespace}); tag == nil {
+		t.Fatalf("missing acmecampers circle l tag: %#v", event.Tags)
 	}
 }
 
@@ -81,7 +101,7 @@ func TestEventForProfileClaim_usesTrustrootsLocalUploadPicture(t *testing.T) {
 		AvatarUploaded: true,
 		Updated:        updated,
 	}
-	event, err := eventForProfileClaim(user, testPrivateKey)
+	event, err := eventForProfileClaim(user, nil, testPrivateKey)
 	if err != nil {
 		t.Fatal(err)
 	}

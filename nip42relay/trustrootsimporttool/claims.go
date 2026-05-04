@@ -32,7 +32,7 @@ func profileClaimPictureURL(u User) string {
 	return ""
 }
 
-func eventForProfileClaim(user User, privateKey string) (nostr.Event, error) {
+func eventForProfileClaim(user User, circles []string, privateKey string) (nostr.Event, error) {
 	pubkeyHex, _ := decodeNpubToHex(user.NostrNpub)
 	profileURL := "https://www.trustroots.org/profile/" + user.Username
 	metadata := map[string]string{
@@ -47,18 +47,20 @@ func eventForProfileClaim(user User, privateKey string) (nostr.Event, error) {
 	if err != nil {
 		return nostr.Event{}, err
 	}
+	tags := nostr.Tags{
+		{"d", "trustroots:profile:" + strings.ToLower(user.Username)},
+		{"p", pubkeyHex},
+		{"L", TrustrootsUsernameLabelNamespace},
+		{"l", strings.ToLower(user.Username), TrustrootsUsernameLabelNamespace},
+		{"r", profileURL},
+		{"source", "trustroots-import"},
+	}
+	appendTrustrootsCircleMembershipTags(&tags, circles)
 	event := nostr.Event{
 		CreatedAt: nostr.Now(),
 		Kind:      profileClaimKind,
-		Tags: nostr.Tags{
-			{"d", "trustroots:profile:" + strings.ToLower(user.Username)},
-			{"p", pubkeyHex},
-			{"L", TrustrootsUsernameLabelNamespace},
-			{"l", strings.ToLower(user.Username), TrustrootsUsernameLabelNamespace},
-			{"r", profileURL},
-			{"source", "trustroots-import"},
-		},
-		Content: string(contentBytes),
+		Tags:      tags,
+		Content:   string(contentBytes),
 	}
 	return event, event.Sign(privateKey)
 }

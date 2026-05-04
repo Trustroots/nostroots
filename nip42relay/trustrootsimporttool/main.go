@@ -103,7 +103,11 @@ func run(args []string) error {
 
 	logf("phase 1/5: profile claim events (kind %d) — %d user(s)…", profileClaimKind, len(eligibleUsers))
 	for i, user := range eligibleUsers {
-		event, err := eventForProfileClaim(user, cfg.NostrSK)
+		circles, err := fetchPublicCircleSlugs(ctx, db, user.Member)
+		if err != nil {
+			return fmt.Errorf("circle slugs for profile @%s: %w", user.Username, err)
+		}
+		event, err := eventForProfileClaim(user, circles, cfg.NostrSK)
 		if err != nil {
 			return fmt.Errorf("create profile claim for user %s: %w", user.ID.Hex(), err)
 		}

@@ -48,23 +48,7 @@ func eventForHost(record HostRecord, privateKey string) (nostr.Event, error) {
 	prefixTag = append(prefixTag, "open-location-code-prefix")
 	tags = append(tags, prefixTag)
 
-	if len(record.Circles) > 0 {
-		tags = append(tags, nostr.Tag{"L", "trustroots-circle"})
-		seenCircleSlugs := map[string]struct{}{}
-		for _, circle := range record.Circles {
-			slug := trustrootsCircleSlugForNostr(circle)
-			if slug == "" {
-				continue
-			}
-			if _, exists := seenCircleSlugs[slug]; exists {
-				continue
-			}
-			seenCircleSlugs[slug] = struct{}{}
-			// Match kind 30410 `d` tag and NIP-32 label value (hyphen-free).
-			tags = append(tags, nostr.Tag{"l", slug, "trustroots-circle"})
-			tags = append(tags, nostr.Tag{"t", slug})
-		}
-	}
+	appendTrustrootsCircleMembershipTags(&tags, record.Circles)
 
 	tags = append(tags,
 		nostr.Tag{"linkLabel", "posted by @" + record.User.Username},
@@ -137,6 +121,28 @@ func trustrootsCircleImageURL(tribe Tribe) string {
 func trustrootsCircleSlugForNostr(raw string) string {
 	s := strings.ToLower(strings.TrimSpace(raw))
 	return strings.ReplaceAll(s, "-", "")
+}
+
+// appendTrustrootsCircleMembershipTags appends NIP-32 `L`/`l` and `t` tags for public circle
+// memberships (same shape on kind 30390 profile claims and 30398 host mirrors).
+func appendTrustrootsCircleMembershipTags(tags *nostr.Tags, circles []string) {
+	if len(circles) == 0 {
+		return
+	}
+	*tags = append(*tags, nostr.Tag{"L", trustrootsCircleLabelNamespace})
+	seen := make(map[string]struct{}, len(circles))
+	for _, circle := range circles {
+		slug := trustrootsCircleSlugForNostr(circle)
+		if slug == "" {
+			continue
+		}
+		if _, ok := seen[slug]; ok {
+			continue
+		}
+		seen[slug] = struct{}{}
+		*tags = append(*tags, nostr.Tag{"l", slug, trustrootsCircleLabelNamespace})
+		*tags = append(*tags, nostr.Tag{"t", slug})
+	}
 }
 
 func eventForCircleMetadata(tribe Tribe, privateKey string) (nostr.Event, error) {

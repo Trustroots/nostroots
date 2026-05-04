@@ -1,6 +1,6 @@
 /**
  * Public profile surface for #profile/<npub|hex|nip05>
- * Fetches kind 30390 (Trustroots import), 0, 10390, map notes, 30392/30393, 30398 (#p) circle tags, 30410 circle directory.
+ * Fetches kind 30390 (Trustroots import; circle `l` tags), 0, 10390, map notes, 30392/30393, 30398 (#p) circle tags, 30410 circle directory.
  */
 import { Relay, nip19, finalizeEvent, getPublicKey } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.10.3/+esm';
 import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.2/+esm';
@@ -8,6 +8,7 @@ import { resolveNip05 } from './nip05-resolve.js';
 import {
   TRUSTROOTS_CIRCLE_META_KIND,
   mergeCircleMetadataMapEntry,
+  normalizeTrustrootsCircleSlugKey,
 } from './circle-metadata.js';
 import {
   TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
@@ -659,9 +660,42 @@ function extractCircleSlugsFromHostReposts30398(events, subjectHex) {
     for (const t of tags) {
       if (!Array.isArray(t) || t.length < 3) continue;
       if (t[0] !== 'l' || t[2] !== TRUSTROOTS_CIRCLE_LABEL) continue;
-      const slug = String(t[1] || '')
-        .trim()
-        .toLowerCase();
+      const slug = normalizeTrustrootsCircleSlugKey(t[1]);
+      if (!slug || seen.has(slug)) continue;
+      seen.add(slug);
+      out.push(slug);
+    }
+  }
+  return out;
+}
+
+/**
+ * Circle slugs from kind 30390 profile claims (Trustroots import) that tag this pubkey (`p`).
+ * Same import author filter as {@link extractCircleSlugsFromHostReposts30398}.
+ * @param {unknown[]} events
+ * @param {string} subjectHex
+ * @returns {string[]}
+ */
+function extractCircleSlugsFromProfileClaim30390(events, subjectHex) {
+  const h = String(subjectHex || '').toLowerCase();
+  if (h.length !== 64 || !/^[0-9a-f]+$/.test(h)) return [];
+  const importAuthor = circleImportToolPubkeyHex();
+  const ia = String(importAuthor || '')
+    .trim()
+    .toLowerCase();
+  if (ia.length !== 64 || !/^[0-9a-f]+$/.test(ia)) return [];
+  const seen = new Set();
+  const out = [];
+  for (const ev of events || []) {
+    if (!ev || ev.kind !== PROFILE_CLAIM_KIND) continue;
+    if (String(ev.pubkey || '').toLowerCase() !== ia) continue;
+    const tags = Array.isArray(ev.tags) ? ev.tags : [];
+    const mentions = tags.some((t) => Array.isArray(t) && t[0] === 'p' && String(t[1] || '').toLowerCase() === h);
+    if (!mentions) continue;
+    for (const t of tags) {
+      if (!Array.isArray(t) || t.length < 3) continue;
+      if (t[0] !== 'l' || t[2] !== TRUSTROOTS_CIRCLE_LABEL) continue;
+      const slug = normalizeTrustrootsCircleSlugKey(t[1]);
       if (!slug || seen.has(slug)) continue;
       seen.add(slug);
       out.push(slug);
@@ -673,7 +707,7 @@ function extractCircleSlugsFromHostReposts30398(events, subjectHex) {
 async function collectCircleDirectoryForSlugs(slugs) {
   const pub = circleImportToolPubkeyHex();
   if (!pub || !Array.isArray(slugs) || !slugs.length) return [];
-  const uniq = [...new Set(slugs.map((s) => String(s || '').trim().toLowerCase()).filter(Boolean))].slice(0, 40);
+  const uniq = [...new Set(slugs.map((s) => normalizeTrustrootsCircleSlugKey(s)).filter(Boolean))].slice(0, 40);
   if (!uniq.length) return [];
   return collectFromRelays({
     kinds: [TRUSTROOTS_CIRCLE_META_KIND],
@@ -1338,7 +1372,7 @@ function createStagedProfileShell(root, ctx) {
 /**
  * @param {Record<string, HTMLElement>} refs
  * @param {{ evAuthors?: unknown[]; evP30390?: unknown[]; evPClaims?: unknown[]; evNotes?: unknown[]; evHost30398?: unknown[]; circleMetaBySlug?: Map<string, { name: string; about: string; picture: string; created_at?: number }>; avatarExtra?: string }} viewState
- * @param {{ hex: string; npub: string; profileId: string; earlyTrUser: string; circleDirStarted?: boolean; scheduleBump?: () => void }} ctx
+ * @param {{ hex: string; npub: string; profileId: string; earlyTrUser: string; circleDirSlugsKey?: string; scheduleBump?: () => void }} ctx
  */
 function applyStagedProfileView(refs, viewState, ctx) {
   const { hex, npub, profileId, earlyTrUser } = ctx;
@@ -1649,35 +1683,44 @@ function applyStagedProfileView(refs, viewState, ctx) {
   }
 
   refs.circListMount.replaceChildren();
-  if (!host303Ready) {
+  const circlesReady = p90Ready && host303Ready;
+  if (!circlesReady) {
     const p = document.createElement('p');
     p.className = 'nr-profile-tr-skeleton';
-    p.textContent = 'Loading circles from Trustroots host mirrors (kind 30398)…';
+    p.textContent = 'Loading circles from Trustroots import (kind 30390 / 30398)…';
     refs.circListMount.appendChild(p);
   } else {
-    const slugs = extractCircleSlugsFromHostReposts30398(viewState.evHost30398 || [], hex);
-    if (!ctx.circleDirStarted) {
-      ctx.circleDirStarted = true;
-      if (!slugs.length) {
-        viewState.circleMetaBySlug = new Map();
-        queueMicrotask(() => ctx.scheduleBump?.());
-      } else {
-        void collectCircleDirectoryForSlugs(slugs)
-          .then((events) => {
-            const map = new Map();
-            const pub = circleImportToolPubkeyHex();
-            for (const ev of events || []) {
-              mergeCircleMetadataMapEntry(map, ev, { expectedPubkey: pub, kind: TRUSTROOTS_CIRCLE_META_KIND });
-            }
-            viewState.circleMetaBySlug = map;
-            ctx.scheduleBump?.();
-          })
-          .catch((e) => {
-            console.warn('[nr-profile] circle directory (30410)', e);
-            viewState.circleMetaBySlug = new Map();
-            ctx.scheduleBump?.();
-          });
-      }
+    const slugs98 = extractCircleSlugsFromHostReposts30398(viewState.evHost30398 || [], hex);
+    const slugs90 = extractCircleSlugsFromProfileClaim30390(viewState.evP30390 || [], hex);
+    const slugSet = new Set();
+    for (const s of [...slugs90, ...slugs98]) {
+      const k = normalizeTrustrootsCircleSlugKey(s);
+      if (k) slugSet.add(k);
+    }
+    const slugs = Array.from(slugSet).sort();
+    const slugsKey = slugs.join('\0');
+
+    if (!slugs.length) {
+      ctx.circleDirSlugsKey = '';
+      viewState.circleMetaBySlug = new Map();
+    } else if (slugsKey !== ctx.circleDirSlugsKey) {
+      ctx.circleDirSlugsKey = slugsKey;
+      viewState.circleMetaBySlug = undefined;
+      void collectCircleDirectoryForSlugs(slugs)
+        .then((events) => {
+          const map = new Map();
+          const pub = circleImportToolPubkeyHex();
+          for (const ev of events || []) {
+            mergeCircleMetadataMapEntry(map, ev, { expectedPubkey: pub, kind: TRUSTROOTS_CIRCLE_META_KIND });
+          }
+          viewState.circleMetaBySlug = map;
+          ctx.scheduleBump?.();
+        })
+        .catch((e) => {
+          console.warn('[nr-profile] circle directory (30410)', e);
+          viewState.circleMetaBySlug = new Map();
+          ctx.scheduleBump?.();
+        });
     }
 
     const metaMap = viewState.circleMetaBySlug;
@@ -1690,7 +1733,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
       const p = document.createElement('p');
       p.className = 'nr-profile-muted';
       p.textContent =
-        'No circle tags on kind 30398 mirrors for this pubkey on your relays yet. They appear when the Trustroots import tags hosted offers with tribes you belong to.';
+        'No Trustroots circle memberships found on your relays yet. After import, circle tags appear on kind 30390 profile claims (all members) and on kind 30398 host mirrors when a hosted offer is tagged with tribes you belong to.';
       refs.circListMount.appendChild(p);
     } else {
       for (const slug of slugs) {
@@ -1771,7 +1814,7 @@ export async function renderPublicProfile(profileId) {
       circleMetaBySlug: undefined,
       avatarExtra: '',
     };
-    const ctx = { hex, npub, profileId, earlyTrUser, circleDirStarted: false };
+    const ctx = { hex, npub, profileId, earlyTrUser, circleDirSlugsKey: '' };
 
     const { shell, refs } = createStagedProfileShell(root, {
       hex,

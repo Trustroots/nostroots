@@ -7,6 +7,12 @@ specific nr-web Events documentation:
 
 For Trustroots map-note validation context in `nr-web` (including the `30397 -> nr-server -> 30398` path and the NIP-42 auth-relay `30397` path), see [`TRUSTROOTS_MAP_NOTES.md`](TRUSTROOTS_MAP_NOTES.md).
 
+## Kind 30390 — Trustroots profile claim (import)
+
+Signed by the **same** key as `trustrootsimporttool` (`-nsec`). Includes a hex `p` tag for the user’s Nostr pubkey and JSON profile fields in `content`.
+
+**Circle memberships:** For each public tribe the user belongs to, the import adds the same `L` / `l` / `t` tags as on kind `30398` host mirrors (`l` value = hyphen-free slug under `trustroots-circle`). Public profiles in nr-web read these tags so circles appear even when the user has no active host offer.
+
 ## Kind 30410 — Trustroots circle metadata (directory)
 
 Signed by the **same** key as the Trustroots Mongo JSONL export (`trustrootsimporttool` `-nsec`). Clients trust only this author’s pubkey (hardcoded in nr-web next to relay docs).

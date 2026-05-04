@@ -23,7 +23,7 @@ This web app provides similar functionality to the `nr-app` mobile app:
 
 ## URL routing (hash)
 
-The main app (`index.html`) uses **`location.hash`** only (no path router; static hosting friendly). Parser order is implemented in [`nr-hash-router.js`](nr-hash-router.js) and wired in `index.html`.
+The main app (`index.html`) uses **`location.hash`** only (no path router; static hosting friendly). The parser lives inside `index.html` (look for the `NR_HASH_ROUTER_BEGIN` / `NR_HASH_ROUTER_END` markers) and is exposed as `window.NrWebHashRouter`.
 
 | Fragment | Meaning |
 |----------|---------|
@@ -38,13 +38,20 @@ The main app (`index.html`) uses **`location.hash`** only (no path router; stati
 | Looks like NIP-05 (e.g. `alice%40trustroots.org`) | Chat — DM |
 | Otherwise | Chat — circle / channel slug |
 
-Circle slugs cannot match reserved words (`welcome`, `start`, etc.); see `NrWebHashRouter.EXTENDED_RESERVED` in `nr-hash-router.js`.
+Circle slugs cannot match reserved words (`welcome`, `start`, etc.); see `NrWebHashRouter.EXTENDED_RESERVED` inside the `NR_HASH_ROUTER_BEGIN` block in `index.html`.
 
 Query shortcuts (stripped after load): `?action=map|host|search`, `?welcome=1`, `?start=1` (see `processNrWebUrlAction()` in `index.html`).
 
 ## Getting Started
 
-Core UI is `index.html` with small helpers: `common.js`, `nr-hash-router.js`, `chat-app.js` (embedded chat), plus shared CSS fragments.
+The web app is shipped as **two source files**:
+
+- [`index.html`](index.html) — markup, all CSS in a single `<style>` block, the classic-script helpers (`NrWeb*` globals + `NrWebHashRouter`), the inlined Keys/Settings modals, and a `<script type="module" src="./index.js">` that loads the rest.
+- [`index.js`](index.js) — a single ES module containing every Nostroots-authored helper (key utils, claim/note-intents helpers, nsec-guard, KV-IndexedDB layer, NIP-05 resolver, circle metadata, embedded chat, profile page, and the main map glue), exported by name so unit tests can import directly.
+
+Third-party assets (`maplibre-gl`, `leaflet`, `nostr-tools`, `bip39`, `dompurify`, Google Fonts) stay on their respective CDNs. There is no build step: you can serve `index.html` from any static host.
+
+When iterating locally, just open `index.html` in a browser. Refresh after editing — there is no bundler cache.
 
 
 
@@ -91,7 +98,7 @@ When validating importer output and route rendering together:
    - `#hitchhikers`
    - confirm circle metadata image (from importer `30410` `content.picture`) is visible where circle image chrome is shown (chat/sidebar/thread header).
 
-If image tests pass in `test.html` but a route does not show the image, check importer event shape first (`30390`/`30410`) and then client metadata wiring (`nr-profile-page.js`, `chat-app.js`, `circle-metadata.js`).
+If image tests pass in `test.html` but a route does not show the image, check importer event shape first (`30390`/`30410`) and then the client metadata wiring inside `index.js` — the chat, profile, and circle-metadata code is all folded into that single module.
 
 ### Real Apple iOS Simulator (Xcode) automation
 

@@ -8,7 +8,7 @@ import {
     applyIntentHashtagToContent,
     pushIntentTag,
     stripLeadingIntentHashtag,
-} from '../../note-intents.js';
+} from '../../index.js';
 
 describe('note-intents', () => {
     it('exposes the locked-in vocabulary', () => {

@@ -12,7 +12,7 @@ import {
   experienceCounterpartyDisplay,
   trustrootsProfileUrl,
   parseRelationshipSuggestionUsernames,
-} from '../../claim-utils.js';
+} from '../../index.js';
 
 const H = (ch) => String(ch).repeat(64);
 

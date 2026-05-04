@@ -5,7 +5,6 @@ import { dirname, resolve } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const htmlPath = resolve(__dirname, '..', 'index.html');
-const modalsPath = resolve(__dirname, '..', 'modals-keys-settings.html');
 
 // Load HTML file
 const html = readFileSync(htmlPath, 'utf-8');
@@ -59,13 +58,7 @@ const dom = new JSDOM(html, {
 // Restore console.error after DOM is created
 console.error = originalError;
 
-// Inject shared Keys/Settings modals (normally loaded by common.js via fetch)
-try {
-  const modalsHtml = readFileSync(modalsPath, 'utf-8');
-  dom.window.document.body.insertAdjacentHTML('beforeend', modalsHtml);
-} catch (e) {
-  // modals-keys-settings.html may be missing in some test envs
-}
+// Keys + Settings modals are inlined in index.html
 
 // Make globals available to tests
 global.window = dom.window;

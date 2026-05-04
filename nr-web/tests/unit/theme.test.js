@@ -5,7 +5,10 @@ import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const commonSrc = readFileSync(join(__dirname, '../../common.js'), 'utf-8');
+const indexHtml = readFileSync(join(__dirname, '../../index.html'), 'utf-8');
+const commonSrcMatch = indexHtml.match(/\/\* NR_COMMON_JS_BEGIN \*\/([\s\S]*?)\/\* NR_COMMON_JS_END \*\//);
+if (!commonSrcMatch) throw new Error('NR_COMMON_JS markers not found in index.html');
+const commonSrc = commonSrcMatch[1];
 
 /** Load nr-web common.js in an isolated window with NrWebTheme available. */
 function loadNrWebThemeTestWindow() {

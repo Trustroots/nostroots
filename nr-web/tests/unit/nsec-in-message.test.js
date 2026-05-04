@@ -3,7 +3,7 @@ import {
     containsPrivateKeyNsec,
     CHAT_NSEC_LEAK_FIXTURE,
     NSEC1_TOKEN_RE,
-} from '../../nsec-guard.js';
+} from '../../index.js';
 
 const FIXTURE_TOKEN = 'nsec1l53ku95egk2emglml9q4k5zt722axs4eplkq4sauqv2d2vz23h8smvgxx8';
 

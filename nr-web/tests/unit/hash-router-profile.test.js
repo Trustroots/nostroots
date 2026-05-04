@@ -6,8 +6,11 @@ import { describe, it, expect, beforeAll } from 'vitest';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 beforeAll(() => {
-  const code = readFileSync(join(__dirname, '../../nr-hash-router.js'), 'utf8');
-  (0, eval)(code);
+  // nr-hash-router was inlined into index.html; extract by markers and eval.
+  const html = readFileSync(join(__dirname, '../../index.html'), 'utf8');
+  const m = html.match(/\/\* NR_HASH_ROUTER_BEGIN \*\/([\s\S]*?)\/\* NR_HASH_ROUTER_END \*\//);
+  if (!m) throw new Error('NR_HASH_ROUTER markers not found in index.html');
+  (0, eval)(m[1]);
 });
 
 function classify(route) {

@@ -15,7 +15,7 @@
 </head>
 <body>
     <h1>nr-web examples</h1>
-    <p>Small standalone pages that share <code>common.js</code>, relay helpers, and modal fragments with the main app. Use them as patterns for your own static Nostr front-ends.</p>
+    <p>Small standalone pages that mirror the main app's chrome (Keys/Settings modals, relay helpers, hash router). The main app is now shipped as just <code>index.html</code> + <code>index.js</code>; copy the <code>NR_COMMON_JS_BEGIN</code> / <code>NR_HASH_ROUTER_BEGIN</code> blocks out of <code>index.html</code> if you need the same helpers in a fork.</p>
     <ul>
         <li><a href="pixel.html">Pixel</a> — circle-scoped 16×16 grid, publish to relays, optional “where / jam” meta.</li>
         <li><a href="../index.html">Main app</a> — map + chats in one page (<code>index.html</code>).</li>

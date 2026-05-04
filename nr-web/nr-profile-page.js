@@ -1561,11 +1561,6 @@ function applyStagedProfileView(refs, viewState, ctx) {
     refs.hostMount.appendChild(hostHead);
     const hostBody = document.createElement('div');
     hostBody.className = 'nr-profile-tr-rail-body nr-profile-tr-rail-body--accommodation';
-    const hostIcon = document.createElement('div');
-    hostIcon.className = 'nr-profile-tr-rail-icon';
-    hostIcon.setAttribute('aria-hidden', 'true');
-    hostIcon.textContent = '🛋';
-    hostBody.appendChild(hostIcon);
     const hostP = document.createElement('p');
     hostP.className = 'nr-profile-tr-accommodation-text';
     if (/^Loading\b/i.test(accommodation.summary || '')) hostP.classList.add('nr-profile-tr-skeleton');
@@ -1740,10 +1735,6 @@ export async function renderPublicProfile(profileId) {
       }
     }
 
-    void collectFromRelays({ kinds: [0, TRUSTROOTS_PROFILE_KIND], authors: [hex], limit: 30 }).then((x) => {
-      viewState.evAuthors = x;
-      bump();
-    });
     viewState.fetchDiag = { sources: [], authDiag: [] };
     const trackUnauth = async (label, filter) => {
       try {
@@ -1769,6 +1760,16 @@ export async function renderPublicProfile(profileId) {
         return [];
       }
     };
+
+    // kind 0 / 10390 — fetch unauth and auth so a kind 0 living only on the auth relay is still seen.
+    void (async () => {
+      const [byUnauth, byAuth] = await Promise.all([
+        trackUnauth('0+10390 authors=hex [unauth]', { kinds: [0, TRUSTROOTS_PROFILE_KIND], authors: [hex], limit: 30 }),
+        trackAuth('0+10390 authors=hex [auth]', { kinds: [0, TRUSTROOTS_PROFILE_KIND], authors: [hex], limit: 30 }),
+      ]);
+      viewState.evAuthors = dedupeById([...(byUnauth || []), ...(byAuth || [])]);
+      bump();
+    })();
 
     void (async () => {
       const queries = [

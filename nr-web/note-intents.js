@@ -68,7 +68,8 @@ export function applyIntentHashtagToContent(content, intentId) {
     const existing = text.match(/#\w+/g) || [];
     const has = existing.some((h) => h.toLowerCase() === hashtag);
     if (has) return text.trim();
-    return `${hashtag} ${text}`.trim();
+    const trimmed = text.trim();
+    return trimmed ? `${hashtag} ${trimmed}` : hashtag;
 }
 
 /**

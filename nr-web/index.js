@@ -1338,6 +1338,7 @@ async function publishToRelayWithRetries(url, signedEvent) {
 const NOSTROOTS_VALIDATION_PUBKEY = 'f5bc71692fc08ea52c0d1c8bcfb87579584106b5feb4ea542b1b8a95612f257b';
 const DEV_PUBKEY = '80789235a71a388074abfa5c482e270456d2357425266270f82071cf2b1de74a';
 const TRUSTROOTS_RESTRICTED_RELAY_URL = 'wss://nip42.trustroots.org';
+const TRUSTROOTS_CIRCLE_LABEL = 'trustroots-circle';
 
 // Map to store pubkey -> Trustroots username (kind 10390 label)
 const pubkeyToUsername = new Map();
@@ -1358,6 +1359,40 @@ function sanitizeProfileImageUrl(url) {
     } catch (_) {
         return '';
     }
+}
+
+/** Shared nip42 relay classifier used by map/chat/profile flows. */
+export function isTrustrootsAuthRelayUrl(url) {
+    const raw = String(url || '').trim();
+    if (!raw) return false;
+    try {
+        const parsed = new URL(raw);
+        return String(parsed.hostname || '').toLowerCase() === 'nip42.trustroots.org';
+    } catch (_) {
+        return /(^|:\/\/|\.)nip42\.trustroots\.org(?=[:/]|$)/i.test(raw);
+    }
+}
+
+/** Location hash segment encoding (keep literal '+' for readability). */
+export function hashEncodeSegment(segment) {
+    return encodeURIComponent(String(segment ?? '')).replace(/%2B/g, '+');
+}
+
+/** Build `#profile/<encoded-id>` from npub/hex/nip05 style identifiers. */
+export function buildProfileHashRoute(profileId) {
+    return '#profile/' + hashEncodeSegment(profileId);
+}
+
+/** Parse pubkey input (hex/npub), reject nsec private keys. */
+export function parsePubkeyInputNormalized(input) {
+    const s = (input || '').trim();
+    if (!s) return null;
+    if (/^[0-9a-f]{64}$/i.test(s)) return s.toLowerCase();
+    try {
+        const decoded = nip19.decode(s);
+        if (decoded.type === 'nsec') return null;
+    } catch (_) {}
+    return npubToHex(s) || null;
 }
 
 function isTrustrootsNip05Lower(s) {
@@ -1866,6 +1901,11 @@ const NR_MAP_CACHE_RECORD_KEY = 'events_v1';
 const NR_MAP_CACHE_PROFILES_RECORD_KEY = 'profiles_v1';
 /** Max pubkey→username pairs persisted (map insertion order, newest wins when trimming). */
 const PROFILE_USERNAME_CACHE_MAX_ENTRIES = 2500;
+/** Per-pubkey snapshot of the events powering the public profile page (kind 0/10390/30390/notes/host mirrors). */
+const NR_MAP_CACHE_PROFILE_PAGE_KEY_PREFIX = 'profile_page_v1:';
+const NR_MAP_CACHE_PROFILE_PAGE_INDEX_KEY = 'profile_pages_index_v1';
+const PROFILE_PAGE_CACHE_MAX_AGE = 7 * 24 * 60 * 60 * 1000; // 7 days
+const PROFILE_PAGE_CACHE_MAX_ENTRIES = 50;
 // expirationSecondsStore (module-scope) owns this key — keep the constant for legacy refs.
 const EXPIRATION_SETTING_KEY = expirationSecondsStore.KEY;
 let cachedFilteredEvents = null;
@@ -2632,7 +2672,7 @@ function updateNoteComposePostingIcon() {
 }
 
 function isRestrictedRelayUrl(url) {
-    return (url || '').trim().toLowerCase() === TRUSTROOTS_RESTRICTED_RELAY_URL;
+    return isTrustrootsAuthRelayUrl(url);
 }
 
 function canUseRestrictedRelay() {
@@ -3587,6 +3627,190 @@ async function saveProfilesToCache() {
     }
 }
 
+/**
+ * Slim a Nostr event for storage in the per-pubkey profile page cache.
+ * Like {@link slimEventForCache} but preserves `_nrCollectRelay` so cached events
+ * keep their relay-origin annotation (used by validation UI / dedupeById tie-break).
+ */
+function slimEventForProfileCache(event) {
+    if (!event || typeof event !== 'object') return null;
+    const out = {
+        id: event.id,
+        pubkey: event.pubkey,
+        kind: event.kind,
+        created_at: event.created_at,
+        content: event.content != null ? String(event.content) : '',
+        tags: Array.isArray(event.tags) ? event.tags : []
+    };
+    if (typeof event._nrCollectRelay === 'string' && event._nrCollectRelay) {
+        out._nrCollectRelay = event._nrCollectRelay;
+    }
+    return out;
+}
+
+function profilePageCacheKey(hex) {
+    return NR_MAP_CACHE_PROFILE_PAGE_KEY_PREFIX + String(hex || '').toLowerCase();
+}
+
+/**
+ * Load cached events that power the public profile page for a given pubkey.
+ * Returns `null` when the cache is missing, stale, blocklisted, or unreadable.
+ */
+async function loadProfilePageEventsFromCache(hex) {
+    if (typeof indexedDB === 'undefined') return null;
+    const h = String(hex || '').toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(h)) return null;
+    if (NrBlocklist && NrBlocklist.isBlocked && NrBlocklist.isBlocked(h)) return null;
+    try {
+        const db = await openNrMapCacheDB();
+        const row = await new Promise((resolve, reject) => {
+            const tx = db.transaction(NR_MAP_CACHE_STORE, 'readonly');
+            tx.onerror = () => reject(tx.error);
+            const store = tx.objectStore(NR_MAP_CACHE_STORE);
+            const req = store.get(profilePageCacheKey(h));
+            req.onerror = () => reject(req.error);
+            req.onsuccess = () => resolve(req.result);
+        });
+        if (!row) return null;
+        const age = Date.now() - (row.timestamp || 0);
+        if (age > PROFILE_PAGE_CACHE_MAX_AGE) return null;
+        const filterEvents = (arr) => {
+            if (!Array.isArray(arr)) return [];
+            return arr.filter((e) => {
+                if (!e || typeof e !== 'object') return false;
+                if (NrBlocklist && NrBlocklist.isBlocked && NrBlocklist.isBlocked(e.pubkey)) return false;
+                return true;
+            });
+        };
+        return {
+            evAuthors: filterEvents(row.evAuthors),
+            evP30390: filterEvents(row.evP30390),
+            evPClaims: filterEvents(row.evPClaims),
+            evNotes: filterEvents(row.evNotes),
+            evHost30398: filterEvents(row.evHost30398),
+            timestamp: row.timestamp || 0,
+        };
+    } catch (e) {
+        console.warn('Failed to load profile page cache:', e);
+        return null;
+    }
+}
+
+/**
+ * Persist a merged snapshot of profile-page events for a given pubkey.
+ * Updates an LRU index and prunes the oldest entries past
+ * {@link PROFILE_PAGE_CACHE_MAX_ENTRIES}.
+ */
+async function saveProfilePageEventsToCache(hex, payload) {
+    if (typeof indexedDB === 'undefined') return;
+    const h = String(hex || '').toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(h)) return;
+    let db;
+    try {
+        db = await openNrMapCacheDB();
+    } catch (e) {
+        console.warn('Map cache DB unavailable (profile page):', e);
+        return;
+    }
+    const slimList = (arr, cap) => {
+        if (!Array.isArray(arr)) return [];
+        const out = [];
+        for (const ev of arr) {
+            const s = slimEventForProfileCache(ev);
+            if (s) out.push(s);
+        }
+        return cap > 0 && out.length > cap ? out.slice(-cap) : out;
+    };
+    const baseRecord = {
+        key: profilePageCacheKey(h),
+        hex: h,
+        evAuthors: slimList(payload?.evAuthors, 30),
+        evP30390: slimList(payload?.evP30390, 60),
+        evPClaims: slimList(payload?.evPClaims, 60),
+        evNotes: slimList(payload?.evNotes, 50),
+        evHost30398: slimList(payload?.evHost30398, 100),
+        timestamp: Date.now(),
+    };
+    // If we have nothing useful to cache, skip the write so we don't churn the LRU index.
+    const totalCount =
+        baseRecord.evAuthors.length +
+        baseRecord.evP30390.length +
+        baseRecord.evPClaims.length +
+        baseRecord.evNotes.length +
+        baseRecord.evHost30398.length;
+    if (totalCount === 0) return;
+    try {
+        await idbPutEventsRecord(db, baseRecord);
+    } catch (err) {
+        if (!isStorageQuotaError(err)) {
+            console.warn('Failed to save profile page cache:', err);
+            return;
+        }
+        // On quota errors, retry with only the high-value fields (kind 0 / 10390 / 30390).
+        try {
+            await idbPutEventsRecord(db, {
+                ...baseRecord,
+                evPClaims: [],
+                evNotes: [],
+                evHost30398: [],
+            });
+        } catch (err2) {
+            if (!isStorageQuotaError(err2)) {
+                console.warn('Failed to save trimmed profile page cache:', err2);
+            }
+            return;
+        }
+    }
+    void touchProfilePageCacheIndex(db, h).catch((e) => {
+        console.warn('Failed to update profile page cache index:', e);
+    });
+}
+
+/**
+ * Update the LRU index of cached profile-page pubkeys and evict any past
+ * {@link PROFILE_PAGE_CACHE_MAX_ENTRIES}.
+ */
+async function touchProfilePageCacheIndex(db, hex) {
+    const row = await new Promise((resolve, reject) => {
+        const tx = db.transaction(NR_MAP_CACHE_STORE, 'readonly');
+        tx.onerror = () => reject(tx.error);
+        const store = tx.objectStore(NR_MAP_CACHE_STORE);
+        const req = store.get(NR_MAP_CACHE_PROFILE_PAGE_INDEX_KEY);
+        req.onerror = () => reject(req.error);
+        req.onsuccess = () => resolve(req.result);
+    });
+    const now = Date.now();
+    let entries = Array.isArray(row?.entries) ? row.entries.slice() : [];
+    entries = entries.filter((e) => e && typeof e.hex === 'string' && e.hex !== hex);
+    entries.push({ hex, lastAccessed: now });
+    entries.sort((a, b) => (a.lastAccessed || 0) - (b.lastAccessed || 0));
+    let evicted = [];
+    if (entries.length > PROFILE_PAGE_CACHE_MAX_ENTRIES) {
+        evicted = entries.slice(0, entries.length - PROFILE_PAGE_CACHE_MAX_ENTRIES);
+        entries = entries.slice(evicted.length);
+    }
+    await idbPutEventsRecord(db, {
+        key: NR_MAP_CACHE_PROFILE_PAGE_INDEX_KEY,
+        entries,
+        timestamp: now,
+    });
+    if (evicted.length) {
+        await new Promise((resolve) => {
+            const tx = db.transaction(NR_MAP_CACHE_STORE, 'readwrite');
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => resolve();
+            tx.onabort = () => resolve();
+            const store = tx.objectStore(NR_MAP_CACHE_STORE);
+            for (const e of evicted) {
+                if (!e || typeof e.hex !== 'string') continue;
+                try {
+                    store.delete(profilePageCacheKey(e.hex));
+                } catch (_) {}
+            }
+        });
+    }
+}
+
 async function flushMapCacheToIndexedDB() {
     await Promise.all([saveEventsToCache(), saveProfilesToCache()]);
 }
@@ -4168,10 +4392,30 @@ function linkifyHashtags(html) {
     return html.replace(/#(\w+)/g, '<a href="#$1" class="nr-content-link">#$1</a>');
 }
 
-function linkifyTrustrootsUrls(html) {
+function toSafeTrustrootsUrl(rawUrl) {
+    const raw = String(rawUrl || '').trim();
+    if (!raw) return '';
+    try {
+        const parsed = new URL(raw);
+        const host = String(parsed.hostname || '').toLowerCase();
+        if (parsed.protocol !== 'https:') return '';
+        if (host !== 'trustroots.org' && host !== 'www.trustroots.org') return '';
+        return parsed.toString();
+    } catch (_) {
+        return '';
+    }
+}
+
+export function linkifyTrustrootsUrls(html, className = 'nr-content-link') {
     return html.replace(
         /https:\/\/(?:www\.)?trustroots\.org\/[^\s<)]+/gi,
-        (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="nr-content-link">${url}</a>`
+        (url) => {
+            const safeUrl = toSafeTrustrootsUrl(url);
+            if (!safeUrl) return url;
+            const escapedUrl = escapeHtml(safeUrl);
+            const linkClass = escapeHtml(className || 'nr-content-link');
+            return `<a href="${escapedUrl}" target="_blank" rel="noopener noreferrer" class="${linkClass}">${escapedUrl}</a>`;
+        }
     );
 }
 
@@ -4193,7 +4437,7 @@ function linkifyNpubsWithKnownTrustrootsProfiles(html) {
             if (u) nip05 = `${String(u).trim().toLowerCase()}@trustroots.org`;
         }
         if (!nip05 || !isTrustrootsNip05Lower(nip05)) return npubStr;
-        const href = '#profile/' + encodeURIComponent(nip05).replace(/%2B/g, '+');
+        const href = buildProfileHashRoute(nip05);
         return `<a href="${href}" class="nr-content-link" title="${escapeHtml(npubStr)}">${escapeHtml(nip05)}</a>`;
     });
 }
@@ -4352,7 +4596,7 @@ function updateMapMarkers() {
     */
 }
 
-function getPlusCodeFromEvent(event) {
+export function getPlusCodeFromEvent(event) {
     if (!Array.isArray(event?.tags)) return null;
 
     // Match nip42 test page behavior: first open-location-code* l-tag wins.
@@ -5957,7 +6201,7 @@ function createNoteItem(event) {
     const trNip05Stored = (pubkeyToNip05.get(authorPk) || '').trim().toLowerCase();
     // Prefer verified Trustroots NIP-05 (kind 0 / 30390); else @username from kind 10390; else npub snippet
     if (trNip05Stored && isTrustrootsNip05Lower(trNip05Stored)) {
-        const profileHref = '#profile/' + encodeURIComponent(trNip05Stored).replace(/%2B/g, '+');
+        const profileHref = buildProfileHashRoute(trNip05Stored);
         const authorLink = document.createElement('a');
         authorLink.className = 'nr-content-link';
         authorLink.href = profileHref;
@@ -5973,7 +6217,7 @@ function createNoteItem(event) {
     const username = pubkeyToUsername.get(authorPk);
     if (username) {
         const nip05 = `${username}@trustroots.org`.toLowerCase();
-        const chatHref = '#profile/' + encodeURIComponent(nip05).replace(/%2B/g, '+');
+        const chatHref = buildProfileHashRoute(nip05);
         const authorLink = document.createElement('a');
         authorLink.className = 'nr-content-link';
         authorLink.href = chatHref;
@@ -6183,6 +6427,23 @@ async function deleteEvent(eventId, deleteButton) {
         const successCount = results.filter(
             (r) => r.status === 'fulfilled' && r.value && r.value.success
         ).length;
+        const failedCount = relayUrls.length - successCount;
+
+        if (successCount === 0) {
+            if (deleteButton) {
+                deleteButton.disabled = false;
+                deleteButton.classList.remove('deleting');
+                deleteButton.textContent = '🗑️ DELETE';
+                deleteButton.title = 'Delete this note';
+            }
+            showStatus(
+                failedCount > 0
+                    ? `Delete failed on all ${failedCount} relays.`
+                    : 'Delete failed on all relays.',
+                'error'
+            );
+            return;
+        }
         
         // Update button to show completion
         if (deleteButton) {
@@ -6231,7 +6492,11 @@ async function deleteEvent(eventId, deleteButton) {
         }
         
         // Show success message
-        showStatus(`Note deleted on ${successCount} relays`, 'success');
+        if (failedCount > 0) {
+            showStatus(`Note deleted on ${successCount} relays (${failedCount} failed)`, 'success');
+        } else {
+            showStatus(`Note deleted on ${successCount} relays`, 'success');
+        }
         
         // Brief delay to show success state, then remove from UI
         setTimeout(() => {
@@ -7877,15 +8142,7 @@ const __nrChatApp = (() => {
             sessionStorage.removeItem('nostroots_switching_page');
         }
 
-        const MAP_NOTE_KIND = 30397;
-        const MAP_NOTE_REPOST_KIND = 30398;
-        const PROFILE_CLAIM_KIND = 30390;
-        const TRUSTROOTS_PROFILE_KIND = 10390;
-        const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = 'org.trustroots:username';
         const TRUSTROOTS_USERNAME_CACHE_STORAGE_KEY = 'trustroots_username_by_pubkey';
-        const DEFAULT_RELAY_URL = 'wss://nip42.trustroots.org';
-        const DEFAULT_RELAYS = (window.NrWebRelaySettings?.getDefaultRelays?.() || ['wss://nip42.trustroots.org', 'wss://relay.trustroots.org', 'wss://relay.nomadwiki.org']);
-        const TRUSTROOTS_CIRCLE_LABEL = 'trustroots-circle';
         const HOSTING_OFFER_CHANNEL_SLUG = 'hostingoffers';
         const HOSTING_OFFER_CHANNEL_ALIASES = ['hostingoffer', 'hostingoffers'];
         const relaySettings = window.NrWebRelaySettings;
@@ -7905,8 +8162,27 @@ const __nrChatApp = (() => {
             if (HOSTING_OFFER_CHANNEL_ALIASES.includes(normalized)) {
                 return HOSTING_OFFER_CHANNEL_SLUG;
             }
-            // Must match kind 30410 `d` tags (lowercase) so circle metadata pictures resolve.
+            // Trustroots circles canonicalize without ASCII hyphens (matches kind 30410 `d`
+            // and the trustrootsimporttool slug helper). Old events / user notes may carry
+            // a hyphenated `t` tag like beer-brewers; collapse to beerbrewers when the result
+            // is a known circle so legacy and current data land in the same channel. Ad-hoc
+            // hashtags that are not Trustroots circles keep their hyphens.
+            if (normalized.includes('-')) {
+                const stripped = normalizeTrustrootsCircleSlugKey(normalized);
+                if (stripped && stripped !== normalized && isKnownTrustrootsCircleSlug(stripped)) {
+                    return stripped;
+                }
+            }
             return normalized;
+        }
+
+        function isKnownTrustrootsCircleSlug(slug) {
+            // Lazy reference: TRUSTROOTS_CIRCLE_SLUGS_SET is initialized later in this scope.
+            try {
+                return TRUSTROOTS_CIRCLE_SLUGS_SET.has(slug);
+            } catch (_) {
+                return false;
+            }
         }
 
         // Decode blocklist npubs to hex (shared blocklist in common.js).
@@ -8257,6 +8533,28 @@ const __nrChatApp = (() => {
             }
         }
 
+        function mergeConversationOnLoad(targetId, type, members, events) {
+            if (!targetId) return;
+            const existing = conversations.get(targetId);
+            if (!existing) {
+                conversations.set(targetId, {
+                    type,
+                    id: targetId,
+                    members: members || [],
+                    events: Array.isArray(events) ? events.slice() : []
+                });
+                return;
+            }
+            const seen = new Set(existing.events.map((e) => e && e.id).filter(Boolean));
+            for (const ev of events || []) {
+                if (!ev || (ev.id && seen.has(ev.id))) continue;
+                existing.events.push(ev);
+                if (ev.id) seen.add(ev.id);
+            }
+            existing.events.sort((a, b) => (a?.created_at || 0) - (b?.created_at || 0));
+            invalidateConversationSearchIndex(targetId);
+        }
+
         async function loadChatFromCache() {
             if (!currentPublicKey) return false;
             try {
@@ -8303,7 +8601,10 @@ const __nrChatApp = (() => {
                             ...(ev.nip ? { nip: ev.nip } : {}),
                             ...(ev.relayScope ? { relayScope: ev.relayScope } : {})
                         }));
-                    const normalizedConversationId = normalizeChannelSlug(String(c.id || ''));
+                    const normalizedConversationId = c.type === 'channel'
+                        ? normalizeChannelSlug(String(c.id || ''))
+                        : c.id;
+                    const targetId = normalizedConversationId || c.id;
                     if (c.type === 'channel' && normalizedConversationId === 'global') {
                         // Migration: legacy caches mirrored all map notes into #global.
                         // Keep only events that explicitly include the global channel slug.
@@ -8311,10 +8612,12 @@ const __nrChatApp = (() => {
                             getChannelSlugsFromEvent(ev.raw || {}).includes('global')
                         );
                         if (!explicitGlobalEvents.length) continue;
-                        conversations.set(c.id, { type: c.type, id: c.id, members: c.members || [], events: explicitGlobalEvents });
+                        mergeConversationOnLoad(targetId, c.type, c.members, explicitGlobalEvents);
                         continue;
                     }
-                    conversations.set(c.id, { type: c.type, id: c.id, members: c.members || [], events });
+                    // Channels with hyphenated legacy ids (e.g. #beer-brewers) merge into the
+                    // canonical Trustroots-circle slug (e.g. #beerbrewers); see normalizeChannelSlug.
+                    mergeConversationOnLoad(targetId, c.type, c.members, events);
                 }
                 pubkeyToUsername.clear();
                 for (const [k, v] of (data.pubkeyToUsername || [])) pubkeyToUsername.set(k, v);
@@ -8657,7 +8960,7 @@ const __nrChatApp = (() => {
         function profileHrefFromId(id) {
             const raw = String(id || '').trim();
             if (!raw) return '';
-            return '#profile/' + encodeURIComponent(raw).replace(/%2B/g, '+');
+            return buildProfileHashRoute(raw);
         }
 
         function setThreadTitleAsProfileLink(titleEl, profileId, label) {
@@ -8684,14 +8987,7 @@ const __nrChatApp = (() => {
         }
 
         function parsePubkeyInput(input) {
-            const s = (input || '').trim();
-            if (!s) return null;
-            if (/^[0-9a-f]{64}$/i.test(s)) return s;
-            try {
-                const decoded = nip19.decode(s);
-                if (decoded.type === 'nsec') return null;
-            } catch (_) {}
-            return npubToHex(s) || null;
+            return parsePubkeyInputNormalized(input);
         }
 
         /** Resolve npub/hex synchronously, or NIP-05 (async) to hex. Returns Promise<hex|null>. */
@@ -9750,7 +10046,7 @@ const __nrChatApp = (() => {
         }
 
         function isRestrictedRelayUrl(url) {
-            return /nip42\.trustroots\.org/i.test(String(url || ''));
+            return isTrustrootsAuthRelayUrl(url);
         }
 
         /**
@@ -10094,27 +10390,31 @@ const __nrChatApp = (() => {
                             : hashEsc;
                     const imgHtml = pic
                         ? `<img class="conv-item-avatar" src="${escConvHtml(pic)}" alt="" loading="lazy" decoding="async" />`
-                        : '';
+                        : '<span class="conv-item-avatar conv-item-avatar-placeholder" aria-hidden="true"></span>';
                     item.innerHTML =
+                        imgHtml +
                         '<span class="conv-item-stack">' +
                         `<span class="conv-item-title-row conv-item-circle-hashline">${line}</span>` +
-                        '</span>' +
-                        imgHtml;
+                        '</span>';
                 } else if (type === 'dm') {
                     const dmPic = getDmPictureByConversationId(id);
                     const imgHtml = dmPic && isSafeHttpUrl(dmPic)
                         ? `<img class="conv-item-avatar" src="${escConvHtml(dmPic)}" alt="" loading="lazy" decoding="async" />`
-                        : '';
+                        : '<span class="conv-item-avatar conv-item-avatar-placeholder" aria-hidden="true"></span>';
                     const oneLine = enc === '#' ? eGlyph + eLab : eLab + '\u2009' + eGlyph;
                     item.innerHTML =
+                        imgHtml +
                         '<span class="conv-item-stack">' +
                         `<span class="conv-item-title-row">${oneLine}</span>` +
-                        '</span>' +
-                        imgHtml;
+                        '</span>';
                 } else {
                     // Emoji rail (🌐 🔒) on the right; keep # as a normal hashtag prefix on the left.
                     const oneLine = enc === '#' ? eGlyph + eLab : eLab + '\u2009' + eGlyph;
-                    item.innerHTML = `<span class="conv-item-label">${oneLine}</span>`;
+                    item.innerHTML =
+                        '<span class="conv-item-avatar conv-item-avatar-placeholder" aria-hidden="true"></span>' +
+                        '<span class="conv-item-stack">' +
+                        `<span class="conv-item-title-row">${oneLine}</span>` +
+                        '</span>';
                 }
                 item.onclick = () => selectConversation(id);
                 list.appendChild(item);
@@ -10390,10 +10690,7 @@ const __nrChatApp = (() => {
         }
 
         function getPluscodeFromEvent(raw) {
-            if (!raw?.tags) return null;
-            const tag = raw.tags.find(t => Array.isArray(t) && t.length >= 3 && t[0] === 'l' && t[2] === 'open-location-code');
-            const code = tag?.[1];
-            return (code && typeof code === 'string' && code.trim()) ? code.trim() : null;
+            return getPlusCodeFromEvent(raw);
         }
 
         function getFirstTagValue(raw, tagName) {
@@ -10569,7 +10866,8 @@ const __nrChatApp = (() => {
                 const div = document.createElement('div');
                 div.className = 'message ' + (isSelf ? 'self' : 'other');
                 div.innerHTML = linkifyTrustrootsUrls(
-                    linkifyNpubsWithTrustrootsProfiles(linkifyNip05Identifiers(escapeHtml(ev.content || '')))
+                    linkifyNpubsWithTrustrootsProfiles(linkifyNip05Identifiers(escapeHtml(ev.content || ''))),
+                    'message-inline-link nr-content-link'
                 );
                 const pluscode = getPluscodeFromEvent(ev.raw);
                 if (pluscode) {
@@ -10659,21 +10957,13 @@ const __nrChatApp = (() => {
 
         // escapeHtml is defined at module scope (folded above); chat re-uses that.
 
-        function linkifyTrustrootsUrls(html) {
-            // Chat-only variant: also adds .message-inline-link so chat bubbles can style links separately.
-            return html.replace(
-                /https:\/\/(?:www\.)?trustroots\.org\/[^\s<)]+/gi,
-                (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="message-inline-link nr-content-link">${url}</a>`
-            );
-        }
-
         function linkifyNip05Identifiers(html) {
             return html.replace(
                 /(^|[^a-z0-9_@.-])([a-z0-9._-]+@[a-z0-9.-]+\.[a-z]{2,})(?=$|[^a-z0-9_@.-])/gi,
                 (match, prefix, nip05) => {
                     const normalized = String(nip05 || '').trim().toLowerCase();
                     if (!normalized) return match;
-                    const href = '#profile/' + encodeURIComponent(normalized).replace(/%2B/g, '+');
+                    const href = buildProfileHashRoute(normalized);
                     return `${prefix}<a href="${href}" class="message-inline-link nr-content-link">${nip05}</a>`;
                 }
             );
@@ -10692,7 +10982,7 @@ const __nrChatApp = (() => {
                     if (u) nip05 = `${String(u).trim().toLowerCase()}@trustroots.org`;
                 }
                 if (!nip05 || !isTrustrootsNip05Lower(nip05)) return npubStr;
-                const href = '#profile/' + encodeURIComponent(nip05).replace(/%2B/g, '+');
+                const href = buildProfileHashRoute(nip05);
                 return `<a href="${href}" class="message-inline-link nr-content-link" title="${escapeHtml(npubStr)}">${escapeHtml(nip05)}</a>`;
             });
         }
@@ -10701,8 +10991,7 @@ const __nrChatApp = (() => {
             const label = escapeHtml(pubkeyDisplayLabel(hex));
             if (!label) return '';
             if (!label.includes('@')) return label;
-            const route = encodeURIComponent(label.toLowerCase()).replace(/%2B/g, '+');
-            return `<a href="#profile/${route}" class="nr-content-link">${label}</a>`;
+            return `<a href="${buildProfileHashRoute(label.toLowerCase())}" class="nr-content-link">${label}</a>`;
         }
 
         async function startDm() {
@@ -10813,8 +11102,8 @@ const __nrChatApp = (() => {
                     pubkey: currentPublicKey
                 };
                 template.id = getEventHash(template);
-                signEvent(template).then((signed) => {
-                    pool.publish(publishRelayUrls, signed);
+                signEvent(template).then(async (signed) => {
+                    await pool.publish(publishRelayUrls, signed);
                     eventAuthorById.set(signed.id, currentPublicKey);
                     conv.events.push({
                         id: signed.id,
@@ -10830,7 +11119,7 @@ const __nrChatApp = (() => {
                     scheduleChatCacheWrite();
                     input.value = '';
                     scheduleRender('both');
-                    showStatus('Sent.', 'success');
+                    showStatus(`Sent to ${publishRelayUrls.length} relays.`, 'success');
                 }).catch((e) => {
                     const fb = formatSendCatchError(e);
                     showStatus(fb.message, 'error', { actions: fb.actions });
@@ -11093,20 +11382,11 @@ export const applyEmbeddedChatRoute = __nrChatApp.applyEmbeddedChatRoute;
 // Folded: nr-profile-page.js (wrapped in IIFE; returns profile renderers)
 // ---------------------------------------------------------------------------
 const __nrProfilePage = (() => {
-
-const TRUSTROOTS_PROFILE_KIND = 10390;
-const PROFILE_CLAIM_KIND = 30390;
-const RELATIONSHIP_CLAIM_KIND = 30392;
-const EXPERIENCE_CLAIM_KIND = 30393;
-const MAP_NOTE_KIND = 30397;
-const MAP_NOTE_REPOST_KIND = 30398;
 const MAP_NOTE_KINDS = [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND];
-/** NIP-32 label namespace on kind 30398 host mirrors (trustrootsimporttool). */
-const TRUSTROOTS_CIRCLE_LABEL = 'trustroots-circle';
 
 /** Trustroots authenticated relay (NIP-42); kind 30397 seen here is treated as validated for profile UI. */
 function isTrustrootsNip42RelayUrl(url) {
-  return /nip42\.trustroots\.org/i.test(String(url || ''));
+  return isTrustrootsAuthRelayUrl(url);
 }
 
 /**
@@ -11125,8 +11405,6 @@ function isMapNoteTrustrootsValidated(ev, authorHex) {
   return false;
 }
 
-const DEFAULT_RELAYS = ['wss://nip42.trustroots.org', 'wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
-
 /** Session memo: first successful avatar URL per tryList fingerprint (avoids re-probing on relay-driven re-renders). */
 const AVATAR_TRY_MEMO_MAX = 200;
 const avatarTryListResolvedByKey = new Map();
@@ -11142,19 +11420,9 @@ function rememberAvatarTryListSuccess(tryKey, resolvedUrl) {
   avatarTryListResolvedByKey.set(k, u);
 }
 
-/** `location.hash` segment encoding (keep `+` for spaces). */
-function hashEncodeSegment(s) {
-  return encodeURIComponent(String(s ?? '')).replace(/%2B/g, '+');
-}
-
-/** Top-level hash route, e.g. plus code or NIP-05 chat fragment. */
-function hashRoute(s) {
-  return '#' + hashEncodeSegment(s);
-}
-
 /** `#profile/<encoded-id>` for npub, hex, nip05, or `user@trustroots.org`. */
 function profileHashFromSegment(segment) {
-  return '#profile/' + hashEncodeSegment(segment);
+  return buildProfileHashRoute(segment);
 }
 
 function setExternalAnchorRel(a) {
@@ -11341,29 +11609,8 @@ function getTrustrootsUsernameFromKind0(event) {
   }
 }
 
-function getPlusCodeFromEvent(event) {
-  if (!Array.isArray(event?.tags)) return null;
-  for (const tag of event.tags) {
-    if (!Array.isArray(tag) || tag.length < 2 || tag[0] !== 'l') continue;
-    const namespace = typeof tag[2] === 'string' ? tag[2] : '';
-    if (namespace.startsWith('open-location-code')) {
-      const code = typeof tag[1] === 'string' ? tag[1].trim().toUpperCase() : '';
-      if (code) return code;
-    }
-  }
-  const dTag = event.tags.find((tag) => Array.isArray(tag) && tag[0] === 'd' && typeof tag[1] === 'string');
-  if (dTag) {
-    const code = dTag[1].trim().toUpperCase();
-    if (code) return code;
-  }
-  return null;
-}
-
 function parsePubkeyInput(input) {
-  const s = (input || '').trim();
-  if (!s) return null;
-  if (/^[0-9a-f]{64}$/i.test(s)) return s.toLowerCase();
-  return npubToHex(s) || null;
+  return parsePubkeyInputNormalized(input);
 }
 
 async function resolveProfileIdToHex(profileId) {
@@ -12919,17 +13166,56 @@ async function renderPublicProfile(profileId) {
       }
     };
 
+    // Per-pubkey IndexedDB cache: paint the page from the previous visit instantly,
+    // then merge fresh relay results when they arrive (replaceable events with newer
+    // `created_at` win via pickLatest, so stale cache cannot mask updates).
+    const cachedProfilePromise = loadProfilePageEventsFromCache(hex).catch((e) => {
+      console.warn('[nr-profile] cache load failed:', e);
+      return null;
+    });
+    void cachedProfilePromise.then((cached) => {
+      if (!cached) return;
+      let painted = false;
+      if (viewState.evAuthors === undefined && cached.evAuthors.length) {
+        viewState.evAuthors = dedupeById(cached.evAuthors);
+        painted = true;
+      }
+      if (viewState.evP30390 === undefined && cached.evP30390.length) {
+        viewState.evP30390 = dedupeById(cached.evP30390);
+        painted = true;
+      }
+      if (viewState.evPClaims === undefined && cached.evPClaims.length) {
+        viewState.evPClaims = dedupeById(cached.evPClaims);
+        painted = true;
+      }
+      if (viewState.evNotes === undefined && cached.evNotes.length) {
+        viewState.evNotes = dedupeById(cached.evNotes);
+        painted = true;
+      }
+      if (viewState.evHost30398 === undefined && cached.evHost30398.length) {
+        viewState.evHost30398 = dedupeById(cached.evHost30398);
+        painted = true;
+      }
+      if (painted) bump();
+    });
+
+    const fetchTasks = [];
     // kind 0 / 10390 — fetch unauth and auth so a kind 0 living only on the auth relay is still seen.
-    void (async () => {
-      const [byUnauth, byAuth] = await Promise.all([
+    fetchTasks.push((async () => {
+      const [byUnauth, byAuth, cached] = await Promise.all([
         trackUnauth('0+10390 authors=hex [unauth]', { kinds: [0, TRUSTROOTS_PROFILE_KIND], authors: [hex], limit: 30 }),
         trackAuth('0+10390 authors=hex [auth]', { kinds: [0, TRUSTROOTS_PROFILE_KIND], authors: [hex], limit: 30 }),
+        cachedProfilePromise,
       ]);
-      viewState.evAuthors = dedupeById([...(byUnauth || []), ...(byAuth || [])]);
+      viewState.evAuthors = dedupeById([
+        ...(byUnauth || []),
+        ...(byAuth || []),
+        ...(cached?.evAuthors || []),
+      ]);
       bump();
-    })();
+    })());
 
-    void (async () => {
+    fetchTasks.push((async () => {
       const queries = [
         trackUnauth('30390 #p [unauth]', { kinds: [PROFILE_CLAIM_KIND], '#p': [hex], limit: 20 }),
         trackUnauth('30390 authors=hex [unauth]', { kinds: [PROFILE_CLAIM_KIND], authors: [hex], limit: 20 }),
@@ -12954,20 +13240,28 @@ async function renderPublicProfile(profileId) {
           );
         }
       }
-      const results = await Promise.all(queries);
-      viewState.evP30390 = dedupeById(results.flat());
+      const [results, cached] = await Promise.all([Promise.all(queries), cachedProfilePromise]);
+      viewState.evP30390 = dedupeById([...results.flat(), ...(cached?.evP30390 || [])]);
       bump();
-    })();
-    void collectFromRelays({ kinds: [RELATIONSHIP_CLAIM_KIND, EXPERIENCE_CLAIM_KIND], '#p': [hex], limit: 60 }).then(
-      (x) => {
-        viewState.evPClaims = x;
+    })());
+    fetchTasks.push(
+      Promise.all([
+        collectFromRelays({ kinds: [RELATIONSHIP_CLAIM_KIND, EXPERIENCE_CLAIM_KIND], '#p': [hex], limit: 60 }),
+        cachedProfilePromise,
+      ]).then(([x, cached]) => {
+        viewState.evPClaims = dedupeById([...(x || []), ...(cached?.evPClaims || [])]);
         bump();
-      }
+      })
     );
-    void collectFromRelays({ kinds: MAP_NOTE_KINDS, authors: [hex], limit: 40 }).then((x) => {
-      viewState.evNotes = x;
-      bump();
-    });
+    fetchTasks.push(
+      Promise.all([
+        collectFromRelays({ kinds: MAP_NOTE_KINDS, authors: [hex], limit: 40 }),
+        cachedProfilePromise,
+      ]).then(([x, cached]) => {
+        viewState.evNotes = dedupeById([...(x || []), ...(cached?.evNotes || [])]);
+        bump();
+      })
+    );
     const importPub = circleImportToolPubkeyHex();
     const importHex =
       importPub && String(importPub).trim().length === 64 && /^[0-9a-fA-F]+$/.test(String(importPub).trim())
@@ -12977,16 +13271,31 @@ async function renderPublicProfile(profileId) {
       viewState.evHost30398 = [];
       bump();
     } else {
-      void collectFromRelays({
-        kinds: [MAP_NOTE_REPOST_KIND],
-        authors: [importHex],
-        '#p': [hex],
-        limit: 100,
-      }).then((x) => {
-        viewState.evHost30398 = x;
-        bump();
-      });
+      fetchTasks.push(
+        Promise.all([
+          collectFromRelays({
+            kinds: [MAP_NOTE_REPOST_KIND],
+            authors: [importHex],
+            '#p': [hex],
+            limit: 100,
+          }),
+          cachedProfilePromise,
+        ]).then(([x, cached]) => {
+          viewState.evHost30398 = dedupeById([...(x || []), ...(cached?.evHost30398 || [])]);
+          bump();
+        })
+      );
     }
+
+    void Promise.allSettled(fetchTasks).then(() => {
+      void saveProfilePageEventsToCache(hex, {
+        evAuthors: viewState.evAuthors || [],
+        evP30390: viewState.evP30390 || [],
+        evPClaims: viewState.evPClaims || [],
+        evNotes: viewState.evNotes || [],
+        evHost30398: viewState.evHost30398 || [],
+      }).catch((e) => console.warn('saveProfilePageEventsToCache:', e));
+    });
   } catch (err) {
     console.warn('[nr-profile]', err);
     root.innerHTML = `<p class="nr-profile-error">Something went wrong loading this profile.</p>`;

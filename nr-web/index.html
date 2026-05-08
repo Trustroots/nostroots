@@ -6791,6 +6791,29 @@ h1, h2, .modal-header h2 {
         })();
     </script>
     
-    <script type="module" src="./index.js"></script>
+    <script>
+    (function () {
+        function appendAppScript(versionToken) {
+            var script = document.createElement('script');
+            script.type = 'module';
+            script.src = './index.js?v=' + encodeURIComponent(versionToken || String(Date.now()));
+            document.body.appendChild(script);
+        }
+
+        // Use deploy metadata when available; fall back to a timestamp for local/dev freshness.
+        fetch('deploy-metadata.json', { cache: 'no-cache' })
+            .then(function (response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .then(function (meta) {
+                var token = (meta && (meta.commitSha || meta.deployTimestamp)) || String(Date.now());
+                appendAppScript(token);
+            })
+            .catch(function () {
+                appendAppScript(String(Date.now()));
+            });
+    })();
+    </script>
 </body>
 </html>

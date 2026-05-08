@@ -11023,7 +11023,14 @@ const __nrChatApp = (() => {
                 const timeStr = `${year}-${month}-${day} ${hour}:${minute}`;
                 const metaMain = document.createElement('span');
                 metaMain.className = 'message-meta-main';
-                metaMain.innerHTML = `<span class="time">${timeStr}</span>`;
+                const timeEl = document.createElement('span');
+                timeEl.className = 'time';
+                timeEl.textContent = timeStr;
+                const clientName = getFirstTagValue(ev.raw, 'client');
+                if (clientName) {
+                    timeEl.title = `Posted with ${clientName}`;
+                }
+                metaMain.appendChild(timeEl);
                 meta.appendChild(metaMain);
                 const confidentialityPill = document.createElement('span');
                 confidentialityPill.className = 'message-privacy-pill';

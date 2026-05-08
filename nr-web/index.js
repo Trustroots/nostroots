@@ -10,11 +10,11 @@ import {
     nip44,
     Relay,
     SimplePool,
-} from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.23.0/+esm';
-import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.2/+esm';
+} from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.23.0/+esm?nrv=20260508a';
+import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.2/+esm?nrv=20260508a';
 
 // Import BIP39 for mnemonic support
-import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm';
+import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm?nrv=20260508a';
 
 // ---------------------------------------------------------------------------
 // Folded: claim-utils.js
@@ -1056,6 +1056,35 @@ const RELAY_PUBLISH_RETRIES = 2;
 const RELAY_PUBLISH_RETRY_DELAY_MS = 1500;
 const NIP42_AUTH_KIND = 22242;
 
+function extractNip42Challenge(payload) {
+    if (typeof payload === 'string') {
+        const value = payload.trim();
+        return value || '';
+    }
+    if (Array.isArray(payload)) {
+        if (typeof payload[1] === 'string') {
+            const fromSecond = payload[1].trim();
+            if (fromSecond) return fromSecond;
+        }
+        if (typeof payload[0] === 'string' && payload[0] !== 'AUTH') {
+            const fromFirst = payload[0].trim();
+            if (fromFirst) return fromFirst;
+        }
+    }
+    if (payload && typeof payload === 'object') {
+        const nested = payload.challenge;
+        if (typeof nested === 'string') {
+            const value = nested.trim();
+            return value || '';
+        }
+        if (payload.data && typeof payload.data.challenge === 'string') {
+            const nestedData = payload.data.challenge.trim();
+            return nestedData || '';
+        }
+    }
+    return '';
+}
+
 function isAuthRequiredError(errorMessage) {
     return (errorMessage || '').toLowerCase().includes('auth-required');
 }
@@ -1071,8 +1100,9 @@ function hasRelayAuthSigningCapability() {
     return !!currentPrivateKeyBytes;
 }
 
-async function authenticateRelay(relay, relayUrl, challenge) {
-    if (!challenge) {
+async function buildSignedAuthEvent(relayUrl, challenge) {
+    const resolvedChallenge = extractNip42Challenge(challenge);
+    if (!resolvedChallenge) {
         throw new Error('Missing NIP-42 challenge');
     }
     const authTemplate = {
@@ -1080,11 +1110,27 @@ async function authenticateRelay(relay, relayUrl, challenge) {
         created_at: Math.floor(Date.now() / 1000),
         tags: [
             ['relay', relayUrl],
-            ['challenge', challenge]
+            ['challenge', resolvedChallenge]
         ],
         content: ''
     };
     const signedAuth = await signEventTemplate(authTemplate);
+    if (!signedAuth || !signedAuth.id) {
+        throw new Error('Invalid signed AUTH event');
+    }
+    return signedAuth;
+}
+
+async function authenticateRelay(relay, relayUrl, challenge) {
+    const signedAuth = await buildSignedAuthEvent(relayUrl, challenge);
+    if (!relay || typeof relay.auth !== 'function') {
+        throw new Error('Relay auth API unavailable');
+    }
+    // nostr-tools relay.auth API shape differs by version; support both common forms.
+    try {
+        await relay.auth(async () => signedAuth);
+        return;
+    } catch (_) {}
     await relay.auth(signedAuth);
 }
 
@@ -1094,6 +1140,7 @@ async function authenticateRelay(relay, relayUrl, challenge) {
  * Errors and EOSE timeouts resolve quietly so callers can wrap in `Promise.allSettled`.
  */
 async function oneshotQuery(url, filter, { onEvent, waitMs = 2000 } = {}) {
+    if (isRestrictedRelayUrl(url)) return;
     let relay = null;
     let sub = null;
     try {
@@ -1171,7 +1218,8 @@ async function publishToRelayViaRawWebSocket(url, signedEvent) {
             const [type, a, b, c] = data;
             if (type === 'AUTH') {
                 try {
-                    const challenge = a;
+                    const challenge = extractNip42Challenge(a);
+                    if (!challenge) throw new Error('Missing NIP-42 challenge');
                     const authTemplate = {
                         kind: NIP42_AUTH_KIND,
                         created_at: Math.floor(Date.now() / 1000),
@@ -1182,6 +1230,7 @@ async function publishToRelayViaRawWebSocket(url, signedEvent) {
                         content: ''
                     };
                     const signedAuth = await signEventTemplate(authTemplate);
+                    if (!signedAuth || !signedAuth.id) throw new Error('Invalid signed AUTH event');
                     authEventId = signedAuth.id;
                     ws.send(JSON.stringify(['AUTH', signedAuth]));
                 } catch (e) {
@@ -1238,23 +1287,29 @@ function setupRelayAuthHandler(relay, relayUrl, options = {}) {
     const authHandler = async (challenge) => {
         latestChallenge = challenge;
         try {
-            latestAuthPromise = authenticateRelay(relay, relayUrl, challenge);
-            await latestAuthPromise;
+            const resolvedChallenge = extractNip42Challenge(challenge);
+            if (!resolvedChallenge) {
+                throw new Error('Missing NIP-42 challenge');
+            }
+            latestAuthPromise = buildSignedAuthEvent(relayUrl, resolvedChallenge);
+            const signedAuth = await latestAuthPromise;
             if (typeof options.onAuthenticated === 'function') {
                 options.onAuthenticated();
             }
+            return signedAuth;
         } catch (error) {
             const errorMessage = error?.message || String(error);
             console.error(`[Relay] NIP-42 auth failed for ${relayUrl}:`, errorMessage);
+            throw error;
         }
     };
     
     // nostr-tools relay APIs differ across versions:
     // some expose relay.on('auth', ...), others expose relay.onauth callback.
-    if (typeof relay?.on === 'function') {
-        relay.on('auth', authHandler);
-    } else if ('onauth' in relay) {
+    if ('onauth' in relay) {
         relay.onauth = authHandler;
+    } else if (typeof relay?.on === 'function') {
+        relay.on('auth', authHandler);
     }
     
     return {
@@ -1276,6 +1331,9 @@ function setupRelayAuthHandler(relay, relayUrl, options = {}) {
 
 /** Publish event to one relay with retries. Returns { success, url, error }. */
 async function publishToRelayWithRetries(url, signedEvent) {
+    if (isRestrictedRelayUrl(url)) {
+        return await publishToRelayViaRawWebSocket(url, signedEvent);
+    }
     let lastError = null;
     for (let attempt = 0; attempt <= RELAY_PUBLISH_RETRIES; attempt++) {
         let relay = null;
@@ -1529,30 +1587,30 @@ function closeWsMapSubscriptions() {
     wsMapSubscriptions = [];
 }
 
-// Map notes use two paths: (1) raw WebSocket + NIP-42 via startWsMapSubscriptions for
-// long-lived reads and compatibility with some relays; (2) nostr-tools Relay + setupRelayAuthHandler
-// in initializeRelays for shared long-lived connections used by publishToRelayWithRetries.
-// Both call processIncomingEvent; duplicate EVENTs are deduped by id.
+// Restricted relay reads use raw WebSocket + NIP-42 to avoid nostr-tools auth
+// callback shape differences. Public relays still use nostr-tools Relay below.
 
 function startWsMapSubscriptions(relayUrls) {
     const relayAuth = window.NrWebRelayAuth;
     if (!relayAuth?.startNip42WsSubscription) return;
     closeWsMapSubscriptions();
-    relayUrls.forEach((url) => {
+    relayUrls.filter((url) => isRestrictedRelayUrl(url)).forEach((url) => {
         try {
             const sub = relayAuth.startNip42WsSubscription({
                 relayUrl: url,
-                filter: { kinds: MAP_NOTE_KINDS, limit: 10000 },
+                filter: { kinds: [0, DELETION_KIND, TRUSTROOTS_PROFILE_KIND, ...MAP_NOTE_KINDS], limit: 10000 },
                 authPubkey: currentPublicKey,
                 signEvent: async (eventTemplate) => signEventTemplate(eventTemplate),
                 onEvent: (event) => {
-                    if (event && MAP_NOTE_KINDS.includes(event.kind)) {
+                    if (event) {
                         processIncomingEvent(event);
                     }
                 },
-                onAuthChallenge: () => {},
-                onAuthSuccess: () => {},
-                onAuthFail: () => {}
+                onAuthChallenge: () => updateRelayStatus(url, 'connecting', relayWriteEnabled.get(url) !== false),
+                onAuthSuccess: () => updateRelayStatus(url, 'connected', relayWriteEnabled.get(url) !== false),
+                onAuthFail: () => updateRelayStatus(url, 'error', relayWriteEnabled.get(url) !== false),
+                onOpen: () => updateRelayStatus(url, 'connecting', relayWriteEnabled.get(url) !== false),
+                onError: () => updateRelayStatus(url, 'error', relayWriteEnabled.get(url) !== false)
             });
             wsMapSubscriptions.push(sub);
         } catch (error) {
@@ -2359,28 +2417,36 @@ function generateKeyPair() {
         window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, false);
     }
     loadKeys();
+    appendKeysLinkLog(`Generated new key ${getCurrentNpub() || currentPublicKey || ''}`.trim());
     showStatus('New key pair generated!', 'success');
 }
 
 async function importNsec() {
     const nsecInput = document.getElementById('nsec-import').value.trim();
+    appendKeysLinkLog('Import key from nsec field');
     const parsed = parseKeyImportToHex(nsecInput);
     if (!parsed.ok) {
-        showStatus(getKeyImportErrorMessage(nsecInput), 'error');
+        const message = getKeyImportErrorMessage(nsecInput);
+        appendKeysLinkLog(`Import failed: ${message}`);
+        showStatus(message, 'error');
         return;
     }
     try {
         savePrivateKey(parsed.hex);
+        appendKeysLinkLog(`Import parsed successfully. Public key: ${getCurrentNpub() || currentPublicKey}`);
         if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
             window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'imported');
             window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, true);
         }
         loadKeys();
+        appendKeysLinkLog('Checking linked Trustroots profile after import');
         showStatus('nsec imported. Looking up your kind 0 profile information...', 'info');
         await checkProfileLinked();
+        appendKeysLinkLog('Import complete');
         showStatus('nsec imported successfully!', 'success');
         document.getElementById('nsec-import').value = '';
     } catch (error) {
+        appendKeysLinkLog(`Import failed: ${error.message || error}`);
         showStatus('Error importing nsec: ' + error.message, 'error');
     }
 }
@@ -2472,6 +2538,7 @@ function deleteNsec() {
     }
     window.NrWebKeysModal?.clearKeySourceForPubkey?.(deletedPubkey);
     window.NrWebKeysModal?.clearKeyBackedUpForPubkey?.(deletedPubkey);
+    appendKeysLinkLog(`Deleted private key${deletedPubkey ? ` for ${deletedPubkey}` : ''}`);
     isProfileLinked = false;
     usernameFromNostr = false;
     claimEventsByKind = new Map();
@@ -3080,7 +3147,7 @@ async function initializeNDK() {
             });
             
             if (connectedCount > 0) {
-                if (!window._nostrootsSuppressConnectionToasts) showStatus(`Connected to ${connectedCount} relay(s)`, 'success', { id: 'relay-connection-status' });
+                if (!window._nostrootsSuppressConnectionToasts) showStatus(`Connected to ${connectedCount} of ${relayUrls.length} relays`, 'success', { id: 'relay-connection-status' });
             } else {
                 if (!window._nostrootsSuppressConnectionToasts) showStatus('Connecting to relays...', 'info', { id: 'relay-connection-status' });
             }
@@ -3127,9 +3194,13 @@ async function initializeRelays(relayUrls) {
         }
     });
     renderRelaysList();
+    const relayAuth = window.NrWebRelayAuth;
     
     for (const url of connectableRelayUrls) {
         try {
+            if (isRestrictedRelayUrl(url) && relayAuth?.startNip42WsSubscription) {
+                continue;
+            }
             updateRelayStatus(url, 'connecting');
             const relay = await Relay.connect(url);
             if (gen !== relayConnectGeneration) {
@@ -3226,16 +3297,10 @@ async function initializeRelays(relayUrls) {
 
     // Show summary message
     const connectedCount = relays.length;
-    const totalCount = connectableRelayUrls.length;
-    const failedCount = totalCount - connectedCount;
-    
+    const totalCount = relayUrls.length;
     if (connectedCount > 0) {
         if (!window._nostrootsSuppressConnectionToasts) {
-            if (failedCount > 0) {
-                showStatus(`Connected to ${connectedCount} of ${totalCount} relay(s)`, 'success', { id: 'relay-connection-status' });
-            } else {
-                showStatus(`Connected to ${connectedCount} relay(s)`, 'success', { id: 'relay-connection-status' });
-            }
+            showStatus(`Connected to ${connectedCount} of ${totalCount} relays`, 'success', { id: 'relay-connection-status' });
         }
         // Subscribe to plus code prefixes
         subscribeToPlusCodePrefixes();
@@ -5112,6 +5177,12 @@ function initializeMap() {
                         fallbackIndex++;
                         tryFallback();
                     }
+                } else {
+                    // If MapLibre cannot recover styles, switch to Leaflet instead of blank surface.
+                    const switched = initializeLeafletFallback('maplibre-style-failed');
+                    if (!switched) {
+                        renderUnavailableMapPanel('Map rendering failed and fallback could not initialize.');
+                    }
                 }
             };
             tryFallback();
@@ -6635,7 +6706,12 @@ function clearKeysLinkLog() {
     el.textContent = '';
 }
 
+function isKeysLinkLogEnabled() {
+    return window.NrWebKeysModal?.isKeysLogEnabled?.() === true;
+}
+
 function appendKeysLinkLog(message) {
+    if (!isKeysLinkLogEnabled()) return;
     const el = document.getElementById('keys-link-log');
     if (!el) return;
     const ts = new Date().toISOString().slice(11, 19);
@@ -6646,6 +6722,7 @@ function appendKeysLinkLog(message) {
 // Check if profile is linked (has kind 10390 event)
 async function checkProfileLinked() {
     if (!currentPublicKey) {
+        appendKeysLinkLog('Profile check skipped: no public key loaded');
         isProfileLinked = false;
         usernameFromNostr = false;
         
@@ -6666,6 +6743,7 @@ async function checkProfileLinked() {
     
     try {
         const relayUrls = getRelayUrls();
+        appendKeysLinkLog(`Checking Trustroots profile on ${relayUrls.length} relay${relayUrls.length === 1 ? '' : 's'}`);
         let foundLinked = false;
         let linkedUsername = null;
         const relayAuth = window.NrWebRelayAuth;
@@ -6677,10 +6755,12 @@ async function checkProfileLinked() {
         const applyProfileEvent = (event) => {
             if (!event) return;
             foundLinked = true;
+            appendKeysLinkLog(`Found Trustroots profile event ${event.id || '<no id>'}`);
             const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = 'org.trustroots:username';
             for (const tag of event.tags || []) {
                 if (tag[0] === 'l' && tag[2] === TRUSTROOTS_USERNAME_LABEL_NAMESPACE && tag[1]) {
                     linkedUsername = tag[1];
+                    appendKeysLinkLog(`Found Trustroots username "${linkedUsername}" in Nostr profile`);
                     break;
                 }
             }
@@ -6694,6 +6774,7 @@ async function checkProfileLinked() {
                     currentPrivateKeyBytes &&
                     relayAuth?.nip42SubscribeOnce
                 ) {
+                    appendKeysLinkLog(`Query auth relay ${url}`);
                     await relayAuth.nip42SubscribeOnce({
                         relayUrl: url,
                         filter: profileFilter,
@@ -6704,11 +6785,13 @@ async function checkProfileLinked() {
                     });
                     return;
                 }
+                appendKeysLinkLog(`Query relay ${url}`);
                 await oneshotQuery(url, profileFilter, {
                     onEvent: (event) => applyProfileEvent(event),
                     waitMs: 2000,
                 });
             } catch (error) {
+                appendKeysLinkLog(`Profile check failed on ${url}: ${error?.message || error}`);
                 console.error(`Error checking profile link on ${url}:`, error);
             }
         });
@@ -6721,6 +6804,7 @@ async function checkProfileLinked() {
         // If we found a linked username, validate it against NIP-05
         if (linkedUsername && currentPublicKey) {
             try {
+                appendKeysLinkLog(`Validate ${linkedUsername}@trustroots.org via NIP-05`);
                 const response = await fetch(`https://www.trustroots.org/.well-known/nostr.json?name=${linkedUsername}`);
                 const data = await response.json();
                 
@@ -6732,25 +6816,36 @@ async function checkProfileLinked() {
                     
                     // If the pubkeys don't match, clear the username
                     if (currentPubkeyHex !== nip5PubkeyHex) {
-                        console.warn(`Username ${linkedUsername} from Nostr does not match NIP-05 verification. Clearing.`);
+                        const message = `Username ${linkedUsername} from Nostr does not match NIP-05 verification. Clearing.`;
+                        appendKeysLinkLog(message);
+                        console.warn(message);
                         usernameWasCleared = true;
                         linkedUsername = null;
                         foundLinked = false;
+                    } else {
+                        appendKeysLinkLog(`NIP-05 validated: ${linkedUsername}@trustroots.org matches this key`);
                     }
                 } else {
                     // No valid NIP-05 found for this username, clear it
-                    console.warn(`Username ${linkedUsername} from Nostr has no valid NIP-05. Clearing.`);
+                    const message = `Username ${linkedUsername} from Nostr has no valid NIP-05. Clearing.`;
+                    appendKeysLinkLog(message);
+                    console.warn(message);
                     usernameWasCleared = true;
                     linkedUsername = null;
                     foundLinked = false;
                 }
             } catch (error) {
                 // If validation fails, clear the username to be safe
+                appendKeysLinkLog(`Error validating username ${linkedUsername} from Nostr: ${error?.message || error}`);
                 console.warn(`Error validating username ${linkedUsername} from Nostr:`, error);
                 usernameWasCleared = true;
                 linkedUsername = null;
                 foundLinked = false;
             }
+        } else if (foundLinked) {
+            appendKeysLinkLog('Trustroots profile event found, but no Trustroots username tag was present');
+        } else {
+            appendKeysLinkLog('No linked Trustroots profile event found on configured relays');
         }
         
         const wasProfileLinked = isProfileLinked;
@@ -7319,7 +7414,21 @@ async function fetchThemePreferenceFromRelaysIndex() {
         limit: 10
     }];
     let best = null;
+    const relayAuth = window.NrWebRelayAuth;
     for (const url of relayUrls) {
+        if (isRestrictedRelayUrl(url) && relayAuth?.nip42SubscribeOnce) {
+            await relayAuth.nip42SubscribeOnce({
+                relayUrl: url,
+                filter: filter[0],
+                authPubkey: currentPublicKey,
+                signEvent: async (eventTemplate) => signEventTemplate(eventTemplate),
+                onEvent: (ev) => {
+                    if (!best || ev.created_at > best.created_at) best = ev;
+                },
+                waitMs: 4000
+            });
+            continue;
+        }
         await oneshotQuery(url, filter, {
             onEvent: (ev) => {
                 if (!best || ev.created_at > best.created_at) best = ev;
@@ -7728,15 +7837,19 @@ function onboardingGenerate() {
 
 async function onboardingImport() {
     const input = document.getElementById('onboarding-import').value.trim();
+    appendKeysLinkLog('Import key from onboarding field');
     const parsed = parseKeyImportToHex(input);
     if (!parsed.ok) {
-        showStatus(getKeyImportErrorMessage(input), 'error');
+        const message = getKeyImportErrorMessage(input);
+        appendKeysLinkLog(`Import failed: ${message}`);
+        showStatus(message, 'error');
         return;
     }
 
     const wasMnemonic = input.includes(' ');
     try {
         savePrivateKey(parsed.hex);
+        appendKeysLinkLog(`${wasMnemonic ? 'Mnemonic' : 'nsec'} parsed successfully. Public key: ${getCurrentNpub() || currentPublicKey}`);
         if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
             window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'imported');
             window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, true);
@@ -7744,11 +7857,14 @@ async function onboardingImport() {
         loadKeys();
         openKeysModal({ runProfileLookup: false });
         const noun = wasMnemonic ? 'Mnemonic' : 'nsec';
+        appendKeysLinkLog('Checking linked Trustroots profile after onboarding import');
         showStatus(`${noun} imported. Looking up your kind 0 profile information...`, 'info');
         await checkProfileLinked();
+        appendKeysLinkLog(`${noun} import complete`);
         showStatus(`${noun} imported successfully!`, 'success');
     } catch (error) {
         const noun = wasMnemonic ? 'mnemonic' : 'nsec';
+        appendKeysLinkLog(`Error importing ${noun}: ${error.message || 'Unknown error'}`);
         console.error(`Error importing ${noun}:`, error);
         showStatus(`Error importing ${noun}: ` + (error.message || 'Unknown error'), 'error');
     }
@@ -7789,7 +7905,6 @@ async function updateTrustrootsProfile() {
 // Trustroots profile linking
 async function linkTrustrootsProfile() {
     const username = document.getElementById('trustroots-username').value.trim();
-    clearKeysLinkLog();
     appendKeysLinkLog(`Start link for username "${username || '<empty>'}"`);
     if (!username) {
         appendKeysLinkLog('Missing username input');
@@ -8131,7 +8246,9 @@ window.addEventListener('load', async () => {
     }, 100);
     
     // Function to load data and connect to relays
+    let loadDataReadyAttempts = 0;
     function loadDataWhenReady() {
+        loadDataReadyAttempts++;
         if (mapFallbackMode) {
             void (async () => {
                 await loadCachedEvents();
@@ -8143,6 +8260,26 @@ window.addEventListener('load', async () => {
                     }, 60000);
                 }, 500);
             })();
+            return;
+        }
+
+        // Avoid infinite "waiting for map" loops on soft refresh cache glitches:
+        // after ~8s, force fallback so the app remains usable.
+        if (loadDataReadyAttempts > 80) {
+            console.warn('Map readiness timeout; forcing fallback renderer.');
+            const switched = initializeLeafletFallback('map-ready-timeout');
+            if (!switched) {
+                renderUnavailableMapPanel('Map did not initialize. Try a hard refresh.');
+                // Continue without map to keep non-map UI responsive.
+                void (async () => {
+                    await loadCachedEvents();
+                    await initializeNDK();
+                    startPeriodicFlushingOfExpiredEvents();
+                })();
+                return;
+            }
+            // Retry once fallback has been mounted.
+            setTimeout(loadDataWhenReady, 100);
             return;
         }
 
@@ -9115,12 +9252,16 @@ const __nrChatApp = (() => {
 
         function importKey() {
             const raw = (document.getElementById('nsec-import') || document.getElementById('onboarding-import'))?.value?.trim() || '';
+            appendKeysLinkLog('Import key');
             const parsed = parseKeyImportToHex(raw);
             if (!parsed.ok) {
-                showStatus(getKeyImportErrorMessage(raw), 'error');
+                const message = getKeyImportErrorMessage(raw);
+                appendKeysLinkLog(`Import failed: ${message}`);
+                showStatus(message, 'error');
                 return;
             }
             savePrivateKey(parsed.hex);
+            appendKeysLinkLog(`Import parsed successfully. Public key: ${getDisplayNpub() || currentPublicKey}`);
             const nsecImport = document.getElementById('nsec-import');
             const onboardingImport = document.getElementById('onboarding-import');
             if (nsecImport) nsecImport.value = '';
@@ -9128,6 +9269,7 @@ const __nrChatApp = (() => {
             closeKeysModal();
             void (async () => {
                 await loadKeysFromStorage();
+                appendKeysLinkLog('Import complete');
                 showStatus('Key imported. Shared with map app.', 'success');
                 openKeysModal();
             })();
@@ -9296,12 +9438,16 @@ const __nrChatApp = (() => {
         function onboardingImport() {
             const input = document.getElementById('onboarding-import');
             const raw = (input?.value || '').trim();
+            appendKeysLinkLog('Import key from onboarding field');
             const parsed = parseKeyImportToHex(raw);
             if (!parsed.ok) {
-                showStatus(getKeyImportErrorMessage(raw), 'error');
+                const message = getKeyImportErrorMessage(raw);
+                appendKeysLinkLog(`Import failed: ${message}`);
+                showStatus(message, 'error');
                 return;
             }
             savePrivateKey(parsed.hex);
+            appendKeysLinkLog(`Import parsed successfully. Public key: ${getDisplayNpub() || currentPublicKey}`);
             if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
                 window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'imported');
                 window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, true);
@@ -9309,6 +9455,7 @@ const __nrChatApp = (() => {
             if (input) input.value = '';
             void (async () => {
                 await loadKeysFromStorage();
+                appendKeysLinkLog('Import complete');
                 openKeysModal();
             })();
             showStatus('Key imported.', 'success');
@@ -9320,12 +9467,16 @@ const __nrChatApp = (() => {
         function importNsec() {
             const el = document.getElementById('nsec-import');
             const raw = (el?.value || '').trim();
+            appendKeysLinkLog('Import key from nsec field');
             const parsed = parseKeyImportToHex(raw);
             if (!parsed.ok) {
-                showStatus(getKeyImportErrorMessage(raw), 'error');
+                const message = getKeyImportErrorMessage(raw);
+                appendKeysLinkLog(`Import failed: ${message}`);
+                showStatus(message, 'error');
                 return;
             }
             savePrivateKey(parsed.hex);
+            appendKeysLinkLog(`Import parsed successfully. Public key: ${getDisplayNpub() || currentPublicKey}`);
             if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
                 window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'imported');
                 window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, true);
@@ -9333,6 +9484,7 @@ const __nrChatApp = (() => {
             if (el) el.value = '';
             void (async () => {
                 await loadKeysFromStorage();
+                appendKeysLinkLog('Import complete');
                 updateKeyDisplay();
                 openKeysModal();
             })();
@@ -9345,6 +9497,7 @@ const __nrChatApp = (() => {
                 window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'generated');
                 window.NrWebKeysModal.setKeyBackedUpForPubkey?.(currentPublicKey, false);
             }
+            appendKeysLinkLog(`Generated new key ${getDisplayNpub() || currentPublicKey || ''}`.trim());
             void (async () => {
                 await loadKeysFromStorage();
             })();
@@ -9578,10 +9731,12 @@ const __nrChatApp = (() => {
                     if (!tpl) return;
                     const signed = finalizeEvent(tpl, currentSecretKeyBytes);
                     const relayList = Array.isArray(relays) && relays.length ? relays : DEFAULT_RELAYS;
-                    await pool.publish(relayList, signed);
+                    await publishEventWithRelayAcks(relayList, signed);
                 } catch (_) {}
             });
-            const relayList = Array.isArray(relays) && relays.length ? relays : DEFAULT_RELAYS;
+            const relayList = (Array.isArray(relays) && relays.length ? relays : DEFAULT_RELAYS)
+                .filter((url) => !isRestrictedRelayUrl(url));
+            if (!relayList.length) return;
             const filter = {
                 kinds: [NT.NRWEB_THEME_KIND],
                 authors: [currentPublicKey],
@@ -9617,7 +9772,8 @@ const __nrChatApp = (() => {
         }
 
         async function buildAuthEventForRelay(relayUrl, challenge) {
-            if (!challenge) return false;
+            const resolvedChallenge = extractNip42Challenge(challenge);
+            if (!resolvedChallenge) throw new Error('Missing NIP-42 challenge');
             requireLocalSigningKey();
             let relayTag = (relayUrl || '').trim();
             try {
@@ -9633,11 +9789,13 @@ const __nrChatApp = (() => {
                 created_at: Math.floor(Date.now() / 1000),
                 tags: [
                     ['relay', relayTag],
-                    ['challenge', challenge]
+                    ['challenge', resolvedChallenge]
                 ],
                 content: ''
             };
-            return signEvent(authTemplate);
+            const signedAuth = await signEvent(authTemplate);
+            if (!signedAuth || !signedAuth.id) throw new Error('Invalid signed AUTH event');
+            return signedAuth;
         }
 
         async function publishEventToRelayViaWebSocket(relayUrl, signedEvent) {
@@ -9820,6 +9978,7 @@ const __nrChatApp = (() => {
         function startPublicSubscriptions() {
             relayUrlsForList = getRelayUrls();
             relays = relayUrlsForList.length ? relayUrlsForList : DEFAULT_RELAYS;
+            const publicRelays = relays.filter((url) => !isRestrictedRelayUrl(url));
             initializeRelaySettingsState(relays, 'connecting');
             renderRelaysList();
             if (!pool) pool = new SimplePool();
@@ -9866,9 +10025,11 @@ const __nrChatApp = (() => {
             }
 
             const mapNoteFilter = (extra) => ({ kinds: [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND], limit: 10000, ...extra });
-            pool.subscribe(relays, mapNoteFilter({ '#L': [TRUSTROOTS_CIRCLE_LABEL] }), { onevent: onChannelEvent });
-            pool.subscribe(relays, mapNoteFilter({ '#t': HOSTING_OFFER_CHANNEL_ALIASES }), { onevent: onChannelEvent });
-            pool.subscribe(relays, mapNoteFilter(), { onevent: onChannelEvent });
+            if (publicRelays.length) {
+                pool.subscribe(publicRelays, mapNoteFilter({ '#L': [TRUSTROOTS_CIRCLE_LABEL] }), { onevent: onChannelEvent });
+                pool.subscribe(publicRelays, mapNoteFilter({ '#t': HOSTING_OFFER_CHANNEL_ALIASES }), { onevent: onChannelEvent });
+                pool.subscribe(publicRelays, mapNoteFilter(), { onevent: onChannelEvent });
+            }
 
             closePublicMapRelayConnections();
             relays.forEach((url) => {
@@ -9880,48 +10041,52 @@ const __nrChatApp = (() => {
                 }
             });
 
-            pool.subscribe(relays, { kinds: [5], limit: 500 }, { onevent(event) {
-                (event.tags || []).filter(t => t[0] === 'e' && t[1]).forEach(t => {
-                    const eid = t[1];
-                    if (eventAuthorById.get(eid) === event.pubkey) deletedEventIds.add(eid);
-                });
-                scheduleChatCacheWrite();
-                scheduleRender('both');
-            } });
+            if (publicRelays.length) {
+                pool.subscribe(publicRelays, { kinds: [5], limit: 500 }, { onevent(event) {
+                    (event.tags || []).filter(t => t[0] === 'e' && t[1]).forEach(t => {
+                        const eid = t[1];
+                        if (eventAuthorById.get(eid) === event.pubkey) deletedEventIds.add(eid);
+                    });
+                    scheduleChatCacheWrite();
+                    scheduleRender('both');
+                } });
 
-            pool.subscribe(relays, { kinds: [TRUSTROOTS_PROFILE_KIND] }, { onevent: handleKind10390ForProfile });
-            pool.subscribe(relays, { kinds: [0] }, { onevent: handleKind0ForProfile });
-            pool.subscribe(relays, { kinds: [PROFILE_CLAIM_KIND], limit: 1000 }, { onevent: handleKind30390ForProfile });
+                pool.subscribe(publicRelays, { kinds: [TRUSTROOTS_PROFILE_KIND] }, { onevent: handleKind10390ForProfile });
+                pool.subscribe(publicRelays, { kinds: [0] }, { onevent: handleKind0ForProfile });
+                pool.subscribe(publicRelays, { kinds: [PROFILE_CLAIM_KIND], limit: 1000 }, { onevent: handleKind30390ForProfile });
+            }
 
             // Also fetch profile-shaped events from the NIP-42 auth relay; SimplePool above
             // is unauthenticated and won't receive them when restricted relays gate by AUTH.
             startAuthRelayProfileFetch();
 
             if (TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX) {
-                pool.subscribe(
-                    relays,
-                    {
-                        kinds: [TRUSTROOTS_CIRCLE_META_KIND],
-                        authors: [TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX],
-                        limit: 5000
-                    },
-                    {
-                        onevent(event) {
-                            if (NrBlocklist && NrBlocklist.isBlocked(event.pubkey)) return;
-                            const changed = mergeCircleMetadataMapEntry(circleMetaBySlug, event, {
-                                expectedPubkey: TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX,
-                                kind: TRUSTROOTS_CIRCLE_META_KIND
-                            });
-                            if (!changed) return;
-                            scheduleRender('convList');
-                            const sel = selectedConversationId ? conversations.get(selectedConversationId) : null;
-                            if (sel && isTrustrootsCircleConversation(sel)) {
-                                syncThreadHeaderForConversation(sel);
-                                scheduleRender('thread');
+                if (publicRelays.length) {
+                    pool.subscribe(
+                        publicRelays,
+                        {
+                            kinds: [TRUSTROOTS_CIRCLE_META_KIND],
+                            authors: [TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX],
+                            limit: 5000
+                        },
+                        {
+                            onevent(event) {
+                                if (NrBlocklist && NrBlocklist.isBlocked(event.pubkey)) return;
+                                const changed = mergeCircleMetadataMapEntry(circleMetaBySlug, event, {
+                                    expectedPubkey: TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX,
+                                    kind: TRUSTROOTS_CIRCLE_META_KIND
+                                });
+                                if (!changed) return;
+                                scheduleRender('convList');
+                                const sel = selectedConversationId ? conversations.get(selectedConversationId) : null;
+                                if (sel && isTrustrootsCircleConversation(sel)) {
+                                    syncThreadHeaderForConversation(sel);
+                                    scheduleRender('thread');
+                                }
                             }
                         }
-                    }
-                );
+                    );
+                }
             }
 
             relays.forEach((url) => {
@@ -9935,6 +10100,7 @@ const __nrChatApp = (() => {
             relayUrlsForList = getRelayUrls();
             relays = relayUrlsForList.length ? relayUrlsForList : DEFAULT_RELAYS;
             const relayList = Array.isArray(relays) && relays.length ? relays : DEFAULT_RELAYS;
+            const publicRelayList = relayList.filter((url) => !isRestrictedRelayUrl(url));
             if (!currentPublicKey || !relayList.length) return;
 
             // Restore NIP-04 (DM) and channel conversations from cache so UI shows immediately while relays stream
@@ -9976,10 +10142,12 @@ const __nrChatApp = (() => {
                 scheduleRender('convList');
                 if (selectedConversationId === convId) scheduleRender('thread');
             };
-            pool.subscribe(relayList, { kinds: [4], '#p': [currentPublicKey] }, { onevent: onDmEvent });
-            pool.subscribe(relayList, { kinds: [4], authors: [currentPublicKey] }, { onevent: onDmEvent });
+            if (!publicRelayList.length) return;
 
-            pool.subscribe(relayList, { kinds: [1059], '#p': [currentPublicKey] }, { onevent(wrapEvent) {
+            pool.subscribe(publicRelayList, { kinds: [4], '#p': [currentPublicKey] }, { onevent: onDmEvent });
+            pool.subscribe(publicRelayList, { kinds: [4], authors: [currentPublicKey] }, { onevent: onDmEvent });
+
+            pool.subscribe(publicRelayList, { kinds: [1059], '#p': [currentPublicKey] }, { onevent(wrapEvent) {
                 if (!currentSecretKeyBytes) return;
                 try {
                     const wrapPubkey = wrapEvent.pubkey;
@@ -10161,6 +10329,7 @@ const __nrChatApp = (() => {
 
         async function checkProfileLinked() {
             if (!currentPublicKey) {
+                appendKeysLinkLog('Profile check skipped: no public key loaded');
                 isProfileLinked = false;
                 usernameFromNostr = false;
                 setTrustrootsUI('');
@@ -10169,6 +10338,7 @@ const __nrChatApp = (() => {
             }
             const cachedUsername = getCachedValidatedTrustrootsUsername(currentPublicKey);
             if (cachedUsername) {
+                appendKeysLinkLog(`Using cached Trustroots username "${cachedUsername}" for this key`);
                 isProfileLinked = true;
                 usernameFromNostr = true;
                 pubkeyToUsername.set(currentPublicKey, cachedUsername);
@@ -10176,12 +10346,15 @@ const __nrChatApp = (() => {
                 updateKeyDisplay({ skipProfileLookup: true });
                 return;
             }
-            const r = relays?.length ? relays : (getRelayUrls().length ? getRelayUrls() : DEFAULT_RELAYS);
+            const r = (relays?.length ? relays : (getRelayUrls().length ? getRelayUrls() : DEFAULT_RELAYS))
+                .filter((url) => !isRestrictedRelayUrl(url));
             if (!r.length) {
+                appendKeysLinkLog('Profile check skipped: no public relays available in chat');
                 setTrustrootsUI('');
                 updateKeyDisplay({ skipProfileLookup: true });
                 return;
             }
+            appendKeysLinkLog(`Checking Trustroots profile on ${r.length} public relay${r.length === 1 ? '' : 's'}`);
             if (!pool) pool = new SimplePool();
             let linkedUsername = null;
             const done = { done: false };
@@ -10189,25 +10362,36 @@ const __nrChatApp = (() => {
                 if (done.done) return;
                 done.done = true;
                 const u = getTrustrootsUsernameFromProfileEvent(event);
-                if (u) linkedUsername = u;
+                if (u) {
+                    linkedUsername = u;
+                    appendKeysLinkLog(`Found Trustroots username "${linkedUsername}" in Nostr profile`);
+                }
             } });
             await new Promise(r => setTimeout(r, 2500));
             try { if (typeof unsub === 'function') unsub(); else if (unsub?.close) unsub.close(); } catch (_) {}
             if (linkedUsername) {
                 try {
+                    appendKeysLinkLog(`Validate ${linkedUsername}@trustroots.org via NIP-05`);
                     const res = await fetch(`https://www.trustroots.org/.well-known/nostr.json?name=${encodeURIComponent(linkedUsername)}`);
                     const data = await res.json();
                     if (data.names && data.names[linkedUsername]) {
                         const nip5Hex = (data.names[linkedUsername] + '').toLowerCase();
                         if (nip5Hex !== currentPublicKey.toLowerCase()) {
+                            appendKeysLinkLog(`Username ${linkedUsername} from Nostr does not match NIP-05 verification. Clearing.`);
                             linkedUsername = null;
+                        } else {
+                            appendKeysLinkLog(`NIP-05 validated: ${linkedUsername}@trustroots.org matches this key`);
                         }
                     } else {
+                        appendKeysLinkLog(`Username ${linkedUsername} from Nostr has no valid NIP-05. Clearing.`);
                         linkedUsername = null;
                     }
-                } catch (_) {
+                } catch (error) {
+                    appendKeysLinkLog(`Error validating username ${linkedUsername} from Nostr: ${error?.message || error}`);
                     linkedUsername = null;
                 }
+            } else {
+                appendKeysLinkLog('No linked Trustroots profile event found on public chat relays');
             }
             isProfileLinked = !!linkedUsername;
             usernameFromNostr = !!linkedUsername;
@@ -10237,7 +10421,6 @@ const __nrChatApp = (() => {
 
         async function linkTrustrootsProfile() {
             const username = document.getElementById('trustroots-username')?.value?.trim() || '';
-            clearKeysLinkLog();
             appendKeysLinkLog(`Start link for username "${username || '<empty>'}"`);
             if (!username) { showStatus('Please enter a username.', 'error'); return; }
             if (!currentPublicKey) { showStatus('Please connect a key first.', 'error'); return; }
@@ -11229,7 +11412,12 @@ const __nrChatApp = (() => {
                 };
                 template.id = getEventHash(template);
                 signEvent(template).then(async (signed) => {
-                    await pool.publish(publishRelayUrls, signed);
+                    const { succeeded, failed } = await publishEventWithRelayAcks(publishRelayUrls, signed);
+                    if (succeeded.length === 0) {
+                        const fb = relayPublishFailureUserFeedback(failed, 'send');
+                        showStatus(fb.message, 'error', { actions: fb.actions });
+                        return;
+                    }
                     eventAuthorById.set(signed.id, currentPublicKey);
                     conv.events.push({
                         id: signed.id,
@@ -11245,7 +11433,7 @@ const __nrChatApp = (() => {
                     scheduleChatCacheWrite();
                     input.value = '';
                     scheduleRender('both');
-                    showStatus(`Sent to ${publishRelayUrls.length} relays.`, 'success');
+                    showStatus(`Sent to ${succeeded.length}/${publishRelayUrls.length} relays.`, 'success');
                 }).catch((e) => {
                     const fb = formatSendCatchError(e);
                     showStatus(fb.message, 'error', { actions: fb.actions });
@@ -11283,7 +11471,7 @@ const __nrChatApp = (() => {
                                 created_at: Math.floor(Date.now() / 1000) - Math.floor(Math.random() * 86400),
                                 pubkey: getPublicKey(ephem)
                             }, ephem);
-                            pool.publish(publishRelayUrls, wrap);
+                            void publishEventWithRelayAcks(publishRelayUrls, wrap);
                         } catch (_) {}
                     }
                     eventAuthorById.set(rumor.id, currentPublicKey);
@@ -11871,7 +12059,7 @@ async function collectFromRelays(filter, opts = {}) {
   const noEoseCapMs = opts.noEoseCapMs ?? 2000;
   const absoluteMaxMs = opts.absoluteMaxMs ?? 5500;
   const connectTimeoutMs = opts.connectTimeoutMs ?? 4500;
-  const urls = relayUrls();
+  const urls = relayUrls().filter((url) => !isTrustrootsAuthRelayUrl(url));
   const all = [];
   await Promise.all(
     urls.map(async (url) => {

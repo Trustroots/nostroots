@@ -386,6 +386,7 @@
     // --- Shared keys modal helpers (index + chat) ---
     var KEY_SOURCE_STORAGE_KEY = 'nostr_key_source_by_pubkey';
     var KEY_BACKUP_STATUS_STORAGE_KEY = 'nostr_key_backup_by_pubkey';
+    var KEY_ACTIVITY_LOG_ENABLED_STORAGE_KEY = 'nostr_key_activity_log_enabled';
 
     function setDisplayById(id, displayValue) {
         var el = global.document.getElementById(id);
@@ -472,6 +473,34 @@
         writeKeyBackupStatusMap(map);
     }
 
+    function isKeysLogEnabled() {
+        try {
+            return global.localStorage.getItem(KEY_ACTIVITY_LOG_ENABLED_STORAGE_KEY) === '1';
+        } catch (_) {
+            return false;
+        }
+    }
+
+    function writeKeysLogEnabled(enabled) {
+        try {
+            if (enabled) global.localStorage.setItem(KEY_ACTIVITY_LOG_ENABLED_STORAGE_KEY, '1');
+            else global.localStorage.removeItem(KEY_ACTIVITY_LOG_ENABLED_STORAGE_KEY);
+        } catch (_) {}
+    }
+
+    function syncKeysLogPreferenceUi() {
+        var enabled = isKeysLogEnabled();
+        var checkbox = global.document.getElementById('keys-log-enabled');
+        var logWrap = global.document.getElementById('keys-link-log-wrap');
+        if (checkbox) checkbox.checked = enabled;
+        if (logWrap) logWrap.style.display = enabled ? 'block' : 'none';
+    }
+
+    function setKeysLogEnabled(enabled) {
+        writeKeysLogEnabled(enabled === true);
+        syncKeysLogPreferenceUi();
+    }
+
     function setKeysModalSections(hasKey) {
         if (!hasKey) {
             setDisplayById('keys-modal-header-title', 'none');
@@ -481,6 +510,7 @@
             setDisplayById('keys-generate-section', 'block');
             setDisplayById('keys-manage-section', 'none');
             setDisplayById('keys-trustroots-section', 'none');
+            setDisplayById('keys-log-section', 'block');
             return;
         }
         setDisplayById('keys-modal-header-title', 'block');
@@ -490,6 +520,7 @@
         setDisplayById('keys-generate-section', 'none');
         setDisplayById('keys-manage-section', 'block');
         setDisplayById('keys-trustroots-section', 'block');
+        setDisplayById('keys-log-section', 'block');
     }
 
     function focusKeysImportInput(hasKey) {
@@ -513,6 +544,7 @@
         if (settingsEl) settingsEl.classList.remove('active');
         keysEl.classList.add('active');
         setKeysModalSections(!!opts.hasKey);
+        syncKeysLogPreferenceUi();
         focusKeysImportInput(!!opts.hasKey);
         if (opts.hasKey && typeof opts.onOpenManagedSection === 'function') {
             opts.onOpenManagedSection();
@@ -599,7 +631,9 @@
         clearKeySourceForPubkey: clearKeySourceForPubkey,
         setKeyBackedUpForPubkey: setKeyBackedUpForPubkey,
         isKeyBackedUpForPubkey: isKeyBackedUpForPubkey,
-        clearKeyBackedUpForPubkey: clearKeyBackedUpForPubkey
+        clearKeyBackedUpForPubkey: clearKeyBackedUpForPubkey,
+        isKeysLogEnabled: isKeysLogEnabled,
+        setKeysLogEnabled: setKeysLogEnabled
     };
 
     // --- Shared NIP-42 WS auth subscription helper (index + chat + pixel) ---
@@ -615,6 +649,18 @@
             }
         } catch (_) {}
         return relayTag;
+    }
+
+    function extractNip42Challenge(payload) {
+        if (typeof payload === 'string') {
+            var value = payload.trim();
+            return value || '';
+        }
+        if (payload && typeof payload === 'object' && typeof payload.challenge === 'string') {
+            var nested = payload.challenge.trim();
+            return nested || '';
+        }
+        return '';
     }
 
     var NIP42_PUBLISH_AUTH_KIND = 22242;
@@ -700,13 +746,15 @@
                                 created_at: Math.floor(Date.now() / 1000),
                                 tags: [
                                     ['relay', tag],
-                                    ['challenge', a]
+                                    ['challenge', extractNip42Challenge(a)]
                                 ],
                                 content: ''
                             };
+                            if (!authTemplate.tags[1][1]) throw new Error('Missing NIP-42 challenge');
                             return signAuthEvent(authTemplate);
                         })
                         .then(function (signedAuth) {
+                            if (!signedAuth || !signedAuth.id) throw new Error('Invalid signed AUTH event');
                             authEventId = signedAuth.id;
                             ws.send(JSON.stringify(['AUTH', signedAuth]));
                         })
@@ -881,19 +929,22 @@
                 var b = data[2];
 
                 if (type === 'AUTH') {
-                    if (typeof onAuthChallenge === 'function') onAuthChallenge(relayUrl, a);
+                    var challenge = extractNip42Challenge(a);
+                    if (typeof onAuthChallenge === 'function') onAuthChallenge(relayUrl, challenge || a);
                     Promise.resolve().then(function () {
+                        if (!challenge) throw new Error('Missing NIP-42 challenge');
                         var template = {
                             kind: 22242,
                             created_at: Math.floor(Date.now() / 1000),
                             tags: [
                                 ['relay', normalizeRelayTagUrl(relayUrl)],
-                                ['challenge', a]
+                                ['challenge', challenge]
                             ],
                             content: ''
                         };
                         return signEvent(template);
                     }).then(function (signedAuth) {
+                        if (!signedAuth || !signedAuth.id) throw new Error('Invalid signed AUTH event');
                         ws.send(JSON.stringify(['AUTH', signedAuth]));
                         if (typeof onAuthSuccess === 'function') onAuthSuccess(relayUrl);
                         // Retry reads after AUTH, matching test page behavior.
@@ -3956,6 +4007,16 @@ body:not(.nr-web-has-key) .nr-nav-menu-profile-only {
     margin-top: 0.75rem;
 }
 
+#keys-modal .keys-log-toggle {
+    margin-bottom: 0.35rem;
+}
+
+#keys-modal .keys-log-hint {
+    margin: 0 0 0.75rem 0;
+    color: var(--muted-foreground);
+    font-size: 0.9rem;
+}
+
 #keys-modal .keys-link-log {
     width: 100%;
     min-height: 140px;
@@ -6600,8 +6661,16 @@ h1, h2, .modal-header h2 {
                     <small>Trustroots profile linked successfully. You can now close this modal and explore the application. Please make sure you have a safe backup of your nsec (for example in your password manager). This username is from a Nostr event and cannot be edited here.</small>
                 </div>
             </div>
-            <div class="form-group keys-link-log-wrap">
-                <label>Link log</label>
+        </div>
+
+        <div class="settings-section" id="keys-log-section" style="display: none;">
+            <h2>Key activity log</h2>
+            <label class="keys-step-label keys-log-toggle">
+                <input type="checkbox" id="keys-log-enabled" onchange="window.NrWebKeysModal&&window.NrWebKeysModal.setKeysLogEnabled(this.checked)">
+                <span>Show key activity log</span>
+            </label>
+            <p class="keys-log-hint">Recent key import, validation, and relay-link activity is only recorded while this is enabled.</p>
+            <div class="form-group keys-link-log-wrap" id="keys-link-log-wrap">
                 <pre id="keys-link-log" class="keys-link-log" aria-live="polite"></pre>
             </div>
         </div>
@@ -6793,19 +6862,31 @@ h1, h2, .modal-header h2 {
     
     <script>
     (function () {
+        var appScriptLoaded = false;
+
         function appendAppScript(versionToken) {
+            if (appScriptLoaded) return;
+            appScriptLoaded = true;
             var script = document.createElement('script');
             script.type = 'module';
             script.src = './index.js?v=' + encodeURIComponent(versionToken || String(Date.now()));
             document.body.appendChild(script);
         }
 
-        // Use deploy metadata when available; fall back to a timestamp for local/dev freshness.
-        fetch('deploy-metadata.json', { cache: 'no-cache' })
-            .then(function (response) {
-                if (!response.ok) throw new Error('HTTP ' + response.status);
-                return response.json();
-            })
+        function metadataFetchWithTimeout(timeoutMs) {
+            return Promise.race([
+                fetch('deploy-metadata.json', { cache: 'no-cache' }).then(function (response) {
+                    if (!response.ok) throw new Error('HTTP ' + response.status);
+                    return response.json();
+                }),
+                new Promise(function (_, reject) {
+                    setTimeout(function () { reject(new Error('metadata-timeout')); }, timeoutMs);
+                }),
+            ]);
+        }
+
+        // Load app reliably even when metadata fetch hangs; metadata is best-effort only.
+        metadataFetchWithTimeout(1500)
             .then(function (meta) {
                 var token = (meta && (meta.commitSha || meta.deployTimestamp)) || String(Date.now());
                 appendAppScript(token);

@@ -3,6 +3,7 @@ package relay
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -69,7 +70,8 @@ func (s *Server) nip11(w http.ResponseWriter) {
 		"description":    "NIP-42 authenticated Trustroots NIP-05 relay gate",
 		"supported_nips": []int{1, 5, 11, 42},
 		"limitation": map[string]any{
-			"auth_required": true,
+			"auth_required":              true,
+			"unauthenticated_kind0_only": true,
 		},
 	})
 }
@@ -148,7 +150,9 @@ func (s *Server) websocket(w http.ResponseWriter, r *http.Request) {
 				go pipeUpstreamToClient(upstream, writeClient)
 				continue
 			}
-			rejectUnauthenticated(writeClient, typ, message)
+			if !s.handleUnauthenticated(r.Context(), writeClient, typ, message) {
+				return
+			}
 			continue
 		}
 
@@ -164,6 +168,90 @@ func (s *Server) websocket(w http.ResponseWriter, r *http.Request) {
 		if upstream == nil || upstream.WriteMessage(websocket.TextMessage, message) != nil {
 			return
 		}
+	}
+}
+
+func (s *Server) handleUnauthenticated(
+	ctx context.Context,
+	write func(any) bool,
+	typ string,
+	message []byte,
+) bool {
+	switch typ {
+	case "REQ":
+		var raw []json.RawMessage
+		if err := json.Unmarshal(message, &raw); err == nil && len(raw) >= 2 {
+			var subID string
+			_ = json.Unmarshal(raw[1], &subID)
+			return write([]any{"CLOSED", subID, "auth-required: NIP-42 authentication required"})
+		}
+		return write([]any{"NOTICE", "auth-required: NIP-42 authentication required"})
+	case "EVENT":
+		event, err := ParseEventMessage(message)
+		if err != nil {
+			return write([]any{"OK", EventIDFromMessage(message), false, "invalid: malformed EVENT payload"})
+		}
+		if err := ValidateUnauthenticatedKind0(event); err != nil {
+			return write([]any{"OK", event.ID, false, "auth-required: NIP-42 required except self-signed kind 0 bootstrap"})
+		}
+		okResp, err := s.forwardToUpstreamAndWaitOK(ctx, message, event.ID)
+		if err != nil {
+			return write([]any{"OK", event.ID, false, "error: upstream unavailable"})
+		}
+		return write(okResp)
+	default:
+		return write([]any{"NOTICE", "auth-required: NIP-42 authentication required"})
+	}
+}
+
+func (s *Server) forwardToUpstreamAndWaitOK(ctx context.Context, message []byte, eventID string) ([]any, error) {
+	timeout := s.Upstream.Lookup
+	if timeout <= 0 {
+		timeout = 5 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	conn, err := s.Upstream.Dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
+		return nil, err
+	}
+	_ = conn.SetReadDeadline(time.Now().Add(timeout))
+
+	for {
+		_, upstreamMessage, err := conn.ReadMessage()
+		if err != nil {
+			return nil, err
+		}
+		var raw []json.RawMessage
+		if err := json.Unmarshal(upstreamMessage, &raw); err != nil || len(raw) == 0 {
+			continue
+		}
+		var typ string
+		if err := json.Unmarshal(raw[0], &typ); err != nil {
+			continue
+		}
+		if typ != "OK" || len(raw) < 4 {
+			continue
+		}
+		var id string
+		if err := json.Unmarshal(raw[1], &id); err != nil || id != eventID {
+			continue
+		}
+		var accepted bool
+		var reason string
+		if err := json.Unmarshal(raw[2], &accepted); err != nil {
+			return nil, fmt.Errorf("invalid upstream OK response")
+		}
+		if err := json.Unmarshal(raw[3], &reason); err != nil {
+			return nil, fmt.Errorf("invalid upstream OK reason")
+		}
+		return []any{"OK", id, accepted, reason}, nil
 	}
 }
 
@@ -203,24 +291,6 @@ func (s *Server) authenticate(ctx context.Context, challenge string, message []b
 		}
 	}
 	return pubkey, event.ID, nil
-}
-
-func rejectUnauthenticated(write func(any) bool, typ string, message []byte) {
-	switch typ {
-	case "REQ":
-		var raw []json.RawMessage
-		if err := json.Unmarshal(message, &raw); err == nil && len(raw) >= 2 {
-			var subID string
-			_ = json.Unmarshal(raw[1], &subID)
-			write([]any{"CLOSED", subID, "auth-required: NIP-42 authentication required"})
-			return
-		}
-		write([]any{"NOTICE", "auth-required: NIP-42 authentication required"})
-	case "EVENT":
-		write([]any{"OK", EventIDFromMessage(message), false, "auth-required: NIP-42 authentication required"})
-	default:
-		write([]any{"NOTICE", "auth-required: NIP-42 authentication required"})
-	}
 }
 
 func pipeUpstreamToClient(upstream *websocket.Conn, write func(any) bool) {

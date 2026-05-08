@@ -8147,8 +8147,13 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Initialize on load
-window.addEventListener('load', async () => {
+// The app module is appended dynamically for cache-busting, so it can arrive
+// after window.load has already fired on a normal refresh.
+let nrWebAppInitialized = false;
+async function initializeNrWebApp() {
+    if (nrWebAppInitialized) return;
+    nrWebAppInitialized = true;
+
     // If user switched from chat/map via the header link, suppress connection toasts
     if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('nostroots_switching_page')) {
         sessionStorage.removeItem('nostroots_switching_page');
@@ -8315,7 +8320,15 @@ window.addEventListener('load', async () => {
     });
     void applyUnifiedHash();
     setTimeout(() => processNrWebUrlAction(), 900);
-});
+}
+
+if (document.readyState === 'complete') {
+    void initializeNrWebApp();
+} else {
+    window.addEventListener('load', () => {
+        void initializeNrWebApp();
+    }, { once: true });
+}
 
 // Make functions available globally
 window.generateKeyPair = generateKeyPair;

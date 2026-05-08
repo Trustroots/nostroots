@@ -6624,6 +6624,29 @@ function showStatus(message, type, options) {
     }, hideMs);
 }
 
+function normalizeRelayUrlForKeysLog(url) {
+    try {
+        const parsed = new URL(String(url || ''));
+        return `${parsed.protocol}//${parsed.host}`.toLowerCase();
+    } catch (_) {
+        return String(url || '').trim().toLowerCase();
+    }
+}
+
+function clearKeysLinkLog() {
+    const el = document.getElementById('keys-link-log');
+    if (!el) return;
+    el.textContent = '';
+}
+
+function appendKeysLinkLog(message) {
+    const el = document.getElementById('keys-link-log');
+    if (!el) return;
+    const ts = new Date().toISOString().slice(11, 19);
+    el.textContent += `[${ts}] ${message}\n`;
+    el.scrollTop = el.scrollHeight;
+}
+
 // Check if profile is linked (has kind 10390 event)
 async function checkProfileLinked() {
     if (!currentPublicKey) {
@@ -7770,13 +7793,17 @@ async function updateTrustrootsProfile() {
 // Trustroots profile linking
 async function linkTrustrootsProfile() {
     const username = document.getElementById('trustroots-username').value.trim();
+    clearKeysLinkLog();
+    appendKeysLinkLog(`Start link for username "${username || '<empty>'}"`);
     if (!username) {
+        appendKeysLinkLog('Missing username input');
         showStatus('Please enter a username', 'error');
         return;
     }
     
     // Check if user has a key loaded
     if (!currentPublicKey) {
+        appendKeysLinkLog('No currentPublicKey loaded');
         showStatus('Please generate or import a key first', 'error');
         return;
     }
@@ -7788,6 +7815,7 @@ async function linkTrustrootsProfile() {
         // Check for nip5 validation - only proceed if valid
         if (data.names && data.names[username]) {
             const nip5Pubkey = data.names[username];
+            appendKeysLinkLog(`NIP-05 lookup ok: ${username}@trustroots.org -> ${nip5Pubkey}`);
             
             // Normalize both pubkeys to lowercase hex for comparison
             const currentPubkeyHex = currentPublicKey.toLowerCase();
@@ -7795,6 +7823,7 @@ async function linkTrustrootsProfile() {
             
             // Verify the pubkey matches - only store/publish if valid
             if (currentPubkeyHex === nip5PubkeyHex) {
+                appendKeysLinkLog('NIP-05 pubkey matches current key');
                 // Create kind 10390 profile event with username
                 const TRUSTROOTS_USERNAME_LABEL_NAMESPACE = "org.trustroots:username";
                 const eventTemplate = {
@@ -7818,18 +7847,69 @@ async function linkTrustrootsProfile() {
                 
                 // Publish to all relays (only those with Post enabled)
                 const relayUrls = getWritableRelayUrls();
+                appendKeysLinkLog(`Writable relays (${relayUrls.length}): ${relayUrls.join(', ')}`);
                 
                 if (relayUrls.length === 0) {
+                    appendKeysLinkLog('No writable relays configured');
                     showStatus('No relays enabled for posting. Enable "Post" toggle for at least one relay.', 'error');
                     return;
                 }
+
+                // Bootstrap for NIP-42 relays that allow unauthenticated kind 0 only.
+                // This gives relays a Trustroots-linked profile marker before kind 10390.
+                const kind0Template = {
+                    kind: 0,
+                    tags: [],
+                    content: JSON.stringify({
+                        trustrootsUsername: username,
+                        nip05: `${username}@trustroots.org`,
+                    }),
+                    created_at: Math.floor(Date.now() / 1000),
+                };
+                const signedKind0Event = finalizeEvent(kind0Template, currentPrivateKeyBytes);
+                const kind0Results = await Promise.all(
+                    relayUrls.map((url) => publishToRelayWithRetries(url, signedKind0Event))
+                );
+                kind0Results.forEach((r) => {
+                    appendKeysLinkLog(`kind0 ${r.success ? 'OK' : 'FAIL'} ${r.url}${r.error ? ` :: ${r.error}` : ''}`);
+                });
+                const kind0Successful = kind0Results.filter((r) => r.success);
+                const kind0Failed = kind0Results.filter((r) => !r.success).map((r) => ({ url: r.url, error: r.error }));
+                if (kind0Successful.length === 0) {
+                    markRelaysWithPublishFailures(kind0Failed);
+                    const errorDetails = kind0Failed.map((f) => {
+                        const errorMsg = f.error ? ` (${formatRelayError(f.error)})` : '';
+                        return `${f.url}${errorMsg}`;
+                    }).join(', ');
+                    showStatus(`Profile validated but bootstrap kind 0 failed to publish: ${errorDetails}.`, 'error', { eventPayload: signedKind0Event, actions: [] });
+                    return;
+                }
+                // Small delay so relays can index kind 0 before enforcing trustroots-profile checks.
+                await new Promise((resolve) => setTimeout(resolve, 700));
                 
                 const publishPromises = relayUrls.map(url => publishToRelayWithRetries(url, signedEvent));
                 const results = await Promise.all(publishPromises);
+                results.forEach((r) => {
+                    appendKeysLinkLog(`kind10390 ${r.success ? 'OK' : 'FAIL'} ${r.url}${r.error ? ` :: ${r.error}` : ''}`);
+                });
                 const successful = results.filter(r => r.success);
                 const failed = results.filter(r => !r.success).map(r => ({ url: r.url, error: r.error }));
+                const authRelayNormalized = normalizeRelayUrlForKeysLog(TRUSTROOTS_RESTRICTED_RELAY_URL);
+                const authRelayAttempted = relayUrls.some((u) => normalizeRelayUrlForKeysLog(u) === authRelayNormalized);
+                const authRelayKind0Ok = kind0Results.some((r) => r.success && normalizeRelayUrlForKeysLog(r.url) === authRelayNormalized);
+                const authRelayKind10390Ok = results.some((r) => r.success && normalizeRelayUrlForKeysLog(r.url) === authRelayNormalized);
+                if (authRelayAttempted && (!authRelayKind0Ok || !authRelayKind10390Ok)) {
+                    appendKeysLinkLog(`Auth relay check failed: kind0=${authRelayKind0Ok} kind10390=${authRelayKind10390Ok}`);
+                    showStatus(
+                        'Profile validated, but auth relay publish did not complete. Check Link log and relay settings, then retry.',
+                        'error',
+                        { actions: [{ label: 'Open Keys & profile', onClick: () => openKeysModal() }] }
+                    );
+                    return;
+                }
                 
                 if (successful.length > 0) {
+                    appendKeysLinkLog('Link flow success');
                     const relayWord = successful.length === 1 ? 'relay' : 'relays';
                     let statusMessage = `Profile linked! Username ${username} published to ${successful.length} ${relayWord}. You can now close this modal and explore the app. Make sure your nsec is safely backed up (for example in your password manager).`;
                     if (failed.length > 0) {
@@ -7861,6 +7941,7 @@ async function linkTrustrootsProfile() {
                     updateKeyDisplay({ skipProfileLookup: true });
                     await refreshClaimSuggestions({ silent: true });
                 } else {
+                    appendKeysLinkLog('kind10390 failed on all relays');
                     markRelaysWithPublishFailures(failed);
                     const relayWordPf = failed.length === 1 ? 'relay' : 'relays';
                     const hasProfileMissingRestrictionPf = failed.some(f => isTrustrootsProfileMissingRelayError(f.error));
@@ -7881,6 +7962,7 @@ async function linkTrustrootsProfile() {
                     }
                 }
             } else {
+                appendKeysLinkLog('NIP-05 pubkey mismatch with current key');
                 showStatus(`Username ${username} is linked to a different npub. This profile does not belong to you.`, 'error');
                 
                 // Clear the username field since it doesn't belong to this profile
@@ -7902,10 +7984,12 @@ async function linkTrustrootsProfile() {
                 updateLinkProfileButton();
             }
         } else {
+            appendKeysLinkLog('NIP-05 name not found on trustroots.org');
             // No valid nip5 found - don't store username
             showStatus('Username not found or has no valid nip5', 'error');
         }
     } catch (error) {
+        appendKeysLinkLog(`Exception: ${error?.message || error}`);
         showStatus('Error linking profile: ' + error.message, 'error');
     }
 }
@@ -10158,6 +10242,8 @@ const __nrChatApp = (() => {
 
         async function linkTrustrootsProfile() {
             const username = document.getElementById('trustroots-username')?.value?.trim() || '';
+            clearKeysLinkLog();
+            appendKeysLinkLog(`Start link for username "${username || '<empty>'}"`);
             if (!username) { showStatus('Please enter a username.', 'error'); return; }
             if (!currentPublicKey) { showStatus('Please connect a key first.', 'error'); return; }
             try {
@@ -10172,6 +10258,7 @@ const __nrChatApp = (() => {
                     showStatus('That username is linked to a different key on Trustroots.', 'error');
                     return;
                 }
+                appendKeysLinkLog(`NIP-05 lookup ok: ${username}@trustroots.org -> ${nip5Hex}`);
                 const eventTemplate = {
                     kind: TRUSTROOTS_PROFILE_KIND,
                     tags: [
@@ -10184,7 +10271,42 @@ const __nrChatApp = (() => {
                 };
                 const signedEvent = await signEvent(eventTemplate);
                 const r = getPublishRelayUrls();
-                await pool.publish(r, signedEvent);
+                appendKeysLinkLog(`Writable relays (${r.length}): ${r.join(', ')}`);
+                const kind0Template = {
+                    kind: 0,
+                    tags: [],
+                    content: JSON.stringify({
+                        trustrootsUsername: username,
+                        nip05: `${username}@trustroots.org`,
+                    }),
+                    created_at: Math.floor(Date.now() / 1000),
+                    pubkey: currentPublicKey
+                };
+                const signedKind0Event = await signEvent(kind0Template);
+                const kind0Publish = await publishEventWithRelayAcks(r, signedKind0Event);
+                kind0Publish.succeeded.forEach((entry) => appendKeysLinkLog(`kind0 OK ${entry.url}`));
+                kind0Publish.failed.forEach((entry) => appendKeysLinkLog(`kind0 FAIL ${entry.url}${entry.error ? ` :: ${entry.error}` : ''}`));
+                if (kind0Publish.succeeded.length === 0) {
+                    showStatus('Profile validated but bootstrap kind 0 failed on all relays.', 'error');
+                    return;
+                }
+                await new Promise(resolve => setTimeout(resolve, 700));
+                const profilePublish = await publishEventWithRelayAcks(r, signedEvent);
+                profilePublish.succeeded.forEach((entry) => appendKeysLinkLog(`kind10390 OK ${entry.url}`));
+                profilePublish.failed.forEach((entry) => appendKeysLinkLog(`kind10390 FAIL ${entry.url}${entry.error ? ` :: ${entry.error}` : ''}`));
+                const authRelayNormalized = normalizeRelayUrlForKeysLog(TRUSTROOTS_RESTRICTED_RELAY_URL);
+                const authRelayAttempted = r.some((u) => normalizeRelayUrlForKeysLog(u) === authRelayNormalized);
+                const authRelayKind0Ok = kind0Publish.succeeded.some((entry) => normalizeRelayUrlForKeysLog(entry.url) === authRelayNormalized);
+                const authRelayKind10390Ok = profilePublish.succeeded.some((entry) => normalizeRelayUrlForKeysLog(entry.url) === authRelayNormalized);
+                if (authRelayAttempted && (!authRelayKind0Ok || !authRelayKind10390Ok)) {
+                    appendKeysLinkLog(`Auth relay check failed: kind0=${authRelayKind0Ok} kind10390=${authRelayKind10390Ok}`);
+                    showStatus('Profile validated, but auth relay publish did not complete. Check Link log and retry.', 'error');
+                    return;
+                }
+                if (profilePublish.succeeded.length === 0) {
+                    showStatus('Profile validated but kind 10390 failed on all relays.', 'error');
+                    return;
+                }
                 isProfileLinked = true;
                 usernameFromNostr = true;
                 setTrustrootsUI(username);
@@ -10192,8 +10314,10 @@ const __nrChatApp = (() => {
                 pubkeyToUsername.set(currentPublicKey, username);
                 setCachedValidatedTrustrootsUsername(currentPublicKey, username);
                 scheduleChatCacheWrite();
+                appendKeysLinkLog('Link flow success');
                 showStatus('Profile linked. You can now close this modal and explore the app. Make sure your nsec is safely backed up (for example in your password manager).', 'success');
             } catch (e) {
+                appendKeysLinkLog(`Exception: ${e?.message || e}`);
                 showStatus(e?.message || 'Failed to link profile.', 'error');
             }
         }

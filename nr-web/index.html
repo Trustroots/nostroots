@@ -3954,6 +3954,26 @@ body:not(.nr-web-has-key) .nr-nav-menu-profile-only {
     font-style: normal;
 }
 
+#keys-modal .keys-link-log-wrap {
+    margin-top: 0.75rem;
+}
+
+#keys-modal .keys-link-log {
+    width: 100%;
+    min-height: 140px;
+    max-height: 260px;
+    overflow: auto;
+    white-space: pre-wrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--muted);
+    color: var(--foreground);
+}
+
 /* Relays list (settings modal) */
 #settings-modal .relays-list {
     display: flex;
@@ -4393,7 +4413,7 @@ h1, h2, .modal-header h2 {
 .conv-item {
     display: flex;
     align-items: center;
-    gap: 0;
+    gap: 0.5rem;
     padding: 0.55rem 0.7rem;
     border-radius: 0.5rem;
     cursor: pointer;
@@ -4598,19 +4618,8 @@ h1, h2, .modal-header h2 {
 .conv-item.conv-item-circle {
     display: flex;
     flex-direction: row;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.5rem;
-}
-.conv-item.conv-item-circle > .conv-item-avatar {
-    order: 2;
-    margin-left: 0.25rem;
-    align-self: flex-start;
-}
-.conv-item.conv-item-circle > .conv-item-stack {
-    order: 1;
-    flex: 1;
-    min-width: 0;
+    align-items: center;
+    justify-content: flex-start;
 }
 .conv-item-avatar {
     width: 2rem;
@@ -4620,6 +4629,12 @@ h1, h2, .modal-header h2 {
     flex-shrink: 0;
     border: 1px solid var(--border);
     background: var(--muted);
+}
+.conv-item-avatar-placeholder {
+    opacity: 0;
+    border-color: transparent;
+    background: transparent;
+    pointer-events: none;
 }
 .conv-item-stack {
     min-width: 0;
@@ -6586,6 +6601,10 @@ h1, h2, .modal-header h2 {
                 <div id="username-nostr-indicator" class="username-nostr-indicator" style="display: none;">
                     <small>Trustroots profile linked successfully. You can now close this modal and explore the application. Please make sure you have a safe backup of your nsec (for example in your password manager). This username is from a Nostr event and cannot be edited here.</small>
                 </div>
+            </div>
+            <div class="form-group keys-link-log-wrap">
+                <label>Link log</label>
+                <pre id="keys-link-log" class="keys-link-log" aria-live="polite"></pre>
             </div>
         </div>
 

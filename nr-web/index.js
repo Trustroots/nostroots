@@ -1084,9 +1084,6 @@ async function authenticateRelay(relay, relayUrl, challenge) {
         ],
         content: ''
     };
-    if (currentPublicKey) {
-        authTemplate.pubkey = currentPublicKey;
-    }
     const signedAuth = await signEventTemplate(authTemplate);
     await relay.auth(signedAuth);
 }
@@ -1182,8 +1179,7 @@ async function publishToRelayViaRawWebSocket(url, signedEvent) {
                             ['relay', url],
                             ['challenge', challenge]
                         ],
-                        content: '',
-                        pubkey: signedEvent.pubkey
+                        content: ''
                     };
                     const signedAuth = await signEventTemplate(authTemplate);
                     authEventId = signedAuth.id;
@@ -9639,8 +9635,7 @@ const __nrChatApp = (() => {
                     ['relay', relayTag],
                     ['challenge', challenge]
                 ],
-                content: '',
-                pubkey: currentPublicKey
+                content: ''
             };
             return signEvent(authTemplate);
         }

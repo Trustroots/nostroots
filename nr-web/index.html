@@ -702,8 +702,7 @@
                                     ['relay', tag],
                                     ['challenge', a]
                                 ],
-                                content: '',
-                                pubkey: signedEvent.pubkey
+                                content: ''
                             };
                             return signAuthEvent(authTemplate);
                         })
@@ -891,8 +890,7 @@
                                 ['relay', normalizeRelayTagUrl(relayUrl)],
                                 ['challenge', a]
                             ],
-                            content: '',
-                            pubkey: authPubkey
+                            content: ''
                         };
                         return signEvent(template);
                     }).then(function (signedAuth) {

@@ -1041,16 +1041,21 @@ const DEFAULT_RELAYS = (window.NrWebRelaySettings?.getDefaultRelays?.() || ['wss
 const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2;
 
 let nrChatBooted = false;
+let nrChatBootPromise = null;
 function ensureChatEmbeddedReady() {
-    if (!nrChatBooted) {
-        nrChatBooted = true;
-        try {
-            bootEmbeddedChat();
-        } catch (err) {
+    if (nrChatBooted) return Promise.resolve();
+    if (nrChatBootPromise) return nrChatBootPromise;
+    nrChatBootPromise = Promise.resolve()
+        .then(() => bootEmbeddedChat())
+        .then(() => {
+            nrChatBooted = true;
+        })
+        .catch((err) => {
+            nrChatBootPromise = null;
+            nrChatBooted = false;
             console.warn('[nr-web] embedded chat boot failed', err);
-        }
-    }
-    return Promise.resolve();
+        });
+    return nrChatBootPromise;
 }
 
 // Decode blocklist npubs to hex (shared blocklist in common.js)
@@ -2022,6 +2027,7 @@ let isProfileLinked = false; // Track if profile is NIP-5 linked
 let usernameFromNostr = false; // Track if username came from a Nostr event
 
 const NR_WEB_SIGNER_MODE_KEY = 'nr_web_signer_mode';
+const NR_WEB_NIP7_PUBKEY_KEY = 'nr_web_nip7_pubkey';
 
 function getNip7Provider() {
     if (typeof window === 'undefined') return null;
@@ -2076,13 +2082,42 @@ export const nrWebNip7Signer = {
     },
     isActive() {
         try {
-            return localStorage.getItem(NR_WEB_SIGNER_MODE_KEY) === 'nip7' && !!this.pubkey && inspectNip7Capabilities().isFull;
+            if (!this.pubkey) this.pubkey = String(localStorage.getItem(NR_WEB_NIP7_PUBKEY_KEY) || '').trim().toLowerCase();
+            return localStorage.getItem(NR_WEB_SIGNER_MODE_KEY) === 'nip7' && isLikelyHexPubkey64(this.pubkey) && inspectNip7Capabilities().isFull;
         } catch (_) {
             return !!this.pubkey && inspectNip7Capabilities().isFull;
         }
     },
     isActiveForPubkey(pubkey) {
         return this.isActive() && !!pubkey && String(pubkey).toLowerCase() === String(this.pubkey).toLowerCase();
+    },
+    async warmNip7Permissions(caps, pubkey) {
+        const provider = caps?.provider;
+        if (!provider || !isLikelyHexPubkey64(pubkey)) return;
+        const probeTemplate = {
+            kind: 27235,
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [['client', 'nr-web'], ['purpose', 'permission-check']],
+            content: 'Nostroots browser extension permission check',
+            pubkey
+        };
+        const signedProbe = await provider.signEvent(probeTemplate);
+        const signedPubkey = String(signedProbe?.pubkey || '').toLowerCase();
+        if (!signedProbe?.id || !signedProbe?.sig || signedPubkey !== pubkey || signedProbe.id !== getEventHash(signedProbe)) {
+            throw new Error('NIP-07 extension returned an invalid permission-check signature.');
+        }
+        const nip44ProbeText = 'Nostroots encrypted permission check';
+        const nip44Cipher = await provider.nip44.encrypt(pubkey, nip44ProbeText);
+        const nip44Plain = await provider.nip44.decrypt(pubkey, nip44Cipher);
+        if (nip44Plain !== nip44ProbeText) {
+            throw new Error('NIP-07 extension failed the NIP-44 permission check.');
+        }
+        if (typeof provider.nip04?.encrypt === 'function') {
+            try {
+                const nip04Cipher = await provider.nip04.encrypt(pubkey, 'Nostroots legacy DM permission check');
+                await provider.nip04.decrypt(pubkey, nip04Cipher);
+            } catch (_) {}
+        }
     },
     async connect() {
         const caps = inspectNip7Capabilities();
@@ -2092,12 +2127,20 @@ export const nrWebNip7Signer = {
         }
         const pubkey = String(await caps.provider.getPublicKey()).trim().toLowerCase();
         if (!isLikelyHexPubkey64(pubkey)) throw new Error('The NIP-07 extension returned an invalid public key.');
+        await this.warmNip7Permissions(caps, pubkey);
         this.pubkey = pubkey;
-        try { localStorage.setItem(NR_WEB_SIGNER_MODE_KEY, 'nip7'); } catch (_) {}
+        try {
+            localStorage.setItem(NR_WEB_SIGNER_MODE_KEY, 'nip7');
+            localStorage.setItem(NR_WEB_NIP7_PUBKEY_KEY, pubkey);
+        } catch (_) {}
         return pubkey;
     },
     useLocal() {
-        try { localStorage.setItem(NR_WEB_SIGNER_MODE_KEY, 'local'); } catch (_) {}
+        try {
+            localStorage.setItem(NR_WEB_SIGNER_MODE_KEY, 'local');
+            localStorage.removeItem(NR_WEB_NIP7_PUBKEY_KEY);
+        } catch (_) {}
+        this.pubkey = '';
     },
     async signEvent(template, expectedPubkey) {
         const caps = inspectNip7Capabilities();
@@ -2761,7 +2804,6 @@ function deleteNsec() {
 function disconnectNip7() {
     if (!nrWebNip7Signer.isActive() && (!currentPublicKey || currentPrivateKey)) return;
     nrWebNip7Signer.useLocal();
-    nrWebNip7Signer.pubkey = '';
     currentPublicKey = null;
     currentPrivateKey = null;
     currentPrivateKeyBytes = null;
@@ -2770,6 +2812,7 @@ function disconnectNip7() {
     if (typeof window.NrWebTheme !== 'undefined') {
         window.NrWebTheme.registerThemePublish(null);
     }
+    loadKeys();
     appendKeysLinkLog('Disconnected NIP-07 browser extension mode');
     updateKeyDisplay({ skipProfileLookup: true });
     showStatus('Browser extension disconnected.', 'info');
@@ -7455,7 +7498,7 @@ function updateClaimRelayScopeRow() {
         s.className = 'claim-relay-icon';
         s.textContent = '🔐';
         s.setAttribute('role', 'img');
-        s.title = 'Auth relay (nip42.trustroots.org, NIP-42) — publishing requires your nsec and a linked Trustroots identity.';
+        s.title = 'Auth relay (nip42.trustroots.org, NIP-42) — publishing requires a signer and a linked Trustroots identity.';
         icons.appendChild(s);
     }
     el.appendChild(label);
@@ -7485,7 +7528,13 @@ function renderClaimSummary() {
         return;
     }
     const counts = getClaimSummaryCounts();
-    summary.textContent = `Profiles: ${counts.profile} | Hosting: ${counts.hosts} | Relationships: ${counts.relationships} | Experiences: ${counts.experiences}`;
+    const pill = (label, value) => `<span class="claim-summary-pill">${label} <strong>${value}</strong></span>`;
+    summary.innerHTML = [
+        pill('Profiles', counts.profile),
+        pill('Hosting', counts.hosts),
+        pill('Relationships', counts.relationships),
+        pill('Experiences', counts.experiences),
+    ].join('');
     renderClaimDetailBlocks();
 }
 
@@ -7930,6 +7979,9 @@ function openKeysModal(options = {}) {
                 return false;
             }
         })();
+    if (nip7Active && !currentPublicKey && nrWebNip7Signer.pubkey) {
+        currentPublicKey = nrWebNip7Signer.pubkey;
+    }
     _openKeysModalShared({
         hasKey: !!(currentPublicKey || currentPrivateKey || nip7Active),
         onOpenManagedSection: () => {
@@ -8291,7 +8343,10 @@ async function linkTrustrootsProfile() {
                 if (successful.length > 0) {
                     appendKeysLinkLog('Link flow success');
                     const relayWord = successful.length === 1 ? 'relay' : 'relays';
-                    let statusMessage = `Profile linked! Username ${username} published to ${successful.length} ${relayWord}. You can now close this modal and explore the app. Make sure your nsec is safely backed up (for example in your password manager).`;
+                    const backupHint = nrWebNip7Signer.isActiveForPubkey(currentPublicKey)
+                        ? 'Your browser extension will handle signing for this identity.'
+                        : 'Make sure your nsec is safely backed up (for example in your password manager).';
+                    let statusMessage = `Profile linked! Username ${username} published to ${successful.length} ${relayWord}. You can now close this modal and explore the app. ${backupHint}`;
                     if (failed.length > 0) {
                         const failedRelays = failed.map(f => f.url).join(', ');
                         statusMessage += ` (${failed.length} failed: ${failedRelays})`;
@@ -9732,6 +9787,9 @@ const __nrChatApp = (() => {
                         return false;
                     }
                 })();
+            if (nip7Active && !currentPublicKey && window.NrWebNip7?.pubkey) {
+                currentPublicKey = window.NrWebNip7.pubkey;
+            }
             _openKeysModalShared({
                 hasKey: !!(currentPublicKey || currentSecretKeyHex || nip7Active),
                 onOpenManagedSection: () => {
@@ -9891,10 +9949,36 @@ const __nrChatApp = (() => {
             showStatus('Private key deleted', 'success');
         }
 
-        function disconnectNip7() {
+        async function disconnectNip7() {
+            const previousPubkey = currentPublicKey;
             window.NrWebNip7?.useLocal?.();
-            if (window.NrWebNip7) window.NrWebNip7.pubkey = '';
-            disconnect();
+            currentPublicKey = null;
+            currentSecretKeyHex = null;
+            currentSecretKeyBytes = null;
+            isProfileLinked = false;
+            usernameFromNostr = false;
+            currentUserNip05 = '';
+            setTrustrootsUI('');
+            if (typeof window.NrWebTheme !== 'undefined') {
+                window.NrWebTheme.registerThemePublish(null);
+            }
+            if (pool) {
+                try { pool.close(); } catch (_) {}
+                pool = null;
+            }
+            closePublicMapRelayConnections();
+            const restoredLocalKey = await loadKeysFromStorage();
+            if (!restoredLocalKey) {
+                const selChatKey = previousPubkey ? 'nostroots_selected_chat_' + previousPubkey : '';
+                if (selChatKey) {
+                    try { localStorage.removeItem(selChatKey); } catch (_) {}
+                }
+                conversations.clear();
+                selectedConversationId = null;
+                updateUI();
+                renderConvList();
+                showThreadEmpty();
+            }
             appendKeysLinkLog('Disconnected NIP-07 browser extension mode');
             updateKeyDisplay({ skipProfileLookup: true });
             openKeysModal();
@@ -10178,7 +10262,6 @@ const __nrChatApp = (() => {
         async function buildAuthEventForRelay(relayUrl, challenge) {
             const resolvedChallenge = extractNip42Challenge(challenge);
             if (!resolvedChallenge) throw new Error('Missing NIP-42 challenge');
-            requireLocalSigningKey();
             let relayTag = (relayUrl || '').trim();
             try {
                 const parsed = new URL(relayTag);
@@ -10316,7 +10399,7 @@ const __nrChatApp = (() => {
 
         function startWsMapSubscription(relayUrl, onChannelEvent) {
             const relayAuth = globalThis.NrWebRelayAuth;
-            if (relayAuth?.startNip42WsSubscription && currentPublicKey) {
+            if (isRestrictedRelayUrl(relayUrl) && relayAuth?.startNip42WsSubscription && currentPublicKey) {
                 return relayAuth.startNip42WsSubscription({
                     relayUrl,
                     filter: { kinds: [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND], limit: 10000 },
@@ -10902,7 +10985,10 @@ const __nrChatApp = (() => {
                 setCachedValidatedTrustrootsUsername(currentPublicKey, username);
                 scheduleChatCacheWrite();
                 appendKeysLinkLog('Link flow success');
-                showStatus('Profile linked. You can now close this modal and explore the app. Make sure your nsec is safely backed up (for example in your password manager).', 'success');
+                const backupHint = isNip7ChatActive()
+                    ? 'Your browser extension will handle signing for this identity.'
+                    : 'Make sure your nsec is safely backed up (for example in your password manager).';
+                showStatus(`Profile linked. You can now close this modal and explore the app. ${backupHint}`, 'success');
             } catch (e) {
                 appendKeysLinkLog(`Exception: ${e?.message || e}`);
                 showStatus(e?.message || 'Failed to link profile.', 'error');
@@ -12102,7 +12188,7 @@ function bootEmbeddedChat() {
         else if (active.id === 'delete-confirm-modal') closeDeleteConfirmModal();
     }, true);
 
-    void (async () => {
+    return (async () => {
         const ok = await loadKeysFromStorage();
         if (!ok) {
             updateUI();
@@ -13923,12 +14009,23 @@ async function renderPublicProfile(profileId) {
     bindBasicEditAction(refs.nameEditBtn, 'Profile header');
     bindBasicEditAction(refs.aboutEditBtn, 'About');
 
-    if (isSelfHex(hex)) {
+    const tryMountOwnClaimSection = () => {
+      if (!isSelfHex(hex)) return false;
       try {
         window.NrWebMountClaimTrustrootsSection?.();
       } catch (e) {
         console.warn('[nr-profile] mount claim section on own public profile', e);
       }
+      return true;
+    };
+    if (!tryMountOwnClaimSection()) {
+      // NIP-07 restore may finish just after initial profile render on refresh.
+      // Retry briefly so own-profile claim tools still appear without manual navigation.
+      [120, 400, 1000].forEach((delayMs) => {
+        setTimeout(() => {
+          void tryMountOwnClaimSection();
+        }, delayMs);
+      });
     }
 
     viewState.fetchDiag = { sources: [], authDiag: [] };

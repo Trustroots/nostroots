@@ -3971,6 +3971,58 @@ function profilePageCacheKey(hex) {
     return NR_MAP_CACHE_PROFILE_PAGE_KEY_PREFIX + String(hex || '').toLowerCase();
 }
 
+function eventHasPTagForHex(event, hex) {
+    const h = String(hex || '').toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(h)) return false;
+    return (event?.tags || []).some(
+        (tag) => Array.isArray(tag) && tag[0] === 'p' && String(tag[1] || '').toLowerCase() === h
+    );
+}
+
+function eventPTagsHexSet(event) {
+    const out = new Set();
+    for (const tag of event?.tags || []) {
+        if (!Array.isArray(tag) || tag[0] !== 'p' || !tag[1]) continue;
+        const hex = String(tag[1]).toLowerCase();
+        if (/^[0-9a-f]{64}$/.test(hex)) out.add(hex);
+    }
+    return out;
+}
+
+function isProfilePageCacheEventScoped(event, hex, bucket) {
+    if (!event || typeof event !== 'object') return false;
+    const h = String(hex || '').toLowerCase();
+    const author = String(event.pubkey || '').toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(h)) return false;
+    if (NrBlocklist && NrBlocklist.isBlocked && NrBlocklist.isBlocked(author)) return false;
+    if (bucket === 'evAuthors') {
+        return (event.kind === 0 || event.kind === TRUSTROOTS_PROFILE_KIND) && author === h;
+    }
+    if (bucket === 'evP30390') {
+        if (event.kind !== PROFILE_CLAIM_KIND) return false;
+        const pTags = eventPTagsHexSet(event);
+        if (pTags.has(h)) return true;
+        if (author !== h) return false;
+        // Keep author-scoped events only when they are self/legacy rows
+        // without explicit p-targets (or with only self-target p tags).
+        if (!pTags.size) return true;
+        return pTags.size === 1 && pTags.has(h);
+    }
+    if (bucket === 'evPClaims') {
+        return (
+            (event.kind === RELATIONSHIP_CLAIM_KIND || event.kind === EXPERIENCE_CLAIM_KIND) &&
+            eventHasPTagForHex(event, h)
+        );
+    }
+    if (bucket === 'evNotes') {
+        return MAP_NOTE_KINDS.includes(event.kind) && author === h;
+    }
+    if (bucket === 'evHost30398') {
+        return event.kind === MAP_NOTE_REPOST_KIND && eventHasPTagForHex(event, h);
+    }
+    return false;
+}
+
 /**
  * Load cached events that power the public profile page for a given pubkey.
  * Returns `null` when the cache is missing, stale, blocklisted, or unreadable.
@@ -3993,20 +4045,16 @@ async function loadProfilePageEventsFromCache(hex) {
         if (!row) return null;
         const age = Date.now() - (row.timestamp || 0);
         if (age > PROFILE_PAGE_CACHE_MAX_AGE) return null;
-        const filterEvents = (arr) => {
+        const filterEvents = (arr, bucket) => {
             if (!Array.isArray(arr)) return [];
-            return arr.filter((e) => {
-                if (!e || typeof e !== 'object') return false;
-                if (NrBlocklist && NrBlocklist.isBlocked && NrBlocklist.isBlocked(e.pubkey)) return false;
-                return true;
-            });
+            return arr.filter((e) => isProfilePageCacheEventScoped(e, h, bucket));
         };
         return {
-            evAuthors: filterEvents(row.evAuthors),
-            evP30390: filterEvents(row.evP30390),
-            evPClaims: filterEvents(row.evPClaims),
-            evNotes: filterEvents(row.evNotes),
-            evHost30398: filterEvents(row.evHost30398),
+            evAuthors: filterEvents(row.evAuthors, 'evAuthors'),
+            evP30390: filterEvents(row.evP30390, 'evP30390'),
+            evPClaims: filterEvents(row.evPClaims, 'evPClaims'),
+            evNotes: filterEvents(row.evNotes, 'evNotes'),
+            evHost30398: filterEvents(row.evHost30398, 'evHost30398'),
             timestamp: row.timestamp || 0,
         };
     } catch (e) {
@@ -4031,10 +4079,11 @@ async function saveProfilePageEventsToCache(hex, payload) {
         console.warn('Map cache DB unavailable (profile page):', e);
         return;
     }
-    const slimList = (arr, cap) => {
+    const slimList = (arr, cap, bucket) => {
         if (!Array.isArray(arr)) return [];
         const out = [];
         for (const ev of arr) {
+            if (!isProfilePageCacheEventScoped(ev, h, bucket)) continue;
             const s = slimEventForProfileCache(ev);
             if (s) out.push(s);
         }
@@ -4043,11 +4092,11 @@ async function saveProfilePageEventsToCache(hex, payload) {
     const baseRecord = {
         key: profilePageCacheKey(h),
         hex: h,
-        evAuthors: slimList(payload?.evAuthors, 30),
-        evP30390: slimList(payload?.evP30390, 60),
-        evPClaims: slimList(payload?.evPClaims, 60),
-        evNotes: slimList(payload?.evNotes, 50),
-        evHost30398: slimList(payload?.evHost30398, 100),
+        evAuthors: slimList(payload?.evAuthors, 30, 'evAuthors'),
+        evP30390: slimList(payload?.evP30390, 60, 'evP30390'),
+        evPClaims: slimList(payload?.evPClaims, 60, 'evPClaims'),
+        evNotes: slimList(payload?.evNotes, 50, 'evNotes'),
+        evHost30398: slimList(payload?.evHost30398, 100, 'evHost30398'),
         timestamp: Date.now(),
     };
     // If we have nothing useful to cache, skip the write so we don't churn the LRU index.
@@ -12278,15 +12327,41 @@ function circleImportToolPubkeyHex() {
   }
 }
 
+let profileRenderSequence = 0;
+
+function beginProfileRender(profileId, mode) {
+  const root = document.getElementById('nr-profile-root');
+  const token = {
+    seq: ++profileRenderSequence,
+    profileId: String(profileId || '').trim(),
+    mode: String(mode || 'public'),
+  };
+  if (root) {
+    root.dataset.nrProfileRenderSeq = String(token.seq);
+    root.dataset.nrProfileRenderId = token.profileId;
+    root.dataset.nrProfileRenderMode = token.mode;
+    root.innerHTML = '<p class="nr-profile-loading">Loading…</p>';
+  }
+  return token;
+}
+
+function isProfileRenderCurrent(token) {
+  if (!token || token.seq !== profileRenderSequence) return false;
+  const root = document.getElementById('nr-profile-root');
+  return !!root && root.dataset.nrProfileRenderSeq === String(token.seq);
+}
+
 /**
  * @param {string} profileId
+ * @param {{ seq: number }} token
  * @returns {Promise<{ root: HTMLElement; hex: string } | null>} null if missing root or resolve failed (DOM updated)
  */
-async function prepareProfileRootResolved(profileId) {
+async function prepareProfileRootResolved(profileId, token) {
   const root = document.getElementById('nr-profile-root');
   if (!root) return null;
-  root.innerHTML = '<p class="nr-profile-loading">Loading…</p>';
+  if (!isProfileRenderCurrent(token)) return null;
   const hex = await resolveProfileIdToHex(profileId);
+  if (!isProfileRenderCurrent(token)) return null;
   if (!hex) {
     root.innerHTML =
       '<p class="nr-profile-error">Could not resolve that NIP-05, or the npub is invalid.</p>';
@@ -12509,11 +12584,13 @@ function pickLatest30390(events, subjectHex, trustrootsUser = '') {
   const tr = String(trustrootsUser || '').trim().toLowerCase();
   const list = (events || []).filter((e) => {
     if (e.kind !== PROFILE_CLAIM_KIND) return false;
-    if (h && String(e.pubkey || '').toLowerCase() === h) return true;
+    const pTags = eventPTagsHexSet(e);
+    if (h && pTags.has(h)) return true;
+    if (h && String(e.pubkey || '').toLowerCase() === h) {
+      if (!pTags.size) return true;
+      if (pTags.size === 1 && pTags.has(h)) return true;
+    }
     const tags = e.tags || [];
-    const ps = tags.filter((t) => t[0] === 'p' && t[1]);
-    const pMatch = h ? ps.some((t) => String(t[1]).toLowerCase() === h) : false;
-    if (pMatch) return true;
     const labelMatch =
       !!tr &&
       tags.some(
@@ -13937,8 +14014,10 @@ function applyStagedProfileView(refs, viewState, ctx) {
  * @param {string} profileId - npub, hex, or nip05 (decoded)
  */
 async function renderPublicProfile(profileId) {
-  const prep = await prepareProfileRootResolved(profileId);
+  const renderToken = beginProfileRender(profileId, 'public');
+  const prep = await prepareProfileRootResolved(profileId, renderToken);
   if (!prep) return;
+  if (!isProfileRenderCurrent(renderToken)) return;
   const { root, hex } = prep;
   const safeProfileId = String(profileId || '').trim();
 
@@ -13977,6 +14056,7 @@ async function renderPublicProfile(profileId) {
       if (!u || avatarRequestedUsers.has(u)) return;
       avatarRequestedUsers.add(u);
       void tryTrustrootsApiAvatar(u).then((pic) => {
+        if (!isProfileRenderCurrent(renderToken)) return;
         if (!pic || viewState.avatarExtra === pic) return;
         viewState.avatarExtra = pic;
         bump();
@@ -13995,6 +14075,7 @@ async function renderPublicProfile(profileId) {
     });
 
     const bump = () => {
+      if (!isProfileRenderCurrent(renderToken)) return;
       try {
         applyStagedProfileView(refs, viewState, ctx);
       } catch (e) {
@@ -14010,6 +14091,7 @@ async function renderPublicProfile(profileId) {
     bindBasicEditAction(refs.aboutEditBtn, 'About');
 
     const tryMountOwnClaimSection = () => {
+      if (!isProfileRenderCurrent(renderToken)) return false;
       if (!isSelfHex(hex)) return false;
       try {
         window.NrWebMountClaimTrustrootsSection?.();
@@ -14069,6 +14151,7 @@ async function renderPublicProfile(profileId) {
       return null;
     });
     void cachedProfilePromise.then((cached) => {
+      if (!isProfileRenderCurrent(renderToken)) return;
       if (!cached) return;
       const normalized = normalizeCachedProfileEvents(cached);
       let painted = false;
@@ -14103,6 +14186,7 @@ async function renderPublicProfile(profileId) {
         trackAuth('0+10390 authors=hex [auth]', { kinds: [0, TRUSTROOTS_PROFILE_KIND], authors: [hex], limit: 30 }),
         cachedProfilePromise,
       ]);
+      if (!isProfileRenderCurrent(renderToken)) return;
       viewState.evAuthors = dedupeById([
         ...(byUnauth || []),
         ...(byAuth || []),
@@ -14137,6 +14221,7 @@ async function renderPublicProfile(profileId) {
         }
       }
       const [results, cached] = await Promise.all([Promise.all(queries), cachedProfilePromise]);
+      if (!isProfileRenderCurrent(renderToken)) return;
       const normalized = normalizeCachedProfileEvents(cached);
       viewState.evP30390 = dedupeById([...results.flat(), ...normalized.evP30390]);
       bump();
@@ -14146,6 +14231,7 @@ async function renderPublicProfile(profileId) {
         collectFromRelays({ kinds: [RELATIONSHIP_CLAIM_KIND, EXPERIENCE_CLAIM_KIND], '#p': [hex], limit: 60 }),
         cachedProfilePromise,
       ]).then(([x, cached]) => {
+        if (!isProfileRenderCurrent(renderToken)) return;
         const normalized = normalizeCachedProfileEvents(cached);
         viewState.evPClaims = dedupeById([...(x || []), ...normalized.evPClaims]);
         bump();
@@ -14156,6 +14242,7 @@ async function renderPublicProfile(profileId) {
         collectFromRelays({ kinds: MAP_NOTE_KINDS, authors: [hex], limit: 40 }),
         cachedProfilePromise,
       ]).then(([x, cached]) => {
+        if (!isProfileRenderCurrent(renderToken)) return;
         const normalized = normalizeCachedProfileEvents(cached);
         viewState.evNotes = dedupeById([...(x || []), ...normalized.evNotes]);
         bump();
@@ -14180,6 +14267,7 @@ async function renderPublicProfile(profileId) {
           }),
           cachedProfilePromise,
         ]).then(([x, cached]) => {
+          if (!isProfileRenderCurrent(renderToken)) return;
           const normalized = normalizeCachedProfileEvents(cached);
           viewState.evHost30398 = dedupeById([...(x || []), ...normalized.evHost30398]);
           bump();
@@ -14188,6 +14276,7 @@ async function renderPublicProfile(profileId) {
     }
 
     void Promise.allSettled(fetchTasks).then(() => {
+      if (!isProfileRenderCurrent(renderToken)) return;
       void saveProfilePageEventsToCache(hex, {
         evAuthors: viewState.evAuthors || [],
         evP30390: viewState.evP30390 || [],
@@ -14197,6 +14286,7 @@ async function renderPublicProfile(profileId) {
       }).catch((e) => console.warn('saveProfilePageEventsToCache:', e));
     });
   } catch (err) {
+    if (!isProfileRenderCurrent(renderToken)) return;
     console.warn('[nr-profile]', err);
     const reason = String(err?.message || err || '').trim();
     root.innerHTML = `<p class="nr-profile-error">We could not finish loading this profile.</p><p class="nr-profile-muted">Try reloading the page. If this keeps happening, copy this profile link and report it with the error below.</p><p class="nr-profile-muted"><strong>Profile:</strong> ${escapeHtml(safeProfileId || '(empty)')}</p><p class="nr-profile-muted"><strong>Error:</strong> ${escapeHtml(reason || 'Unknown rendering error')}</p>`;
@@ -14204,8 +14294,10 @@ async function renderPublicProfile(profileId) {
 }
 
 function renderInvalidProfile(profileId) {
+  const renderToken = beginProfileRender(profileId, 'invalid');
   const root = document.getElementById('nr-profile-root');
   if (!root) return;
+  if (!isProfileRenderCurrent(renderToken)) return;
   root.innerHTML = `<p class="nr-profile-error">This profile link is not valid. Use <code>#profile/npub1…</code>, a 64-character hex key, or <code>#profile/user@domain</code> (e.g. Trustroots NIP-05).</p><p class="nr-profile-muted">Fragment: ${escapeHtml(profileId || '')}</p>`;
 }
 
@@ -14214,8 +14306,10 @@ function renderInvalidProfile(profileId) {
  * @param {string} profileId
  */
 async function renderProfileContacts(profileId) {
-  const prep = await prepareProfileRootResolved(profileId);
+  const renderToken = beginProfileRender(profileId, 'contacts');
+  const prep = await prepareProfileRootResolved(profileId, renderToken);
   if (!prep) return;
+  if (!isProfileRenderCurrent(renderToken)) return;
   const { root, hex } = prep;
   if (!isSelfHex(hex)) {
     renderProfileSelfOnlyGate(
@@ -14233,6 +14327,7 @@ async function renderProfileContacts(profileId) {
     'Link your Trustroots account in Keys if you have not already, then review relay suggestions and publish signed claims here (same tools as under Keys).';
   root.appendChild(intro);
   try {
+    if (!isProfileRenderCurrent(renderToken)) return;
     window.NrWebMountClaimTrustrootsSection?.();
   } catch (e) {
     console.warn('[nr-profile] mount claims', e);
@@ -14245,8 +14340,10 @@ async function renderProfileContacts(profileId) {
  * @param {string} profileId
  */
 async function renderProfileEdit(profileId) {
-  const prep = await prepareProfileRootResolved(profileId);
+  const renderToken = beginProfileRender(profileId, 'edit');
+  const prep = await prepareProfileRootResolved(profileId, renderToken);
   if (!prep) return;
+  if (!isProfileRenderCurrent(renderToken)) return;
   const { root, hex } = prep;
   if (!isSelfHex(hex)) {
     renderProfileSelfOnlyGate(
@@ -14261,11 +14358,13 @@ async function renderProfileEdit(profileId) {
   let meta = {};
   try {
     const evs = await collectFromRelays({ kinds: [0], authors: [hex], limit: 20 });
+    if (!isProfileRenderCurrent(renderToken)) return;
     const ev0 = pickLatest(evs, 0, hex);
     if (ev0?.content) meta = JSON.parse(ev0.content);
   } catch (_) {
     meta = {};
   }
+  if (!isProfileRenderCurrent(renderToken)) return;
   if (typeof meta !== 'object' || meta === null) meta = {};
 
   root.innerHTML = '';

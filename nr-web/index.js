@@ -1136,6 +1136,8 @@ function isAuthRequiredError(errorMessage) {
 
 async function signEventTemplate(eventTemplate) {
     if (nrWebNip7Signer.isActiveForPubkey(currentPublicKey)) {
+        const identityOk = await ensureNip7IdentityIsCurrent('sign event');
+        if (!identityOk) throw new Error('NIP-07 identity changed; reconnect required.');
         return nrWebNip7Signer.signEvent(eventTemplate, currentPublicKey);
     }
     if (currentPrivateKeyBytes) {
@@ -2025,9 +2027,18 @@ let currentPublicKey = null;
 let authenticatingWithExtension = false; // Guard to prevent concurrent calls
 let isProfileLinked = false; // Track if profile is NIP-5 linked
 let usernameFromNostr = false; // Track if username came from a Nostr event
+let profileLinkCheckInFlight = null;
+let profileLinkCheckLastRunAt = 0;
+let nip7IdentityCheckInFlight = null;
+let nip7IdentityCheckLastOkAt = 0;
+let nip7IdentityCheckLastPubkey = '';
+let lastIdentityMismatchNoticeAt = 0;
 
 const NR_WEB_SIGNER_MODE_KEY = 'nr_web_signer_mode';
 const NR_WEB_NIP7_PUBKEY_KEY = 'nr_web_nip7_pubkey';
+const PROFILE_LINK_CHECK_COOLDOWN_MS = 2500;
+const NIP7_IDENTITY_CHECK_COOLDOWN_MS = 2500;
+const IDENTITY_MISMATCH_NOTICE_COOLDOWN_MS = 4000;
 
 function getNip7Provider() {
     if (typeof window === 'undefined') return null;
@@ -2120,6 +2131,11 @@ export const nrWebNip7Signer = {
         }
     },
     async connect() {
+        if (authenticatingWithExtension) {
+            throw new Error('NIP-07 connection already in progress. Please wait.');
+        }
+        authenticatingWithExtension = true;
+        try {
         const caps = inspectNip7Capabilities();
         if (!caps.hasProvider) throw new Error('No NIP-07 browser extension was detected.');
         if (!caps.isFull) {
@@ -2134,6 +2150,15 @@ export const nrWebNip7Signer = {
             localStorage.setItem(NR_WEB_NIP7_PUBKEY_KEY, pubkey);
         } catch (_) {}
         return pubkey;
+        } finally {
+            authenticatingWithExtension = false;
+        }
+    },
+    async readCurrentPubkey() {
+        const caps = inspectNip7Capabilities();
+        if (!caps.provider || typeof caps.provider.getPublicKey !== 'function') return '';
+        const pubkey = String(await caps.provider.getPublicKey()).trim().toLowerCase();
+        return isLikelyHexPubkey64(pubkey) ? pubkey : '';
     },
     useLocal() {
         try {
@@ -2149,8 +2174,12 @@ export const nrWebNip7Signer = {
         const eventToSign = { ...(template || {}), pubkey };
         const signed = await caps.provider.signEvent(eventToSign);
         const signedPubkey = String(signed?.pubkey || '').toLowerCase();
-        if (!signed || !signed.id || !signed.sig || signedPubkey !== pubkey) {
+        if (!signed || !signed.id || !signed.sig) {
             throw new Error('NIP-07 extension returned an invalid signed event.');
+        }
+        if (signedPubkey !== pubkey) {
+            handleNip7IdentityMismatch(signedPubkey, 'sign event');
+            throw new Error('Browser extension identity changed. Reconnect to continue.');
         }
         if (signed.id !== getEventHash(signed)) {
             throw new Error('NIP-07 extension returned an event with an invalid id.');
@@ -2819,6 +2848,49 @@ function disconnectNip7() {
     openKeysModal();
 }
 
+function handleNip7IdentityMismatch(mismatchPubkey = '', context = 'request') {
+    const expectedPubkey = String(currentPublicKey || '').trim().toLowerCase();
+    const mismatchSuffix = mismatchPubkey ? ` (extension now uses ${mismatchPubkey.slice(0, 12)}...)` : '';
+    appendKeysLinkLog(`NIP-07 identity changed during ${context}; disconnecting${mismatchSuffix}`);
+    disconnectNip7();
+    const now = Date.now();
+    if (now - lastIdentityMismatchNoticeAt >= IDENTITY_MISMATCH_NOTICE_COOLDOWN_MS) {
+        lastIdentityMismatchNoticeAt = now;
+        showStatus('Browser extension identity changed. Reconnect to continue.', 'error');
+    }
+    return false;
+}
+
+async function ensureNip7IdentityIsCurrent(context = 'request', options = {}) {
+    const expectedPubkey = String(currentPublicKey || '').trim().toLowerCase();
+    if (!expectedPubkey || !nrWebNip7Signer.isActiveForPubkey(expectedPubkey)) return true;
+    const force = options?.force === true;
+    const now = Date.now();
+    if (
+        !force &&
+        nip7IdentityCheckLastPubkey === expectedPubkey &&
+        (now - nip7IdentityCheckLastOkAt) < NIP7_IDENTITY_CHECK_COOLDOWN_MS
+    ) return true;
+    if (nip7IdentityCheckInFlight) return await nip7IdentityCheckInFlight;
+    nip7IdentityCheckInFlight = (async () => {
+        const extensionPubkey = await nrWebNip7Signer.readCurrentPubkey();
+        if (!extensionPubkey || extensionPubkey === expectedPubkey) {
+            nip7IdentityCheckLastOkAt = Date.now();
+            nip7IdentityCheckLastPubkey = expectedPubkey;
+            return true;
+        }
+        return handleNip7IdentityMismatch(extensionPubkey, context);
+    })()
+        .catch((error) => {
+            appendKeysLinkLog(`NIP-07 identity check failed during ${context}: ${error?.message || error}`);
+            return true;
+        })
+        .finally(() => {
+            nip7IdentityCheckInFlight = null;
+        });
+    return await nip7IdentityCheckInFlight;
+}
+
 function updateKeyDisplay(options = {}) {
     const keysModal = window.NrWebKeysModal;
     let npub = '';
@@ -2850,7 +2922,7 @@ function updateKeyDisplay(options = {}) {
             signerStatusText: getNip7StatusText()
         });
     }
-    if (currentPublicKey && options.skipProfileLookup !== true) checkProfileLinked();
+    if (currentPublicKey && options.skipProfileLookup !== true) void checkProfileLinked();
     setHeaderIdentity();
     renderRelaysList();
     renderClaimSummary();
@@ -7028,6 +7100,21 @@ function appendKeysLinkLog(message) {
 
 // Check if profile is linked (has kind 10390 event)
 async function checkProfileLinked() {
+    if (profileLinkCheckInFlight) return await profileLinkCheckInFlight;
+    const now = Date.now();
+    if (now - profileLinkCheckLastRunAt < PROFILE_LINK_CHECK_COOLDOWN_MS) {
+        appendKeysLinkLog('Skipping duplicate profile check (cooldown active)');
+        return;
+    }
+    profileLinkCheckInFlight = checkProfileLinkedCore()
+        .finally(() => {
+            profileLinkCheckLastRunAt = Date.now();
+            profileLinkCheckInFlight = null;
+        });
+    return await profileLinkCheckInFlight;
+}
+
+async function checkProfileLinkedCore() {
     if (!currentPublicKey) {
         appendKeysLinkLog('Profile check skipped: no public key loaded');
         isProfileLinked = false;
@@ -7047,6 +7134,8 @@ async function checkProfileLinked() {
         updateKeyDisplay({ skipProfileLookup: true });
         return;
     }
+    const identityOk = await ensureNip7IdentityIsCurrent('profile check');
+    if (!identityOk) return;
     
     try {
         const relayUrls = getRelayUrls();
@@ -8203,7 +8292,6 @@ async function onboardingNip7Connect() {
         updateKeyDisplay();
         openKeysModal({ runProfileLookup: false });
         showStatus('Browser extension connected.', 'success');
-        await checkProfileLinked();
     } catch (error) {
         appendKeysLinkLog(`NIP-07 connect failed: ${error?.message || error}`);
         showStatus(error?.message || 'Could not connect browser extension.', 'error');
@@ -8812,6 +8900,8 @@ const __nrChatApp = (() => {
         let isProfileLinked = false;
         let usernameFromNostr = false;
         let currentUserNip05 = '';
+        let chatProfileCheckInFlight = null;
+        let chatProfileCheckLastRunAt = 0;
 
         function readValidatedTrustrootsUsernameMap() {
             try {
@@ -9682,7 +9772,6 @@ const __nrChatApp = (() => {
                 updateUI();
                 openKeysModal();
                 showStatus('Browser extension connected.', 'success');
-                await checkProfileLinked();
             } catch (e) {
                 appendKeysLinkLog(`NIP-07 connect failed: ${e?.message || e}`);
                 showStatus(e?.message || 'Could not connect browser extension.', 'error');
@@ -10869,6 +10958,21 @@ const __nrChatApp = (() => {
         }
 
         async function checkProfileLinked() {
+            if (chatProfileCheckInFlight) return await chatProfileCheckInFlight;
+            const now = Date.now();
+            if (now - chatProfileCheckLastRunAt < PROFILE_LINK_CHECK_COOLDOWN_MS) {
+                appendKeysLinkLog('Skipping duplicate chat profile check (cooldown active)');
+                return;
+            }
+            chatProfileCheckInFlight = checkProfileLinkedCore()
+                .finally(() => {
+                    chatProfileCheckLastRunAt = Date.now();
+                    chatProfileCheckInFlight = null;
+                });
+            return await chatProfileCheckInFlight;
+        }
+
+        async function checkProfileLinkedCore() {
             if (!currentPublicKey) {
                 appendKeysLinkLog('Profile check skipped: no public key loaded');
                 isProfileLinked = false;
@@ -10877,6 +10981,8 @@ const __nrChatApp = (() => {
                 updateKeyDisplay({ skipProfileLookup: true });
                 return;
             }
+            const identityOk = await ensureNip7IdentityIsCurrent('chat profile check');
+            if (!identityOk) return;
             const cachedUsername = getCachedValidatedTrustrootsUsername(currentPublicKey);
             if (cachedUsername) {
                 appendKeysLinkLog(`Using cached Trustroots username "${cachedUsername}" for this key`);

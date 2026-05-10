@@ -434,8 +434,36 @@ export const NR_WEB_KV_KEYS = {
     NOTIFICATION_PLUS_CODES: 'notification_plus_codes',
     CLAIM_SIGN_DONE: 'nostroots_claim_sign_done',
 };
+const NIP05_RESOLVE_CACHE_KEY_PREFIX = 'nr_nip05_resolve_v1:';
+const PROFILE_ID_RESOLVE_CACHE_KEY_PREFIX = 'nr_profile_id_resolve_v1:';
+const TRUSTROOTS_AVATAR_CACHE_KEY_PREFIX = 'nr_tr_avatar_v1:';
+const NIP05_RESOLVE_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
+const PROFILE_ID_RESOLVE_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
+const TRUSTROOTS_AVATAR_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
+const PROFILE_MEMO_MAX_ENTRIES = 500;
 
 let dbPromise = null;
+const nip05ResolveMemo = new Map();
+const profileIdResolveMemo = new Map();
+const trustrootsAvatarMemo = new Map();
+
+function rememberMemoizedLookup(map, key, value) {
+    if (!key || !map) return;
+    if (map.size >= PROFILE_MEMO_MAX_ENTRIES && !map.has(key)) {
+        const first = map.keys().next();
+        if (!first.done) map.delete(first.value);
+    }
+    map.set(key, value);
+}
+
+function normalizeTimedLookup(row, maxAgeMs) {
+    if (!row || typeof row !== 'object') return null;
+    const ts = Number(row.ts || 0);
+    if (!Number.isFinite(ts) || ts <= 0) return null;
+    if (Date.now() - ts > maxAgeMs) return null;
+    if (!Object.prototype.hasOwnProperty.call(row, 'value')) return null;
+    return row;
+}
 
 export function chatCacheKvKey(pubkeyHex) {
     return 'nostroots_chat_cache_' + pubkeyHex;
@@ -526,6 +554,14 @@ export async function resolveNip05(nip05) {
   const s = (nip05 || '').trim().toLowerCase();
   const at = s.indexOf('@');
   if (at <= 0 || at === s.length - 1) return null;
+  const memoHit = normalizeTimedLookup(nip05ResolveMemo.get(s), NIP05_RESOLVE_CACHE_MAX_AGE_MS);
+  if (memoHit) return memoHit.value || null;
+  const cacheKey = NIP05_RESOLVE_CACHE_KEY_PREFIX + s;
+  const persisted = normalizeTimedLookup(await nrWebKvGet(cacheKey), NIP05_RESOLVE_CACHE_MAX_AGE_MS);
+  if (persisted) {
+    rememberMemoizedLookup(nip05ResolveMemo, s, persisted);
+    return persisted.value || null;
+  }
   const local = s.slice(0, at);
   let domain = s.slice(at + 1).replace(/^www\./, '');
   const base =
@@ -550,7 +586,11 @@ export async function resolveNip05(nip05) {
   }
   if (!data || !data.names || !data.names[local]) return null;
   const hex = (data.names[local] + '').toLowerCase();
-  return hex.length === 64 && /^[0-9a-f]+$/.test(hex) ? hex : null;
+  const resolved = hex.length === 64 && /^[0-9a-f]+$/.test(hex) ? hex : null;
+  const row = { ts: Date.now(), value: resolved || '' };
+  rememberMemoizedLookup(nip05ResolveMemo, s, row);
+  void nrWebKvPut(cacheKey, row).catch(() => {});
+  return resolved;
 }
 
 // ---------------------------------------------------------------------------
@@ -1090,14 +1130,28 @@ function isAuthRequiredError(errorMessage) {
 }
 
 async function signEventTemplate(eventTemplate) {
+    if (nrWebNip7Signer.isActiveForPubkey(currentPublicKey)) {
+        return nrWebNip7Signer.signEvent(eventTemplate, currentPublicKey);
+    }
     if (currentPrivateKeyBytes) {
-        return finalizeEvent(eventTemplate, currentPrivateKeyBytes);
+        const eventToSign = eventTemplate?.pubkey ? eventTemplate : { ...eventTemplate, pubkey: currentPublicKey };
+        return finalizeEvent(eventToSign, currentPrivateKeyBytes);
     }
     throw new Error('No signing method available for relay authentication');
 }
 
 function hasRelayAuthSigningCapability() {
-    return !!currentPrivateKeyBytes;
+    return !!currentPrivateKeyBytes || nrWebNip7Signer.isActiveForPubkey(currentPublicKey);
+}
+
+function getNip7StatusText() {
+    const caps = nrWebNip7Signer.getCapabilities();
+    if (nrWebNip7Signer.isActiveForPubkey(currentPublicKey)) {
+        return 'Using NIP-07 browser extension.';
+    }
+    if (caps.isFull) return 'NIP-07 browser extension support detected.';
+    if (caps.hasProvider) return 'NIP-07 extension detected, but encrypted messaging support is incomplete.';
+    return 'No NIP-07 browser extension detected. Compatible extensions include Alby and nos2x.';
 }
 
 async function buildSignedAuthEvent(relayUrl, challenge) {
@@ -1435,6 +1489,11 @@ export function hashEncodeSegment(segment) {
 /** Build `#profile/<encoded-id>` from npub/hex/nip05 style identifiers. */
 export function buildProfileHashRoute(profileId) {
     return '#profile/' + hashEncodeSegment(profileId);
+}
+
+/** Build `#<encoded-segment>` for generic hash routes (chat/map plus-code). */
+function hashRouteFromSegment(segment) {
+    return '#' + hashEncodeSegment(segment);
 }
 
 /** Parse pubkey input (hex/npub), reject nsec private keys. */
@@ -1785,6 +1844,15 @@ async function applyUnifiedHash() {
             }
         } catch (_) {}
     }
+    async function callProfileRenderer(kind, profileId) {
+        // Router bootstrap can run before profile exports are initialized.
+        // Yield once so module evaluation completes and exports are ready.
+        await Promise.resolve();
+        if (kind === 'invalid') return renderInvalidProfile(profileId);
+        if (kind === 'contacts') return renderProfileContacts(profileId);
+        if (kind === 'edit') return renderProfileEdit(profileId);
+        return renderPublicProfile(profileId);
+    }
     async function showProfileShell(profileId, invalid, mode) {
         const m = mode || 'public';
         if (m !== 'contacts') restoreAllClaimsProfileUi();
@@ -1805,18 +1873,18 @@ async function applyUnifiedHash() {
             }
         } catch (_) {}
         if (invalid) {
-            renderInvalidProfile(profileId);
+            void callProfileRenderer('invalid', profileId);
             return;
         }
         if (m === 'contacts') {
-            renderProfileContacts(profileId);
+            void callProfileRenderer('contacts', profileId);
             return;
         }
         if (m === 'edit') {
-            void renderProfileEdit(profileId);
+            void callProfileRenderer('edit', profileId);
             return;
         }
-        void renderPublicProfile(profileId);
+        void callProfileRenderer('public', profileId);
     }
 
     if (c.kind === 'map_home') {
@@ -1913,6 +1981,16 @@ async function applyUnifiedHash() {
             return;
         }
         const mode = c.kind === 'profile_edit' ? 'edit' : c.kind === 'profile_contacts' ? 'contacts' : 'public';
+        if (c.kind !== 'profile_invalid' && c.profileId) {
+            const suffix = mode === 'edit' ? '/edit' : mode === 'contacts' ? '/contacts' : '';
+            const canonicalHash = '#profile/' + hashEncodeSegment(c.profileId) + suffix;
+            if (location.hash !== canonicalHash) {
+                try {
+                    location.hash = canonicalHash;
+                } catch (_) {}
+                return;
+            }
+        }
         await showProfileShell(c.profileId, c.kind === 'profile_invalid', mode);
         return;
     }
@@ -1942,6 +2020,118 @@ let currentPublicKey = null;
 let authenticatingWithExtension = false; // Guard to prevent concurrent calls
 let isProfileLinked = false; // Track if profile is NIP-5 linked
 let usernameFromNostr = false; // Track if username came from a Nostr event
+
+const NR_WEB_SIGNER_MODE_KEY = 'nr_web_signer_mode';
+
+function getNip7Provider() {
+    if (typeof window === 'undefined') return null;
+    return window.nostr && typeof window.nostr === 'object' ? window.nostr : null;
+}
+
+export function inspectNip7Capabilities() {
+    const provider = getNip7Provider();
+    const hasProvider = !!provider;
+    const hasPublicKey = typeof provider?.getPublicKey === 'function';
+    const hasSignEvent = typeof provider?.signEvent === 'function';
+    const hasNip44Encrypt = typeof provider?.nip44?.encrypt === 'function';
+    const hasNip44Decrypt = typeof provider?.nip44?.decrypt === 'function';
+    const hasNip04Decrypt = typeof provider?.nip04?.decrypt === 'function';
+    const canSign = hasProvider && hasPublicKey && hasSignEvent;
+    const isFull = canSign && hasNip44Encrypt && hasNip44Decrypt && hasNip04Decrypt;
+    return {
+        provider,
+        status: isFull ? 'full' : canSign ? 'partial' : hasProvider ? 'partial' : 'none',
+        hasProvider,
+        hasPublicKey,
+        hasSignEvent,
+        hasNip44Encrypt,
+        hasNip44Decrypt,
+        hasNip04Decrypt,
+        canSign,
+        isFull
+    };
+}
+
+export const nrWebNip7Signer = {
+    pubkey: '',
+    getCapabilities: inspectNip7Capabilities,
+    async restoreFromStorage() {
+        let mode = '';
+        try {
+            mode = localStorage.getItem(NR_WEB_SIGNER_MODE_KEY) || '';
+        } catch (_) {}
+        if (mode !== 'nip7') return false;
+        const caps = inspectNip7Capabilities();
+        if (!caps.isFull || !caps.provider || typeof caps.provider.getPublicKey !== 'function') return false;
+        if (!this.pubkey) {
+            try {
+                const pubkey = String(await caps.provider.getPublicKey()).trim().toLowerCase();
+                if (!isLikelyHexPubkey64(pubkey)) return false;
+                this.pubkey = pubkey;
+            } catch (_) {
+                return false;
+            }
+        }
+        return this.isActive();
+    },
+    isActive() {
+        try {
+            return localStorage.getItem(NR_WEB_SIGNER_MODE_KEY) === 'nip7' && !!this.pubkey && inspectNip7Capabilities().isFull;
+        } catch (_) {
+            return !!this.pubkey && inspectNip7Capabilities().isFull;
+        }
+    },
+    isActiveForPubkey(pubkey) {
+        return this.isActive() && !!pubkey && String(pubkey).toLowerCase() === String(this.pubkey).toLowerCase();
+    },
+    async connect() {
+        const caps = inspectNip7Capabilities();
+        if (!caps.hasProvider) throw new Error('No NIP-07 browser extension was detected.');
+        if (!caps.isFull) {
+            throw new Error('NIP-07 extension detected, but it does not expose the encrypted features Nostroots needs.');
+        }
+        const pubkey = String(await caps.provider.getPublicKey()).trim().toLowerCase();
+        if (!isLikelyHexPubkey64(pubkey)) throw new Error('The NIP-07 extension returned an invalid public key.');
+        this.pubkey = pubkey;
+        try { localStorage.setItem(NR_WEB_SIGNER_MODE_KEY, 'nip7'); } catch (_) {}
+        return pubkey;
+    },
+    useLocal() {
+        try { localStorage.setItem(NR_WEB_SIGNER_MODE_KEY, 'local'); } catch (_) {}
+    },
+    async signEvent(template, expectedPubkey) {
+        const caps = inspectNip7Capabilities();
+        if (!this.isActive() || !caps.isFull) throw new Error('NIP-07 signer is not connected.');
+        const pubkey = String(expectedPubkey || this.pubkey || '').toLowerCase();
+        const eventToSign = { ...(template || {}), pubkey };
+        const signed = await caps.provider.signEvent(eventToSign);
+        const signedPubkey = String(signed?.pubkey || '').toLowerCase();
+        if (!signed || !signed.id || !signed.sig || signedPubkey !== pubkey) {
+            throw new Error('NIP-07 extension returned an invalid signed event.');
+        }
+        if (signed.id !== getEventHash(signed)) {
+            throw new Error('NIP-07 extension returned an event with an invalid id.');
+        }
+        return signed;
+    },
+    async nip44Encrypt(peerPubkey, plaintext) {
+        const caps = inspectNip7Capabilities();
+        if (!this.isActive() || !caps.isFull) throw new Error('NIP-07 NIP-44 encryption is unavailable.');
+        return caps.provider.nip44.encrypt(peerPubkey, plaintext);
+    },
+    async nip44Decrypt(peerPubkey, ciphertext) {
+        const caps = inspectNip7Capabilities();
+        if (!this.isActive() || !caps.isFull) throw new Error('NIP-07 NIP-44 decryption is unavailable.');
+        return caps.provider.nip44.decrypt(peerPubkey, ciphertext);
+    },
+    async nip04Decrypt(peerPubkey, ciphertext) {
+        const caps = inspectNip7Capabilities();
+        if (!this.isActive() || !caps.isFull) throw new Error('NIP-07 NIP-04 decryption is unavailable.');
+        return caps.provider.nip04.decrypt(peerPubkey, ciphertext);
+    }
+};
+
+window.NrWebNip7 = nrWebNip7Signer;
 
 // Caching and performance optimization state
 /** @deprecated Legacy localStorage keys — removed after IndexedDB opens */
@@ -2452,6 +2642,7 @@ async function importNsec() {
 }
 
 function savePrivateKey(privateKeyHex) {
+    nrWebNip7Signer.useLocal();
     writeStoredKeyHex(privateKeyHex);
     currentPrivateKey = privateKeyHex;
     currentPrivateKeyBytes = secretKeyBytesFromHex64(privateKeyHex);
@@ -2533,6 +2724,7 @@ function deleteNsec() {
     currentPrivateKey = null;
     currentPrivateKeyBytes = null;
     currentPublicKey = null;
+    nrWebNip7Signer.useLocal();
     if (typeof window.NrWebTheme !== 'undefined') {
         window.NrWebTheme.registerThemePublish(null);
     }
@@ -2566,6 +2758,24 @@ function deleteNsec() {
     openKeysModal();
 }
 
+function disconnectNip7() {
+    if (!nrWebNip7Signer.isActive() && (!currentPublicKey || currentPrivateKey)) return;
+    nrWebNip7Signer.useLocal();
+    nrWebNip7Signer.pubkey = '';
+    currentPublicKey = null;
+    currentPrivateKey = null;
+    currentPrivateKeyBytes = null;
+    isProfileLinked = false;
+    usernameFromNostr = false;
+    if (typeof window.NrWebTheme !== 'undefined') {
+        window.NrWebTheme.registerThemePublish(null);
+    }
+    appendKeysLinkLog('Disconnected NIP-07 browser extension mode');
+    updateKeyDisplay({ skipProfileLookup: true });
+    showStatus('Browser extension disconnected.', 'info');
+    openKeysModal();
+}
+
 function updateKeyDisplay(options = {}) {
     const keysModal = window.NrWebKeysModal;
     let npub = '';
@@ -2573,6 +2783,8 @@ function updateKeyDisplay(options = {}) {
     const keySource = keysModal?.getKeySourceForPubkey?.(currentPublicKey) || '';
     const showChecklist = keySource === 'generated';
     const isNsecBackedUp = keysModal?.isKeyBackedUpForPubkey?.(currentPublicKey) === true;
+    const nip7Caps = nrWebNip7Signer.getCapabilities();
+    const signerMode = nrWebNip7Signer.isActiveForPubkey(currentPublicKey) ? 'nip7' : 'local';
     if (currentPublicKey) {
         npub = getCurrentNpub();
         if (!npub) npubError = 'Error encoding npub';
@@ -2589,7 +2801,10 @@ function updateKeyDisplay(options = {}) {
             isProfileLinked,
             isUsernameLinked: usernameFromNostr,
             showChecklist,
-            isNsecBackedUp
+            isNsecBackedUp,
+            signerMode,
+            nip7Status: nip7Caps.status,
+            signerStatusText: getNip7StatusText()
         });
     }
     if (currentPublicKey && options.skipProfileLookup !== true) checkProfileLinked();
@@ -2739,7 +2954,7 @@ function isRestrictedRelayUrl(url) {
 }
 
 function canUseRestrictedRelay() {
-    return !!currentPrivateKeyBytes && isProfileLinked === true;
+    return hasRelayAuthSigningCapability() && isProfileLinked === true;
 }
 
 function getConnectableRelayUrls(relayUrls) {
@@ -5796,8 +6011,8 @@ function renderIntentChips() {
 }
 
 async function publishNoteFromModal() {
-    if (!currentPrivateKeyBytes) {
-        showStatus('No private key available. Please import or generate a key.', 'error');
+    if (!hasRelayAuthSigningCapability()) {
+        showStatus('No signing method available. Please import, generate, or connect a supported browser extension.', 'error');
         return;
     }
     
@@ -5890,7 +6105,7 @@ async function publishNoteFromModal() {
         }
         
         let signedEvent;
-        signedEvent = finalizeEvent(eventTemplate, currentPrivateKeyBytes);
+        signedEvent = await signEventTemplate(eventTemplate);
         
         // Validate signed event before publishing
         if (!signedEvent || !signedEvent.id || !signedEvent.sig || !signedEvent.pubkey) {
@@ -6417,8 +6632,8 @@ function createNoteItem(event) {
 }
 
 async function deleteEvent(eventId, deleteButton) {
-    if (!currentPrivateKeyBytes) {
-        showStatus('No private key available. Please import or generate a key.', 'error');
+    if (!hasRelayAuthSigningCapability()) {
+        showStatus('No signing method available. Please import, generate, or connect a supported browser extension.', 'error');
         return;
     }
     
@@ -6464,7 +6679,7 @@ async function deleteEvent(eventId, deleteButton) {
         };
         
         let signedEvent;
-        signedEvent = finalizeEvent(deletionEvent, currentPrivateKeyBytes);
+        signedEvent = await signEventTemplate(deletionEvent);
         
         // Publish only to relays that have posting enabled.
         const relayUrls = getWritableRelayUrls();
@@ -6771,7 +6986,7 @@ async function checkProfileLinked() {
             try {
                 if (
                     isRestrictedRelayUrl(url) &&
-                    currentPrivateKeyBytes &&
+                    hasRelayAuthSigningCapability() &&
                     relayAuth?.nip42SubscribeOnce
                 ) {
                     appendKeysLinkLog(`Query auth relay ${url}`);
@@ -6852,7 +7067,7 @@ async function checkProfileLinked() {
         isProfileLinked = foundLinked;
         if (!isProfileLinked) {
             claimEventsByKind = new Map();
-        } else if (currentPrivateKeyBytes) {
+        } else if (hasRelayAuthSigningCapability()) {
             scheduleRefreshClaimSuggestions();
         }
         
@@ -7259,9 +7474,7 @@ function renderClaimSummary() {
     const summary = document.getElementById('claim-summary');
     if (!section || !summary) return;
     const onProfileClaims = window.NrWebClaimsUiSurface === 'profile';
-    const canShow =
-        (!!currentPublicKey && !!currentPrivateKeyBytes && isProfileLinked === true) ||
-        (onProfileClaims && !!currentPublicKey && !!currentPrivateKeyBytes);
+    const canShow = onProfileClaims && !!currentPublicKey && hasRelayAuthSigningCapability();
     section.style.display = canShow ? 'block' : 'none';
     if (!canShow) {
         const scopeEl = document.getElementById('claim-relay-scope');
@@ -7277,8 +7490,8 @@ function renderClaimSummary() {
 }
 
 function scheduleRefreshClaimSuggestions() {
-    if (!currentPublicKey || !currentPrivateKeyBytes) return;
-    if (isProfileLinked !== true && window.NrWebClaimsUiSurface !== 'profile') return;
+    if (!currentPublicKey || !hasRelayAuthSigningCapability()) return;
+    if (window.NrWebClaimsUiSurface !== 'profile') return;
     if (claimSuggestionsDebounce) clearTimeout(claimSuggestionsDebounce);
     claimSuggestionsDebounce = setTimeout(() => {
         claimSuggestionsDebounce = null;
@@ -7292,10 +7505,10 @@ async function refreshClaimSuggestions(options = {}) {
         if (!silent) showStatus('Load a key first to fetch claim suggestions.', 'error');
         return;
     }
-    if (!currentPrivateKeyBytes) {
+    if (!hasRelayAuthSigningCapability()) {
         return;
     }
-    if (isProfileLinked !== true && window.NrWebClaimsUiSurface !== 'profile') {
+    if (window.NrWebClaimsUiSurface !== 'profile') {
         return;
     }
     const relayUrls = getRelayUrls();
@@ -7339,11 +7552,11 @@ async function refreshClaimSuggestions(options = {}) {
 }
 
 async function publishSignedEventTemplate(eventTemplate) {
-    if (!currentPrivateKeyBytes) throw new Error('No private key available');
+    if (!hasRelayAuthSigningCapability()) throw new Error('No signing method available');
     if (eventTemplate?.kind === MAP_NOTE_KIND && containsPrivateKeyNsec(String(eventTemplate?.content || ''), nip19)) {
         throw new Error('Posting blocked: notes cannot include nsec private keys.');
     }
-    const signedEvent = finalizeEvent(eventTemplate, currentPrivateKeyBytes);
+    const signedEvent = await signEventTemplate(eventTemplate);
     const relayUrls = getWritableRelayUrls();
     if (relayUrls.length === 0) throw new Error('No relays enabled for posting');
     const results = await Promise.all(relayUrls.map(url => publishToRelayWithRetries(url, signedEvent)));
@@ -7404,7 +7617,7 @@ window.NrWebGoOwnProfile = function (action) {
 /** Register theme publish + fetch encrypted kind 30078 from relays (see NrWebTheme in common.js). */
 async function fetchThemePreferenceFromRelaysIndex() {
     const NT = window.NrWebTheme;
-    if (!NT || !currentPrivateKeyBytes || !currentPublicKey || !nip44) return;
+    if (!NT || !currentPublicKey || (!currentPrivateKeyBytes && !nrWebNip7Signer.isActiveForPubkey(currentPublicKey)) || !nip44) return;
     const relayUrls = getConnectableRelayUrls(getRelayUrls());
     if (!relayUrls.length) return;
     const filter = [{
@@ -7437,7 +7650,18 @@ async function fetchThemePreferenceFromRelaysIndex() {
         });
     }
     if (best) {
-        const parsed = NT.parseThemeFromKind78Event(best, nip44, currentPrivateKeyBytes, currentPublicKey);
+        let parsed = null;
+        if (nrWebNip7Signer.isActiveForPubkey(currentPublicKey)) {
+            try {
+                const plain = await nrWebNip7Signer.nip44Decrypt(currentPublicKey, best.content);
+                const data = JSON.parse(plain);
+                if (data.theme === 'light' || data.theme === 'dark') {
+                    parsed = { theme: data.theme, created_at: best.created_at || 0 };
+                }
+            } catch (_) {}
+        } else {
+            parsed = NT.parseThemeFromKind78Event(best, nip44, currentPrivateKeyBytes, currentPublicKey);
+        }
         if (parsed) NT.mergeThemeFromRemote(parsed);
     }
 }
@@ -7445,13 +7669,24 @@ async function fetchThemePreferenceFromRelaysIndex() {
 async function setupIndexNrWebThemeSync() {
     const NT = window.NrWebTheme;
     if (!NT) return;
-    if (!currentPrivateKeyBytes || !currentPublicKey) {
+    if (!currentPublicKey || (!currentPrivateKeyBytes && !nrWebNip7Signer.isActiveForPubkey(currentPublicKey))) {
         NT.registerThemePublish(null);
         return;
     }
     NT.registerThemePublish(async (theme) => {
         try {
-            const tpl = NT.createThemeEventTemplate(theme, nip44, currentPrivateKeyBytes, currentPublicKey);
+            let tpl = null;
+            if (nrWebNip7Signer.isActiveForPubkey(currentPublicKey)) {
+                if (theme !== 'light' && theme !== 'dark') return;
+                tpl = {
+                    kind: NT.NRWEB_THEME_KIND,
+                    created_at: Math.floor(Date.now() / 1000),
+                    tags: [['d', NT.NRWEB_THEME_D_TAG], ['client', 'nr-web']],
+                    content: await nrWebNip7Signer.nip44Encrypt(currentPublicKey, JSON.stringify({ theme }))
+                };
+            } else {
+                tpl = NT.createThemeEventTemplate(theme, nip44, currentPrivateKeyBytes, currentPublicKey);
+            }
             if (!tpl) return;
             await publishSignedEventTemplate(tpl);
         } catch (_) {}
@@ -7686,8 +7921,17 @@ function _closeSettingsModalShared({ fallbackRoute }) {
 }
 
 function openKeysModal(options = {}) {
+    const nip7Active =
+        nrWebNip7Signer.isActive() ||
+        (() => {
+            try {
+                return localStorage.getItem(NR_WEB_SIGNER_MODE_KEY) === 'nip7' && inspectNip7Capabilities().isFull;
+            } catch (_) {
+                return false;
+            }
+        })();
     _openKeysModalShared({
-        hasKey: !!(currentPublicKey || currentPrivateKey),
+        hasKey: !!(currentPublicKey || currentPrivateKey || nip7Active),
         onOpenManagedSection: () => {
             try { window.NrWebUnmountClaimTrustrootsSection?.(); } catch (_) {}
             updateKeyDisplay();
@@ -7816,10 +8060,20 @@ window.claimProfileData = claimProfileData;
 window.claimHostingOffers = claimHostingOffers;
 window.claimRelationships = claimRelationships;
 window.claimExperiences = claimExperiences;
+window.disconnectNip7 = disconnectNip7;
 
 // Onboarding
 
-function checkOnboarding() {
+async function checkOnboarding() {
+    const restoredNip7 = await nrWebNip7Signer.restoreFromStorage();
+    if (restoredNip7 || nrWebNip7Signer.isActive()) {
+        currentPrivateKey = null;
+        currentPrivateKeyBytes = null;
+        currentPublicKey = nrWebNip7Signer.pubkey;
+        void setupIndexNrWebThemeSync();
+        updateKeyDisplay();
+        return;
+    }
     const hasKey = readValidStoredKeyHex();
     if (!hasKey) {
         openKeysModal();
@@ -7833,6 +8087,27 @@ function onboardingGenerate() {
     generateKeyPair();
     // Refresh the keys modal to show the management section
     openKeysModal();
+}
+
+async function onboardingNip7Connect() {
+    try {
+        const pubkey = await nrWebNip7Signer.connect();
+        currentPrivateKey = null;
+        currentPrivateKeyBytes = null;
+        currentPublicKey = pubkey;
+        isProfileLinked = false;
+        usernameFromNostr = false;
+        void setupIndexNrWebThemeSync();
+        appendKeysLinkLog(`Connected NIP-07 extension ${getCurrentNpub() || currentPublicKey}`);
+        updateKeyDisplay();
+        openKeysModal({ runProfileLookup: false });
+        showStatus('Browser extension connected.', 'success');
+        await checkProfileLinked();
+    } catch (error) {
+        appendKeysLinkLog(`NIP-07 connect failed: ${error?.message || error}`);
+        showStatus(error?.message || 'Could not connect browser extension.', 'error');
+        updateKeyDisplay({ skipProfileLookup: true });
+    }
 }
 
 async function onboardingImport() {
@@ -7948,13 +8223,7 @@ async function linkTrustrootsProfile() {
                 };
                 
                 let signedEvent;
-                
-                if (currentPrivateKeyBytes) {
-                    signedEvent = finalizeEvent(eventTemplate, currentPrivateKeyBytes);
-                } else {
-                    showStatus('No signing method available. Please import or generate a key.', 'error');
-                    return;
-                }
+                signedEvent = await signEventTemplate(eventTemplate);
                 
                 // Publish to all relays (only those with Post enabled)
                 const relayUrls = getWritableRelayUrls();
@@ -7977,7 +8246,7 @@ async function linkTrustrootsProfile() {
                     }),
                     created_at: Math.floor(Date.now() / 1000),
                 };
-                const signedKind0Event = finalizeEvent(kind0Template, currentPrivateKeyBytes);
+                const signedKind0Event = await signEventTemplate(kind0Template);
                 const kind0Results = await Promise.all(
                     relayUrls.map((url) => publishToRelayWithRetries(url, signedKind0Event))
                 );
@@ -8345,6 +8614,7 @@ window.openKeysModal = openKeysModal;
 window.closeKeysModal = closeKeysModal;
 window.onboardingGenerate = onboardingGenerate;
 window.onboardingImport = onboardingImport;
+window.onboardingNip7Connect = onboardingNip7Connect;
 window.copyPublicKey = copyPublicKey;
 window.showCirclesModal = showCirclesModal;
 window.hideCirclesModal = hideCirclesModal;
@@ -8515,6 +8785,22 @@ const __nrChatApp = (() => {
         const conversations = new Map();
         /** @type {Map<string, { name: string, about: string, picture: string, created_at: number, eventId: string }>} */
         const circleMetaBySlug = new Map();
+
+        function isNip7ChatActive() {
+            return !!window.NrWebNip7?.isActiveForPubkey?.(currentPublicKey);
+        }
+
+        function hasChatSigningKey() {
+            return !!(currentPublicKey && (currentSecretKeyBytes || isNip7ChatActive()));
+        }
+
+        async function nip7ChatEncrypt(peerPubkey, plaintext) {
+            return window.NrWebNip7.nip44Encrypt(peerPubkey, plaintext);
+        }
+
+        async function nip7ChatDecrypt(peerPubkey, ciphertext) {
+            return window.NrWebNip7.nip44Decrypt(peerPubkey, ciphertext);
+        }
 
         const TRUSTROOTS_CIRCLE_SLUGS_SET = new Set(
             getTrustrootsCircles()
@@ -8812,7 +9098,7 @@ const __nrChatApp = (() => {
                 const isBlocked = (NrBlocklist && NrBlocklist.isBlocked) ? (hex) => NrBlocklist.isBlocked(hex) : () => false;
                 for (const c of data.conversations || []) {
                     const events = (c.events || [])
-                        .filter(ev => !isBlocked(ev.pubkey))
+                        .filter((ev) => !isBlocked(ev.pubkey))
                         .map(ev => ({
                             id: ev.id,
                             kind: ev.kind,
@@ -9231,15 +9517,29 @@ const __nrChatApp = (() => {
         // Use shared key-utils from outer module scope (parseKeyImportToHex, getKeyImportErrorMessage).
 
         function hasLocalSigningKey() {
-            return !!(currentSecretKeyBytes && currentPublicKey);
+            return hasChatSigningKey();
         }
 
         function requireLocalSigningKey() {
             if (hasLocalSigningKey()) return true;
-            throw new Error('No local key loaded. Import an nsec to continue.');
+            throw new Error('No signing method connected. Import an nsec or use a supported browser extension.');
         }
 
         async function loadKeysFromStorage() {
+            if (window.NrWebNip7?.isActive?.()) {
+                currentPublicKey = window.NrWebNip7.pubkey;
+                currentSecretKeyHex = null;
+                currentSecretKeyBytes = null;
+                const cachedUsername = getCachedValidatedTrustrootsUsername(currentPublicKey);
+                if (cachedUsername) {
+                    isProfileLinked = true;
+                    usernameFromNostr = true;
+                    pubkeyToUsername.set(currentPublicKey, cachedUsername);
+                }
+                await startSubscriptions();
+                updateUI();
+                return true;
+            }
             const hex = readValidStoredKeyHex();
             if (!hex) return false;
             currentSecretKeyHex = hex;
@@ -9257,10 +9557,33 @@ const __nrChatApp = (() => {
         }
 
         function savePrivateKey(hex) {
+            window.NrWebNip7?.useLocal?.();
             writeStoredKeyHex(hex);
             currentSecretKeyHex = hex;
             currentSecretKeyBytes = secretKeyBytesFromHex64(hex);
             currentPublicKey = getPublicKey(currentSecretKeyBytes);
+        }
+
+        async function onboardingNip7Connect() {
+            try {
+                const pubkey = await window.NrWebNip7.connect();
+                currentPublicKey = pubkey;
+                currentSecretKeyHex = null;
+                currentSecretKeyBytes = null;
+                isProfileLinked = false;
+                usernameFromNostr = false;
+                currentUserNip05 = '';
+                appendKeysLinkLog(`Connected NIP-07 extension ${getDisplayNpub() || currentPublicKey}`);
+                await startSubscriptions();
+                updateUI();
+                openKeysModal();
+                showStatus('Browser extension connected.', 'success');
+                await checkProfileLinked();
+            } catch (e) {
+                appendKeysLinkLog(`NIP-07 connect failed: ${e?.message || e}`);
+                showStatus(e?.message || 'Could not connect browser extension.', 'error');
+                updateKeyDisplay({ skipProfileLookup: true });
+            }
         }
 
         function importKey() {
@@ -9400,8 +9723,17 @@ const __nrChatApp = (() => {
         }
 
         function openKeysModal() {
+            const nip7Active =
+                !!window.NrWebNip7?.isActive?.() ||
+                (() => {
+                    try {
+                        return localStorage.getItem('nr_web_signer_mode') === 'nip7' && (window.NrWebNip7?.getCapabilities?.().isFull === true);
+                    } catch (_) {
+                        return false;
+                    }
+                })();
             _openKeysModalShared({
-                hasKey: !!(currentPublicKey || currentSecretKeyHex),
+                hasKey: !!(currentPublicKey || currentSecretKeyHex || nip7Active),
                 onOpenManagedSection: () => {
                     updateKeyDisplay({ skipProfileLookup: true });
                     checkProfileLinked();
@@ -9426,6 +9758,8 @@ const __nrChatApp = (() => {
             const keySource = keysModal?.getKeySourceForPubkey?.(currentPublicKey) || '';
             const showChecklist = keySource === 'generated';
             const isNsecBackedUp = keysModal?.isKeyBackedUpForPubkey?.(currentPublicKey) === true;
+            const nip7Caps = window.NrWebNip7?.getCapabilities?.() || { status: 'none' };
+            const signerMode = isNip7ChatActive() ? 'nip7' : 'local';
             if (currentPublicKey) {
                 npub = getCurrentNpub();
                 if (!npub) npubError = 'Error encoding npub';
@@ -9439,7 +9773,16 @@ const __nrChatApp = (() => {
                     isProfileLinked,
                     isUsernameLinked: usernameFromNostr,
                     showChecklist,
-                    isNsecBackedUp
+                    isNsecBackedUp,
+                    signerMode,
+                    nip7Status: nip7Caps.status,
+                    signerStatusText: signerMode === 'nip7'
+                        ? 'Using NIP-07 browser extension.'
+                        : nip7Caps.status === 'full'
+                            ? 'NIP-07 browser extension support detected.'
+                            : nip7Caps.status === 'partial'
+                                ? 'NIP-07 extension detected, but encrypted messaging support is incomplete.'
+                                : 'No NIP-07 browser extension detected. Compatible extensions include Alby and nos2x.'
                 });
             }
             if (currentPublicKey && options.skipProfileLookup !== true) checkProfileLinked();
@@ -9546,6 +9889,16 @@ const __nrChatApp = (() => {
             updateKeyDisplay();
             openKeysModal();
             showStatus('Private key deleted', 'success');
+        }
+
+        function disconnectNip7() {
+            window.NrWebNip7?.useLocal?.();
+            if (window.NrWebNip7) window.NrWebNip7.pubkey = '';
+            disconnect();
+            appendKeysLinkLog('Disconnected NIP-07 browser extension mode');
+            updateKeyDisplay({ skipProfileLookup: true });
+            openKeysModal();
+            showStatus('Browser extension disconnected.', 'info');
         }
 
         function copyPublicKey() {
@@ -9662,6 +10015,7 @@ const __nrChatApp = (() => {
         }
 
         function getConversationKey(theirPubkey) {
+            if (isNip7ChatActive()) return null;
             if (!currentSecretKeyBytes) return null;
             try {
                 const key = nip44.getConversationKey(currentSecretKeyBytes, theirPubkey);
@@ -9672,6 +10026,14 @@ const __nrChatApp = (() => {
 
         /** Encrypt DM content for a peer. Prefers NIP-44 (then NIP-04 fallback). Returns { cipher, nip } or null. */
         async function encryptKind4(peerPubkey, plaintext) {
+            if (isNip7ChatActive()) {
+                try {
+                    const cipher = await nip7ChatEncrypt(peerPubkey, plaintext);
+                    return { cipher, nip: 'nip44' };
+                } catch (_) {
+                    return null;
+                }
+            }
             if (!currentSecretKeyBytes) return null;
             const key = getConversationKey(peerPubkey);
             if (key) {
@@ -9719,6 +10081,15 @@ const __nrChatApp = (() => {
         }
 
         async function decryptKind4(content, authorPubkey) {
+            if (isNip7ChatActive()) {
+                try {
+                    if (!looksLikeNip04(content)) return await nip7ChatDecrypt(authorPubkey, content);
+                } catch (_) {}
+                try {
+                    return await window.NrWebNip7.nip04Decrypt(authorPubkey, content);
+                } catch (_) {}
+                return null;
+            }
             if (!currentSecretKeyBytes) return null;
             const isNip04Content = looksLikeNip04(content);
             if (!isNip04Content) {
@@ -9737,12 +10108,23 @@ const __nrChatApp = (() => {
 
         function setupChatNrWebThemeSync() {
             const NT = window.NrWebTheme;
-            if (!NT || !currentSecretKeyBytes || !currentPublicKey || !pool) return;
+            if (!NT || !currentPublicKey || !pool || (!currentSecretKeyBytes && !isNip7ChatActive())) return;
             NT.registerThemePublish(async (theme) => {
                 try {
-                    const tpl = NT.createThemeEventTemplate(theme, nip44, currentSecretKeyBytes, currentPublicKey);
+                    let tpl = null;
+                    if (isNip7ChatActive()) {
+                        if (theme !== 'light' && theme !== 'dark') return;
+                        tpl = {
+                            kind: NT.NRWEB_THEME_KIND,
+                            created_at: Math.floor(Date.now() / 1000),
+                            tags: [['d', NT.NRWEB_THEME_D_TAG], ['client', 'nr-web']],
+                            content: await nip7ChatEncrypt(currentPublicKey, JSON.stringify({ theme }))
+                        };
+                    } else {
+                        tpl = NT.createThemeEventTemplate(theme, nip44, currentSecretKeyBytes, currentPublicKey);
+                    }
                     if (!tpl) return;
-                    const signed = finalizeEvent(tpl, currentSecretKeyBytes);
+                    const signed = await signEvent(tpl);
                     const relayList = Array.isArray(relays) && relays.length ? relays : DEFAULT_RELAYS;
                     await publishEventWithRelayAcks(relayList, signed);
                 } catch (_) {}
@@ -9761,10 +10143,19 @@ const __nrChatApp = (() => {
                 onevent: (ev) => {
                     if (!best || ev.created_at > best.created_at) best = ev;
                 },
-                oneose: () => {
+                oneose: async () => {
                     try { sub.close(); } catch (_) {}
                     if (best) {
-                        const parsed = NT.parseThemeFromKind78Event(best, nip44, currentSecretKeyBytes, currentPublicKey);
+                        let parsed = null;
+                        if (isNip7ChatActive()) {
+                            try {
+                                const plain = await nip7ChatDecrypt(currentPublicKey, best.content);
+                                const data = JSON.parse(plain);
+                                if (data.theme === 'light' || data.theme === 'dark') parsed = { theme: data.theme, created_at: best.created_at || 0 };
+                            } catch (_) {}
+                        } else {
+                            parsed = NT.parseThemeFromKind78Event(best, nip44, currentSecretKeyBytes, currentPublicKey);
+                        }
                         if (parsed) NT.mergeThemeFromRemote(parsed);
                     }
                 }
@@ -10008,7 +10399,8 @@ const __nrChatApp = (() => {
                 const slugs = getChannelSlugsFromEvent(event);
                 const mapNoteKey = getMapNoteCanonicalKey(event);
 
-                if (NrBlocklist && NrBlocklist.isBlocked(event.pubkey)) return;
+                const blocklistAuthor = getMapNoteOriginalAuthorPubkey(event) || event.pubkey;
+                if (NrBlocklist && NrBlocklist.isBlocked(blocklistAuthor)) return;
 
                 let changed = false;
                 slugs.forEach((targetSlug) => {
@@ -10161,16 +10553,19 @@ const __nrChatApp = (() => {
             pool.subscribe(publicRelayList, { kinds: [4], authors: [currentPublicKey] }, { onevent: onDmEvent });
 
             pool.subscribe(publicRelayList, { kinds: [1059], '#p': [currentPublicKey] }, { onevent(wrapEvent) {
-                if (!currentSecretKeyBytes) return;
+                if (!currentSecretKeyBytes && !isNip7ChatActive()) return;
+                void (async () => {
                 try {
                     const wrapPubkey = wrapEvent.pubkey;
-                    const key = nip44.getConversationKey(currentSecretKeyBytes, wrapPubkey);
-                    const innerJson = nip44.v2.decrypt(wrapEvent.content, key);
+                    const innerJson = isNip7ChatActive()
+                        ? await nip7ChatDecrypt(wrapPubkey, wrapEvent.content)
+                        : nip44.v2.decrypt(wrapEvent.content, nip44.getConversationKey(currentSecretKeyBytes, wrapPubkey));
                     const seal = JSON.parse(innerJson);
                     if (seal.kind !== 13) return;
                     if (NrBlocklist && NrBlocklist.isBlocked(wrapPubkey)) return;
-                    const sealKey = nip44.getConversationKey(currentSecretKeyBytes, seal.pubkey);
-                    const rumorJson = nip44.v2.decrypt(seal.content, sealKey);
+                    const rumorJson = isNip7ChatActive()
+                        ? await nip7ChatDecrypt(seal.pubkey, seal.content)
+                        : nip44.v2.decrypt(seal.content, nip44.getConversationKey(currentSecretKeyBytes, seal.pubkey));
                     const rumor = JSON.parse(rumorJson);
                     if (rumor.kind !== 14) return;
                     if (rumor.pubkey !== seal.pubkey) return;
@@ -10190,6 +10585,7 @@ const __nrChatApp = (() => {
                         if (selectedConversationId === groupId) scheduleRender('thread');
                     }
                 } catch (_) {}
+                })();
             } });
             setupChatNrWebThemeSync();
         }
@@ -10284,7 +10680,7 @@ const __nrChatApp = (() => {
             try { _nrChatAuthProfileSub?.close?.(); } catch (_) {}
             _nrChatAuthProfileSub = null;
             const relayAuth = globalThis.NrWebRelayAuth;
-            if (!relayAuth?.startNip42WsSubscription || !currentPublicKey || !currentSecretKeyBytes) return;
+            if (!relayAuth?.startNip42WsSubscription || !currentPublicKey || !hasChatSigningKey()) return;
             const restrictedUrl = (relays || []).find(isRestrictedRelayUrl)
                 || 'wss://nip42.trustroots.org';
             try {
@@ -11035,6 +11431,15 @@ const __nrChatApp = (() => {
             return `canonical:${canonicalPubkey}|${originalCreatedAt}|${plusCode}|${content}`;
         }
 
+        function getMapNoteOriginalAuthorPubkey(raw) {
+            if (!raw) return '';
+            if (raw.kind === MAP_NOTE_REPOST_KIND) {
+                const originalAuthor = getFirstTagValue(raw, 'p');
+                if (originalAuthor) return originalAuthor;
+            }
+            return raw.pubkey || '';
+        }
+
         function isBlockedPubkey(pubkey) {
             if (!pubkey || !NrBlocklist || typeof NrBlocklist.isBlocked !== 'function') return false;
             if (NrBlocklist.isBlocked(pubkey)) return true;
@@ -11116,7 +11521,12 @@ const __nrChatApp = (() => {
             if (!conv || !container) return;
             container.innerHTML = '';
             const isChannel = conv.type === 'channel';
-            let eventsToShow = conv.events.filter(ev => !deletedEventIds.has(ev.id) && !isBlockedPubkey(ev.pubkey));
+            let eventsToShow = conv.events.filter((ev) => {
+                if (deletedEventIds.has(ev.id)) return false;
+                if (!isChannel) return !isBlockedPubkey(ev.pubkey);
+                const authorForBlocklist = getMapNoteOriginalAuthorPubkey(ev.raw || ev) || ev.pubkey;
+                return !isBlockedPubkey(authorForBlocklist);
+            });
             if (isChannel) {
                 const deduped = new Map();
                 eventsToShow.forEach((ev) => {
@@ -11171,10 +11581,11 @@ const __nrChatApp = (() => {
                 const wrap = document.createElement('div');
                 wrap.className = 'message-wrap ' + (isSelf ? 'self' : 'other');
                 if (isChannel && !isSelf) {
+                    const displayPubkey = getMapNoteOriginalAuthorPubkey(ev.raw || ev) || ev.pubkey;
                     const author = document.createElement('div');
                     author.className = 'message-author';
-                    author.innerHTML = renderPubkeyLabelHtml(ev.pubkey);
-                    const fullNpub = hexToNpub(ev.pubkey);
+                    author.innerHTML = renderPubkeyLabelHtml(displayPubkey);
+                    const fullNpub = hexToNpub(displayPubkey);
                     if (fullNpub) author.title = fullNpub;
                     wrap.appendChild(author);
                 }
@@ -11359,6 +11770,9 @@ const __nrChatApp = (() => {
         async function signEvent(template) {
             requireLocalSigningKey();
             const eventToSign = template.pubkey ? template : { ...template, pubkey: currentPublicKey };
+            if (isNip7ChatActive()) {
+                return window.NrWebNip7.signEvent(eventToSign, currentPublicKey);
+            }
             return finalizeEvent(eventToSign, currentSecretKeyBytes);
         }
 
@@ -11413,7 +11827,7 @@ const __nrChatApp = (() => {
                 const peer = conv.id;
                 const result = await encryptKind4(peer, text);
                 if (!result) {
-                    showStatus('Cannot encrypt: no secret key. Please import or generate a key.', 'error');
+                    showStatus('Cannot encrypt. Import a key or use a NIP-07 extension with encrypted messaging support.', 'error');
                     return;
                 }
                 const template = {
@@ -11467,7 +11881,9 @@ const __nrChatApp = (() => {
                 (async () => {
                     for (const memberPubkey of membersToSend) {
                         try {
-                            const sealContent = nip44.v2.encrypt(JSON.stringify(rumor), nip44.getConversationKey(currentSecretKeyBytes, memberPubkey));
+                            const sealContent = isNip7ChatActive()
+                                ? await nip7ChatEncrypt(memberPubkey, JSON.stringify(rumor))
+                                : nip44.v2.encrypt(JSON.stringify(rumor), nip44.getConversationKey(currentSecretKeyBytes, memberPubkey));
                             const seal = await signEvent({
                                 kind: 13,
                                 content: sealContent,
@@ -11634,10 +12050,15 @@ function bootEmbeddedChat() {
     window.closeKeysModal = closeKeysModal;
     window.onboardingImport = onboardingImport;
     window.onboardingGenerate = onboardingGenerate;
+    window.onboardingNip7Connect = onboardingNip7Connect;
     window.exportNsec = exportNsec;
     window.deleteNsec = deleteNsec;
+    window.disconnectNip7 = disconnectNip7;
     window.importNsec = importNsec;
     window.generateKeyPair = generateKeyPair;
+    window.NrWebSignEventTemplate = async (eventTemplate) => signEvent(eventTemplate);
+    window.NrWebCanSignEventTemplate = () => hasChatSigningKey();
+    window.NrWebGetCurrentPubkeyHex = () => currentPublicKey;
     window.openSettingsModal = openSettingsModal;
     window.closeSettingsModal = closeSettingsModal;
     if (document.readyState === 'loading') {
@@ -11943,8 +12364,20 @@ function parsePubkeyInput(input) {
 async function resolveProfileIdToHex(profileId) {
   const raw = (profileId || '').trim();
   if (!raw) return null;
-  if (raw.includes('@')) return await resolveNip05(raw);
-  return parsePubkeyInput(raw);
+  const key = raw.toLowerCase();
+  const memoHit = normalizeTimedLookup(profileIdResolveMemo.get(key), PROFILE_ID_RESOLVE_CACHE_MAX_AGE_MS);
+  if (memoHit) return memoHit.value || null;
+  const cacheKey = PROFILE_ID_RESOLVE_CACHE_KEY_PREFIX + key;
+  const persisted = normalizeTimedLookup(await nrWebKvGet(cacheKey), PROFILE_ID_RESOLVE_CACHE_MAX_AGE_MS);
+  if (persisted) {
+    rememberMemoizedLookup(profileIdResolveMemo, key, persisted);
+    return persisted.value || null;
+  }
+  const resolved = raw.includes('@') ? await resolveNip05(raw) : parsePubkeyInput(raw);
+  const row = { ts: Date.now(), value: resolved || '' };
+  rememberMemoizedLookup(profileIdResolveMemo, key, row);
+  void nrWebKvPut(cacheKey, row).catch(() => {});
+  return resolved;
 }
 
 /** Local Trustroots username from a profile fragment like `user@trustroots.org` (before relay fetch). */
@@ -12352,24 +12785,38 @@ function pictureUrlFromTrustrootsUserApiJson(j) {
 async function tryTrustrootsApiAvatar(username) {
   const u = String(username || '').trim().toLowerCase();
   if (!u) return '';
+  const memoHit = normalizeTimedLookup(trustrootsAvatarMemo.get(u), TRUSTROOTS_AVATAR_CACHE_MAX_AGE_MS);
+  if (memoHit) return String(memoHit.value || '');
+  const cacheKey = TRUSTROOTS_AVATAR_CACHE_KEY_PREFIX + u;
+  const persisted = normalizeTimedLookup(await nrWebKvGet(cacheKey), TRUSTROOTS_AVATAR_CACHE_MAX_AGE_MS);
+  if (persisted) {
+    rememberMemoizedLookup(trustrootsAvatarMemo, u, persisted);
+    return String(persisted.value || '');
+  }
   const apiUrl = `https://www.trustroots.org/api/users/${encodeURIComponent(u)}`;
   const fetchOpts = { mode: 'cors', credentials: 'omit' };
+  const finalize = (picture) => {
+    const value = String(picture || '');
+    const row = { ts: Date.now(), value };
+    rememberMemoizedLookup(trustrootsAvatarMemo, u, row);
+    void nrWebKvPut(cacheKey, row).catch(() => {});
+    return value;
+  };
 
   try {
     const res = await fetch(apiUrl, fetchOpts);
-    if (!res.ok) return '';
-    return pictureUrlFromTrustrootsUserApiJson(await res.json());
+    if (res.ok) return finalize(pictureUrlFromTrustrootsUserApiJson(await res.json()));
   } catch (_) {}
 
   try {
     const proxyUrl = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(apiUrl);
     const res = await fetch(proxyUrl, fetchOpts);
-    if (!res.ok) return '';
+    if (!res.ok) return finalize('');
     const pic = pictureUrlFromTrustrootsUserApiJson(JSON.parse(await res.text()));
-    if (pic) return pic;
+    if (pic) return finalize(pic);
   } catch (_) {}
 
-  return '';
+  return finalize('');
 }
 
 function mergeProfile30390AndKind0(ev30390, ev0) {
@@ -12567,8 +13014,8 @@ function createInlineEditIcon(label) {
 }
 
 function chatHashForSubject(hex, nip05Lower, trUsername) {
-  if (nip05Lower) return hashRoute(nip05Lower);
-  if (trUsername) return hashRoute(`${trUsername}@trustroots.org`);
+  if (nip05Lower) return hashRouteFromSegment(nip05Lower);
+  if (trUsername) return hashRouteFromSegment(`${trUsername}@trustroots.org`);
   try {
     return '#' + nip19.npubEncode(hex);
   } catch (_) {
@@ -12991,7 +13438,7 @@ function createStagedProfileShell(root, ctx) {
 /**
  * @param {Record<string, HTMLElement>} refs
  * @param {{ evAuthors?: unknown[]; evP30390?: unknown[]; evPClaims?: unknown[]; evNotes?: unknown[]; evHost30398?: unknown[]; circleMetaBySlug?: Map<string, { name: string; about: string; picture: string; created_at?: number }>; avatarExtra?: string }} viewState
- * @param {{ hex: string; npub: string; profileId: string; earlyTrUser: string; circleDirSlugsKey?: string; scheduleBump?: () => void }} ctx
+ * @param {{ hex: string; npub: string; profileId: string; earlyTrUser: string; circleDirSlugsKey?: string; scheduleBump?: () => void; onTrustrootsUsernameResolved?: (username: string) => void }} ctx
  */
 function applyStagedProfileView(refs, viewState, ctx) {
   const { hex, npub, profileId, earlyTrUser } = ctx;
@@ -13015,6 +13462,9 @@ function applyStagedProfileView(refs, viewState, ctx) {
     meta.trustrootsUsername ||
     getTrustrootsUsernameFrom10390(ev10390 || {}) ||
     getTrustrootsUsernameFromKind0(ev0 || {});
+  if (trUser && typeof ctx.onTrustrootsUsernameResolved === 'function') {
+    ctx.onTrustrootsUsernameResolved(trUser);
+  }
 
   const nip05Resolved = meta.nip05 || (trUser ? `${trUser}@trustroots.org` : '') || profileNip05Guess(profileId, earlyTrUser);
 
@@ -13075,11 +13525,11 @@ function applyStagedProfileView(refs, viewState, ctx) {
     refs.statNipLi.classList.add('nr-profile-muted');
     refs.statNipLi.textContent = 'No NIP-05 on latest profile export yet.';
   }
-  const allCollectedForDebug = [
-    ...(authorsReady ? evAuthors : []),
-    ...(p90Ready ? evP30390 : []),
-  ];
-  const candidates = extractPictureCandidatesFromEvents(allCollectedForDebug);
+  // Keep avatar fallbacks scoped to this profile only.
+  // `evP30390` can include broad relay scans for discovery, so using all fetched
+  // rows here can leak other users' pictures into this profile card.
+  const profileScopedForAvatar = [ev0, ev10390, ev30390].filter(Boolean);
+  const candidates = extractPictureCandidatesFromEvents(profileScopedForAvatar);
   /** Ordered list of URLs to try in <img> (primary first, fallbacks second). */
   const tryList = [];
   if (picture) tryList.push(picture);
@@ -13182,7 +13632,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
       const a = document.createElement('a');
       a.className = 'nr-content-link';
       if (pc) {
-        a.href = hashRoute(pc);
+        a.href = hashRouteFromSegment(pc);
         a.textContent = pc;
       } else {
         a.href = '#map';
@@ -13404,6 +13854,7 @@ async function renderPublicProfile(profileId) {
   const prep = await prepareProfileRootResolved(profileId);
   if (!prep) return;
   const { root, hex } = prep;
+  const safeProfileId = String(profileId || '').trim();
 
   const npub = (() => {
     try {
@@ -13434,6 +13885,18 @@ async function renderPublicProfile(profileId) {
       avatarExtra: '',
     };
     const ctx = { hex, npub, profileId, earlyTrUser, circleDirSlugsKey: '' };
+    const avatarRequestedUsers = new Set();
+    const requestTrustrootsAvatar = (username) => {
+      const u = String(username || '').trim().toLowerCase();
+      if (!u || avatarRequestedUsers.has(u)) return;
+      avatarRequestedUsers.add(u);
+      void tryTrustrootsApiAvatar(u).then((pic) => {
+        if (!pic || viewState.avatarExtra === pic) return;
+        viewState.avatarExtra = pic;
+        bump();
+      }).catch(() => {});
+    };
+    ctx.onTrustrootsUsernameResolved = requestTrustrootsAvatar;
 
     const { shell, refs } = createStagedProfileShell(root, {
       hex,
@@ -13454,6 +13917,7 @@ async function renderPublicProfile(profileId) {
     };
     ctx.scheduleBump = bump;
     bump();
+    if (earlyTrUser) requestTrustrootsAvatar(earlyTrUser);
 
     bindProfileTrTabs(shell);
     bindBasicEditAction(refs.nameEditBtn, 'Profile header');
@@ -13461,9 +13925,9 @@ async function renderPublicProfile(profileId) {
 
     if (isSelfHex(hex)) {
       try {
-        window.NrWebMountClaimTrustrootsTrustTab?.();
+        window.NrWebMountClaimTrustrootsSection?.();
       } catch (e) {
-        console.warn('[nr-profile] mount claim trust blocks on own public profile', e);
+        console.warn('[nr-profile] mount claim section on own public profile', e);
       }
     }
 
@@ -13496,31 +13960,39 @@ async function renderPublicProfile(profileId) {
     // Per-pubkey IndexedDB cache: paint the page from the previous visit instantly,
     // then merge fresh relay results when they arrive (replaceable events with newer
     // `created_at` win via pickLatest, so stale cache cannot mask updates).
+    const normalizeCachedProfileEvents = (cached) => ({
+      evAuthors: Array.isArray(cached?.evAuthors) ? cached.evAuthors : [],
+      evP30390: Array.isArray(cached?.evP30390) ? cached.evP30390 : [],
+      evPClaims: Array.isArray(cached?.evPClaims) ? cached.evPClaims : [],
+      evNotes: Array.isArray(cached?.evNotes) ? cached.evNotes : [],
+      evHost30398: Array.isArray(cached?.evHost30398) ? cached.evHost30398 : [],
+    });
     const cachedProfilePromise = loadProfilePageEventsFromCache(hex).catch((e) => {
       console.warn('[nr-profile] cache load failed:', e);
       return null;
     });
     void cachedProfilePromise.then((cached) => {
       if (!cached) return;
+      const normalized = normalizeCachedProfileEvents(cached);
       let painted = false;
-      if (viewState.evAuthors === undefined && cached.evAuthors.length) {
-        viewState.evAuthors = dedupeById(cached.evAuthors);
+      if (viewState.evAuthors === undefined && normalized.evAuthors.length) {
+        viewState.evAuthors = dedupeById(normalized.evAuthors);
         painted = true;
       }
-      if (viewState.evP30390 === undefined && cached.evP30390.length) {
-        viewState.evP30390 = dedupeById(cached.evP30390);
+      if (viewState.evP30390 === undefined && normalized.evP30390.length) {
+        viewState.evP30390 = dedupeById(normalized.evP30390);
         painted = true;
       }
-      if (viewState.evPClaims === undefined && cached.evPClaims.length) {
-        viewState.evPClaims = dedupeById(cached.evPClaims);
+      if (viewState.evPClaims === undefined && normalized.evPClaims.length) {
+        viewState.evPClaims = dedupeById(normalized.evPClaims);
         painted = true;
       }
-      if (viewState.evNotes === undefined && cached.evNotes.length) {
-        viewState.evNotes = dedupeById(cached.evNotes);
+      if (viewState.evNotes === undefined && normalized.evNotes.length) {
+        viewState.evNotes = dedupeById(normalized.evNotes);
         painted = true;
       }
-      if (viewState.evHost30398 === undefined && cached.evHost30398.length) {
-        viewState.evHost30398 = dedupeById(cached.evHost30398);
+      if (viewState.evHost30398 === undefined && normalized.evHost30398.length) {
+        viewState.evHost30398 = dedupeById(normalized.evHost30398);
         painted = true;
       }
       if (painted) bump();
@@ -13568,7 +14040,8 @@ async function renderPublicProfile(profileId) {
         }
       }
       const [results, cached] = await Promise.all([Promise.all(queries), cachedProfilePromise]);
-      viewState.evP30390 = dedupeById([...results.flat(), ...(cached?.evP30390 || [])]);
+      const normalized = normalizeCachedProfileEvents(cached);
+      viewState.evP30390 = dedupeById([...results.flat(), ...normalized.evP30390]);
       bump();
     })());
     fetchTasks.push(
@@ -13576,7 +14049,8 @@ async function renderPublicProfile(profileId) {
         collectFromRelays({ kinds: [RELATIONSHIP_CLAIM_KIND, EXPERIENCE_CLAIM_KIND], '#p': [hex], limit: 60 }),
         cachedProfilePromise,
       ]).then(([x, cached]) => {
-        viewState.evPClaims = dedupeById([...(x || []), ...(cached?.evPClaims || [])]);
+        const normalized = normalizeCachedProfileEvents(cached);
+        viewState.evPClaims = dedupeById([...(x || []), ...normalized.evPClaims]);
         bump();
       })
     );
@@ -13585,7 +14059,8 @@ async function renderPublicProfile(profileId) {
         collectFromRelays({ kinds: MAP_NOTE_KINDS, authors: [hex], limit: 40 }),
         cachedProfilePromise,
       ]).then(([x, cached]) => {
-        viewState.evNotes = dedupeById([...(x || []), ...(cached?.evNotes || [])]);
+        const normalized = normalizeCachedProfileEvents(cached);
+        viewState.evNotes = dedupeById([...(x || []), ...normalized.evNotes]);
         bump();
       })
     );
@@ -13608,7 +14083,8 @@ async function renderPublicProfile(profileId) {
           }),
           cachedProfilePromise,
         ]).then(([x, cached]) => {
-          viewState.evHost30398 = dedupeById([...(x || []), ...(cached?.evHost30398 || [])]);
+          const normalized = normalizeCachedProfileEvents(cached);
+          viewState.evHost30398 = dedupeById([...(x || []), ...normalized.evHost30398]);
           bump();
         })
       );
@@ -13625,7 +14101,8 @@ async function renderPublicProfile(profileId) {
     });
   } catch (err) {
     console.warn('[nr-profile]', err);
-    root.innerHTML = `<p class="nr-profile-error">Something went wrong loading this profile.</p>`;
+    const reason = String(err?.message || err || '').trim();
+    root.innerHTML = `<p class="nr-profile-error">We could not finish loading this profile.</p><p class="nr-profile-muted">Try reloading the page. If this keeps happening, copy this profile link and report it with the error below.</p><p class="nr-profile-muted"><strong>Profile:</strong> ${escapeHtml(safeProfileId || '(empty)')}</p><p class="nr-profile-muted"><strong>Error:</strong> ${escapeHtml(reason || 'Unknown rendering error')}</p>`;
   }
 }
 

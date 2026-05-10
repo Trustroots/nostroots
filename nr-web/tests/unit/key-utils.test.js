@@ -9,6 +9,8 @@ import {
     parseKeyImportToHex,
     getKeyImportErrorMessage,
     nsecEncodeFromHex64,
+    inspectNip7Capabilities,
+    nrWebNip7Signer,
 } from '../../index.js';
 
 const HEX_64 = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
@@ -16,6 +18,8 @@ const HEX_64 = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
 describe('nr-web local key utils', () => {
     beforeEach(() => {
         try { localStorage.clear(); } catch (_) {}
+        try { delete window.nostr; } catch (_) { window.nostr = undefined; }
+        nrWebNip7Signer.pubkey = '';
     });
 
     it('uses the stable storage key name', () => {
@@ -110,5 +114,33 @@ describe('nr-web local key utils', () => {
     it('readValidStoredKeyHex ignores malformed values without crashing', () => {
         localStorage.setItem(NR_WEB_PRIVATE_KEY_STORAGE_KEY, 'not-hex');
         expect(readValidStoredKeyHex()).toBe('');
+    });
+
+    it('classifies missing, partial, and full NIP-07 support', () => {
+        expect(inspectNip7Capabilities().status).toBe('none');
+
+        window.nostr = {
+            getPublicKey: async () => '0'.repeat(64),
+            signEvent: async (event) => event,
+        };
+        expect(inspectNip7Capabilities().status).toBe('partial');
+
+        window.nostr.nip44 = {
+            encrypt: async () => 'cipher',
+            decrypt: async () => 'plain',
+        };
+        window.nostr.nip04 = {
+            decrypt: async () => 'plain',
+        };
+        expect(inspectNip7Capabilities().status).toBe('full');
+    });
+
+    it('does not connect sign-only NIP-07 as full Nostroots support', async () => {
+        window.nostr = {
+            getPublicKey: async () => '0'.repeat(64),
+            signEvent: async (event) => event,
+        };
+
+        await expect(nrWebNip7Signer.connect()).rejects.toThrow(/encrypted features/i);
     });
 });

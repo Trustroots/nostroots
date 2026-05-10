@@ -41,6 +41,13 @@ describe('NrWebHashRouter profile routes', () => {
     });
   });
 
+  it('classifies bare trustroots username as trustroots nip05', () => {
+    expect(classify('profile/alice')).toEqual({
+      kind: 'profile',
+      profileId: 'alice@trustroots.org',
+    });
+  });
+
   it('classifies encoded nostroots trustroots profile route', () => {
     expect(classify('profile/nostroots%40trustroots.org')).toEqual({
       kind: 'profile',
@@ -61,10 +68,17 @@ describe('NrWebHashRouter profile routes', () => {
     });
   });
 
+  it('classifies bare trustroots username with /contacts', () => {
+    expect(classify('profile/alice/contacts')).toEqual({
+      kind: 'profile_contacts',
+      profileId: 'alice@trustroots.org',
+    });
+  });
+
   it('classifies invalid profile remainder', () => {
-    expect(classify('profile/not-a-valid-id')).toEqual({
+    expect(classify('profile/not*valid')).toEqual({
       kind: 'profile_invalid',
-      profileId: 'not-a-valid-id',
+      profileId: 'not*valid',
     });
   });
 

@@ -574,10 +574,42 @@
         var isUsernameLinked = opts.isUsernameLinked === true;
         var showChecklist = opts.showChecklist === true;
         var isNsecBackedUp = opts.isNsecBackedUp === true;
+        var signerMode = typeof opts.signerMode === 'string' ? opts.signerMode : 'local';
+        var isNip7Active = signerMode === 'nip7';
+        var nip7Status = typeof opts.nip7Status === 'string' ? opts.nip7Status : 'none';
+        var signerStatusText = typeof opts.signerStatusText === 'string' ? opts.signerStatusText : '';
 
-        setDisplayById('nsec-actions-group', hasNsec ? 'block' : 'none');
-        setDisplayById('no-nsec-actions-group', hasNsec ? 'none' : 'block');
-        setDisplayById('generate-key-group', hasNsec ? 'none' : 'block');
+        setDisplayById('nsec-actions-group', (hasNsec && !isNip7Active) ? 'block' : 'none');
+        setDisplayById('nip7-actions-group', isNip7Active ? 'block' : 'none');
+        setDisplayById('no-nsec-actions-group', (hasNsec || isNip7Active) ? 'none' : 'block');
+        setDisplayById('generate-key-group', (hasNsec || isNip7Active) ? 'none' : 'block');
+        setDisplayById('keys-nip7-section', (!isNip7Active && nip7Status !== 'none') ? 'block' : 'none');
+        setDisplayById('keys-nip7-active-status', isNip7Active ? 'block' : 'none');
+        setDisplayById('keys-nsec-backup-step', isNip7Active ? 'none' : 'block');
+        setDisplayById('keys-nsec-backup-hint', isNip7Active ? 'none' : 'block');
+
+        var signerStatus = global.document.getElementById('keys-signer-status');
+        if (signerStatus) {
+            var defaultStatus = nip7Status === 'full'
+                ? 'NIP-07 browser extension support detected.'
+                : nip7Status === 'partial'
+                    ? 'A NIP-07 extension was detected, but it does not expose the encrypted features Nostroots needs. You can still import or generate a local key.'
+                    : 'No NIP-07 browser extension was detected. You can use Alby, nos2x, or another compatible extension, or continue with a local key.';
+            signerStatus.innerHTML = '<strong>Signing:</strong> ' + escapeHtml(signerStatusText || defaultStatus);
+            signerStatus.style.display = 'block';
+        }
+
+        var nip7Description = global.document.getElementById('keys-nip7-description');
+        var nip7ConnectBtn = global.document.getElementById('keys-nip7-connect-btn');
+        if (nip7Description) {
+            nip7Description.textContent = nip7Status === 'full'
+                ? 'Use your NIP-07 browser extension to sign and decrypt without pasting your nsec into this browser.'
+                : 'A browser extension was found, but it is missing NIP-44/NIP-04 encrypted messaging support required by Nostroots.';
+        }
+        if (nip7ConnectBtn) {
+            nip7ConnectBtn.disabled = nip7Status !== 'full';
+            nip7ConnectBtn.textContent = nip7Status === 'full' ? 'Use browser extension' : 'Extension incomplete';
+        }
 
         var npubDisplay = global.document.getElementById('npub-display');
         if (hasPublicKey) {
@@ -592,7 +624,7 @@
             setDisplayById('update-trustroots-profile-group', 'none');
         }
 
-        var keysTitle = hasPublicKey ? 'Keys' : 'Connect key to post';
+        var keysTitle = hasPublicKey ? (signerMode === 'nip7' ? 'Keys (browser extension)' : 'Keys') : 'Connect key to post';
         ['keys-icon-btn', 'keys-icon-btn-mobile'].forEach(function (id) {
             var keysBtn = global.document.getElementById(id);
             if (keysBtn) keysBtn.title = keysTitle;
@@ -605,16 +637,14 @@
                 : 'Enter your Trustroots username and verify it to link your Trustroots identity for posting.';
         }
 
-        var stepBackup = global.document.getElementById('keys-step-backup');
-        var stepProfile = global.document.getElementById('keys-step-profile');
+        var stepBackup = global.document.getElementById('keys-step-backup-check');
+        var stepProfile = global.document.getElementById('keys-step-profile-check');
         var stepUsername = global.document.getElementById('keys-step-username');
         if (stepBackup) {
-            stepBackup.style.display = showChecklist ? 'inline-block' : 'none';
-            stepBackup.checked = showChecklist && hasNsec && isNsecBackedUp;
+            stepBackup.classList.toggle('is-done', !!(showChecklist && hasNsec && isNsecBackedUp && !isNip7Active));
         }
         if (stepProfile) {
-            stepProfile.style.display = showChecklist ? 'inline-block' : 'none';
-            stepProfile.checked = showChecklist && hasPublicKey && isProfileLinked;
+            stepProfile.classList.toggle('is-done', !!(showChecklist && hasPublicKey && isProfileLinked));
         }
         if (stepUsername) {
             stepUsername.style.display = showChecklist ? 'inline-block' : 'none';
@@ -1939,6 +1969,10 @@
         return d.indexOf('@') > 0 && /^[^\s#@]+@[^\s#@]+\.[^\s#@]+$/.test(d);
     }
 
+    function looksLikeTrustrootsUsername(s) {
+        return typeof s === 'string' && /^[a-z0-9_.-]+$/i.test(String(s).trim());
+    }
+
     /**
      * @param {string} route decoded hash fragment (no leading #)
      * @returns {{ kind: string, modal?: string, token?: string, plusCode?: string, chatRoute?: string, profileId?: string }}
@@ -1973,6 +2007,9 @@
             }
             if (looksLikeNip05(idRaw)) {
                 return { kind: profileKind, profileId: idRaw.trim().toLowerCase() };
+            }
+            if (looksLikeTrustrootsUsername(idRaw)) {
+                return { kind: profileKind, profileId: idRaw.trim().toLowerCase() + '@trustroots.org' };
             }
             if (looksLikeNpub(idRaw) || looksLikeHex64(idRaw)) {
                 return { kind: profileKind, profileId: idRaw.trim() };
@@ -3930,10 +3967,19 @@ body:not(.nr-web-has-key) .nr-nav-menu-profile-only {
     line-height: 1.4;
 }
 
-#keys-modal .keys-step-label input[type="checkbox"] {
-    width: auto;
+#keys-modal .keys-step-check {
     flex: 0 0 auto;
+    width: 1rem;
+    min-width: 1rem;
     margin-top: 0.1rem;
+    color: #16a34a;
+    font-weight: 700;
+    line-height: 1;
+    visibility: hidden;
+}
+
+#keys-modal .keys-step-check.is-done {
+    visibility: visible;
 }
 
 #keys-modal .keys-nsec-backup-hint {
@@ -3943,6 +3989,21 @@ body:not(.nr-web-has-key) .nr-nav-menu-profile-only {
     color: var(--muted-foreground);
     font-size: 0.8125rem;
     line-height: 1.35;
+}
+
+#keys-modal .keys-signer-status {
+    margin: 0.25rem 0 1rem 0;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--muted);
+    color: var(--muted-foreground);
+    font-size: 0.85rem;
+    line-height: 1.35;
+}
+
+#keys-modal .keys-signer-status strong {
+    color: var(--foreground);
 }
 
 #keys-modal .key-input-wrapper,
@@ -6431,13 +6492,15 @@ h1, h2, .modal-header h2 {
         </main>
         <div id="new-dm-modal" class="modal">
             <div class="modal-content">
-                <h2>Start a private conversation or create a #hashtag channel</h2>
+                <div class="modal-header">
+                    <h2>Start a private conversation or create a #hashtag channel</h2>
+                    <button type="button" class="modal-close" onclick="closeNewDmModal()" aria-label="Close">&times;</button>
+                </div>
                 <div class="form-group">
                     <label>Enter an npub or NIP-05 for a private chat, or enter a hashtag for a channel</label>
-                    <input type="text" id="new-dm-pubkey" placeholder="npub1..., nostroots@trustroots.org, or #travel">
+                    <input type="text" id="new-dm-pubkey" placeholder="npub1..., nostroots@trustroots.org, or #travel" onkeydown="if(event.key==='Enter'){event.preventDefault();startDm();}">
                 </div>
                 <button type="button" class="btn" onclick="startDm()">Start conversation</button>
-                <button type="button" class="btn btn-secondary" onclick="closeNewDmModal()">Cancel</button>
             </div>
         </div>
         <div id="new-group-modal" class="modal">
@@ -6568,12 +6631,22 @@ h1, h2, .modal-header h2 {
         <!-- Welcome message (only shown when no key is set) -->
         <div id="keys-welcome-section" style="display: none; margin-bottom: 2rem;">
             <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">Nostroots is an attempt to rebuild Trustroots on open protocols so travelers and hosts keep more power: less should ride on whoever runs the core Trustroots service, and anyone should be able to build new applications on the same trust network—more freedom for users and other developers alike.</p>
-            <p class="keys-onboarding-two-options-intro"><strong>Two ways to get started:</strong> import an existing private key, or generate a new one below.</p>
+            <p class="keys-onboarding-two-options-intro"><strong>Three ways to get started:</strong> use a browser extension, import an existing private key, or generate a new one below.</p>
+            <div class="keys-signer-status" id="keys-signer-status" aria-live="polite"></div>
+        </div>
+
+        <!-- NIP-07 browser extension signer (only shown when no key is set) -->
+        <div class="keys-option-section" id="keys-nip7-section" style="display: none;">
+            <h3 class="keys-option-heading">Option 1: Use browser extension</h3>
+            <p class="keys-onboarding-option-text" id="keys-nip7-description">Use a NIP-07 extension such as Alby or nos2x to sign without pasting your nsec into this browser.</p>
+            <div class="keys-option-content">
+                <button class="btn btn-secondary" id="keys-nip7-connect-btn" onclick="onboardingNip7Connect()" type="button" style="width: 100%;">Use browser extension</button>
+            </div>
         </div>
 
         <!-- Import nsec or mnemonic (only shown when no key) -->
         <div class="keys-option-section" id="keys-import-section" style="display: none;">
-            <h3 class="keys-option-heading">Option 1: Import an existing key</h3>
+            <h3 class="keys-option-heading">Option 2: Import an existing key</h3>
             <p class="keys-onboarding-option-text">If you already have a Nostr private key (nsec), paste it below (for example from the Nostroots mobile app or your password manager).</p>
             <p class="keys-import-npub-hint" role="note"><strong>npub1…</strong> is your <strong>public</strong> id (like a username). It cannot log you in here. Use <strong>nsec1…</strong> or your <strong>recovery phrase</strong> — the same secret you would use to restore the app in a new install.</p>
             <div class="keys-option-content">
@@ -6584,7 +6657,7 @@ h1, h2, .modal-header h2 {
 
         <!-- Generate New Key (only shown when no key) -->
         <div class="keys-option-section" id="keys-generate-section" style="display: none;">
-            <h3 class="keys-option-heading">Option 2: Generate a new key</h3>
+            <h3 class="keys-option-heading">Option 3: Generate a new key</h3>
             <p id="keys-generate-intro" class="keys-onboarding-option-text">If you do not have one yet, generate a key below, then export and store your nsec in your password manager. If you do not have a password manager yet, we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>.</p>
             <div class="keys-option-content">
                 <button class="btn btn-secondary" onclick="onboardingGenerate()" type="button" style="width: 100%;">Generate New Key</button>
@@ -6593,12 +6666,16 @@ h1, h2, .modal-header h2 {
 
         <!-- Keys section (only shown when key is set) -->
         <div class="settings-section" id="keys-manage-section" style="display: none;">
-            <div class="form-group keys-step-group">
+            <div class="form-group keys-step-group" id="keys-nsec-backup-step">
                 <label class="keys-step-label">
-                    <input type="checkbox" id="keys-step-backup" disabled>
+                    <span id="keys-step-backup-check" class="keys-step-check" aria-hidden="true">V</span>
                     <span>Export your <strong>nsec</strong> and copy it into your password manager (we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>).</span>
                 </label>
-                <small class="keys-nsec-backup-hint" role="note">Your <strong>nsec</strong> is your <strong>private key</strong>: anyone who has it can sign as you on Nostr. Do not share it with others, and keep a safe backup—if you lose it, you cannot recover this identity.</small>
+                <small class="keys-nsec-backup-hint" id="keys-nsec-backup-hint" role="note">Your <strong>nsec</strong> is your <strong>private key</strong>: anyone who has it can sign as you on Nostr. Do not share it with others, and keep a safe backup—if you lose it, you cannot recover this identity.</small>
+            </div>
+
+            <div class="form-group" id="keys-nip7-active-status" style="display: none;">
+                <small style="display: block; color: var(--muted-foreground);"><strong>Browser extension active:</strong> NIP-07 signing is connected and working.</small>
             </div>
 
             <!-- Local Key Actions (above npub) -->
@@ -6606,6 +6683,11 @@ h1, h2, .modal-header h2 {
                 <div class="action-buttons">
                     <button class="btn" onclick="exportNsec()" type="button">Export nsec</button>
                     <button class="btn btn-danger" onclick="deleteNsec()" type="button">Delete Key</button>
+                </div>
+            </div>
+            <div class="form-group" id="nip7-actions-group" style="display: none;">
+                <div class="action-buttons">
+                    <button class="btn btn-danger" onclick="disconnectNip7()" type="button">Disconnect browser extension</button>
                 </div>
             </div>
 
@@ -6625,7 +6707,7 @@ h1, h2, .modal-header h2 {
             <!-- Update Trustroots Profile button -->
             <div class="form-group" id="update-trustroots-profile-group" style="display: none; margin-top: 0.75rem;">
                 <label class="keys-step-label">
-                    <input type="checkbox" id="keys-step-profile" disabled>
+                    <span id="keys-step-profile-check" class="keys-step-check" aria-hidden="true">V</span>
                     <span>Add your npub to your Trustroots profile.</span>
                 </label>
                 <button class="btn btn-secondary" onclick="updateTrustrootsProfile()" type="button" style="width: 100%;">

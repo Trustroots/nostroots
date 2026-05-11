@@ -2,7 +2,7 @@ import { test, expect } from './fixtures.js';
 
 /**
  * Validates the map-note intent UX:
- *   - chips render in the compose modal
+ *   - chips render in the Host & Meet area page composer
  *   - clicking a chip toggles aria-checked
  *   - the "Host & meet" header shortcut pre-selects #hosting
  *   - rendered notes carrying a t/intent tag get a badge
@@ -21,12 +21,14 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('Map note intent chips', () => {
-    test('chips render and select-by-click in the compose modal', async ({ page }) => {
+    test('chips render and select-by-click in the area page composer', async ({ page }) => {
         await page.goto('/');
         await page.waitForLoadState('networkidle');
 
         await page.evaluate(() => window.showNotesForPlusCode('9F3HC2J7+'));
+        await expect(page.locator('body.nr-surface-area')).toBeVisible();
         await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible();
+        await expect(page.locator('#area-location-code')).toHaveText('9F3HC2J7+');
 
         const chips = page.locator('#note-intent-chips .note-intent-chip');
         await expect(chips).toHaveCount(6);
@@ -52,6 +54,7 @@ test.describe('Map note intent chips', () => {
         await page.waitForLoadState('networkidle');
 
         await page.evaluate(() => window.openHostNoteFlow());
+        await expect(page.locator('body.nr-surface-area')).toBeVisible();
         await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible();
         await expect(
             page.locator('.note-intent-chip[data-intent="hosting"]'),
@@ -86,6 +89,7 @@ test.describe('Map note intent chips', () => {
             host.replaceChildren(item);
         });
 
+        await expect(page.locator('body.nr-surface-area')).toBeVisible();
         await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible();
         const badge = page
             .locator('#pluscode-notes-content .nr-note-intent-badge.nr-note-intent-hosting')

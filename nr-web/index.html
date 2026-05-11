@@ -1196,7 +1196,8 @@
                         bodMap.classList &&
                         (bodMap.classList.contains('nr-surface-chat') ||
                             bodMap.classList.contains('nr-surface-profile') ||
-                            bodMap.classList.contains('nr-surface-account'))
+                            bodMap.classList.contains('nr-surface-account') ||
+                            bodMap.classList.contains('nr-surface-area'))
                     ) {
                         try {
                             global.location.hash = '';
@@ -1229,7 +1230,8 @@
                         bodHost.classList &&
                         (bodHost.classList.contains('nr-surface-chat') ||
                             bodHost.classList.contains('nr-surface-profile') ||
-                            bodHost.classList.contains('nr-surface-account'))
+                            bodHost.classList.contains('nr-surface-account') ||
+                            bodHost.classList.contains('nr-surface-area'))
                     ) {
                         try {
                             global.location.hash = '';
@@ -2850,50 +2852,11 @@ h1, h2, .modal-header h2 {
     gap: 0 1.5rem;
     align-items: start;
 }
-@media (max-width: 900px) {
-    .nr-profile-tr-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-    .nr-profile-tr-rail {
-        grid-column: 1 / -1;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-    }
-}
-@media (max-width: 640px) {
-    .nr-profile-tr-hero {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-    .nr-profile-tr-hero-main {
-        margin-left: 0;
-    }
-    .nr-profile-tr-avatar-wrap {
-        position: static;
-        max-width: 150px;
-        margin-bottom: 0;
-    }
-    .nr-profile-tr-grid {
-        grid-template-columns: 1fr;
-    }
-    .nr-profile-tr-rail {
-        grid-column: auto;
-        display: flex;
-        flex-direction: column;
-    }
-}
 .nr-profile-tr-aside {
     position: sticky;
     top: 0.5rem;
     /* Keep left-column stats (NIP-05) below the fixed-size avatar block. */
     margin-top: calc(200px + 0.75rem);
-}
-@media (max-width: 640px) {
-    .nr-profile-tr-aside {
-        margin-top: 0;
-    }
 }
 .nr-profile-tr-avatar-wrap {
     position: absolute;
@@ -2926,6 +2889,50 @@ h1, h2, .modal-header h2 {
     font-size: 2.5rem;
     color: var(--muted-foreground);
     background: linear-gradient(145deg, var(--muted), var(--secondary));
+}
+/* Keep responsive profile overrides below base avatar/aside rules to avoid cascade conflicts. */
+@media (max-width: 900px) {
+    .nr-profile-tr-hero {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    .nr-profile-tr-hero-main {
+        margin-left: 0;
+    }
+    .nr-profile-tr-avatar-wrap {
+        position: static;
+        width: min(200px, 55vw);
+        max-width: 200px;
+        margin-bottom: 0;
+    }
+    .nr-profile-tr-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    .nr-profile-tr-aside {
+        margin-top: 0;
+    }
+    .nr-profile-tr-rail {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+}
+@media (max-width: 640px) {
+    .nr-profile-tr-avatar-wrap {
+        width: min(150px, 45vw);
+        max-width: 150px;
+        margin-bottom: 0;
+    }
+    .nr-profile-tr-grid {
+        grid-template-columns: 1fr;
+    }
+    .nr-profile-tr-rail {
+        grid-column: auto;
+        display: flex;
+        flex-direction: column;
+    }
 }
 .nr-profile-tr-stats {
     list-style: none;
@@ -3021,6 +3028,20 @@ h1, h2, .modal-header h2 {
     white-space: normal;
     overflow-wrap: anywhere;
     line-height: 1.2;
+}
+a.nr-profile-tr-badge {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    display: inline-block;
+    vertical-align: middle;
+}
+a.nr-profile-tr-badge:hover {
+    filter: brightness(0.97);
+}
+a.nr-profile-tr-badge:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
 }
 .nr-profile-tr-badge--muted {
     background: hsl(168, 10%, 90%);
@@ -6090,6 +6111,328 @@ h1, h2, .modal-header h2 {
     padding-right: 0.4rem;
 }
 
+.area-page-subtitle,
+.area-location-card {
+    display: none;
+}
+
+body.nr-surface-area {
+    overflow: hidden;
+}
+
+body.nr-surface-area #pluscode-notes-modal {
+    display: flex;
+    position: static;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    flex: 1 1 0;
+    align-items: stretch;
+    justify-content: center;
+    overflow: hidden;
+    padding: 0;
+    background: var(--background);
+    backdrop-filter: none;
+    z-index: auto;
+}
+
+body.nr-surface-area #pluscode-notes-modal.active {
+    display: flex;
+}
+
+body.nr-surface-area #pluscode-notes-modal .notes-modal-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    width: min(100%, 1220px);
+    max-width: 1220px;
+    height: 100%;
+    max-height: none;
+    flex: 1 1 0;
+    margin: 0 auto;
+    padding: 1rem clamp(0.75rem, 2vw, 1.5rem);
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    overflow: hidden;
+}
+
+body.nr-surface-area #pluscode-notes-modal .notes-modal-content::after {
+    display: none;
+}
+
+body.nr-surface-area #pluscode-notes-modal .modal-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.25rem 0 0.75rem;
+    margin: 0;
+    border-bottom: 1px solid var(--border);
+}
+
+body.nr-surface-area #pluscode-notes-modal .modal-header::after {
+    display: none;
+}
+
+body.nr-surface-area #pluscode-notes-modal .modal-header-title-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+body.nr-surface-area #pluscode-notes-title {
+    margin: 0;
+    font-size: clamp(1.35rem, 2vw, 1.85rem);
+    line-height: 1.1;
+}
+
+body.nr-surface-area .area-page-subtitle {
+    display: block;
+    margin: 0;
+    color: var(--muted-foreground);
+    font-size: 0.9rem;
+    line-height: 1.35;
+}
+
+body.nr-surface-area #pluscode-notes-close-btn {
+    width: auto;
+    height: auto;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--foreground);
+    font-size: 0.875rem;
+    line-height: 1.2;
+}
+
+body.nr-surface-area #pluscode-notes-close-btn::before {
+    content: "Map";
+}
+
+body.nr-surface-area #pluscode-notes-close-btn {
+    font-size: 0;
+}
+
+body.nr-surface-area #pluscode-notes-close-btn::before {
+    font-size: 0.875rem;
+}
+
+body.nr-surface-area .area-location-card {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+    padding: 0.85rem;
+    background: var(--card);
+    border: 0;
+    border-radius: 0;
+}
+
+.area-location-map {
+    position: relative;
+    min-height: 10.5rem;
+    overflow: hidden;
+    border-radius: calc(var(--radius) - 2px);
+    border: 1px solid var(--border);
+    background:
+        linear-gradient(90deg, color-mix(in srgb, var(--border) 52%, transparent) 1px, transparent 1px),
+        linear-gradient(0deg, color-mix(in srgb, var(--border) 52%, transparent) 1px, transparent 1px),
+        linear-gradient(135deg, color-mix(in srgb, var(--muted) 72%, var(--card) 28%), var(--background));
+    background-size: 25% 25%, 25% 25%, auto;
+}
+
+.area-location-tile-grid {
+    position: absolute;
+    width: 768px;
+    height: 768px;
+    z-index: 0;
+}
+
+.area-location-tile-grid:empty {
+    display: none;
+}
+
+.area-location-tile-grid img {
+    position: absolute;
+    width: 256px;
+    height: 256px;
+    user-select: none;
+    pointer-events: none;
+}
+
+.area-location-cell {
+    position: absolute;
+    inset: 34% 31%;
+    z-index: 1;
+    border: 3px solid var(--primary);
+    border-radius: 0.45rem;
+    background: color-mix(in srgb, var(--primary) 22%, transparent);
+    box-shadow: 0 0 0 999px color-mix(in srgb, var(--background) 38%, transparent);
+}
+
+.area-location-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-width: 0;
+}
+
+.area-location-kicker {
+    margin-bottom: 0.25rem;
+    color: var(--muted-foreground);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.area-location-code {
+    color: var(--foreground);
+    font-size: clamp(1.7rem, 3vw, 2.35rem);
+    font-weight: 700;
+    line-height: 1.05;
+    word-break: break-word;
+}
+
+.area-location-detail {
+    margin-top: 0.35rem;
+    color: var(--muted-foreground);
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+body.nr-surface-area #pluscode-notes-modal .notes-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    margin: 0;
+    padding: 0.9rem;
+    overflow-y: auto;
+    background: color-mix(in srgb, var(--card) 84%, var(--background) 16%);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+}
+
+body.nr-surface-area #pluscode-notes-content.thread-messages::before {
+    display: none;
+}
+
+body.nr-surface-area #pluscode-notes-modal .notes-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin: 0;
+}
+
+body.nr-surface-area #pluscode-notes-modal .note-item {
+    width: 100%;
+    max-width: none;
+    padding: 0.85rem 1rem;
+    margin: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.035);
+}
+
+body.nr-surface-area #pluscode-notes-modal .note-meta-row {
+    flex-wrap: wrap;
+    gap: 0.35rem 0.5rem;
+    margin-bottom: 0.4rem;
+}
+
+body.nr-surface-area #pluscode-notes-modal .note-content {
+    font-size: 0.98rem;
+    line-height: 1.45;
+}
+
+body.nr-surface-area #pluscode-notes-modal .notes-actions {
+    padding: 0.75rem 0.85rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: color-mix(in srgb, var(--card) 92%, var(--background) 8%);
+}
+
+body.nr-surface-area #pluscode-notes-modal .notes-add-form {
+    gap: 0.5rem;
+}
+
+body.nr-surface-area #pluscode-notes-modal .notes-add-form-row {
+    align-items: center;
+    justify-content: space-between;
+}
+
+body.nr-surface-area .area-main {
+    flex: 1 1 0;
+    min-height: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--background);
+}
+
+body.nr-surface-area .area-sidebar {
+    width: min(28rem, 36vw);
+    background: color-mix(in srgb, var(--card) 96%, var(--background) 4%);
+}
+
+body.nr-surface-area .area-thread {
+    background: var(--background);
+}
+
+body.nr-surface-area #note-content-in-modal {
+    min-height: 3.6rem;
+    border-color: var(--primary);
+    background: var(--background);
+}
+
+@media (max-width: 960px) {
+    body.nr-surface-area .area-sidebar {
+        width: min(22rem, 40vw);
+    }
+
+    .area-location-map {
+        min-height: 8rem;
+    }
+}
+
+@media (max-width: 768px) {
+    body.nr-surface-area #pluscode-notes-modal .notes-modal-content {
+        padding: 0.75rem;
+    }
+
+    body.nr-surface-area #pluscode-notes-modal .modal-header {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    body.nr-surface-area #pluscode-notes-modal .notification-subscribe-block {
+        grid-column: 1 / -1;
+        justify-self: start;
+        padding: 0 !important;
+    }
+
+    body.nr-surface-area .area-location-card {
+        grid-template-columns: 1fr;
+    }
+
+    body.nr-surface-area .area-main {
+        flex-direction: column;
+    }
+
+    body.nr-surface-area .area-sidebar {
+        width: 100%;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .area-location-map {
+        min-height: 6.75rem;
+    }
+}
+
 .notes-section {
     margin-bottom: 0.5rem;
 }
@@ -6461,6 +6804,11 @@ h1, h2, .modal-header h2 {
         body.nr-surface-account #nr-profile-view {
             display: none !important;
         }
+        body.nr-surface-area #map-view,
+        body.nr-surface-area .nr-chat-view,
+        body.nr-surface-area #nr-profile-view {
+            display: none !important;
+        }
         .nr-profile-scroll {
             flex: 1;
             overflow: auto;
@@ -6562,6 +6910,21 @@ h1, h2, .modal-header h2 {
             align-items: center;
             padding-top: 0.5rem;
             pointer-events: none;
+        }
+        @media (max-width: 640px) {
+            .status-container {
+                top: 52px;
+                padding-top: 0.25rem;
+                padding-left: 0.5rem;
+                padding-right: 0.5rem;
+            }
+            .status {
+                max-width: min(92vw, 34rem);
+                padding: 0.55rem 0.75rem;
+                font-size: 0.8rem;
+                line-height: 1.3;
+                margin: 0.15rem 0;
+            }
         }
     </style>
 </head>
@@ -6699,35 +7062,53 @@ h1, h2, .modal-header h2 {
             <div class="modal-header">
                 <div class="modal-header-title-row">
                     <h2 id="pluscode-notes-title">Notes</h2>
+                    <p id="pluscode-notes-subtitle" class="area-page-subtitle" aria-live="polite"></p>
                 </div>
                 <div id="notification-subscribe-block" class="notification-subscribe-block" style="display: none; padding: 0 0.5rem; font-size: 0.9rem;"></div>
-                <button class="modal-close" onclick="closePlusCodeNotesModal()">&times;</button>
+                <button class="modal-close" id="pluscode-notes-close-btn" onclick="closePlusCodeNotesModal()" aria-label="Close">&times;</button>
             </div>
-            <div id="pluscode-notes-content" class="notes-list"></div>
-            <div class="notes-actions">
-                <div class="notes-add-form">
-                    <div class="notes-add-form-row">
-                        <span id="note-compose-scope-icon" class="note-compose-scope-icon" title="Posting scope" aria-label="Posting scope">🌍</span>
-                        <div class="form-group expiration-group">
-                            <label>Expiration</label>
-                            <select id="note-expiration-in-modal" onchange="saveExpirationSetting(this.value)">
-                                <option value="31536000">1 year</option>
-                                <option value="2592000">1 month</option>
-                                <option value="604800" selected>1 week</option>
-                                <option value="86400">1 day</option>
-                                <option value="3600">1 hour</option>
-                            </select>
+            <main class="main area-main">
+                <aside class="sidebar area-sidebar">
+                    <section id="area-location-card" class="area-location-card" aria-live="polite">
+                        <div class="area-location-map" aria-hidden="true">
+                            <div id="area-location-tile-grid" class="area-location-tile-grid"></div>
+                            <div id="area-location-cell" class="area-location-cell"></div>
                         </div>
-                        <button id="circles-button-modal" class="circles-button" title="Select Trustroots Circle" onclick="showCirclesModal()">∞</button>
+                        <div class="area-location-copy">
+                            <div class="area-location-kicker">Posting target</div>
+                            <div id="area-location-code" class="area-location-code"></div>
+                            <div id="area-location-detail" class="area-location-detail">Posts to this area</div>
+                        </div>
+                    </section>
+                </aside>
+                <section class="thread-area area-thread">
+                    <div id="pluscode-notes-content" class="notes-list thread-messages"></div>
+                    <div class="compose notes-actions">
+                        <div class="notes-add-form">
+                            <div class="notes-add-form-row">
+                                <span id="note-compose-scope-icon" class="note-compose-scope-icon" title="Posting scope" aria-label="Posting scope">🌍</span>
+                                <div class="form-group expiration-group">
+                                    <label>Expiration</label>
+                                    <select id="note-expiration-in-modal" onchange="saveExpirationSetting(this.value)">
+                                        <option value="31536000">1 year</option>
+                                        <option value="2592000">1 month</option>
+                                        <option value="604800" selected>1 week</option>
+                                        <option value="86400">1 day</option>
+                                        <option value="3600">1 hour</option>
+                                    </select>
+                                </div>
+                                <button id="circles-button-modal" class="circles-button" title="Select Trustroots Circle" onclick="showCirclesModal()">∞</button>
+                            </div>
+                            <div id="note-intent-chips" class="note-intent-chips" role="radiogroup" aria-label="Note type"></div>
+                            <textarea id="note-content-in-modal" rows="1" placeholder="Type a message... (Enter to send)" autofocus></textarea>
+                            <div id="selected-circle-indicator-modal" style="display: none; margin-top: 4px; font-size: 0.85rem; color: var(--primary);">
+                                <span id="selected-circle-text-modal"></span>
+                                <button onclick="clearSelectedCircle('modal')" style="margin-left: 8px; background: none; border: none; color: var(--muted-foreground); cursor: pointer; font-size: 0.8rem;">✕</button>
+                            </div>
+                        </div>
                     </div>
-                    <div id="note-intent-chips" class="note-intent-chips" role="radiogroup" aria-label="Note type"></div>
-                    <textarea id="note-content-in-modal" rows="1" placeholder="Type a message... (Enter to send)" autofocus></textarea>
-                    <div id="selected-circle-indicator-modal" style="display: none; margin-top: 4px; font-size: 0.85rem; color: var(--primary);">
-                        <span id="selected-circle-text-modal"></span>
-                        <button onclick="clearSelectedCircle('modal')" style="margin-left: 8px; background: none; border: none; color: var(--muted-foreground); cursor: pointer; font-size: 0.8rem;">✕</button>
-                    </div>
-                </div>
-            </div>
+                </section>
+            </main>
         </div>
     </div>
     

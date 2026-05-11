@@ -71,7 +71,7 @@ test.describe('Map Interactions', () => {
   });
 });
 
-/** Area-level OLC hashes (e.g. 9G000000+) must classify as map, not chat — map stays visible behind modal. */
+/** Area-level OLC hashes (e.g. 9G000000+) must classify as Host & Meet area pages, not chat. */
 test.describe('Map hash (coarse plus code)', () => {
   test.beforeEach(async ({ page }) => {
     await page.addInitScript((hex) => {
@@ -82,11 +82,29 @@ test.describe('Map hash (coarse plus code)', () => {
     }, '0000000000000000000000000000000000000000000000000000000000000001');
   });
 
-  test('area plus code in hash opens notes modal without switching to chat', async ({ page }) => {
+  test('area plus code in hash opens Host & Meet area page without switching to chat', async ({ page }) => {
     await page.goto('/#9G000000+');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body.nr-surface-chat')).toHaveCount(0);
+    await expect(page.locator('body.nr-surface-area')).toBeVisible({ timeout: 20000 });
     await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('#pluscode-notes-title')).toHaveText('Host & Meet');
+    await expect(page.locator('#pluscode-notes-modal .area-main')).toBeVisible();
+    await expect(page.locator('#pluscode-notes-modal .area-sidebar')).toBeVisible();
+    await expect(page.locator('#pluscode-notes-modal .area-thread')).toBeVisible();
+    await expect(page.locator('#area-location-code')).toHaveText('9G000000+');
+    await expect(page.locator('#area-location-tile-grid img')).toHaveCount(9);
+    await expect(page.locator('#map-view')).not.toBeVisible();
+  });
+
+  test('Map nav leaves the Host & Meet area page', async ({ page }) => {
+    await page.goto('/#9G000000+');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('body.nr-surface-area')).toBeVisible({ timeout: 20000 });
+
+    await page.locator('#nav-map-btn').click();
+    await expect(page.locator('body.nr-surface-area')).toHaveCount(0);
+    await expect(page.locator('#pluscode-notes-modal.active')).toHaveCount(0);
     await expect(page.locator('#map-view')).toBeVisible();
   });
 });
@@ -128,29 +146,31 @@ test.describe('Leaflet fallback tap', () => {
     }, { timeout: 20000 });
   }
 
-  test('canonical helper opens the modal', async ({ page }) => {
+  test('canonical helper opens the area page', async ({ page }) => {
     await gotoLeafletFallback(page);
     await page.evaluate(() => {
       const r = document.querySelector('.leaflet-container').getBoundingClientRect();
       window.__nrwebLeafletTap(r.left + r.width / 2, r.top + r.height / 2);
     });
+    await expect(page.locator('body.nr-surface-area')).toBeVisible({ timeout: 20000 });
     await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible({ timeout: 20000 });
   });
 
-  test('chromium mouse click opens the modal', async ({ page, browserName }) => {
+  test('chromium mouse click opens the area page', async ({ page, browserName }) => {
     test.skip(browserName !== 'chromium', 'Mouse click is the chromium-specific path');
     await gotoLeafletFallback(page);
     const box = await page.locator('.leaflet-container').boundingBox();
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(page.locator('body.nr-surface-area')).toBeVisible({ timeout: 20000 });
     await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible({ timeout: 20000 });
   });
 
-  test('iOS Safari touchscreen tap opens the modal', async ({ page, browserName }) => {
+  test('iOS Safari touchscreen tap opens the area page', async ({ page, browserName }) => {
     test.skip(browserName !== 'webkit', 'Reproduces the iPhone Safari Leaflet fallback regression');
     await gotoLeafletFallback(page);
     const box = await page.locator('.leaflet-container').boundingBox();
     await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(page.locator('body.nr-surface-area')).toBeVisible({ timeout: 20000 });
     await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible({ timeout: 20000 });
   });
 });
-

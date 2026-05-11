@@ -468,6 +468,11 @@ function normalizeTimedLookup(row, maxAgeMs) {
     return row;
 }
 
+function normalizeCachedPubkeyHex(value) {
+    const hex = String(value || '').trim().toLowerCase();
+    return /^[0-9a-f]{64}$/.test(hex) ? hex : '';
+}
+
 export function chatCacheKvKey(pubkeyHex) {
     return 'nostroots_chat_cache_' + pubkeyHex;
 }
@@ -558,12 +563,19 @@ export async function resolveNip05(nip05) {
   const at = s.indexOf('@');
   if (at <= 0 || at === s.length - 1) return null;
   const memoHit = normalizeTimedLookup(nip05ResolveMemo.get(s), NIP05_RESOLVE_CACHE_MAX_AGE_MS);
-  if (memoHit) return memoHit.value || null;
+  if (memoHit) {
+    const cachedHex = normalizeCachedPubkeyHex(memoHit.value);
+    if (cachedHex) return cachedHex;
+    if (!memoHit.value) return null;
+  }
   const cacheKey = NIP05_RESOLVE_CACHE_KEY_PREFIX + s;
   const persisted = normalizeTimedLookup(await nrWebKvGet(cacheKey), NIP05_RESOLVE_CACHE_MAX_AGE_MS);
   if (persisted) {
-    rememberMemoizedLookup(nip05ResolveMemo, s, persisted);
-    return persisted.value || null;
+    const cachedHex = normalizeCachedPubkeyHex(persisted.value);
+    if (cachedHex || !persisted.value) {
+      rememberMemoizedLookup(nip05ResolveMemo, s, persisted);
+      return cachedHex || null;
+    }
   }
   const local = s.slice(0, at);
   let domain = s.slice(at + 1).replace(/^www\./, '');
@@ -801,7 +813,8 @@ export function npubToHex(npub) {
     try {
         const d = nip19.decode(String(npub || '').trim());
         if (d.type !== 'npub') return '';
-        return bytesToHex(d.data);
+        const hex = bytesToHex(d.data);
+        return /^[0-9a-f]{64}$/.test(hex) ? hex : '';
     } catch (_) {
         return '';
     }
@@ -1781,6 +1794,38 @@ function replaceHashRoute(route) {
         location.hash = want;
     }
 }
+function showAreaSurface() {
+    const mapView = document.getElementById('map-view');
+    const chatView = document.getElementById('nr-chat-view');
+    const profileView = document.getElementById('nr-profile-view');
+    const keysPage = document.getElementById('keys-modal');
+    const settingsPage = document.getElementById('settings-modal');
+    const areaPage = document.getElementById('pluscode-notes-modal');
+
+    document.body.classList.remove('nr-surface-chat');
+    document.body.classList.remove('nr-surface-profile');
+    document.body.classList.remove('nr-surface-account');
+    document.body.classList.add('nr-surface-area');
+    document.body.classList.remove('chat-open');
+
+    if (mapView) mapView.style.display = 'none';
+    if (chatView) {
+        chatView.hidden = true;
+        chatView.style.display = 'none';
+    }
+    if (profileView) {
+        profileView.hidden = true;
+        profileView.style.display = 'none';
+    }
+    if (keysPage) keysPage.classList.remove('active');
+    if (settingsPage) settingsPage.classList.remove('active');
+    if (areaPage) areaPage.classList.add('active');
+    try {
+        if (window.NrWeb && typeof window.NrWeb.fillAppHeader === 'function') {
+            window.NrWeb.fillAppHeader();
+        }
+    } catch (_) {}
+}
 function legacyApplyMapHashToState(route) {
     const keysEl = document.getElementById('keys-modal');
     const settingsEl = document.getElementById('settings-modal');
@@ -1919,11 +1964,17 @@ async function applyUnifiedHash() {
         if (keysPage) keysPage.classList.remove('active');
         if (settingsPage) settingsPage.classList.remove('active');
     }
+    function hideAreaShell() {
+        const areaPage = document.getElementById('pluscode-notes-modal');
+        document.body.classList.remove('nr-surface-area');
+        if (areaPage) areaPage.classList.remove('active');
+    }
     function showMapShell() {
         restoreAllClaimsProfileUi();
         document.body.classList.remove('nr-surface-chat');
         document.body.classList.remove('nr-surface-profile');
         document.body.classList.remove('nr-surface-account');
+        hideAreaShell();
         hideAccountShell();
         if (profileView) {
             profileView.hidden = true;
@@ -1944,6 +1995,7 @@ async function applyUnifiedHash() {
         restoreAllClaimsProfileUi();
         document.body.classList.remove('nr-surface-profile');
         document.body.classList.remove('nr-surface-account');
+        hideAreaShell();
         hideAccountShell();
         if (profileView) {
             profileView.hidden = true;
@@ -1975,6 +2027,7 @@ async function applyUnifiedHash() {
         if (m !== 'contacts') restoreAllClaimsProfileUi();
         document.body.classList.remove('nr-surface-chat');
         document.body.classList.remove('nr-surface-account');
+        hideAreaShell();
         document.body.classList.add('nr-surface-profile');
         hideAccountShell();
         if (mapView) mapView.style.display = 'none';
@@ -2009,6 +2062,7 @@ async function applyUnifiedHash() {
         restoreAllClaimsProfileUi();
         document.body.classList.remove('nr-surface-chat');
         document.body.classList.remove('nr-surface-profile');
+        hideAreaShell();
         document.body.classList.add('nr-surface-account');
         if (mapView) mapView.style.display = 'none';
         if (chatView) {
@@ -2089,11 +2143,6 @@ async function applyUnifiedHash() {
             nrMapPlusCodeSuppressedUntil = null;
             return;
         }
-        showMapShell();
-        const keysEl3 = document.getElementById('keys-modal');
-        const settingsEl3 = document.getElementById('settings-modal');
-        if (keysEl3) keysEl3.classList.remove('active');
-        if (settingsEl3) settingsEl3.classList.remove('active');
         showNotesForPlusCode(c.plusCode);
         return;
     }
@@ -4177,6 +4226,62 @@ function profilePageCacheKey(hex) {
     return NR_MAP_CACHE_PROFILE_PAGE_KEY_PREFIX + String(hex || '').toLowerCase();
 }
 
+const NR_PROFILE_HOST_MEET_CACHE_KEY_PREFIX = 'nr_profile_host_meet_card_v1:';
+const NR_PROFILE_HOST_MEET_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
+
+function profileHostMeetCacheKey(hex) {
+    return NR_PROFILE_HOST_MEET_CACHE_KEY_PREFIX + String(hex || '').toLowerCase();
+}
+
+function loadProfileHostMeetCardFromCache(hex) {
+    const h = String(hex || '').toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(h)) return null;
+    try {
+        const raw = localStorage.getItem(profileHostMeetCacheKey(h));
+        if (!raw) return null;
+        const row = JSON.parse(raw);
+        const age = Date.now() - Number(row?.timestamp || 0);
+        if (!Number.isFinite(age) || age < 0 || age > NR_PROFILE_HOST_MEET_CACHE_MAX_AGE_MS) return null;
+        const card = row?.card;
+        if (!card || typeof card !== 'object') return null;
+        if (!card.title || !card.badgeText || !card.summary) return null;
+        return {
+            title: String(card.title || ''),
+            badgeText: String(card.badgeText || ''),
+            badgeVariant: String(card.badgeVariant || 'muted'),
+            summary: String(card.summary || ''),
+            dateText: String(card.dateText || ''),
+            plusCode: String(card.plusCode || ''),
+            source: String(card.source || ''),
+        };
+    } catch (_) {
+        return null;
+    }
+}
+
+function saveProfileHostMeetCardToCache(hex, card) {
+    const h = String(hex || '').toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(h)) return;
+    if (!card || typeof card !== 'object') return;
+    try {
+        localStorage.setItem(
+            profileHostMeetCacheKey(h),
+            JSON.stringify({
+                timestamp: Date.now(),
+                card: {
+                    title: String(card.title || ''),
+                    badgeText: String(card.badgeText || ''),
+                    badgeVariant: String(card.badgeVariant || 'muted'),
+                    summary: String(card.summary || ''),
+                    dateText: String(card.dateText || ''),
+                    plusCode: String(card.plusCode || ''),
+                    source: String(card.source || ''),
+                },
+            })
+        );
+    } catch (_) {}
+}
+
 function eventHasPTagForHex(event, hex) {
     const h = String(hex || '').toLowerCase();
     if (!/^[0-9a-f]{64}$/.test(h)) return false;
@@ -6185,7 +6290,12 @@ function closePlusCodeNotesModal(skipHashUpdate) {
     clearSelectedCircle('modal');
     // Clear selected plus code and update grid to remove highlight
     selectedPlusCode = null;
-    if (!skipHashUpdate) setHashRoute('');
+    if (!skipHashUpdate) {
+        setHashRoute('');
+        document.body.classList.remove('nr-surface-area');
+        const mapView = document.getElementById('map-view');
+        if (mapView) mapView.style.display = '';
+    }
     updatePlusCodeGrid();
 }
 
@@ -6482,8 +6592,131 @@ function normalizePlusCodeForHashSuppress(pc) {
     return String(pc || '').replace(/\s/g, '').toUpperCase();
 }
 
+function clampLatitudeForTile(lat) {
+    return Math.max(-85.05112878, Math.min(85.05112878, Number(lat) || 0));
+}
+
+function lngLatToTileWorldPixel(lng, lat, zoom) {
+    const scale = 256 * Math.pow(2, zoom);
+    const safeLat = clampLatitudeForTile(lat);
+    const sinLat = Math.sin((safeLat * Math.PI) / 180);
+    return {
+        x: ((Number(lng) + 180) / 360) * scale,
+        y: (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale
+    };
+}
+
+function getAreaLocatorZoom(rectangle, previewWidth, previewHeight) {
+    if (!rectangle || rectangle.length < 4) return 3;
+    const sw = rectangle[0];
+    const ne = rectangle[2];
+    const maxWidth = Math.max(96, previewWidth * 0.62);
+    const maxHeight = Math.max(48, previewHeight * 0.62);
+    for (let zoom = 13; zoom >= 1; zoom--) {
+        const westSouth = lngLatToTileWorldPixel(sw[0], sw[1], zoom);
+        const eastNorth = lngLatToTileWorldPixel(ne[0], ne[1], zoom);
+        const width = Math.abs(eastNorth.x - westSouth.x);
+        const height = Math.abs(westSouth.y - eastNorth.y);
+        if (width <= maxWidth && height <= maxHeight) return zoom;
+    }
+    return 1;
+}
+
+function tileUrlForAreaLocator(zoom, x, y) {
+    return `https://tiles.basemaps.cartocdn.com/rastertiles/voyager/${zoom}/${x}/${y}.png`;
+}
+
+function renderAreaLocationTiles(mapEl, centerLng, centerLat, zoom) {
+    const tileGrid = document.getElementById('area-location-tile-grid');
+    if (!mapEl || !tileGrid) return;
+    tileGrid.replaceChildren();
+
+    const world = lngLatToTileWorldPixel(centerLng, centerLat, zoom);
+    const tileX = Math.floor(world.x / 256);
+    const tileY = Math.floor(world.y / 256);
+    const fracX = world.x - tileX * 256;
+    const fracY = world.y - tileY * 256;
+    const tileCount = Math.pow(2, zoom);
+
+    tileGrid.style.left = `calc(50% - ${256 + fracX}px)`;
+    tileGrid.style.top = `calc(50% - ${256 + fracY}px)`;
+
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            const wrappedX = ((tileX + dx) % tileCount + tileCount) % tileCount;
+            const y = tileY + dy;
+            if (y < 0 || y >= tileCount) continue;
+            const img = document.createElement('img');
+            img.alt = '';
+            img.decoding = 'async';
+            img.loading = 'eager';
+            img.src = tileUrlForAreaLocator(zoom, wrappedX, y);
+            img.style.left = `${(dx + 1) * 256}px`;
+            img.style.top = `${(dy + 1) * 256}px`;
+            tileGrid.appendChild(img);
+        }
+    }
+}
+
+function renderAreaLocationCell(cellEl, rectangle, centerLng, centerLat, zoom, previewWidth, previewHeight) {
+    if (!cellEl || !rectangle || rectangle.length < 4) return;
+    const sw = rectangle[0];
+    const ne = rectangle[2];
+    const center = lngLatToTileWorldPixel(centerLng, centerLat, zoom);
+    const swPx = lngLatToTileWorldPixel(sw[0], sw[1], zoom);
+    const nePx = lngLatToTileWorldPixel(ne[0], ne[1], zoom);
+    const rawWidth = Math.abs(nePx.x - swPx.x);
+    const rawHeight = Math.abs(swPx.y - nePx.y);
+    const width = Math.min(previewWidth * 0.74, Math.max(40, rawWidth));
+    const height = Math.min(previewHeight * 0.74, Math.max(34, rawHeight));
+    const midpointX = (swPx.x + nePx.x) / 2;
+    const midpointY = (swPx.y + nePx.y) / 2;
+    const left = previewWidth / 2 + (midpointX - center.x) - width / 2;
+    const top = previewHeight / 2 + (midpointY - center.y) - height / 2;
+
+    cellEl.style.inset = 'auto';
+    cellEl.style.left = `${Math.max(10, Math.min(previewWidth - width - 10, left))}px`;
+    cellEl.style.top = `${Math.max(10, Math.min(previewHeight - height - 10, top))}px`;
+    cellEl.style.width = `${width}px`;
+    cellEl.style.height = `${height}px`;
+}
+
+function renderAreaLocationCard(plusCode) {
+    const codeEl = document.getElementById('area-location-code');
+    const detailEl = document.getElementById('area-location-detail');
+    const cellEl = document.getElementById('area-location-cell');
+    const mapEl = document.querySelector('.area-location-map');
+    const tileGrid = document.getElementById('area-location-tile-grid');
+    const value = String(plusCode || '').trim();
+    if (codeEl) codeEl.textContent = value;
+    if (tileGrid) tileGrid.replaceChildren();
+    let detail = 'Posts to this area';
+    try {
+        const rectangle = plusCodeToRectangle(value);
+        if (rectangle && rectangle.length >= 4) {
+            const sw = rectangle[0];
+            const ne = rectangle[2];
+            const latMidNumber = (Number(sw[1]) + Number(ne[1])) / 2;
+            const lngMidNumber = (Number(sw[0]) + Number(ne[0])) / 2;
+            const latMid = latMidNumber.toFixed(3);
+            const lngMid = lngMidNumber.toFixed(3);
+            detail = `Posts to this area near ${latMid}, ${lngMid}`;
+            if (mapEl) {
+                const previewRect = mapEl.getBoundingClientRect();
+                const previewWidth = Math.max(220, previewRect.width || 288);
+                const previewHeight = Math.max(104, previewRect.height || 128);
+                const zoom = getAreaLocatorZoom(rectangle, previewWidth, previewHeight);
+                renderAreaLocationTiles(mapEl, lngMidNumber, latMidNumber, zoom);
+                renderAreaLocationCell(cellEl, rectangle, lngMidNumber, latMidNumber, zoom, previewWidth, previewHeight);
+            }
+        }
+    } catch (_) {}
+    if (detailEl) detailEl.textContent = detail;
+}
+
 function showNotesForPlusCode(plusCode, options = {}) {
     selectedPlusCode = plusCode;
+    showAreaSurface();
     updateNoteComposePostingIcon();
     
     // Use fast spatial index lookup instead of filtering all events
@@ -6592,9 +6825,15 @@ function showNotesForPlusCode(plusCode, options = {}) {
 
     void prefetchTrustrootsProfilesForNoteMentions([...collectMapNoteMentionNpubHexes(sortedAll)], plusCode);
     
-    // Update modal title
-    document.getElementById('pluscode-notes-title').textContent = 
-        `${sortedAll.length} note${sortedAll.length !== 1 ? 's' : ''} for ${plusCode}`;
+    // Update area page title
+    document.getElementById('pluscode-notes-title').textContent = 'Host & Meet';
+    const subtitle = document.getElementById('pluscode-notes-subtitle');
+    if (subtitle) {
+        subtitle.textContent = `${sortedAll.length} note${sortedAll.length !== 1 ? 's' : ''} for ${plusCode} · Posts to this area`;
+    }
+    const closeBtn = document.getElementById('pluscode-notes-close-btn');
+    if (closeBtn) closeBtn.setAttribute('aria-label', 'Back to map');
+    renderAreaLocationCard(plusCode);
     
     renderNotificationSubscribeBlock(plusCode);
     
@@ -6623,7 +6862,7 @@ function showNotesForPlusCode(plusCode, options = {}) {
         // Show message if no notes
         const noNotes = document.createElement('div');
         noNotes.className = 'notes-section';
-        noNotes.innerHTML = '<p style="color: var(--muted-foreground); text-align: center; padding: 2rem;">No notes here yet. You can post the first note for this area, or zoom out and open nearby areas to discover activity.</p>';
+        noNotes.innerHTML = '<p style="color: var(--muted-foreground); text-align: center; padding: 2rem;">No messages here yet. Post the first Host & Meet note for this area.</p>';
         notesContent.appendChild(noNotes);
     }
     
@@ -6652,11 +6891,11 @@ function showNotesForPlusCode(plusCode, options = {}) {
     // Update the grid to highlight the selected plus code (moss green) BEFORE panning
     updatePlusCodeGrid();
 
-    // Show modal FIRST so any subsequent fitBounds error never blocks opening it.
+    // Show the reused notes surface as a full-screen area page.
     modal('pluscode-notes-modal').open();
 
-    // Pan/zoom map so the selected cell is visible (skipped for e.g. Host & meet — keep viewport).
-    if (map && !options.preserveMapView) {
+    // Legacy modal mode used to pan the background map. The area page now uses a static locator instead.
+    if (map && !options.preserveMapView && !document.body.classList.contains('nr-surface-area')) {
         try {
             const rectangle = plusCodeToRectangle(plusCode);
             if (rectangle && rectangle.length >= 4) {
@@ -7467,6 +7706,21 @@ function getClaimTagSingle(tags, name) {
     return t ? t[1] : '';
 }
 
+function isClaimableSuggestionEvent(event) {
+    const v = getClaimTagSingle(event?.tags, 'claimable');
+    return String(v || '').trim().toLowerCase() === 'true';
+}
+
+function getClaimableClaimsByKind(kind) {
+    const list = claimEventsByKind.get(kind) || [];
+    return list.filter(isClaimableSuggestionEvent);
+}
+
+function hasUnclaimableClaimsByKind(kind) {
+    const list = claimEventsByKind.get(kind) || [];
+    return list.some((event) => !isClaimableSuggestionEvent(event));
+}
+
 function truncateClaimBody(s, max) {
     if (s == null || s === undefined) return '';
     const t = String(s).trim();
@@ -7476,10 +7730,10 @@ function truncateClaimBody(s, max) {
 
 function getClaimSummaryCounts() {
     return {
-        profile: (claimEventsByKind.get(PROFILE_CLAIM_KIND) || []).length,
-        hosts: (claimEventsByKind.get(HOST_CLAIM_KIND) || []).length,
-        relationships: (claimEventsByKind.get(RELATIONSHIP_CLAIM_KIND) || []).length,
-        experiences: (claimEventsByKind.get(EXPERIENCE_CLAIM_KIND) || []).length
+        profile: getClaimableClaimsByKind(PROFILE_CLAIM_KIND).length,
+        hosts: getClaimableClaimsByKind(HOST_CLAIM_KIND).length,
+        relationships: getClaimableClaimsByKind(RELATIONSHIP_CLAIM_KIND).length,
+        experiences: getClaimableClaimsByKind(EXPERIENCE_CLAIM_KIND).length
     };
 }
 
@@ -7582,10 +7836,10 @@ function renderClaimDetailBlocks() {
     const btnR = document.getElementById('claim-btn-relationships');
     const btnE = document.getElementById('claim-btn-experiences');
 
-    const countH = (claimEventsByKind.get(HOST_CLAIM_KIND) || []).length;
-    const countRel = (claimEventsByKind.get(RELATIONSHIP_CLAIM_KIND) || []).length;
-    const countExp = (claimEventsByKind.get(EXPERIENCE_CLAIM_KIND) || []).length;
-    const claimsP = claimEventsByKind.get(PROFILE_CLAIM_KIND) || [];
+    const countH = getClaimableClaimsByKind(HOST_CLAIM_KIND).length;
+    const countRel = getClaimableClaimsByKind(RELATIONSHIP_CLAIM_KIND).length;
+    const countExp = getClaimableClaimsByKind(EXPERIENCE_CLAIM_KIND).length;
+    const claimsP = getClaimableClaimsByKind(PROFILE_CLAIM_KIND);
 
     if (profilePre && btnP) {
         if (!claimsP.length) {
@@ -7618,8 +7872,8 @@ function renderClaimDetailBlocks() {
 
     fillClaimList(
         hostingList,
-        claimEventsByKind.get(HOST_CLAIM_KIND) || [],
-        'Nothing loaded yet. Mirrored hosting usually appears as kind 30398 with your pubkey in a "p" tag.',
+        getClaimableClaimsByKind(HOST_CLAIM_KIND),
+        'Nothing claimable yet. Claimable hosting mirrors appear as kind 30398 with your pubkey in a "p" tag and claimable=true.',
         (ev) => {
             const wrap = document.createElement('div');
             wrap.className = 'claim-line';
@@ -7637,8 +7891,8 @@ function renderClaimDetailBlocks() {
     );
     fillClaimList(
         relList,
-        claimEventsByKind.get(RELATIONSHIP_CLAIM_KIND) || [],
-        'No relationship suggestions yet (kind 30392). They appear when Trustroots has mirrored a contact suggestion for you—counterparty may show as a pubkey or a Trustroots username until both sides have keys.',
+        getClaimableClaimsByKind(RELATIONSHIP_CLAIM_KIND),
+        'No claimable relationship suggestions yet (kind 30392). Claimable rows require claimable=true.',
         (ev) => {
             const wrap = document.createElement('div');
             wrap.className = 'claim-line';
@@ -7687,8 +7941,8 @@ function renderClaimDetailBlocks() {
 
     fillClaimList(
         expList,
-        claimEventsByKind.get(EXPERIENCE_CLAIM_KIND) || [],
-        'No experience suggestions yet (kind 30393). They appear when a mirrored positive experience exists for your account; the other person may appear as a pubkey or a Trustroots username until they have a key on Trustroots.',
+        getClaimableClaimsByKind(EXPERIENCE_CLAIM_KIND),
+        'No claimable experience suggestions yet (kind 30393). Claimable rows require claimable=true.',
         (ev) => {
             const wrap = document.createElement('div');
             wrap.className = 'claim-line';
@@ -8025,8 +8279,12 @@ function removeClaimedHostTags(tags) {
 }
 
 async function claimProfileData() {
-    const claims = claimEventsByKind.get(PROFILE_CLAIM_KIND) || [];
+    const claims = getClaimableClaimsByKind(PROFILE_CLAIM_KIND);
     if (!claims.length) {
+        if (hasUnclaimableClaimsByKind(PROFILE_CLAIM_KIND)) {
+            showStatus('No claimable profile claims yet. Waiting for claimable=true suggestions.', 'info');
+            return;
+        }
         showStatus('No profile claims available.', 'info');
         return;
     }
@@ -8043,8 +8301,12 @@ async function claimProfileData() {
 }
 
 async function claimHostingOffers() {
-    const claims = claimEventsByKind.get(HOST_CLAIM_KIND) || [];
+    const claims = getClaimableClaimsByKind(HOST_CLAIM_KIND);
     if (!claims.length) {
+        if (hasUnclaimableClaimsByKind(HOST_CLAIM_KIND)) {
+            showStatus('No claimable hosting claims yet. Waiting for claimable=true suggestions.', 'info');
+            return;
+        }
         showStatus('No hosting claims available.', 'info');
         return;
     }
@@ -8099,8 +8361,12 @@ async function queryLatestUserEvent(kind, extraFilter) {
 }
 
 async function claimRelationships() {
-    const claims = claimEventsByKind.get(RELATIONSHIP_CLAIM_KIND) || [];
+    const claims = getClaimableClaimsByKind(RELATIONSHIP_CLAIM_KIND);
     if (!claims.length) {
+        if (hasUnclaimableClaimsByKind(RELATIONSHIP_CLAIM_KIND)) {
+            showStatus('No claimable relationship claims yet. Waiting for claimable=true suggestions.', 'info');
+            return;
+        }
         showStatus('No relationship claims available.', 'info');
         return;
     }
@@ -8140,8 +8406,12 @@ async function claimRelationships() {
 }
 
 async function claimExperiences() {
-    const claims = claimEventsByKind.get(EXPERIENCE_CLAIM_KIND) || [];
+    const claims = getClaimableClaimsByKind(EXPERIENCE_CLAIM_KIND);
     if (!claims.length) {
+        if (hasUnclaimableClaimsByKind(EXPERIENCE_CLAIM_KIND)) {
+            showStatus('No claimable experience claims yet. Waiting for claimable=true suggestions.', 'info');
+            return;
+        }
         showStatus('No experience claims available.', 'info');
         return;
     }
@@ -8405,6 +8675,8 @@ async function checkOnboarding() {
         } else if (initialRoute === 'start') {
             replaceHashRoute('welcome');
             openKeysModal({ route: 'welcome' });
+        } else if (initialRoute && initialRoute !== 'welcome') {
+            // Respect explicit routes such as plus-code area pages or chat routes.
         } else {
             openKeysModal({ route: 'welcome' });
         }
@@ -8819,7 +9091,7 @@ async function initializeNrWebApp() {
     const pluscodeNotesModal = document.getElementById('pluscode-notes-modal');
     if (pluscodeNotesModal) {
         pluscodeNotesModal.addEventListener('click', (e) => {
-            if (e.target.id === 'pluscode-notes-modal') {
+            if (e.target.id === 'pluscode-notes-modal' && !document.body.classList.contains('nr-surface-area')) {
                 closePlusCodeNotesModal();
             }
         });
@@ -9681,6 +9953,11 @@ const __nrChatApp = (() => {
             if (!id) return '';
             const conv = conversations.get(id);
             if (!conv || conv.type !== 'dm') return id;
+            const pubkeyId = normalizeCachedPubkeyHex(id);
+            if (!pubkeyId) {
+                const rawId = String(id || '').trim();
+                return rawId.includes('@') ? rawId.toLowerCase() : '';
+            }
             const display = (getDisplayName(id) || '').trim();
             if (display.includes('@')) return display.toLowerCase();
             return hexToNpub(id) || id;
@@ -9688,11 +9965,17 @@ const __nrChatApp = (() => {
         function findConversationIdByRoute(route) {
             const r = (route || '').trim();
             if (!r) return '';
+            const pubkeyRoute = parsePubkeyInput(r);
+            if (pubkeyRoute) {
+                if (conversations.has(pubkeyRoute)) return pubkeyRoute;
+                return '';
+            }
             if (conversations.has(r)) return r;
             const needle = r.toLowerCase();
             for (const [id, conv] of conversations.entries()) {
                 if (conv.type !== 'dm') continue;
                 if (id === r) return id;
+                if (!normalizeCachedPubkeyHex(id)) continue;
                 const display = (getDisplayName(id) || '').trim().toLowerCase();
                 if (display && display === needle) return id;
                 const npub = (hexToNpub(id) || '').trim().toLowerCase();
@@ -9757,6 +10040,14 @@ const __nrChatApp = (() => {
                     selectConversation(dmPubkey, { skipHashUpdate: true });
                     return;
                 }
+            }
+            const routePubkey = parsePubkeyInput(routeForDmResolve);
+            if (routePubkey) {
+                getOrCreateConversation('dm', routePubkey, [routePubkey]);
+                const preferredPubkeyRoute = getConversationRouteId(routePubkey);
+                if (preferredPubkeyRoute && route !== preferredPubkeyRoute) setChatRouteWithNote(preferredPubkeyRoute, pendingDeepLinkNoteId);
+                selectConversation(routePubkey, { skipHashUpdate: true });
+                return;
             }
             if (normalizedRoute && route !== normalizedRoute) {
                 setChatRouteWithNote(normalizedRoute, pendingDeepLinkNoteId);
@@ -11718,6 +12009,23 @@ const __nrChatApp = (() => {
             }
         }
 
+        function syncThreadChromeForSelection(conv) {
+            const hasConversation = !!conv;
+            document.body.classList.toggle('chat-open', hasConversation);
+            const emptyEl = document.getElementById('empty-state');
+            if (emptyEl) emptyEl.style.display = hasConversation ? 'none' : 'flex';
+            const composeEl = document.getElementById('compose');
+            if (composeEl) composeEl.style.display = hasConversation ? 'flex' : 'none';
+            const opts = document.getElementById('compose-note-duration');
+            if (opts) opts.style.display = conv?.type === 'channel' ? 'flex' : 'none';
+            const headerEl = document.getElementById('thread-header');
+            if (headerEl) headerEl.style.display = hasConversation ? 'flex' : 'none';
+            if (conv?.type === 'channel') {
+                syncComposeExpiryFromStorage();
+            }
+            updateComposePostingIcon();
+        }
+
         function syncThreadHeaderForConversation(conv) {
             const headerEl = document.getElementById('thread-header');
             const titleEl = document.getElementById('thread-title');
@@ -11836,9 +12144,6 @@ const __nrChatApp = (() => {
         function selectConversation(id, options) {
             const selectionOpts = options || {};
             selectedConversationId = id;
-            if (!selectionOpts.skipHashUpdate) {
-                setHashRoute(getConversationRouteId(id));
-            }
             const keysEl = document.getElementById('keys-modal');
             const settingsEl = document.getElementById('settings-modal');
             if (keysEl) keysEl.classList.remove('active');
@@ -11850,18 +12155,9 @@ const __nrChatApp = (() => {
             } else {
                 writePersistedSelectedChatId('');
             }
-            document.body.classList.toggle('chat-open', !!conv);
             const list = document.getElementById('conv-list');
             if (list) list.querySelectorAll('.conv-item').forEach(el => el.classList.toggle('selected', el.dataset.convId === id));
-            document.getElementById('empty-state').style.display = conv ? 'none' : 'flex';
-            document.getElementById('compose').style.display = conv ? 'flex' : 'none';
-            const opts = document.getElementById('compose-note-duration');
-            if (opts) opts.style.display = conv?.type === 'channel' ? 'flex' : 'none';
-            if (conv?.type === 'channel') {
-                syncComposeExpiryFromStorage();
-            }
-            updateComposePostingIcon();
-            document.getElementById('thread-header').style.display = conv ? 'flex' : 'none';
+            syncThreadChromeForSelection(conv);
             if (conv) {
                 const isEnc = conv.type === 'dm' || conv.type === 'group';
                 document.getElementById('thread-enc-icon').textContent = isEnc ? ENC_LOCK : ENC_GLOBE;
@@ -11869,6 +12165,10 @@ const __nrChatApp = (() => {
                 document.getElementById('thread-enc-label').textContent = isEnc ? 'Encrypted' : 'Unencrypted';
                 syncThreadHeaderForConversation(conv);
                 if (conv._pendingEncrypted?.length) decryptPendingForConversation(conv);
+            }
+            if (!selectionOpts.skipHashUpdate) {
+                const routeId = getConversationRouteId(id);
+                if (routeId) setHashRoute(routeId);
             }
             const container = document.getElementById('thread-messages');
             if (container) container.innerHTML = '';
@@ -12013,7 +12313,12 @@ const __nrChatApp = (() => {
         function renderThread() {
             const conv = conversations.get(selectedConversationId);
             const container = document.getElementById('thread-messages');
-            if (!conv || !container) return;
+            syncThreadChromeForSelection(conv);
+            if (!container) return;
+            if (!conv) {
+                container.innerHTML = '';
+                return;
+            }
             container.innerHTML = '';
             const isChannel = conv.type === 'channel';
             let eventsToShow = conv.events.filter((ev) => {
@@ -12915,12 +13220,19 @@ async function resolveProfileIdToHex(profileId) {
   if (!raw) return null;
   const key = raw.toLowerCase();
   const memoHit = normalizeTimedLookup(profileIdResolveMemo.get(key), PROFILE_ID_RESOLVE_CACHE_MAX_AGE_MS);
-  if (memoHit) return memoHit.value || null;
+  if (memoHit) {
+    const cachedHex = normalizeCachedPubkeyHex(memoHit.value);
+    if (cachedHex) return cachedHex;
+    if (!memoHit.value) return null;
+  }
   const cacheKey = PROFILE_ID_RESOLVE_CACHE_KEY_PREFIX + key;
   const persisted = normalizeTimedLookup(await nrWebKvGet(cacheKey), PROFILE_ID_RESOLVE_CACHE_MAX_AGE_MS);
   if (persisted) {
-    rememberMemoizedLookup(profileIdResolveMemo, key, persisted);
-    return persisted.value || null;
+    const cachedHex = normalizeCachedPubkeyHex(persisted.value);
+    if (cachedHex || !persisted.value) {
+      rememberMemoizedLookup(profileIdResolveMemo, key, persisted);
+      return cachedHex || null;
+    }
   }
   const resolved = raw.includes('@') ? await resolveNip05(raw) : parsePubkeyInput(raw);
   const row = { ts: Date.now(), value: resolved || '' };
@@ -13658,6 +13970,27 @@ function chatHashForSubject(hex, nip05Lower, trUsername) {
   }
 }
 
+/** Host & Meet intent pill: opens DM with this profile (not used on own profile). */
+function createProfileHostMeetBadgeEl(badgeText, badgeVariant, subjectHex, nip05Lower, trUsername) {
+  const text = String(badgeText || '').trim() || '—';
+  const v = String(badgeVariant || 'muted');
+  if (isSelfHex(subjectHex)) {
+    const span = document.createElement('span');
+    span.className = 'nr-profile-tr-badge';
+    span.classList.add(`nr-profile-tr-badge--${v}`);
+    span.textContent = text;
+    return span;
+  }
+  const a = document.createElement('a');
+  a.className = 'nr-profile-tr-badge';
+  a.classList.add(`nr-profile-tr-badge--${v}`);
+  a.href = chatHashForSubject(subjectHex, nip05Lower, trUsername);
+  a.textContent = text;
+  a.setAttribute('aria-label', 'Send a message about this Host & Meet status');
+  a.title = 'Send a message';
+  return a;
+}
+
 function publicProfileHashForHex(hex) {
   const h = String(hex || '').toLowerCase();
   if (h.length !== 64 || !/^[0-9a-f]+$/.test(h)) {
@@ -13960,7 +14293,7 @@ function createStagedProfileShell(root, ctx) {
   trustHint.className = 'nr-profile-muted';
   trustHint.style.marginTop = '-0.35rem';
   trustHint.textContent = selfProfile
-    ? 'Sign mirrored Trustroots contact suggestions (kind 30392) and experiences (kind 30393). Counts and where events are sent update when your key is loaded and relays are configured.'
+    ? 'Sign mirrored claimable Trustroots contact suggestions (kind 30392) and experiences (kind 30393). Counts and where events are sent update when your key is loaded and relays are configured.'
     : 'Relationship and experience suggestions from relays (kinds 30392 and 30393), same source as Keys — not edited on this page.';
   trustWrap.appendChild(trustHint);
   const claimTrustSlot = document.createElement('div');
@@ -14313,11 +14646,60 @@ function applyStagedProfileView(refs, viewState, ctx) {
 
   refs.hostMount.replaceChildren();
   if (!notesReady && !host303Ready) {
-    const p = document.createElement('p');
-    p.className = 'nr-profile-tr-skeleton';
-    p.style.textAlign = 'center';
-    p.textContent = 'Loading Host & Meet summary…';
-    refs.hostMount.appendChild(p);
+    const cachedHostMeet = loadProfileHostMeetCardFromCache(hex);
+    if (!cachedHostMeet) {
+      const p = document.createElement('p');
+      p.className = 'nr-profile-tr-skeleton';
+      p.style.textAlign = 'center';
+      p.textContent = 'Loading Host & Meet summary…';
+      refs.hostMount.appendChild(p);
+    } else {
+      const hostHead = document.createElement('div');
+      hostHead.className = 'nr-profile-tr-rail-head';
+      const hostTitle = document.createElement('h3');
+      hostTitle.className = 'nr-profile-tr-rail-title';
+      hostTitle.textContent = cachedHostMeet.title;
+      hostHead.appendChild(hostTitle);
+      hostHead.appendChild(
+        createProfileHostMeetBadgeEl(
+          cachedHostMeet.badgeText,
+          cachedHostMeet.badgeVariant,
+          hex,
+          nip05Resolved,
+          trUser
+        )
+      );
+      refs.hostMount.appendChild(hostHead);
+      const hostBody = document.createElement('div');
+      hostBody.className = 'nr-profile-tr-rail-body nr-profile-tr-rail-body--accommodation';
+      const hostP = document.createElement('p');
+      hostP.className = 'nr-profile-tr-accommodation-text';
+      hostP.style.margin = '0';
+      hostP.style.whiteSpace = 'pre-wrap';
+      hostP.textContent = cachedHostMeet.summary;
+      hostBody.appendChild(hostP);
+      if (cachedHostMeet.plusCode) {
+        const hostPlus = document.createElement('p');
+        hostPlus.className = 'nr-profile-muted';
+        hostPlus.style.margin = '0.45rem 0 0';
+        const a = document.createElement('a');
+        a.className = 'nr-content-link';
+        a.href = hashRouteFromSegment(cachedHostMeet.plusCode);
+        a.textContent = cachedHostMeet.plusCode;
+        hostPlus.appendChild(a);
+        hostBody.appendChild(hostPlus);
+      }
+      if (cachedHostMeet.dateText) {
+        const hostDate = document.createElement('p');
+        hostDate.className = 'nr-profile-muted';
+        hostDate.style.margin = '0.3rem 0 0';
+        hostDate.style.textAlign = 'right';
+        hostDate.style.fontSize = '0.82rem';
+        hostDate.textContent = cachedHostMeet.dateText;
+        hostBody.appendChild(hostDate);
+      }
+      refs.hostMount.appendChild(hostBody);
+    }
   } else {
     const hostMeet = hostMeetSnapshot(
       notesSorted,
@@ -14332,12 +14714,10 @@ function applyStagedProfileView(refs, viewState, ctx) {
     const hostTitle = document.createElement('h3');
     hostTitle.className = 'nr-profile-tr-rail-title';
     hostTitle.textContent = hostMeet.title;
-    const hostBadge = document.createElement('span');
-    hostBadge.className = 'nr-profile-tr-badge';
-    hostBadge.classList.add(`nr-profile-tr-badge--${hostMeet.badgeVariant}`);
-    hostBadge.textContent = hostMeet.badgeText;
     hostHead.appendChild(hostTitle);
-    hostHead.appendChild(hostBadge);
+    hostHead.appendChild(
+      createProfileHostMeetBadgeEl(hostMeet.badgeText, hostMeet.badgeVariant, hex, nip05Resolved, trUser)
+    );
     refs.hostMount.appendChild(hostHead);
     const hostBody = document.createElement('div');
     hostBody.className = 'nr-profile-tr-rail-body nr-profile-tr-rail-body--accommodation';
@@ -14363,6 +14743,8 @@ function applyStagedProfileView(refs, viewState, ctx) {
       const hostDate = document.createElement('p');
       hostDate.className = 'nr-profile-muted';
       hostDate.style.margin = '0.3rem 0 0';
+      hostDate.style.textAlign = 'right';
+      hostDate.style.fontSize = '0.82rem';
       hostDate.textContent = hostMeet.dateText;
       hostBody.appendChild(hostDate);
     }
@@ -14374,6 +14756,9 @@ function applyStagedProfileView(refs, viewState, ctx) {
       hostBody.appendChild(hostMeta);
     }
     refs.hostMount.appendChild(hostBody);
+    if (hostMeet.badgeText !== '…' && hostMeet.badgeVariant !== 'muted' && hostMeet.summary) {
+      saveProfileHostMeetCardToCache(hex, hostMeet);
+    }
   }
 
   refs.trustMount.replaceChildren();

@@ -25,18 +25,14 @@ func TestCleanContent(t *testing.T) {
 }
 
 func TestBuildNoteContent(t *testing.T) {
-	user := User{
-		Username:  "alice",
-		NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
-	}
-	got := buildNoteContent("<p>Can host one person.</p>", user)
-	if !strings.Contains(got, "#hosting") {
-		t.Fatalf("missing #hosting in content: %q", got)
+	got := buildNoteContent("<p>Can host one person.</p>")
+	if strings.Contains(got, "#hosting") {
+		t.Fatalf("unexpected #hosting in content: %q", got)
 	}
 	if strings.Contains(got, "https://www.trustroots.org/profile/alice") {
 		t.Fatalf("unexpected Trustroots profile link in content: %q", got)
 	}
-	if strings.Contains(got, user.NostrNpub) {
+	if strings.Contains(got, "npub1") {
 		t.Fatalf("unexpected npub in content: %q", got)
 	}
 	if len([]rune(got)) > maxContentLength {

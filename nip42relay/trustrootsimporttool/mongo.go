@@ -155,6 +155,9 @@ func fetchContactRecords(ctx context.Context, db *mongo.Database, limit int64) (
 		if err := cursor.Decode(&contact); err != nil {
 			return nil, err
 		}
+		if !contact.Confirmed {
+			continue
+		}
 		user, errU := fetchUser(ctx, db, contact.UserFrom)
 		if errU == mongo.ErrNoDocuments {
 			continue
@@ -239,6 +242,50 @@ func fetchExperienceRecords(ctx context.Context, db *mongo.Database, limit int64
 		return nil, err
 	}
 	return records, nil
+}
+
+func fetchReferenceTrustMetricRecords(ctx context.Context, db *mongo.Database, users []User) ([]ReferenceTrustMetricRecord, error) {
+	byUser := make(map[primitive.ObjectID]int, len(users))
+	for _, user := range users {
+		byUser[user.ID] = 0
+	}
+
+	cursor, err := db.Collection("referencethreads").Find(ctx, bson.M{
+		"reference": "yes",
+	}, options.Find().SetSort(bson.D{{Key: "_id", Value: 1}}))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	for cursor.Next(ctx) {
+		var row struct {
+			UserFrom primitive.ObjectID `bson:"userFrom"`
+			UserTo   primitive.ObjectID `bson:"userTo"`
+		}
+		if err := cursor.Decode(&row); err != nil {
+			return nil, err
+		}
+		if row.UserTo.IsZero() || row.UserFrom.IsZero() || row.UserFrom == row.UserTo {
+			continue
+		}
+		if _, tracked := byUser[row.UserTo]; !tracked {
+			continue
+		}
+		byUser[row.UserTo]++
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, err
+	}
+
+	out := make([]ReferenceTrustMetricRecord, 0, len(users))
+	for _, user := range users {
+		out = append(out, ReferenceTrustMetricRecord{
+			User:                       user,
+			PositiveReferencesReceived: byUser[user.ID],
+		})
+	}
+	return out, nil
 }
 
 func fetchUser(ctx context.Context, db *mongo.Database, id primitive.ObjectID) (User, error) {

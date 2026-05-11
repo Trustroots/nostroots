@@ -72,7 +72,7 @@ func eventForHost(record HostRecord, privateKey string) (nostr.Event, error) {
 		CreatedAt: nostr.Timestamp(createdAt.Unix()),
 		Kind:      mapNoteRepostKind,
 		Tags:      tags,
-		Content:   buildNoteContent(record.Offer.Description, record.User),
+		Content:   buildNoteContent(record.Offer.Description),
 	}
 	if err := event.Sign(privateKey); err != nil {
 		return nostr.Event{}, err

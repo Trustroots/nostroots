@@ -107,6 +107,9 @@ func isLikelyHexPubkey(s string) bool {
 }
 
 func eventForRelationshipClaim(record ContactRecord, privateKey string) (nostr.Event, error) {
+	if !record.Contact.Confirmed {
+		return nostr.Event{}, fmt.Errorf("relationship claim needs confirmed contact")
+	}
 	createdAt := record.Contact.Created
 	if createdAt.IsZero() {
 		createdAt = time.Now()
@@ -130,6 +133,7 @@ func eventForRelationshipClaim(record ContactRecord, privateKey string) (nostr.E
 		nostr.Tag{"l", "contact", "org.trustroots:relationship"},
 		nostr.Tag{"source", "trustroots-import"},
 		nostr.Tag{"source_id", record.Contact.ID.Hex()},
+		nostr.Tag{"confirmed", "true"},
 	)
 	appendClaimableTag(&tags)
 
@@ -176,6 +180,46 @@ func eventForExperienceClaim(record ExperienceRecord, privateKey string) (nostr.
 		Kind:      experienceClaimKind,
 		Tags:      tags,
 		Content:   text,
+	}
+	return event, event.Sign(privateKey)
+}
+
+func eventForReferenceTrustMetric(record ReferenceTrustMetricRecord, privateKey string) (nostr.Event, error) {
+	pubkeyHex, ok := decodeNpubToHex(record.User.NostrNpub)
+	if !ok || pubkeyHex == "" {
+		return nostr.Event{}, fmt.Errorf("reference trust metric needs valid npub")
+	}
+	username := strings.ToLower(strings.TrimSpace(record.User.Username))
+	if username == "" {
+		return nostr.Event{}, fmt.Errorf("reference trust metric needs username")
+	}
+	if record.PositiveReferencesReceived < 0 {
+		return nostr.Event{}, fmt.Errorf("reference trust metric cannot be negative")
+	}
+	contentBytes, err := json.Marshal(map[string]any{
+		"metric":                "positive_references_received",
+		"value":                 record.PositiveReferencesReceived,
+		"unit":                  "references",
+		"trustrootsUsername":    username,
+		"profilePubkey":         pubkeyHex,
+		"computedAtUnixSeconds": time.Now().Unix(),
+	})
+	if err != nil {
+		return nostr.Event{}, err
+	}
+	tags := nostr.Tags{
+		{"d", "trustroots:metric:positive-references-received:" + username},
+		{"p", pubkeyHex},
+		{"L", "org.trustroots:metric"},
+		{"l", "positive-references-received", "org.trustroots:metric"},
+		{"source", "trustroots-import"},
+	}
+	appendClaimableTag(&tags)
+	event := nostr.Event{
+		CreatedAt: nostr.Now(),
+		Kind:      referenceTrustMetricKind,
+		Tags:      tags,
+		Content:   string(contentBytes),
 	}
 	return event, event.Sign(privateKey)
 }

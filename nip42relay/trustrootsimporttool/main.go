@@ -83,6 +83,11 @@ func run(args []string) error {
 		return fmt.Errorf("fetch experiences: %w", err)
 	}
 	logf("loaded %d positive experience(s) (relaxed users, ≥1 npub)", len(experiences))
+	referenceMetrics, err := fetchReferenceTrustMetricRecords(ctx, db, eligibleUsers)
+	if err != nil {
+		return fmt.Errorf("fetch reference trust metrics: %w", err)
+	}
+	logf("loaded %d per-user positive-reference metric row(s)", len(referenceMetrics))
 
 	logf("opening output file %q", cfg.Output)
 	outputFile, err := os.Create(cfg.Output)
@@ -98,6 +103,7 @@ func run(args []string) error {
 	exported := 0
 	relationshipLines := 0
 	experienceLines := 0
+	referenceMetricLines := 0
 	seenContactClaims := map[string]struct{}{}
 	seenExperienceSource := map[string]struct{}{}
 
@@ -193,7 +199,24 @@ func run(args []string) error {
 	}
 	logf("phase 4 done: %d experience claim line(s)", experienceLines)
 
-	logf("phase 5/5: circle metadata (kind %d)…", circleMetadataKind)
+	logf("phase 5/6: positive reference metrics (kind %d) — %d user row(s)…", referenceTrustMetricKind, len(referenceMetrics))
+	for i, record := range referenceMetrics {
+		event, err := eventForReferenceTrustMetric(record, cfg.NostrSK)
+		if err != nil {
+			logf("skip reference metric for user %s: %v", record.User.ID.Hex(), err)
+			continue
+		}
+		if err := writeJSONLine(writer, event); err != nil {
+			return err
+		}
+		referenceMetricLines++
+		if cfg.LogEvery > 0 && (i+1)%cfg.LogEvery == 0 {
+			logf("…reference-metric phase: scanned %d/%d user(s), %d line(s) emitted", i+1, len(referenceMetrics), referenceMetricLines)
+		}
+	}
+	logf("phase 5 done: %d positive reference metric line(s)", referenceMetricLines)
+
+	logf("phase 6/6: circle metadata (kind %d)…", circleMetadataKind)
 	tribes, err := fetchPublicTribes(ctx, db)
 	if err != nil {
 		return fmt.Errorf("fetch tribes: %w", err)
@@ -211,7 +234,7 @@ func run(args []string) error {
 		}
 		circleLines++
 	}
-	logf("phase 5 done: %d circle metadata line(s)", circleLines)
+	logf("phase 6 done: %d circle metadata line(s)", circleLines)
 
 	deleted := 0
 
@@ -225,12 +248,13 @@ func run(args []string) error {
 
 	fmt.Fprintf(
 		os.Stderr,
-		"trustrootsimporttool: wrote %q — profile_claims=%d exported_hosts=%d relationship_claims=%d experience_claims=%d circle_metadata=%d deletions=%d state=%q\n",
+		"trustrootsimporttool: wrote %q — profile_claims=%d exported_hosts=%d relationship_claims=%d experience_claims=%d reference_trust_metrics=%d circle_metadata=%d deletions=%d state=%q\n",
 		cfg.Output,
 		profileLines,
 		exported,
 		relationshipLines,
 		experienceLines,
+		referenceMetricLines,
 		circleLines,
 		deleted,
 		cfg.StateFile,

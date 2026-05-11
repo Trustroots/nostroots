@@ -34,18 +34,9 @@ func truncateRunes(value string, limit int) string {
 	return string(runes[:limit])
 }
 
-func buildNoteContent(description string, user User) string {
+func buildNoteContent(description string) string {
 	base := cleanContent(description)
-	suffix := "\n\n#hosting"
-	suffixRunes := len([]rune(suffix))
-
-	if suffixRunes >= maxContentLength {
-		return truncateRunes(suffix, maxContentLength)
-	}
-
-	allowedBaseRunes := maxContentLength - suffixRunes
-	base = truncateRunes(base, allowedBaseRunes)
-	return base + suffix
+	return truncateRunes(base, maxContentLength)
 }
 
 func normalizeHostOfferStatus(status string) string {

@@ -124,7 +124,6 @@ func TestEventForProfileClaim_usesTrustrootsLocalUploadPicture(t *testing.T) {
 	}
 }
 
-
 func countPTags(tags nostr.Tags) int {
 	n := 0
 	for _, row := range tags {
@@ -153,7 +152,7 @@ func TestEventForRelationshipClaim_bothNpubs(t *testing.T) {
 	cid := primitive.NewObjectID()
 	np := "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj"
 	ev, err := eventForRelationshipClaim(ContactRecord{
-		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB},
+		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB, Confirmed: true},
 		User:    User{ID: idA, Username: "alice", NostrNpub: np, Public: true},
 		Other:   User{ID: idB, Username: "bob", NostrNpub: np, Public: true},
 	}, testPrivateKey)
@@ -169,6 +168,9 @@ func TestEventForRelationshipClaim_bothNpubs(t *testing.T) {
 	if tag := ev.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
 		t.Fatalf("missing claimable tag: %#v", ev.Tags)
 	}
+	if tag := ev.Tags.GetFirst([]string{"confirmed", "true"}); tag == nil {
+		t.Fatalf("missing confirmed tag: %#v", ev.Tags)
+	}
 	if hasUsernameLabelPair(ev.Tags, "alice") || hasUsernameLabelPair(ev.Tags, "bob") {
 		t.Fatal("did not expect username label pairs when both have npubs")
 	}
@@ -179,7 +181,7 @@ func TestEventForRelationshipClaim_oneNpubUsernameLabels(t *testing.T) {
 	idB := primitive.NewObjectID()
 	cid := primitive.NewObjectID()
 	ev, err := eventForRelationshipClaim(ContactRecord{
-		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB},
+		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB, Confirmed: true},
 		User:    User{ID: idA, Username: "alice", NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj", Public: true},
 		Other:   User{ID: idB, Username: "bobnopub", NostrNpub: "", Public: true},
 	}, testPrivateKey)
@@ -202,12 +204,27 @@ func TestEventForRelationshipClaim_neitherNpub(t *testing.T) {
 	idB := primitive.NewObjectID()
 	cid := primitive.NewObjectID()
 	_, err := eventForRelationshipClaim(ContactRecord{
-		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB},
+		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB, Confirmed: true},
 		User:    User{ID: idA, Username: "a", NostrNpub: "", Public: true},
 		Other:   User{ID: idB, Username: "b", NostrNpub: "", Public: true},
 	}, testPrivateKey)
 	if err == nil {
 		t.Fatal("expected error when neither side has npub")
+	}
+}
+
+func TestEventForRelationshipClaim_unconfirmed(t *testing.T) {
+	idA := primitive.NewObjectID()
+	idB := primitive.NewObjectID()
+	cid := primitive.NewObjectID()
+	np := "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj"
+	_, err := eventForRelationshipClaim(ContactRecord{
+		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB, Confirmed: false},
+		User:    User{ID: idA, Username: "alice", NostrNpub: np, Public: true},
+		Other:   User{ID: idB, Username: "bob", NostrNpub: np, Public: true},
+	}, testPrivateKey)
+	if err == nil {
+		t.Fatal("expected error for unconfirmed contact")
 	}
 }
 
@@ -234,5 +251,40 @@ func TestEventForExperienceClaim_oneNpub(t *testing.T) {
 	}
 	if !hasUsernameLabelPair(ev.Tags, "guest") {
 		t.Fatalf("expected username labels for guest, tags=%v", ev.Tags)
+	}
+}
+
+func TestEventForReferenceTrustMetric(t *testing.T) {
+	user := User{
+		ID:        primitive.NewObjectID(),
+		Username:  "alice",
+		NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+		Public:    true,
+	}
+	ev, err := eventForReferenceTrustMetric(ReferenceTrustMetricRecord{
+		User:                       user,
+		PositiveReferencesReceived: 12,
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ev.Kind != referenceTrustMetricKind {
+		t.Fatalf("kind = %d", ev.Kind)
+	}
+	if tag := ev.Tags.GetFirst([]string{"l", "positive-references-received", "org.trustroots:metric"}); tag == nil {
+		t.Fatalf("missing metric label tag: %#v", ev.Tags)
+	}
+	if tag := ev.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
+		t.Fatalf("missing claimable tag: %#v", ev.Tags)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(ev.Content), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["metric"] != "positive_references_received" {
+		t.Fatalf("metric = %#v", payload["metric"])
+	}
+	if int(payload["value"].(float64)) != 12 {
+		t.Fatalf("value = %#v", payload["value"])
 	}
 }

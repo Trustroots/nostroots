@@ -54,6 +54,7 @@ const (
 	profileClaimKind                 = 30390
 	relationClaimKind                = 30392
 	experienceClaimKind              = 30393
+	referenceTrustMetricKind         = 30394
 	circleMetadataKind               = 30410
 	maxContentLength                 = 300
 	TrustrootsUsernameLabelNamespace = "org.trustroots:username"
@@ -75,22 +76,22 @@ type Offer struct {
 }
 
 type User struct {
-	ID               primitive.ObjectID `bson:"_id"`
-	Username         string             `bson:"username"`
-	DisplayName      string             `bson:"displayName"`
-	Description      string             `bson:"description"`
-	Avatar           string             `bson:"avatar"`
+	ID          primitive.ObjectID `bson:"_id"`
+	Username    string             `bson:"username"`
+	DisplayName string             `bson:"displayName"`
+	Description string             `bson:"description"`
+	Avatar      string             `bson:"avatar"`
 	// Trustroots user.server.model.js — used when `avatar` is absent to build kind 30390 `picture`.
-	AvatarSource   string    `bson:"avatarSource"`
-	AvatarUploaded bool      `bson:"avatarUploaded"`
-	EmailHash      string    `bson:"emailHash"`
-	Updated        time.Time `bson:"updated"`
-	NostrNpub        string             `bson:"nostrNpub"`
-	Public           bool               `bson:"public"`
-	EmailConfirmed   *bool              `bson:"emailConfirmed"`
-	EmailUnconfirmed bool               `bson:"emailunconfirmed"`
-	Roles            []string           `bson:"roles"`
-	Member           []Membership       `bson:"member"`
+	AvatarSource     string       `bson:"avatarSource"`
+	AvatarUploaded   bool         `bson:"avatarUploaded"`
+	EmailHash        string       `bson:"emailHash"`
+	Updated          time.Time    `bson:"updated"`
+	NostrNpub        string       `bson:"nostrNpub"`
+	Public           bool         `bson:"public"`
+	EmailConfirmed   *bool        `bson:"emailConfirmed"`
+	EmailUnconfirmed bool         `bson:"emailunconfirmed"`
+	Roles            []string     `bson:"roles"`
+	Member           []Membership `bson:"member"`
 }
 
 type Membership struct {
@@ -136,7 +137,7 @@ type Experience struct {
 	Public         bool               `bson:"public"`
 	Visible        bool               `bson:"visible"`
 	Hidden         bool               `bson:"hidden"`
-	Recommendation string           `bson:"recommendation"`
+	Recommendation string             `bson:"recommendation"`
 	Recommend      recommendField     `bson:"recommend"`
 	Positive       bool               `bson:"positive"`
 	FeedbackPublic string             `bson:"feedbackPublic"`
@@ -152,6 +153,11 @@ type ExperienceRecord struct {
 	Experience Experience
 	Author     User
 	Target     User
+}
+
+type ReferenceTrustMetricRecord struct {
+	User                       User
+	PositiveReferencesReceived int
 }
 
 type State struct {

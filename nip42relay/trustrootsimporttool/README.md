@@ -7,8 +7,9 @@ Outputs (in this order):
 
 - **Profile claims** (`kind 30390`) — Nostr profile JSON for each eligible user (from Mongo; not a live kind-0 fetch), plus the same `L` / `l` / `t` **trustroots-circle** tags as host mirrors for every public tribe membership (so clients can show circles without a hosted offer)
 - **Host mirrors** (`kind 30398`) — verified map note reposts for public host offers (`status: yes|maybe`); circle `l` / `t` tags use **hyphen-free** slugs (Mongo tribe slugs are normalized when building host rows and events; see `trustrootsCircleSlugForNostr` in `events.go` / `fetchPublicCircleSlugs` in `mongo.go`)
-- **Relationship suggestions** (`kind 30392`) — contacts where both endpoints pass a relaxed Trustroots gate (public, username, email/roles) and **at least one** has a valid npub; missing npubs appear as NIP-32 username labels (`L` / `l` under `org.trustroots:username`)
+- **Relationship suggestions** (`kind 30392`) — confirmed two-sided contacts where both endpoints pass a relaxed Trustroots gate (public, username, email/roles) and **at least one** has a valid npub; missing npubs appear as NIP-32 username labels (`L` / `l` under `org.trustroots:username`)
 - **Positive experience suggestions** (`kind 30393`) — same relaxed pair rule; author and target are tagged in stable order (`userFrom` then `userTo`) with `p` hex and/or username labels
+- **Positive-reference trust metric** (`kind 30394`) — per eligible npub user, one metric event reporting how many positive Trustroots references they have received from other users
 - **Circle metadata** (`kind 30410`) — one parameterized replaceable per public Mongo `tribes` row: JSON `name` / `about` / optional `picture` (Trustroots `uploads-circle` URL when the tribe has `image: true`). See [`docs/Events.md`](../../docs/Events.md) in this repo.
 
 **nr-web chat:** Subscribes to kind `30410` from the **same hex pubkey** as this tool’s `-nsec` (see `TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX` in `nr-web/common.js`). After changing the signing key, update that constant (or derive hex with `nak` / nostr-tools from your `nsec`) so clients accept your relay’s circle directory.
@@ -45,7 +46,7 @@ Offers with **`validUntil` in the past** are skipped. Rows that fail validation 
 skipped instead of aborting the run.
 
 **Contacts & experiences:** BSON fields match Trustroots Mongoose models (`userFrom` /
-`userTo`, etc.). Experiences must be **`public: true`**
+`userTo`, etc.). Contacts must be confirmed two-sided relationships (`confirmed: true`). Experiences must be **`public: true`**
 with **`recommend: "yes"`** (Trustroots enum). Both endpoints must pass the **relaxed** user gate (public profile, username, confirmed email, no blocked roles). **At least one** endpoint must have a **valid npub** so the JSONL row includes a real `p` tag (clients typically filter suggestions with `#p`). Rows with **no** valid npub on either side are skipped.
 
 Each exported `30392` / `30393` has **one or two** hex `p` tags (never a fake pubkey) plus optional **`L` / `l`** username labels for users without an npub. Downstream importers should tolerate this shape.
@@ -72,13 +73,22 @@ Use these checks to verify that import output matches `nr-web` rendering expecta
     - `claimable=true`
 - `30398` host mirror:
   - includes a real hex `p` tag from user `npub`
-  - note content includes cleaned host text + `#hosting` only (no appended Trustroots profile URL and no raw `npub`)
+  - note content includes cleaned host text only (no appended Trustroots profile URL, no raw `npub`, no `#hosting`)
   - includes `status=maybe` tag when Trustroots offer status is `maybe`
   - includes plus-code labels (`L/l`) and prefix labels for map routing
   - includes `claimable=true`
   - includes circle tags for every public membership slug:
     - `l=<slug-lower-no-hyphens>` under `trustroots-circle`
     - `t=<slug-lower-no-hyphens>`
+- `30394` reference trust metric:
+  - includes `p=<user-hex-pubkey>` target
+  - includes metric labels `L=org.trustroots:metric` and `l=positive-references-received`
+  - content JSON includes numeric `value` (positive references received)
+  - includes `claimable=true`
+
+## Schema verification note
+
+Schema verified against Trustroots upstream: metric source is `referencethreads` with `reference: "yes"`, counted per `userTo` (excluding self-references).
 - `30410` circle metadata:
   - `d=<slug-lower-no-hyphens>` (lowercased + trimmed; ASCII hyphens removed for Nostr tags)
   - content has `name`, `about`, and optional `picture`
@@ -114,5 +124,6 @@ After import, verify route-level behavior in `nr-web`:
    - `#hitchhikers` surfaces the circle image in chat/circle UI when metadata is present
 - `30392` relationship suggestion:
   - includes `claimable=true`
+  - includes `confirmed=true`
 - `30393` positive experience suggestion:
   - includes `claimable=true`

@@ -49,9 +49,6 @@ func TestEventForHost(t *testing.T) {
 	if event.Tags.GetD() != dTagForOffer(offerID.Hex()) {
 		t.Fatalf("d tag = %q", event.Tags.GetD())
 	}
-	if event.Content == "Can host one person." {
-		t.Fatalf("content was not enriched: %q", event.Content)
-	}
 	if !strings.Contains(event.Content, "Can host one person.") {
 		t.Fatalf("missing description in content: %q", event.Content)
 	}

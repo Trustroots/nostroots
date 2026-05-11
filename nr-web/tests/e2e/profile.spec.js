@@ -29,6 +29,7 @@ test.describe('Public profile (#profile/)', () => {
     await expect(page.locator('body.nr-surface-profile')).toBeVisible({ timeout: 25000 });
     await expect(page.locator('.nr-profile-section-title')).toHaveText('Nostr profile (kind 0)');
     await expect(page.locator('.nr-profile-edit-form')).toBeVisible({ timeout: 30000 });
+    await expect(page).toHaveTitle(`Nostroots ${PROFILE_NPUB} Edit`);
   });
 
   test('profile hash for own account redirects to own public profile; Map returns to map', async ({ page }) => {

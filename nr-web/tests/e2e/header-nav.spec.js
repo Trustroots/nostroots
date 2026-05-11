@@ -96,6 +96,7 @@ test.describe('Header navigation', () => {
     await supportChat.click();
     await expect(page).toHaveURL(/#support\b/);
     await expect(page.locator('body.nr-surface-chat')).toBeVisible({ timeout: 20000 });
+    await expect(page).toHaveTitle('Nostroots #support');
   });
 
   test('index: Account menu opens and Settings control is reachable', async ({ page }) => {
@@ -108,6 +109,9 @@ test.describe('Header navigation', () => {
       await clickVisible(page.locator('#nav-user-btn'), page.locator('#nav-more-btn'));
     }
     await expectAnyVisible(settingsBtn, settingsBtnMobile);
+    await clickVisible(settingsBtn, settingsBtnMobile);
+    await expect(page).toHaveURL(/#settings\b/);
+    await expect(page).toHaveTitle('Nostroots Settings');
   });
 
   test('index: Map focuses map without blocking dialog', async ({ page }) => {

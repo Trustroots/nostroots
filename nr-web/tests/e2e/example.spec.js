@@ -5,7 +5,7 @@ test.describe('Basic Page Load', () => {
     await page.goto('/');
     
     // Check page title
-    await expect(page).toHaveTitle(/Nostroots Web/);
+    await expect(page).toHaveTitle('Nostroots Map');
   });
 
   test('page has main content', async ({ page }) => {

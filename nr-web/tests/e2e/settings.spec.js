@@ -41,39 +41,46 @@ test.describe('Settings Management', () => {
       }
     }
     
-    // Close keys modal using JavaScript (clicking doesn't work because modal intercepts pointer events)
+    // Close keys page using JavaScript so each test starts from the map.
     await page.evaluate(() => {
       const keysModal = document.getElementById('keys-modal');
       if (keysModal) {
         keysModal.classList.remove('active');
-        keysModal.style.display = 'none';
       }
+      const settingsModal = document.getElementById('settings-modal');
+      if (settingsModal) settingsModal.classList.remove('active');
+      const mapView = document.getElementById('map-view');
+      if (mapView) mapView.style.display = '';
+      document.body.classList.remove('nr-surface-account');
+      if (location.hash === '#keys' || location.hash === '#welcome') history.replaceState({}, '', location.pathname + location.search);
     });
     await page.waitForTimeout(200);
   });
 
-  test('can open settings modal', async ({ page }) => {
+  test('can open settings page', async ({ page }) => {
     await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
       
-      const settingsModal = page.locator('#settings-modal');
-      await expect(settingsModal).toBeVisible({ timeout: 2000 });
+      const settingsPage = page.locator('#settings-modal');
+      await expect(settingsPage).toBeVisible({ timeout: 2000 });
+      await expect(page).toHaveURL(/#settings\b/);
+      await expect(page.locator('body.nr-surface-account')).toBeVisible();
     } else {
       // Settings button might not be visible if no key
       test.skip();
     }
   });
 
-  test('settings modal has relays section', async ({ page }) => {
+  test('settings page has relays section', async ({ page }) => {
     await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
       
-      const settingsModal = page.locator('#settings-modal');
-      await expect(settingsModal).toBeVisible();
+      const settingsPage = page.locator('#settings-modal');
+      await expect(settingsPage).toBeVisible();
       
       // Check for relay-related elements (relays are now in settings modal)
       const relaysList = page.locator('#relays-list');
@@ -93,8 +100,8 @@ test.describe('Settings Management', () => {
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
       
-      const settingsModal = page.locator('#settings-modal');
-      await expect(settingsModal).toBeVisible();
+      const settingsPage = page.locator('#settings-modal');
+      await expect(settingsPage).toBeVisible();
       
       // New relay input field (relays are now added individually)
       const newRelayInput = page.locator('#new-relay-url');
@@ -110,31 +117,25 @@ test.describe('Settings Management', () => {
     }
   });
 
-  test('keys modal has username linking section', async ({ page }) => {
-    // Username input is now in the keys modal - reopen it
-    await page.evaluate(() => {
-      const keysModal = document.getElementById('keys-modal');
-      if (keysModal) {
-        keysModal.classList.add('active');
-        keysModal.style.display = 'flex';
-      }
-    });
+  test('keys page has username linking section', async ({ page }) => {
+    await page.goto('/#keys');
     
-    const keysModal = page.locator('#keys-modal');
-    await expect(keysModal).toBeVisible();
+    const keysPage = page.locator('#keys-modal');
+    await expect(keysPage).toBeVisible();
+    await expect(page.locator('body.nr-surface-account')).toBeVisible();
     
     const usernameInput = page.locator('#trustroots-username');
     await expect(usernameInput).toBeAttached();
   });
 
-  test('settings modal has notifications section', async ({ page }) => {
+  test('settings page has notifications section', async ({ page }) => {
     await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
 
-      const settingsModal = page.locator('#settings-modal');
-      await expect(settingsModal).toBeVisible();
+      const settingsPage = page.locator('#settings-modal');
+      await expect(settingsPage).toBeVisible();
 
       const notificationsSection = page.locator('#settings-notifications-section');
       await expect(notificationsSection).toBeAttached();
@@ -145,14 +146,14 @@ test.describe('Settings Management', () => {
     }
   });
 
-  test('settings modal shows commit and deploy metadata', async ({ page }) => {
+  test('settings page shows commit and deploy metadata', async ({ page }) => {
     await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
 
-      const settingsModal = page.locator('#settings-modal');
-      await expect(settingsModal).toBeVisible();
+      const settingsPage = page.locator('#settings-modal');
+      await expect(settingsPage).toBeVisible();
 
       const commitMeta = page.locator('#settings-last-commit-datetime');
       const deployMeta = page.locator('#settings-last-deploy-datetime');
@@ -197,8 +198,12 @@ test.describe('Settings Management', () => {
       const keysModal = document.getElementById('keys-modal');
       if (keysModal) {
         keysModal.classList.remove('active');
-        keysModal.style.display = 'none';
       }
+      const settingsModal = document.getElementById('settings-modal');
+      if (settingsModal) settingsModal.classList.remove('active');
+      const mapView = document.getElementById('map-view');
+      if (mapView) mapView.style.display = '';
+      document.body.classList.remove('nr-surface-account');
     });
 
     await openUserMenuIfNeeded(page);
@@ -208,10 +213,10 @@ test.describe('Settings Management', () => {
     }
 
     await settingsBtn.click();
-    const settingsModal = page.locator('#settings-modal');
-    await expect(settingsModal).toBeVisible();
+    const settingsPage = page.locator('#settings-modal');
+    await expect(settingsPage).toBeVisible();
     // Checkbox is visually hidden (opacity 0); toggle via the switch label the user actually clicks.
-    await settingsModal.locator('label.toggle-switch').click();
+    await settingsPage.locator('label.toggle-switch').click();
 
     const afterDark = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
     expect(afterDark).toBe('dark');
@@ -224,23 +229,52 @@ test.describe('Settings Management', () => {
     expect(afterReload).toBe('dark');
   });
 
-  test('can close settings modal', async ({ page }) => {
+  test('navigating to map hides settings page', async ({ page }) => {
     await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
       await settingsBtn.click();
       
-      const settingsModal = page.locator('#settings-modal');
-      await expect(settingsModal).toBeVisible();
+      const settingsPage = page.locator('#settings-modal');
+      await expect(settingsPage).toBeVisible();
       
-      // Try to close with close button
-      const closeBtn = settingsModal.locator('.modal-close');
-      if (await closeBtn.isVisible()) {
-        await closeBtn.click();
-        await expect(settingsModal).not.toBeVisible({ timeout: 1000 });
-      }
+      await page.locator('#nav-map-btn').click();
+      await expect(settingsPage).not.toBeVisible({ timeout: 1000 });
+      await expect(page.locator('body.nr-surface-account')).toHaveCount(0);
     } else {
       test.skip();
     }
+  });
+
+  test('direct keys and settings routes render as full pages', async ({ page }) => {
+    await page.goto('/#keys');
+    const keysPage = page.locator('#keys-modal');
+    await expect(keysPage).toBeVisible();
+    await expect(page.locator('body.nr-surface-account')).toBeVisible();
+    await expect(keysPage).toHaveCSS('position', 'static');
+    await expect(keysPage.locator('.modal-close')).not.toBeVisible();
+
+    await page.goto('/#settings');
+    const settingsPage = page.locator('#settings-modal');
+    await expect(settingsPage).toBeVisible();
+    await expect(page.locator('body.nr-surface-account')).toBeVisible();
+    await expect(settingsPage).toHaveCSS('position', 'static');
+    await expect(settingsPage.locator('.modal-close')).not.toBeVisible();
+  });
+
+  test('welcome is canonical and start redirects to welcome', async ({ page }) => {
+    await page.evaluate(() => localStorage.clear());
+    await page.goto('/#welcome');
+    await expect(page.locator('#keys-modal')).toBeVisible();
+    await expect(page.locator('#keys-welcome-section')).toBeVisible();
+    await expect(page).toHaveURL(/#welcome\b/);
+
+    await page.goto('/#start');
+    await expect(page.locator('#keys-modal')).toBeVisible();
+    await expect(page).toHaveURL(/#welcome\b/);
+
+    await page.goto('/?start=1');
+    await expect(page.locator('#keys-modal')).toBeVisible();
+    await expect(page).toHaveURL(/#welcome\b/);
   });
 });

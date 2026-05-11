@@ -87,6 +87,13 @@ describe('NrWebHashRouter profile routes', () => {
     expect(classify(npub)).toEqual({ kind: 'chat', chatRoute: npub });
   });
 
+  it('classifies account and onboarding routes', () => {
+    expect(classify('keys')).toEqual({ kind: 'modal', modal: 'keys' });
+    expect(classify('settings')).toEqual({ kind: 'modal', modal: 'settings' });
+    expect(classify('welcome')).toEqual({ kind: 'reserved', token: 'welcome' });
+    expect(classify('start')).toEqual({ kind: 'reserved', token: 'start' });
+  });
+
   it('coarse plus code stays map', () => {
     expect(classify('9G000000+')).toEqual({ kind: 'map_pluscode', plusCode: '9G000000+' });
   });

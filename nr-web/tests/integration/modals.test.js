@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 describe('Modal Behavior', () => {
   beforeEach(() => {
     // Reset modal states
-    const modals = ['settings-modal', 'keys-modal', 'pluscode-notes-modal', 'circles-modal'];
+    const modals = ['settings-modal', 'keys-modal', 'circles-modal'];
     modals.forEach(id => {
       const modal = document.getElementById(id);
       if (modal) {
@@ -29,6 +29,17 @@ describe('Modal Behavior', () => {
       const sections = modal?.querySelectorAll('.settings-section');
       expect(sections?.length).toBeGreaterThan(0);
     });
+
+    it('labels dark mode as experimental', () => {
+      const label = document.querySelector('label[for="theme-toggle"]');
+      expect(label?.textContent).toContain('Dark mode (experimental)');
+    });
+
+    it('orders notifications first and appearance last', () => {
+      const sections = Array.from(document.querySelectorAll('#settings-modal .modal-content > .settings-section'));
+      expect(sections[0]?.id).toBe('settings-notifications-section');
+      expect(sections.at(-1)?.querySelector('h2')?.textContent).toBe('Appearance');
+    });
   });
 
   describe('Keys Modal', () => {
@@ -52,10 +63,10 @@ describe('Modal Behavior', () => {
 
   });
 
-  describe('Note Modals', () => {
-    it('plus code notes modal exists', () => {
-      const modal = document.getElementById('pluscode-notes-modal');
-      expect(modal).toBeTruthy();
+  describe('Host & Meet page', () => {
+    it('host page shell exists', () => {
+      expect(document.getElementById('nr-host-view')).toBeTruthy();
+      expect(document.getElementById('pluscode-notes-modal')).toBeTruthy();
     });
 
     it('circles modal exists', () => {
@@ -63,15 +74,15 @@ describe('Modal Behavior', () => {
       expect(modal).toBeTruthy();
     });
 
-    it('has note-related modal elements', () => {
-      const plusCodeModal = document.getElementById('pluscode-notes-modal');
-      expect(plusCodeModal).toBeTruthy();
+    it('has note-related page elements', () => {
+      expect(document.getElementById('pluscode-notes-content')).toBeTruthy();
+      expect(document.getElementById('note-content-in-modal')).toBeTruthy();
     });
   });
 
   describe('Modal structure', () => {
     it('all modals have modal-content wrapper', () => {
-      const modalIds = ['settings-modal', 'keys-modal', 'pluscode-notes-modal', 'circles-modal'];
+      const modalIds = ['settings-modal', 'keys-modal', 'circles-modal'];
       modalIds.forEach(id => {
         const modal = document.getElementById(id);
         expect(modal).toBeTruthy();

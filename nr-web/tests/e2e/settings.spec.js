@@ -129,6 +129,10 @@ test.describe('Settings Management', () => {
   });
 
   test('settings page has notifications section', async ({ page }) => {
+    await page.evaluate(() => {
+      window.addNotificationPlusCode?.('849VCWC8+2X');
+      window.addNotificationPlusCode?.('849VCWC8+22');
+    });
     await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
     if (await settingsBtn.isVisible()) {
@@ -141,6 +145,10 @@ test.describe('Settings Management', () => {
       await expect(notificationsSection).toBeAttached();
       await expect(notificationsSection).toContainText('Notifications');
       await expect(notificationsSection).toContainText('Permission:');
+      await expect(notificationsSection).toContainText('Subscribed areas');
+      await expect(notificationsSection.locator('button', { hasText: 'Test notification' })).toBeAttached();
+      await expect(notificationsSection).toContainText('849VCWC8+2X');
+      await expect(notificationsSection).toContainText('849VCWC8+22');
     } else {
       test.skip();
     }

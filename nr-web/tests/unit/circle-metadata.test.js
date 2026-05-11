@@ -5,17 +5,22 @@ import {
     parseCircleMetaContent,
     isSafeHttpUrl,
     mergeCircleMetadataMapEntry,
-    normalizeTrustrootsCircleSlugKey
+    normalizeTrustrootsCircleSlugKey,
+    trustrootsCircleSlugFromPictureUrl,
+    resolveTrustrootsCircleWebSlug,
+    trustrootsCirclePageUrlFromMeta,
+    trustrootsCirclePictureFallbackUrlFromMeta
 } from '../../index.js';
 
 describe('circle-metadata', () => {
     const importPk = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
 
     it('parses circle JSON content', () => {
-        const c = parseCircleMetaContent(JSON.stringify({ name: 'Hitch', about: 'Road', picture: 'https://x/y.jpg' }));
+        const c = parseCircleMetaContent(JSON.stringify({ name: 'Hitch', about: 'Road', picture: 'https://x/y.jpg', slug: 'hitch-hikers' }));
         expect(c.name).toBe('Hitch');
         expect(c.about).toBe('Road');
         expect(c.picture).toBe('https://x/y.jpg');
+        expect(c.slug).toBe('hitch-hikers');
     });
 
     it('getCircleMetaDTagFromTags lowercases slug', () => {
@@ -96,6 +101,62 @@ describe('circle-metadata', () => {
         };
         expect(mergeCircleMetadataMapEntry(map, ev, { expectedPubkey: importPk })).toBe(true);
         expect(map.get('hitchhikers').picture).toBe(pic);
+        expect(map.get('hitchhikers').trustrootsSlug).toBe('hitchhikers');
         expect(isSafeHttpUrl(map.get('hitchhikers').picture)).toBe(true);
+    });
+
+    it('stores explicit trustroots slug when picture is absent', () => {
+        const map = new Map();
+        const ev = {
+            kind: TRUSTROOTS_CIRCLE_META_KIND,
+            pubkey: importPk,
+            created_at: 31,
+            id: 'rg1',
+            tags: [['d', 'rainbowgathering']],
+            content: JSON.stringify({ name: 'Rainbow Gathering', about: 'Gathering', picture: '', slug: 'rainbow-gathering' })
+        };
+        expect(mergeCircleMetadataMapEntry(map, ev, { expectedPubkey: importPk })).toBe(true);
+        expect(map.get('rainbowgathering').trustrootsSlug).toBe('rainbow-gathering');
+    });
+
+    it('extracts hyphen-preserving trustroots slug from picture URL', () => {
+        const pic = 'https://www.trustroots.org/uploads-circle/rainbow-gathering/742x496.jpg';
+        expect(trustrootsCircleSlugFromPictureUrl(pic)).toBe('rainbow-gathering');
+    });
+
+    it('resolves trustroots web slug precedence: picture > content slug > fallback', () => {
+        const fromPicture = resolveTrustrootsCircleWebSlug(
+            { picture: 'https://www.trustroots.org/uploads-circle/rainbow-gathering/742x496.jpg', slug: 'wrong-slug' },
+            'rainbowgathering'
+        );
+        expect(fromPicture).toBe('rainbow-gathering');
+
+        const fromContentSlug = resolveTrustrootsCircleWebSlug(
+            { picture: '', slug: 'rainbow-gathering' },
+            'rainbowgathering'
+        );
+        expect(fromContentSlug).toBe('rainbow-gathering');
+
+        const fromFallback = resolveTrustrootsCircleWebSlug(
+            { picture: '', slug: '' },
+            'rainbowgathering'
+        );
+        expect(fromFallback).toBe('rainbowgathering');
+    });
+
+    it('builds trustroots circle page URL from hyphen-preserving slug', () => {
+        const url = trustrootsCirclePageUrlFromMeta(
+            { picture: 'https://www.trustroots.org/uploads-circle/rainbow-gathering/742x496.jpg', slug: '' },
+            'rainbowgathering'
+        );
+        expect(url).toBe('https://www.trustroots.org/circles/rainbow-gathering');
+    });
+
+    it('builds trustroots circle fallback picture URL from explicit metadata slug', () => {
+        const url = trustrootsCirclePictureFallbackUrlFromMeta(
+            { picture: '', slug: 'rainbow-gathering' },
+            'rainbowgathering'
+        );
+        expect(url).toBe('https://www.trustroots.org/uploads-circle/rainbow-gathering/1400x900.webp');
     });
 });

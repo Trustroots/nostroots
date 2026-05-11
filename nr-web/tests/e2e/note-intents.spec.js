@@ -26,8 +26,8 @@ test.describe('Map note intent chips', () => {
         await page.waitForLoadState('networkidle');
 
         await page.evaluate(() => window.showNotesForPlusCode('9F3HC2J7+'));
-        await expect(page.locator('body.nr-surface-area')).toBeVisible();
-        await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible();
+        await expect(page.locator('body.nr-surface-host')).toBeVisible();
+        await expect(page.locator('#nr-host-view')).toBeVisible();
         await expect(page.locator('#area-location-code')).toHaveText('9F3HC2J7+');
 
         const chips = page.locator('#note-intent-chips .note-intent-chip');
@@ -54,8 +54,8 @@ test.describe('Map note intent chips', () => {
         await page.waitForLoadState('networkidle');
 
         await page.evaluate(() => window.openHostNoteFlow());
-        await expect(page.locator('body.nr-surface-area')).toBeVisible();
-        await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible();
+        await expect(page.locator('body.nr-surface-host')).toBeVisible();
+        await expect(page.locator('#nr-host-view')).toBeVisible();
         await expect(
             page.locator('.note-intent-chip[data-intent="hosting"]'),
         ).toHaveAttribute('aria-checked', 'true');
@@ -89,8 +89,8 @@ test.describe('Map note intent chips', () => {
             host.replaceChildren(item);
         });
 
-        await expect(page.locator('body.nr-surface-area')).toBeVisible();
-        await expect(page.locator('#pluscode-notes-modal.active')).toBeVisible();
+        await expect(page.locator('body.nr-surface-host')).toBeVisible();
+        await expect(page.locator('#nr-host-view')).toBeVisible();
         const badge = page
             .locator('#pluscode-notes-content .nr-note-intent-badge.nr-note-intent-hosting')
             .first();
@@ -98,10 +98,65 @@ test.describe('Map note intent chips', () => {
         await expect(badge).toHaveText('Hosting');
         // The leading `#hosting` token must not appear in the rendered text.
         const noteText = await page
-            .locator('#pluscode-notes-content .note-content')
+            .locator('#pluscode-notes-content .host-note-content')
             .first()
             .textContent();
         expect(noteText.trim().startsWith('Hosting')).toBe(true);
         expect(noteText).not.toMatch(/^\s*#hosting/i);
+    });
+
+    test('Host & Meet notes and composer use compact Chat primitives', async ({ page }) => {
+        await page.goto('/');
+        await page.waitForLoadState('networkidle');
+
+        await page.evaluate(() => {
+            window.showNotesForPlusCode('9F3HC2J7+');
+            const fake = {
+                id: 'dd'.repeat(32),
+                kind: 30397,
+                pubkey: 'bb'.repeat(32),
+                created_at: Math.floor(Date.now() / 1000),
+                content: 'Shared house plants with npub10xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqpkge6d',
+                tags: [
+                    ['expiration', String(Math.floor(Date.now() / 1000) + 86400)],
+                    ['L', 'open-location-code'],
+                    ['l', '9F3HC2J7+', 'open-location-code'],
+                ],
+                sig: 'ee'.repeat(32),
+                relayScope: 'public',
+            };
+            const item = window.createNoteItem(fake);
+            const host = document.getElementById('pluscode-notes-content');
+            host.replaceChildren(item);
+        });
+
+        const note = page.locator('#pluscode-notes-content .host-note-row');
+        await expect(note.locator('.message.other.host-note-bubble')).toBeVisible();
+        await expect(note.locator('.message-delete')).toHaveCount(2);
+        await expect(note.locator('.host-note-pluscode')).toHaveText('9F3HC2J7+');
+        await expect(note.locator('.note-expiry')).toBeVisible();
+        await expect(note.locator('.note-relay-scope-pill')).toBeVisible();
+        await expect(note.locator('a[href^="#profile/npub10xlx"]')).toBeVisible();
+
+        const sizes = await page.evaluate(() => {
+            const bubble = document.querySelector('#pluscode-notes-content .host-note-bubble');
+            const action = document.querySelector('#pluscode-notes-content .message-delete');
+            const textarea = document.querySelector('#note-content-in-modal');
+            const bubbleStyle = getComputedStyle(bubble);
+            const actionStyle = getComputedStyle(action);
+            const textareaStyle = getComputedStyle(textarea);
+            return {
+                bubbleFont: bubbleStyle.fontSize,
+                bubblePaddingTop: bubbleStyle.paddingTop,
+                actionWidth: actionStyle.width,
+                textareaMinHeight: textareaStyle.minHeight,
+                textareaBorderWidth: textareaStyle.borderTopWidth,
+            };
+        });
+        expect(parseFloat(sizes.bubbleFont)).toBeLessThanOrEqual(15);
+        expect(parseFloat(sizes.bubblePaddingTop)).toBeLessThanOrEqual(10);
+        expect(parseFloat(sizes.actionWidth)).toBeLessThanOrEqual(34);
+        expect(parseFloat(sizes.textareaMinHeight)).toBeLessThanOrEqual(36);
+        expect(sizes.textareaBorderWidth).toBe('1px');
     });
 });

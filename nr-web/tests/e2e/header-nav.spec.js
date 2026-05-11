@@ -60,16 +60,18 @@ async function openSupportMenuIfNeeded(page) {
 }
 
 test.describe('Header navigation', () => {
-  test('index: main nav items and Chats link', async ({ page }) => {
+  test('index: main nav items are ordered Map, Host & Meet, Chat', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     const header = page.locator('#app-header');
     await expectAnyVisible(header.locator('#nav-support-btn'), header.locator('#nav-more-btn'));
-    await expect(header.getByRole('link', { name: 'Chats' })).toBeVisible();
     await expect(header.locator('#nav-map-btn')).toBeVisible();
-    await expect(header.locator('#nav-host-btn')).toBeVisible();
+    await expect(header.getByRole('button', { name: 'Host & Meet' })).toBeVisible();
+    await expect(header.getByRole('link', { name: 'Chat' })).toBeVisible();
     await expectAnyVisible(header.locator('#nav-user-btn'), header.locator('#nav-more-btn'));
-    const conv = header.getByRole('link', { name: 'Chats' });
+    const visibleNavLabels = await header.locator('.nr-nav-main > .nr-nav-link:visible .nr-nav-link-text').allTextContents();
+    expect(visibleNavLabels.slice(0, 3)).toEqual(['Map', 'Host & Meet', 'Chat']);
+    const conv = header.getByRole('link', { name: 'Chat' });
     await expect(conv).toHaveAttribute('href', '#chat');
     await expect(header.locator('a[href="index.html"].app-header-logo-link')).toBeAttached();
     await expect(header.locator('[data-nav="nostroots"]')).toHaveCount(0);
@@ -132,8 +134,11 @@ test.describe('Header navigation', () => {
     await page.waitForSelector('#map .maplibregl-canvas, #map canvas', { timeout: 30000 });
     await page.waitForTimeout(500);
     await page.locator('#nav-host-btn').click();
-    await expect(page.locator('body.nr-surface-area')).toBeVisible({ timeout: 20000 });
-    const areaPage = page.locator('#pluscode-notes-modal.active');
+    await expect(page.locator('body.nr-surface-host')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('#map-view')).not.toBeVisible();
+    await expect(page.locator('#nav-host-btn')).toHaveClass(/is-active/);
+    await expect(page.locator('#nav-host-btn')).toHaveAttribute('aria-current', 'page');
+    const areaPage = page.locator('#nr-host-view');
     await expect(areaPage).toBeVisible({ timeout: 20000 });
     await expect(page.locator('#pluscode-notes-modal .area-main')).toBeVisible();
     await expect(page.locator('#pluscode-notes-modal .area-sidebar')).toBeVisible();
@@ -148,7 +153,57 @@ test.describe('Header navigation', () => {
     await expect(hostingChip).toHaveAttribute('aria-checked', 'true');
   });
 
-  test('index: Chats nav is active on #chat', async ({ page }) => {
+  test('index: Host & meet prefers browser location over stale map center', async ({ page, context }) => {
+    await context.grantPermissions(['geolocation']);
+    await context.setGeolocation({ latitude: 38.72, longitude: -9.14 });
+
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem('map_center', JSON.stringify([31.5, 34.5]));
+        localStorage.setItem('map_zoom', '2');
+      } catch (_) {}
+    });
+
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    await page.waitForSelector('#map .maplibregl-canvas, #map canvas', { timeout: 30000 });
+
+    await page.locator('#nav-host-btn').click();
+    await expect(page.locator('body.nr-surface-host')).toBeVisible({ timeout: 20000 });
+    await expect(page.locator('#nav-host-btn')).toHaveClass(/is-active/);
+    await expect(page.locator('#area-location-code')).toHaveText('8CCGPV00+');
+    await expect(page).toHaveURL(/#8CCGPV00\+/);
+  });
+
+  test('index: Host & meet does not flash back to map from Chats', async ({ page }) => {
+    await page.goto('/#chat');
+    await page.waitForLoadState('networkidle');
+    await page.waitForSelector('body.nr-surface-chat', { timeout: 20000 });
+
+    await page.locator('#nav-host-btn').click();
+
+    await expect(page.locator('body.nr-surface-host')).toBeVisible();
+    await expect(page.locator('#map-view')).not.toBeVisible();
+    await expect(page.locator('#nav-host-btn')).toHaveClass(/is-active/);
+    await expect(page.locator('#nav-host-btn')).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('index: Chat nav returns to the last concrete chat route from Host & Meet', async ({ page }) => {
+    await page.goto('/#hackers');
+    await page.waitForLoadState('networkidle');
+    await page.waitForSelector('body.nr-surface-chat', { timeout: 20000 });
+
+    await page.locator('#nav-host-btn').click();
+    await expect(page.locator('body.nr-surface-host')).toBeVisible({ timeout: 20000 });
+    const chatLink = page.locator('#app-header').getByRole('link', { name: 'Chat' });
+    await expect(chatLink).toHaveAttribute('href', '#hackers');
+
+    await chatLink.click();
+    await expect(page.locator('body.nr-surface-chat')).toBeVisible({ timeout: 20000 });
+    await expect(page).toHaveURL(/#hackers$/);
+  });
+
+  test('index: Chat nav is active on #chat', async ({ page }) => {
     await page.goto('/#chat');
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('body.nr-surface-chat', { timeout: 20000 });

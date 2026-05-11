@@ -12,6 +12,13 @@ import {
   experienceCounterpartyDisplay,
   trustrootsProfileUrl,
   parseRelationshipSuggestionUsernames,
+  getConfirmedTwoSidedContactCount,
+  getConfirmedConnectedPubkeyContacts,
+  getTrustCardConnectedPubkeyPeople,
+  buildTrustCardSummaryFromEvents,
+  trustCardPersonNip05,
+  getClaimablePositiveReferenceCount,
+  extractThreadUpvoteMetricValue,
 } from '../../index.js';
 
 const H = (ch) => String(ch).repeat(64);
@@ -165,5 +172,217 @@ describe('Experience claim helpers', () => {
 describe('trustrootsProfileUrl', () => {
   it('builds profile URL', () => {
     expect(trustrootsProfileUrl('Alice')).toBe('https://www.trustroots.org/profile/alice');
+  });
+});
+
+describe('Trust card count helpers', () => {
+  it('counts only confirmed claimable relationship claims, deduped by source_id', () => {
+    const me = H('a');
+    const them = H('b');
+    const events = [
+      { id: 'one', kind: 30392, tags: [['p', me], ['p', them], ['claimable', 'true'], ['confirmed', 'true'], ['source_id', 'c1']] },
+      { id: 'dupe', kind: 30392, tags: [['p', me], ['p', them], ['claimable', 'true'], ['confirmed', 'true'], ['source_id', 'c1']] },
+      { id: 'old', kind: 30392, tags: [['p', me], ['p', them], ['claimable', 'true'], ['source_id', 'c2']] },
+      { id: 'nope', kind: 30392, tags: [['p', me], ['p', them], ['confirmed', 'true']] },
+      { id: 'other', kind: 30392, tags: [['p', them], ['claimable', 'true'], ['confirmed', 'true'], ['source_id', 'c3']] },
+    ];
+    expect(getConfirmedTwoSidedContactCount(events, me)).toBe(1);
+  });
+
+  it('lists confirmed claimable connected contacts that have npubs', () => {
+    const me = H('a');
+    const bob = H('b');
+    const carol = H('c');
+    const dana = H('d');
+    const events = [
+      {
+        id: 'older-bob',
+        kind: 30392,
+        created_at: 10,
+        tags: [['p', me], ['p', bob], ['claimable', 'true'], ['confirmed', 'true'], ['source_id', 'bob-old']],
+        content: 'Trustroots relationship suggestion: @alice -> @oldbob',
+      },
+      {
+        id: 'newer-bob',
+        kind: 30392,
+        created_at: 20,
+        tags: [['p', me], ['p', bob], ['claimable', 'true'], ['confirmed', 'true'], ['source_id', 'bob-new']],
+        content: 'Trustroots relationship suggestion: @alice -> @bob',
+      },
+      {
+        id: 'carol',
+        kind: 30392,
+        created_at: 15,
+        tags: [['p', carol], ['p', me], ['claimable', 'true'], ['confirmed', 'true'], ['source_id', 'carol']],
+        content: 'Trustroots relationship suggestion: @carol -> @alice',
+      },
+      {
+        id: 'username-only-other',
+        kind: 30392,
+        created_at: 30,
+        tags: [['p', me], ['L', 'org.trustroots:username'], ['l', 'erin', 'org.trustroots:username'], ['claimable', 'true'], ['confirmed', 'true']],
+        content: 'Trustroots relationship suggestion: @alice -> @erin',
+      },
+      {
+        id: 'unconfirmed',
+        kind: 30392,
+        created_at: 40,
+        tags: [['p', me], ['p', dana], ['claimable', 'true']],
+        content: 'Trustroots relationship suggestion: @alice -> @dana',
+      },
+      {
+        id: 'not-mine',
+        kind: 30392,
+        created_at: 50,
+        tags: [['p', bob], ['p', dana], ['claimable', 'true'], ['confirmed', 'true']],
+        content: 'Trustroots relationship suggestion: @bob -> @dana',
+      },
+    ];
+    expect(getConfirmedConnectedPubkeyContacts(events, me, 'alice')).toEqual([
+      { hex: bob, username: 'bob' },
+      { hex: carol, username: 'carol' },
+    ]);
+  });
+
+  it('finds the first profile when viewing the second side of a Contact', () => {
+    const alice = H('a');
+    const bob = H('b');
+    const events = [
+      {
+        id: 'alice-bob',
+        kind: 30392,
+        created_at: 20,
+        tags: [['p', alice], ['p', bob], ['claimable', 'true'], ['confirmed', 'true']],
+        content: 'Trustroots relationship suggestion: @alice -> @bob',
+      },
+    ];
+    expect(getTrustCardConnectedPubkeyPeople(events, bob, '')).toEqual([
+      { hex: alice, username: 'alice', sources: ['contact'] },
+    ]);
+  });
+
+  it('lists npub people from confirmed Contacts and positive Experiences', () => {
+    const me = H('a');
+    const bob = H('b');
+    const carol = H('c');
+    const dana = H('d');
+    const events = [
+      {
+        id: 'contact',
+        kind: 30392,
+        created_at: 30,
+        tags: [['p', me], ['p', bob], ['claimable', 'true'], ['confirmed', 'true']],
+        content: 'Trustroots relationship suggestion: @alice -> @bob',
+      },
+      {
+        id: 'experience-received',
+        kind: 30393,
+        created_at: 20,
+        tags: [['d', 'e1'], ['p', carol], ['p', me], ['claimable', 'true']],
+        content: 'A kind note from Carol',
+      },
+      {
+        id: 'experience-left',
+        kind: 30393,
+        created_at: 10,
+        tags: [['d', 'e2'], ['p', me], ['p', dana], ['claimable', 'true']],
+        content: 'A kind note for Dana',
+      },
+      {
+        id: 'unclaimable-experience',
+        kind: 30393,
+        created_at: 40,
+        tags: [['d', 'e3'], ['p', H('e')], ['p', me]],
+      },
+    ];
+    expect(getTrustCardConnectedPubkeyPeople(events, me, 'alice')).toEqual([
+      { hex: bob, username: 'bob', sources: ['contact'] },
+      { hex: carol, username: '', sources: ['experience'] },
+      { hex: dana, username: '', sources: ['experience'] },
+    ]);
+  });
+
+  it('builds cached Trust card summary from claim events', () => {
+    const me = H('a');
+    const bob = H('b');
+    const carol = H('c');
+    const events = [
+      {
+        id: 'contact',
+        kind: 30392,
+        created_at: 30,
+        tags: [['p', me], ['p', bob], ['claimable', 'true'], ['confirmed', 'true'], ['source_id', 'c1']],
+        content: 'Trustroots relationship suggestion: @alice -> @bob',
+      },
+      {
+        id: 'experience',
+        kind: 30393,
+        created_at: 20,
+        tags: [['d', 'e1'], ['p', me], ['p', carol], ['claimable', 'true'], ['source_id', 'e1']],
+      },
+      {
+        id: 'metric',
+        kind: 30394,
+        created_at: 40,
+        tags: [['p', me], ['claimable', 'true']],
+        content: JSON.stringify({ metric: 'threads_upvoted_by_others', value: 3 }),
+      },
+    ];
+    expect(buildTrustCardSummaryFromEvents(events, me, 'alice')).toEqual({
+      contactCount: 1,
+      positiveExperienceCount: 1,
+      threadUpvoteMetricValue: 3,
+      people: [
+        { hex: bob, username: 'bob', sources: ['contact'] },
+        { hex: carol, username: '', sources: ['experience'] },
+      ],
+    });
+  });
+
+  it('prefers NIP-05 labels for Trust card people', () => {
+    expect(trustCardPersonNip05({ username: 'Alice' })).toBe('alice@trustroots.org');
+    expect(trustCardPersonNip05({ username: 'alice' }, 'other@trustroots.org')).toBe('other@trustroots.org');
+    expect(trustCardPersonNip05({ username: 'alice' }, 'not@example.com')).toBe('alice@trustroots.org');
+    expect(trustCardPersonNip05({ username: '' })).toBe('');
+  });
+
+  it('counts only claimable positive references this user can sign, deduped by source_id', () => {
+    const me = H('a');
+    const them = H('b');
+    const events = [
+      { id: 'one', kind: 30393, tags: [['d', 'e1'], ['p', me], ['p', them], ['claimable', 'true'], ['source_id', 'e1']] },
+      { id: 'dupe', kind: 30393, tags: [['d', 'e1'], ['p', me], ['p', them], ['claimable', 'true'], ['source_id', 'e1']] },
+      { id: 'not-author', kind: 30393, tags: [['d', 'e2'], ['p', them], ['p', me], ['claimable', 'true'], ['source_id', 'e2']] },
+      { id: 'not-claimable', kind: 30393, tags: [['d', 'e3'], ['p', me], ['p', them], ['source_id', 'e3']] },
+    ];
+    expect(getClaimablePositiveReferenceCount(events, me)).toBe(1);
+  });
+
+  it('parses newest valid thread-upvote metric', () => {
+    const me = H('a');
+    const events = [
+      {
+        id: 'older-valid',
+        kind: 30394,
+        created_at: 10,
+        tags: [['p', me], ['claimable', 'true']],
+        content: JSON.stringify({ metric: 'threads_upvoted_by_others', value: 4 }),
+      },
+      {
+        id: 'newer-invalid',
+        kind: 30394,
+        created_at: 20,
+        tags: [['p', me], ['claimable', 'true']],
+        content: JSON.stringify({ metric: 'other', value: 99 }),
+      },
+      {
+        id: 'newest-valid',
+        kind: 30394,
+        created_at: 30,
+        tags: [['p', me], ['claimable', 'true']],
+        content: JSON.stringify({ metric: 'threads_upvoted_by_others', value: 7 }),
+      },
+    ];
+    expect(extractThreadUpvoteMetricValue(events, me)).toBe(7);
   });
 });

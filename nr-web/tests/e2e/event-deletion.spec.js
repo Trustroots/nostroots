@@ -124,15 +124,15 @@ test.describe('Event Deletion E2E', () => {
     expect(true).toBe(true); // Structure test passes if no errors
   });
 
-  test('pluscode notes modal structure supports delete buttons', async ({ page }) => {
-    const modal = page.locator('#pluscode-notes-modal');
-    await expect(modal).toBeAttached();
+  test('Host & Meet page structure supports delete buttons', async ({ page }) => {
+    const host = page.locator('#nr-host-view');
+    await expect(host).toBeAttached();
     
-    const modalContent = modal.locator('.modal-content');
-    await expect(modalContent).toBeAttached();
+    const pageContent = host.locator('.host-page-content');
+    await expect(pageContent).toBeAttached();
     
     // Verify notes content area exists where delete buttons would appear
-    const notesContent = modal.locator('#pluscode-notes-content');
+    const notesContent = host.locator('#pluscode-notes-content');
     await expect(notesContent).toBeAttached();
   });
 

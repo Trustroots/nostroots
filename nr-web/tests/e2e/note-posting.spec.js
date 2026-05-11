@@ -26,21 +26,17 @@ test.describe('Note Posting', () => {
     await expect(noteContent).toBeAttached();
   });
 
-  test('plus code notes modal exists', async ({ page }) => {
-    const plusCodeModal = page.locator('#pluscode-notes-modal');
-    await expect(plusCodeModal).toBeAttached();
+  test('Host & Meet page shell exists', async ({ page }) => {
+    await expect(page.locator('#nr-host-view')).toBeAttached();
+    await expect(page.locator('#pluscode-notes-modal')).toBeAttached();
   });
 
-  test('note modals have correct structure', async ({ page }) => {
-    const modals = ['pluscode-notes-modal'];
-    
-    for (const modalId of modals) {
-      const modal = page.locator(`#${modalId}`);
-      await expect(modal).toBeAttached();
-      
-      const content = modal.locator('.modal-content');
-      await expect(content).toBeAttached();
-    }
+  test('Host & Meet page has correct structure', async ({ page }) => {
+    const host = page.locator('#nr-host-view');
+    await expect(host).toBeAttached();
+    await expect(host.locator('.host-page-content')).toBeAttached();
+    await expect(host.locator('.area-sidebar')).toBeAttached();
+    await expect(host.locator('.area-thread')).toBeAttached();
   });
 
   test('can interact with note form elements', async ({ page }) => {

@@ -55,6 +55,7 @@ func eventForProfileClaim(user User, circles []string, privateKey string) (nostr
 		{"r", profileURL},
 		{"source", "trustroots-import"},
 	}
+	appendClaimableTag(&tags)
 	appendTrustrootsCircleMembershipTags(&tags, circles)
 	event := nostr.Event{
 		CreatedAt: nostr.Now(),
@@ -130,6 +131,7 @@ func eventForRelationshipClaim(record ContactRecord, privateKey string) (nostr.E
 		nostr.Tag{"source", "trustroots-import"},
 		nostr.Tag{"source_id", record.Contact.ID.Hex()},
 	)
+	appendClaimableTag(&tags)
 
 	event := nostr.Event{
 		CreatedAt: nostr.Timestamp(createdAt.Unix()),
@@ -167,6 +169,7 @@ func eventForExperienceClaim(record ExperienceRecord, privateKey string) (nostr.
 		nostr.Tag{"source", "trustroots-import"},
 		nostr.Tag{"source_id", record.Experience.ID.Hex()},
 	)
+	appendClaimableTag(&tags)
 
 	event := nostr.Event{
 		CreatedAt: nostr.Timestamp(createdAt.Unix()),

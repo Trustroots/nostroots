@@ -30,14 +30,14 @@ func TestBuildNoteContent(t *testing.T) {
 		NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
 	}
 	got := buildNoteContent("<p>Can host one person.</p>", user)
-	if !strings.Contains(got, "https://www.trustroots.org/profile/alice") {
-		t.Fatalf("missing Trustroots profile link in content: %q", got)
-	}
 	if !strings.Contains(got, "#hosting") {
 		t.Fatalf("missing #hosting in content: %q", got)
 	}
-	if !strings.Contains(got, user.NostrNpub) {
-		t.Fatalf("missing npub in content: %q", got)
+	if strings.Contains(got, "https://www.trustroots.org/profile/alice") {
+		t.Fatalf("unexpected Trustroots profile link in content: %q", got)
+	}
+	if strings.Contains(got, user.NostrNpub) {
+		t.Fatalf("unexpected npub in content: %q", got)
 	}
 	if len([]rune(got)) > maxContentLength {
 		t.Fatalf("content length = %d", len([]rune(got)))
@@ -76,6 +76,16 @@ func TestIsEligibleHost(t *testing.T) {
 	}
 	offer.MaxGuests = 1
 
+	offer.Status = "maybe"
+	if !isEligibleHost(offer, user) {
+		t.Fatal("expected maybe host to be eligible")
+	}
+	offer.Status = "no"
+	if isEligibleHost(offer, user) {
+		t.Fatal("status=no host should not be eligible")
+	}
+	offer.Status = "yes"
+
 	past := time.Now().Add(-24 * time.Hour)
 	offer.ValidUntil = &past
 	if isEligibleHost(offer, user) {
@@ -97,6 +107,21 @@ func TestIsEligibleHost(t *testing.T) {
 	user.NostrNpub = "npub-not-valid"
 	if isEligibleHost(offer, user) {
 		t.Fatal("host with invalid npub should not be eligible")
+	}
+}
+
+func TestHostOfferStatusHelpers(t *testing.T) {
+	if got := normalizeHostOfferStatus("  MAYBE "); got != "maybe" {
+		t.Fatalf("normalizeHostOfferStatus() = %q", got)
+	}
+	if !isAllowedHostOfferStatus("yes") {
+		t.Fatal("yes should be allowed")
+	}
+	if !isAllowedHostOfferStatus(" maybe ") {
+		t.Fatal("maybe should be allowed")
+	}
+	if isAllowedHostOfferStatus("no") {
+		t.Fatal("no should not be allowed")
 	}
 }
 

@@ -36,8 +36,7 @@ func truncateRunes(value string, limit int) string {
 
 func buildNoteContent(description string, user User) string {
 	base := cleanContent(description)
-	profileURL := "https://www.trustroots.org/profile/" + user.Username
-	suffix := "\n\n#hosting\n" + profileURL + "\n" + strings.TrimSpace(user.NostrNpub)
+	suffix := "\n\n#hosting"
 	suffixRunes := len([]rune(suffix))
 
 	if suffixRunes >= maxContentLength {
@@ -47,6 +46,19 @@ func buildNoteContent(description string, user User) string {
 	allowedBaseRunes := maxContentLength - suffixRunes
 	base = truncateRunes(base, allowedBaseRunes)
 	return base + suffix
+}
+
+func normalizeHostOfferStatus(status string) string {
+	return strings.ToLower(strings.TrimSpace(status))
+}
+
+func isAllowedHostOfferStatus(status string) bool {
+	switch normalizeHostOfferStatus(status) {
+	case "yes", "maybe":
+		return true
+	default:
+		return false
+	}
 }
 
 func hasBlockedRole(user User) bool {
@@ -90,7 +102,7 @@ func isEligibleHost(offer Offer, user User) bool {
 	if offer.Type != "host" {
 		return false
 	}
-	if offer.Status != "yes" {
+	if !isAllowedHostOfferStatus(offer.Status) {
 		return false
 	}
 	if offer.ShowOnlyInMyCircles {

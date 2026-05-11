@@ -40,7 +40,7 @@ func fetchHosts(ctx context.Context, mongoURI string, limit int64) ([]HostRecord
 		"$and": []bson.M{
 			{
 				"type":            "host",
-				"status":          "yes",
+				"status":          bson.M{"$in": []string{"yes", "maybe"}},
 				"maxGuests":       bson.M{"$gt": 0},
 				"locationFuzzy.0": bson.M{"$gte": -90, "$lte": 90},
 				"locationFuzzy.1": bson.M{"$gte": -180, "$lte": 180},

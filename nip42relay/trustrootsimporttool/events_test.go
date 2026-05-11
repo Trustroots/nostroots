@@ -55,17 +55,20 @@ func TestEventForHost(t *testing.T) {
 	if !strings.Contains(event.Content, "Can host one person.") {
 		t.Fatalf("missing description in content: %q", event.Content)
 	}
-	if !strings.Contains(event.Content, "https://www.trustroots.org/profile/alice") {
-		t.Fatalf("missing profile link in content: %q", event.Content)
+	if strings.Contains(event.Content, "https://www.trustroots.org/profile/alice") {
+		t.Fatalf("unexpected profile link in content: %q", event.Content)
 	}
-	if !strings.Contains(event.Content, "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj") {
-		t.Fatalf("missing npub in content: %q", event.Content)
+	if strings.Contains(event.Content, "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj") {
+		t.Fatalf("unexpected npub in content: %q", event.Content)
 	}
 	if tag := event.Tags.GetFirst([]string{"r", "https://www.trustroots.org/profile/alice"}); tag == nil {
 		t.Fatalf("missing r profile tag: %#v", event.Tags)
 	}
 	if tag := event.Tags.GetFirst([]string{"trustroots", "alice"}); tag == nil {
 		t.Fatalf("missing trustroots tag: %#v", event.Tags)
+	}
+	if tag := event.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
+		t.Fatalf("missing claimable tag: %#v", event.Tags)
 	}
 	if tag := event.Tags.GetFirst([]string{"t", "hosting"}); tag == nil {
 		t.Fatalf("missing t hosting tag: %#v", event.Tags)
@@ -102,6 +105,70 @@ func TestEventForHost(t *testing.T) {
 	}
 	if !ok {
 		t.Fatal("signature did not verify")
+	}
+}
+
+func TestEventForHostMaybeStatusTag(t *testing.T) {
+	offerID := primitive.NewObjectID()
+	userID := primitive.NewObjectID()
+	created := time.Unix(1700000000, 0)
+	updated := time.Unix(1700000100, 0)
+	event, err := eventForHost(HostRecord{
+		Offer: Offer{
+			ID:            offerID,
+			Type:          "host",
+			Status:        "maybe",
+			MaxGuests:     1,
+			Description:   "Could maybe host",
+			LocationFuzzy: []float64{52.5, 13.4},
+			CreatedAt:     created,
+			Updated:       updated,
+			UserID:        userID,
+		},
+		User: User{
+			ID:        userID,
+			Username:  "dana",
+			NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+			Public:    true,
+		},
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag := event.Tags.GetFirst([]string{"status", "maybe"}); tag == nil {
+		t.Fatalf("missing status maybe tag: %#v", event.Tags)
+	}
+}
+
+func TestEventForHostYesHasNoMaybeStatusTag(t *testing.T) {
+	offerID := primitive.NewObjectID()
+	userID := primitive.NewObjectID()
+	created := time.Unix(1700000000, 0)
+	updated := time.Unix(1700000100, 0)
+	event, err := eventForHost(HostRecord{
+		Offer: Offer{
+			ID:            offerID,
+			Type:          "host",
+			Status:        "yes",
+			MaxGuests:     1,
+			Description:   "Can host",
+			LocationFuzzy: []float64{52.5, 13.4},
+			CreatedAt:     created,
+			Updated:       updated,
+			UserID:        userID,
+		},
+		User: User{
+			ID:        userID,
+			Username:  "erin",
+			NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+			Public:    true,
+		},
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag := event.Tags.GetFirst([]string{"status", "maybe"}); tag != nil {
+		t.Fatalf("unexpected status maybe tag on yes offer: %#v", event.Tags)
 	}
 }
 

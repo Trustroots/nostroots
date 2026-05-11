@@ -6,7 +6,7 @@ for direct import into the private strfry behind `nip42.trustroots.org`.
 Outputs (in this order):
 
 - **Profile claims** (`kind 30390`) — Nostr profile JSON for each eligible user (from Mongo; not a live kind-0 fetch), plus the same `L` / `l` / `t` **trustroots-circle** tags as host mirrors for every public tribe membership (so clients can show circles without a hosted offer)
-- **Host mirrors** (`kind 30398`) — verified map note reposts for public host offers; circle `l` / `t` tags use **hyphen-free** slugs (Mongo tribe slugs are normalized when building host rows and events; see `trustrootsCircleSlugForNostr` in `events.go` / `fetchPublicCircleSlugs` in `mongo.go`)
+- **Host mirrors** (`kind 30398`) — verified map note reposts for public host offers (`status: yes|maybe`); circle `l` / `t` tags use **hyphen-free** slugs (Mongo tribe slugs are normalized when building host rows and events; see `trustrootsCircleSlugForNostr` in `events.go` / `fetchPublicCircleSlugs` in `mongo.go`)
 - **Relationship suggestions** (`kind 30392`) — contacts where both endpoints pass a relaxed Trustroots gate (public, username, email/roles) and **at least one** has a valid npub; missing npubs appear as NIP-32 username labels (`L` / `l` under `org.trustroots:username`)
 - **Positive experience suggestions** (`kind 30393`) — same relaxed pair rule; author and target are tagged in stable order (`userFrom` then `userTo`) with `p` hex and/or username labels
 - **Circle metadata** (`kind 30410`) — one parameterized replaceable per public Mongo `tribes` row: JSON `name` / `about` / optional `picture` (Trustroots `uploads-circle` URL when the tribe has `image: true`). See [`docs/Events.md`](../../docs/Events.md) in this repo.
@@ -39,7 +39,7 @@ The tool auto-loads `.env` from the current working directory and from
 
 ### Eligibility
 
-**Hosts:** public `type: host` + `status: yes`, valid npub (for the `p` claim tag), sane
+**Hosts:** public `type: host` + `status: yes|maybe`, valid npub (for the `p` claim tag), sane
 coordinates, eligible user — and **`maxGuests` > 0** (Trustroots uses `0` for no capacity).
 Offers with **`validUntil` in the past** are skipped. Rows that fail validation are logged and
 skipped instead of aborting the run.
@@ -69,9 +69,13 @@ Use these checks to verify that import output matches `nr-web` rendering expecta
     - `d=trustroots:profile:<username-lower>`
     - `l=<username-lower>` under `org.trustroots:username`
     - `source=trustroots-import`
+    - `claimable=true`
 - `30398` host mirror:
   - includes a real hex `p` tag from user `npub`
+  - note content includes cleaned host text + `#hosting` only (no appended Trustroots profile URL and no raw `npub`)
+  - includes `status=maybe` tag when Trustroots offer status is `maybe`
   - includes plus-code labels (`L/l`) and prefix labels for map routing
+  - includes `claimable=true`
   - includes circle tags for every public membership slug:
     - `l=<slug-lower-no-hyphens>` under `trustroots-circle`
     - `t=<slug-lower-no-hyphens>`
@@ -108,3 +112,7 @@ After import, verify route-level behavior in `nr-web`:
 5. Open `nr-web/index.html` and verify:
    - `#profile/nostroots%40trustroots.org` shows expected profile avatar
    - `#hitchhikers` surfaces the circle image in chat/circle UI when metadata is present
+- `30392` relationship suggestion:
+  - includes `claimable=true`
+- `30393` positive experience suggestion:
+  - includes `claimable=true`

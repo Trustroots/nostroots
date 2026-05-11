@@ -55,11 +55,15 @@ func eventForHost(record HostRecord, privateKey string) (nostr.Event, error) {
 		nostr.Tag{"linkPath", "/profile/" + record.User.Username},
 		nostr.Tag{"t", "hosting"},
 	)
+	if normalizeHostOfferStatus(record.Offer.Status) == "maybe" {
+		tags = append(tags, nostr.Tag{"status", "maybe"})
+	}
 	profileURL := "https://www.trustroots.org/profile/" + record.User.Username
 	tags = append(tags,
 		nostr.Tag{"r", profileURL},
 		nostr.Tag{"trustroots", record.User.Username},
 	)
+	appendClaimableTag(&tags)
 	if pubkeyHex, ok := decodeNpubToHex(record.User.NostrNpub); ok {
 		tags = append(tags, nostr.Tag{"p", pubkeyHex})
 	}

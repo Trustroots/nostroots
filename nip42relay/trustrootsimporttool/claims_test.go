@@ -33,6 +33,9 @@ func TestEventForProfileClaim(t *testing.T) {
 	if event.Tags.GetD() != "trustroots:profile:alice" {
 		t.Fatalf("d tag = %q", event.Tags.GetD())
 	}
+	if tag := event.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
+		t.Fatalf("missing claimable tag: %#v", event.Tags)
+	}
 	var meta map[string]string
 	if err := json.Unmarshal([]byte(event.Content), &meta); err != nil {
 		t.Fatal(err)
@@ -163,6 +166,9 @@ func TestEventForRelationshipClaim_bothNpubs(t *testing.T) {
 	if countPTags(ev.Tags) != 2 {
 		t.Fatalf("want 2 p tags, got %d tags=%v", countPTags(ev.Tags), ev.Tags)
 	}
+	if tag := ev.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
+		t.Fatalf("missing claimable tag: %#v", ev.Tags)
+	}
 	if hasUsernameLabelPair(ev.Tags, "alice") || hasUsernameLabelPair(ev.Tags, "bob") {
 		t.Fatal("did not expect username label pairs when both have npubs")
 	}
@@ -182,6 +188,9 @@ func TestEventForRelationshipClaim_oneNpubUsernameLabels(t *testing.T) {
 	}
 	if countPTags(ev.Tags) != 1 {
 		t.Fatalf("want 1 p tag, got %d", countPTags(ev.Tags))
+	}
+	if tag := ev.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
+		t.Fatalf("missing claimable tag: %#v", ev.Tags)
 	}
 	if !hasUsernameLabelPair(ev.Tags, "bobnopub") {
 		t.Fatalf("expected username labels for bobnopub, tags=%v", ev.Tags)
@@ -216,6 +225,9 @@ func TestEventForExperienceClaim_oneNpub(t *testing.T) {
 	}
 	if ev.Kind != experienceClaimKind {
 		t.Fatalf("kind = %d", ev.Kind)
+	}
+	if tag := ev.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
+		t.Fatalf("missing claimable tag: %#v", ev.Tags)
 	}
 	if countPTags(ev.Tags) != 1 {
 		t.Fatalf("want 1 p tag, got %d", countPTags(ev.Tags))

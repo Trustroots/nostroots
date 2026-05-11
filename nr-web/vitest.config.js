@@ -8,15 +8,15 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: 'https://cdn.jsdelivr.net/npm/nostr-tools@2.23.0/+esm',
+        find: /^https:\/\/cdn\.jsdelivr\.net\/npm\/nostr-tools@2\.23\.0\/\+esm(?:\?.*)?$/,
         replacement: 'nostr-tools',
       },
       {
-        find: 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm',
+        find: /^https:\/\/cdn\.jsdelivr\.net\/npm\/bip39@3\.1\.0\/\+esm(?:\?.*)?$/,
         replacement: 'bip39',
       },
       {
-        find: 'https://cdn.jsdelivr.net/npm/dompurify@3.2.2/+esm',
+        find: /^https:\/\/cdn\.jsdelivr\.net\/npm\/dompurify@3\.2\.2\/\+esm(?:\?.*)?$/,
         replacement: 'dompurify',
       },
     ],

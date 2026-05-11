@@ -230,6 +230,88 @@ body {
     font-size: 0.8125rem;
     line-height: 1.35;
 }
+#keys-modal .username-locked-note {
+    display: block;
+    margin-top: 0.35rem;
+    color: var(--muted-foreground);
+}
+#keys-modal .keys-success-actions {
+    margin: 0.35rem 0 0;
+    padding-left: 1.25rem;
+}
+#keys-modal .keys-success-actions li {
+    margin-top: 0.2rem;
+}
+#settings-modal .notification-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+#settings-modal .notification-test-status {
+    margin: 0 0 1rem 0;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--background);
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: 1.35;
+}
+#settings-modal .notification-test-status.error {
+    border-color: var(--destructive);
+    color: var(--destructive);
+}
+#settings-modal .notification-area-section { margin-top: 1rem; }
+#settings-modal .notification-area-section h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--foreground);
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+#settings-modal .notification-area-list { display: flex; flex-direction: column; gap: 0.5rem; }
+#settings-modal .notification-area-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--background);
+}
+#settings-modal .notification-area-code {
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--primary);
+    cursor: pointer;
+    font-family: Monaco, Menlo, monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: left;
+    word-break: break-all;
+}
+#settings-modal .notification-area-code:hover { text-decoration: underline; }
+#settings-modal .notification-area-remove {
+    border: none;
+    border-radius: calc(var(--radius) - 2px);
+    padding: 0.3rem 0.5rem;
+    background: var(--secondary);
+    color: var(--secondary-foreground);
+    cursor: pointer;
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+#settings-modal .notification-area-empty {
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--background);
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+}
 #keys-modal .key-input-wrapper, #settings-modal .key-input-wrapper {
     position: relative;
     display: flex;
@@ -516,8 +598,15 @@ body {
             <small style="display: block; margin: -0.25rem 0 0.75rem 0; color: var(--muted-foreground);">This links your Trustroots identity so Trustroots relays can verify your posts.</small>
             <div class="form-group">
                 <input type="text" id="trustroots-username" placeholder="your-username" onkeydown="if(event.key === 'Enter') linkTrustrootsProfile()">
+                <small id="trustroots-username-locked-note" class="username-locked-note" style="display: none;">This username comes from your Nostr profile event and cannot be edited here.</small>
                 <div id="username-nostr-indicator" class="username-nostr-indicator" style="display: none;">
-                    <small>Trustroots profile linked successfully. You can now close this modal and explore the application. Please make sure you have a safe backup of your nsec (for example in your password manager). This username is from a Nostr event and cannot be edited here.</small>
+                    <strong>Trustroots profile linked successfully.</strong>
+                    <ul class="keys-success-actions">
+                        <li>Check your <a href="#profile">profile</a>.</li>
+                        <li>Check out our <a href="#map">map</a>.</li>
+                        <li>Add your own event, request for a host, offer to host, etc. in <a href="?action=host">Host &amp; Meet</a>.</li>
+                        <li id="keys-linked-backup-action">Back up your nsec in your password manager before relying on this identity.</li>
+                    </ul>
                 </div>
             </div>
         </div>
@@ -531,16 +620,8 @@ body {
             <h2>Settings</h2>
             <button class="modal-close" onclick="closeSettingsModal()" type="button">&times;</button>
         </div>
-        <div class="settings-section">
-            <h2>Appearance</h2>
-            <div class="layer-control">
-                <label for="theme-toggle">Dark mode</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="theme-toggle" aria-describedby="theme-sync-status">
-                    <span class="toggle-slider"></span>
-                </label>
-            </div>
-            <small id="theme-sync-status" style="display: block; margin-top: 0.5rem; color: var(--muted-foreground);"></small>
+        <div class="settings-section" id="settings-notifications-section">
+            <!-- Filled by renderSettingsNotificationsSection() when present -->
         </div>
         <div class="settings-section">
             <h2>Relays</h2>
@@ -552,8 +633,16 @@ body {
                 </div>
             </div>
         </div>
-        <div class="settings-section" id="settings-notifications-section">
-            <!-- Filled by renderSettingsNotificationsSection() when present -->
+        <div class="settings-section">
+            <h2>Appearance</h2>
+            <div class="layer-control">
+                <label for="theme-toggle">Dark mode</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="theme-toggle" aria-describedby="theme-sync-status">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <small id="theme-sync-status" style="display: block; margin-top: 0.5rem; color: var(--muted-foreground);"></small>
         </div>
 
         <div class="settings-footer-wrap">

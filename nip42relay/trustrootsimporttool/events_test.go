@@ -287,6 +287,9 @@ func TestEventForCircleMetadata(t *testing.T) {
 	if payload["about"] != "Get lifts and share the road." {
 		t.Fatalf("about = %q", payload["about"])
 	}
+	if payload["slug"] != "hitch" {
+		t.Fatalf("slug = %q want hitch", payload["slug"])
+	}
 	wantPic := "https://www.trustroots.org/uploads-circle/hitch/742x496.jpg"
 	if payload["picture"] != wantPic {
 		t.Fatalf("picture = %q want %q", payload["picture"], wantPic)
@@ -326,6 +329,9 @@ func TestEventForCircleMetadataHyphenSlugUsesDashlessDTagAndMongoPicturePath(t *
 	if payload["picture"] != wantPic {
 		t.Fatalf("picture = %q want %q", payload["picture"], wantPic)
 	}
+	if payload["slug"] != "beer-brewers" {
+		t.Fatalf("slug = %q want beer-brewers", payload["slug"])
+	}
 }
 
 func TestEventForCircleMetadataSkipsPictureWhenNoImage(t *testing.T) {
@@ -346,6 +352,9 @@ func TestEventForCircleMetadataSkipsPictureWhenNoImage(t *testing.T) {
 	}
 	if _, has := payload["picture"]; has {
 		t.Fatalf("expected no picture field, got %#v", payload)
+	}
+	if payload["slug"] != "hackers" {
+		t.Fatalf("slug = %q want hackers", payload["slug"])
 	}
 }
 

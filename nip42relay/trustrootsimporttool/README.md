@@ -9,7 +9,7 @@ Outputs (in this order):
 - **Host mirrors** (`kind 30398`) — verified map note reposts for public host offers (`status: yes|maybe`); circle `l` / `t` tags use **hyphen-free** slugs (Mongo tribe slugs are normalized when building host rows and events; see `trustrootsCircleSlugForNostr` in `events.go` / `fetchPublicCircleSlugs` in `mongo.go`)
 - **Relationship suggestions** (`kind 30392`) — confirmed two-sided contacts where both endpoints pass a relaxed Trustroots gate (public, username, email/roles) and **at least one** has a valid npub; missing npubs appear as NIP-32 username labels (`L` / `l` under `org.trustroots:username`)
 - **Positive experience suggestions** (`kind 30393`) — same relaxed pair rule; author and target are tagged in stable order (`userFrom` then `userTo`) with `p` hex and/or username labels
-- **Positive-reference trust metric** (`kind 30394`) — per eligible npub user, one metric event reporting how many positive Trustroots references they have received from other users
+- **Thread-upvote metric** (`kind 30394`) — per eligible npub user, one metric event reporting how many Trustroots reference threads were upvoted by other people
 - **Circle metadata** (`kind 30410`) — one parameterized replaceable per public Mongo `tribes` row: JSON `name` / `about` / optional `picture` (Trustroots `uploads-circle` URL when the tribe has `image: true`). See [`docs/Events.md`](../../docs/Events.md) in this repo.
 
 **nr-web chat:** Subscribes to kind `30410` from the **same hex pubkey** as this tool’s `-nsec` (see `TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX` in `nr-web/common.js`). After changing the signing key, update that constant (or derive hex with `nak` / nostr-tools from your `nsec`) so clients accept your relay’s circle directory.
@@ -80,10 +80,10 @@ Use these checks to verify that import output matches `nr-web` rendering expecta
   - includes circle tags for every public membership slug:
     - `l=<slug-lower-no-hyphens>` under `trustroots-circle`
     - `t=<slug-lower-no-hyphens>`
-- `30394` reference trust metric:
+- `30394` thread-upvote metric:
   - includes `p=<user-hex-pubkey>` target
-  - includes metric labels `L=org.trustroots:metric` and `l=positive-references-received`
-  - content JSON includes numeric `value` (positive references received)
+  - includes metric labels `L=org.trustroots:metric` and `l=threads-upvoted-by-others`
+  - content JSON includes `metric: "threads_upvoted_by_others"` and numeric `value`
   - includes `claimable=true`
 
 ## Schema verification note

@@ -262,8 +262,8 @@ func TestEventForReferenceTrustMetric(t *testing.T) {
 		Public:    true,
 	}
 	ev, err := eventForReferenceTrustMetric(ReferenceTrustMetricRecord{
-		User:                       user,
-		PositiveReferencesReceived: 12,
+		User:                   user,
+		ThreadsUpvotedByOthers: 12,
 	}, testPrivateKey)
 	if err != nil {
 		t.Fatal(err)
@@ -271,7 +271,7 @@ func TestEventForReferenceTrustMetric(t *testing.T) {
 	if ev.Kind != referenceTrustMetricKind {
 		t.Fatalf("kind = %d", ev.Kind)
 	}
-	if tag := ev.Tags.GetFirst([]string{"l", "positive-references-received", "org.trustroots:metric"}); tag == nil {
+	if tag := ev.Tags.GetFirst([]string{"l", "threads-upvoted-by-others", "org.trustroots:metric"}); tag == nil {
 		t.Fatalf("missing metric label tag: %#v", ev.Tags)
 	}
 	if tag := ev.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
@@ -281,7 +281,7 @@ func TestEventForReferenceTrustMetric(t *testing.T) {
 	if err := json.Unmarshal([]byte(ev.Content), &payload); err != nil {
 		t.Fatal(err)
 	}
-	if payload["metric"] != "positive_references_received" {
+	if payload["metric"] != "threads_upvoted_by_others" {
 		t.Fatalf("metric = %#v", payload["metric"])
 	}
 	if int(payload["value"].(float64)) != 12 {

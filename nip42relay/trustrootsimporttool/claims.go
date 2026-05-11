@@ -187,19 +187,19 @@ func eventForExperienceClaim(record ExperienceRecord, privateKey string) (nostr.
 func eventForReferenceTrustMetric(record ReferenceTrustMetricRecord, privateKey string) (nostr.Event, error) {
 	pubkeyHex, ok := decodeNpubToHex(record.User.NostrNpub)
 	if !ok || pubkeyHex == "" {
-		return nostr.Event{}, fmt.Errorf("reference trust metric needs valid npub")
+		return nostr.Event{}, fmt.Errorf("thread upvote metric needs valid npub")
 	}
 	username := strings.ToLower(strings.TrimSpace(record.User.Username))
 	if username == "" {
-		return nostr.Event{}, fmt.Errorf("reference trust metric needs username")
+		return nostr.Event{}, fmt.Errorf("thread upvote metric needs username")
 	}
-	if record.PositiveReferencesReceived < 0 {
-		return nostr.Event{}, fmt.Errorf("reference trust metric cannot be negative")
+	if record.ThreadsUpvotedByOthers < 0 {
+		return nostr.Event{}, fmt.Errorf("thread upvote metric cannot be negative")
 	}
 	contentBytes, err := json.Marshal(map[string]any{
-		"metric":                "positive_references_received",
-		"value":                 record.PositiveReferencesReceived,
-		"unit":                  "references",
+		"metric":                "threads_upvoted_by_others",
+		"value":                 record.ThreadsUpvotedByOthers,
+		"unit":                  "threads",
 		"trustrootsUsername":    username,
 		"profilePubkey":         pubkeyHex,
 		"computedAtUnixSeconds": time.Now().Unix(),
@@ -208,10 +208,10 @@ func eventForReferenceTrustMetric(record ReferenceTrustMetricRecord, privateKey 
 		return nostr.Event{}, err
 	}
 	tags := nostr.Tags{
-		{"d", "trustroots:metric:positive-references-received:" + username},
+		{"d", "trustroots:metric:threads-upvoted-by-others:" + username},
 		{"p", pubkeyHex},
 		{"L", "org.trustroots:metric"},
-		{"l", "positive-references-received", "org.trustroots:metric"},
+		{"l", "threads-upvoted-by-others", "org.trustroots:metric"},
 		{"source", "trustroots-import"},
 	}
 	appendClaimableTag(&tags)

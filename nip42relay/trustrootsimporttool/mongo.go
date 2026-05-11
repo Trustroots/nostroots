@@ -281,8 +281,8 @@ func fetchReferenceTrustMetricRecords(ctx context.Context, db *mongo.Database, u
 	out := make([]ReferenceTrustMetricRecord, 0, len(users))
 	for _, user := range users {
 		out = append(out, ReferenceTrustMetricRecord{
-			User:                       user,
-			PositiveReferencesReceived: byUser[user.ID],
+			User:                   user,
+			ThreadsUpvotedByOthers: byUser[user.ID],
 		})
 	}
 	return out, nil

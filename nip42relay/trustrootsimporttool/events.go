@@ -161,7 +161,7 @@ func eventForCircleMetadata(tribe Tribe, privateKey string) (nostr.Event, error)
 	}
 	about := strings.TrimSpace(tribe.Description)
 	picture := strings.TrimSpace(trustrootsCircleImageURL(tribe))
-	meta := map[string]string{"name": name, "about": about}
+	meta := map[string]string{"name": name, "about": about, "slug": rawSlug}
 	if picture != "" {
 		meta["picture"] = picture
 	}

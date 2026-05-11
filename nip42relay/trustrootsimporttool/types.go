@@ -156,8 +156,8 @@ type ExperienceRecord struct {
 }
 
 type ReferenceTrustMetricRecord struct {
-	User                       User
-	PositiveReferencesReceived int
+	User                   User
+	ThreadsUpvotedByOthers int
 }
 
 type State struct {

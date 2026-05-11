@@ -83,11 +83,11 @@ func run(args []string) error {
 		return fmt.Errorf("fetch experiences: %w", err)
 	}
 	logf("loaded %d positive experience(s) (relaxed users, ≥1 npub)", len(experiences))
-	referenceMetrics, err := fetchReferenceTrustMetricRecords(ctx, db, eligibleUsers)
+	threadUpvoteMetrics, err := fetchReferenceTrustMetricRecords(ctx, db, eligibleUsers)
 	if err != nil {
-		return fmt.Errorf("fetch reference trust metrics: %w", err)
+		return fmt.Errorf("fetch thread upvote metrics: %w", err)
 	}
-	logf("loaded %d per-user positive-reference metric row(s)", len(referenceMetrics))
+	logf("loaded %d per-user thread-upvote metric row(s)", len(threadUpvoteMetrics))
 
 	logf("opening output file %q", cfg.Output)
 	outputFile, err := os.Create(cfg.Output)
@@ -103,7 +103,7 @@ func run(args []string) error {
 	exported := 0
 	relationshipLines := 0
 	experienceLines := 0
-	referenceMetricLines := 0
+	threadUpvoteMetricLines := 0
 	seenContactClaims := map[string]struct{}{}
 	seenExperienceSource := map[string]struct{}{}
 
@@ -199,22 +199,22 @@ func run(args []string) error {
 	}
 	logf("phase 4 done: %d experience claim line(s)", experienceLines)
 
-	logf("phase 5/6: positive reference metrics (kind %d) — %d user row(s)…", referenceTrustMetricKind, len(referenceMetrics))
-	for i, record := range referenceMetrics {
+	logf("phase 5/6: thread upvote metrics (kind %d) — %d user row(s)…", referenceTrustMetricKind, len(threadUpvoteMetrics))
+	for i, record := range threadUpvoteMetrics {
 		event, err := eventForReferenceTrustMetric(record, cfg.NostrSK)
 		if err != nil {
-			logf("skip reference metric for user %s: %v", record.User.ID.Hex(), err)
+			logf("skip thread-upvote metric for user %s: %v", record.User.ID.Hex(), err)
 			continue
 		}
 		if err := writeJSONLine(writer, event); err != nil {
 			return err
 		}
-		referenceMetricLines++
+		threadUpvoteMetricLines++
 		if cfg.LogEvery > 0 && (i+1)%cfg.LogEvery == 0 {
-			logf("…reference-metric phase: scanned %d/%d user(s), %d line(s) emitted", i+1, len(referenceMetrics), referenceMetricLines)
+			logf("…thread-upvote-metric phase: scanned %d/%d user(s), %d line(s) emitted", i+1, len(threadUpvoteMetrics), threadUpvoteMetricLines)
 		}
 	}
-	logf("phase 5 done: %d positive reference metric line(s)", referenceMetricLines)
+	logf("phase 5 done: %d thread upvote metric line(s)", threadUpvoteMetricLines)
 
 	logf("phase 6/6: circle metadata (kind %d)…", circleMetadataKind)
 	tribes, err := fetchPublicTribes(ctx, db)
@@ -248,13 +248,13 @@ func run(args []string) error {
 
 	fmt.Fprintf(
 		os.Stderr,
-		"trustrootsimporttool: wrote %q — profile_claims=%d exported_hosts=%d relationship_claims=%d experience_claims=%d reference_trust_metrics=%d circle_metadata=%d deletions=%d state=%q\n",
+		"trustrootsimporttool: wrote %q — profile_claims=%d exported_hosts=%d relationship_claims=%d experience_claims=%d thread_upvote_metrics=%d circle_metadata=%d deletions=%d state=%q\n",
 		cfg.Output,
 		profileLines,
 		exported,
 		relationshipLines,
 		experienceLines,
-		referenceMetricLines,
+		threadUpvoteMetricLines,
 		circleLines,
 		deleted,
 		cfg.StateFile,

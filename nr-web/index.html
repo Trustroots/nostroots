@@ -81,7 +81,7 @@
      */
     global.NrWebTrustrootsCircleMeta = {
         CIRCLE_META_KIND: 30410,
-        IMPORT_TOOL_PUBKEY_HEX: '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798'
+        IMPORT_TOOL_PUBKEY_HEX: 'faf5d2e8ffb56fa201bc04cd8bf74a3e38de7d0439ada7fb15310d3d374ed5b1'
     };
 
     // --- Shared relay settings helpers (index + chat) ---
@@ -1195,7 +1195,8 @@
                         bodMap &&
                         bodMap.classList &&
                         (bodMap.classList.contains('nr-surface-chat') ||
-                            bodMap.classList.contains('nr-surface-profile'))
+                            bodMap.classList.contains('nr-surface-profile') ||
+                            bodMap.classList.contains('nr-surface-account'))
                     ) {
                         try {
                             global.location.hash = '';
@@ -1227,7 +1228,8 @@
                         bodHost &&
                         bodHost.classList &&
                         (bodHost.classList.contains('nr-surface-chat') ||
-                            bodHost.classList.contains('nr-surface-profile'))
+                            bodHost.classList.contains('nr-surface-profile') ||
+                            bodHost.classList.contains('nr-surface-account'))
                     ) {
                         try {
                             global.location.hash = '';
@@ -3091,7 +3093,7 @@ h1, h2, .modal-header h2 {
 .nr-profile-tr-circ-thumb-ph {
     width: 40px;
     height: 40px;
-    border-radius: 4px;
+    border-radius: 999px;
     flex-shrink: 0;
     border: 1px solid var(--tr-card-edge);
     object-fit: cover;
@@ -3100,9 +3102,22 @@ h1, h2, .modal-header h2 {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
     color: var(--tr-rail-muted);
     background: var(--muted);
+}
+.nr-profile-tr-circ-thumb-ph-glyph {
+    width: 1.4rem;
+    height: 1.4rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--tr-rail-fg, hsl(168, 18%, 22%));
+    background: var(--card);
+    border: 1px solid var(--tr-card-edge);
 }
 .nr-profile-tr-circ-row-text {
     min-width: 0;
@@ -3462,11 +3477,70 @@ body:not(.nr-web-has-key) .nr-nav-menu-profile-only {
     padding: 2rem 2.25rem;
 }
 
+body.nr-surface-account #keys-modal,
+body.nr-surface-account #settings-modal {
+    position: static;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    flex: 1 1 auto;
+    background: var(--background);
+    z-index: auto;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 1.25rem;
+    backdrop-filter: none;
+}
+
+body.nr-surface-account #keys-modal.active,
+body.nr-surface-account #settings-modal.active {
+    display: flex;
+}
+
+body.nr-surface-account #keys-modal .modal-content,
+body.nr-surface-account #settings-modal .modal-content {
+    max-height: none;
+    overflow: visible;
+    width: min(100%, 820px);
+    max-width: 820px;
+    padding: 0 0 2rem 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+}
+
+body.nr-surface-account #settings-modal .modal-content {
+    max-width: 640px;
+}
+
+body.nr-surface-account #keys-modal .modal-content::after,
+body.nr-surface-account #settings-modal .modal-content::after {
+    display: none;
+}
+
+body.nr-surface-account #keys-modal .modal-close,
+body.nr-surface-account #settings-modal .modal-close {
+    display: none;
+}
+
 @media (max-width: 640px) {
     #keys-modal .modal-content {
         max-width: 100%;
         width: 95%;
         padding: 1.5rem 1.15rem;
+    }
+
+    body.nr-surface-account #keys-modal,
+    body.nr-surface-account #settings-modal {
+        padding: 1rem 0.875rem;
+    }
+
+    body.nr-surface-account #keys-modal .modal-content,
+    body.nr-surface-account #settings-modal .modal-content {
+        width: 100%;
+        padding: 0 0 1.5rem 0;
     }
 }
 
@@ -4870,6 +4944,12 @@ h1, h2, .modal-header h2 {
 .message-delete svg {
     display: block;
 }
+.message-side-actions {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-self: flex-start;
+}
 .message-author {
     font-size: 0.8125rem;
     font-weight: 600;
@@ -4916,6 +4996,20 @@ h1, h2, .modal-header h2 {
     flex-wrap: wrap;
 }
 .message .meta .time { opacity: 0.82; }
+.message-time-link {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
+    text-underline-offset: 2px;
+}
+.message-time-link:hover {
+    text-decoration-color: currentColor;
+}
+.message-time-link:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+    border-radius: 0.25rem;
+}
 .message-privacy-pill,
 .message-relay-pill {
     font-size: 0.95em;
@@ -4923,6 +5017,25 @@ h1, h2, .modal-header h2 {
     opacity: 0.95;
 }
 .message-nip-pill { font-size: inherit; opacity: 0.5; white-space: nowrap; }
+.message-row-note-target .message {
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 65%, transparent);
+}
+.raw-note-modal-content {
+    max-width: min(92vw, 56rem);
+}
+.raw-note-modal-pre {
+    margin-top: 0.5rem;
+    max-height: min(65vh, 34rem);
+    overflow: auto;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 0.6rem;
+    padding: 0.7rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.8rem;
+    line-height: 1.35;
+}
 /* Compose bar — aligned with legacy standalone chat page (e6ba47e inline <style>) */
 .compose {
     padding: 0.2rem 0.35rem;
@@ -6343,6 +6456,11 @@ h1, h2, .modal-header h2 {
         body.nr-surface-profile #nr-profile-view {
             display: flex !important;
         }
+        body.nr-surface-account #map-view,
+        body.nr-surface-account .nr-chat-view,
+        body.nr-surface-account #nr-profile-view {
+            display: none !important;
+        }
         .nr-profile-scroll {
             flex: 1;
             overflow: auto;
@@ -6552,6 +6670,20 @@ h1, h2, .modal-header h2 {
                 </div>
             </div>
         </div>
+        <div id="raw-note-modal" class="modal" onclick="if(event.target===this)closeRawNoteModal()">
+            <div class="modal-content raw-note-modal-content">
+                <div class="modal-header">
+                    <h2 id="raw-note-modal-title">Nostr note</h2>
+                    <button type="button" class="modal-close" onclick="closeRawNoteModal()" aria-label="Close">&times;</button>
+                </div>
+                <p class="modal-body">Full raw Nostr event payload for this message.</p>
+                <pre id="raw-note-json" class="raw-note-modal-pre"></pre>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeRawNoteModal()">Close</button>
+                    <button type="button" class="btn" onclick="copyRawNoteModalJson()">Copy JSON</button>
+                </div>
+            </div>
+        </div>
         <div id="nr-chat-status-container" class="status-container"></div>
     </div>
 
@@ -6639,7 +6771,7 @@ h1, h2, .modal-header h2 {
     
     <!-- Keys + Settings modals (inlined; was modals-keys-settings.html) -->
 <!-- Keys Modal (shared by index.html) -->
-<div class="modal" id="keys-modal" onclick="if(event.target===this)typeof closeKeysModal==='function'&&closeKeysModal()">
+<div class="modal" id="keys-modal">
     <div class="modal-content">
         <div class="modal-header">
             <div class="keys-modal-header-titles">
@@ -6818,7 +6950,7 @@ h1, h2, .modal-header h2 {
 </div>
 
 <!-- Settings Modal (shared by index.html) -->
-<div class="modal" id="settings-modal" onclick="if(event.target===this)typeof closeSettingsModal==='function'&&closeSettingsModal()">
+<div class="modal" id="settings-modal">
     <div class="modal-content">
         <div class="modal-header">
             <h2>Settings</h2>

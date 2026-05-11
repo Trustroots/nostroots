@@ -437,15 +437,18 @@ export const NR_WEB_KV_KEYS = {
 const NIP05_RESOLVE_CACHE_KEY_PREFIX = 'nr_nip05_resolve_v1:';
 const PROFILE_ID_RESOLVE_CACHE_KEY_PREFIX = 'nr_profile_id_resolve_v1:';
 const TRUSTROOTS_AVATAR_CACHE_KEY_PREFIX = 'nr_tr_avatar_v1:';
+const TRUSTROOTS_CIRCLE_DIR_CACHE_KEY_PREFIX = 'nr_tr_circle_dir_v1:';
 const NIP05_RESOLVE_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
 const PROFILE_ID_RESOLVE_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
 const TRUSTROOTS_AVATAR_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
+const TRUSTROOTS_CIRCLE_DIR_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12h
 const PROFILE_MEMO_MAX_ENTRIES = 500;
 
 let dbPromise = null;
 const nip05ResolveMemo = new Map();
 const profileIdResolveMemo = new Map();
 const trustrootsAvatarMemo = new Map();
+const trustrootsCircleDirMemo = new Map();
 
 function rememberMemoizedLookup(map, key, value) {
     if (!key || !map) return;
@@ -1695,6 +1698,16 @@ function setHashRoute(route) {
     const want = encoded ? '#' + encoded : '';
     if (location.hash !== want) location.hash = want;
 }
+function replaceHashRoute(route) {
+    const encoded = route ? encodeURIComponent(route).replace(/%2B/g, '+') : '';
+    const want = encoded ? '#' + encoded : '';
+    if (location.hash === want) return;
+    try {
+        history.replaceState({}, '', location.pathname + location.search + want);
+    } catch (_) {
+        location.hash = want;
+    }
+}
 function legacyApplyMapHashToState(route) {
     const keysEl = document.getElementById('keys-modal');
     const settingsEl = document.getElementById('settings-modal');
@@ -1708,6 +1721,19 @@ function legacyApplyMapHashToState(route) {
         if (keysEl) keysEl.classList.remove('active');
         closePlusCodeNotesModal(true);
         openSettingsModal();
+        return;
+    }
+    if (route === 'start') {
+        replaceHashRoute('welcome');
+        if (settingsEl) settingsEl.classList.remove('active');
+        closePlusCodeNotesModal(true);
+        openKeysModal({ route: 'welcome' });
+        return;
+    }
+    if (route === 'welcome') {
+        if (settingsEl) settingsEl.classList.remove('active');
+        closePlusCodeNotesModal(true);
+        openKeysModal({ route: 'welcome' });
         return;
     }
     if (route) {
@@ -1732,6 +1758,8 @@ async function applyUnifiedHash() {
     const mapView = document.getElementById('map-view');
     const chatView = document.getElementById('nr-chat-view');
     const profileView = document.getElementById('nr-profile-view');
+    const keysPage = document.getElementById('keys-modal');
+    const settingsPage = document.getElementById('settings-modal');
 
     let claimsSectionRestoreAnchor = null;
     let claimsTrustPanelRestoreAnchor = null;
@@ -1813,10 +1841,16 @@ async function applyUnifiedHash() {
     window.NrWebMountClaimTrustrootsTrustTab = mountClaimTrustPanelToProfileTrustTab;
     window.NrWebUnmountClaimTrustrootsSection = restoreAllClaimsProfileUi;
 
+    function hideAccountShell() {
+        if (keysPage) keysPage.classList.remove('active');
+        if (settingsPage) settingsPage.classList.remove('active');
+    }
     function showMapShell() {
         restoreAllClaimsProfileUi();
         document.body.classList.remove('nr-surface-chat');
         document.body.classList.remove('nr-surface-profile');
+        document.body.classList.remove('nr-surface-account');
+        hideAccountShell();
         if (profileView) {
             profileView.hidden = true;
             profileView.style.display = 'none';
@@ -1835,6 +1869,8 @@ async function applyUnifiedHash() {
     function showChatShell() {
         restoreAllClaimsProfileUi();
         document.body.classList.remove('nr-surface-profile');
+        document.body.classList.remove('nr-surface-account');
+        hideAccountShell();
         if (profileView) {
             profileView.hidden = true;
             profileView.style.display = 'none';
@@ -1864,7 +1900,9 @@ async function applyUnifiedHash() {
         const m = mode || 'public';
         if (m !== 'contacts') restoreAllClaimsProfileUi();
         document.body.classList.remove('nr-surface-chat');
+        document.body.classList.remove('nr-surface-account');
         document.body.classList.add('nr-surface-profile');
+        hideAccountShell();
         if (mapView) mapView.style.display = 'none';
         if (chatView) {
             chatView.hidden = true;
@@ -1893,6 +1931,28 @@ async function applyUnifiedHash() {
         }
         void callProfileRenderer('public', profileId);
     }
+    function showAccountShell(activePage) {
+        restoreAllClaimsProfileUi();
+        document.body.classList.remove('nr-surface-chat');
+        document.body.classList.remove('nr-surface-profile');
+        document.body.classList.add('nr-surface-account');
+        if (mapView) mapView.style.display = 'none';
+        if (chatView) {
+            chatView.hidden = true;
+            chatView.style.display = 'none';
+        }
+        if (profileView) {
+            profileView.hidden = true;
+            profileView.style.display = 'none';
+        }
+        if (keysPage) keysPage.classList.toggle('active', activePage === 'keys');
+        if (settingsPage) settingsPage.classList.toggle('active', activePage === 'settings');
+        try {
+            if (window.NrWeb && typeof window.NrWeb.fillAppHeader === 'function') {
+                window.NrWeb.fillAppHeader();
+            }
+        } catch (_) {}
+    }
 
     if (c.kind === 'map_home') {
         showMapShell();
@@ -1900,15 +1960,12 @@ async function applyUnifiedHash() {
         return;
     }
     if (c.kind === 'modal') {
-        showMapShell();
         closePlusCodeNotesModal(true);
-        const keysEl = document.getElementById('keys-modal');
-        const settingsEl = document.getElementById('settings-modal');
         if (c.modal === 'keys') {
-            if (settingsEl) settingsEl.classList.remove('active');
-            openKeysModal();
+            showAccountShell('keys');
+            openKeysModal({ route: 'keys' });
         } else if (c.modal === 'settings') {
-            if (keysEl) keysEl.classList.remove('active');
+            showAccountShell('settings');
             openSettingsModal();
         }
         return;
@@ -1936,14 +1993,17 @@ async function applyUnifiedHash() {
             if (typeof openHelpModal === 'function') openHelpModal();
             return;
         }
-        if (c.token === 'welcome' || c.token === 'start') {
-            showMapShell();
+        if (c.token === 'start') {
+            replaceHashRoute('welcome');
+            showAccountShell('keys');
             closePlusCodeNotesModal(true);
-            const keysEl2 = document.getElementById('keys-modal');
-            const settingsEl2 = document.getElementById('settings-modal');
-            if (settingsEl2) settingsEl2.classList.remove('active');
-            if (keysEl2) keysEl2.classList.remove('active');
-            openKeysModal();
+            openKeysModal({ route: 'welcome' });
+            return;
+        }
+        if (c.token === 'welcome') {
+            showAccountShell('keys');
+            closePlusCodeNotesModal(true);
+            openKeysModal({ route: 'welcome' });
             return;
         }
         showMapShell();
@@ -8121,6 +8181,7 @@ function openKeysModal(options = {}) {
         currentPublicKey = nrWebNip7Signer.pubkey;
     }
     _openKeysModalShared({
+        route: options.route || 'keys',
         hasKey: !!(currentPublicKey || currentPrivateKey || nip7Active),
         onOpenManagedSection: () => {
             try { window.NrWebUnmountClaimTrustrootsSection?.(); } catch (_) {}
@@ -8209,13 +8270,9 @@ function processNrWebUrlAction() {
         } else if (a === 'host') {
             openHostNoteFlow();
         }
-        if (welcomeOn) {
+        if (welcomeOn || startOn) {
             try {
                 location.hash = '#welcome';
-            } catch (_) {}
-        } else if (startOn) {
-            try {
-                location.hash = '#start';
             } catch (_) {}
         }
     } catch (err) {
@@ -8266,7 +8323,17 @@ async function checkOnboarding() {
     }
     const hasKey = readValidStoredKeyHex();
     if (!hasKey) {
-        openKeysModal();
+        const initialRoute = getHashRoute().toLowerCase();
+        if (initialRoute === 'settings') {
+            openSettingsModal();
+        } else if (initialRoute === 'keys') {
+            openKeysModal({ route: 'keys' });
+        } else if (initialRoute === 'start') {
+            replaceHashRoute('welcome');
+            openKeysModal({ route: 'welcome' });
+        } else {
+            openKeysModal({ route: 'welcome' });
+        }
         updateKeyDisplay();
     } else {
         loadKeys();
@@ -8652,7 +8719,7 @@ async function initializeNrWebApp() {
         const keysModal = document.getElementById('keys-modal');
         if (keysModal) {
             keysModal.addEventListener('click', (e) => {
-                if (e.target.id === 'keys-modal') {
+                if (e.target.id === 'keys-modal' && !document.body.classList.contains('nr-surface-account')) {
                     closeKeysModal();
                 }
             });
@@ -8661,7 +8728,7 @@ async function initializeNrWebApp() {
         const settingsModal = document.getElementById('settings-modal');
         if (settingsModal) {
             settingsModal.addEventListener('click', (e) => {
-                if (e.target.id === 'settings-modal') {
+                if (e.target.id === 'settings-modal' && !document.body.classList.contains('nr-surface-account')) {
                     closeSettingsModal();
                 }
             });
@@ -9067,6 +9134,8 @@ const __nrChatApp = (() => {
         }
 
         let selectedConversationId = null;
+        let pendingDeepLinkNoteId = '';
+        let noteHighlightTimeout = null;
         let conversationFilterQuery = '';
         let backgroundContentMatches = new Set();
         const conversationSearchIndex = new Map();
@@ -9431,6 +9500,109 @@ const __nrChatApp = (() => {
             if (!h) return '';
             try { return decodeURIComponent(h); } catch (_) { return h; }
         }
+        function parseChatRouteWithNote(rawRoute) {
+            const decoded = String(rawRoute || '').trim();
+            if (!decoded) return { conversationRoute: '', noteId: '' };
+            const queryIndex = decoded.indexOf('?');
+            if (queryIndex < 0) return { conversationRoute: decoded, noteId: '' };
+            const conversationRoute = decoded.slice(0, queryIndex).trim();
+            const query = decoded.slice(queryIndex + 1);
+            let noteId = '';
+            try {
+                const params = new URLSearchParams(query);
+                noteId = String(params.get('note') || '').trim();
+            } catch (_) {
+                noteId = '';
+            }
+            return { conversationRoute, noteId };
+        }
+        function setChatRouteWithNote(conversationRoute, noteId) {
+            const route = String(conversationRoute || '').trim();
+            const note = String(noteId || '').trim();
+            if (!route) {
+                setHashRoute('');
+                return;
+            }
+            const encodedRoute = hashEncodeSegment(route);
+            const query = note ? `?note=${encodeURIComponent(note)}` : '';
+            const nextHash = `#${encodedRoute}${query}`;
+            if (location.hash !== nextHash) location.hash = nextHash;
+        }
+        function buildMessageDeepLinkHref(conversationId, eventId) {
+            const route = String(getConversationRouteId(conversationId) || '').trim();
+            if (!route) return '#';
+            const encodedRoute = hashEncodeSegment(route);
+            const note = String(eventId || '').trim();
+            return `#${encodedRoute}${note ? `?note=${encodeURIComponent(note)}` : ''}`;
+        }
+        async function copyTextToClipboard(text) {
+            const value = String(text ?? '');
+            if (!value) return false;
+            if (navigator?.clipboard?.writeText) {
+                try {
+                    await navigator.clipboard.writeText(value);
+                    return true;
+                } catch (_) {}
+            }
+            const ta = document.createElement('textarea');
+            ta.value = value;
+            ta.setAttribute('readonly', 'readonly');
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            ta.style.pointerEvents = 'none';
+            document.body.appendChild(ta);
+            ta.select();
+            ta.setSelectionRange(0, ta.value.length);
+            let copied = false;
+            try {
+                copied = document.execCommand('copy');
+            } catch (_) {
+                copied = false;
+            }
+            ta.remove();
+            return !!copied;
+        }
+        function openRawNoteModal(eventLike) {
+            const modalTitle = document.getElementById('raw-note-modal-title');
+            const pre = document.getElementById('raw-note-json');
+            if (!pre) return;
+            const payload = eventLike?.raw || eventLike || {};
+            const json = JSON.stringify(payload, null, 2);
+            pre.textContent = json || '{}';
+            const eventId = String(payload?.id || eventLike?.id || '').trim();
+            if (modalTitle) {
+                modalTitle.textContent = eventId ? `Nostr note ${eventId.slice(0, 12)}…` : 'Nostr note';
+            }
+            modal('raw-note-modal').open();
+        }
+        function closeRawNoteModal() {
+            modal('raw-note-modal').close();
+        }
+        async function copyRawNoteModalJson() {
+            const pre = document.getElementById('raw-note-json');
+            const json = pre?.textContent || '';
+            if (!json) {
+                showStatus('No note JSON to copy.', 'error');
+                return;
+            }
+            const ok = await copyTextToClipboard(json);
+            showStatus(ok ? 'Note JSON copied.' : 'Failed to copy note JSON.', ok ? 'success' : 'error');
+        }
+        function focusPendingDeepLinkedMessage(container) {
+            const noteId = String(pendingDeepLinkNoteId || '').trim();
+            if (!noteId || !container) return;
+            pendingDeepLinkNoteId = '';
+            const rows = Array.from(container.querySelectorAll('.message-row[data-event-id]'));
+            const target = rows.find((row) => String(row.dataset.eventId || '') === noteId);
+            if (!target) return;
+            target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            rows.forEach((row) => row.classList.remove('message-row-note-target'));
+            target.classList.add('message-row-note-target');
+            if (noteHighlightTimeout) clearTimeout(noteHighlightTimeout);
+            noteHighlightTimeout = setTimeout(() => {
+                target.classList.remove('message-row-note-target');
+            }, 2200);
+        }
         function getConversationRouteId(id) {
             if (!id) return '';
             const conv = conversations.get(id);
@@ -9458,7 +9630,10 @@ const __nrChatApp = (() => {
         /** Keys/settings are handled by index unified router when embedded. */
         async function applyChatHashToState(routeForced, opts) {
             const o = opts || {};
-            const route = routeForced !== undefined && routeForced !== null ? String(routeForced) : getHashRoute();
+            const routeInput = routeForced !== undefined && routeForced !== null ? String(routeForced) : getHashRoute();
+            const parsedRoute = parseChatRouteWithNote(routeInput);
+            const route = parsedRoute.conversationRoute;
+            pendingDeepLinkNoteId = parsedRoute.noteId;
             const normalizedRoute = normalizeChannelSlug(route);
             const keysEl = document.getElementById('keys-modal');
             const settingsEl = document.getElementById('settings-modal');
@@ -9493,8 +9668,8 @@ const __nrChatApp = (() => {
             const mappedConversationId = findConversationIdByRoute(route);
             if (mappedConversationId) {
                 const preferredRoute = getConversationRouteId(mappedConversationId);
-                if (preferredRoute && route !== preferredRoute) setHashRoute(preferredRoute);
-                selectConversation(mappedConversationId);
+                if (preferredRoute && route !== preferredRoute) setChatRouteWithNote(preferredRoute, pendingDeepLinkNoteId);
+                selectConversation(mappedConversationId, { skipHashUpdate: true });
                 return;
             }
             const routeForDmResolve = (route || '').trim();
@@ -9503,16 +9678,16 @@ const __nrChatApp = (() => {
                 if (dmPubkey) {
                     getOrCreateConversation('dm', dmPubkey, [dmPubkey]);
                     const preferredDmRoute = getConversationRouteId(dmPubkey);
-                    if (preferredDmRoute && route !== preferredDmRoute) setHashRoute(preferredDmRoute);
-                    selectConversation(dmPubkey);
+                    if (preferredDmRoute && route !== preferredDmRoute) setChatRouteWithNote(preferredDmRoute, pendingDeepLinkNoteId);
+                    selectConversation(dmPubkey, { skipHashUpdate: true });
                     return;
                 }
             }
             if (normalizedRoute && route !== normalizedRoute) {
-                setHashRoute(normalizedRoute);
+                setChatRouteWithNote(normalizedRoute, pendingDeepLinkNoteId);
             }
             if (normalizedRoute && conversations.has(normalizedRoute)) {
-                selectConversation(normalizedRoute);
+                selectConversation(normalizedRoute, { skipHashUpdate: true });
                 return;
             }
             if (normalizedRoute && !conversations.has(normalizedRoute)) {
@@ -9526,7 +9701,7 @@ const __nrChatApp = (() => {
                 }
                 if (/^[a-zA-Z0-9_-]+$/.test(normalizedRoute) && normalizedRoute !== 'keys' && normalizedRoute !== 'settings') {
                     getOrCreateConversation('channel', normalizedRoute, []);
-                    selectConversation(normalizedRoute);
+                    selectConversation(normalizedRoute, { skipHashUpdate: true });
                 } else {
                     selectedConversationId = null;
                     document.body.classList.remove('chat-open');
@@ -11583,9 +11758,12 @@ const __nrChatApp = (() => {
             }
         }
 
-        function selectConversation(id) {
+        function selectConversation(id, options) {
+            const selectionOpts = options || {};
             selectedConversationId = id;
-            setHashRoute(getConversationRouteId(id));
+            if (!selectionOpts.skipHashUpdate) {
+                setHashRoute(getConversationRouteId(id));
+            }
             const keysEl = document.getElementById('keys-modal');
             const settingsEl = document.getElementById('settings-modal');
             if (keysEl) keysEl.classList.remove('active');
@@ -11819,6 +11997,7 @@ const __nrChatApp = (() => {
                 const isSelf = ev.pubkey === currentPublicKey;
                 const row = document.createElement('div');
                 row.className = 'message-row' + (isSelf ? ' self' : '');
+                if (ev.id) row.dataset.eventId = String(ev.id);
                 const wrap = document.createElement('div');
                 wrap.className = 'message-wrap ' + (isSelf ? 'self' : 'other');
                 if (isChannel && !isSelf) {
@@ -11871,8 +12050,9 @@ const __nrChatApp = (() => {
                 const timeStr = `${year}-${month}-${day} ${hour}:${minute}`;
                 const metaMain = document.createElement('span');
                 metaMain.className = 'message-meta-main';
-                const timeEl = document.createElement('span');
-                timeEl.className = 'time';
+                const timeEl = document.createElement('a');
+                timeEl.className = 'time message-time-link';
+                timeEl.href = buildMessageDeepLinkHref(conv.id, ev.id);
                 timeEl.textContent = timeStr;
                 const clientName = getFirstTagValue(ev.raw, 'client');
                 if (clientName) {
@@ -11905,6 +12085,27 @@ const __nrChatApp = (() => {
                     pill.textContent = ev.nip;
                     meta.appendChild(pill);
                 }
+                const actionRail = document.createElement('span');
+                actionRail.className = 'message-side-actions';
+                const copyBtn = document.createElement('button');
+                copyBtn.type = 'button';
+                copyBtn.className = 'message-delete';
+                copyBtn.title = 'Copy message text';
+                copyBtn.setAttribute('aria-label', 'Copy message text');
+                copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+                copyBtn.addEventListener('click', async () => {
+                    const ok = await copyTextToClipboard(ev.content || '');
+                    showStatus(ok ? 'Message copied.' : 'Failed to copy message.', ok ? 'success' : 'error');
+                });
+                const rawBtn = document.createElement('button');
+                rawBtn.type = 'button';
+                rawBtn.className = 'message-delete';
+                rawBtn.title = 'Show full Nostr note';
+                rawBtn.setAttribute('aria-label', 'Show full Nostr note');
+                rawBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15h6"/><path d="M9 11h2"/></svg>';
+                rawBtn.addEventListener('click', () => openRawNoteModal(ev.raw || ev));
+                actionRail.appendChild(copyBtn);
+                actionRail.appendChild(rawBtn);
                 div.appendChild(meta);
                 wrap.appendChild(div);
                 row.appendChild(wrap);
@@ -11916,11 +12117,13 @@ const __nrChatApp = (() => {
                     delBtn.setAttribute('aria-label', 'Delete message');
                     delBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>';
                     delBtn.onclick = (e) => { e.preventDefault(); openDeleteConfirmModal(ev.id); };
-                    row.appendChild(delBtn);
+                    actionRail.appendChild(delBtn);
                 }
+                row.appendChild(actionRail);
                 container.appendChild(row);
             });
             container.scrollTop = container.scrollHeight;
+            focusPendingDeepLinkedMessage(container);
         }
 
         function parseHashtagChannelSlug(raw) {
@@ -12330,6 +12533,8 @@ function bootEmbeddedChat() {
     window.openDeleteConfirmModal = openDeleteConfirmModal;
     window.closeDeleteConfirmModal = closeDeleteConfirmModal;
     window.confirmDeleteMessage = confirmDeleteMessage;
+    window.closeRawNoteModal = closeRawNoteModal;
+    window.copyRawNoteModalJson = copyRawNoteModalJson;
 
     document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape' && e.keyCode !== 27) return;
@@ -12341,6 +12546,7 @@ function bootEmbeddedChat() {
         else if (active.id === 'new-dm-modal') closeNewDmModal();
         else if (active.id === 'new-group-modal') closeNewGroupModal();
         else if (active.id === 'delete-confirm-modal') closeDeleteConfirmModal();
+        else if (active.id === 'raw-note-modal') closeRawNoteModal();
     }, true);
 
     return (async () => {
@@ -13038,6 +13244,65 @@ async function collectCircleDirectoryForSlugs(slugs) {
   });
 }
 
+function trustrootsCircleDirCacheKey(pubkeyHex, slugs) {
+  const p = String(pubkeyHex || '').trim().toLowerCase();
+  const s = (slugs || []).map((x) => normalizeTrustrootsCircleSlugKey(x)).filter(Boolean).sort().join(',');
+  if (!p || !s) return '';
+  return `${TRUSTROOTS_CIRCLE_DIR_CACHE_KEY_PREFIX}${p}:${s}`;
+}
+
+function serializeCircleMetaMap(map) {
+  const out = [];
+  for (const [slug, row] of map || []) {
+    if (!slug || !row || typeof row !== 'object') continue;
+    out.push({
+      slug: normalizeTrustrootsCircleSlugKey(slug),
+      name: String(row.name || '').trim(),
+      about: String(row.about || '').trim(),
+      picture: String(row.picture || '').trim(),
+      created_at: Number(row.created_at || 0) || 0,
+      eventId: String(row.eventId || '').trim(),
+    });
+  }
+  return out.filter((r) => r.slug);
+}
+
+function deserializeCircleMetaMap(value) {
+  const map = new Map();
+  if (!Array.isArray(value)) return map;
+  for (const row of value) {
+    const slug = normalizeTrustrootsCircleSlugKey(row?.slug);
+    if (!slug) continue;
+    map.set(slug, {
+      name: String(row?.name || '').trim(),
+      about: String(row?.about || '').trim(),
+      picture: String(row?.picture || '').trim(),
+      created_at: Number(row?.created_at || 0) || 0,
+      eventId: String(row?.eventId || '').trim(),
+    });
+  }
+  return map;
+}
+
+async function loadCachedCircleDirectoryMap(pubkeyHex, slugs) {
+  const key = trustrootsCircleDirCacheKey(pubkeyHex, slugs);
+  if (!key) return null;
+  const memoHit = normalizeTimedLookup(trustrootsCircleDirMemo.get(key), TRUSTROOTS_CIRCLE_DIR_CACHE_MAX_AGE_MS);
+  if (memoHit) return deserializeCircleMetaMap(memoHit.value);
+  const persisted = normalizeTimedLookup(await nrWebKvGet(key), TRUSTROOTS_CIRCLE_DIR_CACHE_MAX_AGE_MS);
+  if (!persisted) return null;
+  rememberMemoizedLookup(trustrootsCircleDirMemo, key, persisted);
+  return deserializeCircleMetaMap(persisted.value);
+}
+
+async function saveCachedCircleDirectoryMap(pubkeyHex, slugs, map) {
+  const key = trustrootsCircleDirCacheKey(pubkeyHex, slugs);
+  if (!key) return;
+  const row = { ts: Date.now(), value: serializeCircleMetaMap(map) };
+  rememberMemoizedLookup(trustrootsCircleDirMemo, key, row);
+  void nrWebKvPut(key, row).catch(() => {});
+}
+
 function pictureUrlFromTrustrootsUserApiJson(j) {
   if (!j || typeof j !== 'object') return '';
   const src = j.avatarSource;
@@ -13123,6 +13388,43 @@ function truncateBody(s, max) {
   const t = String(s || '').replace(/\s+/g, ' ').trim();
   if (t.length <= max) return t;
   return t.slice(0, max - 1) + '…';
+}
+
+function createCircleThumbPlaceholder(slug) {
+  const ph = document.createElement('div');
+  ph.className = 'nr-profile-tr-circ-thumb-ph';
+  ph.setAttribute('aria-hidden', 'true');
+  const glyph = document.createElement('span');
+  glyph.className = 'nr-profile-tr-circ-thumb-ph-glyph';
+  const initial = String(slug || '').trim().slice(0, 1).toUpperCase();
+  glyph.textContent = initial || '#';
+  ph.appendChild(glyph);
+  return ph;
+}
+
+function trustrootsCirclePictureFallbackForProfile(slug) {
+  const key = normalizeTrustrootsCircleSlugKey(slug);
+  if (!key) return '';
+  return `https://www.trustroots.org/uploads-circle/${encodeURIComponent(key)}/1400x900.webp`;
+}
+
+function renderCircleThumbNode(pic, slug) {
+  const safePic = sanitizePictureUrl(pic) || trustrootsCirclePictureFallbackForProfile(slug);
+  if (!safePic) return createCircleThumbPlaceholder(slug);
+  const img = document.createElement('img');
+  img.className = 'nr-profile-tr-circ-thumb';
+  img.alt = '';
+  img.src = safePic;
+  img.referrerPolicy = 'no-referrer';
+  img.addEventListener('error', () => {
+    const jpgFallback = String(safePic).replace(/\/1400x900\.webp(?:[?#].*)?$/i, '/742x496.jpg');
+    if (jpgFallback && jpgFallback !== img.src) {
+      img.src = jpgFallback;
+      return;
+    }
+    img.replaceWith(createCircleThumbPlaceholder(slug));
+  }, { once: true });
+  return img;
 }
 
 function inferHostingBadgeFromBody(body) {
@@ -14021,15 +14323,15 @@ function applyStagedProfileView(refs, viewState, ctx) {
   }
 
   refs.circListMount.replaceChildren();
-  const circlesReady = p90Ready && host303Ready;
+  const circlesReady = p90Ready || host303Ready;
   if (!circlesReady) {
     const p = document.createElement('p');
     p.className = 'nr-profile-tr-skeleton';
     p.textContent = 'Loading circles from Trustroots import (kind 30390 / 30398)…';
     refs.circListMount.appendChild(p);
   } else {
-    const slugs98 = extractCircleSlugsFromHostReposts30398(viewState.evHost30398 || [], hex);
-    const slugs90 = extractCircleSlugsFromProfileClaim30390(viewState.evP30390 || [], hex);
+    const slugs98 = host303Ready ? extractCircleSlugsFromHostReposts30398(viewState.evHost30398 || [], hex) : [];
+    const slugs90 = p90Ready ? extractCircleSlugsFromProfileClaim30390(viewState.evP30390 || [], hex) : [];
     const slugSet = new Set();
     for (const s of [...slugs90, ...slugs98]) {
       const k = normalizeTrustrootsCircleSlugKey(s);
@@ -14044,30 +14346,37 @@ function applyStagedProfileView(refs, viewState, ctx) {
     } else if (slugsKey !== ctx.circleDirSlugsKey) {
       ctx.circleDirSlugsKey = slugsKey;
       viewState.circleMetaBySlug = undefined;
+      const importPub = circleImportToolPubkeyHex();
+      void loadCachedCircleDirectoryMap(importPub, slugs)
+        .then((cachedMap) => {
+          if (!cachedMap || !cachedMap.size) return;
+          if (ctx.circleDirSlugsKey !== slugsKey) return;
+          viewState.circleMetaBySlug = cachedMap;
+          ctx.scheduleBump?.();
+        })
+        .catch(() => {});
       void collectCircleDirectoryForSlugs(slugs)
         .then((events) => {
           const map = new Map();
-          const pub = circleImportToolPubkeyHex();
+          const pub = importPub;
           for (const ev of events || []) {
             mergeCircleMetadataMapEntry(map, ev, { expectedPubkey: pub, kind: TRUSTROOTS_CIRCLE_META_KIND });
           }
           viewState.circleMetaBySlug = map;
+          void saveCachedCircleDirectoryMap(pub, slugs, map);
           ctx.scheduleBump?.();
         })
         .catch((e) => {
           console.warn('[nr-profile] circle directory (30410)', e);
-          viewState.circleMetaBySlug = new Map();
+          if (viewState.circleMetaBySlug === undefined) {
+            viewState.circleMetaBySlug = new Map();
+          }
           ctx.scheduleBump?.();
         });
     }
 
     const metaMap = viewState.circleMetaBySlug;
-    if (metaMap === undefined && slugs.length) {
-      const p = document.createElement('p');
-      p.className = 'nr-profile-tr-skeleton';
-      p.textContent = 'Loading circle directory (kind 30410)…';
-      refs.circListMount.appendChild(p);
-    } else if (!slugs.length) {
+    if (!slugs.length) {
       const p = document.createElement('p');
       p.className = 'nr-profile-muted';
       p.textContent =
@@ -14079,28 +14388,14 @@ function applyStagedProfileView(refs, viewState, ctx) {
         row.className = 'nr-profile-tr-circ-row';
         const m = metaMap && metaMap.get(slug);
         const name = (m && m.name) || slug;
-        const pic = m && m.picture ? sanitizePictureUrl(m.picture) : '';
-        if (pic) {
-          const img = document.createElement('img');
-          img.className = 'nr-profile-tr-circ-thumb';
-          img.alt = '';
-          img.src = pic;
-          img.referrerPolicy = 'no-referrer';
-          row.appendChild(img);
-        } else {
-          const ph = document.createElement('div');
-          ph.className = 'nr-profile-tr-circ-thumb-ph';
-          ph.setAttribute('aria-hidden', 'true');
-          ph.textContent = '◉';
-          row.appendChild(ph);
-        }
+        const pic = m && m.picture ? String(m.picture) : '';
+        row.appendChild(renderCircleThumbNode(pic, slug));
         const body = document.createElement('div');
         body.className = 'nr-profile-tr-circ-row-text';
         const a = document.createElement('a');
         a.className = 'nr-profile-tr-circ-name';
-        a.href = `https://www.trustroots.org/circles/${encodeURIComponent(slug)}`;
-        setExternalAnchorRel(a);
-        a.textContent = name;
+        a.href = hashRouteFromSegment(slug);
+        a.textContent = `#${name}`;
         body.appendChild(a);
         if (m && m.about) {
           const ab = document.createElement('p');

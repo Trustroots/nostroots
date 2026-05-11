@@ -1506,6 +1506,79 @@ function hashRouteFromSegment(segment) {
     return '#' + hashEncodeSegment(segment);
 }
 
+function formatNostrootsTitle(context) {
+    const c = String(context || '').trim();
+    return c ? `Nostroots ${c}` : 'Nostroots';
+}
+
+/* NR_TITLE_ROUTER_BEGIN */
+function resolveNostrootsTitleFromRouteClassification(classification) {
+    function fmt(context) {
+        const c2 = String(context || '').trim();
+        return c2 ? `Nostroots ${c2}` : 'Nostroots';
+    }
+    const c = classification || { kind: 'map_home' };
+    if (c.kind === 'map_home') return fmt('Map');
+    if (c.kind === 'map_pluscode') return fmt(c.plusCode || 'Map');
+    if (c.kind === 'modal') {
+        if (c.modal === 'keys') return fmt('Keys');
+        if (c.modal === 'settings') return fmt('Settings');
+    }
+    if (c.kind === 'reserved') {
+        if (c.token === 'map') return fmt('Map');
+        if (c.token === 'chat') return fmt('Chat');
+        if (c.token === 'welcome' || c.token === 'start') return fmt('Welcome');
+    }
+    if (c.kind === 'profile') return fmt(c.profileId || 'Profile');
+    if (c.kind === 'profile_edit') return fmt(c.profileId ? `${c.profileId} Edit` : 'Profile Edit');
+    if (c.kind === 'profile_contacts') return fmt(c.profileId ? `${c.profileId} Contacts` : 'Profile Contacts');
+    if (c.kind === 'profile_invalid' || c.kind === 'profile_self') return fmt('Profile');
+    if (c.kind === 'chat') return fmt('Chat');
+    return fmt('');
+}
+/* NR_TITLE_ROUTER_END */
+
+function applyDocumentTitle(context) {
+    if (typeof document === 'undefined') return;
+    document.title = formatNostrootsTitle(context);
+}
+
+function resolveChatTitleContextFromConversation(conv, id) {
+    if (!conv) return 'Chat';
+    const convId = String(id || conv.id || '');
+    if (conv.type === 'channel') {
+        return convId ? `#${convId}` : 'Chat';
+    }
+    if (conv.type === 'group') {
+        return `Group (${conv.members?.length || 0})`;
+    }
+    if (convId) {
+        const display = getDisplayNameShort(convId) || getDisplayName(convId) || hexToNpub(convId) || convId;
+        return display || 'Chat';
+    }
+    return 'Chat';
+}
+
+function applyDocumentTitleForUnifiedRoute(classification) {
+    const c = classification || { kind: 'map_home' };
+    if (c.kind !== 'chat') {
+        document.title = resolveNostrootsTitleFromRouteClassification(c);
+        return;
+    }
+    if (c.kind === 'chat') {
+        const route = String(c.chatRoute || '').trim();
+        if (!route) return applyDocumentTitle('Chat');
+        const resolvedId = typeof findConversationIdByRoute === 'function' ? findConversationIdByRoute(route) : '';
+        if (resolvedId && typeof conversations !== 'undefined' && conversations?.get) {
+            const conv = conversations.get(resolvedId);
+            return applyDocumentTitle(resolveChatTitleContextFromConversation(conv, resolvedId));
+        }
+        if (/^[a-zA-Z0-9_-]+$/.test(route)) return applyDocumentTitle(`#${route}`);
+        return applyDocumentTitle(route || 'Chat');
+    }
+    return applyDocumentTitle('');
+}
+
 /** Parse pubkey input (hex/npub), reject nsec private keys. */
 export function parsePubkeyInputNormalized(input) {
     const s = (input || '').trim();
@@ -1755,6 +1828,7 @@ async function applyUnifiedHash() {
         return;
     }
     const c = H.classify(route);
+    applyDocumentTitleForUnifiedRoute(c);
     const mapView = document.getElementById('map-view');
     const chatView = document.getElementById('nr-chat-view');
     const profileView = document.getElementById('nr-profile-view');
@@ -9640,6 +9714,7 @@ const __nrChatApp = (() => {
             if (keysEl) keysEl.classList.remove('active');
             if (settingsEl) settingsEl.classList.remove('active');
             if (!route) {
+                applyDocumentTitle('Chat');
                 if (o.emptyPicker) {
                     // Explicit #chat (index): show conversation list, not the previously open thread.
                     writePersistedSelectedChatId('');
@@ -11769,6 +11844,7 @@ const __nrChatApp = (() => {
             if (keysEl) keysEl.classList.remove('active');
             if (settingsEl) settingsEl.classList.remove('active');
             const conv = conversations.get(id);
+            applyDocumentTitle(resolveChatTitleContextFromConversation(conv, id));
             if (conv) {
                 writePersistedSelectedChatId(String(id));
             } else {
@@ -13427,122 +13503,110 @@ function renderCircleThumbNode(pic, slug) {
   return img;
 }
 
-function inferHostingBadgeFromBody(body) {
-  const low = String(body || '').toLowerCase();
-  let badgeText = 'Can host';
-  let badgeVariant = 'host';
-  if (/(can'?t host|cannot host|no hosting|not hosting|unable to host|no guests)/i.test(low)) {
-    badgeText = 'Cannot host';
-    badgeVariant = 'warn';
-  } else if (/(maybe|depends|sometimes|if it works out|might host|ask first|limited)/i.test(low)) {
-    badgeText = 'Maybe host';
-    badgeVariant = 'warn';
+function mapNoteDisplayTimestamp(event) {
+  const tags = Array.isArray(event?.tags) ? event.tags : [];
+  const originalCreatedAtTag = tags.find((tag) => Array.isArray(tag) && tag[0] === 'original_created_at' && tag[1]);
+  if (originalCreatedAtTag) {
+    const original = Number.parseInt(originalCreatedAtTag[1], 10);
+    if (Number.isFinite(original) && original > 0) return original;
   }
-  return { badgeText, badgeVariant };
-}
-
-/** Kind 30397/30398 with Trustroots circle tribe tag (hosting-style map note). */
-function eventHasTrustrootsCircleTag(ev) {
-  const tags = Array.isArray(ev?.tags) ? ev.tags : [];
-  return tags.some((t) => Array.isArray(t) && t[0] === 'l' && t[2] === TRUSTROOTS_CIRCLE_LABEL);
-}
-
-function eventContentHasHostingChannelHashtag(ev) {
-  const c = String(ev?.content || '').toLowerCase();
-  return /#hostingoffers?\b/i.test(c) || /#hostingoffer\b/i.test(c);
+  return Number(event?.created_at || 0) || 0;
 }
 
 /**
- * Latest Trustroots-import mirror (kind 30398) for this profile — same payload as claimable hosting in Keys.
- * @param {unknown[]} hostMirrorEvents from collect: import-tool author + `#p` subject
- */
-function pickLatestHostMirrorOffer(hostMirrorEvents) {
-  const list = [...(hostMirrorEvents || [])].sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
-  for (const ev of list) {
-    if (String(ev?.content || '').trim()) return ev;
-  }
-  return list[0] || null;
-}
-
-/**
- * Author's own kind 30397 that looks like a hosting offer (circle tag or #hostingoffers), newest first.
+ * Pick the newest map note that has a known intent.
  * @param {unknown[]} notesSorted
+ * @param {unknown[]} hostMirrorEvents
  * @param {string} subjectHex
+ * @returns {{ event: unknown; intent: { id: string; label: string; hint: string } } | null}
  */
-function pickLatestHostLikeMapNote(notesSorted, subjectHex) {
+function pickLatestIntentMapNote(notesSorted, hostMirrorEvents, subjectHex) {
   const h = String(subjectHex || '').toLowerCase();
-  const list = Array.isArray(notesSorted) ? notesSorted : [];
+  const ownNotes = Array.isArray(notesSorted) ? notesSorted : [];
+  const mirrorNotes = Array.isArray(hostMirrorEvents) ? hostMirrorEvents : [];
+  const combined = [...ownNotes, ...mirrorNotes]
+    .filter((ev) => ev && MAP_NOTE_KINDS.includes(ev.kind))
+    .filter((ev) => {
+      if (ev.kind === MAP_NOTE_KIND) return String(ev.pubkey || '').toLowerCase() === h;
+      if (ev.kind === MAP_NOTE_REPOST_KIND) {
+        const tags = Array.isArray(ev.tags) ? ev.tags : [];
+        const pTag = tags.find((t) => Array.isArray(t) && t[0] === 'p' && t[1]);
+        return String(pTag?.[1] || '').toLowerCase() === h;
+      }
+      return false;
+    })
+    .sort((a, b) => mapNoteDisplayTimestamp(b) - mapNoteDisplayTimestamp(a));
+
+  const list = combined;
   for (const ev of list) {
-    if (!ev || ev.kind !== MAP_NOTE_KIND) continue;
-    if (String(ev.pubkey || '').toLowerCase() !== h) continue;
-    if (eventHasTrustrootsCircleTag(ev) || eventContentHasHostingChannelHashtag(ev)) return ev;
+    const intentId = detectNoteIntent(ev);
+    const intent = intentId ? getIntentById(intentId) : null;
+    if (intent) return { event: ev, intent };
   }
   return null;
 }
 
 /**
- * Accommodation card: prefer mirrored Trustroots host offer (30398 import), else circle / hosting-tagged 30397.
- * @param {unknown[]} hostMirrorEvents
+ * Host & Meet card: show newest intent note with date.
  * @param {unknown[]} notesSorted
+ * @param {unknown[]} hostMirrorEvents
  * @param {number} validatedCount
  * @param {string} subjectHex
  * @param {boolean} notesReady
  * @param {boolean} host303Ready
  */
-function accommodationSnapshot(hostMirrorEvents, notesSorted, validatedCount, subjectHex, notesReady, host303Ready) {
-  const mirrorEv = pickLatestHostMirrorOffer(hostMirrorEvents);
-  const mirrorBody = mirrorEv ? String(mirrorEv.content || '').trim() : '';
-  if (mirrorBody) {
-    const { badgeText, badgeVariant } = inferHostingBadgeFromBody(mirrorBody);
-    return {
-      title: 'Accommodation',
-      badgeText,
-      badgeVariant,
-      summary: truncateBody(mirrorBody, 1200),
-      source: '',
-    };
-  }
-
+function hostMeetSnapshot(notesSorted, hostMirrorEvents, validatedCount, subjectHex, notesReady, host303Ready) {
   if (notesReady) {
-    const hostLike = pickLatestHostLikeMapNote(notesSorted, subjectHex);
-    const pubBody = hostLike ? String(hostLike.content || '').trim() : '';
-    if (pubBody) {
-      const validated = hostLike ? isMapNoteTrustrootsValidated(hostLike, subjectHex) : false;
-      const inferred = inferHostingBadgeFromBody(pubBody);
+    const picked = pickLatestIntentMapNote(notesSorted, hostMirrorEvents, subjectHex);
+    if (picked) {
+      const { event, intent } = picked;
+      const validated = event?.kind === MAP_NOTE_REPOST_KIND
+        ? true
+        : isMapNoteTrustrootsValidated(event, subjectHex);
+      const visibleContent = stripLeadingIntentHashtag(String(event.content || ''), intent.id).trim();
+      const stamp = mapNoteDisplayTimestamp(event);
       return {
-        title: 'Accommodation',
-        badgeText: validated ? inferred.badgeText : 'Cannot host currently',
-        badgeVariant: validated ? inferred.badgeVariant : 'warn',
-        summary: truncateBody(pubBody, 1200),
-        source: validated || validatedCount > 0 ? '' : 'Publish this offer on the Trustroots auth relay to verify it.',
+        title: 'Host & Meet',
+        badgeText: intent.label,
+        badgeVariant: validated ? 'host' : 'warn',
+        summary: truncateBody(visibleContent || String(event.content || '').trim(), 1200),
+        dateText: stamp > 0 ? formatDate(stamp) : '',
+        plusCode: getPlusCodeFromEvent(event),
+        source: validated || validatedCount > 0 ? '' : 'Publish on the Trustroots auth relay to verify this note.',
       };
     }
   }
 
   if (!notesReady && host303Ready) {
     return {
-      title: 'Accommodation',
+      title: 'Host & Meet',
       badgeText: '…',
       badgeVariant: 'muted',
       summary: 'Loading public map notes…',
+      dateText: '',
+      plusCode: '',
       source: '',
     };
   }
   if (notesReady && !host303Ready) {
     return {
-      title: 'Accommodation',
+      title: 'Host & Meet',
       badgeText: '…',
       badgeVariant: 'muted',
-      summary: 'Loading Trustroots hosting mirror…',
+      summary: 'Loading Trustroots mirrored notes…',
+      dateText: '',
+      plusCode: '',
       source: '',
     };
   }
 
   return {
-    title: 'Accommodation',
-    badgeText: 'No hosting yet',
+    title: 'Host & Meet',
+    badgeText: 'No intent yet',
     badgeVariant: 'muted',
-    summary: 'No mirrored hosting offer or circle-tagged host note found on your relays yet.',
+    summary: 'No map note intent found on your relays yet.',
+    dateText: '',
+    plusCode: '',
     source: '',
   };
 }
@@ -13942,7 +14006,7 @@ function createStagedProfileShell(root, ctx) {
   const hsk = document.createElement('p');
   hsk.className = 'nr-profile-tr-skeleton';
   hsk.style.textAlign = 'center';
-  hsk.textContent = 'Loading accommodation summary…';
+  hsk.textContent = 'Loading Host & Meet summary…';
   hostMount.appendChild(hsk);
   hostCard.appendChild(hostMount);
   rail.appendChild(hostCard);
@@ -14252,12 +14316,12 @@ function applyStagedProfileView(refs, viewState, ctx) {
     const p = document.createElement('p');
     p.className = 'nr-profile-tr-skeleton';
     p.style.textAlign = 'center';
-    p.textContent = 'Loading accommodation summary…';
+    p.textContent = 'Loading Host & Meet summary…';
     refs.hostMount.appendChild(p);
   } else {
-    const accommodation = accommodationSnapshot(
-      viewState.evHost30398 || [],
+    const hostMeet = hostMeetSnapshot(
       notesSorted,
+      viewState.evHost30398 || [],
       validatedMapNoteCount,
       hex,
       notesReady,
@@ -14267,11 +14331,11 @@ function applyStagedProfileView(refs, viewState, ctx) {
     hostHead.className = 'nr-profile-tr-rail-head';
     const hostTitle = document.createElement('h3');
     hostTitle.className = 'nr-profile-tr-rail-title';
-    hostTitle.textContent = accommodation.title;
+    hostTitle.textContent = hostMeet.title;
     const hostBadge = document.createElement('span');
     hostBadge.className = 'nr-profile-tr-badge';
-    hostBadge.classList.add(`nr-profile-tr-badge--${accommodation.badgeVariant}`);
-    hostBadge.textContent = accommodation.badgeText;
+    hostBadge.classList.add(`nr-profile-tr-badge--${hostMeet.badgeVariant}`);
+    hostBadge.textContent = hostMeet.badgeText;
     hostHead.appendChild(hostTitle);
     hostHead.appendChild(hostBadge);
     refs.hostMount.appendChild(hostHead);
@@ -14279,16 +14343,34 @@ function applyStagedProfileView(refs, viewState, ctx) {
     hostBody.className = 'nr-profile-tr-rail-body nr-profile-tr-rail-body--accommodation';
     const hostP = document.createElement('p');
     hostP.className = 'nr-profile-tr-accommodation-text';
-    if (/^Loading\b/i.test(accommodation.summary || '')) hostP.classList.add('nr-profile-tr-skeleton');
+    if (/^Loading\b/i.test(hostMeet.summary || '')) hostP.classList.add('nr-profile-tr-skeleton');
     hostP.style.margin = '0';
     hostP.style.whiteSpace = 'pre-wrap';
-    hostP.textContent = accommodation.summary || '';
+    hostP.textContent = hostMeet.summary || '';
     hostBody.appendChild(hostP);
-    if (accommodation.source) {
+    if (hostMeet.plusCode) {
+      const hostPlus = document.createElement('p');
+      hostPlus.className = 'nr-profile-muted';
+      hostPlus.style.margin = '0.45rem 0 0';
+      const a = document.createElement('a');
+      a.className = 'nr-content-link';
+      a.href = hashRouteFromSegment(hostMeet.plusCode);
+      a.textContent = hostMeet.plusCode;
+      hostPlus.appendChild(a);
+      hostBody.appendChild(hostPlus);
+    }
+    if (hostMeet.dateText) {
+      const hostDate = document.createElement('p');
+      hostDate.className = 'nr-profile-muted';
+      hostDate.style.margin = '0.3rem 0 0';
+      hostDate.textContent = hostMeet.dateText;
+      hostBody.appendChild(hostDate);
+    }
+    if (hostMeet.source) {
       const hostMeta = document.createElement('p');
       hostMeta.className = 'nr-profile-muted';
       hostMeta.style.margin = '0.45rem 0 0';
-      hostMeta.textContent = accommodation.source;
+      hostMeta.textContent = hostMeet.source;
       hostBody.appendChild(hostMeta);
     }
     refs.hostMount.appendChild(hostBody);
@@ -14638,17 +14720,21 @@ async function renderPublicProfile(profileId) {
         bump();
       })
     );
-    fetchTasks.push(
-      Promise.all([
-        collectFromRelays({ kinds: MAP_NOTE_KINDS, authors: [hex], limit: 40 }),
+    fetchTasks.push((async () => {
+      const [byUnauth, byAuth, cached] = await Promise.all([
+        trackUnauth('30397/30398 authors=hex [unauth]', { kinds: MAP_NOTE_KINDS, authors: [hex], limit: 40 }),
+        trackAuth('30397/30398 authors=hex [auth]', { kinds: MAP_NOTE_KINDS, authors: [hex], limit: 120 }),
         cachedProfilePromise,
-      ]).then(([x, cached]) => {
-        if (!isProfileRenderCurrent(renderToken)) return;
-        const normalized = normalizeCachedProfileEvents(cached);
-        viewState.evNotes = dedupeById([...(x || []), ...normalized.evNotes]);
-        bump();
-      })
-    );
+      ]);
+      if (!isProfileRenderCurrent(renderToken)) return;
+      const normalized = normalizeCachedProfileEvents(cached);
+      viewState.evNotes = dedupeById([
+        ...(byUnauth || []),
+        ...(byAuth || []),
+        ...normalized.evNotes,
+      ]);
+      bump();
+    })());
     const importPub = circleImportToolPubkeyHex();
     const importHex =
       importPub && String(importPub).trim().length === 64 && /^[0-9a-fA-F]+$/.test(String(importPub).trim())
@@ -14658,22 +14744,31 @@ async function renderPublicProfile(profileId) {
       viewState.evHost30398 = [];
       bump();
     } else {
-      fetchTasks.push(
-        Promise.all([
-          collectFromRelays({
+      fetchTasks.push((async () => {
+        const [byUnauth, byAuth, cached] = await Promise.all([
+          trackUnauth('30398 host-mirror import #p [unauth]', {
             kinds: [MAP_NOTE_REPOST_KIND],
             authors: [importHex],
             '#p': [hex],
             limit: 100,
           }),
+          trackAuth('30398 host-mirror import #p [auth]', {
+            kinds: [MAP_NOTE_REPOST_KIND],
+            authors: [importHex],
+            '#p': [hex],
+            limit: 160,
+          }),
           cachedProfilePromise,
-        ]).then(([x, cached]) => {
-          if (!isProfileRenderCurrent(renderToken)) return;
-          const normalized = normalizeCachedProfileEvents(cached);
-          viewState.evHost30398 = dedupeById([...(x || []), ...normalized.evHost30398]);
-          bump();
-        })
-      );
+        ]);
+        if (!isProfileRenderCurrent(renderToken)) return;
+        const normalized = normalizeCachedProfileEvents(cached);
+        viewState.evHost30398 = dedupeById([
+          ...(byUnauth || []),
+          ...(byAuth || []),
+          ...normalized.evHost30398,
+        ]);
+        bump();
+      })());
     }
 
     void Promise.allSettled(fetchTasks).then(() => {

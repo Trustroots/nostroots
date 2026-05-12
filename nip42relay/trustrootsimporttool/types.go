@@ -86,12 +86,14 @@ type User struct {
 	AvatarUploaded   bool         `bson:"avatarUploaded"`
 	EmailHash        string       `bson:"emailHash"`
 	Updated          time.Time    `bson:"updated"`
+	CreatedAt        time.Time    `bson:"createdAt"`
 	NostrNpub        string       `bson:"nostrNpub"`
 	Public           bool         `bson:"public"`
 	EmailConfirmed   *bool        `bson:"emailConfirmed"`
 	EmailUnconfirmed bool         `bson:"emailunconfirmed"`
 	Roles            []string     `bson:"roles"`
 	Member           []Membership `bson:"member"`
+	Raw              bson.M       `bson:",inline"`
 }
 
 type Membership struct {

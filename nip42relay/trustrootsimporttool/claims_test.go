@@ -36,7 +36,7 @@ func TestEventForProfileClaim(t *testing.T) {
 	if tag := event.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
 		t.Fatalf("missing claimable tag: %#v", event.Tags)
 	}
-	var meta map[string]string
+	var meta map[string]any
 	if err := json.Unmarshal([]byte(event.Content), &meta); err != nil {
 		t.Fatal(err)
 	}
@@ -108,7 +108,7 @@ func TestEventForProfileClaim_usesTrustrootsLocalUploadPicture(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var meta map[string]string
+	var meta map[string]any
 	if err := json.Unmarshal([]byte(event.Content), &meta); err != nil {
 		t.Fatal(err)
 	}
@@ -121,6 +121,59 @@ func TestEventForProfileClaim_usesTrustrootsLocalUploadPicture(t *testing.T) {
 	}
 	if tag := event.Tags.GetFirst([]string{"l", "nostroots", TrustrootsUsernameLabelNamespace}); tag == nil {
 		t.Fatalf("missing username label tag: %#v", event.Tags)
+	}
+}
+
+func TestEventForProfileClaim_includesStructuredProfileFields(t *testing.T) {
+	user := User{
+		ID:          primitive.NewObjectID(),
+		Username:    "nostroots",
+		DisplayName: "Nostroots",
+		Description: "Hi",
+		NostrNpub:   "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+		CreatedAt:   time.Date(2020, 5, 21, 10, 11, 12, 0, time.UTC),
+		Raw: map[string]any{
+			"sex":             "male",
+			"birthday":        "1974-03-11",
+			"locationCurrent": map[string]any{"city": "Pisa", "country": "Italy"},
+			"locationFrom":    "Pisa, Italy",
+			"spokenLanguages": []any{"English", "Esperanto", "Italian", "Spanish"},
+		},
+	}
+	event, err := eventForProfileClaim(user, nil, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var meta map[string]any
+	if err := json.Unmarshal([]byte(event.Content), &meta); err != nil {
+		t.Fatal(err)
+	}
+	if meta["gender"] != "male" {
+		t.Fatalf("gender = %#v", meta["gender"])
+	}
+	if meta["birthDate"] != "1974-03-11" {
+		t.Fatalf("birthDate = %#v", meta["birthDate"])
+	}
+	if gotMemberSince, ok := meta["memberSince"].(float64); !ok || int64(gotMemberSince) != user.CreatedAt.Unix() {
+		t.Fatalf("memberSince = %#v want %d", meta["memberSince"], user.CreatedAt.Unix())
+	}
+	livesIn, ok := meta["livesIn"].(map[string]any)
+	if !ok {
+		t.Fatalf("livesIn missing or wrong type: %#v", meta["livesIn"])
+	}
+	if livesIn["display"] != "Pisa, Italy" || livesIn["city"] != "Pisa" || livesIn["country"] != "Italy" {
+		t.Fatalf("livesIn = %#v", livesIn)
+	}
+	from, ok := meta["from"].(map[string]any)
+	if !ok {
+		t.Fatalf("from missing or wrong type: %#v", meta["from"])
+	}
+	if from["display"] != "Pisa, Italy" {
+		t.Fatalf("from = %#v", from)
+	}
+	langs, ok := meta["languages"].([]any)
+	if !ok || len(langs) != 4 {
+		t.Fatalf("languages = %#v", meta["languages"])
 	}
 }
 

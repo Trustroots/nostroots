@@ -35,7 +35,7 @@ func profileClaimPictureURL(u User) string {
 func eventForProfileClaim(user User, circles []string, privateKey string) (nostr.Event, error) {
 	pubkeyHex, _ := decodeNpubToHex(user.NostrNpub)
 	profileURL := "https://www.trustroots.org/profile/" + user.Username
-	metadata := map[string]string{
+	metadata := map[string]any{
 		"name":               user.Username,
 		"display_name":       strings.TrimSpace(user.DisplayName),
 		"about":              strings.TrimSpace(user.Description),
@@ -43,6 +43,7 @@ func eventForProfileClaim(user User, circles []string, privateKey string) (nostr
 		"nip05":              strings.ToLower(strings.TrimSpace(user.Username)) + "@trustroots.org",
 		"trustrootsUsername": strings.TrimSpace(user.Username),
 	}
+	appendProfileClaimFields(metadata, user)
 	contentBytes, err := json.Marshal(metadata)
 	if err != nil {
 		return nostr.Event{}, err

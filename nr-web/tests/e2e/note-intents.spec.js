@@ -4,7 +4,7 @@ import { test, expect } from './fixtures.js';
  * Validates the map-note intent UX:
  *   - chips render in the Host & Meet area page composer
  *   - clicking a chip toggles aria-checked
- *   - the "Host & meet" header shortcut pre-selects #hosting
+ *   - the "Host & meet" header shortcut pre-selects #wanttomeet
  *   - rendered notes carrying a t/intent tag get a badge
  * No relays are contacted; we drive the in-page helpers directly.
  */
@@ -32,7 +32,8 @@ test.describe('Map note intent chips', () => {
 
         const chips = page.locator('#note-intent-chips .note-intent-chip');
         await expect(chips).toHaveCount(6);
-        await expect(chips.first()).toHaveAttribute('aria-checked', 'false');
+        await expect(chips.first()).toHaveAttribute('data-intent', 'wanttomeet');
+        await expect(chips.first()).toHaveAttribute('aria-checked', 'true');
 
         await page.locator('.note-intent-chip[data-intent="wanttomeet"]').click();
         await expect(
@@ -49,7 +50,7 @@ test.describe('Map note intent chips', () => {
         ).toHaveAttribute('aria-checked', 'false');
     });
 
-    test('Host & meet shortcut pre-selects #hosting', async ({ page }) => {
+    test('Host & meet shortcut pre-selects #wanttomeet', async ({ page }) => {
         await page.goto('/');
         await page.waitForLoadState('networkidle');
 
@@ -57,7 +58,7 @@ test.describe('Map note intent chips', () => {
         await expect(page.locator('body.nr-surface-host')).toBeVisible();
         await expect(page.locator('#nr-host-view')).toBeVisible();
         await expect(
-            page.locator('.note-intent-chip[data-intent="hosting"]'),
+            page.locator('.note-intent-chip[data-intent="wanttomeet"]'),
         ).toHaveAttribute('aria-checked', 'true');
     });
 

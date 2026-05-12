@@ -6,10 +6,17 @@ import {
     isSafeHttpUrl,
     mergeCircleMetadataMapEntry,
     normalizeTrustrootsCircleSlugKey,
+    normalizeLegacyTrustrootsCircleAlias,
+    trustrootsCircleWebSlugOverride,
     trustrootsCircleSlugFromPictureUrl,
     resolveTrustrootsCircleWebSlug,
     trustrootsCirclePageUrlFromMeta,
-    trustrootsCirclePictureFallbackUrlFromMeta
+    trustrootsCirclePictureFallbackUrlFromMeta,
+    extractCircleSlugsFromProfileClaim30390Event,
+    parseCircleMemberProfileClaim30390,
+    parseCircleMemberMapNoteClaimEvent,
+    filterCircleMembersForDisplay,
+    sortCircleMembersForDisplay
 } from '../../index.js';
 
 describe('circle-metadata', () => {
@@ -141,7 +148,14 @@ describe('circle-metadata', () => {
             { picture: '', slug: '' },
             'rainbowgathering'
         );
-        expect(fromFallback).toBe('rainbowgathering');
+        expect(fromFallback).toBe('rainbow-gathering');
+    });
+
+    it('uses canonical Trustroots web-slug overrides for dashless keys', () => {
+        expect(trustrootsCircleWebSlugOverride('rainbowgathering')).toBe('rainbow-gathering');
+        expect(trustrootsCircleWebSlugOverride('beerbrewers')).toBe('beer-brewers');
+        expect(trustrootsCircleWebSlugOverride('zerowasters')).toBe('zero-wasters');
+        expect(trustrootsCircleWebSlugOverride('volunteers')).toBe('');
     });
 
     it('builds trustroots circle page URL from hyphen-preserving slug', () => {
@@ -158,5 +172,160 @@ describe('circle-metadata', () => {
             'rainbowgathering'
         );
         expect(url).toBe('https://www.trustroots.org/uploads-circle/rainbow-gathering/1400x900.webp');
+    });
+
+    it('normalizes legacy trustroots-prefixed circle alias', () => {
+        const known = new Set(['volunteers', 'rainbowgathering']);
+        const isKnown = (candidate) => known.has(candidate);
+        expect(normalizeLegacyTrustrootsCircleAlias('trustrootsvolunteers', isKnown)).toBe('volunteers');
+        expect(normalizeLegacyTrustrootsCircleAlias('trustroots-rainbow-gathering', isKnown)).toBe('rainbowgathering');
+    });
+
+    it('keeps unknown trustroots-prefixed hashtags unchanged', () => {
+        const known = new Set(['volunteers']);
+        const isKnown = (candidate) => known.has(candidate);
+        expect(normalizeLegacyTrustrootsCircleAlias('trustrootssomethingelse', isKnown)).toBe('trustrootssomethingelse');
+    });
+
+    it('parses circle members from imported profile claims', () => {
+        const memberPk = 'b'.repeat(64);
+        const ev = {
+            id: 'profile1',
+            kind: 30390,
+            pubkey: importPk,
+            created_at: 20,
+            tags: [
+                ['p', memberPk],
+                ['l', 'rainbow-gathering', 'trustroots-circle'],
+                ['l', 'alice', 'org.trustroots:username']
+            ],
+            content: JSON.stringify({
+                display_name: 'Alice Traveller',
+                trustrootsUsername: 'Alice',
+                nip05: 'alice@trustroots.org',
+                picture: 'https://example.com/alice.jpg'
+            })
+        };
+
+        expect(extractCircleSlugsFromProfileClaim30390Event(ev)).toEqual(['rainbowgathering']);
+        const member = parseCircleMemberProfileClaim30390(ev, 'rainbowgathering', { expectedPubkey: importPk });
+        expect(member.pubkey).toBe(memberPk);
+        expect(member.trustrootsUsername).toBe('alice');
+        expect(member.nip05).toBe('alice@trustroots.org');
+        expect(member.picture).toBe('https://example.com/alice.jpg');
+        expect(member.profileId).toBe('alice@trustroots.org');
+    });
+
+    it('ignores profile claims that cannot define a circle member', () => {
+        const base = {
+            id: 'profile2',
+            kind: 30390,
+            pubkey: importPk,
+            created_at: 20,
+            tags: [['p', 'c'.repeat(64)], ['l', 'hitchhikers', 'trustroots-circle']],
+            content: JSON.stringify({ trustrootsUsername: 'bob' })
+        };
+        expect(parseCircleMemberProfileClaim30390(base, 'hitchhikers', { expectedPubkey: 'd'.repeat(64) })).toBe(null);
+        expect(parseCircleMemberProfileClaim30390({ ...base, tags: [['l', 'hitchhikers', 'trustroots-circle']] }, 'hitchhikers', { expectedPubkey: importPk })).toBe(null);
+        expect(parseCircleMemberProfileClaim30390({ ...base, tags: [['p', 'nothex'], ['l', 'hitchhikers', 'trustroots-circle']] }, 'hitchhikers', { expectedPubkey: importPk })).toBe(null);
+        expect(parseCircleMemberProfileClaim30390(base, 'climbers', { expectedPubkey: importPk })).toBe(null);
+    });
+
+    it('accepts profile claims from any allowed expected pubkey', () => {
+        const memberPk = 'c'.repeat(64);
+        const validationPk = 'd'.repeat(64);
+        const ev = {
+            id: 'profile3',
+            kind: 30390,
+            pubkey: validationPk,
+            created_at: 30,
+            tags: [['p', memberPk], ['l', 'hackers', 'trustroots-circle']],
+            content: JSON.stringify({ trustrootsUsername: 'carol' })
+        };
+        const member = parseCircleMemberProfileClaim30390(ev, 'hackers', {
+            expectedPubkeys: [importPk, validationPk]
+        });
+        expect(member?.pubkey).toBe(memberPk);
+        expect(member?.trustrootsUsername).toBe('carol');
+    });
+
+    it('parses circle members from claimable host mirrors authored by a trusted pubkey', () => {
+        const memberPk = 'e'.repeat(64);
+        const validationPk = 'f'.repeat(64);
+        const ev = {
+            id: 'host1',
+            kind: 30398,
+            pubkey: validationPk,
+            created_at: 40,
+            tags: [
+                ['p', memberPk],
+                ['claimable', 'true'],
+                ['l', 'hackers', 'trustroots-circle'],
+                ['trustroots', 'dana'],
+                ['linkPath', '/profile/dana'],
+                ['t', 'hackers']
+            ],
+            content: 'Hosting mirror'
+        };
+        const member = parseCircleMemberMapNoteClaimEvent(ev, 'hackers', {
+            expectedPubkeys: [importPk, validationPk]
+        });
+        expect(member?.pubkey).toBe(memberPk);
+        expect(member?.trustrootsUsername).toBe('dana');
+        expect(member?.profileId).toBe('dana@trustroots.org');
+    });
+
+    it('parses trusted claimable host mirrors when the channel slug is provided by context', () => {
+        const memberPk = '1'.repeat(64);
+        const validationPk = '2'.repeat(64);
+        const ev = {
+            id: 'host2',
+            kind: 30398,
+            pubkey: validationPk,
+            created_at: 41,
+            tags: [
+                ['p', memberPk],
+                ['claimable', 'true'],
+                ['trustroots', 'erin'],
+                ['t', 'hackers']
+            ],
+            content: 'Host mirror tagged as a channel'
+        };
+        const member = parseCircleMemberMapNoteClaimEvent(ev, 'hackers', {
+            expectedPubkeys: [validationPk],
+            acceptedSlugs: ['hackers']
+        });
+        expect(member?.pubkey).toBe(memberPk);
+        expect(member?.trustrootsUsername).toBe('erin');
+    });
+
+    it('parses trusted direct channel notes as author members when scoped to the channel', () => {
+        const validationPk = 'f5bc71692fc08ea52c0d1c8bcfb87579584106b5feb4ea542b1b8a95612f257b';
+        const ev = {
+            id: 'note1',
+            kind: 30397,
+            pubkey: validationPk,
+            created_at: 42,
+            tags: [['t', 'hackers']],
+            content: 'another hackathon soon-ish #hackers'
+        };
+        const member = parseCircleMemberMapNoteClaimEvent(ev, 'hackers', {
+            expectedPubkeys: [validationPk],
+            acceptedSlugs: ['hackers']
+        });
+        expect(member?.pubkey).toBe(validationPk);
+        expect(member?.trustrootsUsername).toBe('nostroots');
+        expect(member?.profileId).toBe('nostroots@trustroots.org');
+    });
+
+    it('sorts and filters circle members for display', () => {
+        const members = [
+            { pubkey: 'b'.repeat(64), displayName: 'Beta', trustrootsUsername: 'beta', nip05: 'beta@trustroots.org', npub: 'npub-beta', created_at: 1 },
+            { pubkey: 'a'.repeat(64), displayName: 'Alice', trustrootsUsername: 'alice', nip05: 'alice@trustroots.org', npub: 'npub-alice', created_at: 1 },
+            { pubkey: 'b'.repeat(64), displayName: 'Beta New', trustrootsUsername: 'beta', nip05: 'beta@trustroots.org', npub: 'npub-beta', created_at: 2 }
+        ];
+        expect(sortCircleMembersForDisplay(members).map((m) => m.displayName)).toEqual(['Alice', 'Beta New']);
+        expect(filterCircleMembersForDisplay(members, 'beta').map((m) => m.pubkey)).toEqual(['b'.repeat(64)]);
+        expect(filterCircleMembersForDisplay(members, 'npub-alice').map((m) => m.pubkey)).toEqual(['a'.repeat(64)]);
     });
 });

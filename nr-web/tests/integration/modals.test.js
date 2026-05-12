@@ -107,16 +107,16 @@ describe('Modal Behavior', () => {
     it('keys modal includes guidance about nsec and password manager', () => {
       const keysModal = document.getElementById('keys-modal');
       const text = keysModal?.textContent || '';
-      expect(text).toContain('new applications');
-      expect(text).toContain('rebuild Trustroots');
-      expect(text).toContain('Nostr private key');
-      expect(text).toContain('public id');
-      expect(text).toContain('Nostroots mobile app');
+      expect(text).toContain('open protocols');
+      expect(text).toContain('rebuilds Trustroots');
+      expect(text).toContain('secret key (nsec)');
+      expect(text).toContain('public address');
+      expect(text).toContain('never stored on our server');
       expect(text).toContain('Bitwarden');
-      expect(text).toContain('Export your nsec');
+      expect(text).toContain('Back up your secret key');
       expect(text).toContain('Update Trustroots Profile');
-      expect(text).toContain('Enter your Trustroots username and verify it');
-      expect(text).toContain('links your Trustroots identity');
+      expect(text).toContain('Enter your Trustroots username to confirm this account is yours.');
+      expect(text).toContain('links your Trustroots account');
     });
 
     it('settings modal has relays section and GitHub link from fragment', () => {

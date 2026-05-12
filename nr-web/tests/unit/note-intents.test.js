@@ -14,9 +14,9 @@ describe('note-intents', () => {
     it('exposes the locked-in vocabulary', () => {
         const ids = MAP_NOTE_INTENTS.map((i) => i.id);
         expect(ids).toEqual([
+            'wanttomeet',
             'hosting',
             'lookingforhost',
-            'wanttomeet',
             'localtips',
             'ride',
             'event',

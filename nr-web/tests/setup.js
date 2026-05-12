@@ -1,5 +1,5 @@
 import { readFileSync } from 'fs';
-import { JSDOM } from 'jsdom';
+import { JSDOM, VirtualConsole } from 'jsdom';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
@@ -41,6 +41,21 @@ console.error = (...args) => {
   originalError.apply(console, args);
 };
 
+const isKnownJSDOMResourceNoise = (message) => (
+  message.includes('Could not load link: "https://fonts.googleapis.com/') ||
+  message.includes('Could not load link: "https://unpkg.com/') ||
+  message.includes('Could not load script: "https://unpkg.com/') ||
+  message.includes('Could not load script: "https://1p.trustroots.org/script.js"')
+);
+
+const virtualConsole = new VirtualConsole();
+virtualConsole.sendTo(console, { omitJSDOMErrors: true });
+virtualConsole.on('jsdomError', (error) => {
+  const message = String(error?.message || error);
+  if (isKnownJSDOMResourceNoise(message)) return;
+  originalError(error);
+});
+
 // Create JSDOM instance
 // Note: Module scripts with CDN imports will fail, but that's expected
 // Non-module scripts will execute and functions will be available on window
@@ -49,9 +64,13 @@ const dom = new JSDOM(html, {
   runScripts: 'dangerously',
   resources: 'usable',
   pretendToBeVisual: true,
+  virtualConsole,
   beforeParse(window) {
     // Inject mocks into window before scripts run
     window.maplibregl = global.maplibregl;
+    if (window.HTMLCanvasElement) {
+      window.HTMLCanvasElement.prototype.getContext = () => null;
+    }
   },
 });
 

@@ -77,6 +77,46 @@ test.describe('Header navigation', () => {
     await expect(header.locator('[data-nav="nostroots"]')).toHaveCount(0);
   });
 
+  test('index: settings KPI chips render and wire map/settings actions', async ({ page }) => {
+    await page.goto('/#settings');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('#settings-modal.active')).toBeVisible();
+
+    const settingsKpis = page.locator('#settings-kpis');
+    await expect(settingsKpis.locator('#kpi-new-notes-24h')).toBeVisible();
+    await expect(settingsKpis.locator('#kpi-notes-loaded')).toBeVisible();
+    await expect(settingsKpis.locator('#kpi-subscribed-areas')).toBeVisible();
+    await expect(settingsKpis.locator('#kpi-relays-online')).toBeVisible();
+
+    await settingsKpis.locator('#kpi-new-notes-24h').click();
+    await page.waitForTimeout(200);
+    await expect(page.locator('#nav-map-btn')).toHaveAttribute('aria-current', 'page');
+
+    await page.goto('/#settings');
+    await page.waitForLoadState('networkidle');
+    await page.locator('#settings-kpis #kpi-subscribed-areas').click();
+    await expect(page).toHaveURL(/#settings\b/);
+    await expect(page.locator('#settings-notifications-section')).toBeVisible();
+
+    await page.goto('/#settings');
+    await page.waitForLoadState('networkidle');
+    await page.locator('#settings-kpis #kpi-relays-online').click();
+    await expect(page).toHaveURL(/#settings\/relays\b/);
+    await expect(page.locator('#relays-list')).toBeVisible();
+  });
+
+  test('index: compact mobile keeps all four KPI chips in settings', async ({ page }) => {
+    await page.setViewportSize({ width: 420, height: 900 });
+    await page.goto('/#settings');
+    await page.waitForLoadState('networkidle');
+
+    const settingsKpis = page.locator('#settings-kpis');
+    await expect(settingsKpis.locator('#kpi-new-notes-24h')).toBeVisible();
+    await expect(settingsKpis.locator('#kpi-notes-loaded')).toBeVisible();
+    await expect(settingsKpis.locator('#kpi-subscribed-areas')).toBeVisible();
+    await expect(settingsKpis.locator('#kpi-relays-online')).toBeVisible();
+  });
+
   test('index: Support dropdown opens and Support chat goes to #support', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');

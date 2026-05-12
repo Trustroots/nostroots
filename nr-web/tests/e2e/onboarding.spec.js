@@ -18,6 +18,15 @@ test.describe('Onboarding Flow', () => {
     await expect(keysModal).toBeVisible();
   });
 
+  test('visiting a profile route without a key keeps the route and shows welcome Keys', async ({ page }) => {
+    await page.goto('/#profile/alice');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page).toHaveURL(/#profile\//);
+    await expect(page.locator('#keys-modal')).toBeVisible();
+    await expect(page.locator('#keys-welcome-section')).toBeVisible();
+  });
+
   test('can generate new key from onboarding', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');

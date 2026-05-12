@@ -117,6 +117,9 @@ describe('Modal Behavior', () => {
       expect(text).toContain('Update Trustroots Profile');
       expect(text).toContain('Enter your Trustroots username to confirm this account is yours.');
       expect(text).toContain('links your Trustroots account');
+      expect(text).toContain('To fully use Nostroots');
+      expect(text).toContain('Trustroots account');
+      expect(text).toContain('nip42.trustroots.org');
     });
 
     it('settings modal has relays section and GitHub link from fragment', () => {

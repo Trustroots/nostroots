@@ -8,6 +8,8 @@ import {
   extractProfileHashtagSlugsFromMeta,
   firstSeenOnNostrootsTimestamp,
   firstSeenOnNostrootsLine,
+  profileHasMeaningfulRelayData,
+  classifyNostrootsSetupState,
 } from '../../index.js';
 
 describe('profile claim field normalization', () => {
@@ -83,14 +85,44 @@ describe('profile stats projection', () => {
     expect(ageYearsFromBirthDate('2000-05-13', Date.UTC(2026, 4, 12))).toBe(25);
   });
 
-  it('builds first-seen-on-Nostroots stats from the earliest loaded profile event', () => {
+  it('builds first-seen-on-Nostroots stats from the earliest note authored by the profile', () => {
+    const subject = 'a'.repeat(64);
     const events = [
-      { id: 'newer', created_at: 1735689600 },
-      [{ id: 'oldest', created_at: 1704067200 }],
-      { id: 'invalid', created_at: 0 },
+      { id: 'profile-event-is-ignored', kind: 0, pubkey: subject, created_at: 946684800 },
+      { id: 'repost-is-ignored', kind: 30398, pubkey: subject, created_at: 978307200 },
+      { id: 'other-author-is-ignored', kind: 30397, pubkey: 'b'.repeat(64), created_at: 1009843200 },
+      { id: 'newer-note', kind: 30397, pubkey: subject, created_at: 1735689600 },
+      [{ id: 'oldest-note', kind: 30397, pubkey: subject, created_at: 1704067200 }],
+      { id: 'invalid-note', kind: 30397, pubkey: subject, created_at: 0 },
     ];
-    expect(firstSeenOnNostrootsTimestamp(events)).toBe(1704067200);
-    expect(firstSeenOnNostrootsLine(events)).toBe('First seen on Nostroots 2024-01-01');
+    expect(firstSeenOnNostrootsTimestamp(events, subject)).toBe(1704067200);
+    expect(firstSeenOnNostrootsLine(events, subject)).toBe('First seen on Nostroots 2024-01-01');
+  });
+
+  it('treats NIP-05-only profiles as empty relay data', () => {
+    expect(profileHasMeaningfulRelayData({
+      meta: { nip05: 'alice@trustroots.org', trustrootsUsername: 'alice' },
+      notes: [],
+      relationships: [],
+      experiences: [],
+      connectedPeople: [],
+      hostEvents: [],
+      circleSlugs: [],
+    })).toBe(false);
+  });
+
+  it('detects profile content, notes, and trust metrics as meaningful relay data', () => {
+    expect(profileHasMeaningfulRelayData({ meta: { about: 'hello' } })).toBe(true);
+    expect(profileHasMeaningfulRelayData({ notes: [{ id: 'note' }] })).toBe(true);
+    expect(profileHasMeaningfulRelayData({ trustMetric: 2 })).toBe(true);
+  });
+});
+
+describe('setup-state projection', () => {
+  it('separates no key, key without Trustroots NIP-05, and ready states', () => {
+    expect(classifyNostrootsSetupState({ hasKey: false, hasTrustrootsNip05: false })).toBe('no_key');
+    expect(classifyNostrootsSetupState({ hasKey: true, hasTrustrootsNip05: false })).toBe('key_without_trustroots');
+    expect(classifyNostrootsSetupState({ hasKey: true, hasTrustrootsNip05: true })).toBe('ready');
   });
 });
 

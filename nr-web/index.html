@@ -545,16 +545,30 @@
         var signerMode = typeof opts.signerMode === 'string' ? opts.signerMode : 'local';
         var isNip7Active = signerMode === 'nip7';
         var nip7Status = typeof opts.nip7Status === 'string' ? opts.nip7Status : 'none';
+        var showNip7Option = !isNip7Active && nip7Status !== 'none';
         var signerStatusText = typeof opts.signerStatusText === 'string' ? opts.signerStatusText : '';
 
         setDisplayById('nsec-actions-group', (hasNsec && !isNip7Active) ? 'block' : 'none');
         setDisplayById('nip7-actions-group', isNip7Active ? 'block' : 'none');
         setDisplayById('no-nsec-actions-group', (hasNsec || isNip7Active) ? 'none' : 'block');
         setDisplayById('generate-key-group', (hasNsec || isNip7Active) ? 'none' : 'block');
-        setDisplayById('keys-nip7-section', (!isNip7Active && nip7Status !== 'none') ? 'block' : 'none');
+        setDisplayById('keys-nip7-section', showNip7Option ? 'block' : 'none');
         setDisplayById('keys-nip7-active-status', isNip7Active ? 'block' : 'none');
         setDisplayById('keys-nsec-backup-step', isNip7Active ? 'none' : 'block');
         setDisplayById('keys-nsec-backup-hint', isNip7Active ? 'none' : 'block');
+
+        var onboardingIntro = global.document.getElementById('keys-onboarding-intro');
+        if (onboardingIntro) {
+            onboardingIntro.innerHTML = showNip7Option
+                ? '<strong>Choose how to connect your key:</strong> use a browser extension, import an existing private key, or generate a new one below.'
+                : '<strong>Choose how to connect your key:</strong> import an existing private key, or generate a new one below.';
+        }
+        var nip7Heading = global.document.getElementById('keys-nip7-heading');
+        var importHeading = global.document.getElementById('keys-import-heading');
+        var generateHeading = global.document.getElementById('keys-generate-heading');
+        if (nip7Heading) nip7Heading.textContent = 'Option 1: Connect browser extension';
+        if (importHeading) importHeading.textContent = (showNip7Option ? 'Option 2' : 'Option 1') + ': Import an existing key';
+        if (generateHeading) generateHeading.textContent = (showNip7Option ? 'Option 3' : 'Option 2') + ': Generate a new key';
 
         var signerStatus = global.document.getElementById('keys-signer-status');
         if (signerStatus) {
@@ -563,7 +577,14 @@
                 : nip7Status === 'partial'
                     ? 'A NIP-07 extension was detected, but it does not expose the encrypted features Nostroots needs. You can still import or generate a local key.'
                     : 'No NIP-07 browser extension was detected. You can use Alby, nos2x, or another compatible extension, or continue with a local key.';
-            signerStatus.innerHTML = '<strong>Signing:</strong> ' + escapeHtml(signerStatusText || defaultStatus);
+            var missingNip7StatusHtml = 'No NIP-07 browser extension detected. Compatible extensions include '
+                + '<a href="https://guides.getalby.com/user-guide/browser-extension/faq/how-do-i-install-the-alby-browser-extension" target="_blank" rel="noopener noreferrer">Alby</a>'
+                + ' and '
+                + '<a href="https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp" target="_blank" rel="noopener noreferrer">nos2x</a>.';
+            var statusHtml = nip7Status === 'none' && !isNip7Active
+                ? missingNip7StatusHtml
+                : escapeHtml(signerStatusText || defaultStatus);
+            signerStatus.innerHTML = '<strong>Signing:</strong> ' + statusHtml;
             signerStatus.style.display = 'block';
         }
 
@@ -602,8 +623,9 @@
         if (usernameGuidance) {
             usernameGuidance.textContent = isUsernameLinked
                 ? 'Trustroots username already confirmed from your profile.'
-                : 'Enter your Trustroots username to confirm this account is yours.';
+                : 'Enter your Trustroots username to confirm this account is yours and unlock full Nostroots access.';
         }
+        setDisplayById('keys-trustroots-needed-note', (hasPublicKey && !isProfileLinked) ? 'block' : 'none');
         setDisplayById('trustroots-username-locked-note', isUsernameLinked ? 'block' : 'none');
         setDisplayById('keys-linked-backup-action', isNip7Active ? 'none' : 'list-item');
 
@@ -2283,6 +2305,53 @@ h1, h2, .modal-header h2 {
     z-index: 10;
 }
 
+.settings-kpis-help {
+    margin: 0 0 0.75rem;
+    font-size: 0.83rem;
+    color: var(--muted-foreground);
+}
+
+.settings-kpis {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+#settings-modal .settings-kpis .kpi-chip {
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--foreground);
+    border-radius: 999px;
+    padding: 0.35rem 0.65rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 32px;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 0.78rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+#settings-modal .settings-kpis .kpi-chip:hover {
+    background: var(--muted);
+}
+
+#settings-modal .settings-kpis .kpi-chip-value {
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+
+#settings-modal .settings-kpis .kpi-chip--warn {
+    border-color: #d6a945;
+    background: rgba(214, 169, 69, 0.12);
+}
+
+#settings-modal .settings-kpis .kpi-chip--error {
+    border-color: #d16b6b;
+    background: rgba(209, 107, 107, 0.12);
+}
+
 /* Mobile overflow menu (Trustroots-style hamburger); hidden on wide screens */
 .nr-nav-dropdown-more {
     display: none;
@@ -3407,6 +3476,31 @@ a.nr-profile-tr-badge:focus-visible {
     align-items: center;
     justify-content: center;
 }
+.nr-profile-setup-card {
+    margin: 0.75rem 0 1rem;
+    padding: 1rem 1.1rem;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+.nr-profile-setup-card h2 {
+    margin: 0 0 0.45rem;
+    font-size: 1rem;
+    color: var(--foreground);
+}
+.nr-profile-setup-card p {
+    margin: 0 0 0.75rem;
+}
+.nr-profile-setup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.nr-profile-setup-actions .btn {
+    text-decoration: none;
+}
 .nr-profile-muted {
     font-size: 0.8rem;
     color: var(--muted-foreground);
@@ -4338,6 +4432,24 @@ body.nr-surface-account #settings-modal .modal-close {
     display: block;
     margin-top: 0.35rem;
     color: var(--muted-foreground);
+}
+
+#keys-modal .keys-trustroots-needed-note {
+    display: block;
+    margin: -0.25rem 0 0.85rem 0;
+    padding: 0.75rem 0.85rem;
+    color: var(--foreground);
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+#keys-modal .keys-trustroots-needed-note a {
+    color: var(--primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 
 #keys-modal .keys-success-actions,
@@ -7325,13 +7437,14 @@ body.nr-surface-host .host-compose-selected-circle button {
         <!-- Welcome message (only shown when no key is set) -->
         <div id="keys-welcome-section" style="display: none; margin-bottom: 2rem;">
             <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">Nostroots rebuilds Trustroots on open protocols so travelers and hosts keep control of identity and connections, instead of depending on one central service.</p>
-            <p class="keys-onboarding-two-options-intro"><strong>Choose how to connect your key:</strong> use a browser extension, import an existing private key, or generate a new one below.</p>
+            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">Start by connecting a key. To fully use Nostroots at this point, you will also need a Trustroots account linked by NIP-05 for trusted access to nip42.trustroots.org. New to Trustroots? <a href="https://www.trustroots.org/signup" target="_blank" rel="noopener noreferrer">Sign up first</a>.</p>
+            <p class="keys-onboarding-two-options-intro" id="keys-onboarding-intro"><strong>Choose how to connect your key:</strong> import an existing private key, or generate a new one below.</p>
             <div class="keys-signer-status" id="keys-signer-status" aria-live="polite"></div>
         </div>
 
         <!-- NIP-07 browser extension signer (only shown when no key is set) -->
         <div class="keys-option-section" id="keys-nip7-section" style="display: none;">
-            <h3 class="keys-option-heading">Connect browser extension</h3>
+            <h3 class="keys-option-heading" id="keys-nip7-heading">Option 1: Connect browser extension</h3>
             <p class="keys-onboarding-option-text" id="keys-nip7-description">Use a NIP-07 extension such as Alby or nos2x to sign without pasting your nsec into this browser.</p>
             <div class="keys-option-content">
                 <button class="btn btn-secondary" id="keys-nip7-connect-btn" onclick="onboardingNip7Connect()" type="button" style="width: 100%;">Use browser extension</button>
@@ -7340,7 +7453,7 @@ body.nr-surface-host .host-compose-selected-circle button {
 
         <!-- Import nsec or mnemonic (only shown when no key) -->
         <div class="keys-option-section" id="keys-import-section" style="display: none;">
-            <h3 class="keys-option-heading">Option 2: Import an existing key</h3>
+            <h3 class="keys-option-heading" id="keys-import-heading">Option 1: Import an existing key</h3>
             <p class="keys-onboarding-option-text">Already have a key? Paste your secret key (nsec) or recovery phrase below. Your key stays on this device and is never stored on our server.</p>
             <p class="keys-import-npub-hint" role="note"><strong>npub1…</strong> is your public address (safe to share). <strong>nsec1…</strong> or your recovery phrase is secret (never share). Your key stays on this device and is never stored on our server.</p>
             <div class="keys-option-content">
@@ -7351,7 +7464,7 @@ body.nr-surface-host .host-compose-selected-circle button {
 
         <!-- Generate New Key (only shown when no key) -->
         <div class="keys-option-section" id="keys-generate-section" style="display: none;">
-            <h3 class="keys-option-heading">Option 3: Generate a new key</h3>
+            <h3 class="keys-option-heading" id="keys-generate-heading">Option 2: Generate a new key</h3>
             <p id="keys-generate-intro" class="keys-onboarding-option-text">No key yet? Create one now, then save your secret key in a password manager before posting. If you do not have one yet, we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>.</p>
             <div class="keys-option-content">
                 <button class="btn btn-secondary" onclick="onboardingGenerate()" type="button" style="width: 100%;">Generate New Key</button>
@@ -7430,6 +7543,7 @@ body.nr-surface-host .host-compose-selected-circle button {
                 <input type="checkbox" id="keys-step-username" disabled>
                 <span id="keys-username-guidance-text">Enter your Trustroots username to confirm this account is yours.</span>
             </label>
+            <small id="keys-trustroots-needed-note" class="keys-trustroots-needed-note" style="display: none;">Your key is connected. To fully use Nostroots, link a Trustroots account with NIP-05 so the app can use trusted access to <strong>nip42.trustroots.org</strong>. If you do not have a Trustroots account yet, <a href="https://www.trustroots.org/signup" target="_blank" rel="noopener noreferrer">sign up first</a>.</small>
             <small style="display: block; margin: -0.25rem 0 0.75rem 0; color: var(--muted-foreground);">This links your Trustroots account so your posts can be confirmed as yours.</small>
             <div class="form-group">
                 <input type="text" id="trustroots-username" placeholder="your-username" onkeydown="if(event.key === 'Enter') linkTrustrootsProfile()">
@@ -7515,6 +7629,11 @@ body.nr-surface-host .host-compose-selected-circle button {
                 </label>
             </div>
             <small id="theme-sync-status" style="display: block; margin-top: 0.5rem; color: var(--muted-foreground);"></small>
+        </div>
+        <div class="settings-section" id="settings-kpis-section">
+            <h2>Activity KPIs</h2>
+            <p class="settings-kpis-help">Live local activity signals from your current session and configured relays.</p>
+            <div id="settings-kpis" class="settings-kpis" role="group" aria-label="Activity KPIs"></div>
         </div>
 
         <div class="settings-footer-wrap">

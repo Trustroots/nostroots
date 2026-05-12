@@ -188,10 +188,10 @@
         if (!url) return '';
         var normalized = String(url).trim().toLowerCase();
         if (normalized === 'wss://nip42.trustroots.org') {
-            return '🔐 Auth relay (NIP-42): reading from and writing to this relay requires a Trustroots profile linked to your Nostr identity.';
+            return '🔐 Private Trustroots relay: you need a linked Trustroots account to read and post here (NIP-42).';
         }
         if (normalized === 'wss://relay.trustroots.org' || normalized === 'wss://relay.nomadwiki.org') {
-            return '🌍 PUBLIC relay: anyone can read this. If "Post" is enabled, your message/note is publicly visible.';
+            return '🌍 Public network: anyone can read posts sent here.';
         }
         return '';
     }
@@ -215,8 +215,8 @@
         var publicWarningId = opts.publicWarningId || 'relay-post-public-warning';
         var disabledClassName = opts.disabledClassName || 'status error';
         var publicClassName = opts.publicClassName || 'status info';
-        var disabledMessage = opts.disabledMessage || 'Posting is off. Enable "Post" for at least one relay to publish notes. You can still read notes.';
-        var publicMessage = opts.publicMessage || 'PUBLIC posting is enabled. Anything posted there is publicly visible.';
+        var disabledMessage = opts.disabledMessage || 'Posting is off. Turn on Post for at least one network to publish. You can still read.';
+        var publicMessage = opts.publicMessage || 'Public posting is enabled. Anything posted there is visible to anyone.';
         var pointerEvents = opts.pointerEvents || '';
         var list = Array.isArray(urls) ? urls : [];
         var hasWritableRelay = list.some(function (url) {
@@ -601,8 +601,8 @@
         var usernameGuidance = global.document.getElementById('keys-username-guidance-text');
         if (usernameGuidance) {
             usernameGuidance.textContent = isUsernameLinked
-                ? 'Trustroots username verified from your Nostr profile.'
-                : 'Enter your Trustroots username and verify it to link your Trustroots identity for posting.';
+                ? 'Trustroots username already confirmed from your profile.'
+                : 'Enter your Trustroots username to confirm this account is yours.';
         }
         setDisplayById('trustroots-username-locked-note', isUsernameLinked ? 'block' : 'none');
         setDisplayById('keys-linked-backup-action', isNip7Active ? 'none' : 'list-item');
@@ -1216,11 +1216,66 @@
         header.addEventListener('click', nrHeaderNavClickDelegate);
     }
 
+    var NR_NAV_ACCOUNT_AVATAR_CACHE_STORAGE_KEY = 'nr_nav_account_avatar_v1';
+
+    function normalizeNrNavAvatarPubkey(pubkey) {
+        var key = String(pubkey || '').trim().toLowerCase();
+        return /^[0-9a-f]{64}$/.test(key) ? key : '';
+    }
+
+    function sanitizeNrNavAvatarUrl(url) {
+        var raw = String(url || '').trim();
+        if (!raw) return '';
+        try {
+            var u = new URL(raw, 'https://nos.trustroots.org');
+            if (u.protocol !== 'https:' && u.protocol !== 'http:') return '';
+            return u.href;
+        } catch (_) {
+            return '';
+        }
+    }
+
+    function readNrNavAccountAvatarCache() {
+        try {
+            var raw = global.localStorage && global.localStorage.getItem(NR_NAV_ACCOUNT_AVATAR_CACHE_STORAGE_KEY);
+            var parsed = raw ? JSON.parse(raw) : {};
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function writeNrNavAccountAvatarCache(cache) {
+        try {
+            if (global.localStorage) {
+                global.localStorage.setItem(NR_NAV_ACCOUNT_AVATAR_CACHE_STORAGE_KEY, JSON.stringify(cache || {}));
+            }
+        } catch (_) {}
+    }
+
+    function rememberNrNavAccountAvatar(pubkey, pictureUrl) {
+        var key = normalizeNrNavAvatarPubkey(pubkey);
+        var url = sanitizeNrNavAvatarUrl(pictureUrl);
+        if (!key || !url) return '';
+        var cache = readNrNavAccountAvatarCache();
+        cache[key] = { url: url, ts: Date.now() };
+        writeNrNavAccountAvatarCache(cache);
+        return url;
+    }
+
+    function getRememberedNrNavAccountAvatar(pubkey) {
+        var key = normalizeNrNavAvatarPubkey(pubkey);
+        if (!key) return '';
+        var cache = readNrNavAccountAvatarCache();
+        var entry = cache[key];
+        return sanitizeNrNavAvatarUrl(entry && (entry.url || entry.picture || entry));
+    }
+
     /** Sync profile circle in Account + mobile menu toggles (HTTPS picture URL or empty for placeholder). */
     function updateNrNavAccountAvatars(pictureUrl) {
         var doc = global.document;
         if (!doc || !doc.querySelectorAll) return;
-        var url = String(pictureUrl || '').trim();
+        var url = sanitizeNrNavAvatarUrl(pictureUrl);
         var wraps = doc.querySelectorAll('.nr-nav-avatar-wrap[data-nr-nav-account]');
         for (var i = 0; i < wraps.length; i++) {
             var wrap = wraps[i];
@@ -1270,6 +1325,8 @@
 
         var onChat = false;
         var onHost = false;
+        var onProfile = false;
+        var onAccount = false;
         try {
             var bod = global.document && global.document.body;
             if (bod && bod.classList && bod.classList.contains('nr-surface-chat')) {
@@ -1278,7 +1335,15 @@
             if (bod && bod.classList && bod.classList.contains('nr-surface-host')) {
                 onHost = true;
             }
+            if (bod && bod.classList && bod.classList.contains('nr-surface-profile')) {
+                onProfile = true;
+            }
+            if (bod && bod.classList && bod.classList.contains('nr-surface-account')) {
+                onAccount = true;
+            }
         } catch (_) {}
+        var onAccountSurface = onProfile || onAccount;
+        var onMap = !onChat && !onHost && !onAccountSurface;
         function buildHeaderHashHref(route) {
             var raw = String(route || 'chat').trim() || 'chat';
             var encoded = 'chat';
@@ -1302,12 +1367,21 @@
             }
         } catch (_) {}
         var convHref = buildHeaderHashHref(chatRouteForHref || 'chat');
+        var mapAttrs = onMap
+            ? ' class="nr-nav-link is-active" id="nav-map-btn" data-nav="map" aria-current="page" aria-label="Map"'
+            : ' class="nr-nav-link" id="nav-map-btn" data-nav="map" aria-label="Map"';
         var conversationsAttrs = onChat
             ? ' href="' + convHref + '" class="nr-nav-link is-active" aria-current="page" aria-label="Chat"'
             : ' href="' + convHref + '" class="nr-nav-link" aria-label="Chat"';
         var hostAttrs = onHost
             ? ' class="nr-nav-link is-active" id="nav-host-btn" data-nav="host" aria-current="page" aria-label="Host & Meet"'
             : ' class="nr-nav-link" id="nav-host-btn" data-nav="host" aria-label="Host & Meet"';
+        var accountAttrs = onAccountSurface
+            ? ' class="nr-nav-dropdown-toggle nr-nav-user-toggle is-active" id="nav-user-btn" aria-haspopup="menu" aria-expanded="false" aria-current="page"'
+            : ' class="nr-nav-dropdown-toggle nr-nav-user-toggle" id="nav-user-btn" aria-haspopup="menu" aria-expanded="false"';
+        var accountMoreAttrs = onAccountSurface
+            ? ' class="nr-nav-dropdown-toggle nr-nav-more-toggle is-active" id="nav-more-btn" aria-haspopup="menu" aria-expanded="false" aria-current="page" aria-label="Menu"'
+            : ' class="nr-nav-dropdown-toggle nr-nav-more-toggle" id="nav-more-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Menu"';
 
         var svgMsg =
             '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
@@ -1340,7 +1414,7 @@
             buildSupportDropdownMenuHtml(supportChatHref, 'nav-support-chat-link') +
             '</div></div></nav></div>' +
             '<nav class="nr-nav nr-nav-main" aria-label="Main">' +
-            '<button type="button" class="nr-nav-link" id="nav-map-btn" data-nav="map" aria-label="Map">' +
+            '<button type="button"' + mapAttrs + '>' +
             '<span class="nr-nav-icon" aria-hidden="true">' +
             svgSearch +
             '</span><span class="nr-nav-link-text">Map</span></button>' +
@@ -1354,14 +1428,14 @@
             svgMsg +
             '</span><span class="nr-nav-link-text">Chat</span></a>' +
             '<div class="nr-nav-dropdown" data-dropdown="user">' +
-            '<button type="button" class="nr-nav-dropdown-toggle nr-nav-user-toggle" id="nav-user-btn" aria-haspopup="menu" aria-expanded="false">' +
+            '<button type="button"' + accountAttrs + '>' +
             navAccountAvatarHtml +
             '<span class="nr-nav-user-label">Account</span><span class="nr-caret" aria-hidden="true">▾</span></button>' +
             '<div class="nr-nav-menu nr-nav-menu--right" role="menu" id="nav-user-menu" aria-labelledby="nav-user-btn">' +
             buildUserDropdownMenuBody(settingsTitle) +
             '</div></div>' +
             '<div class="nr-nav-dropdown nr-nav-dropdown-more" data-dropdown="more">' +
-            '<button type="button" class="nr-nav-dropdown-toggle nr-nav-more-toggle" id="nav-more-btn" aria-haspopup="menu" aria-expanded="false" aria-label="Menu">' +
+            '<button type="button"' + accountMoreAttrs + '>' +
             navAccountAvatarHtml +
             '<span class="nr-nav-icon nr-nav-icon--menu" aria-hidden="true">' +
             svgMenu +
@@ -1495,6 +1569,7 @@
     }
 
     function fetchSettingsFooterJson(url, key) {
+        if (typeof global.fetch !== 'function') return Promise.resolve(null);
         return fetch(url, { headers: { Accept: 'application/vnd.github+json' } })
             .then(function (response) {
                 if (response.ok) return response.json();
@@ -1510,6 +1585,7 @@
     }
 
     function fetchDeployMetadataFile() {
+        if (typeof global.fetch !== 'function') return Promise.resolve(null);
         return fetch('deploy-metadata.json', { cache: 'no-cache' })
             .then(function (response) {
                 if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -1877,6 +1953,8 @@
     global.NrWeb.setProfileImageWithResolvedCache = setProfileImageWithResolvedCache;
     global.NrWeb.fillAppHeader = fillAppHeader;
     global.NrWeb.updateNrNavAccountAvatars = updateNrNavAccountAvatars;
+    global.NrWeb.rememberNrNavAccountAvatar = rememberNrNavAccountAvatar;
+    global.NrWeb.getRememberedNrNavAccountAvatar = getRememberedNrNavAccountAvatar;
     global.NrWeb.applySettingsFooterMetadataFromCache = applySettingsFooterMetadataFromCache;
     global.NrWeb.refreshSettingsFooterMetadata = refreshSettingsFooterMetadata;
 
@@ -1952,7 +2030,7 @@
 
     /**
      * @param {string} route decoded hash fragment (no leading #)
-     * @returns {{ kind: string, modal?: string, token?: string, plusCode?: string, chatRoute?: string, profileId?: string }}
+     * @returns {{ kind: string, modal?: string, section?: string, token?: string, plusCode?: string, chatRoute?: string, profileId?: string }}
      */
     function classify(route) {
         if (!route) return { kind: 'map_home' };
@@ -1960,6 +2038,7 @@
         if (lower === 'profile') return { kind: 'profile_self' };
         if (lower === 'keys') return { kind: 'modal', modal: 'keys' };
         if (lower === 'settings') return { kind: 'modal', modal: 'settings' };
+        if (lower === 'settings/relays') return { kind: 'modal', modal: 'settings', section: 'relays' };
         if (RESERVED_SET.has(lower)) return { kind: 'reserved', token: lower };
         if (looksLikeMapPlusCode(route)) return { kind: 'map_pluscode', plusCode: route.replace(/\s/g, '') };
         if (/^profile\//i.test(route)) {
@@ -2289,6 +2368,11 @@ h1, h2, .modal-header h2 {
 
 .nr-nav-dropdown-toggle:hover {
     background: rgba(255, 255, 255, 0.15);
+}
+
+.nr-nav-dropdown-toggle.is-active,
+.nr-nav-dropdown-toggle[aria-current="page"] {
+    background: rgba(255, 255, 255, 0.22);
 }
 
 .nr-caret {
@@ -2922,6 +3006,14 @@ h1, h2, .modal-header h2 {
 }
 .nr-profile-tr-stats li:last-child {
     border-bottom: none;
+}
+.nr-profile-tr-stat-languages-title {
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.2rem;
+}
+.nr-profile-tr-stat-languages-row {
+    color: var(--foreground);
 }
 .nr-profile-tr-main {
     min-width: 0;
@@ -4995,6 +5087,127 @@ h1, h2, .modal-header h2 {
     opacity: 0.88;
     font-weight: 600;
 }
+.circle-members-panel {
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    padding: 0.55rem 1rem;
+}
+.circle-members-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    min-width: 0;
+}
+.circle-members-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--foreground);
+    white-space: nowrap;
+}
+.circle-members-muted {
+    font-size: 0.76rem;
+    color: var(--muted-foreground);
+}
+.circle-members-avatars {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    flex: 1;
+}
+.circle-member-avatar {
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--muted);
+    object-fit: cover;
+    margin-left: -0.35rem;
+    flex-shrink: 0;
+}
+.circle-member-avatar:first-child {
+    margin-left: 0;
+}
+.circle-member-avatar-placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted-foreground);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+.circle-members-toggle {
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--background);
+    color: var(--foreground);
+    cursor: pointer;
+    font-size: 0.76rem;
+    font-weight: 700;
+    padding: 0.35rem 0.55rem;
+    white-space: nowrap;
+}
+.circle-members-toggle:hover {
+    border-color: var(--primary);
+}
+.circle-members-expanded {
+    margin-top: 0.55rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+.circle-members-search {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--background);
+    color: var(--foreground);
+    padding: 0.45rem 0.6rem;
+    font-size: 0.82rem;
+}
+.circle-members-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 0.4rem;
+    max-height: 220px;
+    overflow-y: auto;
+}
+.circle-member-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: calc(var(--radius) - 2px);
+    background: var(--background);
+    padding: 0.45rem;
+}
+.circle-member-link:hover {
+    border-color: var(--primary);
+    background: var(--accent);
+}
+.circle-member-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.08rem;
+}
+.circle-member-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.circle-member-handle {
+    font-size: 0.72rem;
+    color: var(--muted-foreground);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 .thread-messages {
     flex: 1 1 0;
     min-height: 0;
@@ -6268,13 +6481,6 @@ body.nr-surface-host .area-location-card {
     word-break: break-word;
 }
 
-.area-location-detail {
-    margin-top: 0.35rem;
-    color: var(--muted-foreground);
-    font-size: 0.95rem;
-    line-height: 1.4;
-}
-
 body.nr-surface-host .area-sidebar-header {
     border-bottom: 0;
 }
@@ -6887,11 +7093,12 @@ body.nr-surface-host .host-compose-selected-circle button {
                         <img id="thread-circle-avatar" class="thread-circle-avatar" alt="" width="40" height="40" loading="lazy" decoding="async" style="display:none" />
                     </div>
                 </div>
+                <div id="circle-members-panel" class="circle-members-panel" style="display:none;"></div>
                 <div class="thread-messages" id="thread-messages"></div>
                 <div class="empty-state" id="empty-state">Select a conversation or start a new one.</div>
                 <div class="compose" id="compose" style="display:none;">
                     <div class="compose-input-row">
-                        <button id="compose-posting-icon" class="compose-posting-icon" title="Posting scope (open relay settings)" aria-label="Posting scope (open relay settings)" type="button" onclick="openSettingsModal()">🌍</button>
+                        <button id="compose-posting-icon" class="compose-posting-icon" title="Posting scope (open relay settings)" aria-label="Posting scope (open relay settings)" type="button" onclick="location.hash='#settings/relays'">🌍</button>
                         <div class="compose-input-cell">
                             <textarea id="compose-input" placeholder="Type a message..." rows="2" onkeydown="if(event.key==='Enter'){if(!event.shiftKey){event.preventDefault();sendMessage();}}"></textarea>
                         </div>
@@ -6912,12 +7119,12 @@ body.nr-surface-host .host-compose-selected-circle button {
         <div id="new-dm-modal" class="modal">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h2>Start a private conversation or create a #hashtag channel</h2>
+                    <h2>Message someone or join (or create) a Circle channel</h2>
                     <button type="button" class="modal-close" onclick="closeNewDmModal()" aria-label="Close">&times;</button>
                 </div>
                 <div class="form-group">
-                    <label>Enter an npub or NIP-05 for a private chat, or enter a hashtag for a channel</label>
-                    <input type="text" id="new-dm-pubkey" placeholder="npub1..., nostroots@trustroots.org, or #travel" onkeydown="if(event.key==='Enter'){event.preventDefault();startDm();}">
+                    <label>Enter a person's address (npub or name@domain, including Trustroots users), or enter #hashtag for a Circle channel</label>
+                    <input type="text" id="new-dm-pubkey" placeholder="npub1..., username@trustroots.org, or #travel" onkeydown="if(event.key==='Enter'){event.preventDefault();startDm();}">
                 </div>
                 <button type="button" class="btn" onclick="startDm()">Start conversation</button>
             </div>
@@ -6943,7 +7150,7 @@ body.nr-surface-host .host-compose-selected-circle button {
                     <h2>Delete message?</h2>
                     <button type="button" class="modal-close" onclick="closeDeleteConfirmModal()" aria-label="Close">&times;</button>
                 </div>
-                <p class="modal-body">This will request deletion of the message from relays. <strong>Deletion cannot be guaranteed</strong>—relays and other clients may keep or have already stored the message.</p>
+                <p class="modal-body">This asks connected networks to delete the message. <strong>Deletion is not guaranteed</strong> because decentralized clients and relays may already keep copies.</p>
                 <div class="modal-actions">
                     <button type="button" class="btn btn-secondary" onclick="closeDeleteConfirmModal()">Cancel</button>
                     <button type="button" class="btn btn-danger" id="delete-confirm-btn" onclick="confirmDeleteMessage()">Delete</button>
@@ -6992,7 +7199,6 @@ body.nr-surface-host .host-compose-selected-circle button {
                             <div class="area-location-copy">
                                 <div class="area-location-kicker">Posting target</div>
                                 <div id="area-location-code" class="area-location-code"></div>
-                                <div id="area-location-detail" class="area-location-detail">Posts to this area</div>
                             </div>
                         </section>
                     </aside>
@@ -7001,7 +7207,7 @@ body.nr-surface-host .host-compose-selected-circle button {
                         <div class="compose host-compose">
                             <div id="note-intent-chips" class="note-intent-chips" role="radiogroup" aria-label="Note type"></div>
                             <div class="compose-input-row host-compose-row">
-                                <button id="note-compose-scope-icon" class="compose-posting-icon" title="Posting scope" aria-label="Posting scope" type="button">🌍</button>
+                                <button id="note-compose-scope-icon" class="compose-posting-icon" title="Posting scope (open relay settings)" aria-label="Posting scope (open relay settings)" type="button" onclick="location.hash='#settings/relays'">🌍</button>
                                 <div class="compose-input-cell">
                                     <textarea id="note-content-in-modal" rows="2" placeholder="Type a message... (Enter to send)" autofocus></textarea>
                                 </div>
@@ -7053,8 +7259,8 @@ body.nr-surface-host .host-compose-selected-circle button {
                 <button type="button" class="modal-close" onclick="closeHelpModal()" aria-label="Close">&times;</button>
             </div>
             <div class="form-group" style="font-size: 0.9rem; color: var(--muted-foreground); line-height: 1.45;">
-                <p style="margin-bottom: 0.75rem;"><strong>Nostroots</strong> is a map for traveler notes on Nostr. You can read notes without a key; connect a key when you want to post.</p>
-                <p style="margin-bottom: 0.75rem;">Use <strong>Map</strong> to focus the map and browse by area, <strong>Host & meet</strong> to offer hosting and connect on the map, and <strong>Chats</strong> for messaging.</p>
+                <p style="margin-bottom: 0.75rem;"><strong>Nostroots</strong> helps travelers and hosts find each other, post updates by area, and chat.</p>
+                <p style="margin-bottom: 0.75rem;">Use <strong>Map</strong> to browse places, <strong>Host &amp; Meet</strong> to share hosting/travel updates, and <strong>Chats</strong> for private and channel messages. This runs on the open Nostr network.</p><p style="margin-bottom: 0.75rem;">You can message Trustroots users by address (like <code>username@trustroots.org</code>) and join Circle channels with <code>#hashtags</code>.</p>
                 <ul style="margin: 0 0 0.75rem 1.1rem; padding: 0;">
                     <li><a class="nr-content-link" href="https://github.com/Trustroots/nostroots" target="_blank" rel="noopener noreferrer">GitHub — Nostroots</a></li>
                     <li><a class="nr-content-link" href="https://github.com/Trustroots/nostroots/issues/new" target="_blank" rel="noopener noreferrer">Report a bug</a></li>
@@ -7081,14 +7287,14 @@ body.nr-surface-host .host-compose-selected-circle button {
 
         <!-- Welcome message (only shown when no key is set) -->
         <div id="keys-welcome-section" style="display: none; margin-bottom: 2rem;">
-            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">Nostroots is an attempt to rebuild Trustroots on open protocols so travelers and hosts keep more power: less should ride on whoever runs the core Trustroots service, and anyone should be able to build new applications on the same trust network—more freedom for users and other developers alike.</p>
-            <p class="keys-onboarding-two-options-intro"><strong>Three ways to get started:</strong> use a browser extension, import an existing private key, or generate a new one below.</p>
+            <p style="color: var(--muted-foreground); margin: 0 0 0.75rem 0;">Nostroots rebuilds Trustroots on open protocols so travelers and hosts keep control of identity and connections, instead of depending on one central service.</p>
+            <p class="keys-onboarding-two-options-intro"><strong>Choose how to connect your key:</strong> use a browser extension, import an existing private key, or generate a new one below.</p>
             <div class="keys-signer-status" id="keys-signer-status" aria-live="polite"></div>
         </div>
 
         <!-- NIP-07 browser extension signer (only shown when no key is set) -->
         <div class="keys-option-section" id="keys-nip7-section" style="display: none;">
-            <h3 class="keys-option-heading">Option 1: Use browser extension</h3>
+            <h3 class="keys-option-heading">Connect browser extension</h3>
             <p class="keys-onboarding-option-text" id="keys-nip7-description">Use a NIP-07 extension such as Alby or nos2x to sign without pasting your nsec into this browser.</p>
             <div class="keys-option-content">
                 <button class="btn btn-secondary" id="keys-nip7-connect-btn" onclick="onboardingNip7Connect()" type="button" style="width: 100%;">Use browser extension</button>
@@ -7098,10 +7304,10 @@ body.nr-surface-host .host-compose-selected-circle button {
         <!-- Import nsec or mnemonic (only shown when no key) -->
         <div class="keys-option-section" id="keys-import-section" style="display: none;">
             <h3 class="keys-option-heading">Option 2: Import an existing key</h3>
-            <p class="keys-onboarding-option-text">If you already have a Nostr private key (nsec), paste it below (for example from the Nostroots mobile app or your password manager).</p>
-            <p class="keys-import-npub-hint" role="note"><strong>npub1…</strong> is your <strong>public</strong> id (like a username). It cannot log you in here. Use <strong>nsec1…</strong> or your <strong>recovery phrase</strong> — the same secret you would use to restore the app in a new install.</p>
+            <p class="keys-onboarding-option-text">Already have a key? Paste your secret key (nsec) or recovery phrase below. Your key stays on this device and is never stored on our server.</p>
+            <p class="keys-import-npub-hint" role="note"><strong>npub1…</strong> is your public address (safe to share). <strong>nsec1…</strong> or your recovery phrase is secret (never share). Your key stays on this device and is never stored on our server.</p>
             <div class="keys-option-content">
-                <textarea id="onboarding-import" placeholder="Enter nsec1... or mnemonic phrase (12 or 24 words)..." onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); onboardingImport();}" style="width: 100%; min-height: 80px; margin-bottom: 0.75rem; font-family: monospace; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); background: var(--input); color: var(--foreground);"></textarea>
+                <textarea id="onboarding-import" placeholder="Paste your nsec1... or recovery phrase (12 or 24 words)" onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault(); onboardingImport();}" style="width: 100%; min-height: 80px; margin-bottom: 0.75rem; font-family: monospace; resize: vertical; padding: 0.75rem; border: 1px solid var(--border); border-radius: calc(var(--radius) - 2px); background: var(--input); color: var(--foreground);"></textarea>
                 <button class="btn btn-secondary" onclick="onboardingImport()" type="button" style="width: 100%;">Import</button>
             </div>
         </div>
@@ -7109,7 +7315,7 @@ body.nr-surface-host .host-compose-selected-circle button {
         <!-- Generate New Key (only shown when no key) -->
         <div class="keys-option-section" id="keys-generate-section" style="display: none;">
             <h3 class="keys-option-heading">Option 3: Generate a new key</h3>
-            <p id="keys-generate-intro" class="keys-onboarding-option-text">If you do not have one yet, generate a key below, then export and store your nsec in your password manager. If you do not have a password manager yet, we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>.</p>
+            <p id="keys-generate-intro" class="keys-onboarding-option-text">No key yet? Create one now, then save your secret key in a password manager before posting. If you do not have one yet, we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>.</p>
             <div class="keys-option-content">
                 <button class="btn btn-secondary" onclick="onboardingGenerate()" type="button" style="width: 100%;">Generate New Key</button>
             </div>
@@ -7120,9 +7326,9 @@ body.nr-surface-host .host-compose-selected-circle button {
             <div class="form-group keys-step-group" id="keys-nsec-backup-step">
                 <label class="keys-step-label">
                     <span id="keys-step-backup-check" class="keys-step-check" aria-hidden="true">V</span>
-                    <span>Export your <strong>nsec</strong> and copy it into your password manager (we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>).</span>
+                    <span>Back up your secret key in your password manager (we recommend <a href="https://bitwarden.com" target="_blank" rel="noopener noreferrer">Bitwarden.com</a>).</span>
                 </label>
-                <small class="keys-nsec-backup-hint" id="keys-nsec-backup-hint" role="note">Your <strong>nsec</strong> is your <strong>private key</strong>: anyone who has it can sign as you on Nostr. Do not share it with others, and keep a safe backup—if you lose it, you cannot recover this identity.</small>
+                <small class="keys-nsec-backup-hint" id="keys-nsec-backup-hint" role="note">Anyone with this secret key can act as you. Never share it. If you lose it, this identity cannot be recovered. Your key stays on this device and is never stored on our server.</small>
             </div>
 
             <div class="form-group" id="keys-nip7-active-status" style="display: none;">
@@ -7185,12 +7391,12 @@ body.nr-surface-host .host-compose-selected-circle button {
             <h2>Trustroots username</h2>
             <label class="keys-step-label keys-step-group">
                 <input type="checkbox" id="keys-step-username" disabled>
-                <span id="keys-username-guidance-text">Enter your Trustroots username and verify it.</span>
+                <span id="keys-username-guidance-text">Enter your Trustroots username to confirm this account is yours.</span>
             </label>
-            <small style="display: block; margin: -0.25rem 0 0.75rem 0; color: var(--muted-foreground);">This links your Trustroots identity so Trustroots relays can verify your posts.</small>
+            <small style="display: block; margin: -0.25rem 0 0.75rem 0; color: var(--muted-foreground);">This links your Trustroots account so your posts can be confirmed as yours.</small>
             <div class="form-group">
                 <input type="text" id="trustroots-username" placeholder="your-username" onkeydown="if(event.key === 'Enter') linkTrustrootsProfile()">
-                <small id="trustroots-username-locked-note" class="username-locked-note" style="display: none;">This username comes from your Nostr profile event and cannot be edited here.</small>
+                <small id="trustroots-username-locked-note" class="username-locked-note" style="display: none;">This username is already confirmed from your profile, so it cannot be changed here.</small>
                 <div id="username-nostr-indicator" class="username-nostr-indicator" style="display: none;">
                     <strong>Trustroots profile linked successfully.</strong>
                     <ul class="keys-success-actions">
@@ -7204,8 +7410,8 @@ body.nr-surface-host .host-compose-selected-circle button {
         </div>
 
         <div class="settings-section keys-claim-wrap" id="keys-claim-section" style="display: none;">
-            <h2>Claim Trustroots data</h2>
-            <p class="claim-lead">Review what will be published, then sign each part. Hosting mirrors from Trustroots often appear as kind 30398; profile, contacts, and experiences use kinds 30390–30393.</p>
+            <h2>Import your Trustroots data into Nostroots</h2>
+            <p class="claim-lead">Review what will be shared, then publish each part. Technical details: hosting suggestions often come from kind 30398, while profile, contacts, and experiences use kinds 30390–30393.</p>
             <div id="keys-claim-trust-panel" class="keys-claim-trust-panel">
                 <div id="claim-summary" class="claim-summary-bar" role="status" aria-live="polite"></div>
                 <div id="claim-relay-scope" class="claim-relay-scope" role="note" aria-live="polite"></div>
@@ -7214,13 +7420,13 @@ body.nr-surface-host .host-compose-selected-circle button {
                         <h3 class="claim-detail-heading">Relationships (Trustroots contacts)</h3>
                         <p class="claim-detail-hint">Mirrored contact suggestions (kind 30392). Signing merges them into your follow list (kind 3) and Trustroots contact set (kind 30000).</p>
                         <div id="claim-preview-relationships" class="claim-preview-list"></div>
-                        <button class="btn" id="claim-btn-relationships" onclick="claimRelationships()" type="button" disabled>Sign Relationships</button>
+                        <button class="btn" id="claim-btn-relationships" onclick="claimRelationships()" type="button" disabled>Publish Relationships</button>
                     </div>
                     <div class="claim-detail-block">
                         <h3 class="claim-detail-heading">Experiences</h3>
                         <p class="claim-detail-hint">Each line becomes a positive experience label (kind 1985) on the other person’s pubkey.</p>
                         <div id="claim-preview-experiences" class="claim-preview-list"></div>
-                        <button class="btn" id="claim-btn-experiences" onclick="claimExperiences()" type="button" disabled>Sign Experiences</button>
+                        <button class="btn" id="claim-btn-experiences" onclick="claimExperiences()" type="button" disabled>Publish Experiences</button>
                     </div>
                 </div>
             </div>
@@ -7229,13 +7435,13 @@ body.nr-surface-host .host-compose-selected-circle button {
                     <h3 class="claim-detail-heading">Profile</h3>
                     <p class="claim-detail-hint">Published as your Nostr profile (kind 0).</p>
                     <pre id="claim-preview-profile" class="claim-preview-pre"></pre>
-                    <button class="btn" id="claim-btn-profile" onclick="claimProfileData()" type="button" disabled>Sign Profile</button>
+                    <button class="btn" id="claim-btn-profile" onclick="claimProfileData()" type="button" disabled>Publish Profile</button>
                 </div>
                 <div class="claim-detail-block">
                     <h3 class="claim-detail-heading">Hosting</h3>
                     <p class="claim-detail-hint">Each item becomes a map note (kind 30397) with your signature.</p>
                     <div id="claim-preview-hosting" class="claim-preview-list"></div>
-                    <button class="btn" id="claim-btn-hosting" onclick="claimHostingOffers()" type="button" disabled>Sign Hosting</button>
+                    <button class="btn" id="claim-btn-hosting" onclick="claimHostingOffers()" type="button" disabled>Publish Hosting</button>
                 </div>
             </div>
         </div>
@@ -7402,6 +7608,7 @@ body.nr-surface-host .host-compose-selected-circle button {
         }
 
         function metadataFetchWithTimeout(timeoutMs) {
+            if (typeof fetch !== 'function') return Promise.reject(new Error('metadata-fetch-unavailable'));
             return Promise.race([
                 fetch('deploy-metadata.json', { cache: 'no-cache' }).then(function (response) {
                     if (!response.ok) throw new Error('HTTP ' + response.status);

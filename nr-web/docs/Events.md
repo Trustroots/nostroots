@@ -13,6 +13,14 @@ Signed by the **same** key as `trustrootsimporttool` (`-nsec`). Includes a hex `
 
 **Circle memberships:** For each public tribe the user belongs to, the import adds the same `L` / `l` / `t` tags as on kind `30398` host mirrors (`l` value = hyphen-free slug under `trustroots-circle`). Public profiles in nr-web read these tags so circles appear even when the user has no active host offer.
 
+**Profile fields in `content`:** Existing `name` / `display_name` / `about` / `picture` / `nip05` / `trustrootsUsername` may be accompanied by optional structured fields from Trustroots imports:
+
+- `gender` (string)
+- `memberSince` (unix seconds)
+- `livesIn` (`{ display, city?, country? }`)
+- `from` (`{ display, city?, country? }`)
+- `languages` (string array)
+
 ## Kind 30410 — Trustroots circle metadata (directory)
 
 Signed by the **same** key as the Trustroots Mongo JSONL export (`trustrootsimporttool` `-nsec`). Clients trust only this author’s pubkey (hardcoded in nr-web next to relay docs).

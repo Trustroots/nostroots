@@ -4,6 +4,7 @@ COPY go.mod ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=1 GOOS=linux go build -o /out/nip42relay ./cmd/nip42relay
+RUN CGO_ENABLED=1 GOOS=linux go build -o /out/nostr-ingestor ./cmd/nostr-ingestor
 
 FROM debian:bookworm-slim
 RUN useradd --system --uid 10001 --home-dir /nonexistent nip42relay \
@@ -12,6 +13,7 @@ RUN useradd --system --uid 10001 --home-dir /nonexistent nip42relay \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /out/nip42relay /usr/local/bin/nip42relay
+COPY --from=builder /out/nostr-ingestor /usr/local/bin/nostr-ingestor
 RUN mkdir -p /data \
     && chown -R nip42relay:nip42relay /data /app
 USER nip42relay

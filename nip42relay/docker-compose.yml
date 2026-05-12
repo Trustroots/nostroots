@@ -16,6 +16,23 @@ services:
     volumes:
       - nip42relay-data:/data
 
+  nostr-ingestor:
+    build: .
+    command: ["nostr-ingestor"]
+    depends_on:
+      - nip42relay
+    restart: unless-stopped
+    environment:
+      NSEC: "${NSEC:-}"
+      GITHUB_TOKEN: "${GITHUB_TOKEN:-}"
+      MATRIX_ACCESS_TOKEN: "${MATRIX_ACCESS_TOKEN:-}"
+      BRIDGE_STATE_PATH: "/data/bridge-state.db"
+      BRIDGE_MATRIX_HOMESERVER: "https://matrix.org"
+      BRIDGE_TARGET_RELAY_URL: "ws://nip42relay:8042"
+      PUBLIC_RELAY_URL: "ws://localhost:8042"
+    volumes:
+      - nip42relay-data:/data
+
   strfry:
     image: ghcr.io/hoytech/strfry:latest
     volumes:

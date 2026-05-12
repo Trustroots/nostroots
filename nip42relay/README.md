@@ -14,9 +14,10 @@ docker compose up --build
 The compose stack starts:
 
 - `nip42relay` on `ws://localhost:8042`
+- `nostr-ingestor` as a sidecar bridge service (GitHub + Matrix -> Nostr)
 - `strfry` as an internal upstream on `ws://strfry:5542`
 - `strfry-data`, a clean unseeded named volume that persists across restarts
-- `nip42relay-data`, a named volume for the SQLite auth cache
+- `nip42relay-data`, a named volume for the SQLite auth cache and bridge state
 
 To reset the local strfry database:
 
@@ -35,6 +36,20 @@ docker compose down -v
 | `TRUSTROOTS_NIP05_BASE_URL` | `https://www.trustroots.org/.well-known/nostr.json` | NIP-05 endpoint. |
 | `AUTH_CACHE_TTL` | `24h` | Successful authorization cache lifetime. |
 | `AUTH_EVENT_MAX_AGE` | `10m` | Allowed timestamp skew for NIP-42 auth events. |
+
+### nostr-ingestor minimal environment
+
+`nostr-ingestor` requires:
+
+- `NSEC` (`nsec1...`) - signing key used to publish bridge notes. The key must already satisfy the same Trustroots/NIP-05 checks enforced by `nip42relay`.
+- `GITHUB_TOKEN` - token with read access to `Trustroots/nostroots` commits (`Contents: Read`).
+- `MATRIX_ACCESS_TOKEN` - Matrix client access token for reading `#nostroots:matrix.org`.
+
+Optional:
+
+- `BRIDGE_STATE_PATH` (default `/data/bridge-state.db`)
+- `BRIDGE_MATRIX_HOMESERVER` (default `https://matrix.org`)
+- `BRIDGE_TARGET_RELAY_URL` (default `ws://nip42relay:8042`)
 
 ## Behavior
 

@@ -8,6 +8,8 @@ import {
     normalizeTrustrootsCircleSlugKey,
     normalizeLegacyTrustrootsCircleAlias,
     trustrootsCircleWebSlugOverride,
+    trustrootsCircleKeyAlias,
+    canonicalTrustrootsCircleSlugKey,
     trustrootsCircleSlugFromPictureUrl,
     resolveTrustrootsCircleWebSlug,
     trustrootsCirclePageUrlFromMeta,
@@ -153,9 +155,24 @@ describe('circle-metadata', () => {
 
     it('uses canonical Trustroots web-slug overrides for dashless keys', () => {
         expect(trustrootsCircleWebSlugOverride('rainbowgathering')).toBe('rainbow-gathering');
+        expect(trustrootsCircleWebSlugOverride('volunteers')).toBe('trustroots-volunteers');
+        expect(trustrootsCircleWebSlugOverride('hitch')).toBe('hitchhikers');
+        expect(trustrootsCircleWebSlugOverride('dumpsterdivers')).toBe('dumpster-divers');
+        expect(trustrootsCircleWebSlugOverride('gardeners')).toBe('gardeners-farmers');
+        expect(trustrootsCircleWebSlugOverride('scubadivers')).toBe('scuba-divers');
         expect(trustrootsCircleWebSlugOverride('beerbrewers')).toBe('beer-brewers');
         expect(trustrootsCircleWebSlugOverride('zerowasters')).toBe('zero-wasters');
-        expect(trustrootsCircleWebSlugOverride('volunteers')).toBe('');
+        expect(trustrootsCircleWebSlugOverride('lightfoot')).toBe('');
+    });
+
+    it('uses canonical Nostr key aliases for legacy/user-entered variants', () => {
+        expect(trustrootsCircleKeyAlias('hitchhikers')).toBe('hitch');
+        expect(trustrootsCircleKeyAlias('trustroots-volunteers')).toBe('volunteers');
+        expect(trustrootsCircleKeyAlias('gardenersfarmers')).toBe('gardeners');
+        expect(trustrootsCircleKeyAlias('volunteers')).toBe('');
+        expect(canonicalTrustrootsCircleSlugKey('hitchhikers')).toBe('hitch');
+        expect(canonicalTrustrootsCircleSlugKey('trustroots-volunteers')).toBe('volunteers');
+        expect(canonicalTrustrootsCircleSlugKey('gardenersfarmers')).toBe('gardeners');
     });
 
     it('builds trustroots circle page URL from hyphen-preserving slug', () => {
@@ -172,6 +189,19 @@ describe('circle-metadata', () => {
             'rainbowgathering'
         );
         expect(url).toBe('https://www.trustroots.org/uploads-circle/rainbow-gathering/1400x900.webp');
+    });
+
+    it('builds trustroots URLs from canonical web-slug overrides when metadata is missing', () => {
+        const volunteersPage = trustrootsCirclePageUrlFromMeta({ picture: '', slug: '' }, 'volunteers');
+        expect(volunteersPage).toBe('https://www.trustroots.org/circles/trustroots-volunteers');
+        const hitchPic = trustrootsCirclePictureFallbackUrlFromMeta({ picture: '', slug: '' }, 'hitch');
+        expect(hitchPic).toBe('https://www.trustroots.org/uploads-circle/hitchhikers/1400x900.webp');
+        const scubaPic = trustrootsCirclePictureFallbackUrlFromMeta({ picture: '', slug: '' }, 'scubadivers');
+        expect(scubaPic).toBe('https://www.trustroots.org/uploads-circle/scuba-divers/1400x900.webp');
+        const dumpsterPic = trustrootsCirclePictureFallbackUrlFromMeta({ picture: '', slug: '' }, 'dumpsterdivers');
+        expect(dumpsterPic).toBe('https://www.trustroots.org/uploads-circle/dumpster-divers/1400x900.webp');
+        const gardenersPic = trustrootsCirclePictureFallbackUrlFromMeta({ picture: '', slug: '' }, 'gardenersfarmers');
+        expect(gardenersPic).toBe('https://www.trustroots.org/uploads-circle/gardeners-farmers/1400x900.webp');
     });
 
     it('normalizes legacy trustroots-prefixed circle alias', () => {
@@ -214,6 +244,22 @@ describe('circle-metadata', () => {
         expect(member.nip05).toBe('alice@trustroots.org');
         expect(member.picture).toBe('https://example.com/alice.jpg');
         expect(member.profileId).toBe('alice@trustroots.org');
+    });
+
+    it('matches profile claim members across canonical circle aliases', () => {
+        const memberPk = 'b'.repeat(64);
+        const ev = {
+            id: 'profile-alias',
+            kind: 30390,
+            pubkey: importPk,
+            created_at: 22,
+            tags: [['p', memberPk], ['l', 'hitchhikers', 'trustroots-circle']],
+            content: JSON.stringify({ trustrootsUsername: 'bob', picture: 'https://example.com/bob.jpg' })
+        };
+        const member = parseCircleMemberProfileClaim30390(ev, 'hitch', { expectedPubkey: importPk });
+        expect(extractCircleSlugsFromProfileClaim30390Event(ev)).toEqual(['hitch']);
+        expect(member?.pubkey).toBe(memberPk);
+        expect(member?.picture).toBe('https://example.com/bob.jpg');
     });
 
     it('ignores profile claims that cannot define a circle member', () => {

@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nostroots Web</title>
-    <meta name="description" content="Nostroots is a social map on Nostr for travelers and hosts. Read traveler notes by area, host other travelers, and start chats on open relays.">
+    <meta name="description" content="Nostroots is a social map on Nostr for travelers and hosts. Read traveler notes by area, host other travelers, and start chats with nearby travelers.">
     <meta name="theme-color" content="#12b591">
     <link rel="canonical" href="https://nos.trustroots.org/">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Nostroots">
     <meta property="og:title" content="Nostroots Web">
-    <meta property="og:description" content="A social map on Nostr for travelers and hosts. Read notes by area, host travelers, and start chats on open relays.">
+    <meta property="og:description" content="A social map on Nostr for travelers and hosts. Read notes by area, host travelers, and start chats with nearby travelers.">
     <meta property="og:url" content="https://nos.trustroots.org/">
     <meta property="og:image" content="https://nos.trustroots.org/og-image.png">
     <meta property="og:image:secure_url" content="https://nos.trustroots.org/og-image.png">
@@ -20,7 +20,7 @@
     <meta property="og:image:alt" content="Nostroots - social map for travelers on Nostr">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Nostroots Web">
-    <meta name="twitter:description" content="A social map on Nostr for travelers and hosts. Read notes by area, host travelers, and start chats on open relays.">
+    <meta name="twitter:description" content="A social map on Nostr for travelers and hosts. Read notes by area, host travelers, and start chats with nearby travelers.">
     <meta name="twitter:image" content="https://nos.trustroots.org/og-image.png">
     <meta name="twitter:image:alt" content="Nostroots - social map for travelers on Nostr">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -3004,6 +3004,17 @@ h1, h2, .modal-header h2 {
     padding: 0.45rem 0;
     border-bottom: 1px solid var(--tr-card-edge);
 }
+.nr-profile-tr-stat-nip .nr-content-link {
+    word-break: normal;
+    overflow-wrap: anywhere;
+}
+.nr-profile-tr-stat-nip-title {
+    font-weight: 700;
+    white-space: nowrap;
+}
+.nr-profile-tr-stat-nip-value {
+    margin-top: 0.1rem;
+}
 .nr-profile-tr-stats li:last-child {
     border-bottom: none;
 }
@@ -3106,6 +3117,32 @@ a.nr-profile-tr-badge:hover {
     filter: brightness(0.97);
 }
 a.nr-profile-tr-badge:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+}
+.nr-profile-tr-rail-message-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-height: 1.55rem;
+    padding: 0.22rem 0.55rem;
+    border: 1px solid var(--tr-card-edge);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--tr-card-bg) 72%, var(--muted) 28%);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--tr-rail-muted);
+    text-decoration: none;
+    white-space: nowrap;
+    line-height: 1;
+}
+.nr-profile-tr-rail-message-link:hover {
+    border-color: var(--tr-orange);
+    color: var(--foreground);
+    background: var(--tr-card-bg);
+}
+.nr-profile-tr-rail-message-link:focus-visible {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
 }

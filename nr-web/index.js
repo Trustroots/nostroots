@@ -530,11 +530,26 @@ export const TRUSTROOTS_CIRCLE_SLUG_LIST = Object.freeze([
 ]);
 
 /**
+ * Canonical Nostr circle key aliases (legacy/user-entered -> canonical key).
+ * Used before matching circle metadata and known circle sets.
+ */
+export const TRUSTROOTS_CIRCLE_KEY_ALIASES = Object.freeze({
+    hitchhikers: 'hitch',
+    trustrootsvolunteers: 'volunteers',
+    gardenersfarmers: 'gardeners'
+});
+
+/**
  * Canonical Trustroots web slug overrides for circles whose Nostr key is dashless
  * but trustroots.org route/CDN paths are hyphenated.
  */
 export const TRUSTROOTS_CIRCLE_WEB_SLUG_OVERRIDES = Object.freeze({
     rainbowgathering: 'rainbow-gathering',
+    volunteers: 'trustroots-volunteers',
+    hitch: 'hitchhikers',
+    dumpsterdivers: 'dumpster-divers',
+    gardeners: 'gardeners-farmers',
+    scubadivers: 'scuba-divers',
     beerbrewers: 'beer-brewers',
     zerowasters: 'zero-wasters'
 });
@@ -784,7 +799,7 @@ export function normalizeLegacyTrustrootsCircleAlias(slug, isKnownCircle) {
     if (!suffix) return normalized;
     const trimmedSuffix = suffix.replace(/^[-_]+/, '');
     if (!trimmedSuffix) return normalized;
-    const candidate = normalizeTrustrootsCircleSlugKey(trimmedSuffix);
+    const candidate = canonicalTrustrootsCircleSlugKey(trimmedSuffix);
     if (candidate && checkKnown(candidate)) return candidate;
     return normalized;
 }
@@ -798,9 +813,23 @@ export function normalizeTrustrootsCircleWebSlug(slug) {
 
 /** Resolve known canonical Trustroots web slug overrides from any slug form. */
 export function trustrootsCircleWebSlugOverride(slug) {
-    const key = normalizeTrustrootsCircleSlugKey(slug);
+    const key = canonicalTrustrootsCircleSlugKey(slug);
     if (!key) return '';
     return String(TRUSTROOTS_CIRCLE_WEB_SLUG_OVERRIDES[key] || '').trim().toLowerCase();
+}
+
+/** Resolve canonical Nostr key alias (if any) for a slug. */
+export function trustrootsCircleKeyAlias(slug) {
+    const key = normalizeTrustrootsCircleSlugKey(slug);
+    if (!key) return '';
+    return String(TRUSTROOTS_CIRCLE_KEY_ALIASES[key] || '').trim().toLowerCase();
+}
+
+/** Canonical Nostr circle key after hyphen stripping and known alias resolution. */
+export function canonicalTrustrootsCircleSlugKey(slug) {
+    const key = normalizeTrustrootsCircleSlugKey(slug);
+    if (!key) return '';
+    return trustrootsCircleKeyAlias(key) || key;
 }
 
 /** Extract Trustroots web slug from `uploads-circle/<slug>/...` picture URLs. */
@@ -1848,7 +1877,7 @@ export function extractTrustrootsCircleSlugsFromEventTags(event) {
     for (const tag of event.tags || []) {
         if (!Array.isArray(tag) || tag.length < 3) continue;
         if (tag[0] !== 'l' || tag[2] !== TRUSTROOTS_CIRCLE_LABEL) continue;
-        const slug = normalizeTrustrootsCircleSlugKey(tag[1]);
+        const slug = canonicalTrustrootsCircleSlugKey(tag[1]);
         if (!slug || seen.has(slug)) continue;
         seen.add(slug);
         out.push(slug);
@@ -1908,7 +1937,7 @@ function trustrootsImportToolPubkeyHexFromWindow() {
 export function parseCircleMemberProfileClaim30390(event, circleSlug, opts = {}) {
     if (!event || event.kind !== PROFILE_CLAIM_KIND) return null;
     if (!eventAuthorMatchesExpectedPubkeys(event, opts)) return null;
-    const slugKey = normalizeTrustrootsCircleSlugKey(circleSlug);
+    const slugKey = canonicalTrustrootsCircleSlugKey(circleSlug);
     if (!slugKey) return null;
     const slugs = extractCircleSlugsFromProfileClaim30390Event(event);
     if (!slugs.includes(slugKey)) return null;
@@ -1946,11 +1975,11 @@ export function parseCircleMemberProfileClaim30390(event, circleSlug, opts = {})
 export function parseCircleMemberMapNoteClaimEvent(event, circleSlug, opts = {}) {
     if (!event) return null;
     if (!eventAuthorMatchesExpectedPubkeys(event, opts)) return null;
-    const slugKey = normalizeTrustrootsCircleSlugKey(circleSlug);
+    const slugKey = canonicalTrustrootsCircleSlugKey(circleSlug);
     if (!slugKey) return null;
     const tagSlugs = extractTrustrootsCircleSlugsFromEventTags(event);
     const acceptedSlugs = Array.isArray(opts.acceptedSlugs)
-        ? opts.acceptedSlugs.map((slug) => normalizeTrustrootsCircleSlugKey(slug)).filter(Boolean)
+        ? opts.acceptedSlugs.map((slug) => canonicalTrustrootsCircleSlugKey(slug)).filter(Boolean)
         : [];
     const eventKind = MAP_NOTE_KINDS.includes(event.kind)
         ? event.kind
@@ -2197,11 +2226,25 @@ let relays = [];
 let relayConnectGeneration = 0;
 let relayKeepAliveIntervalIds = [];
 let wsMapSubscriptions = [];
+const RELAY_FAILURE_TOAST_GRACE_MS = 3500;
+let relayFailureToastTimeoutId = null;
 
 function closeRelaysArray(list) {
     (list || []).forEach((r) => {
         try { r?.close?.(); } catch (_) {}
     });
+}
+
+function clearRelayFailureToastTimeout() {
+    if (relayFailureToastTimeoutId === null) return;
+    try { clearTimeout(relayFailureToastTimeoutId); } catch (_) {}
+    relayFailureToastTimeoutId = null;
+}
+
+function getConnectedRelayCount(relayUrls) {
+    return (relayUrls || []).reduce((count, url) => (
+        relayStatus.get(url)?.status === 'connected' ? count + 1 : count
+    ), 0);
 }
 let map = null;
 let mapFallbackMode = null;
@@ -4430,6 +4473,7 @@ async function initializeNDK() {
 
 async function initializeRelays(relayUrls) {
     const gen = ++relayConnectGeneration;
+    clearRelayFailureToastTimeout();
     relayKeepAliveIntervalIds.forEach((id) => {
         try { clearInterval(id); } catch (_) {}
     });
@@ -4556,16 +4600,24 @@ async function initializeRelays(relayUrls) {
     if (gen !== relayConnectGeneration) return;
 
     // Show summary message
-    const connectedCount = relays.length;
+    const connectedCount = getConnectedRelayCount(relayUrls);
     const totalCount = relayUrls.length;
     if (connectedCount > 0) {
+        clearRelayFailureToastTimeout();
         if (!window._nostrootsSuppressConnectionToasts) {
             showStatus(`Connected to ${connectedCount} of ${totalCount} relays`, 'success', { id: 'relay-connection-status' });
         }
         // Subscribe to plus code prefixes
         subscribeToPlusCodePrefixes();
     } else {
-        if (!window._nostrootsSuppressConnectionToasts) showStatus(`Failed to connect to any relays`, 'error', { id: 'relay-connection-status' });
+        clearRelayFailureToastTimeout();
+        relayFailureToastTimeoutId = setTimeout(() => {
+            relayFailureToastTimeoutId = null;
+            if (gen !== relayConnectGeneration) return;
+            if (getConnectedRelayCount(relayUrls) > 0) return;
+            if (window._nostrootsSuppressConnectionToasts) return;
+            showStatus(`Failed to connect to any relays`, 'error', { id: 'relay-connection-status' });
+        }, RELAY_FAILURE_TOAST_GRACE_MS);
     }
 }
 
@@ -5049,56 +5101,119 @@ function profilePageCacheKey(hex) {
     return NR_MAP_CACHE_PROFILE_PAGE_KEY_PREFIX + String(hex || '').toLowerCase();
 }
 
-const NR_PROFILE_HOST_MEET_CACHE_KEY_PREFIX = 'nr_profile_host_meet_card_v1:';
+const NR_PROFILE_HOST_MEET_CACHE_KEY_PREFIX = 'nr_profile_host_meet_card_v2:';
+const NR_PROFILE_HOST_MEET_CACHE_KEY_PREFIX_V1 = 'nr_profile_host_meet_card_v1:';
 const NR_PROFILE_HOST_MEET_CACHE_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
-function profileHostMeetCacheKey(hex) {
-    return NR_PROFILE_HOST_MEET_CACHE_KEY_PREFIX + String(hex || '').toLowerCase();
+function profileHostMeetCacheKey(hex, keyPrefix = NR_PROFILE_HOST_MEET_CACHE_KEY_PREFIX) {
+    return keyPrefix + String(hex || '').toLowerCase();
 }
 
-function loadProfileHostMeetCardFromCache(hex) {
-    const h = String(hex || '').toLowerCase();
-    if (!/^[0-9a-f]{64}$/.test(h)) return null;
+function normalizeProfileHostMeetRow(value) {
+    if (!value || typeof value !== 'object') return null;
+    const badgeText = String(value.badgeText || '').trim();
+    const summary = String(value.summary || '').trim();
+    if (!badgeText || !summary) return null;
+    const intentIdRaw = value.intentId;
+    const intentId = isIntentId(intentIdRaw) ? String(intentIdRaw).trim().toLowerCase() : null;
+    return {
+        intentId,
+        badgeText,
+        badgeVariant: String(value.badgeVariant || 'muted'),
+        summary,
+        dateText: String(value.dateText || ''),
+        plusCode: String(value.plusCode || ''),
+        source: String(value.source || ''),
+    };
+}
+
+export function normalizeProfileHostMeetCard(value) {
+    if (!value || typeof value !== 'object') return null;
+    const title = String(value.title || '').trim() || 'Host & Meet';
+    const rowsRaw = Array.isArray(value.rows) ? value.rows : [];
+    let rows = rowsRaw.map(normalizeProfileHostMeetRow).filter(Boolean);
+
+    // Backward compatibility: v1 cache had a single summary card shape.
+    if (rows.length === 0) {
+        const legacyBadgeText = String(value.badgeText || '').trim();
+        const legacySummary = String(value.summary || '').trim();
+        if (legacyBadgeText && legacySummary) {
+            rows = [{
+                intentId: null,
+                badgeText: legacyBadgeText,
+                badgeVariant: String(value.badgeVariant || 'muted'),
+                summary: legacySummary,
+                dateText: String(value.dateText || ''),
+                plusCode: String(value.plusCode || ''),
+                source: String(value.source || ''),
+            }];
+        }
+    }
+
+    if (rows.length === 0) return null;
+    const lead = rows[0];
+    return {
+        title,
+        badgeText: String(value.badgeText || lead.badgeText || ''),
+        badgeVariant: String(value.badgeVariant || lead.badgeVariant || 'muted'),
+        summary: String(value.summary || lead.summary || ''),
+        dateText: String(value.dateText || lead.dateText || ''),
+        plusCode: String(value.plusCode || lead.plusCode || ''),
+        source: String(value.source || lead.source || ''),
+        rows,
+    };
+}
+
+function parseProfileHostMeetCacheRecord(raw) {
+    if (!raw) return null;
     try {
-        const raw = localStorage.getItem(profileHostMeetCacheKey(h));
-        if (!raw) return null;
         const row = JSON.parse(raw);
         const age = Date.now() - Number(row?.timestamp || 0);
         if (!Number.isFinite(age) || age < 0 || age > NR_PROFILE_HOST_MEET_CACHE_MAX_AGE_MS) return null;
-        const card = row?.card;
-        if (!card || typeof card !== 'object') return null;
-        if (!card.title || !card.badgeText || !card.summary) return null;
-        return {
-            title: String(card.title || ''),
-            badgeText: String(card.badgeText || ''),
-            badgeVariant: String(card.badgeVariant || 'muted'),
-            summary: String(card.summary || ''),
-            dateText: String(card.dateText || ''),
-            plusCode: String(card.plusCode || ''),
-            source: String(card.source || ''),
-        };
+        return normalizeProfileHostMeetCard(row?.card);
     } catch (_) {
         return null;
     }
 }
 
+function loadProfileHostMeetCardFromCache(hex) {
+    const h = String(hex || '').toLowerCase();
+    if (!/^[0-9a-f]{64}$/.test(h)) return null;
+
+    const v2 = parseProfileHostMeetCacheRecord(localStorage.getItem(profileHostMeetCacheKey(h)));
+    if (v2) return v2;
+    return parseProfileHostMeetCacheRecord(
+        localStorage.getItem(profileHostMeetCacheKey(h, NR_PROFILE_HOST_MEET_CACHE_KEY_PREFIX_V1))
+    );
+}
+
 function saveProfileHostMeetCardToCache(hex, card) {
     const h = String(hex || '').toLowerCase();
     if (!/^[0-9a-f]{64}$/.test(h)) return;
-    if (!card || typeof card !== 'object') return;
+    const normalized = normalizeProfileHostMeetCard(card);
+    if (!normalized) return;
     try {
         localStorage.setItem(
             profileHostMeetCacheKey(h),
             JSON.stringify({
                 timestamp: Date.now(),
                 card: {
-                    title: String(card.title || ''),
-                    badgeText: String(card.badgeText || ''),
-                    badgeVariant: String(card.badgeVariant || 'muted'),
-                    summary: String(card.summary || ''),
-                    dateText: String(card.dateText || ''),
-                    plusCode: String(card.plusCode || ''),
-                    source: String(card.source || ''),
+                    title: normalized.title,
+                    badgeText: normalized.badgeText,
+                    badgeVariant: normalized.badgeVariant,
+                    summary: normalized.summary,
+                    dateText: normalized.dateText,
+                    plusCode: normalized.plusCode,
+                    source: normalized.source,
+                    rows: normalized.rows.map((row) => ({
+                        intentId: row.intentId,
+                        badgeText: row.badgeText,
+                        badgeVariant: row.badgeVariant,
+                        summary: row.summary,
+                        dateText: row.dateText,
+                        plusCode: row.plusCode,
+                        source: row.source,
+                    })),
                 },
             })
         );
@@ -10493,6 +10608,12 @@ const __nrChatApp = (() => {
             if (HOSTING_OFFER_CHANNEL_ALIASES.includes(normalized)) {
                 return HOSTING_OFFER_CHANNEL_SLUG;
             }
+            // Canonicalize known direct aliases (e.g. #hitchhikers -> #hitch) so route-only
+            // conversations still resolve circle metadata and fallback imagery.
+            const alias = trustrootsCircleKeyAlias(normalized);
+            if (alias && alias !== normalized && isKnownTrustrootsCircleSlug(alias)) {
+                return alias;
+            }
             // Legacy Trustroots channel aliases sometimes prefix circle slugs with
             // `trustroots` (e.g. #trustrootsvolunteers). Collapse those aliases into
             // known canonical circle keys when possible.
@@ -10509,7 +10630,7 @@ const __nrChatApp = (() => {
             // is a known circle so legacy and current data land in the same channel. Ad-hoc
             // hashtags that are not Trustroots circles keep their hyphens.
             if (normalized.includes('-')) {
-                const stripped = normalizeTrustrootsCircleSlugKey(normalized);
+                const stripped = canonicalTrustrootsCircleSlugKey(normalized);
                 if (stripped && stripped !== normalized && isKnownTrustrootsCircleSlug(stripped)) {
                     return stripped;
                 }
@@ -10654,7 +10775,7 @@ const __nrChatApp = (() => {
         );
 
         function trustrootsCirclePictureFallback(slug, meta) {
-            const key = normalizeTrustrootsCircleSlugKey(slug);
+            const key = canonicalTrustrootsCircleSlugKey(slug);
             if (!key) return '';
             if (!TRUSTROOTS_CIRCLE_SLUGS_SET.has(key)) return '';
             return trustrootsCirclePictureFallbackUrlFromMeta(meta || null, key);
@@ -10687,7 +10808,7 @@ const __nrChatApp = (() => {
 
         /** True when this slug matches a Trustroots tribe (relay 30410 or known slug list), not only ad-hoc #channels. */
         function hasPublishedTrustrootsCircle(slug) {
-            const key = normalizeTrustrootsCircleSlugKey(slug);
+            const key = canonicalTrustrootsCircleSlugKey(slug);
             if (!key) return false;
             if (circleMetaBySlug.has(key)) return true;
             return TRUSTROOTS_CIRCLE_SLUGS_SET.has(key);
@@ -10698,7 +10819,7 @@ const __nrChatApp = (() => {
             const idRaw = String(entry.id || '').trim();
             if (!idRaw) return false;
             const idCanonical = normalizeChannelSlug(idRaw) || idRaw;
-            const idKey = normalizeTrustrootsCircleSlugKey(idCanonical);
+            const idKey = canonicalTrustrootsCircleSlugKey(idCanonical);
             if (circleMetaBySlug.has(idKey)) return true;
             if (TRUSTROOTS_CIRCLE_SLUGS_SET.has(idKey)) return true;
             const evs = entry.events || [];
@@ -10711,7 +10832,7 @@ const __nrChatApp = (() => {
                         t.length >= 3 &&
                         (t[0] === 'l' || t[0] === 'L') &&
                         t[2] === TRUSTROOTS_CIRCLE_LABEL &&
-                        normalizeTrustrootsCircleSlugKey(t[1]) === idKey
+                        canonicalTrustrootsCircleSlugKey(t[1]) === idKey
                 );
                 if (row) return true;
             }
@@ -10720,11 +10841,11 @@ const __nrChatApp = (() => {
 
         function circleSlugKeyForConversation(entry) {
             if (!isTrustrootsCircleConversation(entry)) return '';
-            return normalizeTrustrootsCircleSlugKey(normalizeChannelSlug(entry.id) || entry.id);
+            return canonicalTrustrootsCircleSlugKey(normalizeChannelSlug(entry.id) || entry.id);
         }
 
         function getCircleMemberState(slugKey) {
-            const key = normalizeTrustrootsCircleSlugKey(slugKey);
+            const key = canonicalTrustrootsCircleSlugKey(slugKey);
             if (!key) return null;
             let state = circleMembersBySlug.get(key);
             if (!state) {
@@ -10765,7 +10886,7 @@ const __nrChatApp = (() => {
             const importPub = TRUSTROOTS_IMPORT_TOOL_PUBKEY_HEX;
             if (!isTrustedCircleMemberClaimEvent(event, importPub)) return false;
             const expectedPubkeys = trustedCircleMemberClaimAuthors(importPub);
-            const slugKey = normalizeTrustrootsCircleSlugKey(slug);
+            const slugKey = canonicalTrustrootsCircleSlugKey(slug);
             if (!slugKey) return false;
             const member = parseCircleMemberFromTrustedClaimEvent(event, slugKey, expectedPubkeys, { acceptedSlugs: [slugKey] });
             if (!member) return false;
@@ -10968,7 +11089,13 @@ const __nrChatApp = (() => {
         }
 
         function appendCircleMemberAvatar(parent, member) {
-            const pic = String(member?.picture || '').trim();
+            const pubkey = String(member?.pubkey || '').trim().toLowerCase();
+            const pic = String(
+                member?.picture ||
+                pubkeyToPicture.get(pubkey) ||
+                window.NrWeb?.getRememberedNrNavAccountAvatar?.(pubkey) ||
+                ''
+            ).trim();
             if (pic && isSafeHttpUrl(pic)) {
                 const img = document.createElement('img');
                 img.className = 'circle-member-avatar';
@@ -13440,7 +13567,7 @@ const __nrChatApp = (() => {
                 const eGlyph = escConvHtml(enc);
                 if (isCircle) {
                     const slug = normalizeChannelSlug(id) || id;
-                    const meta = circleMetaBySlug.get(normalizeTrustrootsCircleSlugKey(slug)) || {};
+                    const meta = circleMetaBySlug.get(canonicalTrustrootsCircleSlugKey(slug)) || {};
                     const pic = meta.picture && isSafeHttpUrl(meta.picture)
                         ? meta.picture
                         : trustrootsCirclePictureFallback(slug, meta);
@@ -13504,7 +13631,7 @@ const __nrChatApp = (() => {
                 tokens.push('#' + id);
             }
             if (entry.type === 'channel' && isTrustrootsCircleConversation(entry)) {
-                const meta = circleMetaBySlug.get(normalizeTrustrootsCircleSlugKey(id));
+                const meta = circleMetaBySlug.get(canonicalTrustrootsCircleSlugKey(id));
                 if (meta) {
                     tokens.push(meta.name, meta.about);
                 }
@@ -13656,7 +13783,7 @@ const __nrChatApp = (() => {
             if (conv.type === 'channel') {
                 if (isTrustrootsCircleConversation(conv)) {
                     const slug = normalizeChannelSlug(conv.id) || conv.id;
-                    const slugKey = normalizeTrustrootsCircleSlugKey(slug);
+                    const slugKey = canonicalTrustrootsCircleSlugKey(slug);
                     const meta = circleMetaBySlug.get(slugKey) || {};
                     const circlePicture = meta.picture && isSafeHttpUrl(meta.picture)
                         ? meta.picture
@@ -13831,7 +13958,7 @@ const __nrChatApp = (() => {
             const circleTag = raw.tags.find(t => Array.isArray(t) && t.length >= 3 && (t[0] === 'l' || t[0] === 'L') && t[2] === TRUSTROOTS_CIRCLE_LABEL);
             const circleSlug = (circleTag?.[1] || '').trim();
             if (/^[a-zA-Z0-9_-]+$/.test(circleSlug)) {
-                return normalizeTrustrootsCircleSlugKey(normalizeChannelSlug(circleSlug));
+                return canonicalTrustrootsCircleSlugKey(normalizeChannelSlug(circleSlug));
             }
 
             const circleHashtagTag = raw.tags.find(t =>
@@ -14585,11 +14712,62 @@ export function normalizeProfileClaimLocation(value) {
   return null;
 }
 
+const PROFILE_LANGUAGE_BIBLIOGRAPHIC_TO_TERMINOLOGIC = Object.freeze({
+  alb: 'sqi',
+  arm: 'hye',
+  baq: 'eus',
+  bur: 'mya',
+  chi: 'zho',
+  cze: 'ces',
+  dut: 'nld',
+  fre: 'fra',
+  geo: 'kat',
+  ger: 'deu',
+  gre: 'ell',
+  ice: 'isl',
+  mac: 'mkd',
+  mao: 'mri',
+  may: 'msa',
+  per: 'fas',
+  rum: 'ron',
+  slo: 'slk',
+  tib: 'bod',
+  wel: 'cym',
+});
+
+const PROFILE_LANGUAGE_CODE_FALLBACK = Object.freeze({
+  arz: 'Egyptian Arabic',
+  eng: 'English',
+  en: 'English',
+  ger: 'German',
+  deu: 'German',
+  de: 'German',
+});
+
+function normalizeProfileLanguageLabel(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return '';
+  const lower = raw.toLowerCase();
+  const lowerNoPrefix = lower.replace(/^iso[_-]?639[_-]?3[-_:]*/, '');
+  const normalizedCode = PROFILE_LANGUAGE_BIBLIOGRAPHIC_TO_TERMINOLOGIC[lowerNoPrefix] || lowerNoPrefix;
+  const looksLikeLanguageCode = /^[a-z]{2,3}$/.test(normalizedCode);
+  if (!looksLikeLanguageCode) return raw;
+  const directFallback = PROFILE_LANGUAGE_CODE_FALLBACK[lower] || PROFILE_LANGUAGE_CODE_FALLBACK[lowerNoPrefix] || PROFILE_LANGUAGE_CODE_FALLBACK[normalizedCode];
+  if (directFallback) return directFallback;
+  try {
+    if (typeof Intl === 'undefined' || typeof Intl.DisplayNames !== 'function') return raw;
+    const displayNames = new Intl.DisplayNames(['en'], { type: 'language', fallback: 'none' });
+    const fromNormalized = displayNames.of(normalizedCode);
+    if (typeof fromNormalized === 'string' && fromNormalized.trim()) return fromNormalized.trim();
+  } catch (_) {}
+  return raw;
+}
+
 export function normalizeProfileClaimLanguages(value) {
   const out = [];
   const seen = new Set();
   const push = (candidate) => {
-    const s = String(candidate ?? '').trim();
+    const s = normalizeProfileLanguageLabel(candidate);
     if (!s) return;
     const key = s.toLowerCase();
     if (seen.has(key)) return;
@@ -14664,11 +14842,27 @@ export function formatMemberSinceDate(unixSeconds) {
   if (!Number.isFinite(s) || s <= 0) return '';
   const date = new Date(s * 1000);
   if (Number.isNaN(date.getTime())) return '';
-  try {
-    return new Intl.DateTimeFormat(undefined, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }).format(date);
-  } catch (_) {
-    return formatUtcDateYmd(date);
-  }
+  return formatUtcDateYmd(date);
+}
+
+export function firstSeenOnNostrootsTimestamp(events) {
+  let first = 0;
+  const visit = (value) => {
+    if (Array.isArray(value)) {
+      value.forEach(visit);
+      return;
+    }
+    const ts = Number(value?.created_at || 0);
+    if (!Number.isFinite(ts) || ts <= 0) return;
+    if (!first || ts < first) first = ts;
+  };
+  visit(events);
+  return first;
+}
+
+export function firstSeenOnNostrootsLine(events) {
+  const first = firstSeenOnNostrootsTimestamp(events);
+  return first > 0 ? `First seen on Nostroots ${formatMemberSinceDate(first)}` : '';
 }
 
 export function buildProfileStatsFromMeta(meta, nowMs = Date.now()) {
@@ -14679,7 +14873,7 @@ export function buildProfileStatsFromMeta(meta, nowMs = Date.now()) {
   const age = ageYearsFromBirthDate(birthDate, nowMs);
   const demographicsLine = age !== null && gender ? `${age} years. ${gender}.` : '';
   const memberSince = normalizeProfileClaimMemberSince(m.memberSince);
-  const memberSinceLine = memberSince > 0 ? `Member since ${formatMemberSinceDate(memberSince)}` : '';
+  const memberSinceLine = memberSince > 0 ? `Trustroots member since ${formatMemberSinceDate(memberSince)}` : '';
   const livesIn = normalizeProfileClaimLocation(m.livesIn);
   const livesInLine = livesIn?.display ? `Lives in ${livesIn.display}` : '';
   const from = normalizeProfileClaimLocation(m.from);
@@ -14805,7 +14999,6 @@ function renderProfileSelfOnlyGate(root, hex, message, buttonLabel) {
 const PROFILE_ABOUT_HTML_TAGS = [
   'p',
   'br',
-  'a',
   'strong',
   'em',
   'b',
@@ -14815,7 +15008,7 @@ const PROFILE_ABOUT_HTML_TAGS = [
   'li',
   'blockquote',
 ];
-const PROFILE_ABOUT_HTML_ATTR = ['href', 'title', 'rel', 'target'];
+const PROFILE_ABOUT_HTML_ATTR = [];
 
 if (typeof DOMPurify.addHook === 'function') {
   DOMPurify.addHook('afterSanitizeAttributes', (node) => {
@@ -14847,6 +15040,63 @@ function sanitizeProfileAboutHtml(raw) {
     ALLOWED_ATTR: PROFILE_ABOUT_HTML_ATTR,
     ALLOW_DATA_ATTR: false,
   });
+}
+
+function profileAboutTextOnly(raw) {
+  const s = String(raw || '');
+  if (!s) return '';
+  if (!profileAboutLooksLikeHtml(s)) return s;
+  const div = document.createElement('div');
+  div.innerHTML = sanitizeProfileAboutHtml(s);
+  return div.textContent || '';
+}
+
+function linkifyProfileHashtagsInNode(root) {
+  const showText = typeof NodeFilter !== 'undefined' ? NodeFilter.SHOW_TEXT : 4;
+  const walker = document.createTreeWalker(root, showText);
+  const nodes = [];
+  let node;
+  while ((node = walker.nextNode())) nodes.push(node);
+
+  for (const textNode of nodes) {
+    const text = textNode.nodeValue || '';
+    const re = /(^|[\s([{])#([a-z0-9][a-z0-9_-]{0,63})/gi;
+    let match;
+    let lastIndex = 0;
+    const frag = document.createDocumentFragment();
+    let changed = false;
+
+    while ((match = re.exec(text))) {
+      const prefix = match[1] || '';
+      const slug = normalizeProfileTextHashtagSlug(match[2]);
+      if (!slug) continue;
+      frag.appendChild(document.createTextNode(text.slice(lastIndex, match.index) + prefix));
+      const a = document.createElement('a');
+      a.className = 'nr-content-link';
+      a.href = hashRouteFromSegment(slug);
+      a.textContent = `#${match[2]}`;
+      frag.appendChild(a);
+      lastIndex = match.index + match[0].length;
+      changed = true;
+    }
+
+    if (!changed) continue;
+    frag.appendChild(document.createTextNode(text.slice(lastIndex)));
+    textNode.parentNode?.replaceChild(frag, textNode);
+  }
+}
+
+function profileAboutHtmlWithHashtagLinks(raw) {
+  const s = String(raw || '');
+  if (!s) return '';
+  const div = document.createElement('div');
+  if (profileAboutLooksLikeHtml(s)) {
+    div.innerHTML = sanitizeProfileAboutHtml(s);
+  } else {
+    div.textContent = s;
+  }
+  linkifyProfileHashtagsInNode(div);
+  return div.innerHTML;
 }
 
 function relayUrls() {
@@ -15513,6 +15763,72 @@ function mergeProfile30390AndKind0(ev30390, ev0) {
   return { picture, displayName, about, nip05, trustrootsUsername, from90, from0, ...extended };
 }
 
+function normalizeProfileTextHashtagSlug(value) {
+  const slug = String(value || '').trim().replace(/^#+/, '').toLowerCase();
+  if (!/^[a-z0-9][a-z0-9_-]{0,63}$/.test(slug)) return '';
+  return slug;
+}
+
+function extractProfileTextHashtagSlugs(text) {
+  const out = [];
+  const seen = new Set();
+  const source = profileAboutTextOnly(text);
+  const re = /(^|[\s([{])#([a-z0-9][a-z0-9_-]{0,63})/gi;
+  let match;
+  while ((match = re.exec(source))) {
+    const slug = normalizeProfileTextHashtagSlug(match[2]);
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+    out.push(slug);
+  }
+  return out;
+}
+
+function extractProfileStructuredHashtagSlugs(value) {
+  const out = [];
+  const seen = new Set();
+  const push = (candidate) => {
+    if (Array.isArray(candidate)) {
+      candidate.forEach(push);
+      return;
+    }
+    if (candidate && typeof candidate === 'object') {
+      push(candidate.slug || candidate.name || candidate.label || candidate.value || '');
+      return;
+    }
+    const raw = String(candidate || '').trim();
+    if (!raw) return;
+    const parts = raw.includes('#') ? extractProfileTextHashtagSlugs(raw) : raw.split(/[;,|]/g);
+    for (const part of parts) {
+      const slug = normalizeProfileTextHashtagSlug(part);
+      if (!slug || seen.has(slug)) continue;
+      seen.add(slug);
+      out.push(slug);
+    }
+  };
+  push(value);
+  return out;
+}
+
+function extractProfileHashtagSlugsFromMeta(meta) {
+  const out = [];
+  const seen = new Set();
+  const pushSlug = (slug) => {
+    const normalized = normalizeProfileTextHashtagSlug(slug);
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    out.push(normalized);
+  };
+  extractProfileTextHashtagSlugs(meta?.about || '').forEach(pushSlug);
+  for (const source of [meta?.from90, meta?.from0]) {
+    if (!source || typeof source !== 'object') continue;
+    for (const key of ['tags', 'hashtags', 'interests', 'circles', 'tribes']) {
+      extractProfileStructuredHashtagSlugs(source[key]).forEach(pushSlug);
+    }
+  }
+  return out;
+}
+
 function truncateBody(s, max) {
   const t = String(s || '').replace(/\s+/g, ' ').trim();
   if (t.length <= max) return t;
@@ -15563,13 +15879,14 @@ function mapNoteDisplayTimestamp(event) {
 }
 
 /**
- * Pick the newest map note that has a known intent.
+ * Pick the newest map note per intent bucket.
+ * Buckets include only known intents; notes without a recognized intent are ignored.
  * @param {unknown[]} notesSorted
  * @param {unknown[]} hostMirrorEvents
  * @param {string} subjectHex
- * @returns {{ event: unknown; intent: { id: string; label: string; hint: string } } | null}
+ * @returns {{ event: unknown; intent: { id: string; label: string; hint: string } | null }[]}
  */
-function pickLatestIntentMapNote(notesSorted, hostMirrorEvents, subjectHex) {
+function pickLatestMapNotesByIntentType(notesSorted, hostMirrorEvents, subjectHex) {
   const h = String(subjectHex || '').toLowerCase();
   const ownNotes = Array.isArray(notesSorted) ? notesSorted : [];
   const mirrorNotes = Array.isArray(hostMirrorEvents) ? hostMirrorEvents : [];
@@ -15586,17 +15903,20 @@ function pickLatestIntentMapNote(notesSorted, hostMirrorEvents, subjectHex) {
     })
     .sort((a, b) => mapNoteDisplayTimestamp(b) - mapNoteDisplayTimestamp(a));
 
-  const list = combined;
-  for (const ev of list) {
+  const byBucket = new Map();
+  for (const ev of combined) {
     const intentId = detectNoteIntent(ev);
     const intent = intentId ? getIntentById(intentId) : null;
-    if (intent) return { event: ev, intent };
+    if (!intent) continue;
+    if (!byBucket.has(intent.id)) byBucket.set(intent.id, { event: ev, intent });
   }
-  return null;
+  return Array.from(byBucket.values()).sort(
+    (a, b) => mapNoteDisplayTimestamp(b.event) - mapNoteDisplayTimestamp(a.event)
+  );
 }
 
 /**
- * Host & Meet card: show newest intent note with date.
+ * Host & Meet card: show newest note per intent bucket with date.
  * @param {unknown[]} notesSorted
  * @param {unknown[]} hostMirrorEvents
  * @param {number} validatedCount
@@ -15606,22 +15926,42 @@ function pickLatestIntentMapNote(notesSorted, hostMirrorEvents, subjectHex) {
  */
 function hostMeetSnapshot(notesSorted, hostMirrorEvents, validatedCount, subjectHex, notesReady, host303Ready) {
   if (notesReady) {
-    const picked = pickLatestIntentMapNote(notesSorted, hostMirrorEvents, subjectHex);
-    if (picked) {
-      const { event, intent } = picked;
-      const validated = event?.kind === MAP_NOTE_REPOST_KIND
-        ? true
-        : isMapNoteTrustrootsValidated(event, subjectHex);
-      const visibleContent = stripLeadingIntentHashtag(String(event.content || ''), intent.id).trim();
-      const stamp = mapNoteDisplayTimestamp(event);
+    const pickedRows = pickLatestMapNotesByIntentType(notesSorted, hostMirrorEvents, subjectHex);
+    if (pickedRows.length > 0) {
+      const rows = pickedRows.map(({ event, intent }) => {
+        const validated = event?.kind === MAP_NOTE_REPOST_KIND
+          ? true
+          : isMapNoteTrustrootsValidated(event, subjectHex);
+        const rawContent = String(event?.content || '');
+        const visibleContent = stripLeadingIntentHashtag(rawContent, intent.id).trim();
+        const stamp = mapNoteDisplayTimestamp(event);
+        return {
+          intentId: intent.id,
+          badgeText: intent.label,
+          badgeVariant: validated ? 'host' : 'warn',
+          summary: truncateBody(visibleContent || rawContent.trim(), 1200),
+          dateText: stamp > 0 ? formatDate(stamp) : '',
+          plusCode: getPlusCodeFromEvent(event),
+          source: '',
+        };
+      });
+      const first = rows[0];
+      const anyValidated = rows.some((row) => row.badgeVariant === 'host');
+      const source = anyValidated || validatedCount > 0
+        ? ''
+        : 'Publish on the Trustroots auth relay to verify this note.';
       return {
         title: 'Host & Meet',
-        badgeText: intent.label,
-        badgeVariant: validated ? 'host' : 'warn',
-        summary: truncateBody(visibleContent || String(event.content || '').trim(), 1200),
-        dateText: stamp > 0 ? formatDate(stamp) : '',
-        plusCode: getPlusCodeFromEvent(event),
-        source: validated || validatedCount > 0 ? '' : 'Publish on the Trustroots auth relay to verify this note.',
+        badgeText: first.badgeText,
+        badgeVariant: first.badgeVariant,
+        summary: first.summary,
+        dateText: first.dateText,
+        plusCode: first.plusCode,
+        source,
+        rows: rows.map((row, index) => ({
+          ...row,
+          source: index === 0 ? source : '',
+        })),
       };
     }
   }
@@ -15635,6 +15975,7 @@ function hostMeetSnapshot(notesSorted, hostMirrorEvents, validatedCount, subject
       dateText: '',
       plusCode: '',
       source: '',
+      rows: [],
     };
   }
   if (notesReady && !host303Ready) {
@@ -15646,6 +15987,7 @@ function hostMeetSnapshot(notesSorted, hostMirrorEvents, validatedCount, subject
       dateText: '',
       plusCode: '',
       source: '',
+      rows: [],
     };
   }
 
@@ -15657,6 +15999,7 @@ function hostMeetSnapshot(notesSorted, hostMirrorEvents, validatedCount, subject
     dateText: '',
     plusCode: '',
     source: '',
+    rows: [],
   };
 }
 
@@ -15693,20 +16036,127 @@ function createProfileHostMeetBadgeEl(badgeText, badgeVariant, subjectHex, nip05
   const text = String(badgeText || '').trim() || '—';
   const v = String(badgeVariant || 'muted');
   if (isSelfHex(subjectHex)) {
-    const span = document.createElement('span');
-    span.className = 'nr-profile-tr-badge';
-    span.classList.add(`nr-profile-tr-badge--${v}`);
-    span.textContent = text;
-    return span;
+    return document.createDocumentFragment();
   }
   const a = document.createElement('a');
-  a.className = 'nr-profile-tr-badge';
-  a.classList.add(`nr-profile-tr-badge--${v}`);
+  a.className = 'nr-profile-tr-rail-message-link';
   a.href = chatHashForSubject(subjectHex, nip05Lower, trUsername);
-  a.textContent = text;
+  a.textContent = 'Message';
   a.setAttribute('aria-label', 'Send a message about this Host & Meet status');
   a.title = 'Send a message';
   return a;
+}
+
+function createProfileHostMeetRowBadgeEl(badgeText, badgeVariant) {
+  const text = String(badgeText || '').trim() || '—';
+  const v = String(badgeVariant || 'muted');
+  const span = document.createElement('span');
+  span.className = 'nr-profile-tr-badge';
+  span.classList.add(`nr-profile-tr-badge--${v}`);
+  span.textContent = text;
+  return span;
+}
+
+function appendProfileHostMeetBody(hostMount, hostMeet) {
+  const hostBody = document.createElement('div');
+  hostBody.className = 'nr-profile-tr-rail-body nr-profile-tr-rail-body--accommodation';
+  const rows = Array.isArray(hostMeet?.rows) ? hostMeet.rows : [];
+  if (rows.length > 0) {
+    for (const row of rows) {
+      const item = document.createElement('div');
+      item.className = 'nr-profile-tr-accommodation-row';
+      item.style.display = 'grid';
+      item.style.gap = '0.35rem';
+      item.style.padding = '0.45rem 0';
+      item.style.borderBottom = '1px solid var(--border)';
+
+      const metaLine = document.createElement('div');
+      metaLine.style.display = 'flex';
+      metaLine.style.gap = '0.55rem';
+      metaLine.style.alignItems = 'center';
+      metaLine.style.justifyContent = 'space-between';
+
+      const badgeWrap = document.createElement('span');
+      badgeWrap.appendChild(createProfileHostMeetRowBadgeEl(row.badgeText, row.badgeVariant));
+      metaLine.appendChild(badgeWrap);
+
+      if (row.dateText) {
+        const date = document.createElement('span');
+        date.className = 'nr-profile-muted';
+        date.style.fontSize = '0.82rem';
+        date.textContent = row.dateText;
+        metaLine.appendChild(date);
+      }
+      item.appendChild(metaLine);
+
+      const summary = document.createElement('p');
+      summary.className = 'nr-profile-tr-accommodation-text';
+      summary.style.margin = '0';
+      summary.style.whiteSpace = 'pre-wrap';
+      summary.textContent = row.summary || '';
+      item.appendChild(summary);
+
+      if (row.plusCode) {
+        const plus = document.createElement('p');
+        plus.className = 'nr-profile-muted';
+        plus.style.margin = '0';
+        const a = document.createElement('a');
+        a.className = 'nr-content-link';
+        a.href = hashRouteFromSegment(row.plusCode);
+        a.textContent = row.plusCode;
+        plus.appendChild(a);
+        item.appendChild(plus);
+      }
+
+      if (row.source) {
+        const meta = document.createElement('p');
+        meta.className = 'nr-profile-muted';
+        meta.style.margin = '0';
+        meta.textContent = row.source;
+        item.appendChild(meta);
+      }
+
+      hostBody.appendChild(item);
+    }
+    const last = hostBody.lastElementChild;
+    if (last) last.style.borderBottom = 'none';
+  } else {
+    const hostP = document.createElement('p');
+    hostP.className = 'nr-profile-tr-accommodation-text';
+    if (/^Loading\b/i.test(hostMeet?.summary || '')) hostP.classList.add('nr-profile-tr-skeleton');
+    hostP.style.margin = '0';
+    hostP.style.whiteSpace = 'pre-wrap';
+    hostP.textContent = hostMeet?.summary || '';
+    hostBody.appendChild(hostP);
+    if (hostMeet?.plusCode) {
+      const hostPlus = document.createElement('p');
+      hostPlus.className = 'nr-profile-muted';
+      hostPlus.style.margin = '0.45rem 0 0';
+      const a = document.createElement('a');
+      a.className = 'nr-content-link';
+      a.href = hashRouteFromSegment(hostMeet.plusCode);
+      a.textContent = hostMeet.plusCode;
+      hostPlus.appendChild(a);
+      hostBody.appendChild(hostPlus);
+    }
+    if (hostMeet?.dateText) {
+      const hostDate = document.createElement('p');
+      hostDate.className = 'nr-profile-muted';
+      hostDate.style.margin = '0.3rem 0 0';
+      hostDate.style.textAlign = 'right';
+      hostDate.style.fontSize = '0.82rem';
+      hostDate.textContent = hostMeet.dateText;
+      hostBody.appendChild(hostDate);
+    }
+    if (hostMeet?.source) {
+      const hostMeta = document.createElement('p');
+      hostMeta.className = 'nr-profile-muted';
+      hostMeta.style.margin = '0.45rem 0 0';
+      hostMeta.textContent = hostMeet.source;
+      hostBody.appendChild(hostMeta);
+    }
+  }
+  hostMount.appendChild(hostBody);
 }
 
 function publicProfileHashForHex(hex) {
@@ -15903,17 +16353,6 @@ function createStagedProfileShell(root, ctx) {
   titleLine.appendChild(handleEl);
   header.appendChild(titleLine);
 
-  const actionsRow = document.createElement('div');
-  actionsRow.className = 'nr-profile-tr-actions';
-  let msg = null;
-  if (!selfProfile) {
-    msg = document.createElement('a');
-    msg.className = 'nr-profile-tr-action';
-    msg.href = chatHashForSubject(hex, nip05Guess || '', earlyTrUser);
-    msg.innerHTML = '💬 <span>Send a message</span>';
-    actionsRow.appendChild(msg);
-    header.appendChild(actionsRow);
-  }
   heroMain.appendChild(header);
 
   hero.appendChild(heroMain);
@@ -15932,13 +16371,34 @@ function createStagedProfileShell(root, ctx) {
   const liMemberSince = document.createElement('li');
   liMemberSince.hidden = true;
   stats.appendChild(liMemberSince);
+  const liFirstSeen = document.createElement('li');
+  liFirstSeen.hidden = true;
+  stats.appendChild(liFirstSeen);
   const liNip = document.createElement('li');
+  liNip.classList.add('nr-profile-tr-stat-nip');
+  const nipTitle = document.createElement('div');
+  nipTitle.className = 'nr-profile-tr-stat-nip-title';
+  nipTitle.textContent = 'Verified address (NIP-05)';
+  const nipValue = document.createElement('div');
+  nipValue.className = 'nr-profile-tr-stat-nip-value';
   if (nip05Guess) {
-    liNip.textContent = `Verified address (NIP-05): ${nip05Guess}`;
+    const trUser = trustrootsUserFromNip05(nip05Guess);
+    if (trUser) {
+      const a = document.createElement('a');
+      a.className = 'nr-content-link';
+      a.href = trustrootsProfileUrl(trUser);
+      setExternalAnchorRel(a);
+      a.textContent = nip05Guess;
+      nipValue.appendChild(a);
+    } else {
+      nipValue.textContent = nip05Guess;
+    }
   } else {
-    liNip.className = 'nr-profile-tr-skeleton';
-    liNip.textContent = 'Verified address (NIP-05): …';
+    liNip.classList.add('nr-profile-tr-skeleton');
+    nipValue.textContent = '…';
   }
+  liNip.appendChild(nipTitle);
+  liNip.appendChild(nipValue);
   stats.appendChild(liNip);
   const liLivesIn = document.createElement('li');
   liLivesIn.hidden = true;
@@ -16098,11 +16558,11 @@ function createStagedProfileShell(root, ctx) {
   circCard.className = 'nr-profile-tr-rail-card';
   const circTitle = document.createElement('h3');
   circTitle.className = 'nr-profile-tr-rail-title';
-  circTitle.textContent = 'Circles';
+  circTitle.textContent = 'Hashtags';
   circCard.appendChild(circTitle);
   const circSub = document.createElement('p');
   circSub.className = 'nr-profile-tr-circles-sub';
-  circSub.textContent = 'Imported from Trustroots';
+  circSub.textContent = 'Profile tags and Trustroots circles';
   circCard.appendChild(circSub);
   const circListMount = document.createElement('div');
   circListMount.className = 'nr-profile-tr-circ-list';
@@ -16118,10 +16578,10 @@ function createStagedProfileShell(root, ctx) {
     shell,
     titleEl: h1,
     handleEl,
-    msgLink: msg,
     avatarWrap: avWrap,
     statDemographicsLi: liDemographics,
     statMemberSinceLi: liMemberSince,
+    statFirstSeenLi: liFirstSeen,
     statNipLi: liNip,
     statLivesInLi: liLivesIn,
     statFromLi: liFrom,
@@ -16159,6 +16619,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
   const evP30390 = p90Ready ? viewState.evP30390 || [] : [];
   const evPClaims = claimsReady ? viewState.evPClaims || [] : [];
   const evNotes = notesReady ? viewState.evNotes || [] : [];
+  const evHost30398 = host303Ready ? viewState.evHost30398 || [] : [];
 
   const ev0 = authorsReady ? pickLatest(evAuthors, 0, hex) : null;
   const ev10390 = authorsReady ? pickLatest(evAuthors, TRUSTROOTS_PROFILE_KIND, hex) : null;
@@ -16225,7 +16686,6 @@ function applyStagedProfileView(refs, viewState, ctx) {
 
   refs.titleEl.textContent = displayTitle;
   refs.handleEl.textContent = handleLine;
-  if (refs.msgLink) refs.msgLink.href = chatHashForSubject(hex, nip05Resolved, trUser);
 
   const setStatLine = (el, text) => {
     if (!el) return;
@@ -16257,6 +16717,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
   const profileStats = buildProfileStatsFromMeta(meta);
   setStatLine(refs.statDemographicsLi, profileStats.demographicsLine);
   setStatLine(refs.statMemberSinceLi, profileStats.memberSinceLine);
+  setStatLine(refs.statFirstSeenLi, firstSeenOnNostrootsLine([evAuthors, evP30390, evPClaims, evNotes, evHost30398]));
   setStatLine(refs.statLivesInLi, profileStats.livesInLine);
   setStatLine(refs.statFromLi, profileStats.fromLine);
   setLanguagesStat(refs.statLanguagesLi, profileStats.languages);
@@ -16264,25 +16725,31 @@ function applyStagedProfileView(refs, viewState, ctx) {
   refs.statNipLi.replaceChildren();
   refs.statNipLi.hidden = false;
   refs.statNipLi.classList.remove('nr-profile-tr-skeleton', 'nr-profile-muted');
+  const nipTitle = document.createElement('div');
+  nipTitle.className = 'nr-profile-tr-stat-nip-title';
+  nipTitle.textContent = 'Verified address (NIP-05)';
+  const nipValue = document.createElement('div');
+  nipValue.className = 'nr-profile-tr-stat-nip-value';
+  refs.statNipLi.appendChild(nipTitle);
+  refs.statNipLi.appendChild(nipValue);
   if (nip05Resolved) {
     const trUser = trustrootsUserFromNip05(nip05Resolved);
     if (trUser) {
-      refs.statNipLi.appendChild(document.createTextNode('Verified address (NIP-05): '));
       const a = document.createElement('a');
       a.className = 'nr-content-link';
       a.href = trustrootsProfileUrl(trUser);
       setExternalAnchorRel(a);
       a.textContent = nip05Resolved;
-      refs.statNipLi.appendChild(a);
+      nipValue.appendChild(a);
     } else {
-      refs.statNipLi.textContent = `Verified address (NIP-05): ${nip05Resolved}`;
+      nipValue.textContent = nip05Resolved;
     }
   } else if (!authorsReady && !p90Ready) {
     refs.statNipLi.classList.add('nr-profile-tr-skeleton');
-    refs.statNipLi.textContent = 'Verified address (NIP-05): …';
+    nipValue.textContent = '…';
   } else {
     refs.statNipLi.classList.add('nr-profile-muted');
-    refs.statNipLi.textContent = 'No verified address found yet.';
+    nipValue.textContent = 'No verified address found yet.';
   }
   // Keep avatar fallbacks scoped to this profile only.
   // `evP30390` can include broad relay scans for discovery, so using all fetched
@@ -16346,11 +16813,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
     const about = document.createElement('div');
     about.className = 'nr-profile-about';
     const rawAbout = String(meta.about);
-    if (profileAboutLooksLikeHtml(rawAbout)) {
-      about.innerHTML = sanitizeProfileAboutHtml(rawAbout);
-    } else {
-      about.textContent = rawAbout;
-    }
+    about.innerHTML = profileAboutHtmlWithHashtagLinks(rawAbout);
     refs.aboutMount.appendChild(about);
   } else {
     const emptyA = document.createElement('p');
@@ -16461,35 +16924,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
         )
       );
       refs.hostMount.appendChild(hostHead);
-      const hostBody = document.createElement('div');
-      hostBody.className = 'nr-profile-tr-rail-body nr-profile-tr-rail-body--accommodation';
-      const hostP = document.createElement('p');
-      hostP.className = 'nr-profile-tr-accommodation-text';
-      hostP.style.margin = '0';
-      hostP.style.whiteSpace = 'pre-wrap';
-      hostP.textContent = cachedHostMeet.summary;
-      hostBody.appendChild(hostP);
-      if (cachedHostMeet.plusCode) {
-        const hostPlus = document.createElement('p');
-        hostPlus.className = 'nr-profile-muted';
-        hostPlus.style.margin = '0.45rem 0 0';
-        const a = document.createElement('a');
-        a.className = 'nr-content-link';
-        a.href = hashRouteFromSegment(cachedHostMeet.plusCode);
-        a.textContent = cachedHostMeet.plusCode;
-        hostPlus.appendChild(a);
-        hostBody.appendChild(hostPlus);
-      }
-      if (cachedHostMeet.dateText) {
-        const hostDate = document.createElement('p');
-        hostDate.className = 'nr-profile-muted';
-        hostDate.style.margin = '0.3rem 0 0';
-        hostDate.style.textAlign = 'right';
-        hostDate.style.fontSize = '0.82rem';
-        hostDate.textContent = cachedHostMeet.dateText;
-        hostBody.appendChild(hostDate);
-      }
-      refs.hostMount.appendChild(hostBody);
+      appendProfileHostMeetBody(refs.hostMount, cachedHostMeet);
     }
   } else {
     const hostMeet = hostMeetSnapshot(
@@ -16510,44 +16945,8 @@ function applyStagedProfileView(refs, viewState, ctx) {
       createProfileHostMeetBadgeEl(hostMeet.badgeText, hostMeet.badgeVariant, hex, nip05Resolved, trUser)
     );
     refs.hostMount.appendChild(hostHead);
-    const hostBody = document.createElement('div');
-    hostBody.className = 'nr-profile-tr-rail-body nr-profile-tr-rail-body--accommodation';
-    const hostP = document.createElement('p');
-    hostP.className = 'nr-profile-tr-accommodation-text';
-    if (/^Loading\b/i.test(hostMeet.summary || '')) hostP.classList.add('nr-profile-tr-skeleton');
-    hostP.style.margin = '0';
-    hostP.style.whiteSpace = 'pre-wrap';
-    hostP.textContent = hostMeet.summary || '';
-    hostBody.appendChild(hostP);
-    if (hostMeet.plusCode) {
-      const hostPlus = document.createElement('p');
-      hostPlus.className = 'nr-profile-muted';
-      hostPlus.style.margin = '0.45rem 0 0';
-      const a = document.createElement('a');
-      a.className = 'nr-content-link';
-      a.href = hashRouteFromSegment(hostMeet.plusCode);
-      a.textContent = hostMeet.plusCode;
-      hostPlus.appendChild(a);
-      hostBody.appendChild(hostPlus);
-    }
-    if (hostMeet.dateText) {
-      const hostDate = document.createElement('p');
-      hostDate.className = 'nr-profile-muted';
-      hostDate.style.margin = '0.3rem 0 0';
-      hostDate.style.textAlign = 'right';
-      hostDate.style.fontSize = '0.82rem';
-      hostDate.textContent = hostMeet.dateText;
-      hostBody.appendChild(hostDate);
-    }
-    if (hostMeet.source) {
-      const hostMeta = document.createElement('p');
-      hostMeta.className = 'nr-profile-muted';
-      hostMeta.style.margin = '0.45rem 0 0';
-      hostMeta.textContent = hostMeet.source;
-      hostBody.appendChild(hostMeta);
-    }
-    refs.hostMount.appendChild(hostBody);
-    if (hostMeet.badgeText !== '…' && hostMeet.badgeVariant !== 'muted' && hostMeet.summary) {
+    appendProfileHostMeetBody(refs.hostMount, hostMeet);
+    if (hostMeet.badgeText !== '…' && hostMeet.badgeVariant !== 'muted' && Array.isArray(hostMeet.rows) && hostMeet.rows.length > 0) {
       saveProfileHostMeetCardToCache(hex, hostMeet);
     }
   }
@@ -16655,11 +17054,12 @@ function applyStagedProfileView(refs, viewState, ctx) {
   }
 
   refs.circListMount.replaceChildren();
-  const circlesReady = p90Ready || host303Ready;
+  const slugsText = extractProfileHashtagSlugsFromMeta(meta);
+  const circlesReady = p90Ready || host303Ready || authorsReady || slugsText.length > 0;
   if (!circlesReady) {
     const p = document.createElement('p');
     p.className = 'nr-profile-tr-skeleton';
-    p.textContent = 'Loading circles from Trustroots import (kind 30390 / 30398)…';
+    p.textContent = 'Loading profile hashtags and Trustroots circles…';
     refs.circListMount.appendChild(p);
   } else {
     const slugs98 = host303Ready ? extractCircleSlugsFromHostReposts30398(viewState.evHost30398 || [], hex) : [];
@@ -16668,6 +17068,9 @@ function applyStagedProfileView(refs, viewState, ctx) {
     for (const s of [...slugs90, ...slugs98]) {
       const k = normalizeTrustrootsCircleSlugKey(s);
       if (k) slugSet.add(k);
+    }
+    for (const s of slugsText) {
+      if (s) slugSet.add(s);
     }
     const slugs = Array.from(slugSet).sort();
     const slugsKey = slugs.join('\0');
@@ -16712,7 +17115,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
       const p = document.createElement('p');
       p.className = 'nr-profile-muted';
       p.textContent =
-        'No Trustroots circle memberships found on your relays yet. After import, circle tags appear on kind 30390 profile claims (all members) and on kind 30398 host mirrors when a hosted offer is tagged with tribes you belong to.';
+        'No profile hashtags or Trustroots circle memberships found on your relays yet.';
       refs.circListMount.appendChild(p);
     } else {
       for (const slug of slugs) {
@@ -17224,9 +17627,22 @@ async function renderProfileEdit(profileId) {
   root.appendChild(card);
 }
 
-    return { renderPublicProfile, renderInvalidProfile, renderProfileContacts, renderProfileEdit };
+    return {
+      renderPublicProfile,
+      renderInvalidProfile,
+      renderProfileContacts,
+      renderProfileEdit,
+      pickLatestMapNotesByIntentType,
+      hostMeetSnapshot,
+      profileAboutHtmlWithHashtagLinks,
+      extractProfileHashtagSlugsFromMeta,
+    };
 })();
 export const renderPublicProfile = __nrProfilePage.renderPublicProfile;
 export const renderInvalidProfile = __nrProfilePage.renderInvalidProfile;
 export const renderProfileContacts = __nrProfilePage.renderProfileContacts;
 export const renderProfileEdit = __nrProfilePage.renderProfileEdit;
+export const pickLatestMapNotesByIntentType = __nrProfilePage.pickLatestMapNotesByIntentType;
+export const hostMeetSnapshot = __nrProfilePage.hostMeetSnapshot;
+export const profileAboutHtmlWithHashtagLinks = __nrProfilePage.profileAboutHtmlWithHashtagLinks;
+export const extractProfileHashtagSlugsFromMeta = __nrProfilePage.extractProfileHashtagSlugsFromMeta;

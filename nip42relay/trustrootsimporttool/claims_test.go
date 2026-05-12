@@ -151,8 +151,8 @@ func TestEventForProfileClaim_includesStructuredProfileFields(t *testing.T) {
 	if meta["gender"] != "male" {
 		t.Fatalf("gender = %#v", meta["gender"])
 	}
-	if meta["birthDate"] != "1974-03-11" {
-		t.Fatalf("birthDate = %#v", meta["birthDate"])
+	if _, ok := meta["birthDate"]; ok {
+		t.Fatalf("birthDate should be omitted, got %#v", meta["birthDate"])
 	}
 	if gotMemberSince, ok := meta["memberSince"].(float64); !ok || int64(gotMemberSince) != user.CreatedAt.Unix() {
 		t.Fatalf("memberSince = %#v want %d", meta["memberSince"], user.CreatedAt.Unix())

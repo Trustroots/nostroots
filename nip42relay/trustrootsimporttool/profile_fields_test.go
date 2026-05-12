@@ -24,9 +24,6 @@ func TestProfileClaimFieldsFromUser_AliasMapping(t *testing.T) {
 	if got.Gender != "male" {
 		t.Fatalf("gender = %q", got.Gender)
 	}
-	if got.BirthDate != "1974-03-11" {
-		t.Fatalf("birthDate = %q", got.BirthDate)
-	}
 	if got.MemberSince != user.CreatedAt.Unix() {
 		t.Fatalf("memberSince = %d want %d", got.MemberSince, user.CreatedAt.Unix())
 	}
@@ -55,9 +52,6 @@ func TestProfileClaimFieldsFromUser_MemberSinceAliasFallback(t *testing.T) {
 	got := profileClaimFieldsFromUser(user)
 	if got.MemberSince != time.UnixMilli(joinedMs).Unix() {
 		t.Fatalf("memberSince = %d", got.MemberSince)
-	}
-	if got.BirthDate != "1982-09-20" {
-		t.Fatalf("birthDate = %q", got.BirthDate)
 	}
 	if !reflect.DeepEqual(got.Languages, []string{"English", "French"}) {
 		t.Fatalf("languages = %#v", got.Languages)

@@ -68,7 +68,6 @@ Use these checks to verify that import output matches `nr-web` rendering expecta
     - gravatar fallback: `https://www.gravatar.com/avatar/<emailHash>?s=256&d=identicon`
   - content may also include structured profile fields (when present in Mongo user docs):
     - `gender` (string, normalized lowercase where possible)
-    - `birthDate` (`YYYY-MM-DD`)
     - `memberSince` (unix seconds)
     - `livesIn` (object: `display`, optional `city` / `country`)
     - `from` (object: `display`, optional `city` / `country`)

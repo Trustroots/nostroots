@@ -18,7 +18,6 @@ type profileLocation struct {
 
 type profileClaimFields struct {
 	Gender      string           `json:"gender,omitempty"`
-	BirthDate   string           `json:"birthDate,omitempty"`
 	MemberSince int64            `json:"memberSince,omitempty"`
 	LivesIn     *profileLocation `json:"livesIn,omitempty"`
 	From        *profileLocation `json:"from,omitempty"`
@@ -301,14 +300,6 @@ func profileClaimFieldsFromUser(user User) profileClaimFields {
 		out.Gender = normalizedGender(rawGender)
 	}
 
-	if rawBirthDate, ok := rawValueByAliases(user.Raw,
-		"birthDate", "birthdate", "birthday", "dateOfBirth", "dob", "born", "birth_date",
-	); ok {
-		if ts, ok := timeFromAny(rawBirthDate); ok {
-			out.BirthDate = ts.Format("2006-01-02")
-		}
-	}
-
 	if !user.CreatedAt.IsZero() {
 		out.MemberSince = user.CreatedAt.UTC().Unix()
 	} else if rawMemberSince, ok := rawValueByAliases(user.Raw,
@@ -369,9 +360,6 @@ func appendProfileClaimFields(metadata map[string]any, user User) {
 	fields := profileClaimFieldsFromUser(user)
 	if fields.Gender != "" {
 		metadata["gender"] = fields.Gender
-	}
-	if fields.BirthDate != "" {
-		metadata["birthDate"] = fields.BirthDate
 	}
 	if fields.MemberSince > 0 {
 		metadata["memberSince"] = fields.MemberSince

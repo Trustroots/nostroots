@@ -218,6 +218,55 @@ export function trustrootsProfileUrl(username) {
   return `https://www.trustroots.org/profile/${encodeURIComponent(u)}`;
 }
 
+export function trustrootsMessageUrl(username) {
+  const u = String(username || '').trim().toLowerCase();
+  if (!u) return '';
+  return `https://www.trustroots.org/messages/${encodeURIComponent(u)}`;
+}
+
+export function trustrootsUsernameFromNip05Address(value) {
+  const s = String(value || '').trim().toLowerCase();
+  const at = s.lastIndexOf('@');
+  if (at <= 0 || at === s.length - 1) return '';
+  const local = s.slice(0, at);
+  const domain = s.slice(at + 1).replace(/^www\./, '');
+  if (domain !== 'trustroots.org') return '';
+  if (!/^[a-z0-9][a-z0-9_.-]{0,63}$/.test(local)) return '';
+  return local;
+}
+
+export function profileResolutionFailureDetails(profileId) {
+  const raw = String(profileId || '').trim();
+  const trustrootsUsername = trustrootsUsernameFromNip05Address(raw);
+  const profileLabel = raw || 'this profile link';
+  const details = {
+    title: "We couldn't find this Nostr profile.",
+    intro: `Nostroots tried to look up ${profileLabel}. Nostr profiles can be found by an npub (a public profile key) or by a NIP-05 address, which looks like username@trustroots.org and points to an npub.`,
+    next: 'This address does not currently point to a usable Nostr public key. Check the spelling, or ask the person for their npub.',
+    trustrootsUsername,
+    actionHref: '',
+    actionLabel: '',
+    invite: '',
+  };
+  if (trustrootsUsername) {
+    details.next = `That probably means ${trustrootsUsername} has not added their npub to Trustroots yet, or the Trustroots username is wrong.`;
+    details.actionHref = trustrootsMessageUrl(trustrootsUsername);
+    details.actionLabel = `Message ${trustrootsUsername} on Trustroots`;
+    details.invite = 'You can invite them to Nostroots from Trustroots and ask them to add their public Nostr address there.';
+  }
+  return details;
+}
+
+export function trustrootsConversationStartFeedback(username) {
+  const u = String(username || '').trim().toLowerCase();
+  if (!u) return { message: 'Could not find a linked Nostr address for that Trustroots user.' };
+  return {
+    message: `I couldn't find a Nostroots address for ${u}@trustroots.org. They may still need to add their public Nostr address (npub) on Trustroots before you can message them here.`,
+    actionHref: trustrootsMessageUrl(u),
+    actionLabel: 'Message on Trustroots',
+  };
+}
+
 /**
  * Parse `Trustroots relationship suggestion: @a -> @b` (from import tool).
  * @returns {[string, string]|null} lowercased usernames [from, to]
@@ -1391,10 +1440,232 @@ export function computeHeaderKpiCounts(eventsList, nowTimestamp = Math.round(Dat
     return { notesLoaded, newNotes24h };
 }
 
+const STATS_FEATURED_INTENT_IDS = ['hosting', 'lookingforhost', 'wanttomeet'];
+const STATS_RECENT_IDENTITY_WINDOW_SECONDS = 30 * 24 * 60 * 60;
+const STATS_TREND_WEEK_COUNT = 8;
+
+function dedupeStatsEvents(eventsList) {
+    const byId = new Map();
+    for (const event of Array.isArray(eventsList) ? eventsList : []) {
+        if (!event || typeof event !== 'object') continue;
+        const id = String(event.id || '');
+        if (!id) continue;
+        const prev = byId.get(id);
+        if (!prev || Number(event.created_at || 0) >= Number(prev.created_at || 0)) {
+            byId.set(id, event);
+        }
+    }
+    return [...byId.values()];
+}
+
+function trustrootsUsernameFromStatsEvent(event) {
+    if (!event || typeof event !== 'object') return '';
+    if (event.kind === TRUSTROOTS_PROFILE_KIND) {
+        return getTrustrootsUsernameFromProfileEvent(event) || '';
+    }
+    if (event.kind === 0 && event.content) {
+        try {
+            const profile = JSON.parse(String(event.content || '{}'));
+            const nip05 = String(profile?.nip05 || '').trim().toLowerCase();
+            if (isTrustrootsNip05Lower(nip05)) return nip05.split('@')[0] || '';
+        } catch (_) {}
+    }
+    if (event.kind === PROFILE_CLAIM_KIND) {
+        const tagged = (event.tags || []).find(
+            (tag) =>
+                Array.isArray(tag) &&
+                tag[0] === 'l' &&
+                tag[1] &&
+                String(tag[2] || '').toLowerCase() === TRUSTROOTS_USERNAME_LABEL_NAMESPACE
+        );
+        if (tagged?.[1]) return String(tagged[1]).trim().toLowerCase();
+        try {
+            const payload = JSON.parse(String(event.content || '{}'));
+            const direct = String(payload?.trustrootsUsername || payload?.username || payload?.name || '').trim().toLowerCase();
+            if (direct) return direct;
+            const nip05 = String(payload?.nip05 || '').trim().toLowerCase();
+            if (isTrustrootsNip05Lower(nip05)) return nip05.split('@')[0] || '';
+        } catch (_) {}
+    }
+    return '';
+}
+
+function trustrootsIdentityPubkeysFromStatsEvent(event) {
+    const out = new Set();
+    const author = normalizeCachedPubkeyHex(event?.pubkey);
+    if (event?.kind === 0 || event?.kind === TRUSTROOTS_PROFILE_KIND) {
+        if (author && trustrootsUsernameFromStatsEvent(event)) out.add(author);
+    } else if (event?.kind === PROFILE_CLAIM_KIND) {
+        const pTags = listHexPubkeyPTags(event.tags);
+        pTags.forEach((hex) => out.add(hex));
+        if (!pTags.length && author) out.add(author);
+    }
+    return out;
+}
+
+function timestampWithin(ts, nowTimestamp, seconds) {
+    const n = Number(ts || 0);
+    return Number.isFinite(n) && n > 0 && n >= Number(nowTimestamp || 0) - seconds;
+}
+
+function formatStatsTrendLabel(weekIndexFromOldest) {
+    const weeksAgo = STATS_TREND_WEEK_COUNT - 1 - weekIndexFromOldest;
+    if (weeksAgo <= 0) return 'now';
+    return `${weeksAgo}w`;
+}
+
+export function buildStatsSnapshotFromEvents(eventsList, options = {}) {
+    const nowTimestamp = Number(options.nowTimestamp || Math.round(Date.now() / 1000));
+    const source = dedupeStatsEvents(eventsList);
+    const identityPubkeys = new Set();
+    const linkedUsernames = new Set();
+    const identityFirstSeen = new Map();
+    const activePosters = new Set();
+    const activeAreas = new Set();
+    const claimParticipants = new Set();
+    const topCircleCounts = new Map();
+    const intentCounts = Object.fromEntries(STATS_FEATURED_INTENT_IDS.map((id) => [id, 0]));
+    const weeklyTrend = Array.from({ length: STATS_TREND_WEEK_COUNT }, (_, i) => ({
+        label: formatStatsTrendLabel(i),
+        count: 0,
+    }));
+    const weekWindowStart = nowTimestamp - STATS_TREND_WEEK_COUNT * 7 * 24 * 60 * 60;
+    let importedProfileClaims = 0;
+    let totalNotes = 0;
+    let hostMirrors = 0;
+    let notes24h = 0;
+    let notes7d = 0;
+    let notes30d = 0;
+    let relationshipClaims = 0;
+    let experienceReferences = 0;
+    let threadUpvoteMetrics = 0;
+    let circleDirectoryCount = 0;
+    let latestEventAt = 0;
+
+    function rememberIdentity(hex, username, createdAt) {
+        const h = normalizeCachedPubkeyHex(hex);
+        if (!h) return;
+        identityPubkeys.add(h);
+        if (username) linkedUsernames.add(String(username).trim().toLowerCase());
+        const ts = Number(createdAt || 0);
+        if (Number.isFinite(ts) && ts > 0) {
+            const prev = identityFirstSeen.get(h);
+            if (!prev || ts < prev) identityFirstSeen.set(h, ts);
+        }
+    }
+
+    for (const event of source) {
+        if (typeof NrBlocklist !== 'undefined' && NrBlocklist?.isBlocked && NrBlocklist.isBlocked(event.pubkey)) continue;
+        const createdAt = Number(event.created_at || 0);
+        if (Number.isFinite(createdAt) && createdAt > latestEventAt) latestEventAt = createdAt;
+
+        const username = trustrootsUsernameFromStatsEvent(event);
+        for (const hex of trustrootsIdentityPubkeysFromStatsEvent(event)) {
+            rememberIdentity(hex, username, createdAt);
+        }
+        if (username) linkedUsernames.add(String(username).trim().toLowerCase());
+        if (event.kind === PROFILE_CLAIM_KIND) importedProfileClaims += 1;
+
+        if (MAP_NOTE_KINDS.includes(event.kind)) {
+            totalNotes += 1;
+            if (event.kind === MAP_NOTE_REPOST_KIND) hostMirrors += 1;
+            const author = normalizeCachedPubkeyHex(event.pubkey);
+            if (author) activePosters.add(author);
+            const plusCode = getPlusCodeFromEvent(event);
+            if (plusCode) activeAreas.add(plusCode);
+            if (timestampWithin(createdAt, nowTimestamp, 24 * 60 * 60)) notes24h += 1;
+            if (timestampWithin(createdAt, nowTimestamp, 7 * 24 * 60 * 60)) notes7d += 1;
+            if (timestampWithin(createdAt, nowTimestamp, 30 * 24 * 60 * 60)) notes30d += 1;
+            if (createdAt >= weekWindowStart && createdAt <= nowTimestamp) {
+                const idx = Math.min(
+                    STATS_TREND_WEEK_COUNT - 1,
+                    Math.max(0, Math.floor((createdAt - weekWindowStart) / (7 * 24 * 60 * 60)))
+                );
+                weeklyTrend[idx].count += 1;
+            }
+            const intentId = detectNoteIntent(event);
+            if (Object.prototype.hasOwnProperty.call(intentCounts, intentId)) {
+                intentCounts[intentId] += 1;
+            }
+        }
+
+        if (event.kind === RELATIONSHIP_CLAIM_KIND) relationshipClaims += 1;
+        if (event.kind === EXPERIENCE_CLAIM_KIND) experienceReferences += 1;
+        if (event.kind === THREAD_UPVOTE_METRIC_KIND) threadUpvoteMetrics += 1;
+        if ([RELATIONSHIP_CLAIM_KIND, EXPERIENCE_CLAIM_KIND, THREAD_UPVOTE_METRIC_KIND].includes(event.kind)) {
+            listHexPubkeyPTags(event.tags).forEach((hex) => claimParticipants.add(hex));
+        }
+        if (event.kind === TRUSTROOTS_CIRCLE_META_KIND) circleDirectoryCount += 1;
+        if (event.kind === PROFILE_CLAIM_KIND || event.kind === MAP_NOTE_REPOST_KIND || event.kind === TRUSTROOTS_CIRCLE_META_KIND) {
+            for (const slug of extractTrustrootsCircleSlugsFromEventTags(event)) {
+                topCircleCounts.set(slug, (topCircleCounts.get(slug) || 0) + 1);
+            }
+        }
+    }
+
+    const recentNewIdentities = [...identityFirstSeen.values()].filter((ts) =>
+        timestampWithin(ts, nowTimestamp, STATS_RECENT_IDENTITY_WINDOW_SECONDS)
+    ).length;
+    const topCircles = [...topCircleCounts.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .slice(0, 6)
+        .map(([slug, count]) => ({ slug, count }));
+    return {
+        generatedAt: Number(options.generatedAt || Date.now()),
+        observedEvents: source.length,
+        identity: {
+            observedTrustrootsIdentities: identityPubkeys.size,
+            linkedTrustrootsUsernames: linkedUsernames.size,
+            importedProfileClaims,
+            recentNewIdentities,
+        },
+        hostMeet: {
+            totalNotes,
+            hostMirrors,
+            notes24h,
+            notes7d,
+            notes30d,
+            activePosters: activePosters.size,
+            activeAreas: activeAreas.size,
+            weeklyTrend,
+        },
+        intents: STATS_FEATURED_INTENT_IDS.map((id) => ({
+            id,
+            label: getIntentById(id)?.label || id,
+            count: intentCounts[id] || 0,
+        })),
+        community: {
+            relationshipClaims,
+            experienceReferences,
+            threadUpvoteMetrics,
+            uniqueClaimParticipants: claimParticipants.size,
+        },
+        circles: {
+            circleDirectoryCount,
+            topCircles,
+        },
+        relays: {
+            online: Math.max(0, Number(options.relaysConnected || 0)),
+            total: Math.max(0, Number(options.relaysTotal || 0)),
+            contributing: Math.max(0, Number(options.contributingRelays || 0)),
+            latestEventAt,
+        },
+    };
+}
+
 export function formatHeaderRelaysOnlineKpi(connectedCount, totalCount) {
     const connected = Math.max(0, Number(connectedCount) || 0);
     const total = Math.max(0, Number(totalCount) || 0);
     return `${connected}/${total}`;
+}
+
+export function getHeaderRelayStatusClass(connectedCount, totalCount, isHydrated = true) {
+    const connected = Math.max(0, Number(connectedCount) || 0);
+    const total = Math.max(0, Number(totalCount) || 0);
+    if (!isHydrated || total === 0) return '';
+    if (connected === 0) return 'is-error';
+    if (connected < total) return 'is-warn';
+    return '';
 }
 
 export function getHeaderKpiKeysForViewport(isCompact) {
@@ -2105,6 +2376,7 @@ function resolveNostrootsTitleFromRouteClassification(classification) {
         if (c.token === 'chat') return fmt('Chat');
         if (c.token === 'welcome' || c.token === 'start') return fmt('Welcome');
     }
+    if (c.kind === 'stats') return fmt('Stats');
     if (c.kind === 'profile') return fmt(c.profileId || 'Profile');
     if (c.kind === 'profile_edit') return fmt(c.profileId ? `${c.profileId} Edit` : 'Profile Edit');
     if (c.kind === 'profile_contacts') return fmt(c.profileId ? `${c.profileId} Contacts` : 'Profile Contacts');
@@ -2255,7 +2527,7 @@ let relays = [];
 let relayConnectGeneration = 0;
 let relayKeepAliveIntervalIds = [];
 let wsMapSubscriptions = [];
-const RELAY_FAILURE_TOAST_GRACE_MS = 3500;
+const RELAY_FAILURE_TOAST_GRACE_MS = 15000;
 let relayFailureToastTimeoutId = null;
 
 function closeRelaysArray(list) {
@@ -2460,12 +2732,14 @@ function showAreaSurface() {
     const mapView = document.getElementById('map-view');
     const chatView = document.getElementById('nr-chat-view');
     const profileView = document.getElementById('nr-profile-view');
+    const statsView = document.getElementById('nr-stats-view');
     const hostView = document.getElementById('nr-host-view');
     const keysPage = document.getElementById('keys-modal');
     const settingsPage = document.getElementById('settings-modal');
 
     document.body.classList.remove('nr-surface-chat');
     document.body.classList.remove('nr-surface-profile');
+    document.body.classList.remove('nr-surface-stats');
     document.body.classList.remove('nr-surface-account');
     document.body.classList.add('nr-surface-host');
     document.body.classList.remove('chat-open');
@@ -2478,6 +2752,10 @@ function showAreaSurface() {
     if (profileView) {
         profileView.hidden = true;
         profileView.style.display = 'none';
+    }
+    if (statsView) {
+        statsView.hidden = true;
+        statsView.style.display = 'none';
     }
     if (hostView) {
         hostView.hidden = false;
@@ -2542,6 +2820,7 @@ async function applyUnifiedHash() {
     const mapView = document.getElementById('map-view');
     const chatView = document.getElementById('nr-chat-view');
     const profileView = document.getElementById('nr-profile-view');
+    const statsView = document.getElementById('nr-stats-view');
     const hostView = document.getElementById('nr-host-view');
     const keysPage = document.getElementById('keys-modal');
     const settingsPage = document.getElementById('settings-modal');
@@ -2641,12 +2920,17 @@ async function applyUnifiedHash() {
         restoreAllClaimsProfileUi();
         document.body.classList.remove('nr-surface-chat');
         document.body.classList.remove('nr-surface-profile');
+        document.body.classList.remove('nr-surface-stats');
         document.body.classList.remove('nr-surface-account');
         hideAreaShell();
         hideAccountShell();
         if (profileView) {
             profileView.hidden = true;
             profileView.style.display = 'none';
+        }
+        if (statsView) {
+            statsView.hidden = true;
+            statsView.style.display = 'none';
         }
         if (mapView) mapView.style.display = '';
         if (chatView) {
@@ -2666,12 +2950,17 @@ async function applyUnifiedHash() {
     function showChatShell() {
         restoreAllClaimsProfileUi();
         document.body.classList.remove('nr-surface-profile');
+        document.body.classList.remove('nr-surface-stats');
         document.body.classList.remove('nr-surface-account');
         hideAreaShell();
         hideAccountShell();
         if (profileView) {
             profileView.hidden = true;
             profileView.style.display = 'none';
+        }
+        if (statsView) {
+            statsView.hidden = true;
+            statsView.style.display = 'none';
         }
         document.body.classList.add('nr-surface-chat');
         if (mapView) mapView.style.display = 'none';
@@ -2702,6 +2991,7 @@ async function applyUnifiedHash() {
         const m = mode || 'public';
         if (m !== 'contacts') restoreAllClaimsProfileUi();
         document.body.classList.remove('nr-surface-chat');
+        document.body.classList.remove('nr-surface-stats');
         document.body.classList.remove('nr-surface-account');
         hideAreaShell();
         document.body.classList.add('nr-surface-profile');
@@ -2714,6 +3004,10 @@ async function applyUnifiedHash() {
         if (profileView) {
             profileView.hidden = false;
             profileView.style.display = 'flex';
+        }
+        if (statsView) {
+            statsView.hidden = true;
+            statsView.style.display = 'none';
         }
         if (hostView) {
             hostView.hidden = true;
@@ -2742,6 +3036,7 @@ async function applyUnifiedHash() {
         restoreAllClaimsProfileUi();
         document.body.classList.remove('nr-surface-chat');
         document.body.classList.remove('nr-surface-profile');
+        document.body.classList.remove('nr-surface-stats');
         hideAreaShell();
         document.body.classList.add('nr-surface-account');
         if (mapView) mapView.style.display = 'none';
@@ -2752,6 +3047,10 @@ async function applyUnifiedHash() {
         if (profileView) {
             profileView.hidden = true;
             profileView.style.display = 'none';
+        }
+        if (statsView) {
+            statsView.hidden = true;
+            statsView.style.display = 'none';
         }
         if (hostView) {
             hostView.hidden = true;
@@ -2765,9 +3064,42 @@ async function applyUnifiedHash() {
             }
         } catch (_) {}
     }
+    function showStatsShell() {
+        restoreAllClaimsProfileUi();
+        document.body.classList.remove('nr-surface-chat');
+        document.body.classList.remove('nr-surface-profile');
+        document.body.classList.remove('nr-surface-account');
+        hideAreaShell();
+        hideAccountShell();
+        document.body.classList.add('nr-surface-stats');
+        if (mapView) mapView.style.display = 'none';
+        if (chatView) {
+            chatView.hidden = true;
+            chatView.style.display = 'none';
+        }
+        if (profileView) {
+            profileView.hidden = true;
+            profileView.style.display = 'none';
+        }
+        if (statsView) {
+            statsView.hidden = false;
+            statsView.style.display = 'flex';
+        }
+        if (hostView) {
+            hostView.hidden = true;
+            hostView.style.display = 'none';
+        }
+        try {
+            if (window.NrWeb && typeof window.NrWeb.fillAppHeader === 'function') {
+                window.NrWeb.fillAppHeader();
+            }
+        } catch (_) {}
+        void renderStatsPage();
+    }
     function shouldShowNoKeyWelcomeOverlay(classifiedRoute) {
         if (getCurrentNostrootsSetupState() !== 'no_key') return false;
         if (!classifiedRoute) return false;
+        if (classifiedRoute.kind === 'stats') return false;
         if (classifiedRoute.kind === 'modal' && classifiedRoute.modal === 'keys') return false;
         if (classifiedRoute.kind === 'reserved' && (classifiedRoute.token === 'welcome' || classifiedRoute.token === 'start')) return false;
         if (classifiedRoute.kind === 'map_home' && !location.hash) return false;
@@ -2890,6 +3222,12 @@ async function applyUnifiedHash() {
             }
         }
         await showProfileShell(c.profileId, c.kind === 'profile_invalid', mode);
+        maybeShowNoKeyWelcomeOverlay(c);
+        return;
+    }
+    if (c.kind === 'stats') {
+        closePlusCodeNotesModal(true);
+        showStatsShell();
         maybeShowNoKeyWelcomeOverlay(c);
         return;
     }
@@ -3992,13 +4330,403 @@ function renderHeaderKpis() {
     bindHeaderKpiClickHandlers(container);
 }
 
+function renderHeaderRelayStatus() {
+    const btn = document.getElementById('header-relay-status');
+    if (!btn) return;
+    const valueEl = btn.querySelector('.header-relay-status-value');
+    const snapshot = getHeaderKpiSnapshot();
+    const value = headerKpisHydrated
+        ? formatHeaderRelaysOnlineKpi(snapshot.relaysConnected, snapshot.relaysTotal)
+        : SETTINGS_KPI_LOADING_VALUE;
+    const ariaLabel = `Relays online: ${value}`;
+    btn.classList.remove('is-loading', 'is-warn', 'is-error');
+    if (!headerKpisHydrated || snapshot.relaysTotal === 0) {
+        btn.classList.add('is-loading');
+    } else {
+        const statusClass = getHeaderRelayStatusClass(
+            snapshot.relaysConnected,
+            snapshot.relaysTotal,
+            headerKpisHydrated,
+        );
+        if (statusClass) btn.classList.add(statusClass);
+    }
+    btn.setAttribute('aria-label', ariaLabel);
+    btn.setAttribute('title', ariaLabel);
+    if (valueEl) valueEl.textContent = value;
+    btn.onclick = (event) => {
+        event.preventDefault();
+        openRelaysSettingsModal();
+    };
+}
+
 function scheduleHeaderKpiRefresh() {
     renderHeaderKpis();
+    renderHeaderRelayStatus();
+}
+
+const NR_STATS_CACHE_KEY = 'nr-web.stats.snapshot.v1';
+const NR_STATS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+let nrStatsRenderToken = 0;
+
+export function getStatsRelayFilters() {
+    return [
+        { kinds: [0, TRUSTROOTS_PROFILE_KIND, PROFILE_CLAIM_KIND], limit: 2500 },
+        { kinds: MAP_NOTE_KINDS, limit: 3000 },
+        { kinds: [RELATIONSHIP_CLAIM_KIND, EXPERIENCE_CLAIM_KIND, THREAD_UPVOTE_METRIC_KIND], limit: 2500 },
+        { kinds: [TRUSTROOTS_CIRCLE_META_KIND], limit: 1200 },
+    ];
+}
+
+function relayUrlsFromStatsEvents(eventsList) {
+    const urls = new Set();
+    for (const event of eventsList || []) {
+        const add = (raw) => {
+            const s = String(raw || '').trim().toLowerCase();
+            if (s) urls.add(s);
+        };
+        add(event?._nrCollectRelay);
+        if (Array.isArray(event?._nrRelayUrls)) event._nrRelayUrls.forEach(add);
+    }
+    return urls;
+}
+
+async function collectStatsFromPublicRelay(url, filters) {
+    let relay;
+    const all = [];
+    try {
+        relay = await Promise.race([
+            Relay.connect(url),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('connect timeout')), 4500)),
+        ]);
+        await new Promise((resolve) => {
+            let settled = false;
+            let sub = null;
+            const settle = () => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(timeoutId);
+                try { sub?.close?.(); } catch (_) {}
+                try { relay?.close?.(); } catch (_) {}
+                resolve();
+            };
+            const timeoutId = setTimeout(settle, 6500);
+            try {
+                sub = relay.subscribe(filters, {
+                    onevent: (event) => {
+                        if (event && typeof event === 'object') all.push({ ...event, _nrCollectRelay: url });
+                    },
+                    oneose: () => {
+                        setTimeout(settle, 350);
+                    },
+                });
+            } catch (_) {
+                settle();
+            }
+        });
+    } finally {
+        try { relay?.close?.(); } catch (_) {}
+    }
+    return all;
+}
+
+async function collectStatsFromNip42Relay(filters) {
+    const relayAuth = window.NrWebRelayAuth;
+    if (!relayAuth?.nip42SubscribeOnce) return [];
+    if (!currentPublicKey || typeof signEventTemplate !== 'function') return [];
+    const relayUrl = TRUSTROOTS_RESTRICTED_RELAY_URL;
+    const chunks = await Promise.all(filters.map(async (filter) => {
+        const out = [];
+        try {
+            await relayAuth.nip42SubscribeOnce({
+                relayUrl,
+                filter,
+                authPubkey: currentPublicKey,
+                signEvent: async (eventTemplate) => signEventTemplate(eventTemplate),
+                onEvent: (event) => {
+                    if (event && typeof event === 'object') out.push({ ...event, _nrCollectRelay: relayUrl });
+                },
+                onAuthChallenge: () => {},
+                onAuthSuccess: () => {},
+                onAuthFail: () => {},
+                onError: () => {},
+                waitMs: 4200,
+            });
+        } catch (_) {}
+        return out;
+    }));
+    return chunks.flat();
+}
+
+function loadStatsSnapshotFromCache() {
+    try {
+        const raw = localStorage.getItem(NR_STATS_CACHE_KEY);
+        if (!raw) return null;
+        const row = JSON.parse(raw);
+        if (!row || typeof row !== 'object' || !row.snapshot) return null;
+        const age = Date.now() - Number(row.cachedAt || 0);
+        if (!Number.isFinite(age) || age < 0 || age > NR_STATS_CACHE_MAX_AGE_MS) return null;
+        return row.snapshot;
+    } catch (_) {
+        return null;
+    }
+}
+
+function saveStatsSnapshotToCache(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return;
+    try {
+        localStorage.setItem(NR_STATS_CACHE_KEY, JSON.stringify({ cachedAt: Date.now(), snapshot }));
+    } catch (_) {}
+}
+
+function formatStatsNumber(value) {
+    const n = Number(value || 0);
+    if (!Number.isFinite(n)) return '0';
+    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(Math.max(0, n));
+}
+
+function formatStatsTimestamp(msOrSeconds) {
+    const n = Number(msOrSeconds || 0);
+    if (!Number.isFinite(n) || n <= 0) return 'unknown';
+    const ms = n > 1_000_000_000_000 ? n : n * 1000;
+    const date = new Date(ms);
+    if (Number.isNaN(date.getTime())) return 'unknown';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+}
+
+function statsCard(label, value, note = '', explanation = '') {
+    const title = explanation || `${label}: ${formatStatsNumber(value)}`;
+    return `
+        <article class="nr-stats-card" title="${escapeHtml(title)}">
+            <span class="nr-stats-card-label">${escapeHtml(label)}</span>
+            <strong class="nr-stats-card-value">${escapeHtml(formatStatsNumber(value))}</strong>
+            ${note ? `<span class="nr-stats-card-note">${escapeHtml(note)}</span>` : ''}
+        </article>
+    `;
+}
+
+function statsRows(rows) {
+    return rows.map((row) => {
+        const label = Array.isArray(row) ? row[0] : row.label;
+        const value = Array.isArray(row) ? row[1] : row.value;
+        const explanation = Array.isArray(row) ? row[2] : row.explanation;
+        return `
+        <div class="nr-stats-row" title="${escapeHtml(explanation || `${label}: ${value}`)}">
+            <span class="nr-stats-row-label">${escapeHtml(label)}</span>
+            <strong class="nr-stats-row-value">${escapeHtml(String(value))}</strong>
+        </div>
+    `;
+    }).join('');
+}
+
+function statsBars(buckets) {
+    const max = Math.max(1, ...(buckets || []).map((b) => Number(b.count || 0)));
+    return `
+        <div class="nr-stats-bars" aria-label="Weekly Host & Meet activity">
+            ${(buckets || []).map((bucket) => {
+                const count = Math.max(0, Number(bucket.count || 0));
+                const height = Math.max(3, Math.round((count / max) * 92));
+                return `
+                    <div class="nr-stats-bar" title="${escapeHtml(`${bucket.label}: ${count}`)}">
+                        <span class="nr-stats-bar-fill" style="height:${height}px"></span>
+                        <span class="nr-stats-bar-label">${escapeHtml(bucket.label)}</span>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function statsMeters(rows) {
+    const max = Math.max(1, ...(rows || []).map((r) => Number(r.count || 0)));
+    return `
+        <div class="nr-stats-list">
+            ${(rows || []).map((row) => {
+                const count = Math.max(0, Number(row.count || 0));
+                const width = Math.round((count / max) * 100);
+                return `
+                    <div class="nr-stats-list-row" title="${escapeHtml(row.explanation || `${row.label || row.slug || row.id || ''}: ${count}`)}">
+                        <span>
+                            <span class="nr-stats-row-label">${escapeHtml(row.label || row.slug || row.id || '')}</span>
+                            <span class="nr-stats-meter" aria-hidden="true"><span style="width:${width}%"></span></span>
+                        </span>
+                        <strong class="nr-stats-row-value">${escapeHtml(formatStatsNumber(count))}</strong>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+
+function renderStatsState(root, message, detail = '') {
+    root.innerHTML = `
+        <div class="nr-stats">
+            <section class="nr-stats-state">
+                <strong>${escapeHtml(message)}</strong>
+                ${detail ? `<p class="nr-stats-muted">${escapeHtml(detail)}</p>` : ''}
+            </section>
+        </div>
+    `;
+}
+
+function renderStatsSnapshot(root, snapshot, options = {}) {
+    const status = options.status || 'Live';
+    const relays = snapshot.relays || {};
+    const latestSeen = relays.latestEventAt ? `Latest event ${formatStatsTimestamp(relays.latestEventAt)}` : 'No event timestamp yet';
+    const intentRows = (snapshot.intents || []).map((row) => ({
+        ...row,
+        explanation: `${row.label || row.id} Host & Meet notes observed. These come from the note's hashtag or Nostr tag.`,
+    }));
+    const topCircles = snapshot.circles?.topCircles?.length
+        ? snapshot.circles.topCircles.map((row) => ({
+            label: `#${row.slug}`,
+            count: row.count,
+            explanation: `Circle tag mentions for #${row.slug} observed in imported profile, host mirror, or circle directory events.`,
+        }))
+        : [{ label: 'No circle mentions observed', count: 0, explanation: 'No Trustroots circle tags were found in the events used for this snapshot.' }];
+    root.innerHTML = `
+        <div class="nr-stats">
+            <header class="nr-stats-header">
+                <div>
+                    <h1>Progress stats</h1>
+                    <p>Counts are based on events seen on your configured relays.</p>
+                </div>
+                <div class="nr-stats-actions">
+                    <span class="nr-stats-badge">${escapeHtml(status)} - ${escapeHtml(formatStatsTimestamp(snapshot.generatedAt))}</span>
+                    <button type="button" class="nr-stats-refresh" id="nr-stats-refresh">Refresh</button>
+                </div>
+            </header>
+            ${snapshot.observedEvents === 0 ? '<div class="nr-stats-state nr-stats-muted">No progress events were observed yet. Try again after relays connect.</div>' : ''}
+            <section class="nr-stats-grid" aria-label="Progress overview">
+                ${statsCard('Trustroots identities', snapshot.identity.observedTrustrootsIdentities, 'seen on Nostr', 'People with a Trustroots identity signal found on Nostr, such as a Trustroots username, NIP-05 address, or imported profile claim.')}
+                ${statsCard('Linked usernames', snapshot.identity.linkedTrustrootsUsernames, 'Trustroots names', 'Distinct Trustroots usernames observed in profile metadata or imported profile claims.')}
+                ${statsCard('Host & Meet notes', snapshot.hostMeet.totalNotes, `${formatStatsNumber(snapshot.hostMeet.notes7d)} in 7 days`, 'Location-based Host & Meet notes and Trustroots-validated mirrors observed on configured relays.')}
+                ${statsCard('Active posters', snapshot.hostMeet.activePosters, `${formatStatsNumber(snapshot.hostMeet.activeAreas)} areas`, 'Distinct public keys that posted Host & Meet notes in the observed data.')}
+            </section>
+            <div class="nr-stats-sections">
+                <section class="nr-stats-section" title="Identity progress shows how much Trustroots identity data has appeared on Nostr so far.">
+                    <h2>Identity Progress</h2>
+                    ${statsRows([
+                        ['Imported profile claims', formatStatsNumber(snapshot.identity.importedProfileClaims), 'Kind 30390 profile import events observed on configured relays.'],
+                        ['Recent new identities', formatStatsNumber(snapshot.identity.recentNewIdentities), 'Trustroots identities first seen in this snapshot during the last 30 days.'],
+                        ['Observed events', formatStatsNumber(snapshot.observedEvents), 'Total de-duplicated Nostr events used to build this dashboard snapshot.'],
+                    ])}
+                </section>
+                <section class="nr-stats-section" title="Host & Meet activity counts recent location-based posts and validated mirrors.">
+                    <h2>Host & Meet Activity</h2>
+                    ${statsRows([
+                        ['Last 24 hours', formatStatsNumber(snapshot.hostMeet.notes24h), 'Host & Meet notes observed in the last 24 hours.'],
+                        ['Last 7 days', formatStatsNumber(snapshot.hostMeet.notes7d), 'Host & Meet notes observed in the last 7 days.'],
+                        ['Last 30 days', formatStatsNumber(snapshot.hostMeet.notes30d), 'Host & Meet notes observed in the last 30 days.'],
+                        ['Trustroots mirrors', formatStatsNumber(snapshot.hostMeet.hostMirrors), 'Kind 30398 validated mirror events, usually reposted by Trustroots infrastructure.'],
+                    ])}
+                </section>
+                <section class="nr-stats-section" title="Each bar is one week of observed Host & Meet note activity.">
+                    <h2>Weekly Trend</h2>
+                    ${statsBars(snapshot.hostMeet.weeklyTrend)}
+                </section>
+                <section class="nr-stats-section" title="Intent mix shows what people are trying to do with Host & Meet notes.">
+                    <h2>Intent Mix</h2>
+                    ${statsMeters(intentRows)}
+                </section>
+                <section class="nr-stats-section" title="Community graph stats are imported trust/contact/reference signals. These are event counts, not necessarily unique real-world relationships.">
+                    <h2>Community Graph</h2>
+                    ${statsRows([
+                        ['Contact claim events', formatStatsNumber(snapshot.community.relationshipClaims), 'Kind 30392 contact/relationship claim events observed. This is an event count, not a count of unique friendships.'],
+                        ['Experience references', formatStatsNumber(snapshot.community.experienceReferences), 'Kind 30393 positive experience/reference claim events observed.'],
+                        ['Thread-upvote metrics', formatStatsNumber(snapshot.community.threadUpvoteMetrics), 'Kind 30394 imported thread-upvote metric events observed.'],
+                        ['Claim participants', formatStatsNumber(snapshot.community.uniqueClaimParticipants), 'Distinct public keys mentioned in contact, experience, or metric claim events.'],
+                    ])}
+                </section>
+                <section class="nr-stats-section" title="Circle stats come from Trustroots circle tags and imported circle directory events.">
+                    <h2>Circles</h2>
+                    ${statsRows([
+                        ['Imported circle directory', formatStatsNumber(snapshot.circles.circleDirectoryCount), 'Kind 30410 circle metadata events observed.'],
+                    ])}
+                    ${statsMeters(topCircles)}
+                </section>
+                <section class="nr-stats-section" title="Relay freshness explains where this dashboard snapshot came from and how current it looks.">
+                    <h2>Relay Freshness</h2>
+                    ${statsRows([
+                        ['Relays online', `${formatStatsNumber(relays.online)}/${formatStatsNumber(relays.total)}`, 'Configured relays currently marked connected by the app.'],
+                        ['Relays with stats', formatStatsNumber(relays.contributing), 'Relays that contributed at least one event to this snapshot, based on relay metadata attached while reading.'],
+                        ['Freshness', latestSeen, 'Timestamp of the newest observed event in this dashboard snapshot.'],
+                    ])}
+                </section>
+            </div>
+        </div>
+    `;
+    bindStatsPageActions(root);
+}
+
+function bindStatsPageActions(root) {
+    const btn = root.querySelector('#nr-stats-refresh');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+        void renderStatsPage({ force: true });
+    });
+}
+
+async function collectStatsSnapshotFromRelays() {
+    const filters = getStatsRelayFilters();
+    const relayUrls = getRelayUrls();
+    const publicUrls = relayUrls.filter((url) => !isRestrictedRelayUrl(url));
+    const publicTasks = publicUrls.map((url) => collectStatsFromPublicRelay(url, filters).catch(() => []));
+    const [publicChunks, authEvents] = await Promise.all([
+        Promise.all(publicTasks),
+        collectStatsFromNip42Relay(filters).catch(() => []),
+    ]);
+    const allEvents = [...publicChunks.flat(), ...authEvents, ...(Array.isArray(events) ? events : [])];
+    const contributingRelays = relayUrlsFromStatsEvents(allEvents).size;
+    return buildStatsSnapshotFromEvents(allEvents, {
+        generatedAt: Date.now(),
+        nowTimestamp: getCurrentTimestamp(),
+        relaysConnected: getConnectedRelayCount(relayUrls),
+        relaysTotal: relayUrls.length,
+        contributingRelays,
+    });
+}
+
+async function renderStatsPage(options = {}) {
+    const root = document.getElementById('nr-stats-root');
+    if (!root) return;
+    const token = ++nrStatsRenderToken;
+    const cached = options.force ? null : loadStatsSnapshotFromCache();
+    if (cached) {
+        renderStatsSnapshot(root, cached, { status: 'Cached' });
+        return;
+    } else {
+        renderStatsState(root, 'Loading progress stats...', 'Reading recent events from your configured relays.');
+    }
+    try {
+        const snapshot = await collectStatsSnapshotFromRelays();
+        if (token !== nrStatsRenderToken) return;
+        saveStatsSnapshotToCache(snapshot);
+        renderStatsSnapshot(root, snapshot, { status: 'Live' });
+    } catch (error) {
+        if (token !== nrStatsRenderToken) return;
+        if (cached) {
+            renderStatsSnapshot(root, cached, { status: 'Cached' });
+            const state = document.createElement('div');
+            state.className = 'nr-stats-state nr-stats-muted';
+            state.textContent = 'Could not refresh stats from relays just now.';
+            root.querySelector('.nr-stats')?.prepend(state);
+        } else {
+            renderStatsState(root, 'Could not load stats.', String(error?.message || error || 'Relay reads failed.'));
+        }
+    }
 }
 
 document.addEventListener('nrweb-app-header-filled', function () {
     try {
         applyNrNavAccountAvatarForActiveSurface();
+    } catch (_) {}
+    try {
+        renderHeaderRelayStatus();
     } catch (_) {}
 });
 
@@ -12592,11 +13320,38 @@ const __nrChatApp = (() => {
         }
 
         function openNewDmModal() {
+            clearNewDmFeedback();
             modal('new-dm-modal').open();
             const input = document.getElementById('new-dm-pubkey');
             if (input) input.focus();
         }
         function closeNewDmModal() { modal('new-dm-modal').close(); }
+
+        function clearNewDmFeedback() {
+            const el = document.getElementById('new-dm-feedback');
+            if (!el) return;
+            el.textContent = '';
+            el.className = 'form-feedback';
+        }
+
+        function setNewDmFeedback(message, options = {}) {
+            const el = document.getElementById('new-dm-feedback');
+            if (!el) return;
+            el.textContent = '';
+            el.className = `form-feedback ${options.type || 'error'}`.trim();
+            const text = document.createElement('div');
+            text.textContent = message;
+            el.appendChild(text);
+            if (options.actionHref && options.actionLabel) {
+                const a = document.createElement('a');
+                a.className = 'nr-content-link form-feedback-action';
+                a.href = options.actionHref;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.textContent = options.actionLabel;
+                el.appendChild(a);
+            }
+        }
         function openNewGroupModal() {
             groupModalMembers = [];
             renderGroupModalMembers();
@@ -14437,31 +15192,48 @@ const __nrChatApp = (() => {
 
         async function startDm() {
             const raw = document.getElementById('new-dm-pubkey')?.value?.trim() || '';
+            clearNewDmFeedback();
             const hashtagSlug = parseHashtagChannelSlug(raw);
             if (hashtagSlug) {
                 getOrCreateConversation('channel', hashtagSlug, []);
                 closeNewDmModal();
                 document.getElementById('new-dm-pubkey').value = '';
+                clearNewDmFeedback();
                 setHashRoute(hashtagSlug);
                 selectConversation(hashtagSlug);
                 return;
             }
             const peer = await resolvePubkeyInput(raw);
             if (!peer) {
-                showStatus('That does not look like a valid person address or #channel.', 'error');
+                const trustrootsUsername = trustrootsUsernameFromNip05Address(raw);
+                if (trustrootsUsername) {
+                    const feedback = trustrootsConversationStartFeedback(trustrootsUsername);
+                    setNewDmFeedback(feedback.message, feedback);
+                    return;
+                }
+                if (raw.includes('@')) {
+                    setNewDmFeedback(`I couldn't find a Nostr address for that name. Try an npub1... address, name@domain, or #channel.`);
+                    showStatus('Could not resolve that person address.', 'error');
+                } else {
+                    setNewDmFeedback('I couldn\'t find a Nostr address for that name. Try an npub1... address, name@domain, or #channel.');
+                    showStatus('That does not look like a valid person address or #channel.', 'error');
+                }
                 return;
             }
             if (peer === currentPublicKey) {
+                setNewDmFeedback('You cannot start a private chat with yourself.');
                 showStatus('You cannot start a private chat with yourself.', 'error');
                 return;
             }
             if (NrBlocklist && NrBlocklist.isBlocked(peer)) {
+                setNewDmFeedback('This chat cannot be started right now.');
                 showStatus('This chat cannot be started right now.', 'error');
                 return;
             }
             getOrCreateConversation('dm', peer, [peer]);
             closeNewDmModal();
             document.getElementById('new-dm-pubkey').value = '';
+            clearNewDmFeedback();
             selectConversation(peer);
         }
 
@@ -15214,6 +15986,7 @@ function beginProfileRender(profileId, mode) {
     root.dataset.nrProfileRenderSeq = String(token.seq);
     root.dataset.nrProfileRenderId = token.profileId;
     root.dataset.nrProfileRenderMode = token.mode;
+    root.classList.remove('nr-profile-resolution-root');
     root.innerHTML = '<p class="nr-profile-loading">Loading…</p>';
   }
   return token;
@@ -15223,6 +15996,27 @@ function isProfileRenderCurrent(token) {
   if (!token || token.seq !== profileRenderSequence) return false;
   const root = document.getElementById('nr-profile-root');
   return !!root && root.dataset.nrProfileRenderSeq === String(token.seq);
+}
+
+function renderProfileResolutionFailure(root, profileId) {
+  const details = profileResolutionFailureDetails(profileId);
+  const actionHtml = details.actionHref
+    ? `<p class="nr-profile-resolution-actions"><a class="btn" href="${escapeHtml(details.actionHref)}" target="_blank" rel="noopener noreferrer">${escapeHtml(details.actionLabel)}</a></p>`
+    : '';
+  const inviteHtml = details.invite
+    ? `<p class="nr-profile-resolution-invite">${escapeHtml(details.invite)}</p>`
+    : '';
+  root.classList.add('nr-profile-resolution-root');
+  root.innerHTML = `
+    <section class="nr-profile-resolution-failure" aria-live="polite">
+      <div class="nr-profile-resolution-mark" aria-hidden="true">?</div>
+      <h2>${escapeHtml(details.title)}</h2>
+      <p class="nr-profile-resolution-lead">${escapeHtml(details.intro)}</p>
+      <p>${escapeHtml(details.next)}</p>
+      ${inviteHtml}
+      ${actionHtml}
+    </section>
+  `;
 }
 
 /**
@@ -15237,8 +16031,7 @@ async function prepareProfileRootResolved(profileId, token) {
   const hex = await resolveProfileIdToHex(profileId);
   if (!isProfileRenderCurrent(token)) return null;
   if (!hex) {
-    root.innerHTML =
-      '<p class="nr-profile-error">Could not resolve that NIP-05, or the npub is invalid.</p>';
+    renderProfileResolutionFailure(root, profileId);
     return null;
   }
   return { root, hex };

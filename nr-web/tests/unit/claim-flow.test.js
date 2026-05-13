@@ -10,7 +10,11 @@ import {
   getExperienceAuthorAndTarget,
   relationshipCounterpartyDisplay,
   experienceCounterpartyDisplay,
+  trustrootsConversationStartFeedback,
+  trustrootsMessageUrl,
   trustrootsProfileUrl,
+  trustrootsUsernameFromNip05Address,
+  profileResolutionFailureDetails,
   parseRelationshipSuggestionUsernames,
   getConfirmedTwoSidedContactCount,
   getConfirmedConnectedPubkeyContacts,
@@ -172,6 +176,37 @@ describe('Experience claim helpers', () => {
 describe('trustrootsProfileUrl', () => {
   it('builds profile URL', () => {
     expect(trustrootsProfileUrl('Alice')).toBe('https://www.trustroots.org/profile/alice');
+  });
+
+  it('builds message URL', () => {
+    expect(trustrootsMessageUrl('Alice')).toBe('https://www.trustroots.org/messages/alice');
+  });
+
+  it('parses Trustroots NIP-05 addresses only', () => {
+    expect(trustrootsUsernameFromNip05Address('Alice@trustroots.org')).toBe('alice');
+    expect(trustrootsUsernameFromNip05Address('alice@www.trustroots.org')).toBe('alice');
+    expect(trustrootsUsernameFromNip05Address('alice@example.org')).toBe('');
+    expect(trustrootsUsernameFromNip05Address('not valid@trustroots.org')).toBe('');
+  });
+
+  it('describes conversation-start failures for Trustroots users', () => {
+    expect(trustrootsConversationStartFeedback('Alice')).toEqual({
+      message: "I couldn't find a Nostroots address for alice@trustroots.org. They may still need to add their public Nostr address (npub) on Trustroots before you can message them here.",
+      actionHref: 'https://www.trustroots.org/messages/alice',
+      actionLabel: 'Message on Trustroots',
+    });
+  });
+
+  it('explains unresolved Trustroots profiles and links to Trustroots messages', () => {
+    expect(profileResolutionFailureDetails('DoesntExist@trustroots.org')).toEqual({
+      title: "We couldn't find this Nostr profile.",
+      intro: 'Nostroots tried to look up DoesntExist@trustroots.org. Nostr profiles can be found by an npub (a public profile key) or by a NIP-05 address, which looks like username@trustroots.org and points to an npub.',
+      next: 'That probably means doesntexist has not added their npub to Trustroots yet, or the Trustroots username is wrong.',
+      trustrootsUsername: 'doesntexist',
+      actionHref: 'https://www.trustroots.org/messages/doesntexist',
+      actionLabel: 'Message doesntexist on Trustroots',
+      invite: 'You can invite them to Nostroots from Trustroots and ask them to add their public Nostr address there.',
+    });
   });
 });
 

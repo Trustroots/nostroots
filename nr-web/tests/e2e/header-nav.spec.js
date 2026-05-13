@@ -69,12 +69,41 @@ test.describe('Header navigation', () => {
     await expect(header.getByRole('button', { name: 'Host & Meet' })).toBeVisible();
     await expect(header.getByRole('link', { name: 'Chat' })).toBeVisible();
     await expectAnyVisible(header.locator('#nav-user-btn'), header.locator('#nav-more-btn'));
+    const relayStatus = header.locator('#header-relay-status');
+    await expect(relayStatus).toBeVisible();
+    await expect(relayStatus.locator('.header-relay-status-value')).toHaveText(/^(--|\d+\/\d+)$/);
     const visibleNavLabels = await header.locator('.nr-nav-main > .nr-nav-link:visible .nr-nav-link-text').allTextContents();
     expect(visibleNavLabels.slice(0, 3)).toEqual(['Map', 'Host & Meet', 'Chat']);
     const conv = header.getByRole('link', { name: 'Chat' });
     await expect(conv).toHaveAttribute('href', '#chat');
     await expect(header.locator('a[href="index.html"].app-header-logo-link')).toBeAttached();
     await expect(header.locator('[data-nav="nostroots"]')).toHaveCount(0);
+  });
+
+  test('index: relay status pill opens relay settings', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    const relayStatus = page.locator('#app-header #header-relay-status');
+    await expect(relayStatus).toBeVisible();
+    await expect(relayStatus.locator('.header-relay-status-value')).toHaveText(/^(--|\d+\/\d+)$/);
+    await relayStatus.click();
+    await expect(page).toHaveURL(/#settings\/relays\b/);
+    await expect(page.locator('#settings-modal.active')).toBeVisible();
+    await expect(page.locator('#relays-list')).toBeVisible();
+  });
+
+  test('index: stats route renders and is linked from the account menu', async ({ page }) => {
+    await page.goto('/#stats');
+    await expect(page.locator('body.nr-surface-stats')).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole('heading', { name: 'Progress stats' })).toBeVisible();
+
+    await page.goto('/');
+    await openUserMenuIfNeeded(page);
+    const statsLink = page.getByRole('menuitem', { name: 'Progress stats' }).first();
+    await expect(statsLink).toBeVisible();
+    await expect(statsLink).toHaveAttribute('href', '#stats');
+    await statsLink.click();
+    await expect(page).toHaveURL(/#stats\b/);
   });
 
   test('index: settings KPI chips render and wire map/settings actions', async ({ page }) => {

@@ -26,6 +26,7 @@ describe('Nostroots title routing', () => {
     expect(resolve({ kind: 'modal', modal: 'keys' })).toBe('Nostroots Keys');
     expect(resolve({ kind: 'modal', modal: 'settings' })).toBe('Nostroots Settings');
     expect(resolve({ kind: 'reserved', token: 'welcome' })).toBe('Nostroots Welcome');
+    expect(resolve({ kind: 'stats' })).toBe('Nostroots Stats');
   });
 
   it('handles profile surfaces', () => {

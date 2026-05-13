@@ -90,6 +90,7 @@ describe('NrWebHashRouter profile routes', () => {
   it('classifies account and onboarding routes', () => {
     expect(classify('keys')).toEqual({ kind: 'modal', modal: 'keys' });
     expect(classify('settings')).toEqual({ kind: 'modal', modal: 'settings' });
+    expect(classify('stats')).toEqual({ kind: 'stats' });
     expect(classify('welcome')).toEqual({ kind: 'reserved', token: 'welcome' });
     expect(classify('start')).toEqual({ kind: 'reserved', token: 'start' });
   });

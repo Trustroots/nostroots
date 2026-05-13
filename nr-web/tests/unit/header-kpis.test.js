@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
     computeHeaderKpiCounts,
+    getHeaderRelayStatusClass,
     formatHeaderRelaysOnlineKpi,
     getHeaderKpiKeysForViewport,
 } from '../../index.js';
@@ -28,6 +29,14 @@ describe('header KPI helpers', () => {
         expect(formatHeaderRelaysOnlineKpi(2, 3)).toBe('2/3');
         expect(formatHeaderRelaysOnlineKpi(3, 3)).toBe('3/3');
         expect(formatHeaderRelaysOnlineKpi(-1, 2)).toBe('0/2');
+    });
+
+    it('getHeaderRelayStatusClass matches settings relay KPI states', () => {
+        expect(getHeaderRelayStatusClass(3, 3, true)).toBe('');
+        expect(getHeaderRelayStatusClass(2, 3, true)).toBe('is-warn');
+        expect(getHeaderRelayStatusClass(0, 3, true)).toBe('is-error');
+        expect(getHeaderRelayStatusClass(0, 0, true)).toBe('');
+        expect(getHeaderRelayStatusClass(0, 3, false)).toBe('');
     });
 
     it('getHeaderKpiKeysForViewport returns compact and desktop sets', () => {

@@ -1047,10 +1047,15 @@
             { label: 'About', href: 'https://notes.trustroots.org/' },
             { label: 'Contribute', href: 'https://github.com/Trustroots/nostroots' },
             { label: 'Rules', href: 'https://www.trustroots.org/rules' },
-            { label: 'Blog', href: 'https://ideas.trustroots.org/' }
+            { label: 'Blog', href: 'https://ideas.trustroots.org/' },
+            { label: 'Progress stats', href: '#stats' }
         ];
         return items.map(function (it) {
-            return '<a role="menuitem" class="nr-nav-menu-external" href="' + escapeHtml(it.href) + '" target="_blank" rel="noopener noreferrer">' +
+            var href = String(it.href || '');
+            var externalAttrs = href.charAt(0) === '#'
+                ? ''
+                : ' target="_blank" rel="noopener noreferrer"';
+            return '<a role="menuitem" class="nr-nav-menu-external" href="' + escapeHtml(href) + '"' + externalAttrs + '>' +
                 escapeHtml(it.label) + '</a>';
         }).join('');
     }
@@ -1449,6 +1454,9 @@
             '><span class="nr-nav-icon" aria-hidden="true">' +
             svgMsg +
             '</span><span class="nr-nav-link-text">Chat</span></a>' +
+            '<button type="button" class="header-relay-status is-loading" id="header-relay-status" aria-label="Relays online: --" title="Relays online: --">' +
+            '<span class="header-relay-status-dot" aria-hidden="true"></span>' +
+            '<strong class="header-relay-status-value">--</strong></button>' +
             '<div class="nr-nav-dropdown" data-dropdown="user">' +
             '<button type="button"' + accountAttrs + '>' +
             navAccountAvatarHtml +
@@ -2005,7 +2013,7 @@
     'use strict';
 
     /** Not valid as bare circle/channel slugs (lowercase). */
-    var EXTENDED_RESERVED = ['map', 'chat', 'help', 'welcome', 'start'];
+    var EXTENDED_RESERVED = ['map', 'chat', 'help', 'welcome', 'start', 'stats'];
     var RESERVED_SET = new Set(EXTENDED_RESERVED);
 
     function getHashRoute() {
@@ -2061,6 +2069,7 @@
         if (lower === 'keys') return { kind: 'modal', modal: 'keys' };
         if (lower === 'settings') return { kind: 'modal', modal: 'settings' };
         if (lower === 'settings/relays') return { kind: 'modal', modal: 'settings', section: 'relays' };
+        if (lower === 'stats') return { kind: 'stats' };
         if (RESERVED_SET.has(lower)) return { kind: 'reserved', token: lower };
         if (looksLikeMapPlusCode(route)) return { kind: 'map_pluscode', plusCode: route.replace(/\s/g, '') };
         if (/^profile\//i.test(route)) {
@@ -2350,6 +2359,73 @@ h1, h2, .modal-header h2 {
 #settings-modal .settings-kpis .kpi-chip--error {
     border-color: #d16b6b;
     background: rgba(209, 107, 107, 0.12);
+}
+
+.header-relay-status {
+    min-width: 4.35rem;
+    min-height: 32px;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    color: rgba(255, 255, 255, 0.95);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.32rem;
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 0.78rem;
+    line-height: 1;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.header-relay-status:hover {
+    background: rgba(255, 255, 255, 0.26);
+}
+
+.header-relay-status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary);
+    box-shadow: 0 0 8px rgba(88, 125, 99, 0.4);
+    flex-shrink: 0;
+}
+
+.header-relay-status-value {
+    min-width: 1.8rem;
+    text-align: center;
+    font-size: 0.84rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.header-relay-status.is-loading .header-relay-status-dot {
+    background: #6b7280;
+    box-shadow: none;
+}
+
+.header-relay-status.is-warn {
+    border-color: #d6a945;
+    background: rgba(214, 169, 69, 0.12);
+}
+
+.header-relay-status.is-warn .header-relay-status-dot {
+    background: #f59e0b;
+    box-shadow: none;
+}
+
+.header-relay-status.is-error {
+    border-color: #d16b6b;
+    background: rgba(209, 107, 107, 0.12);
+}
+
+.header-relay-status.is-error .header-relay-status-dot {
+    background: var(--destructive);
+    box-shadow: none;
 }
 
 /* Mobile overflow menu (Trustroots-style hamburger); hidden on wide screens */
@@ -2829,6 +2905,11 @@ h1, h2, .modal-header h2 {
         filter: none;
     }
     .nr-nav-dropdown-toggle { padding: 0.35rem 0.45rem; font-size: 0.78rem; }
+    .header-relay-status {
+        min-width: 3.75rem;
+        padding: 0.35rem 0.45rem;
+        gap: 0.25rem;
+    }
     .header-identity { max-width: 120px; font-size: 0.75rem; padding: 0.3rem 0.5rem; }
     .app-header-actions .keys-icon .header-identity-text { display: none; }
     .app-header-actions .keys-icon.header-identity-btn.has-identity { padding: 0; width: 44px; }
@@ -3552,6 +3633,57 @@ a.nr-profile-tr-badge:focus-visible {
 }
 .nr-profile-error {
     color: var(--destructive);
+}
+.nr-profile-scroll.nr-profile-resolution-root {
+    display: grid;
+    place-items: center;
+    padding: clamp(1rem, 4vw, 3rem);
+}
+.nr-profile-resolution-failure {
+    width: min(100%, 42rem);
+    padding: clamp(1.25rem, 4vw, 2.75rem);
+    text-align: center;
+}
+.nr-profile-resolution-mark {
+    width: 3rem;
+    height: 3rem;
+    margin: 0 auto 1rem;
+    border: 2px solid color-mix(in srgb, var(--primary) 24%, transparent);
+    border-radius: 50%;
+    color: var(--primary);
+    display: grid;
+    place-items: center;
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+.nr-profile-resolution-failure h2 {
+    margin: 0 0 0.85rem;
+    color: var(--foreground);
+    font-size: clamp(1.45rem, 2.6vw, 2rem);
+    line-height: 1.25;
+    letter-spacing: 0;
+}
+.nr-profile-resolution-failure p {
+    max-width: 37rem;
+    margin: 0.65rem auto 0;
+    color: var(--muted-foreground);
+    font-size: 1rem;
+    line-height: 1.5;
+}
+.nr-profile-resolution-failure .nr-profile-resolution-lead {
+    color: color-mix(in srgb, var(--foreground) 82%, var(--muted-foreground));
+    font-size: 1.05rem;
+}
+.nr-profile-resolution-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.35rem;
+}
+.nr-profile-resolution-actions .btn {
+    min-height: 2.75rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 999px;
+    text-decoration: none;
 }
 
 .nr-profile-edit-card {
@@ -5688,6 +5820,19 @@ h1, h2, .modal-header h2 {
     background: var(--input);
     color: var(--foreground);
 }
+.form-feedback {
+    margin-top: 0.5rem;
+    color: var(--muted-foreground);
+    font-size: 0.875rem;
+    line-height: 1.4;
+}
+.form-feedback.error {
+    color: var(--destructive);
+}
+.form-feedback .form-feedback-action {
+    display: inline-block;
+    margin-top: 0.45rem;
+}
 /* Scoped to embedded chat only — index.html #status-container is full-width below the header
    and must not inherit translateX(-50%) (that shift is for left:50% bottom toasts). */
 #nr-chat-status-container.status-container {
@@ -7075,6 +7220,15 @@ body.nr-surface-host .host-compose-selected-circle button {
             width: 100%;
             background: var(--background);
         }
+        .nr-stats-view {
+            display: none;
+            flex-direction: column;
+            flex: 1 1 0;
+            min-height: 0;
+            overflow: hidden;
+            width: 100%;
+            background: var(--background);
+        }
         body.nr-surface-profile #map-view {
             display: none !important;
         }
@@ -7084,15 +7238,26 @@ body.nr-surface-host .host-compose-selected-circle button {
         body.nr-surface-profile #nr-profile-view {
             display: flex !important;
         }
+        body.nr-surface-stats #map-view,
+        body.nr-surface-stats .nr-chat-view,
+        body.nr-surface-stats #nr-profile-view,
+        body.nr-surface-stats #nr-host-view {
+            display: none !important;
+        }
+        body.nr-surface-stats #nr-stats-view {
+            display: flex !important;
+        }
         body.nr-surface-account #map-view,
         body.nr-surface-account .nr-chat-view,
         body.nr-surface-account #nr-profile-view,
+        body.nr-surface-account #nr-stats-view,
         body.nr-surface-account #nr-host-view {
             display: none !important;
         }
         body.nr-surface-host #map-view,
         body.nr-surface-host .nr-chat-view,
-        body.nr-surface-host #nr-profile-view {
+        body.nr-surface-host #nr-profile-view,
+        body.nr-surface-host #nr-stats-view {
             display: none !important;
         }
         .nr-profile-scroll {
@@ -7103,6 +7268,225 @@ body.nr-surface-host .host-compose-selected-circle button {
             background: hsl(42, 22%, 97%);
             position: relative;
             z-index: 1;
+        }
+        .nr-stats-scroll {
+            flex: 1;
+            overflow: auto;
+            padding: 1.25rem;
+            width: 100%;
+            background: hsl(42, 22%, 97%);
+            position: relative;
+            z-index: 1;
+        }
+        [data-theme="dark"] .nr-stats-scroll {
+            background: var(--background);
+        }
+        .nr-stats {
+            width: min(1120px, 100%);
+            margin: 0 auto;
+            color: var(--foreground);
+        }
+        .nr-stats-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .nr-stats-header h1 {
+            font-size: clamp(1.65rem, 2.4vw, 2.35rem);
+            line-height: 1.1;
+            margin: 0 0 0.35rem;
+        }
+        .nr-stats-header p,
+        .nr-stats-muted {
+            color: var(--muted-foreground);
+            line-height: 1.45;
+        }
+        .nr-stats-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .nr-stats-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 2rem;
+            padding: 0.35rem 0.65rem;
+            border: 1px solid var(--border);
+            border-radius: calc(var(--radius) - 4px);
+            background: var(--card);
+            color: var(--muted-foreground);
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+        .nr-stats-refresh {
+            min-height: 2rem;
+            padding: 0.35rem 0.75rem;
+            border: 1px solid var(--primary);
+            border-radius: calc(var(--radius) - 4px);
+            background: var(--primary);
+            color: var(--primary-foreground);
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .nr-stats-refresh:hover {
+            filter: brightness(0.96);
+        }
+        .nr-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+        .nr-stats-card,
+        .nr-stats-section {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--card);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+        .nr-stats-card {
+            padding: 0.85rem;
+            min-width: 0;
+        }
+        .nr-stats-card-label {
+            display: block;
+            color: var(--muted-foreground);
+            font-size: 0.8rem;
+            line-height: 1.2;
+        }
+        .nr-stats-card-value {
+            display: block;
+            margin-top: 0.25rem;
+            color: var(--foreground);
+            font-size: clamp(1.45rem, 2.2vw, 2rem);
+            line-height: 1.05;
+            font-weight: 800;
+        }
+        .nr-stats-card-note {
+            display: block;
+            margin-top: 0.25rem;
+            color: var(--muted-foreground);
+            font-size: 0.78rem;
+            line-height: 1.25;
+        }
+        .nr-stats-sections {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+        .nr-stats-section {
+            padding: 1rem;
+            min-width: 0;
+        }
+        .nr-stats-section h2 {
+            margin: 0 0 0.8rem;
+            font-size: 1.02rem;
+            line-height: 1.2;
+        }
+        .nr-stats-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.75rem;
+            align-items: baseline;
+            padding: 0.38rem 0;
+            border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+        }
+        .nr-stats-row:first-of-type {
+            border-top: 0;
+        }
+        .nr-stats-row-label {
+            color: var(--muted-foreground);
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+        .nr-stats-row-value {
+            font-weight: 800;
+            color: var(--foreground);
+            white-space: nowrap;
+        }
+        .nr-stats-bars {
+            display: grid;
+            grid-template-columns: repeat(8, minmax(0, 1fr));
+            align-items: end;
+            gap: 0.35rem;
+            height: 112px;
+            padding-top: 0.25rem;
+        }
+        .nr-stats-bar {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.28rem;
+        }
+        .nr-stats-bar-fill {
+            width: 100%;
+            min-height: 3px;
+            border-radius: 4px 4px 0 0;
+            background: var(--primary);
+        }
+        .nr-stats-bar-label {
+            color: var(--muted-foreground);
+            font-size: 0.68rem;
+            line-height: 1;
+            white-space: nowrap;
+        }
+        .nr-stats-list {
+            display: grid;
+            gap: 0.45rem;
+        }
+        .nr-stats-list-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 0.75rem;
+            align-items: center;
+        }
+        .nr-stats-meter {
+            height: 0.45rem;
+            margin-top: 0.22rem;
+            border-radius: 999px;
+            background: var(--muted);
+            overflow: hidden;
+        }
+        .nr-stats-meter span {
+            display: block;
+            height: 100%;
+            border-radius: inherit;
+            background: var(--terracotta);
+        }
+        .nr-stats-state {
+            padding: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--card);
+        }
+        @media (max-width: 880px) {
+            .nr-stats-grid,
+            .nr-stats-sections {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 620px) {
+            .nr-stats-scroll {
+                padding: 0.9rem;
+            }
+            .nr-stats-header {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .nr-stats-actions {
+                justify-content: flex-start;
+            }
+            .nr-stats-grid,
+            .nr-stats-sections {
+                grid-template-columns: 1fr;
+            }
         }
         .username-nostr-indicator {
             font-size: 1rem;
@@ -7274,6 +7658,7 @@ body.nr-surface-host .host-compose-selected-circle button {
                 <div class="form-group">
                     <label>Enter a person's address (npub or name@domain, including Trustroots users), or enter #hashtag for a Circle channel</label>
                     <input type="text" id="new-dm-pubkey" placeholder="npub1..., username@trustroots.org, or #travel" onkeydown="if(event.key==='Enter'){event.preventDefault();startDm();}">
+                    <div id="new-dm-feedback" class="form-feedback" role="status" aria-live="polite"></div>
                 </div>
                 <button type="button" class="btn" onclick="startDm()">Start conversation</button>
             </div>
@@ -7326,6 +7711,11 @@ body.nr-surface-host .host-compose-selected-circle button {
     <!-- Public profile (#profile/…) -->
     <div id="nr-profile-view" class="nr-profile-view" hidden style="display:none;">
         <div id="nr-profile-root" class="nr-profile-scroll" aria-live="polite"></div>
+    </div>
+
+    <!-- Progress stats (#stats) -->
+    <div id="nr-stats-view" class="nr-stats-view" hidden style="display:none;">
+        <div id="nr-stats-root" class="nr-stats-scroll" aria-live="polite"></div>
     </div>
 
     <!-- Host & Meet area page -->

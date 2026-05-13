@@ -29,6 +29,7 @@ The main app (`index.html`) uses **`location.hash`** only (no path router; stati
 |----------|---------|
 | *(empty)* | Map home |
 | `keys` / `settings` | Keys or Settings modal |
+| `stats` | Progress stats dashboard |
 | `map`, `chat`, `help`, `welcome`, `start` | Reserved actions (e.g. `#chat` opens chats with empty picker; `#map` clears hash and returns to map) |
 | Contains `+` as a full Open Location Code (prefix may end with `+` and no refinement, e.g. `9G000000+`) | Map — notes for that plus code |
 | `profile` | **My profile** — always opens your own profile in editable mode (prompts for key if not loaded) |

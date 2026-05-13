@@ -76,7 +76,7 @@ test.describe('Header navigation', () => {
     expect(visibleNavLabels.slice(0, 3)).toEqual(['Map', 'Host & Meet', 'Chat']);
     const conv = header.getByRole('link', { name: 'Chat' });
     await expect(conv).toHaveAttribute('href', '#chat');
-    await expect(header.locator('a[href="index.html"].app-header-logo-link')).toBeAttached();
+    await expect(header.locator('a[href="#"].app-header-logo-link')).toBeAttached();
     await expect(header.locator('[data-nav="nostroots"]')).toHaveCount(0);
   });
 

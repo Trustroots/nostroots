@@ -1347,7 +1347,7 @@
                 hpfx = String(global.window.NR_WEB_HEADER_PREFIX);
             }
         } catch (_) {}
-        var baseHome = hpfx + 'index.html';
+        var baseHome = hpfx ? hpfx + 'index.html' : '#';
         var supportChatHref = hpfx ? hpfx + 'index.html#support' : '#support';
 
         var onChat = false;

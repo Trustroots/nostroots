@@ -2906,9 +2906,34 @@ h1, h2, .modal-header h2 {
     }
     .nr-nav-dropdown-toggle { padding: 0.35rem 0.45rem; font-size: 0.78rem; }
     .header-relay-status {
-        min-width: 3.75rem;
-        padding: 0.35rem 0.45rem;
-        gap: 0.25rem;
+        width: 10px;
+        min-width: 10px;
+        min-height: 18px;
+        margin: 0 -0.15rem;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        gap: 0;
+    }
+    .header-relay-status:hover {
+        background: transparent;
+    }
+    .header-relay-status.is-warn,
+    .header-relay-status.is-error {
+        border-color: transparent;
+        background: transparent;
+    }
+    .header-relay-status-value {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
     }
     .header-identity { max-width: 120px; font-size: 0.75rem; padding: 0.3rem 0.5rem; }
     .app-header-actions .keys-icon .header-identity-text { display: none; }

@@ -879,9 +879,18 @@
         var attempt = 0;
         var connectTimer = null;
 
+        function getReqFilters() {
+            if (Array.isArray(filter)) {
+                return filter.filter(function (item) {
+                    return item && typeof item === 'object' && !Array.isArray(item);
+                });
+            }
+            return [filter || {}];
+        }
+
         function sendReq() {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify(['REQ', subId, filter]));
+                ws.send(JSON.stringify(['REQ', subId].concat(getReqFilters())));
             }
         }
 
@@ -1192,7 +1201,8 @@
                         (bodMap.classList.contains('nr-surface-chat') ||
                             bodMap.classList.contains('nr-surface-profile') ||
                             bodMap.classList.contains('nr-surface-account') ||
-                            bodMap.classList.contains('nr-surface-host'))
+                            bodMap.classList.contains('nr-surface-host') ||
+                            bodMap.classList.contains('nr-surface-stats'))
                     ) {
                         try {
                             global.location.hash = '';
@@ -1354,6 +1364,7 @@
         var onHost = false;
         var onProfile = false;
         var onAccount = false;
+        var onStats = false;
         try {
             var bod = global.document && global.document.body;
             if (bod && bod.classList && bod.classList.contains('nr-surface-chat')) {
@@ -1368,8 +1379,11 @@
             if (bod && bod.classList && bod.classList.contains('nr-surface-account')) {
                 onAccount = true;
             }
+            if (bod && bod.classList && bod.classList.contains('nr-surface-stats')) {
+                onStats = true;
+            }
         } catch (_) {}
-        var onAccountSurface = onProfile || onAccount;
+        var onAccountSurface = onProfile || onAccount || onStats;
         var onMap = !onChat && !onHost && !onAccountSurface;
         function buildHeaderHashHref(route) {
             var raw = String(route || 'chat').trim() || 'chat';
@@ -5455,6 +5469,16 @@ h1, h2, .modal-header h2 {
 }
 .circle-members-toggle:hover {
     border-color: var(--primary);
+}
+.circle-membership-toggle {
+    font-weight: 700;
+}
+.circle-membership-leave {
+    color: var(--destructive);
+    border-color: color-mix(in srgb, var(--destructive) 45%, var(--border));
+}
+.circle-membership-leave:hover {
+    border-color: var(--destructive);
 }
 .circle-members-expanded {
     margin-top: 0.55rem;

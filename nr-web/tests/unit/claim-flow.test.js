@@ -23,6 +23,7 @@ import {
   trustCardPersonNip05,
   getClaimablePositiveReferenceCount,
   extractThreadUpvoteMetricValue,
+  shouldShowThreadUpvoteMetric,
 } from '../../index.js';
 
 const H = (ch) => String(ch).repeat(64);
@@ -419,5 +420,11 @@ describe('Trust card count helpers', () => {
       },
     ];
     expect(extractThreadUpvoteMetricValue(events, me)).toBe(7);
+  });
+
+  it('only displays positive thread-upvote metrics on profiles', () => {
+    expect(shouldShowThreadUpvoteMetric(0)).toBe(false);
+    expect(shouldShowThreadUpvoteMetric(null)).toBe(false);
+    expect(shouldShowThreadUpvoteMetric(1)).toBe(true);
   });
 });

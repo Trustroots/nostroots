@@ -16,6 +16,154 @@ import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.2/+esm?nrv=202
 // Import BIP39 for mnemonic support
 import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm?nrv=20260508a';
 
+const NR_WEB_ANALYTICS_ALLOWED_KEYS = new Set([
+    'area_prefix',
+    'chat_type',
+    'circle_slug',
+    'expiration_bucket',
+    'failed_count',
+    'has_circle',
+    'hostname',
+    'intent',
+    'key_method',
+    'plus_code_length',
+    'relay_count',
+    'route_type',
+    'signer',
+    'source',
+    'status',
+    'surface',
+    'trustroots_username',
+]);
+const NR_WEB_ANALYTICS_EVENT_NAME_MAX = 50;
+const NR_WEB_ANALYTICS_STRING_MAX = 120;
+const NR_WEB_ANALYTICS_AREA_PREFIX_LENGTH = 2;
+const nrWebLastSurfaceAnalytics = { key: '' };
+
+function isBlockedNrWebAnalyticsKey(key) {
+    const normalized = String(key || '').toLowerCase();
+    return (
+        normalized.includes('pubkey') ||
+        normalized.includes('npub') ||
+        normalized.includes('nsec') ||
+        (normalized.includes('username') && normalized !== 'trustroots_username') ||
+        normalized.includes('nip05') ||
+        normalized.includes('nip_05') ||
+        normalized.includes('message') ||
+        normalized.includes('content') ||
+        normalized.includes('text') ||
+        normalized.includes('event_id') ||
+        normalized.includes('note_id')
+    );
+}
+
+function sanitizeNrWebAnalyticsString(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_:+.-]/g, '_')
+        .slice(0, NR_WEB_ANALYTICS_STRING_MAX);
+}
+
+function normalizeNrWebAnalyticsNumber(value) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    return Math.max(0, Math.round(n));
+}
+
+export function normalizeNrWebAnalyticsCircleSlug(slug) {
+    const raw = String(slug || '').trim().replace(/^#/, '');
+    if (!raw) return '';
+    try {
+        if (typeof canonicalTrustrootsCircleSlugKey === 'function') {
+            return sanitizeNrWebAnalyticsString(canonicalTrustrootsCircleSlugKey(raw));
+        }
+    } catch (_) {}
+    return sanitizeNrWebAnalyticsString(raw.replace(/^#/, ''));
+}
+
+export function normalizeNrWebAnalyticsTrustrootsUsername(username) {
+    const raw = String(username || '').trim().toLowerCase().replace(/^@/, '');
+    const bare = raw.endsWith('@trustroots.org') ? raw.slice(0, -'@trustroots.org'.length) : raw;
+    return sanitizeNrWebAnalyticsString(bare);
+}
+
+export function getNrWebAnalyticsAreaData(plusCode) {
+    const normalized = String(plusCode || '').replace(/\s/g, '').toUpperCase();
+    if (!normalized) return {};
+    return {
+        plus_code_length: normalized.length,
+        area_prefix: normalized.slice(0, NR_WEB_ANALYTICS_AREA_PREFIX_LENGTH).toLowerCase(),
+    };
+}
+
+export function getNrWebExpirationAnalyticsBucket(seconds) {
+    const n = Number(seconds);
+    if (!Number.isFinite(n) || n <= 0) return 'permanent';
+    if (n <= 24 * 60 * 60) return 'day';
+    if (n <= 7 * 24 * 60 * 60) return 'week';
+    if (n <= 31 * 24 * 60 * 60) return 'month';
+    return 'long';
+}
+
+export function getNrWebAnalyticsHostname() {
+    try {
+        const hostname = typeof window !== 'undefined' ? window.location?.hostname : '';
+        return sanitizeNrWebAnalyticsString(hostname || '');
+    } catch (_) {
+        return '';
+    }
+}
+
+export function sanitizeNrWebAnalyticsData(data = {}) {
+    const out = {};
+    const input = data && typeof data === 'object' ? data : {};
+    for (const [key, value] of Object.entries(input)) {
+        if (!NR_WEB_ANALYTICS_ALLOWED_KEYS.has(key)) continue;
+        if (isBlockedNrWebAnalyticsKey(key)) continue;
+        if (value === undefined || value === null || value === '') continue;
+        if (typeof value === 'boolean') {
+            out[key] = value;
+        } else if (typeof value === 'number') {
+            const n = normalizeNrWebAnalyticsNumber(value);
+            if (n !== null) out[key] = n;
+        } else if (key === 'circle_slug') {
+            const slug = normalizeNrWebAnalyticsCircleSlug(value);
+            if (slug) out[key] = slug;
+        } else if (key === 'trustroots_username') {
+            const username = normalizeNrWebAnalyticsTrustrootsUsername(value);
+            if (username) out[key] = username;
+        } else {
+            const s = sanitizeNrWebAnalyticsString(value);
+            if (s) out[key] = s;
+        }
+    }
+    return out;
+}
+
+export function trackNrWebEvent(name, data = {}) {
+    try {
+        const eventName = sanitizeNrWebAnalyticsString(name).slice(0, NR_WEB_ANALYTICS_EVENT_NAME_MAX);
+        if (!eventName) return false;
+        const tracker = typeof window !== 'undefined' ? window.umami : null;
+        if (!tracker || typeof tracker.track !== 'function') return false;
+        tracker.track(eventName, sanitizeNrWebAnalyticsData({
+            hostname: getNrWebAnalyticsHostname(),
+            ...(data && typeof data === 'object' ? data : {}),
+        }));
+        return true;
+    } catch (_) {
+        return false;
+    }
+}
+
+function trackNrWebSurfaceEvent(name, key, data = {}) {
+    const dedupeKey = `${name}:${String(key || '')}`;
+    if (nrWebLastSurfaceAnalytics.key === dedupeKey) return false;
+    nrWebLastSurfaceAnalytics.key = dedupeKey;
+    return trackNrWebEvent(name, data);
+}
+
 // ---------------------------------------------------------------------------
 // Folded: claim-utils.js
 // ---------------------------------------------------------------------------
@@ -171,6 +319,11 @@ export function buildTrustCardSummaryFromEvents(events, currentPubkey, myUsernam
     threadUpvoteMetricValue: extractThreadUpvoteMetricValue(events, currentPubkey),
     people,
   };
+}
+
+export function shouldShowThreadUpvoteMetric(value) {
+  const n = Number(value);
+  return Number.isFinite(n) && n > 0;
 }
 
 export function trustCardPersonNip05(person, knownNip05 = '') {
@@ -1365,6 +1518,8 @@ const EXPERIENCE_CLAIM_KIND = 30393;
 const THREAD_UPVOTE_METRIC_KIND = 30394;
 const FOLLOW_LIST_KIND = 3;
 const TRUSTROOTS_CONTACT_SET_KIND = 30000;
+const TRUSTROOTS_CIRCLE_MEMBERSHIP_KIND = 30001;
+const TRUSTROOTS_CIRCLE_MEMBERSHIP_D_TAG = 'trustroots-circles';
 const NIP32_LABEL_KIND = 1985;
 const MAP_NOTE_KINDS = [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND];
 const DELETION_KIND = 5; // NIP-05: Deletion events
@@ -3912,6 +4067,12 @@ function generateKeyPair() {
     }
     loadKeys();
     appendKeysLinkLog(`Generated new key ${getCurrentNpub() || currentPublicKey || ''}`.trim());
+    trackNrWebEvent('nr_key_created', {
+        key_method: 'generated',
+        signer: 'local',
+        status: 'success',
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     showStatus('New key pair generated!', 'success');
 }
 
@@ -3937,6 +4098,12 @@ async function importNsec() {
         showStatus('Key imported. Looking up your public profile details...', 'info');
         await checkProfileLinked();
         appendKeysLinkLog('Import complete');
+        trackNrWebEvent('nr_key_imported', {
+            key_method: nsecInput.includes(' ') ? 'mnemonic' : 'nsec',
+            signer: 'local',
+            status: 'success',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus('Key imported successfully. Your key stays on this device and is never stored on our server.', 'success');
         document.getElementById('nsec-import').value = '';
     } catch (error) {
@@ -4849,6 +5016,55 @@ function getCurrentNostrootsSetupState() {
 
 window.NrWebGetSetupState = getCurrentNostrootsSetupState;
 
+function getNrWebSignerAnalyticsType() {
+    try {
+        if (nrWebNip7Signer.isActiveForPubkey(currentPublicKey)) return 'nip7';
+    } catch (_) {}
+    if (currentPrivateKeyBytes || currentPrivateKey) return 'local';
+    return 'none';
+}
+
+function getWritableRelayAnalyticsData(relayUrls) {
+    const urls = Array.isArray(relayUrls) ? relayUrls : getWritableRelayUrls();
+    return {
+        relay_count: urls.length,
+        signer: getNrWebSignerAnalyticsType(),
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    };
+}
+
+function getValidatedTrustrootsUsernameFromStorage(pubkey) {
+    if (!pubkey) return '';
+    try {
+        const raw = localStorage.getItem('trustroots_username_by_pubkey');
+        if (!raw) return '';
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return '';
+        return normalizeNrWebAnalyticsTrustrootsUsername(parsed[String(pubkey).toLowerCase()] || '');
+    } catch (_) {
+        return '';
+    }
+}
+
+function getCurrentTrustrootsUsernameForAnalytics() {
+    const usernameInput = document.getElementById('trustroots-username');
+    const inputUsername = usernameInput && usernameInput.disabled
+        ? normalizeNrWebAnalyticsTrustrootsUsername(usernameInput.value)
+        : '';
+    return (
+        inputUsername ||
+        normalizeNrWebAnalyticsTrustrootsUsername(pubkeyToUsername.get(currentPublicKey)) ||
+        getValidatedTrustrootsUsernameFromStorage(currentPublicKey)
+    );
+}
+
+function getCurrentTrustrootsUsernameAnalyticsData(usernameOverride) {
+    const trustrootsUsername =
+        normalizeNrWebAnalyticsTrustrootsUsername(usernameOverride) ||
+        getCurrentTrustrootsUsernameForAnalytics();
+    return trustrootsUsername ? { trustroots_username: trustrootsUsername } : {};
+}
+
 function getConnectableRelayUrls(relayUrls) {
     return (relayUrls || []).filter((url) => {
         if (!isRestrictedRelayUrl(url)) return true;
@@ -4872,6 +5088,12 @@ function saveRelays() {
     } else {
         relayUrlsStore.write(urls);
     }
+    trackNrWebEvent('nr_relays_saved', {
+        relay_count: urls.length,
+        status: 'success',
+        surface: 'settings',
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     showStatus('Relays saved! Reconnecting...', 'info');
     scheduleHeaderKpiRefresh();
     initializeNDK();
@@ -4995,6 +5217,13 @@ function addRelay() {
     renderRelaysList();
     scheduleHeaderKpiRefresh();
     showStatus('Relay added! Reconnecting...', 'info');
+    trackNrWebEvent('nr_relays_saved', {
+        relay_count: allUrls.length,
+        source: 'add',
+        status: 'success',
+        surface: 'settings',
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     initializeNDK();
 }
 
@@ -5027,6 +5256,13 @@ function removeRelay(url) {
     } else {
         showStatus('Relay removed! Reconnecting...', 'info');
     }
+    trackNrWebEvent('nr_relays_saved', {
+        relay_count: urls.length,
+        source: 'remove',
+        status: 'success',
+        surface: 'settings',
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     initializeNDK();
 }
 
@@ -6207,7 +6443,7 @@ async function saveProfileTrustSummaryToCache(hex, summary) {
     const hasAny =
         normalized.contactCount > 0 ||
         normalized.positiveExperienceCount > 0 ||
-        normalized.threadUpvoteMetricValue !== null ||
+        shouldShowThreadUpvoteMetric(normalized.threadUpvoteMetricValue) ||
         normalized.people.length > 0;
     if (!hasAny) return;
     await nrWebKvPut(profileTrustSummaryCacheKey(h), { ts: Date.now(), value: normalized });
@@ -8648,6 +8884,18 @@ async function publishNoteFromModal() {
         const relayUrls = getWritableRelayUrls();
         
         if (relayUrls.length === 0) {
+            trackNrWebEvent('nr_note_publish_result', {
+                ...getNrWebAnalyticsAreaData(plusCode),
+                circle_slug: selectedCircle || '',
+                expiration_bucket: getNrWebExpirationAnalyticsBucket(expirationSeconds),
+                failed_count: 0,
+                has_circle: !!selectedCircle,
+                intent: selectedIntent || '',
+                relay_count: 0,
+                signer: getNrWebSignerAnalyticsType(),
+                status: 'no_relays',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             showStatus('No relays enabled for posting. Enable "Post" toggle for at least one relay.', 'error');
             return;
         }
@@ -8658,6 +8906,18 @@ async function publishNoteFromModal() {
         const failed = results.filter(r => !r.success).map(r => ({ url: r.url, error: r.error }));
         
         if (successful.length > 0) {
+            trackNrWebEvent('nr_note_publish_result', {
+                ...getNrWebAnalyticsAreaData(plusCode),
+                circle_slug: selectedCircle || '',
+                expiration_bucket: getNrWebExpirationAnalyticsBucket(expirationSeconds),
+                failed_count: failed.length,
+                has_circle: !!selectedCircle,
+                intent: selectedIntent || '',
+                relay_count: relayUrls.length,
+                signer: getNrWebSignerAnalyticsType(),
+                status: failed.length > 0 ? 'partial' : 'success',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             const relayWord = successful.length === 1 ? 'relay' : 'relays';
             let statusMessage = `Note published to ${successful.length} ${relayWord}`;
             if (failed.length > 0) {
@@ -8682,6 +8942,18 @@ async function publishNoteFromModal() {
                 showNotesForPlusCode(selectedPlusCode);
             }, 100);
         } else {
+            trackNrWebEvent('nr_note_publish_result', {
+                ...getNrWebAnalyticsAreaData(plusCode),
+                circle_slug: selectedCircle || '',
+                expiration_bucket: getNrWebExpirationAnalyticsBucket(expirationSeconds),
+                failed_count: failed.length,
+                has_circle: !!selectedCircle,
+                intent: selectedIntent || '',
+                relay_count: relayUrls.length,
+                signer: getNrWebSignerAnalyticsType(),
+                status: 'failed',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             markRelaysWithPublishFailures(failed);
             const relayWord = failed.length === 1 ? 'relay' : 'relays';
             const hasProfileMissingRestriction = failed.some(f => isTrustrootsProfileMissingRelayError(f.error));
@@ -8886,6 +9158,15 @@ function renderAreaLocationCard(plusCode) {
 function showNotesForPlusCode(plusCode, options = {}) {
     selectedPlusCode = plusCode;
     rememberLastHostPlusCode(plusCode);
+    const analyticsCircleSlug = options.circleSlug || selectedCircle || '';
+    trackNrWebSurfaceEvent('nr_host_area_opened', `host:${String(plusCode || '').trim().toUpperCase()}`, {
+        ...getNrWebAnalyticsAreaData(plusCode),
+        circle_slug: analyticsCircleSlug,
+        has_circle: !!analyticsCircleSlug,
+        route_type: 'host_area',
+        surface: 'host',
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     showAreaSurface();
     updateNoteComposePostingIcon();
     
@@ -10675,6 +10956,12 @@ function _openSettingsModalShared({ extraSetup, route = 'settings' } = {}) {
 }
 
 function openRelaysSettingsModal() {
+    trackNrWebSurfaceEvent('nr_settings_relays_opened', 'settings/relays', {
+        route_type: 'settings_relays',
+        surface: 'settings',
+        source: 'route',
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     _openSettingsModalShared({
         route: 'settings/relays',
         extraSetup: () => {
@@ -10718,6 +11005,15 @@ function openKeysModal(options = {}) {
             try { window.NrWebUnmountClaimTrustrootsSection?.(); } catch (_) {}
             updateKeyDisplay();
         },
+    });
+    const route = options.route || 'keys';
+    const isWelcomeRoute = route === 'welcome' || route === 'start';
+    trackNrWebSurfaceEvent(isWelcomeRoute ? 'nr_welcome_opened' : 'nr_keys_opened', `keys:${route}`, {
+        route_type: isWelcomeRoute ? 'welcome' : 'keys',
+        surface: 'keys',
+        source: options.preserveRoute === true ? 'overlay' : 'route',
+        signer: getNrWebSignerAnalyticsType(),
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
     });
 }
 
@@ -11007,6 +11303,12 @@ async function onboardingNip7Connect() {
         appendKeysLinkLog(`Connected NIP-07 extension ${getCurrentNpub() || currentPublicKey}`);
         updateKeyDisplay();
         openKeysModal({ runProfileLookup: false });
+        trackNrWebEvent('nr_nip7_connected', {
+            key_method: 'nip7',
+            signer: 'nip7',
+            status: 'success',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus('Browser extension connected.', 'success');
     } catch (error) {
         appendKeysLinkLog(`NIP-07 connect failed: ${error?.message || error}`);
@@ -11041,6 +11343,12 @@ async function onboardingImport() {
         showStatus('Key imported. Looking up your public profile details...', 'info');
         await checkProfileLinked();
         appendKeysLinkLog(`${noun} import complete`);
+        trackNrWebEvent('nr_key_imported', {
+            key_method: wasMnemonic ? 'mnemonic' : 'nsec',
+            signer: 'local',
+            status: 'success',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus('Key imported successfully. Your key stays on this device and is never stored on our server.', 'success');
     } catch (error) {
         const noun = wasMnemonic ? 'mnemonic' : 'nsec';
@@ -11136,6 +11444,12 @@ async function linkTrustrootsProfile() {
                 
                 if (relayUrls.length === 0) {
                     appendKeysLinkLog('No writable relays configured');
+                    trackNrWebEvent('nr_profile_linked', {
+                        ...getWritableRelayAnalyticsData(relayUrls),
+                        failed_count: 0,
+                        status: 'no_relays',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     showStatus('No relays enabled for posting. Enable "Post" toggle for at least one relay.', 'error');
                     return;
                 }
@@ -11161,6 +11475,12 @@ async function linkTrustrootsProfile() {
                 const kind0Successful = kind0Results.filter((r) => r.success);
                 const kind0Failed = kind0Results.filter((r) => !r.success).map((r) => ({ url: r.url, error: r.error }));
                 if (kind0Successful.length === 0) {
+                    trackNrWebEvent('nr_profile_linked', {
+                        ...getWritableRelayAnalyticsData(relayUrls),
+                        failed_count: kind0Failed.length,
+                        status: 'failed',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     markRelaysWithPublishFailures(kind0Failed);
                     const errorDetails = kind0Failed.map((f) => {
                         const errorMsg = f.error ? ` (${formatRelayError(f.error)})` : '';
@@ -11185,6 +11505,12 @@ async function linkTrustrootsProfile() {
                 const authRelayKind10390Ok = results.some((r) => r.success && normalizeRelayUrlForKeysLog(r.url) === authRelayNormalized);
                 if (authRelayAttempted && (!authRelayKind0Ok || !authRelayKind10390Ok)) {
                     appendKeysLinkLog(`Auth relay check failed: kind0=${authRelayKind0Ok} kind10390=${authRelayKind10390Ok}`);
+                    trackNrWebEvent('nr_profile_linked', {
+                        ...getWritableRelayAnalyticsData(relayUrls),
+                        failed_count: failed.length,
+                        status: 'failed',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     showStatus(
                         'Profile validated, but auth relay publish did not complete. Check relay settings, then retry.',
                         'error',
@@ -11195,6 +11521,12 @@ async function linkTrustrootsProfile() {
                 
                 if (successful.length > 0) {
                     appendKeysLinkLog('Link flow success');
+                    trackNrWebEvent('nr_profile_linked', {
+                        ...getWritableRelayAnalyticsData(relayUrls),
+                        failed_count: failed.length,
+                        status: failed.length > 0 ? 'partial' : 'success',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     const relayWord = successful.length === 1 ? 'relay' : 'relays';
                     const backupHint = nrWebNip7Signer.isActiveForPubkey(currentPublicKey)
                         ? ''
@@ -11230,6 +11562,12 @@ async function linkTrustrootsProfile() {
                     await refreshClaimSuggestions({ silent: true });
                 } else {
                     appendKeysLinkLog('kind10390 failed on all relays');
+                    trackNrWebEvent('nr_profile_linked', {
+                        ...getWritableRelayAnalyticsData(relayUrls),
+                        failed_count: failed.length,
+                        status: 'failed',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     markRelaysWithPublishFailures(failed);
                     const relayWordPf = failed.length === 1 ? 'relay' : 'relays';
                     const hasProfileMissingRestrictionPf = failed.some(f => isTrustrootsProfileMissingRelayError(f.error));
@@ -11668,6 +12006,25 @@ const __nrChatApp = (() => {
             writeValidatedTrustrootsUsernameMap(map);
         }
 
+        function getCurrentTrustrootsUsernameForAnalytics() {
+            const usernameInput = document.getElementById('trustroots-username');
+            const inputUsername = usernameInput && usernameInput.disabled
+                ? normalizeNrWebAnalyticsTrustrootsUsername(usernameInput.value)
+                : '';
+            return (
+                inputUsername ||
+                normalizeNrWebAnalyticsTrustrootsUsername(pubkeyToUsername.get(currentPublicKey)) ||
+                normalizeNrWebAnalyticsTrustrootsUsername(getCachedValidatedTrustrootsUsername(currentPublicKey))
+            );
+        }
+
+        function getCurrentTrustrootsUsernameAnalyticsData(usernameOverride) {
+            const trustrootsUsername =
+                normalizeNrWebAnalyticsTrustrootsUsername(usernameOverride) ||
+                getCurrentTrustrootsUsernameForAnalytics();
+            return trustrootsUsername ? { trustroots_username: trustrootsUsername } : {};
+        }
+
         function getTrustrootsCircles() {
             return getTrustrootsCircleEntries();
         }
@@ -11704,6 +12061,11 @@ const __nrChatApp = (() => {
         const circleMetaBySlug = new Map();
         /** @type {Map<string, { members: Map<string, object>, loading: boolean, loaded: boolean, error: string, expanded: boolean, query: string }>} */
         const circleMembersBySlug = new Map();
+        const currentUserTrustrootsCircleSlugs = new Set();
+        let currentUserCircleMembershipPubkey = '';
+        let currentUserCircleMembershipOverrideActive = false;
+        let currentUserCircleMembershipOverrideCreatedAt = 0;
+        let currentUserCircleMembershipOverrideSlugs = new Set();
 
         function isNip7ChatActive() {
             return !!window.NrWebNip7?.isActiveForPubkey?.(currentPublicKey);
@@ -11711,6 +12073,12 @@ const __nrChatApp = (() => {
 
         function hasChatSigningKey() {
             return !!(currentPublicKey && (currentSecretKeyBytes || isNip7ChatActive()));
+        }
+
+        function getChatSignerAnalyticsType() {
+            if (isNip7ChatActive()) return 'nip7';
+            if (currentSecretKeyBytes || currentSecretKeyHex) return 'local';
+            return 'none';
         }
 
         async function nip7ChatEncrypt(peerPubkey, plaintext) {
@@ -11797,6 +12165,165 @@ const __nrChatApp = (() => {
             return canonicalTrustrootsCircleSlugKey(normalizeChannelSlug(entry.id) || entry.id);
         }
 
+        function resetCurrentUserCircleMembershipIfPubkeyChanged() {
+            const normalized = normalizeCachedPubkeyHex(currentPublicKey);
+            if (normalized === currentUserCircleMembershipPubkey) return;
+            currentUserCircleMembershipPubkey = normalized;
+            currentUserTrustrootsCircleSlugs.clear();
+            currentUserCircleMembershipOverrideActive = false;
+            currentUserCircleMembershipOverrideCreatedAt = 0;
+            currentUserCircleMembershipOverrideSlugs = new Set();
+            loadCachedCurrentUserCircleMembershipOverride();
+        }
+
+        function rememberCurrentUserCircleMembership(member) {
+            resetCurrentUserCircleMembershipIfPubkeyChanged();
+            const userPubkey = normalizeCachedPubkeyHex(currentPublicKey);
+            const memberPubkey = normalizeCachedPubkeyHex(member?.pubkey);
+            if (!userPubkey || memberPubkey !== userPubkey) return false;
+            let changed = false;
+            for (const slug of member?.slugs || []) {
+                const key = canonicalTrustrootsCircleSlugKey(slug);
+                if (!key || currentUserTrustrootsCircleSlugs.has(key)) continue;
+                currentUserTrustrootsCircleSlugs.add(key);
+                changed = true;
+            }
+            return changed;
+        }
+
+        function currentUserCircleMembershipCacheKey() {
+            const userPubkey = normalizeCachedPubkeyHex(currentPublicKey);
+            return userPubkey ? `nostroots_circle_memberships_v1:${userPubkey}` : '';
+        }
+
+        function normalizeCircleMembershipSlugList(slugs) {
+            const out = [];
+            const seen = new Set();
+            for (const slug of slugs || []) {
+                const key = canonicalTrustrootsCircleSlugKey(slug);
+                if (!key || seen.has(key) || !TRUSTROOTS_CIRCLE_SLUGS_SET.has(key)) continue;
+                seen.add(key);
+                out.push(key);
+            }
+            return out.sort((a, b) => a.localeCompare(b));
+        }
+
+        function saveCachedCurrentUserCircleMembershipOverride() {
+            const key = currentUserCircleMembershipCacheKey();
+            if (!key || typeof localStorage === 'undefined') return;
+            try {
+                if (!currentUserCircleMembershipOverrideActive) {
+                    localStorage.removeItem(key);
+                    return;
+                }
+                localStorage.setItem(key, JSON.stringify({
+                    created_at: currentUserCircleMembershipOverrideCreatedAt,
+                    slugs: [...currentUserCircleMembershipOverrideSlugs],
+                }));
+            } catch (_) {}
+        }
+
+        function loadCachedCurrentUserCircleMembershipOverride() {
+            const key = currentUserCircleMembershipCacheKey();
+            if (!key || typeof localStorage === 'undefined') return false;
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return false;
+                const parsed = JSON.parse(raw);
+                const slugs = normalizeCircleMembershipSlugList(parsed?.slugs || []);
+                currentUserCircleMembershipOverrideActive = true;
+                currentUserCircleMembershipOverrideCreatedAt = Number(parsed?.created_at || 0) || 0;
+                currentUserCircleMembershipOverrideSlugs = new Set(slugs);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function getCircleMembershipSlugsFromEvent(event) {
+            if (!event || event.kind !== TRUSTROOTS_CIRCLE_MEMBERSHIP_KIND) return [];
+            const tags = Array.isArray(event.tags) ? event.tags : [];
+            const d = tags.find((tag) => Array.isArray(tag) && tag[0] === 'd')?.[1] || '';
+            if (String(d || '').trim() !== TRUSTROOTS_CIRCLE_MEMBERSHIP_D_TAG) return [];
+            return normalizeCircleMembershipSlugList(
+                tags
+                    .filter((tag) =>
+                        Array.isArray(tag) &&
+                        tag.length >= 3 &&
+                        tag[0] === 'l' &&
+                        tag[2] === TRUSTROOTS_CIRCLE_LABEL
+                    )
+                    .map((tag) => tag[1])
+            );
+        }
+
+        function applyCurrentUserCircleMembershipOverride(slugs, createdAt) {
+            resetCurrentUserCircleMembershipIfPubkeyChanged();
+            currentUserCircleMembershipOverrideActive = true;
+            currentUserCircleMembershipOverrideCreatedAt = Number(createdAt || 0) || 0;
+            currentUserCircleMembershipOverrideSlugs = new Set(normalizeCircleMembershipSlugList(slugs));
+            saveCachedCurrentUserCircleMembershipOverride();
+        }
+
+        function handleCurrentUserCircleMembershipEvent(event) {
+            if (!event || event.kind !== TRUSTROOTS_CIRCLE_MEMBERSHIP_KIND) return false;
+            const author = normalizeCachedPubkeyHex(event.pubkey);
+            const userPubkey = normalizeCachedPubkeyHex(currentPublicKey);
+            if (!author || !userPubkey || author !== userPubkey) return false;
+            const tags = Array.isArray(event.tags) ? event.tags : [];
+            const d = tags.find((tag) => Array.isArray(tag) && tag[0] === 'd')?.[1] || '';
+            if (String(d || '').trim() !== TRUSTROOTS_CIRCLE_MEMBERSHIP_D_TAG) return false;
+            const createdAt = Number(event.created_at || 0) || 0;
+            if (currentUserCircleMembershipOverrideActive && createdAt < currentUserCircleMembershipOverrideCreatedAt) return false;
+            applyCurrentUserCircleMembershipOverride(getCircleMembershipSlugsFromEvent(event), createdAt);
+            scheduleRender('convList');
+            const selected = selectedConversationId ? conversations.get(selectedConversationId) : null;
+            renderCircleMembersPanel(selected);
+            return true;
+        }
+
+        function getEffectiveCurrentUserCircleMembershipSlugs() {
+            resetCurrentUserCircleMembershipIfPubkeyChanged();
+            return new Set(
+                currentUserCircleMembershipOverrideActive
+                    ? [...currentUserCircleMembershipOverrideSlugs]
+                    : [...currentUserTrustrootsCircleSlugs]
+            );
+        }
+
+        function isCurrentUserMemberOfTrustrootsCircle(slug) {
+            const key = canonicalTrustrootsCircleSlugKey(slug);
+            if (!key) return false;
+            return getEffectiveCurrentUserCircleMembershipSlugs().has(key);
+        }
+
+        function isIntentConversationSlug(slug) {
+            const normalized = normalizeChannelSlug(String(slug || ''));
+            return isIntentId(normalized) || normalized === HOSTING_OFFER_CHANNEL_SLUG;
+        }
+
+        function shouldShowConversationInSidebar(entry) {
+            if (!entry) return false;
+            if (entry.type === 'dm' || entry.type === 'group') return true;
+            if (entry.type !== 'channel') return false;
+            const id = normalizeChannelSlug(String(entry.id || ''));
+            if (!id) return false;
+            if (isIntentConversationSlug(id)) return true;
+            if (isTrustrootsCircleConversation(entry)) return isCurrentUserMemberOfTrustrootsCircle(id);
+            return false;
+        }
+
+        function getOrderedSidebarConversationEntries() {
+            return Array.from(conversations.entries())
+                .map(([id, c]) => ({ id, ...c }))
+                .filter((entry) => shouldShowConversationInSidebar(entry))
+                .sort((a, b) => convSortKey(b) - convSortKey(a));
+        }
+
+        function getFirstSidebarConversationId() {
+            return getOrderedSidebarConversationEntries()[0]?.id || '';
+        }
+
         function getCircleMemberState(slugKey) {
             const key = canonicalTrustrootsCircleSlugKey(slugKey);
             if (!key) return null;
@@ -11860,6 +12387,7 @@ const __nrChatApp = (() => {
             if (member.picture && isSafeHttpUrl(member.picture)) {
                 pubkeyToPicture.set(member.pubkey, member.picture);
             }
+            if (rememberCurrentUserCircleMembership(member)) changed = true;
             return changed;
         }
 
@@ -11891,6 +12419,7 @@ const __nrChatApp = (() => {
                 if (member.picture && isSafeHttpUrl(member.picture)) {
                     pubkeyToPicture.set(member.pubkey, member.picture);
                 }
+                if (rememberCurrentUserCircleMembership(member)) changed = true;
             }
             return changed;
         }
@@ -12065,6 +12594,45 @@ const __nrChatApp = (() => {
             parent.appendChild(span);
         }
 
+        function buildCurrentUserCircleMember(slugKey) {
+            const pubkey = normalizeCachedPubkeyHex(currentPublicKey);
+            if (!pubkey) return null;
+            const tr = String(pubkeyToUsername.get(pubkey) || '').trim().toLowerCase();
+            const nip05 = String(pubkeyToNip05.get(pubkey) || '').trim().toLowerCase();
+            const npub = hexToNpub(pubkey) || '';
+            const displayName = tr || nip05 || getDisplayNameShort(pubkey) || npub || pubkey;
+            return {
+                pubkey,
+                npub,
+                trustrootsUsername: tr,
+                nip05,
+                displayName,
+                picture: String(pubkeyToPicture.get(pubkey) || window.NrWeb?.getRememberedNrNavAccountAvatar?.(pubkey) || '').trim(),
+                profileId: tr ? `${tr}@trustroots.org` : (nip05 || npub || pubkey),
+                slugs: [slugKey],
+                created_at: currentUserCircleMembershipOverrideCreatedAt || Math.floor(Date.now() / 1000),
+                eventId: '',
+            };
+        }
+
+        function syncCurrentUserCircleMemberForSlug(slugKey) {
+            if (!isCurrentUserMemberOfTrustrootsCircle(slugKey)) return false;
+            const state = getCircleMemberState(slugKey);
+            const member = buildCurrentUserCircleMember(slugKey);
+            if (!state || !member) return false;
+            const prev = state.members.get(member.pubkey);
+            state.members.set(member.pubkey, { ...(prev || {}), ...member });
+            return true;
+        }
+
+        function isCircleMemberVisibleForSlug(member, slugKey) {
+            const userPubkey = normalizeCachedPubkeyHex(currentPublicKey);
+            const memberPubkey = normalizeCachedPubkeyHex(member?.pubkey);
+            if (!userPubkey || memberPubkey !== userPubkey) return true;
+            if (!currentUserCircleMembershipOverrideActive) return true;
+            return currentUserCircleMembershipOverrideSlugs.has(canonicalTrustrootsCircleSlugKey(slugKey));
+        }
+
         function renderCircleMembersPanel(conv) {
             const panel = document.getElementById('circle-members-panel');
             if (!panel) return;
@@ -12076,8 +12644,10 @@ const __nrChatApp = (() => {
             }
             const state = getCircleMemberState(slugKey);
             upsertCircleMembersFromConversationEvents(conv, slugKey);
-            const members = filterCircleMembersForDisplay([...state.members.values()], state.query);
-            const allMembers = sortCircleMembersForDisplay([...state.members.values()]);
+            syncCurrentUserCircleMemberForSlug(slugKey);
+            const visibleMemberRows = [...state.members.values()].filter((member) => isCircleMemberVisibleForSlug(member, slugKey));
+            const members = filterCircleMembersForDisplay(visibleMemberRows, state.query);
+            const allMembers = sortCircleMembersForDisplay(visibleMemberRows);
             panel.style.display = 'block';
             panel.replaceChildren();
 
@@ -12100,6 +12670,17 @@ const __nrChatApp = (() => {
                 avatars.appendChild(muted);
             }
             summary.appendChild(avatars);
+
+            const isMember = isCurrentUserMemberOfTrustrootsCircle(slugKey);
+            const membershipButton = document.createElement('button');
+            membershipButton.type = 'button';
+            membershipButton.className = `circle-members-toggle circle-membership-toggle${isMember ? ' circle-membership-leave' : ''}`;
+            membershipButton.textContent = isMember ? 'Leave circle' : 'Join circle';
+            membershipButton.addEventListener('click', () => {
+                if (isMember) void leaveTrustrootsCircle(slugKey);
+                else void joinTrustrootsCircle(slugKey);
+            });
+            summary.appendChild(membershipButton);
 
             const toggle = document.createElement('button');
             toggle.type = 'button';
@@ -12656,6 +13237,12 @@ const __nrChatApp = (() => {
             if (!route) {
                 applyDocumentTitle('Chat');
                 if (o.emptyPicker) {
+                    trackNrWebSurfaceEvent('nr_chat_opened', 'chat:picker', {
+                        chat_type: 'picker',
+                        route_type: 'chat',
+                        surface: 'chat',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(),
+                    });
                     // Explicit #chat (index): show conversation list, not the previously open thread.
                     writePersistedSelectedChatId('');
                     selectedConversationId = null;
@@ -12672,9 +13259,7 @@ const __nrChatApp = (() => {
                     if (tm) tm.innerHTML = '';
                     return;
                 }
-                const firstConversationId = Array.from(conversations.entries())
-                    .map(([id, c]) => ({ id, ...c }))
-                    .sort((a, b) => convSortKey(b) - convSortKey(a))[0]?.id;
+                const firstConversationId = getFirstSidebarConversationId();
                 if (firstConversationId) {
                     selectConversation(firstConversationId);
                 }
@@ -12945,6 +13530,12 @@ const __nrChatApp = (() => {
                 await startSubscriptions();
                 updateUI();
                 openKeysModal();
+                trackNrWebEvent('nr_nip7_connected', {
+                    key_method: 'nip7',
+                    signer: 'nip7',
+                    status: 'success',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
                 showStatus('Browser extension connected.', 'success');
             } catch (e) {
                 appendKeysLinkLog(`NIP-07 connect failed: ${e?.message || e}`);
@@ -12974,6 +13565,12 @@ const __nrChatApp = (() => {
                 await loadKeysFromStorage();
                 appendKeysLinkLog('Import complete');
                 showStatus('Key imported. Shared with map app.', 'success');
+                trackNrWebEvent('nr_key_imported', {
+                    key_method: raw.includes(' ') ? 'mnemonic' : 'nsec',
+                    signer: 'local',
+                    status: 'success',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
                 openKeysModal();
             })();
         }
@@ -13111,12 +13708,25 @@ const __nrChatApp = (() => {
                     checkProfileLinked();
                 },
             });
+            trackNrWebSurfaceEvent('nr_keys_opened', 'chat:keys', {
+                route_type: 'keys',
+                surface: 'keys',
+                source: 'chat',
+                signer: getChatSignerAnalyticsType(),
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
         }
         function closeKeysModal() {
             _closeKeysModalShared({ fallbackRoute: getConversationRouteId(selectedConversationId) });
         }
 
         function openSettingsModal() {
+            trackNrWebSurfaceEvent('nr_settings_relays_opened', 'chat:settings', {
+                route_type: 'settings_relays',
+                surface: 'settings',
+                source: 'chat',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             _openSettingsModalShared({ extraSetup: () => renderRelaysList() });
         }
         function closeSettingsModal() {
@@ -13184,6 +13794,12 @@ const __nrChatApp = (() => {
             void (async () => {
                 await loadKeysFromStorage();
                 appendKeysLinkLog('Import complete');
+                trackNrWebEvent('nr_key_imported', {
+                    key_method: raw.includes(' ') ? 'mnemonic' : 'nsec',
+                    signer: 'local',
+                    status: 'success',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
                 openKeysModal();
             })();
             showStatus('Key imported successfully. Your key stays on this device and is never stored on our server.', 'success');
@@ -13214,6 +13830,12 @@ const __nrChatApp = (() => {
                 await loadKeysFromStorage();
                 appendKeysLinkLog('Import complete');
                 updateKeyDisplay();
+                trackNrWebEvent('nr_key_imported', {
+                    key_method: raw.includes(' ') ? 'mnemonic' : 'nsec',
+                    signer: 'local',
+                    status: 'success',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
                 openKeysModal();
             })();
             showStatus('Key imported successfully. Your key stays on this device and is never stored on our server.', 'success');
@@ -13229,6 +13851,12 @@ const __nrChatApp = (() => {
             void (async () => {
                 await loadKeysFromStorage();
             })();
+            trackNrWebEvent('nr_key_created', {
+                key_method: 'generated',
+                signer: 'local',
+                status: 'success',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             showStatus('New key pair generated!', 'success');
         }
         function exportNsec() {
@@ -13813,9 +14441,7 @@ const __nrChatApp = (() => {
 
             renderConvList();
             if (!getHashRoute()) {
-                const firstConversationId = Array.from(conversations.entries())
-                    .map(([id, c]) => ({ id, ...c }))
-                    .sort((a, b) => convSortKey(b) - convSortKey(a))[0]?.id;
+                const firstConversationId = getFirstSidebarConversationId();
                 if (firstConversationId) selectConversation(firstConversationId);
             }
 
@@ -13885,6 +14511,16 @@ const __nrChatApp = (() => {
                 pool.subscribe(publicRelays, { kinds: [TRUSTROOTS_PROFILE_KIND] }, { onevent: handleKind10390ForProfile });
                 pool.subscribe(publicRelays, { kinds: [0] }, { onevent: handleKind0ForProfile });
                 pool.subscribe(publicRelays, { kinds: [PROFILE_CLAIM_KIND], limit: 1000 }, { onevent: handleKind30390ForProfile });
+                pool.subscribe(
+                    publicRelays,
+                    {
+                        kinds: [TRUSTROOTS_CIRCLE_MEMBERSHIP_KIND],
+                        authors: [currentPublicKey],
+                        '#d': [TRUSTROOTS_CIRCLE_MEMBERSHIP_D_TAG],
+                        limit: 20
+                    },
+                    { onevent: handleCurrentUserCircleMembershipEvent }
+                );
             }
 
             // Also fetch profile-shaped events from the NIP-42 auth relay; SimplePool above
@@ -14085,6 +14721,7 @@ const __nrChatApp = (() => {
             if (!info) {
                 if (changedMembers) {
                     const selected = selectedConversationId ? conversations.get(selectedConversationId) : null;
+                    scheduleRender('convList');
                     renderCircleMembersPanel(selected);
                 }
                 return;
@@ -14104,7 +14741,10 @@ const __nrChatApp = (() => {
             if (selDm && selDm.type === 'dm' && selDm.id === info.targetPubkey) {
                 syncThreadHeaderForConversation(selDm);
             }
-            if (changedMembers) renderCircleMembersPanel(selDm);
+            if (changedMembers) {
+                scheduleRender('convList');
+                renderCircleMembersPanel(selDm);
+            }
         }
 
         /**
@@ -14124,7 +14764,15 @@ const __nrChatApp = (() => {
             try {
                 _nrChatAuthProfileSub = relayAuth.startNip42WsSubscription({
                     relayUrl: restrictedUrl,
-                    filter: { kinds: [0, TRUSTROOTS_PROFILE_KIND, PROFILE_CLAIM_KIND], limit: 5000 },
+                    filter: [
+                        { kinds: [0, TRUSTROOTS_PROFILE_KIND, PROFILE_CLAIM_KIND], limit: 5000 },
+                        {
+                            kinds: [TRUSTROOTS_CIRCLE_MEMBERSHIP_KIND],
+                            authors: [currentPublicKey],
+                            '#d': [TRUSTROOTS_CIRCLE_MEMBERSHIP_D_TAG],
+                            limit: 20,
+                        },
+                    ],
                     authPubkey: currentPublicKey,
                     signEvent: (template) => signEvent(template),
                     onEvent: (event) => {
@@ -14132,6 +14780,7 @@ const __nrChatApp = (() => {
                         if (event.kind === 0) handleKind0ForProfile(event);
                         else if (event.kind === TRUSTROOTS_PROFILE_KIND) handleKind10390ForProfile(event);
                         else if (event.kind === PROFILE_CLAIM_KIND) handleKind30390ForProfile(event);
+                        else if (event.kind === TRUSTROOTS_CIRCLE_MEMBERSHIP_KIND) handleCurrentUserCircleMembershipEvent(event);
                     }
                 });
             } catch (e) {
@@ -14314,6 +14963,17 @@ const __nrChatApp = (() => {
                 const signedEvent = await signEvent(eventTemplate);
                 const r = getPublishRelayUrls();
                 appendKeysLinkLog(`Writable relays (${r.length}): ${r.join(', ')}`);
+                if (!r.length) {
+                    trackNrWebEvent('nr_profile_linked', {
+                        failed_count: 0,
+                        relay_count: 0,
+                        signer: getChatSignerAnalyticsType(),
+                        status: 'no_relays',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
+                    showStatus('Turn on posting in Settings before linking your profile.', 'error');
+                    return;
+                }
                 const kind0Template = {
                     kind: 0,
                     tags: [],
@@ -14329,6 +14989,13 @@ const __nrChatApp = (() => {
                 kind0Publish.succeeded.forEach((entry) => appendKeysLinkLog(`kind0 OK ${entry.url}`));
                 kind0Publish.failed.forEach((entry) => appendKeysLinkLog(`kind0 FAIL ${entry.url}${entry.error ? ` :: ${entry.error}` : ''}`));
                 if (kind0Publish.succeeded.length === 0) {
+                    trackNrWebEvent('nr_profile_linked', {
+                        failed_count: kind0Publish.failed.length,
+                        relay_count: r.length,
+                        signer: getChatSignerAnalyticsType(),
+                        status: 'failed',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     showStatus('Profile validated but bootstrap kind 0 failed on all relays.', 'error');
                     return;
                 }
@@ -14342,10 +15009,24 @@ const __nrChatApp = (() => {
                 const authRelayKind10390Ok = profilePublish.succeeded.some((entry) => normalizeRelayUrlForKeysLog(entry.url) === authRelayNormalized);
                 if (authRelayAttempted && (!authRelayKind0Ok || !authRelayKind10390Ok)) {
                     appendKeysLinkLog(`Auth relay check failed: kind0=${authRelayKind0Ok} kind10390=${authRelayKind10390Ok}`);
+                    trackNrWebEvent('nr_profile_linked', {
+                        failed_count: profilePublish.failed.length,
+                        relay_count: r.length,
+                        signer: getChatSignerAnalyticsType(),
+                        status: 'failed',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     showStatus('Profile validated, but auth relay publish did not complete. Check relay settings and retry.', 'error');
                     return;
                 }
                 if (profilePublish.succeeded.length === 0) {
+                    trackNrWebEvent('nr_profile_linked', {
+                        failed_count: profilePublish.failed.length,
+                        relay_count: r.length,
+                        signer: getChatSignerAnalyticsType(),
+                        status: 'failed',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     showStatus('Profile validated but kind 10390 failed on all relays.', 'error');
                     return;
                 }
@@ -14357,6 +15038,13 @@ const __nrChatApp = (() => {
                 setCachedValidatedTrustrootsUsername(currentPublicKey, username);
                 scheduleChatCacheWrite();
                 appendKeysLinkLog('Link flow success');
+                trackNrWebEvent('nr_profile_linked', {
+                    failed_count: profilePublish.failed.length,
+                    relay_count: r.length,
+                    signer: getChatSignerAnalyticsType(),
+                    status: profilePublish.failed.length > 0 ? 'partial' : 'success',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                });
                 const backupHint = isNip7ChatActive()
                     ? ''
                     : ' Back up your nsec in your password manager before relying on this identity.';
@@ -14424,6 +15112,13 @@ const __nrChatApp = (() => {
                 relays = urls;
                 void startSubscriptions();
             }
+            trackNrWebEvent('nr_relays_saved', {
+                relay_count: urls.length,
+                source: 'add',
+                status: 'success',
+                surface: 'settings',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             showStatus('Relay added.', 'success');
         }
 
@@ -14439,6 +15134,13 @@ const __nrChatApp = (() => {
                 relays = urls.length ? urls : DEFAULT_RELAYS;
                 void startSubscriptions();
             }
+            trackNrWebEvent('nr_relays_saved', {
+                relay_count: urls.length,
+                source: 'remove',
+                status: 'success',
+                surface: 'settings',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             showStatus('Relay removed.', 'success');
         }
 
@@ -14527,9 +15229,7 @@ const __nrChatApp = (() => {
             function escConvHtml(s) {
                 return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
             }
-            const entries = Array.from(conversations.entries())
-                .map(([id, c]) => ({ id, ...c }));
-            const ordered = entries.sort((a, b) => convSortKey(b) - convSortKey(a));
+            const ordered = getOrderedSidebarConversationEntries();
             const query = normalizeSearchQuery(conversationFilterQuery);
             const filtered = query ? ordered.filter((entry) => conversationMatchesFilter(entry, query)) : ordered;
             filtered.forEach(({ id, type, members, events }) => {
@@ -14836,6 +15536,17 @@ const __nrChatApp = (() => {
                 writePersistedSelectedChatId(String(id));
             } else {
                 writePersistedSelectedChatId('');
+            }
+            if (conv) {
+                const circleSlug = conv.type === 'channel' ? normalizeNrWebAnalyticsCircleSlug(conv.id) : '';
+                trackNrWebSurfaceEvent('nr_chat_opened', `chat:${conv.type}:${circleSlug}`, {
+                    chat_type: conv.type,
+                    circle_slug: circleSlug,
+                    has_circle: !!circleSlug,
+                    route_type: 'chat',
+                    surface: 'chat',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
             }
             const list = document.getElementById('conv-list');
             if (list) list.querySelectorAll('.conv-item').forEach(el => el.classList.toggle('selected', el.dataset.convId === id));
@@ -15256,6 +15967,117 @@ const __nrChatApp = (() => {
             return finalizeEvent(eventToSign, currentSecretKeyBytes);
         }
 
+        function buildTrustrootsCircleMembershipEventTemplate(slugs) {
+            const normalizedSlugs = normalizeCircleMembershipSlugList(slugs);
+            const tags = [
+                ['d', TRUSTROOTS_CIRCLE_MEMBERSHIP_D_TAG],
+                ['L', TRUSTROOTS_CIRCLE_LABEL],
+            ];
+            for (const slug of normalizedSlugs) {
+                tags.push(['l', slug, TRUSTROOTS_CIRCLE_LABEL]);
+                tags.push(['t', slug]);
+            }
+            return {
+                kind: TRUSTROOTS_CIRCLE_MEMBERSHIP_KIND,
+                content: '',
+                tags,
+                created_at: Math.floor(Date.now() / 1000),
+                pubkey: currentPublicKey,
+            };
+        }
+
+        async function publishTrustrootsCircleMembershipOverride(nextSlugs, actionLabel) {
+            if (!currentPublicKey || !hasChatSigningKey()) {
+                showStatus('Connect your identity key before changing circle memberships.', 'error');
+                openKeysModal();
+                return false;
+            }
+            const publishRelayUrls = getWritableRelayUrls();
+            if (!publishRelayUrls.length) {
+                showStatus('Turn on posting in Settings before changing circle memberships.', 'error');
+                openSettingsModal();
+                return false;
+            }
+
+            const previous = {
+                active: currentUserCircleMembershipOverrideActive,
+                createdAt: currentUserCircleMembershipOverrideCreatedAt,
+                slugs: new Set(currentUserCircleMembershipOverrideSlugs),
+            };
+            const normalizedSlugs = normalizeCircleMembershipSlugList(nextSlugs);
+            const template = buildTrustrootsCircleMembershipEventTemplate(normalizedSlugs);
+            applyCurrentUserCircleMembershipOverride(normalizedSlugs, template.created_at);
+            syncCurrentUserCircleMemberForSlug(selectedConversationId || '');
+            scheduleRender('convList');
+            renderCircleMembersPanel(selectedConversationId ? conversations.get(selectedConversationId) : null);
+
+            try {
+                const signed = await signEvent(template);
+                const { succeeded, failed } = await publishEventWithRelayAcks(publishRelayUrls, signed);
+                if (!succeeded.length) {
+                    currentUserCircleMembershipOverrideActive = previous.active;
+                    currentUserCircleMembershipOverrideCreatedAt = previous.createdAt;
+                    currentUserCircleMembershipOverrideSlugs = previous.slugs;
+                    saveCachedCurrentUserCircleMembershipOverride();
+                    scheduleRender('convList');
+                    renderCircleMembersPanel(selectedConversationId ? conversations.get(selectedConversationId) : null);
+                    const fb = relayPublishFailureUserFeedback(failed, 'send');
+                    showStatus(fb.message, 'error', { actions: fb.actions });
+                    return false;
+                }
+                showStatus(`${actionLabel} (${succeeded.length} network${succeeded.length === 1 ? '' : 's'} confirmed).`, 'success');
+                return true;
+            } catch (error) {
+                currentUserCircleMembershipOverrideActive = previous.active;
+                currentUserCircleMembershipOverrideCreatedAt = previous.createdAt;
+                currentUserCircleMembershipOverrideSlugs = previous.slugs;
+                saveCachedCurrentUserCircleMembershipOverride();
+                scheduleRender('convList');
+                renderCircleMembersPanel(selectedConversationId ? conversations.get(selectedConversationId) : null);
+                const fb = formatSendCatchError(error);
+                showStatus(fb.message, 'error', { actions: fb.actions });
+                return false;
+            }
+        }
+
+        async function joinTrustrootsCircle(slug) {
+            const key = canonicalTrustrootsCircleSlugKey(slug);
+            if (!key || !TRUSTROOTS_CIRCLE_SLUGS_SET.has(key)) return false;
+            const next = getEffectiveCurrentUserCircleMembershipSlugs();
+            next.add(key);
+            const ok = await publishTrustrootsCircleMembershipOverride([...next], `Joined #${key}`);
+            trackNrWebEvent('nr_circle_membership_changed', {
+                circle_slug: key,
+                failed_count: ok ? 0 : getWritableRelayUrls().length,
+                has_circle: true,
+                relay_count: getWritableRelayUrls().length,
+                signer: getChatSignerAnalyticsType(),
+                source: 'join',
+                status: ok ? 'success' : 'failed',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
+            return ok;
+        }
+
+        async function leaveTrustrootsCircle(slug) {
+            const key = canonicalTrustrootsCircleSlugKey(slug);
+            if (!key || !TRUSTROOTS_CIRCLE_SLUGS_SET.has(key)) return false;
+            const next = getEffectiveCurrentUserCircleMembershipSlugs();
+            next.delete(key);
+            const ok = await publishTrustrootsCircleMembershipOverride([...next], `Left #${key}`);
+            trackNrWebEvent('nr_circle_membership_changed', {
+                circle_slug: key,
+                failed_count: ok ? 0 : getWritableRelayUrls().length,
+                has_circle: true,
+                relay_count: getWritableRelayUrls().length,
+                signer: getChatSignerAnalyticsType(),
+                source: 'leave',
+                status: ok ? 'success' : 'failed',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
+            return ok;
+        }
+
         /** Returns Unix timestamp (seconds) for note expiration, or null for permanent. NIP-40. */
         function getComposeExpiration() {
             const sel = document.getElementById('compose-expiry');
@@ -15321,6 +16143,14 @@ const __nrChatApp = (() => {
                 signEvent(template).then(async (signed) => {
                     const { succeeded, failed } = await publishEventWithRelayAcks(publishRelayUrls, signed);
                     if (succeeded.length === 0) {
+                        trackNrWebEvent('nr_chat_message_sent', {
+                            chat_type: 'dm',
+                            failed_count: failed.length,
+                            relay_count: publishRelayUrls.length,
+                            signer: getChatSignerAnalyticsType(),
+                            status: 'failed',
+                            ...getCurrentTrustrootsUsernameAnalyticsData(),
+                        });
                         const fb = relayPublishFailureUserFeedback(failed, 'send');
                         showStatus(fb.message, 'error', { actions: fb.actions });
                         return;
@@ -15340,8 +16170,24 @@ const __nrChatApp = (() => {
                     scheduleChatCacheWrite();
                     input.value = '';
                     scheduleRender('both');
+                    trackNrWebEvent('nr_chat_message_sent', {
+                        chat_type: 'dm',
+                        failed_count: failed.length,
+                        relay_count: publishRelayUrls.length,
+                        signer: getChatSignerAnalyticsType(),
+                        status: failed.length > 0 ? 'partial' : 'success',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(),
+                    });
                     showStatus(`Message sent (${succeeded.length} of ${publishRelayUrls.length} networks confirmed).`, 'success');
                 }).catch((e) => {
+                    trackNrWebEvent('nr_chat_message_sent', {
+                        chat_type: 'dm',
+                        failed_count: publishRelayUrls.length,
+                        relay_count: publishRelayUrls.length,
+                        signer: getChatSignerAnalyticsType(),
+                        status: 'error',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(),
+                    });
                     const fb = formatSendCatchError(e);
                     showStatus(fb.message, 'error', { actions: fb.actions });
                 });
@@ -15398,6 +16244,14 @@ const __nrChatApp = (() => {
                     scheduleChatCacheWrite();
                     document.getElementById('compose-input').value = '';
                     scheduleRender('both');
+                    trackNrWebEvent('nr_chat_message_sent', {
+                        chat_type: 'group',
+                        failed_count: 0,
+                        relay_count: publishRelayUrls.length,
+                        signer: getChatSignerAnalyticsType(),
+                        status: 'sent',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(),
+                    });
                     showStatus('Sent to group.', 'success');
                 })();
                 return;
@@ -15422,6 +16276,16 @@ const __nrChatApp = (() => {
                 signEvent(template).then(async (signed) => {
                     const { succeeded, failed } = await publishEventWithRelayAcks(publishRelayUrls, signed);
                     if (succeeded.length === 0) {
+                        trackNrWebEvent('nr_chat_message_sent', {
+                            chat_type: 'channel',
+                            circle_slug: slug,
+                            failed_count: failed.length,
+                            has_circle: true,
+                            relay_count: publishRelayUrls.length,
+                            signer: getChatSignerAnalyticsType(),
+                            status: 'failed',
+                            ...getCurrentTrustrootsUsernameAnalyticsData(),
+                        });
                         const fb = relayPublishFailureUserFeedback(failed, 'send');
                         showStatus(fb.message, 'error', { actions: fb.actions });
                         return;
@@ -15440,12 +16304,32 @@ const __nrChatApp = (() => {
                     scheduleChatCacheWrite();
                     document.getElementById('compose-input').value = '';
                     scheduleRender('both');
+                    trackNrWebEvent('nr_chat_message_sent', {
+                        chat_type: 'channel',
+                        circle_slug: slug,
+                        failed_count: failed.length,
+                        has_circle: true,
+                        relay_count: publishRelayUrls.length,
+                        signer: getChatSignerAnalyticsType(),
+                        status: failed.length > 0 ? 'partial' : 'success',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(),
+                    });
                     if (failed.length > 0) {
                         showStatus(`Channel message sent (${succeeded.length} of ${publishRelayUrls.length} networks confirmed).`, 'success');
                     } else {
                         showStatus('Sent to channel.', 'success');
                     }
                 }).catch((e) => {
+                    trackNrWebEvent('nr_chat_message_sent', {
+                        chat_type: 'channel',
+                        circle_slug: slug,
+                        failed_count: publishRelayUrls.length,
+                        has_circle: true,
+                        relay_count: publishRelayUrls.length,
+                        signer: getChatSignerAnalyticsType(),
+                        status: 'error',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(),
+                    });
                     const fb = formatSendCatchError(e);
                     showStatus(fb.message, 'error', { actions: fb.actions });
                 });
@@ -17758,6 +18642,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
   const connectedPubkeyPeople = trustSummary ? trustSummary.people : [];
   const positiveReferenceCount = trustSummary ? trustSummary.positiveExperienceCount : 0;
   const threadUpvoteMetric = trustSummary ? trustSummary.threadUpvoteMetricValue : null;
+  const showThreadUpvoteMetric = shouldShowThreadUpvoteMetric(threadUpvoteMetric);
   const slugsText = extractProfileHashtagSlugsFromMeta(meta);
   const slugs98ForEmpty = host303Ready ? extractCircleSlugsFromHostReposts30398(viewState.evHost30398 || [], hex) : [];
   const slugs90ForEmpty = p90Ready ? extractCircleSlugsFromProfileClaim30390(viewState.evP30390 || [], hex) : [];
@@ -18121,7 +19006,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
     p.textContent = 'Loading trust summary…';
     refs.trustMount.appendChild(p);
   } else if (isSelfHex(hex)) {
-    const hasAnyTrustStat = confirmedContactCount > 0 || positiveReferenceCount > 0 || threadUpvoteMetric !== null;
+    const hasAnyTrustStat = confirmedContactCount > 0 || positiveReferenceCount > 0 || showThreadUpvoteMetric;
     if (!hasAnyTrustStat) {
       const p = document.createElement('p');
       p.className = 'nr-profile-muted';
@@ -18130,17 +19015,17 @@ function applyStagedProfileView(refs, viewState, ctx) {
     } else {
       appendTrustStatRow('Trustroots Contact', confirmedContactCount);
       appendTrustStatRow('positive Experience', positiveReferenceCount);
-      if (threadUpvoteMetric !== null) appendTrustStatRow('upvoted thread', threadUpvoteMetric);
+      if (showThreadUpvoteMetric) appendTrustStatRow('upvoted thread', threadUpvoteMetric);
       appendTrustConnectedPeople(connectedPubkeyPeople);
     }
   } else if (!rels.length && !exps.length && !connectedPubkeyPeople.length) {
     const p = document.createElement('p');
     p.className = 'nr-profile-muted';
-    p.textContent = threadUpvoteMetric === null
+    p.textContent = !showThreadUpvoteMetric
       ? 'No relationship, experience, or thread-upvote metrics found on your relays yet.'
       : 'No relationship or experience suggestions found on your relays yet.';
     refs.trustMount.appendChild(p);
-    if (threadUpvoteMetric !== null) {
+    if (showThreadUpvoteMetric) {
       const metricRow = document.createElement('p');
       metricRow.className = 'nr-profile-muted';
       metricRow.style.marginTop = '0.35rem';
@@ -18152,7 +19037,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
     else if (rels.length) appendTrustStatRow('relationship suggestion', rels.length);
     if (positiveReferenceCount > 0) appendTrustStatRow('positive Experience', positiveReferenceCount);
     else if (exps.length) appendTrustStatRow('experience suggestion', exps.length);
-    if (threadUpvoteMetric !== null) {
+    if (showThreadUpvoteMetric) {
       const metricRow = document.createElement('p');
       metricRow.className = 'nr-profile-muted';
       metricRow.style.marginTop = '0.35rem';

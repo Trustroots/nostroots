@@ -96,6 +96,12 @@ test.describe('Header navigation', () => {
     await page.goto('/#stats');
     await expect(page.locator('body.nr-surface-stats')).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('heading', { name: 'Progress stats' })).toBeVisible();
+    await expect(page.locator('#nav-map-btn')).not.toHaveAttribute('aria-current', 'page');
+
+    await page.locator('#nav-map-btn').click();
+    await expect(page.locator('body.nr-surface-stats')).toHaveCount(0);
+    await expect(page.locator('#map-view')).toBeVisible();
+    await expect(page).not.toHaveURL(/#stats\b/);
 
     await page.goto('/');
     await openUserMenuIfNeeded(page);

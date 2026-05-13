@@ -169,6 +169,8 @@ pnpm i            # Update workspace dependencies
 
 **nr-web:** The stack is still moving quickly. Keep tests for **high-value** areas (e.g. key handling, protocol or routing edge cases, bugs you do not want back). Do **not** default to expanding or rewriting the suite on every change, and do not spend disproportionate time on test framework work. Run `make test-fast` (Docker) when you have touched critical logic or before merge/CI if your change could break covered flows.
 
+**nr-web stats/date copy:** On the `#stats` dashboard and similar operational/progress UI, format timestamps as `yyyy-mm-dd hh:mm` (for example `2026-05-13 11:42`) instead of locale phrases such as `May 13, 11:42 AM`.
+
 **nr-app:** Tests use jest-expo preset; follow normal app testing discipline there.
 
 ### Nostr Standards

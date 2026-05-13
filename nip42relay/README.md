@@ -42,11 +42,11 @@ docker compose down -v
 `nostr-ingestor` requires:
 
 - `NSEC` (`nsec1...`) - signing key used to publish bridge notes. The key must already satisfy the same Trustroots/NIP-05 checks enforced by `nip42relay`.
-- `GITHUB_TOKEN` - token with read access to `Trustroots/nostroots` commits (`Contents: Read`).
-- `MATRIX_ACCESS_TOKEN` - Matrix client access token for reading `#nostroots:matrix.org`.
 
 Optional:
 
+- `GITHUB_TOKEN` (if unset, GitHub polling is disabled; for public repo polling this can be omitted, but rate limits are lower when unauthenticated)
+- `MATRIX_ACCESS_TOKEN` (if unset, Matrix polling is disabled)
 - `BRIDGE_STATE_PATH` (default `/data/bridge-state.db`)
 - `BRIDGE_MATRIX_HOMESERVER` (default `https://matrix.org`)
 - `BRIDGE_TARGET_RELAY_URL` (default `ws://nip42relay:8042`)

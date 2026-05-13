@@ -43,7 +43,9 @@ func (c *GitHubClient) ListCommits(ctx context.Context, since time.Time) ([]GitH
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("Authorization", "Bearer "+c.token)
+	if strings.TrimSpace(c.token) != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 
 	resp, err := c.http.Do(req)

@@ -42,8 +42,10 @@ func NewService(cfg Config) (*Service, error) {
 		cfg:       cfg,
 		state:     state,
 		github:    NewGitHubClient(cfg.GitHubToken),
-		matrix:    NewMatrixClient(cfg.MatrixHomeserver, cfg.MatrixAccessToken),
 		publisher: NewNostrPublisher(cfg.TargetRelayURL, cfg.AuthRelayURL, cfg.NostrSecretHex),
+	}
+	if cfg.MatrixAccessToken != "" {
+		s.matrix = NewMatrixClient(cfg.MatrixHomeserver, cfg.MatrixAccessToken)
 	}
 	return s, nil
 }
@@ -93,30 +95,38 @@ func (s *Service) preflight(ctx context.Context) error {
 		return fmt.Errorf("relay auth preflight failed: %w", err)
 	}
 
-	roomID, err := s.matrix.ResolveRoomID(probeCtx, MatrixRoomAlias)
-	if err != nil {
-		return fmt.Errorf("matrix room resolve failed: %w", err)
-	}
-	s.matrixRoomID = roomID
-
-	selfID, err := s.matrix.WhoAmI(probeCtx)
-	if err != nil {
-		return fmt.Errorf("matrix whoami failed: %w", err)
-	}
-	s.matrixSelfID = selfID
-
-	since, ok, err := s.state.GetKV(probeCtx, kvMatrixSince)
-	if err != nil {
-		return fmt.Errorf("matrix state read failed: %w", err)
-	}
-	if !ok || since == "" {
-		result, err := s.matrix.SyncRoomMessages(probeCtx, s.matrixRoomID, "")
+	if s.matrix != nil {
+		roomID, err := s.matrix.ResolveRoomID(probeCtx, MatrixRoomAlias)
 		if err != nil {
-			return fmt.Errorf("matrix baseline sync failed: %w", err)
+			return fmt.Errorf("matrix room resolve failed: %w", err)
 		}
-		if err := s.state.SetKV(probeCtx, kvMatrixSince, result.NextBatch); err != nil {
-			return fmt.Errorf("matrix baseline token save failed: %w", err)
+		s.matrixRoomID = roomID
+
+		selfID, err := s.matrix.WhoAmI(probeCtx)
+		if err != nil {
+			return fmt.Errorf("matrix whoami failed: %w", err)
 		}
+		s.matrixSelfID = selfID
+
+		since, ok, err := s.state.GetKV(probeCtx, kvMatrixSince)
+		if err != nil {
+			return fmt.Errorf("matrix state read failed: %w", err)
+		}
+		if !ok || since == "" {
+			result, err := s.matrix.SyncRoomMessages(probeCtx, s.matrixRoomID, "")
+			if err != nil {
+				return fmt.Errorf("matrix baseline sync failed: %w", err)
+			}
+			if err := s.state.SetKV(probeCtx, kvMatrixSince, result.NextBatch); err != nil {
+				return fmt.Errorf("matrix baseline token save failed: %w", err)
+			}
+		}
+	} else {
+		log.Printf("nostr-ingestor matrix source disabled: MATRIX_ACCESS_TOKEN not set")
+	}
+
+	if s.cfg.GitHubToken == "" {
+		log.Printf("nostr-ingestor github token not set: using unauthenticated GitHub API mode (lower rate limits)")
 	}
 
 	log.Printf("nostr-ingestor preflight complete: room=%s self=%s targetRelay=%s authRelayTag=%s", s.matrixRoomID, s.matrixSelfID, s.cfg.TargetRelayURL, s.cfg.AuthRelayURL)
@@ -140,6 +150,9 @@ func (s *Service) runGitHubLoop(ctx context.Context) {
 }
 
 func (s *Service) runMatrixLoop(ctx context.Context) {
+	if s.matrix == nil {
+		return
+	}
 	go func() {
 		s.runMatrixOnce(ctx)
 		ticker := time.NewTicker(MatrixInterval)

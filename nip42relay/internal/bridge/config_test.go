@@ -51,13 +51,43 @@ func TestLoadConfigFromEnvMissingGuidance(t *testing.T) {
 	msg := err.Error()
 	for _, mustContain := range []string{
 		"missing required environment variables",
-		"GITHUB_TOKEN setup",
-		"MATRIX_ACCESS_TOKEN setup",
 		"NSEC setup",
 	} {
 		if !strings.Contains(msg, mustContain) {
 			t.Fatalf("error missing %q: %s", mustContain, msg)
 		}
+	}
+	for _, mustNotContain := range []string{
+		"GITHUB_TOKEN setup",
+		"MATRIX_ACCESS_TOKEN setup",
+	} {
+		if strings.Contains(msg, mustNotContain) {
+			t.Fatalf("unexpected %q in missing-env guidance: %s", mustNotContain, msg)
+		}
+	}
+}
+
+func TestLoadConfigFromEnvAllowsMissingOptionalSourceTokens(t *testing.T) {
+	t.Setenv("GITHUB_TOKEN", "")
+	t.Setenv("MATRIX_ACCESS_TOKEN", "")
+	t.Setenv("PUBLIC_RELAY_URL", "ws://localhost:8042")
+
+	sk := nostr.GeneratePrivateKey()
+	nsec, err := nip19.EncodePrivateKey(sk)
+	if err != nil {
+		t.Fatalf("EncodePrivateKey: %v", err)
+	}
+	t.Setenv("NSEC", nsec)
+
+	cfg, err := LoadConfigFromEnv()
+	if err != nil {
+		t.Fatalf("LoadConfigFromEnv error: %v", err)
+	}
+	if cfg.GitHubToken != "" {
+		t.Fatalf("expected empty GitHub token, got %q", cfg.GitHubToken)
+	}
+	if cfg.MatrixAccessToken != "" {
+		t.Fatalf("expected empty Matrix token, got %q", cfg.MatrixAccessToken)
 	}
 }
 

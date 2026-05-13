@@ -49,19 +49,13 @@ func (e *MissingEnvError) Error() string {
 }
 
 func LoadConfigFromEnv() (Config, error) {
-	missing := make([]string, 0, 3)
+	missing := make([]string, 0, 1)
 	nsec := strings.TrimSpace(os.Getenv("NSEC"))
 	gh := strings.TrimSpace(os.Getenv("GITHUB_TOKEN"))
 	mx := strings.TrimSpace(os.Getenv("MATRIX_ACCESS_TOKEN"))
 
 	if nsec == "" {
 		missing = append(missing, "NSEC")
-	}
-	if gh == "" {
-		missing = append(missing, "GITHUB_TOKEN")
-	}
-	if mx == "" {
-		missing = append(missing, "MATRIX_ACCESS_TOKEN")
 	}
 	if len(missing) > 0 {
 		sort.Strings(missing)

@@ -4,14 +4,6 @@
       "mode": "auto"
     }
   ],
-  "deno.enablePaths": [
-    "./nr-common",
-    "./nr-server",
-    "./nr-push/strfry-plugin",
-    "./development-utils/nip-46-client",
-    "./nr-notification-daemon"
-  ],
-  "deno.enable": true,
   "search.exclude": {
     "**/nr-common/build": true
   },

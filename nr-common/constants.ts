@@ -1,4 +1,4 @@
-import { Filter } from "npm:nostr-tools@2.10.4";
+import { Filter } from "nostr-tools";
 
 export const PACKAGE_VERSION = "0.0.1";
 
@@ -10,6 +10,7 @@ export const EVENT_DELETION_KIND = 5 as const;
 export const TRUSTROOTS_PROFILE_KIND = 10390 as const;
 export const NOTIFICATION_SUBSCRIPTION_KIND = 10395 as const;
 export const SERVER_MESSAGE_KIND = 20398 as const;
+export const PING_ACK_KIND = 20400 as const;
 export const MAP_NOTE_KIND = 30397 as const;
 export const MAP_NOTE_REPOST_KIND = 30398 as const;
 export const THIRD_PARTY_EVENT_KIND = 30399 as const;
@@ -22,6 +23,7 @@ export const ACCEPTED_KINDS = [
   TRUSTROOTS_PROFILE_KIND,
   NOTIFICATION_SUBSCRIPTION_KIND,
   SERVER_MESSAGE_KIND,
+  PING_ACK_KIND,
   MAP_NOTE_KIND,
   MAP_NOTE_REPOST_KIND,
   THIRD_PARTY_EVENT_KIND,

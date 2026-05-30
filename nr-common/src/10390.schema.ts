@@ -33,8 +33,9 @@ export const kind10390EventTemplateSchema = baseEventTemplateSchema.extend({
 });
 export type Kind10390EventTemplate = z.infer<typeof baseEventTemplateSchema>;
 
-export const kind10390EventSchema =
-  kind10390EventTemplateSchema.merge(finalizedEventFields);
+export const kind10390EventSchema = kind10390EventTemplateSchema.merge(
+  finalizedEventFields,
+);
 
 export type Kind10390Event = z.infer<typeof kind10390EventSchema>;
 

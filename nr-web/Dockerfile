@@ -1,39 +1,17 @@
-FROM node:20-slim
+# Official image includes Chromium, WebKit, FFmpeg, and all OS libs (avoids fragile apt on slim).
+# Keep tag aligned with @playwright/test major.minor used in package.json (see pnpm-lock or `pnpm ls @playwright/test`).
+FROM mcr.microsoft.com/playwright:v1.59.1-noble
 
 WORKDIR /app/nr-web
 
-# Install system dependencies for Playwright
-RUN apt-get update && apt-get install -y \
-    libnss3 \
-    libnspr4 \
-    libatk1.0-0 \
-    libatk-bridge2.0-0 \
-    libcups2 \
-    libdrm2 \
-    libdbus-1-3 \
-    libxkbcommon0 \
-    libxcomposite1 \
-    libxdamage1 \
-    libxfixes3 \
-    libxrandr2 \
-    libgbm1 \
-    libasound2 \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install pnpm
 RUN npm install -g pnpm
 
-# Copy nr-web package.json and lockfile (nr-web is a standalone pnpm project)
-COPY nr-web/package.json nr-web/pnpm-lock.yaml nr-web/pnpm-workspace.yaml ./
+# Copy nr-web package manifest (standalone project)
+COPY nr-web/package.json ./
 
-# Install dependencies from lockfile (reproducible)
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
-# Install Playwright browsers (Chromium only for smaller image)
-RUN npx playwright install chromium --with-deps
-
-# Copy test files and source (will be overridden by volume mount in docker-compose)
+# Copy test files and source (overridden by volume mount in docker-compose for local dev)
 COPY nr-web/ ./
 
-# Default command runs all tests
 CMD ["pnpm", "test:local:all"]

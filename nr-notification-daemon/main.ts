@@ -1,12 +1,13 @@
 import { getPublicKey } from "nostr-tools/pure";
 import { hexToBytes } from "@noble/hashes/utils";
-import { SubscriptionStore } from "./src/subscriptionStore.ts";
-import { loadSubscriptionsFromRelay } from "./src/relay.ts";
-import { consumeFromRabbit } from "./src/rabbit.ts";
 import { config } from "./src/config.ts";
+import { log } from "./src/log.ts";
+import { consumeFromRabbit } from "./src/rabbit.ts";
+import { loadSubscriptionsFromRelay } from "./src/relay.ts";
+import { SubscriptionStore } from "./src/subscriptionStore.ts";
 
 const publicKey = getPublicKey(hexToBytes(config.privateKey));
-console.log(`Derived public key: ${publicKey}`);
+log.info(`Derived public key: ${publicKey}`);
 
 const store = new SubscriptionStore();
 

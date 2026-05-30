@@ -48,20 +48,21 @@ export type Kind10395EventTemplate = z.infer<
   typeof kind10395EventTemplateSchema
 >;
 
-export const kind10395EventSchema =
-  kind10395EventTemplateSchema.merge(finalizedEventFields);
+export const kind10395EventSchema = kind10395EventTemplateSchema.merge(
+  finalizedEventFields,
+);
 
 export type Kind10395Event = z.infer<typeof kind10395EventSchema>;
 
 export function validate10395EventData(
-  data: Kind10395ContentDecryptedDecoded
+  data: Kind10395ContentDecryptedDecoded,
 ): Kind10395ContentDecryptedDecoded {
   kind10395ContentDecryptedDecodedSchema.parse(data);
   return data;
 }
 
 export function create10395EventTemplate(
-  encryptedContent: string
+  encryptedContent: string,
 ): Kind10395EventTemplate {
   const template: Kind10395EventTemplate = {
     kind: NOTIFICATION_SUBSCRIPTION_KIND,

@@ -1,30 +1,58 @@
 # Testing Notes
 
-## Module Script Limitations
+## Two-file source model
 
-The `index.html` file contains a `<script type="module">` that imports from CDN:
-- `nostr-tools` from `https://cdn.jsdelivr.net/npm/nostr-tools@2.10.3/+esm`
+`nr-web` is shipped as just two source files:
 
-These imports will **fail** in the jsdom test environment because:
-1. jsdom cannot fetch external resources
-2. ES module imports from CDN require network access
+- `index.html` — markup, the entire CSS in one `<style>` block, the classic
+  helpers (`NrWeb*` globals + `NrWebHashRouter`), and the Keys / Settings
+  modals.
+- `index.js` — one ES module containing every Nostroots-authored helper
+  (key utils, claim helpers, note intents, nsec-guard, KV-IndexedDB layer,
+  NIP-05 resolver, circle metadata, embedded chat, profile page, main map
+  glue), exposed via named exports so tests can `import` from it directly.
 
-### Impact
+Third-party assets (`nostr-tools`, `bip39`, `dompurify`, MapLibre, Leaflet,
+Google Fonts) stay on their CDNs in production.
 
-Functions defined in the module script (after the imports) will not be available in unit/integration tests because the script fails before defining them.
+## CDN imports under jsdom (Vitest)
 
-### Solutions
+`index.js` imports from `https://cdn.jsdelivr.net/npm/...` URLs. jsdom can
+not fetch external resources, so `vitest.config.js` rewrites those URLs to
+locally installed npm packages via `resolve.alias`:
 
-1. **For unit/integration tests**: Test functions that are defined in non-module scripts, or manually mock the CDN imports
-2. **For E2E tests**: These work fine because they run in a real browser that can fetch CDN resources
-3. **Future improvement**: Extract functions to separate modules that can be properly mocked
+| jsdelivr URL                                                          | npm package    |
+| --------------------------------------------------------------------- | -------------- |
+| `https://cdn.jsdelivr.net/npm/nostr-tools@2.23.0/+esm`                | `nostr-tools`  |
+| `https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm`                       | `bip39`        |
+| `https://cdn.jsdelivr.net/npm/dompurify@3.2.2/+esm`                   | `dompurify`    |
 
-### Current Workaround
+The matching versions are pinned in `package.json` `devDependencies`. Bump
+both the import URL inside `index.js` and the alias + devDep together.
 
-The test setup suppresses console errors from failed imports. Functions that are defined before the module script (or in non-module scripts) can be tested. Functions in the module script will need to be tested via E2E tests or extracted to testable modules.
+## Strategy
 
-## Testing Strategy
+- **Unit tests** import named exports directly from `../../index.js`. They
+  exercise pure helpers (`parseKeyImportToHex`, `containsPrivateKeyNsec`,
+  claim / circle / note-intent helpers, etc.) and live next to one another
+  in `tests/unit/`. The Vitest `setup.js` loads `index.html` into jsdom so
+  the inlined classic helpers (`NrWeb*` globals) are available too.
+- **Tests that need code from `index.html`'s inline `<script>` blocks**
+  (e.g. the `NrWebHashRouter` test, `NrWebTheme` test) extract source
+  between marker comments — `NR_HASH_ROUTER_BEGIN/END`,
+  `NR_COMMON_JS_BEGIN/END` — and `eval` it in an isolated jsdom window.
+  Keep these markers in `index.html` if you reorganise the inlined scripts.
+- **Integration tests** drive DOM interactions inside the same jsdom
+  fixture.
+- **E2E tests** run the real `index.html` in Playwright browsers; this is
+  the only place that exercises the full CDN module + map + chat boot.
 
-- **Unit tests**: Test utility functions, key management (if available in non-module scripts)
-- **Integration tests**: Test DOM interactions, modal behavior
-- **E2E tests**: Test full functionality including module script functions
+## Adding a new pure helper
+
+1. Add `export function foo(...)` (or `export const FOO = ...`) somewhere in
+   `index.js`.
+2. Add `import { foo } from '../../index.js';` to a test file under
+   `tests/unit/`.
+3. If the helper depends on a CDN package that we do not yet alias for
+   tests, add it to the `resolve.alias` table in `vitest.config.js` and as
+   a `devDependency` in `package.json`.

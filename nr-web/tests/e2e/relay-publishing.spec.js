@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -54,7 +54,6 @@ test.describe('Relay Publishing', () => {
     // Clear any existing keys first
     await page.evaluate(() => {
       localStorage.removeItem('nostr_private_key');
-      localStorage.removeItem('using_nip07');
       window.currentPublicKey = null;
       window.currentPrivateKeyBytes = null;
     });
@@ -134,33 +133,13 @@ test.describe('Relay Publishing', () => {
     const testNoteContent = `Test note from automated test - ${Date.now()}`;
     const testPlusCode = '3G000000+'; // Test location for automated tests
 
-    // Set the selected plus code and open the notes modal directly
-    // Since showNotesForPlusCode is not exposed on window, we'll set up the modal manually
     await page.evaluate((plusCode) => {
-      // Set the selected plus code in global state
-      // These are defined in the script scope, not window, so we need to find another way
-      const modal = document.getElementById('pluscode-notes-modal');
-      const titleEl = document.getElementById('pluscode-notes-title');
-      const notesList = document.getElementById('pluscode-notes-list');
-      
-      if (titleEl) {
-        titleEl.textContent = `Notes for ${plusCode}`;
-        titleEl.dataset.pluscode = plusCode;
-      }
-      
-      // Clear any existing notes
-      if (notesList) {
-        notesList.innerHTML = '';
-      }
-      
-      // Show the modal
-      if (modal) {
-        modal.classList.add('active');
-      }
+      window.showNotesForPlusCode(plusCode);
     }, testPlusCode);
 
-    // Wait for modal to be visible and input to be available
-    await page.waitForSelector('#pluscode-notes-modal.active', { state: 'visible' });
+    // Wait for Host & Meet page to be visible and input to be available
+    await page.waitForSelector('body.nr-surface-host', { state: 'attached' });
+    await page.waitForSelector('#nr-host-view', { state: 'visible' });
     await page.waitForSelector('#note-content-in-modal', { state: 'visible' });
     await page.waitForTimeout(500);
 
@@ -284,7 +263,6 @@ test.describe('Relay Publishing', () => {
     // Clear any existing keys first
     await page.evaluate(() => {
       localStorage.removeItem('nostr_private_key');
-      localStorage.removeItem('using_nip07');
       window.currentPublicKey = null;
       window.currentPrivateKeyBytes = null;
     });

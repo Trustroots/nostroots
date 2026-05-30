@@ -3,18 +3,19 @@ import { AMQP_EXCHANGE_NAME, AMQP_EXCHANGE_TYPE } from "@trustroots/nr-common";
 import { parseJsonLine } from "./src/parseLines.ts";
 import { acceptEvent, rejectEvent } from "./src/strfryResponses.ts";
 import { whitelistKinds } from "./src/whitelistKinds.ts";
+import { log } from "./src/log.ts";
 
 const amqpUrl = Deno.env.get("AMQP_URL");
 
 if (typeof amqpUrl === "undefined" || amqpUrl.length === 0) {
-  console.error("#iQCLLj Missing AMQP_URL");
+  log.error("#iQCLLj Missing AMQP_URL");
   Deno.exit(1);
 }
 
 const url = URL.parse(amqpUrl);
 
 if (url === null) {
-  console.error("#Nmo5gQ Failed to parse AMQP url");
+  log.error("#Nmo5gQ Failed to parse AMQP url");
   Deno.exit(1);
 }
 
@@ -35,15 +36,22 @@ await channel.declareExchange({
   type: AMQP_EXCHANGE_TYPE,
 });
 
-console.error("#kR7mXp Listening on port 80");
+log.info("#kR7mXp Listening on port 80");
 
-Deno.serve({ port: 80 }, async (request) => {
+Deno.serve({ port: 80, hostname: "0.0.0.0" }, async (request) => {
+  if (request.method === "GET" && new URL(request.url).pathname === "/health") {
+    return new Response(
+      JSON.stringify({ status: "ok", service: "nr-relay-to-rabbit" }),
+      { headers: { "content-type": "application/json" } },
+    );
+  }
+
   if (request.method !== "POST") {
     return new Response("Method not allowed", { status: 405 });
   }
 
   const body = await request.text();
-  console.error(`#vT3nQw Received ${body.length} bytes`);
+  log.debug(`#vT3nQw Received ${body.length} bytes`);
 
   const strfryLine = parseJsonLine(body);
 
@@ -53,7 +61,7 @@ Deno.serve({ port: 80 }, async (request) => {
 
   if (!whitelistKinds(strfryLine)) {
     const response = rejectEvent(strfryLine, "403");
-    console.log(
+    log.info(
       `#fJ9pLs Rejected event ${strfryLine.event.id} (kind ${strfryLine.event.kind})`,
     );
     return new Response(response, {
@@ -68,11 +76,10 @@ Deno.serve({ port: 80 }, async (request) => {
       new TextEncoder().encode(JSON.stringify(strfryLine)),
     );
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : JSON.stringify(error);
-    console.error(
-      `#bW4hNc AMQP publish failed: ${errorMessage}`,
-    );
+    const errorMessage = error instanceof Error
+      ? error.message
+      : JSON.stringify(error);
+    log.error(`#bW4hNc AMQP publish failed: ${errorMessage}`);
     const response = rejectEvent(
       strfryLine,
       `error: AMQP publish failed: ${errorMessage}`,
@@ -83,9 +90,7 @@ Deno.serve({ port: 80 }, async (request) => {
   }
 
   const response = acceptEvent(strfryLine);
-  console.log(
-    `#qY6dRv Accepted event ${strfryLine.event.id}`,
-  );
+  log.info(`#qY6dRv Accepted event ${strfryLine.event.id}`);
   return new Response(response, {
     headers: { "content-type": "application/json" },
   });

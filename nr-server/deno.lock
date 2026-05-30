@@ -1,5 +1,5 @@
 {
-  "version": "4",
+  "version": "5",
   "specifiers": {
     "jsr:@henrygd/queue@1.0.6": "1.0.6",
     "jsr:@nashaddams/amqp@1.1.0": "1.1.0",
@@ -187,7 +187,9 @@
         "@noble/hashes@1.3.1",
         "@scure/base@1.1.1",
         "@scure/bip32@1.3.1",
-        "@scure/bip39@1.2.1",
+        "@scure/bip39@1.2.1"
+      ],
+      "optionalDependencies": [
         "nostr-wasm"
       ]
     },
@@ -199,7 +201,9 @@
         "@noble/hashes@1.3.1",
         "@scure/base@1.1.1",
         "@scure/bip32@1.3.1",
-        "@scure/bip39@1.2.1",
+        "@scure/bip39@1.2.1"
+      ],
+      "optionalDependencies": [
         "nostr-wasm"
       ]
     },
@@ -333,6 +337,7 @@
   },
   "workspace": {
     "dependencies": [
+      "npm:nostr-tools@2.10.4",
       "npm:zod@^3.23.8"
     ]
   }

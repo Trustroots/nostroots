@@ -52,5 +52,5 @@ Deno.test(
       ["L", "org.trustroots:username"],
     ];
     expect(isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(tags)).toBe(false);
-  }
+  },
 );

@@ -1,6 +1,6 @@
 {
   "name": "Nostroots Metro",
-  "image": "node:20.18.1",
+  "image": "node:24.14.1",
   "workspaceFolder": "/app",
   "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
   "forwardPorts": [8081],

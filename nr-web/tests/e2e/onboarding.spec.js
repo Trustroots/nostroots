@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 test.describe('Onboarding Flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -16,6 +16,15 @@ test.describe('Onboarding Flow', () => {
     
     const keysModal = page.locator('#keys-modal');
     await expect(keysModal).toBeVisible();
+  });
+
+  test('visiting a profile route without a key keeps the route and shows welcome Keys', async ({ page }) => {
+    await page.goto('/#profile/alice');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page).toHaveURL(/#profile\//);
+    await expect(page.locator('#keys-modal')).toBeVisible();
+    await expect(page.locator('#keys-welcome-section')).toBeVisible();
   });
 
   test('can generate new key from onboarding', async ({ page }) => {
@@ -54,28 +63,9 @@ test.describe('Onboarding Flow', () => {
     await expect(importInput).toBeVisible();
   });
 
-  test('onboarding shows NIP-07 option when available', async ({ page }) => {
-    await page.goto('/');
-    await page.waitForLoadState('networkidle');
-    
-    // Mock window.nostr to simulate extension
-    await page.evaluate(() => {
-      window.nostr = {
-        getPublicKey: async () => 'test-pubkey',
-      };
-    });
-    
-    // Trigger the check (might need to reload or trigger the check function)
-    await page.reload();
-    await page.waitForLoadState('networkidle');
-    
-    // NIP-07 section might be visible or hidden depending on detection
-    const nip07Section = page.locator('#keys-nip07-section');
-    // Just verify it exists, visibility depends on extension detection timing
-    await expect(nip07Section).toBeAttached();
-  });
+  test('keys modal cannot be closed with ESC when no key exists', async ({ page, browserName }) => {
+    test.skip(browserName === 'webkit', 'ESC behavior is not reliable on iOS WebKit automation');
 
-  test('keys modal cannot be closed with ESC when no key exists', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
     
@@ -87,5 +77,23 @@ test.describe('Onboarding Flow', () => {
     
     // Modal should still be visible (user must set up keys first)
     await expect(keysModal).toBeVisible();
+  });
+
+  test('shows Leaflet fallback when WebGL is unavailable', async ({ page }) => {
+    await page.addInitScript(() => {
+      const originalGetContext = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function patchedGetContext(type, ...args) {
+        if (type === 'webgl2' || type === 'webgl' || type === 'experimental-webgl') {
+          return null;
+        }
+        return originalGetContext.call(this, type, ...args);
+      };
+    });
+
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page.locator('#map[data-map-fallback="leaflet"]')).toBeVisible();
+    await expect(page.locator('#map.leaflet-container')).toBeVisible();
   });
 });

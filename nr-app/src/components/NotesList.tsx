@@ -51,6 +51,7 @@ export default function NotesList({
               key={eventWithMetadata.event.id}
               eventWithMetadata={eventWithMetadata}
               isSelected={eventWithMetadata.event.id === selectedEventId}
+              isPlusCodeExact={true}
             />
           ))}
         </View>
@@ -67,6 +68,7 @@ export default function NotesList({
               key={eventWithMetadata.event.id}
               eventWithMetadata={eventWithMetadata}
               isSelected={eventWithMetadata.event.id === selectedEventId}
+              isPlusCodeExact={false}
             />
           ))}
         </View>

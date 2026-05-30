@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
@@ -18,4 +18,17 @@ export default defineConfig({
     cwd: __dirname,
     reuseExistingServer: !process.env.CI,
   },
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'ios-safari',
+      use: {
+        ...devices['iPhone 14 Pro'],
+        browserName: 'webkit',
+      },
+    },
+  ],
 });

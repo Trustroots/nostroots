@@ -31,7 +31,6 @@ export function clearAppState() {
   // Clear any global state variables if they exist
   if (window.currentPrivateKey) window.currentPrivateKey = null;
   if (window.currentPublicKey) window.currentPublicKey = null;
-  if (window.usingNip07) window.usingNip07 = false;
 }
 
 /**

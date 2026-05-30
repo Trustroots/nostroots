@@ -5,8 +5,7 @@ const { withNativeWind } = require("nativewind/metro");
 // This replaces `const config = getDefaultConfig(__dirname);`
 const config = getSentryExpoConfig(__dirname);
 
-// Disable package exports support to fix Redux Saga compatibility with React Native 0.79
-config.resolver.unstable_enablePackageExports = false;
+config.resolver.unstable_enablePackageExports = true;
 
 module.exports = withNativeWind(config, {
   input: "./src/global.css",

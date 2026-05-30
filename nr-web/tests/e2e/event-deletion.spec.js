@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 test.describe('Event Deletion E2E', () => {
   test.beforeEach(async ({ page }) => {
@@ -104,9 +104,8 @@ test.describe('Event Deletion E2E', () => {
     // Verify that delete requires a key
     const requiresKey = await page.evaluate(() => {
       // Simulate the check that deleteEvent would do
-      const hasNip07 = localStorage.getItem('using_nip07') === 'true';
       const hasLocalKey = !!localStorage.getItem('nostr_private_key');
-      return hasNip07 || hasLocalKey;
+      return hasLocalKey;
     });
     
     // After beforeEach, we should have a key
@@ -125,15 +124,15 @@ test.describe('Event Deletion E2E', () => {
     expect(true).toBe(true); // Structure test passes if no errors
   });
 
-  test('pluscode notes modal structure supports delete buttons', async ({ page }) => {
-    const modal = page.locator('#pluscode-notes-modal');
-    await expect(modal).toBeAttached();
+  test('Host & Meet page structure supports delete buttons', async ({ page }) => {
+    const host = page.locator('#nr-host-view');
+    await expect(host).toBeAttached();
     
-    const modalContent = modal.locator('.modal-content');
-    await expect(modalContent).toBeAttached();
+    const pageContent = host.locator('.host-page-content');
+    await expect(pageContent).toBeAttached();
     
     // Verify notes content area exists where delete buttons would appear
-    const notesContent = modal.locator('#pluscode-notes-content');
+    const notesContent = host.locator('#pluscode-notes-content');
     await expect(notesContent).toBeAttached();
   });
 

@@ -1,4 +1,4 @@
-import type { NostrEvent } from "npm:nostr-tools@2.10.4/core";
+import type { NostrEvent } from "nostr-tools/core";
 import { MAP_NOTE_REPOST_KIND } from "../constants.ts";
 import { eventSchema } from "./event.schema.ts";
 import { getFirstTagValueFromEvent } from "./utils.ts";

@@ -15,12 +15,12 @@ import {
   eventSchema,
   getFirstTagValueFromEvent,
   getTrustrootsUsernameFromProfileEvent,
-  isEphemeralKind,
   MAP_NOTE_REPOST_KIND,
   NOSTR_EXPIRATION_TAG_NAME,
   TRUSTROOTS_PROFILE_KIND,
 } from "@trustroots/nr-common";
 import { Filter, matchFilter } from "nostr-tools";
+import { isEphemeralKind } from "nostr-tools/kinds";
 
 const log = rootLogger.extend("events.slice");
 

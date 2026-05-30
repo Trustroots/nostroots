@@ -1,12 +1,14 @@
-import { async, nostrify, nrCommon } from "../../deps.ts";
+import { async, nostrify, nostrTools, nrCommon } from "../../deps.ts";
 import { DELAY_AFTER_PROCESSING_EVENT_MS } from "../common/constants.ts";
 import { log } from "../log.ts";
 
 const {
   DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH,
+  MAP_NOTE_KIND,
   MAP_NOTE_REPOST_KIND,
   OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
   OPEN_LOCATION_CODE_TAG_NAME,
+  PING_ACK_KIND,
   SERVER_MESSAGE_KIND,
   SERVER_MESSAGE_TYPE_TAG_NAME,
   createLabelTags,
@@ -22,7 +24,7 @@ type Tags = string[][];
 
 async function publishEvent(
   relayPool: nostrify.NPool,
-  event: nostrify.NostrEvent
+  event: nostrify.NostrEvent,
 ) {
   log.debug("#aSmTVL Publishing event");
   await relayPool.event(event);
@@ -34,7 +36,7 @@ async function publishEvent(
  */
 async function generateRepostedEvent(
   originalEvent: nostrify.NostrEvent,
-  privateKey: Uint8Array
+  privateKey: Uint8Array,
 ) {
   const derivedTags = deriveTags(originalEvent);
   const derivedContent = deriveContent(originalEvent);
@@ -64,18 +66,18 @@ async function generateRepostedEvent(
 function deriveOpenLocationTags(event: nostrify.NostrEvent): Tags {
   const plusCode = getFirstLabelValueFromEvent(
     event,
-    OPEN_LOCATION_CODE_TAG_NAME
+    OPEN_LOCATION_CODE_TAG_NAME,
   );
   if (typeof plusCode === "undefined") {
     return [];
   }
   const plusCodePrefixes = getAllPlusCodePrefixes(
     plusCode,
-    DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH
+    DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH,
   );
   const plusCodePrefixTags = createLabelTags(
     OPEN_LOCATION_CODE_PREFIX_TAG_NAME,
-    plusCodePrefixes
+    plusCodePrefixes,
   );
   return plusCodePrefixTags;
 }
@@ -96,11 +98,28 @@ function deriveContent(event: nostrify.NostrEvent): string {
   return event.content;
 }
 
+async function generateAckEvent(
+  pingEvent: nostrify.NostrEvent,
+  privateKey: Uint8Array,
+) {
+  const signer = new NSecSigner(privateKey);
+  const eventTemplate = {
+    kind: PING_ACK_KIND,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ["e", pingEvent.id],
+      ["p", pingEvent.pubkey],
+    ],
+    content: "ack",
+  };
+  return await signer.signEvent(eventTemplate);
+}
+
 async function publishServerMessage(
   relayPool: nostrify.NPool,
   privateKey: Uint8Array,
   rejectedEvent: nostrify.NostrEvent,
-  reason: string
+  reason: string,
 ) {
   const signer = new NSecSigner(privateKey);
   const eventTemplate = {
@@ -116,27 +135,40 @@ async function publishServerMessage(
   const signedEvent = await signer.signEvent(eventTemplate);
   await publishEvent(relayPool, signedEvent);
   log.info(
-    `#eR7vKp Published server message for rejected event ${rejectedEvent.id}`
+    `#eR7vKp Published server message for rejected event ${rejectedEvent.id}`,
   );
 }
 
 export function processEventFactoryFactory(
   relayPool: nostrify.NPool,
-  privateKey: Uint8Array
+  privateKey: Uint8Array,
 ) {
+  const ownPubkey = nostrTools.getPublicKey(privateKey);
+
   return async function processEventFactory(
     event: nostrify.NostrEvent,
-    requestId?: string
+    requestId?: string,
   ) {
-    const logId =
-      typeof requestId === "string" && requestId.length > 0
-        ? ` ${requestId}`
-        : "";
+    const logId = typeof requestId === "string" && requestId.length > 0
+      ? ` ${requestId}`
+      : "";
     log.debug(`#C1NJbQ${logId} Got event`, event);
 
-    if (event.kind === MAP_NOTE_REPOST_KIND) {
+    if (event.kind === PING_ACK_KIND) {
+      if (
+        event.content === "ping" &&
+        event.tags.some((t) => t[0] === "p" && t[1] === ownPubkey)
+      ) {
+        const ackEvent = await generateAckEvent(event, privateKey);
+        await publishEvent(relayPool, ackEvent);
+        log.info(`#Pg1Ak2${logId} Published ACK for ping ${event.id}`);
+      }
+      return;
+    }
+
+    if (event.kind !== MAP_NOTE_KIND) {
       log.info(
-        `#WAKKJk${logId} Skipping kind ${MAP_NOTE_REPOST_KIND} event with ID ${event.id}`
+        `#WAKKJk${logId} Ignoring kind ${event.kind} event with ID ${event.id}`,
       );
       return;
     }
@@ -144,14 +176,14 @@ export function processEventFactoryFactory(
     const validationResult = await validateEvent(relayPool, event);
     if (!validationResult.valid) {
       log.info(
-        `#u0Prc5${logId} Discarding invalid event ${event.id}: ${validationResult.reason}`
+        `#u0Prc5${logId} Discarding invalid event ${event.id}: ${validationResult.reason}`,
       );
       try {
         await publishServerMessage(
           relayPool,
           privateKey,
           event,
-          validationResult.reason
+          validationResult.reason,
         );
       } catch (error) {
         log.error(`#pE8rTm${logId} Failed to publish server message`, error);

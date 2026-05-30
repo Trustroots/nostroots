@@ -1,11 +1,11 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures.js';
 
 test.describe('Basic Page Load', () => {
   test('page loads and displays title', async ({ page }) => {
     await page.goto('/');
     
     // Check page title
-    await expect(page).toHaveTitle(/Nostroots Web/);
+    await expect(page).toHaveTitle('Nostroots Map');
   });
 
   test('page has main content', async ({ page }) => {

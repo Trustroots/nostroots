@@ -1,6 +1,6 @@
 import { getPlusCodeFromEvent } from "@/utils/event.utils";
 import { getExpoProjectId } from "@/utils/expo.utils";
-import { navigateToEvent } from "@/utils/map.utils";
+import { navigateToEvent } from "@/utils/navigation.utils";
 import { EventJSONNotificationDataSchema } from "@trustroots/nr-common";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";

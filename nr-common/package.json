@@ -1,0 +1,11 @@
+{
+  "name": "@trustroots/nr-common",
+  "version": "0.0.1",
+  "private": true,
+  "main": "./mod.ts",
+  "types": "./mod.ts",
+  "dependencies": {
+    "nostr-tools": "2.10.4",
+    "zod": "^3.25.76"
+  }
+}

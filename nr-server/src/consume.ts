@@ -1,6 +1,10 @@
 import { amqp, nanoid, nrCommon } from "../deps.ts";
-const { eventSchema, AMQP_EXCHANGE_NAME, AMQP_EXCHANGE_TYPE, AMQP_RELAY_INGEST_QUEUE_NAME } =
-  nrCommon;
+const {
+  eventSchema,
+  AMQP_EXCHANGE_NAME,
+  AMQP_EXCHANGE_TYPE,
+  AMQP_RELAY_INGEST_QUEUE_NAME,
+} = nrCommon;
 import { getRelayPool } from "./relays.ts";
 import { processEventFactoryFactory } from "./validation/repost.ts";
 import { log } from "./log.ts";
@@ -8,21 +12,20 @@ import { log } from "./log.ts";
 const EMPTY_AMQP_URL = "amqp://insecure:insecure@localhost:5672";
 
 const createId = nanoid.customAlphabet(
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
 );
 
 export async function consume(
   privateKey: Uint8Array,
   isDev: true | undefined,
-  amqpUrl?: string
+  amqpUrl?: string,
 ) {
   const relayPool = await getRelayPool(isDev);
   const processEventFactory = processEventFactoryFactory(relayPool, privateKey);
 
-  const amqpUrlActual =
-    typeof amqpUrl === "string" && amqpUrl.length > 0
-      ? amqpUrl
-      : EMPTY_AMQP_URL;
+  const amqpUrlActual = typeof amqpUrl === "string" && amqpUrl.length > 0
+    ? amqpUrl
+    : EMPTY_AMQP_URL;
 
   if (amqpUrlActual === EMPTY_AMQP_URL) {
     log.debug(`#nxcSXE Using the empty AMQP url`);
@@ -62,25 +65,27 @@ export async function consume(
       queue: AMQP_RELAY_INGEST_QUEUE_NAME,
     });
 
-    channel.consume(
+    // NOTE: This returns right away
+    await channel.consume(
       { queue: AMQP_RELAY_INGEST_QUEUE_NAME },
       async function processQueueItem(args, _props, data) {
         const id = createId();
         try {
           const ack = async () => {
-            console.log(`#zQ5dXu ${id} sending ack`);
+            log.debug(`#zQ5dXu ${id} sending ack`);
             await channel.ack({ deliveryTag: args.deliveryTag });
           };
 
           const text = new TextDecoder().decode(data);
-          console.log(`#QXP3Bz Got event body for ${id}`, args, text);
+          log.debug(`#QXP3Bz Got event body for ${id}`, args, text);
 
           const strfryMessage = JSON.parse(text);
           const { event: unvalidatedEvent } = strfryMessage;
 
           // If this throws, then the `channel.ack()` below won't happen
-          const { success, data: event } =
-            eventSchema.safeParse(unvalidatedEvent);
+          const { success, data: event } = eventSchema.safeParse(
+            unvalidatedEvent,
+          );
 
           if (!success) {
             await ack();
@@ -91,9 +96,9 @@ export async function consume(
 
           await ack();
         } catch (error) {
-          console.error(`#Y5y2oB Error in channel.consume ${id}`, error);
+          log.error(`#Y5y2oB Error in channel.consume ${id}`, error);
         }
-      }
+      },
     );
   } catch (error) {
     log.error(`#s9QMqm consume() failed with error`, error);

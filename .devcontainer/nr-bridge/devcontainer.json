@@ -3,7 +3,7 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/app",
-  "forwardPorts": [8081, 8000, 27017],
+  "forwardPorts": [8081, 8000, 27017, 8025],
   "portsAttributes": {
     "8081": {
       "label": "Metro Bundler",
@@ -16,10 +16,17 @@
     "27017": {
       "label": "MongoDB",
       "onAutoForward": "silent"
+    },
+    "8025": {
+      "label": "Mailpit",
+      "onAutoForward": "notify"
     }
   },
   "containerEnv": {
     "MONGODB_URI": "mongodb://mongodb:27017/trustroots-dev",
+    "SMTP_HOST": "127.0.0.1",
+    "SMTP_PORT": "1025",
+    "SMTP_FROM": "noreply@nostroots.local",
     "EXPO_USE_METRO_WORKSPACE_ROOT": "1",
     "EXPO_NO_DOTENV": "1"
   },

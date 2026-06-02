@@ -12,6 +12,9 @@ services:
         condition: service_healthy
     environment:
       MONGODB_URI: mongodb://mongodb:27017/trustroots-dev
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: "1025"
+      SMTP_FROM: noreply@nostroots.local
       EXPO_USE_METRO_WORKSPACE_ROOT: "1"
       EXPO_NO_DOTENV: "1"
 

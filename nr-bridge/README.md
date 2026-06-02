@@ -2,9 +2,9 @@
 
 Bridge between the legacy [Trustroots.org](https://www.trustroots.org) MongoDB
 user database and the new Nostr-based Nostroots iOS app. The service verifies
-that a user owns the email address associated with their Trustroots username and,
-once verified, writes their Nostr public key (`npub`) into the MongoDB `users`
-collection.
+that a user owns the email address associated with their Trustroots username
+and, once verified, writes their Nostr public key (`npub`) into the MongoDB
+`users` collection.
 
 ## Overview
 
@@ -142,18 +142,18 @@ Content-Type: application/json
 }
 ```
 
-| Field      | Type   | Required | Description                          |
-| ---------- | ------ | -------- | ------------------------------------ |
+| Field      | Type   | Required | Description                                        |
+| ---------- | ------ | -------- | -------------------------------------------------- |
 | `username` | string | yes      | Trustroots username (case-insensitive, min 1 char) |
 
 **Responses**
 
-| Status | Body                                                  | Meaning                                        |
-| ------ | ----------------------------------------------------- | ---------------------------------------------- |
-| `200`  | `{ "success": true }`                                 | Verification email sent                        |
-| `400`  | `{ "error": "Invalid request", "details": {...} }`    | Request body failed Zod validation             |
-| `404`  | `{ "error": "User not found" }`                       | No user with that username in MongoDB          |
-| `409`  | `{ "error": "Verification already pending" }`         | An unexpired token already exists for this user |
+| Status | Body                                               | Meaning                                         |
+| ------ | -------------------------------------------------- | ----------------------------------------------- |
+| `200`  | `{ "success": true }`                              | Verification email sent                         |
+| `400`  | `{ "error": "Invalid request", "details": {...} }` | Request body failed Zod validation              |
+| `404`  | `{ "error": "User not found" }`                    | No user with that username in MongoDB           |
+| `409`  | `{ "error": "Verification already pending" }`      | An unexpired token already exists for this user |
 
 **Side effects**
 
@@ -195,29 +195,29 @@ or
 }
 ```
 
-| Field      | Type   | Required | Description                                      |
-| ---------- | ------ | -------- | ------------------------------------------------ |
-| `username` | string | yes      | Trustroots username                              |
-| `npub`     | string | yes      | Nostr public key (must start with `"npub"`)      |
-| `code`     | string | no*      | Six-digit numeric code from the email            |
-| `token`    | string | no*      | UUID token from the deep link                    |
+| Field      | Type   | Required | Description                                 |
+| ---------- | ------ | -------- | ------------------------------------------- |
+| `username` | string | yes      | Trustroots username                         |
+| `npub`     | string | yes      | Nostr public key (must start with `"npub"`) |
+| `code`     | string | no*      | Six-digit numeric code from the email       |
+| `token`    | string | no*      | UUID token from the deep link               |
 
 *At least one of `code` or `token` must be provided.
 
 **Responses**
 
-| Status | Body                                                        | Meaning                                  |
-| ------ | ----------------------------------------------------------- | ---------------------------------------- |
-| `200`  | `{ "success": true }`                                       | npub written to MongoDB                  |
-| `400`  | `{ "error": "Invalid request", "details": {...} }`          | Validation failed (missing fields, bad npub, etc.) |
-| `401`  | `{ "error": "No pending verification or code expired" }`    | No token request in KV or it has expired |
-| `401`  | `{ "error": "Invalid code or token" }`                      | Code/token does not match                |
-| `500`  | `{ "error": "Failed to update user" }`                      | MongoDB update did not modify a document |
+| Status | Body                                                     | Meaning                                            |
+| ------ | -------------------------------------------------------- | -------------------------------------------------- |
+| `200`  | `{ "success": true }`                                    | npub written to MongoDB                            |
+| `400`  | `{ "error": "Invalid request", "details": {...} }`       | Validation failed (missing fields, bad npub, etc.) |
+| `401`  | `{ "error": "No pending verification or code expired" }` | No token request in KV or it has expired           |
+| `401`  | `{ "error": "Invalid code or token" }`                   | Code/token does not match                          |
+| `500`  | `{ "error": "Failed to update user" }`                   | MongoDB update did not modify a document           |
 
 **Side effects**
 
-- Sets the `nostrNpub` field and updates the `updated` timestamp on the
-  matching user document in MongoDB.
+- Sets the `nostrNpub` field and updates the `updated` timestamp on the matching
+  user document in MongoDB.
 - Deletes the token request from Deno KV.
 
 ---
@@ -230,15 +230,15 @@ Stored under the key `["tokenRequests", <username>]` with a 15-minute TTL via
 Deno KV's `expireIn` option. An additional application-level check on
 `expiresAt` guards against clock drift.
 
-| Field       | Type             | Description                              |
-| ----------- | ---------------- | ---------------------------------------- |
-| `id`        | string (UUID v4) | Unique identifier for this request       |
-| `username`  | string           | Trustroots username                      |
-| `email`     | string           | Email address from MongoDB               |
+| Field       | Type             | Description                                |
+| ----------- | ---------------- | ------------------------------------------ |
+| `id`        | string (UUID v4) | Unique identifier for this request         |
+| `username`  | string           | Trustroots username                        |
+| `email`     | string           | Email address from MongoDB                 |
 | `code`      | string?          | Six-digit numeric code (`100000`-`999999`) |
-| `token`     | string?          | UUID v4 for deep-link verification       |
-| `createdAt` | number           | Unix ms timestamp of creation            |
-| `expiresAt` | number           | Unix ms timestamp of expiry              |
+| `token`     | string?          | UUID v4 for deep-link verification         |
+| `createdAt` | number           | Unix ms timestamp of creation              |
+| `expiresAt` | number           | Unix ms timestamp of expiry                |
 
 ### MongoDB User (relevant fields)
 
@@ -247,13 +247,13 @@ The `users` collection in the Trustroots database. nr-bridge only reads
 seeds minimal documents shaped like `NrBridgeUserSchema`; it does not import a
 Trustroots database archive.
 
-| Field       | Type   | Description                        |
-| ----------- | ------ | ---------------------------------- |
+| Field       | Type   | Description                           |
+| ----------- | ------ | ------------------------------------- |
 | `username`  | string | Unique, lowercase Trustroots username |
-| `email`     | string | User's email address               |
-| `nostrNpub` | string | Nostr public key (set by nr-bridge) |
-| `created`   | Date   | User creation timestamp            |
-| `updated`   | Date   | Last-modified timestamp            |
+| `email`     | string | User's email address                  |
+| `nostrNpub` | string | Nostr public key (set by nr-bridge)   |
+| `created`   | Date   | User creation timestamp               |
+| `updated`   | Date   | Last-modified timestamp               |
 
 ---
 
@@ -350,23 +350,33 @@ The shared app container provides:
 - Node 24 with corepack/pnpm for Metro
 - Deno 2.6.6 for `nr-bridge`
 - `mongosh` for connecting to the MongoDB service
+- `mailpit` for capturing development emails
 
 The `nr-bridge` devcontainer also provides:
 
 - MongoDB 7 initialized with minimal `NrBridgeUserSchema` dev users
 - `MONGODB_URI` pre-configured to `mongodb://mongodb:27017/trustroots-dev`
+- SMTP pre-configured to `127.0.0.1:1025` with no authentication
 
-Open the repo in VS Code, select **Reopen in Container**, and choose
-**Nostroots Bridge** when you need MongoDB. From that container, you can run
-both:
+Open the repo in VS Code, select **Reopen in Container**, and choose **Nostroots
+Bridge** when you need MongoDB. From that container, you can run both:
 
 ```bash
 cd nr-bridge
 deno task dev
 
 cd ../nr-app
-pnpm run start --dev-client
+EXPO_DEBUG=1 pnpm run start --dev-client
 ```
+
+`EXPO_DEBUG=1` is the recommended Metro command in devcontainers. It lets you
+open the React Native DevTools development console from your host browser at
+`http://localhost:8081/open-debugger`, instead of asking the container to launch
+Chrome or Edge. If Metro logs an `EDGE_PATH` error after pressing `j`, keep
+Metro running and use that host URL.
+
+See `.devcontainer/readme.md` for the full simulator/emulator workflow and a
+quick console check for confirming DevTools is attached to the app runtime.
 
 ### Running Locally
 
@@ -377,6 +387,53 @@ deno task run
 
 # Start with file-watching
 deno task dev
+```
+
+### Seeding Development Users
+
+Use the seed tasks when you need local Trustroots users in the MongoDB `users`
+collection for `/verify_token` and `/authenticate` testing.
+
+```bash
+cd nr-bridge
+
+# Idempotently create the two fixed dev users if they do not already exist.
+deno task seed:dev-users
+
+# Create one new fake user with @faker-js/faker data.
+deno task seed:fake-user
+```
+
+`seed:dev-users` upserts `alice` and `bob`, so it is safe to run repeatedly.
+`seed:fake-user` inserts a newly generated user on each run. Both commands use
+`MONGODB_URI`, defaulting to `mongodb://mongodb:27017/trustroots-dev`, and write
+minimal documents compatible with `NrBridgeUserSchema`.
+
+### Capturing Emails In Development
+
+The app devcontainer includes [Mailpit](https://mailpit.axllent.org/) so
+verification emails can be captured instead of being sent to real inboxes. Start
+Mailpit in the app container:
+
+```bash
+mailpit --listen 0.0.0.0:8025 --smtp 0.0.0.0:1025
+```
+
+In another terminal, start the bridge:
+
+```bash
+cd nr-bridge
+deno task dev
+```
+
+Then trigger `POST /verify_token` from the app or API client and open
+`http://localhost:8025` to read the email, code, and deep link. Inside the
+container, the default SMTP settings are:
+
+```bash
+SMTP_HOST=127.0.0.1
+SMTP_PORT=1025
+SMTP_FROM=noreply@nostroots.local
 ```
 
 ### Running Tests
@@ -396,14 +453,14 @@ deno test --allow-net --allow-env --allow-sys --allow-read --allow-write --unsta
 
 The test suite includes 27 tests:
 
-| Suite                  | Count | Description                                |
-| ---------------------- | ----- | ------------------------------------------ |
-| `utils.test.ts`        | 5     | Code generation, token generation          |
-| `schemas.test.ts`      | 9     | Zod schema accept/reject cases             |
-| `tokenRequest.test.ts` | 4     | Deno KV CRUD with in-memory store          |
-| `routes.test.ts`       | 5     | Route handlers with mocked dependencies    |
-| `verifyToken.test.ts`  | 1     | E2E: /verify_token against real MongoDB    |
-| `authenticate.test.ts` | 3     | E2E: /authenticate against real MongoDB    |
+| Suite                  | Count | Description                             |
+| ---------------------- | ----- | --------------------------------------- |
+| `utils.test.ts`        | 5     | Code generation, token generation       |
+| `schemas.test.ts`      | 9     | Zod schema accept/reject cases          |
+| `tokenRequest.test.ts` | 4     | Deno KV CRUD with in-memory store       |
+| `routes.test.ts`       | 5     | Route handlers with mocked dependencies |
+| `verifyToken.test.ts`  | 1     | E2E: /verify_token against real MongoDB |
+| `authenticate.test.ts` | 3     | E2E: /authenticate against real MongoDB |
 
 Unit tests use `:memory:` Deno KV instances so they require no external
 services. E2E tests connect to the MongoDB instance from the devcontainer.
@@ -412,17 +469,18 @@ services. E2E tests connect to the MongoDB instance from the devcontainer.
 
 ## Environment Variables
 
-| Variable         | Description                | Default                                  |
-| ---------------- | -------------------------- | ---------------------------------------- |
-| `MONGODB_URI`    | MongoDB connection string  | `mongodb://mongodb:27017/trustroots-dev` |
-| `PORT`           | HTTP server port           | `8000`                                   |
-| `SMTP_HOST`      | SMTP server hostname       | *(required)*                             |
-| `SMTP_PORT`      | SMTP server port           | `587`                                    |
-| `SMTP_USER`      | SMTP username              | *(required)*                             |
-| `SMTP_PASS`      | SMTP password              | *(required)*                             |
-| `SMTP_FROM`      | Sender email address       | `noreply@nostroots.com`                  |
-| `DEEP_LINK_BASE` | Base URL for iOS deep link | `nostroots://verify`                     |
-| `DENO_KV_PATH`   | Path to Deno KV database   | *(Deno default)*                         |
+| Variable              | Description                              | Default                                  |
+| --------------------- | ---------------------------------------- | ---------------------------------------- |
+| `MONGODB_URI`         | MongoDB connection string                | `mongodb://mongodb:27017/trustroots-dev` |
+| `PORT`                | HTTP server port                         | `8000`                                   |
+| `SMTP_HOST`           | SMTP server hostname                     | `127.0.0.1` in the devcontainer          |
+| `SMTP_PORT`           | SMTP server port                         | `1025` in the devcontainer, else `587`   |
+| `SMTP_USER`           | SMTP username                            | Optional; required if SMTP auth is used  |
+| `SMTP_PASS`           | SMTP password                            | Optional; required if SMTP auth is used  |
+| `SMTP_FROM`           | Sender email address                     | `noreply@nostroots.com`                  |
+| `SMTP_ALLOW_UNSECURE` | Allow non-TLS SMTP for local/dev servers | Auto-enabled for `127.0.0.1:1025`        |
+| `DEEP_LINK_BASE`      | Base URL for iOS deep link               | `nostroots://verify`                     |
+| `DENO_KV_PATH`        | Path to Deno KV database                 | _(Deno default)_                         |
 
 ---
 
@@ -458,8 +516,8 @@ Zod's flattened error output:
 The verification email is a responsive HTML email with:
 
 - **Header** -- Nostroots branding.
-- **Code block** -- The six-digit code displayed in a large monospace font
-  with letter-spacing for readability.
+- **Code block** -- The six-digit code displayed in a large monospace font with
+  letter-spacing for readability.
 - **Deep link button** -- "Open Nostroots" button linking to
   `nostroots://verify?token=<uuid>`.
 - **Footer** -- Expiry notice ("This code expires in 15 minutes") and a

@@ -6,14 +6,13 @@ import { Linking, TextInput, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
-import { publishEventTemplatePromiseAction } from "@/redux/actions/publish.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
-import { createKind10390EventTemplate } from "@trustroots/nr-common";
+import { publishTrustrootsProfile } from "@/services/trustrootsProfile.service";
 import * as Clipboard from "expo-clipboard";
 import {
   AlertTriangleIcon,
@@ -115,17 +114,11 @@ export default function OnboardingLinkScreen() {
           throw new Error("NIP-05 npub does not match local key");
         }
 
-        // Build Kind 10390 event using shared helper.
-        const eventTemplate = createKind10390EventTemplate(normalizedUsername);
-
-        // NOTE: relay URL should come from configuration; placeholder used here.
-        await dispatch(
-          publishEventTemplatePromiseAction.request({ eventTemplate }),
-        );
+        await publishTrustrootsProfile(normalizedUsername, dispatch);
 
         dispatch(settingsActions.setUsername(normalizedUsername));
         setLinkStatus("linked");
-      } catch (error) {
+      } catch {
         setLinkStatus("error");
         setLinkError(
           "We could not confirm your Trustroots identity via NIP-05 for this key. " +
@@ -181,11 +174,14 @@ export default function OnboardingLinkScreen() {
         <LinkIcon size={128} color="#fff" strokeWidth={0.5} />
 
         <Text variant="h1" className="my-0">
-          Connect to Trustroots
+          Verify Your Trustroots Key
         </Text>
       </View>
 
-      <Text variant="p">To verify your identity, follow these steps:</Text>
+      <Text variant="p">
+        This path checks that your Trustroots profile already points to the key
+        saved on this device.
+      </Text>
 
       <View className="flex gap-6 w-full">
         <StepCard stepNumber={1} title="Copy Your Public Key">
@@ -203,8 +199,9 @@ export default function OnboardingLinkScreen() {
 
         <StepCard stepNumber={2} title="Add to Trustroots Profile">
           <Text className="text-sm text-muted-foreground mb-2 text-left">
-            Log in to Trustroots, then scroll to the bottom of your Networks
-            page and paste your public key there.
+            If this key is not on your Trustroots profile yet, log in to
+            Trustroots, scroll to the bottom of your Networks page, and paste it
+            there.
           </Text>
           <Button onPress={openTrustrootsNetworks} className="w-full">
             <Text>Open Trustroots Networks</Text>

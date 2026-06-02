@@ -5,7 +5,7 @@
  * nr-bridge needs: `username`, `email`, `nostrNpub`, `created`, and `updated`.
  */
 import { z } from "zod";
-import { UserSchema } from "./user";
+import { UserSchema } from "./user.ts";
 
 /**
  * Picks the minimal set of user fields required by nr-bridge from the full

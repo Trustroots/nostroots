@@ -6,6 +6,7 @@
     "jsr:@std/expect@*": "1.0.18",
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/path@^1.1.4": "1.1.4",
+    "npm:@faker-js/faker@^10.4.0": "10.4.0",
     "npm:mongodb@6": "6.21.0",
     "npm:zod@^3.25.76": "3.25.76"
   },
@@ -38,6 +39,9 @@
     }
   },
   "npm": {
+    "@faker-js/faker@10.4.0": {
+      "integrity": "sha512-sDBWI3yLy8EcDzgobvJTWq1MJYzAkQdpjXuPukga9wXonhpMRvd1Izuo2Qgwey2OiEoRIBr35RMU9HJRoOHzpw=="
+    },
     "@mongodb-js/saslprep@1.4.6": {
       "integrity": "sha512-y+x3H1xBZd38n10NZF/rEBlvDOOMQ6LKUTHqr8R9VkJ+mmQOYtJFxIlkkK8fZrtOiL6VixbOBWMbZGBdal3Z1g==",
       "dependencies": [
@@ -128,6 +132,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@hono/hono@*",
+      "npm:@faker-js/faker@^10.4.0",
       "npm:mongodb@6",
       "npm:zod@^3.25.76"
     ]

@@ -2,9 +2,12 @@
   "tasks": {
     "run": "deno run --allow-net --allow-env --allow-sys --allow-read --allow-write --unstable-kv main.ts",
     "dev": "deno run --allow-net --allow-env --allow-sys --allow-read --allow-write --unstable-kv --watch main.ts",
-    "test": "deno test --allow-net --allow-env --allow-sys --allow-read --allow-write --unstable-kv"
+    "test": "deno test --allow-net --allow-env --allow-sys --allow-read --allow-write --unstable-kv",
+    "seed:dev-users": "deno run --allow-net --allow-env --allow-sys scripts/seedUsers.ts dev-users",
+    "seed:fake-user": "deno run --allow-net --allow-env --allow-sys scripts/seedUsers.ts fake-user"
   },
   "imports": {
+    "@faker-js/faker": "npm:@faker-js/faker@^10.4.0",
     "hono": "jsr:@hono/hono",
     "denomailer": "https://deno.land/x/denomailer/mod.ts",
     "zod": "npm:zod@^3.25.76",

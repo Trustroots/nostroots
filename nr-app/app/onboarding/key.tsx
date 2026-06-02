@@ -28,7 +28,7 @@ export default function OnboardingKeyScreen() {
   } = useKeyImport();
 
   const [currentTab, setCurrentTab] = useState<"existing" | "generate">(
-    "generate",
+    "existing",
   );
 
   const [existingKeyInput, setExistingKeyInput] = useState<string>("");
@@ -108,13 +108,13 @@ export default function OnboardingKeyScreen() {
         <KeyIcon size={128} color="#fff" strokeWidth={0.5} />
 
         <Text variant="h1" className="my-0">
-          Set Up Your Key
+          Import Your Trustroots Key
         </Text>
       </View>
 
       <Text className="text-center leading-relaxed">
-        Choose whether to import an existing Nostr key (nsec or mnemonic) or
-        create a new one. Your secret key never leaves this device.
+        Use this path if you have already added your Nostr public key to
+        Trustroots. Import the matching nsec or mnemonic on this device.
       </Text>
 
       <View className="flex w-full flex-col gap-6">

@@ -22,10 +22,32 @@ Open the repo in a dev container, then start Metro inside that container:
 
 ```bash
 cd /app/nr-app
-pnpm run start --dev-client
+EXPO_DEBUG=1 pnpm run start --dev-client
 ```
 
 Leave that process running. VS Code should forward port `8081` automatically.
+
+`EXPO_DEBUG=1` enables a browser-friendly React Native DevTools redirect. This
+is the default devcontainer workflow because Metro runs in Docker, while the
+debugger window should run in your host browser.
+
+After your app connects to Metro, open the development console from the host:
+
+```text
+http://localhost:8081/open-debugger
+```
+
+If Metro prints an `EDGE_PATH` error after pressing `j` or opening the debugger
+from the app menu, the app can still be running correctly. That error only means
+the container could not launch a browser. Use the host URL above instead.
+
+To confirm the DevTools console is attached to the app runtime, run:
+
+```js
+navigator.product
+```
+
+It should return `"ReactNative"`.
 
 ## 2. Run the iOS Simulator from the host
 
@@ -67,12 +89,19 @@ Why Android needs one extra step:
 The bridge dev container uses `.devcontainer/nr-bridge/docker-compose.yml` to
 start a separate `mongodb` service alongside the app service.
 
-- The app service connects to MongoDB at `mongodb://mongodb:27017/trustroots-dev`.
+- The app service connects to MongoDB at
+  `mongodb://mongodb:27017/trustroots-dev`.
 - The initial database name is `trustroots-dev`.
 - MongoDB data is stored in the `mongodb-data` Docker volume.
 - Port `27017` is forwarded to the host so local tools can connect to the same
   database.
 - The app service waits for MongoDB's healthcheck before starting.
+- The app image includes the `mailpit` command for capturing verification
+  emails.
+- The app service is preconfigured with `SMTP_HOST=127.0.0.1` and
+  `SMTP_PORT=1025`. Start Mailpit with
+  `mailpit --listen 0.0.0.0:8025 --smtp 0.0.0.0:1025`, then open
+  `http://localhost:8025`.
 
 Use the bridge dev container when you need the `nr-bridge` Deno app or a seeded
 MongoDB instance. Use the Metro-only dev container when you only need Metro.

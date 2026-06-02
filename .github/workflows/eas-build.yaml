@@ -46,7 +46,7 @@ jobs:
         id: fingerprint
         working-directory: ./nr-app
         run: |
-          HASH=$(node --input-type=module -e "import { createProjectHashAsync } from 'expo/fingerprint'; const hash = await createProjectHashAsync(process.cwd()); process.stdout.write(hash);")
+          HASH=$(node --input-type=module -e "import { createProjectHashAsync } from 'expo/fingerprint.js'; const hash = await createProjectHashAsync(process.cwd()); process.stdout.write(hash);")
 
           echo "fingerprint=$HASH" >> "$GITHUB_OUTPUT"
 

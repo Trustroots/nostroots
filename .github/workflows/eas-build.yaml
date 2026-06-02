@@ -14,13 +14,16 @@ on:
           - ios-development
           - ios-simulator
           - ios-production
+  schedule:
+    - cron: '0 3 1 * *'
 
 jobs:
   test:
     uses: ./.github/workflows/test.yml
 
-  build:
+  build-manual:
     needs: test
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -33,3 +36,28 @@ jobs:
       - name: 🚀 Start Build
         working-directory: ./nr-app
         run: pnpm run build:${{ inputs.platform }}
+
+  build-scheduled:
+    needs: test
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - android-development
+          - android-preview
+          - ios-development
+          - ios-simulator
+          - ios-production
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/repo-setup
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🚀 Start Build
+        working-directory: ./nr-app
+        run: pnpm run build:${{ matrix.platform }}

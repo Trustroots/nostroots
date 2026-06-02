@@ -79,6 +79,7 @@ export default function AddNoteForm() {
 
   const closeModal = useCallback(() => {
     dispatch(mapActions.closeAddNoteModal());
+    dispatch(mapActions.closeMapModal());
     // Reset form state when closing
     setFormState("editing");
     setPublishedPlusCode(null);

@@ -1,9 +1,11 @@
---- a/Libraries/TypeSafety/RCTTypedModuleConstants.h	2026-06-02 14:18:52
-+++ b/Libraries/TypeSafety/RCTTypedModuleConstants.h	2026-06-02 14:15:58
+diff --git a/node_modules/react-native/Libraries/TypeSafety/RCTTypedModuleConstants.h b/node_modules/react-native/Libraries/TypeSafety/RCTTypedModuleConstants.h
+index 1234567..abcdefg 100644
+--- a/node_modules/react-native/Libraries/TypeSafety/RCTTypedModuleConstants.h
++++ b/node_modules/react-native/Libraries/TypeSafety/RCTTypedModuleConstants.h
 @@ -44,12 +44,17 @@
  struct IsBuilder<T, std::void_t<typename T::Input, decltype(std::declval<T>().buildUnsafeRawValue())>>
      : std::true_type {};
- 
+
 +// Helper to detect if T has a ResultT type alias.
 +template <typename T, typename = void>
 +struct HasResultT : std::false_type {};
@@ -22,7 +24,7 @@
    // Not a Builder, use T as-is
    using type = T;
 @@ -57,11 +62,18 @@
- 
+
  // Specialization for Builder types that have ResultT defined
  template <typename T>
 -struct ResolveConstantsType<T, true> {
@@ -30,7 +32,7 @@
    // Use T::ResultT which points to the parent Constants type (added by codegen)
    using type = typename T::ResultT;
  };
- 
+
 +// Specialization for Builder types without ResultT (older codegen output)
 +template <typename T>
 +struct ResolveConstantsType<T, true, false> {
@@ -39,5 +41,5 @@
 +};
 +
  } // namespace detail
- 
+
  // Objective-C doesn't allow arbitrary types in its lightweight generics, only object and block types. We can work

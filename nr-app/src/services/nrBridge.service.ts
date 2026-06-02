@@ -11,8 +11,6 @@ export type NrBridgeErrorCode =
 
 type JsonBody = Record<string, unknown> | null;
 
-const LOG_PREFIX = "[nr-app:nrBridge]";
-
 export class NrBridgeError extends Error {
   status?: number;
   code: NrBridgeErrorCode;
@@ -51,13 +49,8 @@ export type AuthenticateWithTokenInput = {
 
 function getBridgeBaseUrl(): string {
   const baseUrl = process.env.EXPO_PUBLIC_NR_BRIDGE_BASE_URL;
-  console.log(`${LOG_PREFIX} resolving bridge base URL`, {
-    nrBridgeBaseUrl: baseUrl,
-    source: "process.env.EXPO_PUBLIC_NR_BRIDGE_BASE_URL",
-  });
 
   if (typeof baseUrl !== "string" || !baseUrl.trim()) {
-    console.log(`${LOG_PREFIX} missing bridge base URL`, { baseUrl });
     throw new NrBridgeError({
       code: "config",
       message: "nr-bridge base URL is not configured.",
@@ -66,12 +59,8 @@ function getBridgeBaseUrl(): string {
 
   try {
     const normalizedBaseUrl = new URL(baseUrl.trim()).toString();
-    console.log(`${LOG_PREFIX} resolved bridge base URL`, {
-      normalizedBaseUrl,
-    });
     return normalizedBaseUrl;
-  } catch (error) {
-    console.log(`${LOG_PREFIX} invalid bridge base URL`, { baseUrl, error });
+  } catch {
     throw new NrBridgeError({
       code: "config",
       message: "nr-bridge base URL is invalid.",
@@ -100,15 +89,6 @@ async function parseJson(response: Response): Promise<JsonBody> {
 
 async function postJson(path: string, body: Record<string, unknown>) {
   const url = urlJoin(getBridgeBaseUrl(), path);
-  console.log(`${LOG_PREFIX} POST start`, {
-    path,
-    url,
-    username: body.username,
-    bodyKeys: Object.keys(body),
-    hasCode: typeof body.code === "string",
-    hasToken: typeof body.token === "string",
-    hasNpub: typeof body.npub === "string",
-  });
 
   let response: Response;
   try {
@@ -121,17 +101,6 @@ async function postJson(path: string, body: Record<string, unknown>) {
       body: JSON.stringify(body),
     });
   } catch (error) {
-    if (error instanceof NrBridgeError) {
-      console.log(`${LOG_PREFIX} POST failed with bridge error before fetch`, {
-        path,
-        code: error.code,
-        status: error.status,
-        message: error.message,
-      });
-      throw error;
-    }
-
-    console.log(`${LOG_PREFIX} POST network failure`, { path, url, error });
     throw new NrBridgeError({
       code: "network",
       message: "Could not reach nr-bridge.",
@@ -140,12 +109,6 @@ async function postJson(path: string, body: Record<string, unknown>) {
   }
 
   const parsedBody = await parseJson(response);
-  console.log(`${LOG_PREFIX} POST response`, {
-    path,
-    status: response.status,
-    ok: response.ok,
-    body: parsedBody,
-  });
 
   if (!response.ok) {
     throw new NrBridgeError({

@@ -385,7 +385,6 @@ export default function SettingsScreen() {
           <Button
             title="Set visible plus codes"
             onPress={() => {
-              __DEV__ && console.log("#bLtiOc pressed");
               dispatch(
                 setVisiblePlusCodes([
                   "8C000000+",

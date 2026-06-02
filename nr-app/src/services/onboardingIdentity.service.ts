@@ -9,8 +9,6 @@ import { settingsActions } from "@/redux/slices/settings.slice";
 import { nip19 } from "nostr-tools";
 import { generateSeedWords } from "nip06";
 
-const LOG_PREFIX = "[nr-app:onboarding:identity]";
-
 export type OnboardingIdentity = {
   npub: `npub${string}`;
   publicKeyHex: string;
@@ -20,14 +18,9 @@ export type OnboardingIdentity = {
 export async function ensureOnboardingIdentity(
   dispatch: AppDispatch,
 ): Promise<OnboardingIdentity> {
-  console.log(`${LOG_PREFIX} ensure identity called`);
   const storedIdentity = await getPublicKeyHexFromSecureStorage();
 
   if (storedIdentity) {
-    console.log(`${LOG_PREFIX} stored identity found`, {
-      hasMnemonicInSecureStorage: storedIdentity.hasMnemonicInSecureStorage,
-      hasPublicKeyHex: !!storedIdentity.publicKeyHex,
-    });
     dispatch(
       setPublicKeyHex({
         hasMnemonic: storedIdentity.hasMnemonicInSecureStorage,
@@ -42,15 +35,11 @@ export async function ensureOnboardingIdentity(
     };
   }
 
-  console.log(`${LOG_PREFIX} no stored identity found, generating mnemonic`);
   const mnemonic = generateSeedWords().mnemonic;
   const publicKeyHex = derivePublicKeyHexFromMnemonic(mnemonic);
 
   await dispatch(setPrivateKeyPromiseAction.request({ mnemonic }));
   dispatch(settingsActions.setKeyWasImported(false));
-  console.log(`${LOG_PREFIX} generated identity saved`, {
-    hasPublicKeyHex: !!publicKeyHex,
-  });
 
   return {
     npub: nip19.npubEncode(publicKeyHex),

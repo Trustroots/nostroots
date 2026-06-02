@@ -29,16 +29,8 @@ type TrustrootsScreenState =
   | "profile-publishing";
 
 const AUTHENTICATION_FAILURE_MESSAGE = "failed to authenticate you. try again";
-const LOG_PREFIX = "[nr-app:onboarding:trustroots]";
 
 function getRequestErrorMessage(error: unknown): string {
-  console.log(`${LOG_PREFIX} map request error message`, {
-    isNrBridgeError: error instanceof NrBridgeError,
-    code: error instanceof NrBridgeError ? error.code : undefined,
-    status: error instanceof NrBridgeError ? error.status : undefined,
-    message: error instanceof Error ? error.message : String(error),
-  });
-
   if (error instanceof NrBridgeError) {
     if (error.code === "config") {
       return "Verification service is not configured.";
@@ -70,7 +62,6 @@ export default function OnboardingTrustrootsScreen() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log(`${LOG_PREFIX} route error param changed`, { errorParam });
     if (errorParam === "auth") {
       setStatusMessage(AUTHENTICATION_FAILURE_MESSAGE);
     } else if (errorParam === "missing-token") {
@@ -83,12 +74,6 @@ export default function OnboardingTrustrootsScreen() {
   }, [errorParam]);
 
   useEffect(() => {
-    console.log(`${LOG_PREFIX} pending state effect`, {
-      pendingTrustrootsUsername,
-      pendingTrustrootsProfileUsername,
-      screenState,
-    });
-
     if (pendingTrustrootsProfileUsername) {
       setUsernameInput(pendingTrustrootsProfileUsername);
       setScreenState("profile-retry");
@@ -111,7 +96,6 @@ export default function OnboardingTrustrootsScreen() {
 
   const resetToUsernameEntry = useCallback(
     (message?: string) => {
-      console.log(`${LOG_PREFIX} reset to username entry`, { message });
       setCode("");
       setFieldError(null);
       setStatusMessage(message ?? null);
@@ -123,11 +107,9 @@ export default function OnboardingTrustrootsScreen() {
 
   const runProfileFinalization = useCallback(
     async (username: string) => {
-      console.log(`${LOG_PREFIX} profile finalization start`, { username });
       try {
         setScreenState("profile-publishing");
         await finalizeTrustrootsProfilePublish(username, dispatch);
-        console.log(`${LOG_PREFIX} profile finalization success`, { username });
         router.replace("/onboarding/backup-confirm?from=bridge");
       } catch (error) {
         console.error("Failed to publish Trustroots profile", error);
@@ -141,20 +123,9 @@ export default function OnboardingTrustrootsScreen() {
   );
 
   const handleRequestCode = useCallback(async () => {
-    console.log(`${LOG_PREFIX} request code pressed`, {
-      rawUsernameInput: usernameInput,
-    });
     const result = validateTrustrootsUsername(usernameInput);
-    console.log(`${LOG_PREFIX} username validation result`, {
-      success: result.success,
-      username: result.success ? result.username : undefined,
-      error: result.success ? undefined : result.error,
-    });
 
     if (!result.success) {
-      console.log(`${LOG_PREFIX} username validation failed`, {
-        error: result.error,
-      });
       setFieldError(result.error);
       return;
     }
@@ -164,30 +135,14 @@ export default function OnboardingTrustrootsScreen() {
     setStatusMessage(null);
 
     try {
-      console.log(`${LOG_PREFIX} request verification token start`, {
-        username: result.username,
-      });
       await requestVerificationToken(result.username);
-      console.log(`${LOG_PREFIX} request verification token success`, {
-        username: result.username,
-      });
       dispatch(settingsActions.setPendingTrustrootsUsername(result.username));
       setUsernameInput(result.username);
       setCode("");
       setStatusMessage("Check your Trustroots email for a six-digit code.");
       setScreenState("code-entry");
     } catch (error) {
-      console.log(`${LOG_PREFIX} request verification token error`, {
-        isNrBridgeError: error instanceof NrBridgeError,
-        code: error instanceof NrBridgeError ? error.code : undefined,
-        status: error instanceof NrBridgeError ? error.status : undefined,
-        message: error instanceof Error ? error.message : String(error),
-      });
-
       if (error instanceof NrBridgeError && error.code === "already-pending") {
-        console.log(`${LOG_PREFIX} handling already pending verification`, {
-          username: result.username,
-        });
         dispatch(settingsActions.setPendingTrustrootsUsername(result.username));
         setUsernameInput(result.username);
         setCode("");
@@ -199,9 +154,6 @@ export default function OnboardingTrustrootsScreen() {
       }
 
       if (error instanceof NrBridgeError && error.code === "not-found") {
-        console.log(`${LOG_PREFIX} handling username not found`, {
-          username: result.username,
-        });
         setFieldError("Trustroots username not found.");
         setScreenState("idle");
         return;
@@ -214,10 +166,6 @@ export default function OnboardingTrustrootsScreen() {
 
   const handleCodeChange = (value: string) => {
     const sanitizedCode = value.replace(/\D/g, "").slice(0, 6);
-    console.log(`${LOG_PREFIX} code input changed`, {
-      rawLength: value.length,
-      sanitizedLength: sanitizedCode.length,
-    });
     setCode(sanitizedCode);
     setStatusMessage(null);
   };
@@ -225,17 +173,8 @@ export default function OnboardingTrustrootsScreen() {
   const handleAuthenticateCode = useCallback(async () => {
     const username =
       pendingTrustrootsUsername ?? usernameInput.trim().toLowerCase();
-    console.log(`${LOG_PREFIX} authenticate code pressed`, {
-      username,
-      codeLength: code.length,
-      hasPendingTrustrootsUsername: !!pendingTrustrootsUsername,
-    });
 
     if (!username || code.length !== 6) {
-      console.log(`${LOG_PREFIX} authenticate code ignored`, {
-        hasUsername: !!username,
-        codeLength: code.length,
-      });
       return;
     }
 
@@ -243,19 +182,8 @@ export default function OnboardingTrustrootsScreen() {
     setStatusMessage(null);
 
     try {
-      console.log(`${LOG_PREFIX} ensure identity start`);
       const { npub } = await ensureOnboardingIdentity(dispatch);
-      console.log(`${LOG_PREFIX} ensure identity success`, {
-        hasNpub: !!npub,
-      });
-      console.log(`${LOG_PREFIX} authenticate with code start`, {
-        username,
-        codeLength: code.length,
-      });
       await authenticateWithCode({ username, npub, code });
-      console.log(`${LOG_PREFIX} authenticate with code success`, {
-        username,
-      });
     } catch (error) {
       console.error("Failed to authenticate Trustroots code", error);
       resetToUsernameEntry(AUTHENTICATION_FAILURE_MESSAGE);
@@ -274,7 +202,6 @@ export default function OnboardingTrustrootsScreen() {
 
   const handleRetryProfilePublish = useCallback(async () => {
     const username = pendingTrustrootsProfileUsername;
-    console.log(`${LOG_PREFIX} retry profile publish pressed`, { username });
     if (!username) {
       resetToUsernameEntry();
       return;
@@ -288,19 +215,14 @@ export default function OnboardingTrustrootsScreen() {
   ]);
 
   const handleSignup = async () => {
-    console.log(`${LOG_PREFIX} signup pressed`);
     await WebBrowser.openBrowserAsync("https://www.trustroots.org/signup");
   };
 
   const goLegacyKeyFlow = () => {
-    console.log(`${LOG_PREFIX} legacy key flow pressed`);
     router.push("/onboarding/key");
   };
 
   const goBack = () => {
-    console.log(`${LOG_PREFIX} back pressed`, {
-      canGoBack: router.canGoBack(),
-    });
     if (router.canGoBack()) {
       router.back();
     } else {

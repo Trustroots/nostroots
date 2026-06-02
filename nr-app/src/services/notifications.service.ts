@@ -82,7 +82,7 @@ function notificationResponseReceived(
 
   if (!parseResult.success) {
     if (__DEV__)
-      console.log(
+      console.warn(
         "#IBadHG Unknown notification payload received",
         parseResult,
         notificationData,
@@ -125,7 +125,7 @@ function handleInitialNotificationResponse() {
     }
   } catch (error) {
     if (__DEV__) {
-      console.log(
+      console.warn(
         "#2t3pWw Failed to read initial notification response",
         error,
       );

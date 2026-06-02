@@ -3,7 +3,7 @@ import {
   BottomSheetModalProvider,
   BottomSheetScrollView,
   BottomSheetView,
-} from "@gorhom/bottom-sheet";
+} from "@expo/ui/community/bottom-sheet";
 import { useColorScheme } from "nativewind";
 import { useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";

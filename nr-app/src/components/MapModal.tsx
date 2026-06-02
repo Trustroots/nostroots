@@ -1,19 +1,14 @@
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
-import { RootState } from "@/redux/store";
+import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
+import { useColorScheme } from "nativewind";
+import { useEffect, useRef } from "react";
+import { View } from "react-native";
 import { useSelector } from "react-redux";
 
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { EventWithMetadata } from "@/redux/slices/events.slice";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
-import {
-  BottomSheetModal,
-  BottomSheetModalProvider,
-  BottomSheetScrollView,
-} from "@gorhom/bottom-sheet";
-import { useColorScheme } from "nativewind";
-import { useEffect, useMemo, useRef } from "react";
-import { StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
+import { RootState } from "@/redux/store";
 import AddNoteForm from "./AddNoteForm";
 import NotesList from "./NotesList";
 import NotificationSubscription from "./NotificationSubscription";
@@ -37,93 +32,72 @@ export default function MapModal() {
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
   );
 
-  const bottomSheetModalRef = useRef<BottomSheetModal>(null);
-  const { top, bottom } = useSafeAreaInsets();
-  const snapPoints = useMemo(() => ["50%", "95%"], []);
+  const sheetRef = useRef<BottomSheet>(null);
   const isDark = colorScheme === "dark";
-  const bottomSheetContentStyle = useMemo(
-    () => ({
-      paddingTop: top + 16,
-      paddingBottom: bottom + 16,
-      paddingHorizontal: 16,
-    }),
-    [top, bottom],
-  );
 
   useEffect(() => {
     if (showModal) {
-      bottomSheetModalRef.current?.present();
+      sheetRef.current?.snapToIndex(0);
     } else {
-      bottomSheetModalRef.current?.dismiss();
+      sheetRef.current?.close();
     }
   }, [showModal]);
 
-  const handleDismiss = () => {
+  const handleClose = () => {
     if (showModal) {
       dispatch(mapActions.closeMapModal());
     }
   };
 
   return (
-    <BottomSheetModalProvider>
-      <BottomSheetModal
-        ref={bottomSheetModalRef}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        onDismiss={handleDismiss}
-        backdropComponent={() => null}
-        backgroundStyle={{ backgroundColor: isDark ? "#0a0a0a" : "#ffffff" }}
-        handleIndicatorStyle={{
-          backgroundColor: isDark ? "#525252" : "#d1d5db",
-        }}
-        containerStyle={{ zIndex: 100 }}
-      >
-        <BottomSheetScrollView
-          className="grow"
-          contentContainerClassName="bg-background px-safe-offset-4 pb-safe rounded-t-3xl"
-        >
-          <View style={styles.contentStack}>
-            <NotesList
-              plusCode={selectedPlusCode}
-              selectedEventId={selectedEvent?.event.id}
-            />
+    <BottomSheet
+      ref={sheetRef}
+      snapPoints={["50%", "90%"]}
+      index={-1}
+      onChange={(index) => {
+        if (index === -1) handleClose();
+      }}
+      onClose={handleClose}
+      enablePanDownToClose
+      containerStyle={{ zIndex: 100 }}
+      backgroundStyle={{ backgroundColor: isDark ? "#0a0a0a" : "#ffffff" }}
+      handleIndicatorStyle={{
+        backgroundColor: isDark ? "#525252" : "#d1d5db",
+      }}
+    >
+      <BottomSheetScrollView contentContainerClassName="p-4 pb-10">
+        <View className="gap-2">
+          <NotesList
+            plusCode={selectedPlusCode}
+            selectedEventId={selectedEvent?.event.id}
+          />
 
-            {!hasPrivateKeyInSecureStorage ? (
-              <Section>
+          {!hasPrivateKeyInSecureStorage ? (
+            <Section>
+              <Text>
+                Go to settings and setup your private key to be able to post
+                onto the map.
+              </Text>
+            </Section>
+          ) : (
+            <>
+              {selectedLayer === "trustroots" ? (
+                <AddNoteForm />
+              ) : (
                 <Text>
-                  Go to settings and setup your private key to be able to post
-                  onto the map.
+                  Choose the trustroots layer to be able to add content
                 </Text>
-              </Section>
-            ) : (
-              <>
-                {selectedLayer === "trustroots" ? (
-                  <AddNoteForm />
-                ) : (
-                  <View>
-                    <Text>
-                      Choose the trustroots layer to be able to add content
-                    </Text>
-                  </View>
-                )}
+              )}
 
-                {selectedLayer !== "trustroots" ? null : (
-                  <Section>
-                    <NotificationSubscription />
-                  </Section>
-                )}
-              </>
-            )}
-          </View>
-        </BottomSheetScrollView>
-      </BottomSheetModal>
-    </BottomSheetModalProvider>
+              {selectedLayer === "trustroots" ? (
+                <Section>
+                  <NotificationSubscription />
+                </Section>
+              ) : null}
+            </>
+          )}
+        </View>
+      </BottomSheetScrollView>
+    </BottomSheet>
   );
 }
-
-const styles = StyleSheet.create({
-  contentStack: {
-    flexDirection: "column",
-    gap: 8,
-  },
-});

@@ -21,6 +21,7 @@ import { setupNotificationHandling } from "@/services/notifications.service";
 import { PortalHost } from "@rn-primitives/portal";
 import { SENTRY_DSN } from "@trustroots/nr-common";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import {
   colorScheme as nativewindColorScheme,
@@ -86,7 +87,7 @@ function AppContent() {
 
   return (
     <RootSiblingParent>
-      <GestureHandlerRootView>
+      <GestureHandlerRootView style={{ flex: 1 }}>
         <StatusBar
           barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
         />
@@ -122,27 +123,29 @@ function RootLayout() {
   }
 
   return (
-    <Provider store={store}>
-      <PersistGate
-        loading={null}
-        persistor={persistor}
-        onBeforeLift={() => {
-          // Dispatch startup action after redux-persist has rehydrated the store
-          store.dispatch(rehydrated());
-          // This is called right before the persisted state is applied to Redux
-          store.dispatch(settingsActions.setDataLoaded(true));
-        }}
-      >
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+    <SafeAreaProvider>
+      <Provider store={store}>
+        <PersistGate
+          loading={null}
+          persistor={persistor}
+          onBeforeLift={() => {
+            // Dispatch startup action after redux-persist has rehydrated the store
+            store.dispatch(rehydrated());
+            // This is called right before the persisted state is applied to Redux
+            store.dispatch(settingsActions.setDataLoaded(true));
+          }}
         >
-          <KeyboardProvider>
-            <AppContent />
-          </KeyboardProvider>
-          <PortalHost />
-        </ThemeProvider>
-      </PersistGate>
-    </Provider>
+          <ThemeProvider
+            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          >
+            <KeyboardProvider>
+              <AppContent />
+            </KeyboardProvider>
+            <PortalHost />
+          </ThemeProvider>
+        </PersistGate>
+      </Provider>
+    </SafeAreaProvider>
   );
 }
 

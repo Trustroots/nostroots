@@ -6,7 +6,7 @@ import {
   doesFilterMatchParentPlusCode,
   doesFilterMatchPlusCodeExactly,
 } from "@/utils/notifications.utils";
-import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import { BottomSheetTextInput } from "@expo/ui/community/bottom-sheet";
 import { getCurrentTimestamp, PlusCode } from "@trustroots/nr-common";
 import { useCallback, useMemo, useState } from "react";
 import { View } from "react-native";
@@ -79,6 +79,7 @@ export default function AddNoteForm() {
 
   const closeModal = useCallback(() => {
     dispatch(mapActions.closeAddNoteModal());
+    dispatch(mapActions.closeMapModal());
     // Reset form state when closing
     setFormState("editing");
     setPublishedPlusCode(null);

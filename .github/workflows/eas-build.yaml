@@ -14,13 +14,64 @@ on:
           - ios-development
           - ios-simulator
           - ios-production
+  schedule:
+    - cron: '0 3 1 * *'
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     uses: ./.github/workflows/test.yml
 
-  build:
+  fingerprint-check:
+    if: github.event_name == 'push'
     needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      fingerprint_changed: ${{ steps.result.outputs.fingerprint_changed }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/repo-setup
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Compute native fingerprint
+        id: fingerprint
+        working-directory: ./nr-app
+        run: |
+          HASH=$(node --input-type=module -e "import { createProjectHashAsync } from 'expo/fingerprint.js'; const hash = await createProjectHashAsync(process.cwd()); process.stdout.write(hash);")
+
+          echo "fingerprint=$HASH" >> "$GITHUB_OUTPUT"
+
+          mkdir -p .fingerprint-cache
+          printf '%s\n' "$HASH" > .fingerprint-cache/fingerprint.txt
+
+      - name: Remember seen fingerprint
+        id: seen-fingerprint
+        uses: actions/cache@v4
+        with:
+          path: nr-app/.fingerprint-cache
+          key: eas-main-fingerprint-${{ steps.fingerprint.outputs.fingerprint }}
+
+      - name: Set fingerprint result
+        id: result
+        run: |
+          if [ "${{ steps.seen-fingerprint.outputs.cache-hit }}" = "true" ]; then
+            echo "fingerprint_changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "fingerprint_changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-manual:
+    needs: test
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
@@ -33,3 +84,47 @@ jobs:
       - name: 🚀 Start Build
         working-directory: ./nr-app
         run: pnpm run build:${{ inputs.platform }}
+
+  build-scheduled:
+    needs: test
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: &development_build_matrix
+        platform:
+          - android-development
+          - android-preview
+          - ios-development
+          - ios-simulator
+          - ios-production
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/repo-setup
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🚀 Start Build
+        working-directory: ./nr-app
+        run: pnpm run build:${{ matrix.platform }}
+
+  build-main:
+    needs: fingerprint-check
+    if: github.event_name == 'push' && needs.fingerprint-check.outputs.fingerprint_changed == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: *development_build_matrix
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/repo-setup
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🚀 Start Build
+        working-directory: ./nr-app
+        run: pnpm run build:${{ matrix.platform }}

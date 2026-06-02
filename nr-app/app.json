@@ -64,7 +64,10 @@
         {
           "locationWhenInUsePermission": "Allow Nostroots to use your location to show you nearby notes."
         }
-      ]
+      ],
+      "expo-splash-screen",
+      "expo-status-bar",
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -79,7 +82,7 @@
       }
     },
     "runtimeVersion": {
-      "policy": "fingerprint"
+      "policy": "sdkVersion"
     },
     "newArchEnabled": true,
     "updates": {

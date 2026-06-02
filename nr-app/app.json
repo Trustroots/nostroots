@@ -67,7 +67,13 @@
       ],
       "expo-splash-screen",
       "expo-status-bar",
-      "@sentry/react-native"
+      "@sentry/react-native",
+      [
+        "react-native-maps",
+        {
+          "androidGoogleMapsApiKey": "AIzaSyCr1ZxZlVQNI_u7FYfPkjgvZv79UeaPFYQ"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

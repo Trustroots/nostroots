@@ -31,7 +31,6 @@
   "dependencies": {
     "@expo/dom-webview": "^56.0.5",
     "@expo/vector-icons": "^15.1.1",
-    "@gorhom/bottom-sheet": "^5.2.14",
     "@mobily/ts-belt": "^3.13.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-picker/picker": "2.11.4",
@@ -101,7 +100,6 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "eas-cli": "^20.0.0",
     "@babel/core": "^7.29.7",
     "@babel/runtime": "^7.29.7",
     "@react-native/assets-registry": "^0.85.3",
@@ -110,6 +108,7 @@
     "@types/react": "~19.2.16",
     "babel-plugin-module-resolver": "^5.0.3",
     "babel-plugin-root-import": "^6.6.0",
+    "eas-cli": "^20.0.0",
     "eslint": "^9.39.4",
     "eslint-config-expo": "^56.0.4",
     "eslint-config-prettier": "^10.1.8",

@@ -6,7 +6,7 @@ import {
   doesFilterMatchParentPlusCode,
   doesFilterMatchPlusCodeExactly,
 } from "@/utils/notifications.utils";
-import { BottomSheetTextInput } from "@gorhom/bottom-sheet";
+import { BottomSheetTextInput } from "@expo/ui/community/bottom-sheet";
 import { getCurrentTimestamp, PlusCode } from "@trustroots/nr-common";
 import { useCallback, useMemo, useState } from "react";
 import { View } from "react-native";

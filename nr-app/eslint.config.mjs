@@ -11,6 +11,9 @@ export default [
   {
     ignores: [
       ".expo/",
+      "android/",
+      "ios/",
+      "dist/",
       "node_modules/",
       "package.json",
       "pnpm-lock.yaml",

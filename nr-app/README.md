@@ -38,9 +38,33 @@ you'd have to register your device first using [this link](https://expo.dev/regi
 
 ## Preview builds for testing
 
-We're generating preview builds for android for testing. To create a new preview build, run the "Build in EAS Cloud" GitHub action with `android-preview`. To get the download url for the last created build, run `eas build:list --platform android --build-profile preview --json --non-interactive --status finished --limit 1 | jq '.[0]'.artifacts.buildUrl -r` locally.
+We're generating preview builds for android for testing. To create a new preview build, run the ["Build in EAS Cloud" GitHub action](https://github.com/Trustroots/nostroots/actions/workflows/eas-build.yaml) with `android-preview`.
 
-To push an update to the people running the preview build, run `eas update --channel preview --message "mymessage"`.
+### Automatic releases
+
+After a preview build completes, a GitHub release is automatically created with the `.apk` file. You can:
+
+- View all [preview releases](https://github.com/Trustroots/nostroots/releases?q=preview)
+- Download the `.apk` directly from the release
+- Install on Android using: `adb install -r app-preview.apk`
+
+You can also manually trigger a release creation using the ["Create Release from EAS Build" GitHub action](https://github.com/Trustroots/nostroots/actions/workflows/create-release-from-eas-build.yaml).
+
+### Getting the APK locally
+
+To get the download URL for the last created build, run:
+
+```bash
+eas build:list --platform android --build-profile preview --json --non-interactive --status finished --limit 1 | jq '.[0]'.artifacts.buildUrl -r
+```
+
+### Pushing updates
+
+To push an update to the people running the preview build, run:
+
+```bash
+eas update --channel preview --message "your message here"
+```
 
 ### Local network
 

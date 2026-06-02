@@ -4,6 +4,7 @@ import { config } from "./src/config.ts";
 import { log } from "./src/log.ts";
 import { consumeFromRabbit } from "./src/rabbit.ts";
 import { loadSubscriptionsFromRelay } from "./src/relay.ts";
+import { startPushSubscriptionMetricsPublisher } from "./src/metrics.ts";
 import { SubscriptionStore } from "./src/subscriptionStore.ts";
 
 const publicKey = getPublicKey(hexToBytes(config.privateKey));
@@ -15,6 +16,12 @@ await loadSubscriptionsFromRelay(
   config.strfryUrl,
   config.privateKey,
   publicKey,
+  store,
+);
+
+await startPushSubscriptionMetricsPublisher(
+  config.strfryUrl,
+  config.privateKey,
   store,
 );
 

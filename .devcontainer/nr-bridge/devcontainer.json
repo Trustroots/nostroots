@@ -3,20 +3,33 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/app",
-  "forwardPorts": [27017],
+  "forwardPorts": [8081, 8000, 27017],
   "portsAttributes": {
+    "8081": {
+      "label": "Metro Bundler",
+      "onAutoForward": "notify"
+    },
+    "8000": {
+      "label": "nr-bridge",
+      "onAutoForward": "notify"
+    },
     "27017": {
       "label": "MongoDB",
       "onAutoForward": "silent"
     }
   },
   "containerEnv": {
-    "MONGODB_URI": "mongodb://mongodb:27017/trustroots-dev"
+    "MONGODB_URI": "mongodb://mongodb:27017/trustroots-dev",
+    "EXPO_USE_METRO_WORKSPACE_ROOT": "1",
+    "EXPO_NO_DOTENV": "1"
   },
+  "postCreateCommand": "corepack enable && corepack prepare pnpm@9.14.2 --activate && pnpm install --frozen-lockfile",
   "customizations": {
     "vscode": {
       "extensions": [
         "denoland.vscode-deno",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
         "mongodb.mongodb-vscode"
       ]
     }

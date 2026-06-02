@@ -243,13 +243,16 @@ Deno KV's `expireIn` option. An additional application-level check on
 ### MongoDB User (relevant fields)
 
 The `users` collection in the Trustroots database. nr-bridge only reads
-`username` and `email`, and writes `nostrNpub` and `updated`.
+`username` and `email`, and writes `nostrNpub` and `updated`. The devcontainer
+seeds minimal documents shaped like `NrBridgeUserSchema`; it does not import a
+Trustroots database archive.
 
 | Field       | Type   | Description                        |
 | ----------- | ------ | ---------------------------------- |
 | `username`  | string | Unique, lowercase Trustroots username |
 | `email`     | string | User's email address               |
 | `nostrNpub` | string | Nostr public key (set by nr-bridge) |
+| `created`   | Date   | User creation timestamp            |
 | `updated`   | Date   | Last-modified timestamp            |
 
 ---
@@ -334,15 +337,36 @@ nr-bridge/
 
 ### Dev Container
 
-The recommended way to develop is with the VS Code devcontainer at
-`.devcontainer/nr-bridge/`. It provides:
+Use the devcontainer that matches the services you need:
 
-- Deno 2.6.6 with `mongosh`
-- MongoDB 7 seeded from `trustroots_docs/trustroots-dev.archive`
+- `.devcontainer/metro/` starts only the shared app container. Use this for
+  Metro-only `nr-app` work when you do not need `nr-bridge` or MongoDB.
+- `.devcontainer/nr-bridge/` starts the same shared app container plus MongoDB.
+  Use this when you need to run the `nr-bridge` Deno app, its e2e tests, or
+  Metro against the bridge-backed development database.
+
+The shared app container provides:
+
+- Node 24 with corepack/pnpm for Metro
+- Deno 2.6.6 for `nr-bridge`
+- `mongosh` for connecting to the MongoDB service
+
+The `nr-bridge` devcontainer also provides:
+
+- MongoDB 7 initialized with minimal `NrBridgeUserSchema` dev users
 - `MONGODB_URI` pre-configured to `mongodb://mongodb:27017/trustroots-dev`
 
 Open the repo in VS Code, select **Reopen in Container**, and choose
-**Nostroots Bridge**.
+**Nostroots Bridge** when you need MongoDB. From that container, you can run
+both:
+
+```bash
+cd nr-bridge
+deno task dev
+
+cd ../nr-app
+pnpm run start --dev-client
+```
 
 ### Running Locally
 

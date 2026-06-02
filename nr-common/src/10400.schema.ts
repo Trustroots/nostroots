@@ -18,10 +18,9 @@ function getSingleSupportedMetricsType(tags: string[][]) {
   }
 
   const metricsType = typeValues[0];
-  const isSupported =
-    (NOSTROOTS_METRICS_SUPPORTED_TYPES as readonly string[]).includes(
-      metricsType,
-    );
+  const isSupported = (
+    NOSTROOTS_METRICS_SUPPORTED_TYPES as readonly string[]
+  ).includes(metricsType);
   if (!isSupported) {
     return null;
   }
@@ -55,7 +54,7 @@ export const kind10400EventSchema = baseEventSchema
         code: z.ZodIssueCode.custom,
         path: ["tags"],
         message:
-          'event must have exactly one non-empty d tag to be parameterized replaceable',
+          "event must have exactly one non-empty d tag to be parameterized replaceable",
       });
       return;
     }
@@ -65,9 +64,9 @@ export const kind10400EventSchema = baseEventSchema
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["tags"],
-        message: `event must have exactly one ${NOSTROOTS_METRICS_TYPE_TAG_NAME} tag with a supported metrics type: ${
-          NOSTROOTS_METRICS_SUPPORTED_TYPES.join(", ")
-        }`,
+        message: `event must have exactly one ${NOSTROOTS_METRICS_TYPE_TAG_NAME} tag with a supported metrics type: ${NOSTROOTS_METRICS_SUPPORTED_TYPES.join(
+          ", ",
+        )}`,
       });
       return;
     }
@@ -85,7 +84,9 @@ export const kind10400EventSchema = baseEventSchema
     }
 
     const isObject =
-      typeof decoded === "object" && decoded !== null && !Array.isArray(decoded);
+      typeof decoded === "object" &&
+      decoded !== null &&
+      !Array.isArray(decoded);
     if (!isObject) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

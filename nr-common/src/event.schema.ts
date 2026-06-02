@@ -1,4 +1,5 @@
 import { z } from "../deps.ts";
+import { kind10400EventSchema } from "./10400.schema.ts";
 import { kind10390EventSchema } from "./10390.schema.ts";
 import { kind10395EventSchema } from "./10395.schema.ts";
 import { kind20398EventSchema } from "./20398.schema.ts";
@@ -8,9 +9,10 @@ import { baseEventSchema } from "./base.schema.ts";
 
 // TODO - Add the generic event filter now
 
-export const kindSpecificEventSchema = z.discriminatedUnion("kind", [
+export const kindSpecificEventSchema = z.union([
   kind10390EventSchema,
   kind10395EventSchema,
+  kind10400EventSchema,
   kind20398EventSchema,
   kind30397EventSchema,
   kind30398EventSchema,

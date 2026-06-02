@@ -1,37 +1,24 @@
-import { startSubscription } from "@/redux/actions/subscription.actions";
-import { metricsActions, metricsSelectors } from "@/redux/slices/metrics.slice";
+import { metricsActions } from "@/redux/slices/metrics.slice";
 import { rootLogger } from "@/utils/logger.utils";
 import {
-  DEFAULT_RELAY_URL,
   NOSTROOTS_METRICS_KIND,
   NOSTROOTS_METRICS_SUPPORTED_TYPES,
   NOSTROOTS_METRICS_TYPE_TAG_NAME,
 } from "@trustroots/nr-common";
-import { all, put, select, takeEvery } from "redux-saga/effects";
+import { AnyAction } from "redux-saga";
+import { all, put, take, takeEvery } from "redux-saga/effects";
+import { rehydrated } from "../actions/startup.actions";
+import { startSubscription } from "../actions/subscription.actions";
 import { addEvent } from "../slices/events.slice";
-import { RootState } from "../store";
 
 const log = rootLogger.extend("metrics.saga");
 const METRICS_SUBSCRIPTION_ID = "nostroots-metrics";
 
-function* subscribeToMetricsEffect(): Generator<any, void, any> {
-  yield put(
-    startSubscription({
-      filters: [
-        {
-          kinds: [NOSTROOTS_METRICS_KIND],
-          "#t": [...NOSTROOTS_METRICS_SUPPORTED_TYPES],
-          "#d": ["world"],
-        },
-      ],
-      id: METRICS_SUBSCRIPTION_ID,
-      relayUrls: [DEFAULT_RELAY_URL],
-    }),
+function isMetricsEvent(action: AnyAction): boolean {
+  return (
+    addEvent.match(action) &&
+    action.payload.event.kind === NOSTROOTS_METRICS_KIND
   );
-
-  log.debug("#4K7m2i Subscribed to all metrics types", {
-    types: NOSTROOTS_METRICS_SUPPORTED_TYPES,
-  });
 }
 
 function* handleMetricsEventEffect(
@@ -89,24 +76,27 @@ function* handleMetricsEventEffect(
   });
 }
 
-function* initializeMetricsSubscriptionEffect(): Generator<any, void, any> {
-  const currentState: RootState = yield select();
-  const hasMetricsData = metricsSelectors.selectMetrics(currentState) !== null;
-
-  if (!hasMetricsData) {
-    yield* subscribeToMetricsEffect();
-  }
-}
-
 function* metricsEventSaga(): Generator<any, void, any> {
-  yield takeEvery(addEvent, handleMetricsEventEffect);
+  yield takeEvery(isMetricsEvent, handleMetricsEventEffect);
 }
 
-function* metricsInitSaga(): Generator<any, void, any> {
-  // Initialize metrics subscription after store is ready
-  yield takeEvery("persist/REHYDRATE", initializeMetricsSubscriptionEffect);
+function* subscribeToMetrics() {
+  yield take(rehydrated);
+
+  yield put(
+    startSubscription({
+      filters: [
+        {
+          kinds: [NOSTROOTS_METRICS_KIND],
+          "#t": [...NOSTROOTS_METRICS_SUPPORTED_TYPES],
+          "#d": ["world"],
+        },
+      ],
+      id: METRICS_SUBSCRIPTION_ID,
+    }),
+  );
 }
 
 export default function* metricsRootSaga(): Generator<any, void, any> {
-  yield all([metricsInitSaga(), metricsEventSaga()]);
+  yield all([metricsEventSaga(), subscribeToMetrics()]);
 }

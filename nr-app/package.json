@@ -25,7 +25,7 @@
       "./jest.setup.ts"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|nativewind|@trustroots/nr-common|@reduxjs/toolkit|immer|redux-persist|redux-devtools-expo-dev-plugin)"
+      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|nativewind|@trustroots/nr-common|@reduxjs/toolkit|immer|redux-persist|redux-devtools-expo-dev-plugin|nostr-tools|@noble/.*|@scure/.*)"
     ]
   },
   "dependencies": {

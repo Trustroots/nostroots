@@ -79,7 +79,7 @@
       }
     },
     "runtimeVersion": {
-      "policy": "sdkVersion"
+      "policy": "fingerprint"
     },
     "newArchEnabled": true,
     "updates": {

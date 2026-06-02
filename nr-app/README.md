@@ -1,40 +1,24 @@
 # Nostroots mobile app.
 
-## Getting started
+## Getting stated as a developer on the team
 
-First, run `pnpm i`.
-
-The fastest way to get started is using Expo go:
-
-In `nr-app`, run `pnpm run start` and choose Expo Go. You can try
-starting an emulator or simulator from here if you have it
-installed. Alternatively, install the Expo Go app on your mobile
-device and scan the QR code.
-
-If you want to use a development build, you can switch to that by
-pressing `s`. Open an emulator or simulator with this build using the
-commands available.
-
-## Install a development build
-
-You will want to run a development build on an emulator/simulator on your laptop. Run the correct command for your platform:
+Create an eas account on expo.dev. Request to be added to the nostroots team. Afterwards, run, depending on your preferred development platform:
 
 ```
-eas build:run --profile development --platform android --latest # android
-eas build:run --platform ios --profile simulator --latest # ios
+pnpm dlx eas-cli build:run --profile development --platform android --latest # android
+pnpm dlx eas-cli build:run --platform ios --profile simulator --latest # ios
 ```
 
-NOTE: The following error means that the builds on eas have expired. You can log into GitHub, go to [this page](https://github.com/Trustroots/nostroots/actions/workflows/eas-build.yaml), click "Run workflow", and choose `android-development` or `ios-simulator` (or `ios-development` if you want to run it on your actual iPhone). Afterwards, use `pnpm run start` and select development build and the simulator or device you installed the development build on.
-
-```
-Artifacts for the latest build have expired and are no longer available, or this is not a simulator/emulator build.
-    Error: build:run command failed.
-```
+Afterwards, use `pnpm run start` and select development build and the simulator or device you installed the development build on.
 
 You can also use your physical phone. For Android, you
 can use an existing build from
 https://expo.dev/accounts/nostroots/projects/nr-app/builds/ . For iOS,
 you'd have to register your device first using [this link](https://expo.dev/register-device/2e489efb-3f93-453c-99b0-4567492e6bda).
+
+## Getting started with local build
+
+`pnpm run start`
 
 ## Preview builds for testing
 

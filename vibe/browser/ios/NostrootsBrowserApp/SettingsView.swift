@@ -41,6 +41,8 @@ struct SettingsView: View {
 
                     NIP07PermissionsSection(model: model)
 
+                    PushNotificationsSection(manager: model.pushNotifications)
+
                     RemoveKeySection(confirmingRemoval: $confirmingRemoval)
 
                     VStack(alignment: .leading, spacing: 16) {
@@ -74,23 +76,6 @@ struct SettingsView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Settings")
             .toolbarBackground(Color(.systemGroupedBackground), for: .navigationBar)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.title2.weight(.semibold))
-                    }
-                    .accessibilityLabel("Close settings")
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .fontWeight(.semibold)
-                }
-            }
         }
         .alert(SettingsCopy.removeStoredKeyTitle, isPresented: $confirmingRemoval) {
             Button("Cancel", role: .cancel) {}
@@ -101,6 +86,85 @@ struct SettingsView: View {
         } message: {
             Text(SettingsCopy.removeStoredKeyConfirmation)
         }
+    }
+}
+
+private struct PushNotificationsSection: View {
+    @ObservedObject var manager: VibePushNotificationManager
+    @State private var isWorking = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Notifications")
+                    .font(.headline)
+                Text(manager.state.enabled ? "Native iOS push notifications are enabled." : "Native iOS push notifications are off.")
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Label(manager.state.apnsToken == nil ? "Waiting for APNs token" : "APNs token stored", systemImage: manager.state.apnsToken == nil ? "bell.slash" : "bell.badge")
+                    .foregroundStyle(.secondary)
+                Text("Subscribed areas: \(manager.state.subscribedPlusCodes.count)")
+                    .foregroundStyle(.secondary)
+                if let lastPublishedAt = manager.state.lastPublishedAt {
+                    Text("Last sync: \(Date(timeIntervalSince1970: TimeInterval(lastPublishedAt)).formatted(date: .numeric, time: .shortened))")
+                        .foregroundStyle(.secondary)
+                }
+                if let lastError = manager.state.lastError, !lastError.isEmpty {
+                    Text(lastError)
+                        .foregroundStyle(Color(.systemRed))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .font(.subheadline)
+
+            if !manager.state.subscribedPlusCodes.isEmpty {
+                Text(manager.state.subscribedPlusCodes.joined(separator: ", "))
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    Task {
+                        await run {
+                            if manager.state.enabled {
+                                _ = try await manager.disable()
+                            } else {
+                                _ = try await manager.enable()
+                            }
+                        }
+                    }
+                } label: {
+                    Text(manager.state.enabled ? "Disable" : "Enable")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(manager.state.enabled ? .red : Color(red: 0.05, green: 0.68, blue: 0.55))
+                .disabled(isWorking)
+
+                Button {
+                    Task { await run { _ = try await manager.sendTestNotification() } }
+                } label: {
+                    Text("Test")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(isWorking)
+            }
+        }
+        .padding(18)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8))
+        .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(.separator).opacity(0.35)))
+    }
+
+    private func run(_ action: () async throws -> Void) async {
+        isWorking = true
+        defer { isWorking = false }
+        try? await action()
     }
 }
 

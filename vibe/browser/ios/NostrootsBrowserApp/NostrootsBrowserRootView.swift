@@ -12,8 +12,9 @@ struct NostrootsBrowserRootView: View {
                 KeySetupView(model: model)
             }
         }
-        .fullScreenCover(isPresented: $showingSettings) {
+        .sheet(isPresented: $showingSettings) {
             SettingsView(model: model)
+                .presentationDragIndicator(.visible)
         }
     }
 }
@@ -41,11 +42,13 @@ private struct BrowserView: View {
                     keyStore: model.keyStore,
                     cryptoProvider: model.cryptoProvider,
                     permissionStore: model.nip07PermissionStore,
+                    pushNotifications: model.pushNotifications,
                     requestNIP07Permission: { prompt in
                         model.requestNIP07Permission(prompt)
                     },
                     currentURLString: $model.currentURLString,
-                    addressBarHidden: $addressBarHidden
+                    addressBarHidden: $addressBarHidden,
+                    pendingNotificationPlusCode: $model.pendingNotificationPlusCode
                 )
                 .ignoresSafeArea(edges: .bottom)
 
@@ -99,6 +102,10 @@ private struct BrowserView: View {
         }
         .onDisappear {
             cancelAddressBarAutoHide()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .vibePushNotificationTapped)) { notification in
+            let plusCode = notification.userInfo?["plusCode"] as? String ?? ""
+            model.handleNotificationTap(plusCode: plusCode)
         }
     }
 

@@ -5,7 +5,7 @@
 #   DEVICE_NAME      default: ip2
 #   DEVICE_UDID      skip name lookup when set
 #   DEVELOPMENT_TEAM default: SUJ594N47C (Trustroots Foundation)
-#   DERIVED_DATA     default: nr-browser/ios/.build/device
+#   DERIVED_DATA     default: vibe/browser/ios/.build/device
 #   CLEAN_BUILD      set to 1 to remove derived data before building
 #   FORCE_BUILD      set to 1 to always run xcodebuild
 #   SKIP_BUILD       set to 1 to install/launch an existing device build

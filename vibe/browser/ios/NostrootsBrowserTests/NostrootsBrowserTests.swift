@@ -185,6 +185,51 @@ final class NostrootsBrowserTests: XCTestCase {
         XCTAssertTrue(SettingsCopy.removeStoredKeyBody.contains("you will lose access to this Nostr identity"))
         XCTAssertTrue(SettingsCopy.removeStoredKeyConfirmation.contains("you will lose access to this Nostr identity"))
     }
+
+    func testVibePushPayloadUsesAPNSTokenAndPlusCodeFilter() throws {
+        let token = VibeAPNSToken(token: "abc123", environment: "sandbox")
+        let state = VibePushStoredState(
+            enabled: true,
+            apnsToken: token,
+            subscribedPlusCodes: ["849VCWC8+2X"],
+            lastPublishedAt: nil,
+            lastError: nil
+        )
+
+        let payload = VibePushEventFactory.payload(from: state)
+
+        XCTAssertEqual(payload.version, 1)
+        XCTAssertEqual(payload.client, "vibe-browser")
+        XCTAssertEqual(payload.tokens, [token])
+        XCTAssertEqual(payload.filters.first?.filter.kinds, [30398])
+        XCTAssertEqual(payload.filters.first?.filter.labels, ["849VCWC8+2X"])
+    }
+
+    func testVibePushSubscriptionPublisherSignsKind10396() async throws {
+        let keyStore = InMemoryKeyStore(cryptoProvider: StubCryptoProvider())
+        try keyStore.importGeneratedSecret(secretHex)
+        let recorder = RecordingVibePushEventPublisher.Box()
+        let publisher = VibePushSubscriptionPublisher(
+            keyStore: keyStore,
+            cryptoProvider: StubCryptoProvider(),
+            eventPublisher: RecordingVibePushEventPublisher(box: recorder)
+        )
+        let state = VibePushStoredState(
+            enabled: true,
+            apnsToken: VibeAPNSToken(token: "abc123", environment: "sandbox"),
+            subscribedPlusCodes: ["849VCWC8+2X"],
+            lastPublishedAt: nil,
+            lastError: nil
+        )
+
+        let event = try await publisher.publish(state: state)
+
+        XCTAssertEqual(event.kind, VibePushConstants.subscriptionKind)
+        XCTAssertEqual(event.pubkey, StubCryptoProvider.pubkey)
+        XCTAssertEqual(event.tags, [["p", VibePushConstants.notificationServerPubkey], ["client", "vibe-browser"]])
+        XCTAssertTrue(event.content.hasPrefix("nip04:"))
+        XCTAssertEqual(recorder.events.first?.id, event.id)
+    }
 }
 
 private struct StubCryptoProvider: NostrCryptoProviding {

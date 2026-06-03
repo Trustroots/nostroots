@@ -27,6 +27,7 @@ def configure_app_target(target)
     settings["CODE_SIGNING_ALLOWED"] = "NO"
     settings["CODE_SIGNING_REQUIRED"] = "NO"
     settings["CODE_SIGN_IDENTITY"] = ""
+    settings["CODE_SIGN_ENTITLEMENTS"] = "NostrootsBrowserApp/NostrootsBrowser.entitlements"
     settings["ENABLE_USER_SCRIPT_SANDBOXING"] = "NO"
     settings["GENERATE_INFOPLIST_FILE"] = "NO"
     settings["ASSETCATALOG_COMPILER_APPICON_NAME"] = "AppIcon"

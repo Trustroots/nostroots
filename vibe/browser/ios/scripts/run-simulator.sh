@@ -5,7 +5,7 @@
 #   SIMULATOR_NAME   default: iPhone 17
 #   SIMULATOR_OS     e.g. 26.5 (omit to let Xcode pick a matching runtime)
 #   SIMULATOR_UDID   skip name lookup when set
-#   DERIVED_DATA     default: nr-browser/ios/.build/simulator
+#   DERIVED_DATA     default: vibe/browser/ios/.build/simulator
 #   CLEAN_BUILD      set to 1 to remove derived data before building
 #   SKIP_BUILD       set to 1 to install/launch an existing simulator build
 

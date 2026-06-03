@@ -23,10 +23,12 @@ final class BrowserAppModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var webViewReloadID = UUID()
     @Published var nip07PermissionPrompt: NIP07PermissionPrompt?
+    @Published var pendingNotificationPlusCode: String?
 
     let keyStore: KeyStore
     let cryptoProvider: NostrCryptoProviding
     let nip07PermissionStore: NIP07PermissionStoring
+    let pushNotifications: VibePushNotificationManager
     private let defaults: UserDefaults
     private let developerModeKey: String
 
@@ -34,15 +36,18 @@ final class BrowserAppModel: ObservableObject {
         keyStore: KeyStore = KeychainKeyStore(),
         cryptoProvider: NostrCryptoProviding = CryptoProviderFactory.makeDefaultProvider(),
         nip07PermissionStore: NIP07PermissionStoring = NIP07PermissionStore(),
+        pushNotifications: VibePushNotificationManager = .shared,
         defaults: UserDefaults = .standard,
         developerModeKey: String = "nostroots.browser.developerMode"
     ) {
         self.keyStore = keyStore
         self.cryptoProvider = cryptoProvider
         self.nip07PermissionStore = nip07PermissionStore
+        self.pushNotifications = pushNotifications
         self.defaults = defaults
         self.developerModeKey = developerModeKey
         self.developerMode = defaults.bool(forKey: developerModeKey)
+        self.pushNotifications.configure(keyStore: keyStore, cryptoProvider: cryptoProvider)
         refreshKeyStatus()
     }
 
@@ -125,6 +130,12 @@ final class BrowserAppModel: ObservableObject {
 
     func requestNIP07Permission(_ prompt: NIP07PermissionPrompt) {
         nip07PermissionPrompt = prompt
+    }
+
+    func handleNotificationTap(plusCode: String) {
+        let normalized = plusCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard !normalized.isEmpty else { return }
+        pendingNotificationPlusCode = normalized
     }
 
     func revokeNIP07Permission(origin: String) {

@@ -14,9 +14,23 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "EE6BA191720F4B95D5CFB872"
+               BlueprintIdentifier = "7D2810BDCDB265CBEB7D5505"
                BuildableName = "NostrootsBrowser.app"
                BlueprintName = "NostrootsBrowser"
+               ReferencedContainer = "container:NostrootsBrowser.xcodeproj">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "90E979D3805DB211CB36BF76"
+               BuildableName = "NostrootsBrowserTests.xctest"
+               BlueprintName = "NostrootsBrowserTests"
                ReferencedContainer = "container:NostrootsBrowser.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -30,13 +44,23 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EE6BA191720F4B95D5CFB872"
+            BlueprintIdentifier = "7D2810BDCDB265CBEB7D5505"
             BuildableName = "NostrootsBrowser.app"
             BlueprintName = "NostrootsBrowser"
             ReferencedContainer = "container:NostrootsBrowser.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "90E979D3805DB211CB36BF76"
+               BuildableName = "NostrootsBrowserTests.xctest"
+               BlueprintName = "NostrootsBrowserTests"
+               ReferencedContainer = "container:NostrootsBrowser.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
@@ -53,7 +77,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EE6BA191720F4B95D5CFB872"
+            BlueprintIdentifier = "7D2810BDCDB265CBEB7D5505"
             BuildableName = "NostrootsBrowser.app"
             BlueprintName = "NostrootsBrowser"
             ReferencedContainer = "container:NostrootsBrowser.xcodeproj">
@@ -70,7 +94,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "EE6BA191720F4B95D5CFB872"
+            BlueprintIdentifier = "7D2810BDCDB265CBEB7D5505"
             BuildableName = "NostrootsBrowser.app"
             BlueprintName = "NostrootsBrowser"
             ReferencedContainer = "container:NostrootsBrowser.xcodeproj">

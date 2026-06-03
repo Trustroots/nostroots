@@ -1,5 +1,3 @@
 packages:
   - 'nr-app'
   - 'nr-common'
-  - 'vibe/browser/expo'
-  - 'vibe/web'

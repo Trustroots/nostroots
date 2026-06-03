@@ -3,7 +3,7 @@ package bridge
 import (
 	"testing"
 
-	"github.com/trustroots/nostroots/nip42relay/internal/auth"
+	"github.com/trustroots/nostroots/vibe/nip42relay/internal/auth"
 )
 
 func TestBuildAuthEvent(t *testing.T) {

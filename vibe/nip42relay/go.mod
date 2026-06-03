@@ -1,4 +1,4 @@
-module github.com/trustroots/nostroots/nip42relay
+module github.com/trustroots/nostroots/vibe/nip42relay
 
 go 1.25.0
 

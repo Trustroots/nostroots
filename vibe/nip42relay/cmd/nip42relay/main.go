@@ -4,10 +4,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/trustroots/nostroots/nip42relay/internal/config"
-	"github.com/trustroots/nostroots/nip42relay/internal/nip05"
-	"github.com/trustroots/nostroots/nip42relay/internal/relay"
-	"github.com/trustroots/nostroots/nip42relay/internal/store"
+	"github.com/trustroots/nostroots/vibe/nip42relay/internal/config"
+	"github.com/trustroots/nostroots/vibe/nip42relay/internal/nip05"
+	"github.com/trustroots/nostroots/vibe/nip42relay/internal/relay"
+	"github.com/trustroots/nostroots/vibe/nip42relay/internal/store"
 )
 
 func main() {

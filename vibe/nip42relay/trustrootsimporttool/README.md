@@ -19,7 +19,7 @@ There are **no relay-side dedupe checks**; stricter validation can live in clien
 ## Usage
 
 ```sh
-cd nip42relay
+cd vibe/nip42relay
 go run ./trustrootsimporttool \
   -mongo-uri mongodb://localhost:27017/trustroots \
   -nsec "$NSEC" \
@@ -116,7 +116,7 @@ After import, verify route-level behavior in `nr-web`:
 
 1. Generate sample JSONL:
    ```sh
-   cd nip42relay
+   cd vibe/nip42relay
    LIMIT=20 go run ./trustrootsimporttool -nsec "$NSEC" -output trustroots-hosts.jsonl
    ```
 2. Inspect JSONL lines quickly:
@@ -124,8 +124,8 @@ After import, verify route-level behavior in `nr-web`:
    - `30410` should include circle `picture` for circles with images
    - `30398` should include `trustroots-circle` + `t` tags for the same slugs
 3. Import JSONL into your local strfry / nip42 setup.
-4. Open `nr-web/test.html` and run **Image tests** for known profile/circle URLs.
-5. Open `nr-web/index.html` and verify:
+4. Open `vibe/web/test.html` and run **Image tests** for known profile/circle URLs.
+5. Open `vibe/web/index.html` and verify:
    - `#profile/nostroots%40trustroots.org` shows expected profile avatar
    - `#hitchhikers` surfaces the circle image in chat/circle UI when metadata is present
 - `30392` relationship suggestion:

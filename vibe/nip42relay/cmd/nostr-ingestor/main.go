@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/trustroots/nostroots/nip42relay/internal/bridge"
+	"github.com/trustroots/nostroots/vibe/nip42relay/internal/bridge"
 )
 
 func main() {

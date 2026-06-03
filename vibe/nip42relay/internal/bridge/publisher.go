@@ -10,7 +10,7 @@ import (
 
 	"github.com/gorilla/websocket"
 	"github.com/nbd-wtf/go-nostr"
-	"github.com/trustroots/nostroots/nip42relay/internal/auth"
+	"github.com/trustroots/nostroots/vibe/nip42relay/internal/auth"
 )
 
 type NostrPublisher struct {

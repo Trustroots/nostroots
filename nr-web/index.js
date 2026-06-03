@@ -26,6 +26,9 @@ const NR_WEB_ANALYTICS_ALLOWED_KEYS = new Set([
     'hostname',
     'intent',
     'key_method',
+    'nip7_available',
+    'nip7_status',
+    'nip7_used',
     'plus_code_length',
     'relay_count',
     'route_type',
@@ -115,6 +118,22 @@ export function getNrWebAnalyticsHostname() {
     }
 }
 
+export function getNrWebNip7AnalyticsData() {
+    let status = 'none';
+    try {
+        status = inspectNip7Capabilities()?.status || 'none';
+    } catch (_) {}
+    let active = false;
+    try {
+        active = window.NrWebNip7?.isActive?.() === true;
+    } catch (_) {}
+    return {
+        nip7_available: status === 'full',
+        nip7_status: status,
+        nip7_used: active,
+    };
+}
+
 export function sanitizeNrWebAnalyticsData(data = {}) {
     const out = {};
     const input = data && typeof data === 'object' ? data : {};
@@ -149,12 +168,30 @@ export function trackNrWebEvent(name, data = {}) {
         if (!tracker || typeof tracker.track !== 'function') return false;
         tracker.track(eventName, sanitizeNrWebAnalyticsData({
             hostname: getNrWebAnalyticsHostname(),
+            ...getNrWebNip7AnalyticsData(),
             ...(data && typeof data === 'object' ? data : {}),
         }));
         return true;
     } catch (_) {
         return false;
     }
+}
+
+export function trackNrWebOnboardingStep(intent, status, data = {}) {
+    const input = data && typeof data === 'object' ? data : {};
+    let signer = input.signer;
+    if (!signer) {
+        try {
+            if (typeof getNrWebSignerAnalyticsType === 'function') signer = getNrWebSignerAnalyticsType();
+        } catch (_) {}
+    }
+    return trackNrWebEvent('nr_onboarding_step', {
+        surface: 'onboarding',
+        intent,
+        status,
+        ...(signer ? { signer } : {}),
+        ...input,
+    });
 }
 
 function trackNrWebSurfaceEvent(name, key, data = {}) {
@@ -3423,9 +3460,22 @@ let lastIdentityMismatchNoticeAt = 0;
 
 const NR_WEB_SIGNER_MODE_KEY = 'nr_web_signer_mode';
 const NR_WEB_NIP7_PUBKEY_KEY = 'nr_web_nip7_pubkey';
+export const NR_WEB_NOSTROOTS_BROWSER_USER_AGENT_MARKER = 'NostrootsBrowser/';
 const PROFILE_LINK_CHECK_COOLDOWN_MS = 2500;
 const NIP7_IDENTITY_CHECK_COOLDOWN_MS = 2500;
 const IDENTITY_MISMATCH_NOTICE_COOLDOWN_MS = 4000;
+
+export function isNostrootsBrowserUserAgent(userAgent) {
+    const value = typeof userAgent === 'string'
+        ? userAgent
+        : (typeof navigator !== 'undefined' ? navigator.userAgent || '' : '');
+    return value.includes(NR_WEB_NOSTROOTS_BROWSER_USER_AGENT_MARKER);
+}
+
+export function hasNostrootsBrowserNip7Marker() {
+    if (typeof window === 'undefined') return false;
+    return window.nostr?.__nostrootsBrowser === true || window.__nostrootsNip7Installed === true;
+}
 
 function getNip7Provider() {
     if (typeof window === 'undefined') return null;
@@ -3439,9 +3489,10 @@ export function inspectNip7Capabilities() {
     const hasSignEvent = typeof provider?.signEvent === 'function';
     const hasNip44Encrypt = typeof provider?.nip44?.encrypt === 'function';
     const hasNip44Decrypt = typeof provider?.nip44?.decrypt === 'function';
+    const hasNip04Encrypt = typeof provider?.nip04?.encrypt === 'function';
     const hasNip04Decrypt = typeof provider?.nip04?.decrypt === 'function';
     const canSign = hasProvider && hasPublicKey && hasSignEvent;
-    const isFull = canSign && hasNip44Encrypt && hasNip44Decrypt && hasNip04Decrypt;
+    const isFull = canSign && hasNip44Encrypt && hasNip44Decrypt && hasNip04Encrypt && hasNip04Decrypt;
     return {
         provider,
         status: isFull ? 'full' : canSign ? 'partial' : hasProvider ? 'partial' : 'none',
@@ -3450,10 +3501,15 @@ export function inspectNip7Capabilities() {
         hasSignEvent,
         hasNip44Encrypt,
         hasNip44Decrypt,
+        hasNip04Encrypt,
         hasNip04Decrypt,
         canSign,
         isFull
     };
+}
+
+export function shouldAutoConnectNip7ForNostrootsBrowser(userAgent) {
+    return (isNostrootsBrowserUserAgent(userAgent) || hasNostrootsBrowserNip7Marker()) && inspectNip7Capabilities().isFull;
 }
 
 export const nrWebNip7Signer = {
@@ -3587,6 +3643,11 @@ export const nrWebNip7Signer = {
         const caps = inspectNip7Capabilities();
         if (!this.isActive() || !caps.isFull) throw new Error('NIP-07 NIP-04 decryption is unavailable.');
         return caps.provider.nip04.decrypt(peerPubkey, ciphertext);
+    },
+    async nip04Encrypt(peerPubkey, plaintext) {
+        const caps = inspectNip7Capabilities();
+        if (!this.isActive() || !caps.isFull) throw new Error('NIP-07 NIP-04 encryption is unavailable.');
+        return caps.provider.nip04.encrypt(peerPubkey, plaintext);
     }
 };
 
@@ -4130,11 +4191,19 @@ function loadKeys() {
 }
 
 function copyPublicKey() {
+    trackNrWebOnboardingStep('update_trustroots_profile', 'started', {
+        source: 'copy_npub',
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     const npubDisplay = document.getElementById('npub-display');
     const copyBtn = document.getElementById('copy-npub-btn');
     const copyText = document.getElementById('copy-npub-text');
     
     if (!npubDisplay || !npubDisplay.value) {
+        trackNrWebOnboardingStep('update_trustroots_profile', 'failed', {
+            source: 'copy_npub',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus('No public key to copy', 'error');
         return;
     }
@@ -4146,6 +4215,10 @@ function copyPublicKey() {
         copyBtn.classList.add('copied');
         
         showStatus('Public address copied.', 'success');
+        trackNrWebOnboardingStep('update_trustroots_profile', 'success', {
+            source: 'copy_npub',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         
         // Reset after 2 seconds
         setTimeout(() => {
@@ -4153,12 +4226,22 @@ function copyPublicKey() {
             copyBtn.classList.remove('copied');
         }, 2000);
     }).catch(() => {
+        trackNrWebOnboardingStep('update_trustroots_profile', 'failed', {
+            source: 'copy_npub',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus('Failed to copy to clipboard', 'error');
     });
 }
 
 function exportNsec() {
+    trackNrWebOnboardingStep('backup_nsec', 'started', {
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     if (!currentPrivateKey) {
+        trackNrWebOnboardingStep('backup_nsec', 'failed', {
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus('No private key to export', 'error');
         return;
     }
@@ -4170,16 +4253,25 @@ function exportNsec() {
         navigator.clipboard.writeText(nsec).then(() => {
             window.NrWebKeysModal?.setKeyBackedUpForPubkey?.(currentPublicKey, true);
             updateKeyDisplay({ skipProfileLookup: true });
+            trackNrWebOnboardingStep('backup_nsec', 'success', {
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             showStatus('nsec copied to clipboard!', 'success');
         }).catch(() => {
             // Fallback: show in alert if clipboard API fails
             prompt('Your nsec (copy this):', nsec);
             window.NrWebKeysModal?.setKeyBackedUpForPubkey?.(currentPublicKey, true);
             updateKeyDisplay({ skipProfileLookup: true });
+            trackNrWebOnboardingStep('backup_nsec', 'fallback', {
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             showStatus('nsec displayed', 'info');
         });
     } catch (error) {
         console.error('Error exporting nsec:', error);
+        trackNrWebOnboardingStep('backup_nsec', 'failed', {
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus('Error exporting nsec: ' + error.message, 'error');
     }
 }
@@ -11254,6 +11346,33 @@ window.disconnectNip7 = disconnectNip7;
 
 // Onboarding
 
+async function autoConnectNip7ForNostrootsBrowser() {
+    if (!shouldAutoConnectNip7ForNostrootsBrowser()) return false;
+    try {
+        const pubkey = await nrWebNip7Signer.connect();
+        currentPrivateKey = null;
+        currentPrivateKeyBytes = null;
+        currentPublicKey = pubkey;
+        isProfileLinked = false;
+        usernameFromNostr = false;
+        void setupIndexNrWebThemeSync();
+        appendKeysLinkLog(`Auto-connected Nostroots Browser NIP-07 signer ${getCurrentNpub() || currentPublicKey}`);
+        updateKeyDisplay();
+        trackNrWebEvent('nr_nip7_connected', {
+            key_method: 'nip7',
+            signer: 'nip7',
+            source: 'nostroots_browser_auto',
+            status: 'success',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
+        return true;
+    } catch (error) {
+        appendKeysLinkLog(`Nostroots Browser NIP-07 auto-connect failed: ${error?.message || error}`);
+        updateKeyDisplay({ skipProfileLookup: true });
+        return false;
+    }
+}
+
 async function checkOnboarding() {
     const restoredNip7 = await nrWebNip7Signer.restoreFromStorage();
     if (restoredNip7 || nrWebNip7Signer.isActive()) {
@@ -11264,6 +11383,7 @@ async function checkOnboarding() {
         updateKeyDisplay();
         return;
     }
+    if (await autoConnectNip7ForNostrootsBrowser()) return;
     const hasKey = readValidStoredKeyHex();
     if (!hasKey) {
         const initialRoute = getHashRoute().toLowerCase();
@@ -11286,12 +11406,27 @@ async function checkOnboarding() {
 }
 
 function onboardingGenerate() {
+    trackNrWebOnboardingStep('generate_key', 'started', {
+        key_method: 'generated',
+        signer: 'local',
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     generateKeyPair();
+    trackNrWebOnboardingStep('generate_key', 'success', {
+        key_method: 'generated',
+        signer: 'local',
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     // Refresh the keys modal to show the management section
     openKeysModal();
 }
 
 async function onboardingNip7Connect() {
+    trackNrWebOnboardingStep('connect_nip7', 'started', {
+        key_method: 'nip7',
+        signer: 'nip7',
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     try {
         const pubkey = await nrWebNip7Signer.connect();
         currentPrivateKey = null;
@@ -11309,9 +11444,19 @@ async function onboardingNip7Connect() {
             status: 'success',
             ...getCurrentTrustrootsUsernameAnalyticsData(),
         });
+        trackNrWebOnboardingStep('connect_nip7', 'success', {
+            key_method: 'nip7',
+            signer: 'nip7',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus('Browser extension connected.', 'success');
     } catch (error) {
         appendKeysLinkLog(`NIP-07 connect failed: ${error?.message || error}`);
+        trackNrWebOnboardingStep('connect_nip7', 'failed', {
+            key_method: 'nip7',
+            signer: 'nip7',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus(error?.message || 'Could not connect browser extension.', 'error');
         updateKeyDisplay({ skipProfileLookup: true });
     }
@@ -11319,11 +11464,19 @@ async function onboardingNip7Connect() {
 
 async function onboardingImport() {
     const input = document.getElementById('onboarding-import').value.trim();
+    trackNrWebOnboardingStep('import_key', 'started', {
+        signer: 'local',
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     appendKeysLinkLog('Import key from onboarding field');
     const parsed = parseKeyImportToHex(input);
     if (!parsed.ok) {
         const message = getKeyImportErrorMessage(input);
         appendKeysLinkLog(`Import failed: ${message}`);
+        trackNrWebOnboardingStep('import_key', 'invalid', {
+            signer: 'local',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus(message, 'error');
         return;
     }
@@ -11349,18 +11502,36 @@ async function onboardingImport() {
             status: 'success',
             ...getCurrentTrustrootsUsernameAnalyticsData(),
         });
+        trackNrWebOnboardingStep('import_key', 'success', {
+            key_method: wasMnemonic ? 'mnemonic' : 'nsec',
+            signer: 'local',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus('Key imported successfully. Your key stays on this device and is never stored on our server.', 'success');
     } catch (error) {
         const noun = wasMnemonic ? 'mnemonic' : 'nsec';
         appendKeysLinkLog(`Error importing ${noun}: ${error.message || 'Unknown error'}`);
         console.error(`Error importing ${noun}:`, error);
+        trackNrWebOnboardingStep('import_key', 'failed', {
+            key_method: wasMnemonic ? 'mnemonic' : 'nsec',
+            signer: 'local',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus(`Error importing ${noun}: ` + (error.message || 'Unknown error'), 'error');
     }
 }
 
 // Update Trustroots Profile - copy npub and open Trustroots profile edit page
 async function updateTrustrootsProfile() {
+    trackNrWebOnboardingStep('update_trustroots_profile', 'started', {
+        source: 'trustroots_profile_edit',
+        ...getCurrentTrustrootsUsernameAnalyticsData(),
+    });
     if (!currentPublicKey) {
+        trackNrWebOnboardingStep('update_trustroots_profile', 'failed', {
+            source: 'trustroots_profile_edit',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus('No public key available', 'error');
         return;
     }
@@ -11384,8 +11555,16 @@ async function updateTrustrootsProfile() {
         
         // Open Trustroots profile edit page in new tab
         window.open('https://www.trustroots.org/profile/edit/networks', '_blank');
+        trackNrWebOnboardingStep('update_trustroots_profile', 'success', {
+            source: 'trustroots_profile_edit',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
     } catch (error) {
         console.error('Error updating Trustroots profile:', error);
+        trackNrWebOnboardingStep('update_trustroots_profile', 'failed', {
+            source: 'trustroots_profile_edit',
+            ...getCurrentTrustrootsUsernameAnalyticsData(),
+        });
         showStatus('Error copying public key: ' + (error.message || 'Unknown error'), 'error');
     }
 }
@@ -11394,8 +11573,12 @@ async function updateTrustrootsProfile() {
 async function linkTrustrootsProfile() {
     const username = document.getElementById('trustroots-username').value.trim();
     appendKeysLinkLog(`Start link for username "${username || '<empty>'}"`);
+    trackNrWebOnboardingStep('link_trustroots_profile', 'started', {
+        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+    });
     if (!username) {
         appendKeysLinkLog('Missing username input');
+        trackNrWebOnboardingStep('link_trustroots_profile', 'missing_username');
         showStatus('Please enter a username', 'error');
         return;
     }
@@ -11403,6 +11586,9 @@ async function linkTrustrootsProfile() {
     // Check if user has a key loaded
     if (!currentPublicKey) {
         appendKeysLinkLog('No currentPublicKey loaded');
+        trackNrWebOnboardingStep('link_trustroots_profile', 'missing_key', {
+            ...getCurrentTrustrootsUsernameAnalyticsData(username),
+        });
         showStatus('Please generate or import a key first', 'error');
         return;
     }
@@ -11450,6 +11636,11 @@ async function linkTrustrootsProfile() {
                         status: 'no_relays',
                         ...getCurrentTrustrootsUsernameAnalyticsData(username),
                     });
+                    trackNrWebOnboardingStep('link_trustroots_profile', 'no_relays', {
+                        ...getWritableRelayAnalyticsData(relayUrls),
+                        failed_count: 0,
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     showStatus('No relays enabled for posting. Enable "Post" toggle for at least one relay.', 'error');
                     return;
                 }
@@ -11479,6 +11670,11 @@ async function linkTrustrootsProfile() {
                         ...getWritableRelayAnalyticsData(relayUrls),
                         failed_count: kind0Failed.length,
                         status: 'failed',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
+                    trackNrWebOnboardingStep('link_trustroots_profile', 'failed', {
+                        ...getWritableRelayAnalyticsData(relayUrls),
+                        failed_count: kind0Failed.length,
                         ...getCurrentTrustrootsUsernameAnalyticsData(username),
                     });
                     markRelaysWithPublishFailures(kind0Failed);
@@ -11511,6 +11707,11 @@ async function linkTrustrootsProfile() {
                         status: 'failed',
                         ...getCurrentTrustrootsUsernameAnalyticsData(username),
                     });
+                    trackNrWebOnboardingStep('link_trustroots_profile', 'failed', {
+                        ...getWritableRelayAnalyticsData(relayUrls),
+                        failed_count: failed.length,
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     showStatus(
                         'Profile validated, but auth relay publish did not complete. Check relay settings, then retry.',
                         'error',
@@ -11525,6 +11726,11 @@ async function linkTrustrootsProfile() {
                         ...getWritableRelayAnalyticsData(relayUrls),
                         failed_count: failed.length,
                         status: failed.length > 0 ? 'partial' : 'success',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
+                    trackNrWebOnboardingStep('link_trustroots_profile', failed.length > 0 ? 'partial' : 'success', {
+                        ...getWritableRelayAnalyticsData(relayUrls),
+                        failed_count: failed.length,
                         ...getCurrentTrustrootsUsernameAnalyticsData(username),
                     });
                     const relayWord = successful.length === 1 ? 'relay' : 'relays';
@@ -11568,6 +11774,11 @@ async function linkTrustrootsProfile() {
                         status: 'failed',
                         ...getCurrentTrustrootsUsernameAnalyticsData(username),
                     });
+                    trackNrWebOnboardingStep('link_trustroots_profile', 'failed', {
+                        ...getWritableRelayAnalyticsData(relayUrls),
+                        failed_count: failed.length,
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     markRelaysWithPublishFailures(failed);
                     const relayWordPf = failed.length === 1 ? 'relay' : 'relays';
                     const hasProfileMissingRestrictionPf = failed.some(f => isTrustrootsProfileMissingRelayError(f.error));
@@ -11589,6 +11800,9 @@ async function linkTrustrootsProfile() {
                 }
             } else {
                 appendKeysLinkLog('NIP-05 pubkey mismatch with current key');
+                trackNrWebOnboardingStep('link_trustroots_profile', 'mismatch', {
+                    ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                });
                 showStatus(`Username ${username} is linked to a different npub. This profile does not belong to you.`, 'error');
                 
                 // Clear the username field since it doesn't belong to this profile
@@ -11612,10 +11826,16 @@ async function linkTrustrootsProfile() {
         } else {
             appendKeysLinkLog('NIP-05 name not found on trustroots.org');
             // No valid nip5 found - don't store username
+            trackNrWebOnboardingStep('link_trustroots_profile', 'not_found', {
+                ...getCurrentTrustrootsUsernameAnalyticsData(username),
+            });
             showStatus('Username not found or has no valid nip5', 'error');
         }
     } catch (error) {
         appendKeysLinkLog(`Exception: ${error?.message || error}`);
+        trackNrWebOnboardingStep('link_trustroots_profile', 'failed', {
+            ...getCurrentTrustrootsUsernameAnalyticsData(username),
+        });
         showStatus('Error linking profile: ' + error.message, 'error');
     }
 }
@@ -13478,7 +13698,24 @@ const __nrChatApp = (() => {
             throw new Error('No signing method connected. Import an nsec or use a supported browser extension.');
         }
 
-        async function loadKeysFromStorage() {
+        async function loadKeysFromStorage(options = {}) {
+            const allowAutoConnectNip7 = options?.autoConnectNip7 !== false;
+            const restoredNip7 = await window.NrWebNip7?.restoreFromStorage?.();
+            if (!restoredNip7 && !window.NrWebNip7?.isActive?.() && allowAutoConnectNip7 && shouldAutoConnectNip7ForNostrootsBrowser()) {
+                try {
+                    const pubkey = await window.NrWebNip7.connect();
+                    appendKeysLinkLog(`Auto-connected Nostroots Browser NIP-07 signer ${hexToNpub(pubkey) || pubkey}`);
+                    trackNrWebEvent('nr_nip7_connected', {
+                        key_method: 'nip7',
+                        signer: 'nip7',
+                        source: 'nostroots_browser_auto_chat',
+                        status: 'success',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(),
+                    });
+                } catch (e) {
+                    appendKeysLinkLog(`Nostroots Browser NIP-07 auto-connect failed: ${e?.message || e}`);
+                }
+            }
             if (window.NrWebNip7?.isActive?.()) {
                 currentPublicKey = window.NrWebNip7.pubkey;
                 currentSecretKeyHex = null;
@@ -13518,6 +13755,11 @@ const __nrChatApp = (() => {
         }
 
         async function onboardingNip7Connect() {
+            trackNrWebOnboardingStep('connect_nip7', 'started', {
+                key_method: 'nip7',
+                signer: 'nip7',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             try {
                 const pubkey = await window.NrWebNip7.connect();
                 currentPublicKey = pubkey;
@@ -13536,9 +13778,19 @@ const __nrChatApp = (() => {
                     status: 'success',
                     ...getCurrentTrustrootsUsernameAnalyticsData(),
                 });
+                trackNrWebOnboardingStep('connect_nip7', 'success', {
+                    key_method: 'nip7',
+                    signer: 'nip7',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
                 showStatus('Browser extension connected.', 'success');
             } catch (e) {
                 appendKeysLinkLog(`NIP-07 connect failed: ${e?.message || e}`);
+                trackNrWebOnboardingStep('connect_nip7', 'failed', {
+                    key_method: 'nip7',
+                    signer: 'nip7',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
                 showStatus(e?.message || 'Could not connect browser extension.', 'error');
                 updateKeyDisplay({ skipProfileLookup: true });
             }
@@ -13562,7 +13814,7 @@ const __nrChatApp = (() => {
             if (onboardingImport) onboardingImport.value = '';
             closeKeysModal();
             void (async () => {
-                await loadKeysFromStorage();
+                await loadKeysFromStorage({ autoConnectNip7: false });
                 appendKeysLinkLog('Import complete');
                 showStatus('Key imported. Shared with map app.', 'success');
                 trackNrWebEvent('nr_key_imported', {
@@ -13776,15 +14028,35 @@ const __nrChatApp = (() => {
         function onboardingImport() {
             const input = document.getElementById('onboarding-import');
             const raw = (input?.value || '').trim();
+            trackNrWebOnboardingStep('import_key', 'started', {
+                signer: 'local',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             appendKeysLinkLog('Import key from onboarding field');
             const parsed = parseKeyImportToHex(raw);
             if (!parsed.ok) {
                 const message = getKeyImportErrorMessage(raw);
                 appendKeysLinkLog(`Import failed: ${message}`);
+                trackNrWebOnboardingStep('import_key', 'invalid', {
+                    signer: 'local',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
                 showStatus(message, 'error');
                 return;
             }
-            savePrivateKey(parsed.hex);
+            const keyMethod = raw.includes(' ') ? 'mnemonic' : 'nsec';
+            try {
+                savePrivateKey(parsed.hex);
+            } catch (e) {
+                appendKeysLinkLog(`Error importing ${keyMethod}: ${e?.message || 'Unknown error'}`);
+                trackNrWebOnboardingStep('import_key', 'failed', {
+                    key_method: keyMethod,
+                    signer: 'local',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
+                showStatus(`Error importing ${keyMethod}: ` + (e?.message || 'Unknown error'), 'error');
+                return;
+            }
             appendKeysLinkLog(`Import parsed successfully. Public key: ${getDisplayNpub() || currentPublicKey}`);
             if (window.NrWebKeysModal?.setKeySourceForPubkey && currentPublicKey) {
                 window.NrWebKeysModal.setKeySourceForPubkey(currentPublicKey, 'imported');
@@ -13792,20 +14064,43 @@ const __nrChatApp = (() => {
             }
             if (input) input.value = '';
             void (async () => {
-                await loadKeysFromStorage();
+                await loadKeysFromStorage({ autoConnectNip7: false });
                 appendKeysLinkLog('Import complete');
                 trackNrWebEvent('nr_key_imported', {
-                    key_method: raw.includes(' ') ? 'mnemonic' : 'nsec',
+                    key_method: keyMethod,
                     signer: 'local',
                     status: 'success',
                     ...getCurrentTrustrootsUsernameAnalyticsData(),
                 });
+                trackNrWebOnboardingStep('import_key', 'success', {
+                    key_method: keyMethod,
+                    signer: 'local',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
                 openKeysModal();
-            })();
+            })().catch((e) => {
+                appendKeysLinkLog(`Error importing ${keyMethod}: ${e?.message || 'Unknown error'}`);
+                trackNrWebOnboardingStep('import_key', 'failed', {
+                    key_method: keyMethod,
+                    signer: 'local',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
+                showStatus(`Error importing ${keyMethod}: ` + (e?.message || 'Unknown error'), 'error');
+            });
             showStatus('Key imported successfully. Your key stays on this device and is never stored on our server.', 'success');
         }
         function onboardingGenerate() {
+            trackNrWebOnboardingStep('generate_key', 'started', {
+                key_method: 'generated',
+                signer: 'local',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             generateKeyPair();
+            trackNrWebOnboardingStep('generate_key', 'success', {
+                key_method: 'generated',
+                signer: 'local',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             openKeysModal();
         }
         function importNsec() {
@@ -13827,7 +14122,7 @@ const __nrChatApp = (() => {
             }
             if (el) el.value = '';
             void (async () => {
-                await loadKeysFromStorage();
+                await loadKeysFromStorage({ autoConnectNip7: false });
                 appendKeysLinkLog('Import complete');
                 updateKeyDisplay();
                 trackNrWebEvent('nr_key_imported', {
@@ -13849,7 +14144,7 @@ const __nrChatApp = (() => {
             }
             appendKeysLinkLog(`Generated new key ${getDisplayNpub() || currentPublicKey || ''}`.trim());
             void (async () => {
-                await loadKeysFromStorage();
+                await loadKeysFromStorage({ autoConnectNip7: false });
             })();
             trackNrWebEvent('nr_key_created', {
                 key_method: 'generated',
@@ -13860,7 +14155,15 @@ const __nrChatApp = (() => {
             showStatus('New key pair generated!', 'success');
         }
         function exportNsec() {
+            trackNrWebOnboardingStep('backup_nsec', 'started', {
+                signer: getChatSignerAnalyticsType(),
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             if (!currentSecretKeyHex) {
+                trackNrWebOnboardingStep('backup_nsec', 'failed', {
+                    signer: getChatSignerAnalyticsType(),
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
                 showStatus('No private key to export', 'error');
                 return;
             }
@@ -13869,14 +14172,26 @@ const __nrChatApp = (() => {
                 navigator.clipboard.writeText(nsec).then(() => {
                     window.NrWebKeysModal?.setKeyBackedUpForPubkey?.(currentPublicKey, true);
                     updateKeyDisplay({ skipProfileLookup: true });
+                    trackNrWebOnboardingStep('backup_nsec', 'success', {
+                        signer: getChatSignerAnalyticsType(),
+                        ...getCurrentTrustrootsUsernameAnalyticsData(),
+                    });
                     showStatus('nsec copied to clipboard!', 'success');
                 }).catch(() => {
                     prompt('Your nsec (copy this):', nsec);
                     window.NrWebKeysModal?.setKeyBackedUpForPubkey?.(currentPublicKey, true);
                     updateKeyDisplay({ skipProfileLookup: true });
+                    trackNrWebOnboardingStep('backup_nsec', 'fallback', {
+                        signer: getChatSignerAnalyticsType(),
+                        ...getCurrentTrustrootsUsernameAnalyticsData(),
+                    });
                     showStatus('nsec displayed', 'info');
                 });
             } catch (e) {
+                trackNrWebOnboardingStep('backup_nsec', 'failed', {
+                    signer: getChatSignerAnalyticsType(),
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
                 showStatus('Error exporting nsec: ' + (e && e.message), 'error');
             }
         }
@@ -13909,7 +14224,7 @@ const __nrChatApp = (() => {
                 pool = null;
             }
             closePublicMapRelayConnections();
-            const restoredLocalKey = await loadKeysFromStorage();
+            const restoredLocalKey = await loadKeysFromStorage({ autoConnectNip7: false });
             if (!restoredLocalKey) {
                 const selChatKey = previousPubkey ? 'nostroots_selected_chat_' + previousPubkey : '';
                 if (selChatKey) {
@@ -13928,10 +14243,20 @@ const __nrChatApp = (() => {
         }
 
         function copyPublicKey() {
+            trackNrWebOnboardingStep('update_trustroots_profile', 'started', {
+                signer: getChatSignerAnalyticsType(),
+                source: 'copy_npub',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
             const npubEl = document.getElementById('npub-display');
             const copyBtn = document.getElementById('copy-npub-btn');
             const copyText = document.getElementById('copy-npub-text');
             if (!npubEl || !npubEl.value) {
+                trackNrWebOnboardingStep('update_trustroots_profile', 'failed', {
+                    signer: getChatSignerAnalyticsType(),
+                    source: 'copy_npub',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
                 showStatus('No public key to copy', 'error');
                 return;
             }
@@ -13939,12 +14264,24 @@ const __nrChatApp = (() => {
                 const original = copyText ? copyText.textContent : '📋';
                 if (copyText) copyText.textContent = '✓';
                 if (copyBtn) copyBtn.classList.add('copied');
+                trackNrWebOnboardingStep('update_trustroots_profile', 'success', {
+                    signer: getChatSignerAnalyticsType(),
+                    source: 'copy_npub',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
                 showStatus('Public address copied.', 'success');
                 setTimeout(() => {
                     if (copyText) copyText.textContent = original;
                     if (copyBtn) copyBtn.classList.remove('copied');
                 }, 2000);
-            }).catch(() => showStatus('Failed to copy', 'error'));
+            }).catch(() => {
+                trackNrWebOnboardingStep('update_trustroots_profile', 'failed', {
+                    signer: getChatSignerAnalyticsType(),
+                    source: 'copy_npub',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
+                showStatus('Failed to copy', 'error');
+            });
         }
 
         function openNewDmModal() {
@@ -14935,17 +15272,42 @@ const __nrChatApp = (() => {
         async function linkTrustrootsProfile() {
             const username = document.getElementById('trustroots-username')?.value?.trim() || '';
             appendKeysLinkLog(`Start link for username "${username || '<empty>'}"`);
-            if (!username) { showStatus('Please enter a username.', 'error'); return; }
-            if (!currentPublicKey) { showStatus('Please connect a key first.', 'error'); return; }
+            trackNrWebOnboardingStep('link_trustroots_profile', 'started', {
+                signer: getChatSignerAnalyticsType(),
+                ...getCurrentTrustrootsUsernameAnalyticsData(username),
+            });
+            if (!username) {
+                trackNrWebOnboardingStep('link_trustroots_profile', 'missing_username', {
+                    signer: getChatSignerAnalyticsType(),
+                });
+                showStatus('Please enter a username.', 'error');
+                return;
+            }
+            if (!currentPublicKey) {
+                trackNrWebOnboardingStep('link_trustroots_profile', 'missing_key', {
+                    signer: getChatSignerAnalyticsType(),
+                    ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                });
+                showStatus('Please connect a key first.', 'error');
+                return;
+            }
             try {
                 const res = await fetch(`https://www.trustroots.org/.well-known/nostr.json?name=${encodeURIComponent(username)}`);
                 const data = await res.json();
                 if (!data.names || !data.names[username]) {
+                    trackNrWebOnboardingStep('link_trustroots_profile', 'not_found', {
+                        signer: getChatSignerAnalyticsType(),
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     showStatus('Username not found or not linked on Trustroots.', 'error');
                     return;
                 }
                 const nip5Hex = (data.names[username] + '').toLowerCase();
                 if (nip5Hex !== currentPublicKey.toLowerCase()) {
+                    trackNrWebOnboardingStep('link_trustroots_profile', 'mismatch', {
+                        signer: getChatSignerAnalyticsType(),
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     showStatus('That username is linked to a different key on Trustroots.', 'error');
                     return;
                 }
@@ -14969,6 +15331,12 @@ const __nrChatApp = (() => {
                         relay_count: 0,
                         signer: getChatSignerAnalyticsType(),
                         status: 'no_relays',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
+                    trackNrWebOnboardingStep('link_trustroots_profile', 'no_relays', {
+                        failed_count: 0,
+                        relay_count: 0,
+                        signer: getChatSignerAnalyticsType(),
                         ...getCurrentTrustrootsUsernameAnalyticsData(username),
                     });
                     showStatus('Turn on posting in Settings before linking your profile.', 'error');
@@ -14996,6 +15364,12 @@ const __nrChatApp = (() => {
                         status: 'failed',
                         ...getCurrentTrustrootsUsernameAnalyticsData(username),
                     });
+                    trackNrWebOnboardingStep('link_trustroots_profile', 'failed', {
+                        failed_count: kind0Publish.failed.length,
+                        relay_count: r.length,
+                        signer: getChatSignerAnalyticsType(),
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     showStatus('Profile validated but bootstrap kind 0 failed on all relays.', 'error');
                     return;
                 }
@@ -15016,6 +15390,12 @@ const __nrChatApp = (() => {
                         status: 'failed',
                         ...getCurrentTrustrootsUsernameAnalyticsData(username),
                     });
+                    trackNrWebOnboardingStep('link_trustroots_profile', 'failed', {
+                        failed_count: profilePublish.failed.length,
+                        relay_count: r.length,
+                        signer: getChatSignerAnalyticsType(),
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
                     showStatus('Profile validated, but auth relay publish did not complete. Check relay settings and retry.', 'error');
                     return;
                 }
@@ -15025,6 +15405,12 @@ const __nrChatApp = (() => {
                         relay_count: r.length,
                         signer: getChatSignerAnalyticsType(),
                         status: 'failed',
+                        ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                    });
+                    trackNrWebOnboardingStep('link_trustroots_profile', 'failed', {
+                        failed_count: profilePublish.failed.length,
+                        relay_count: r.length,
+                        signer: getChatSignerAnalyticsType(),
                         ...getCurrentTrustrootsUsernameAnalyticsData(username),
                     });
                     showStatus('Profile validated but kind 10390 failed on all relays.', 'error');
@@ -15045,22 +15431,59 @@ const __nrChatApp = (() => {
                     status: profilePublish.failed.length > 0 ? 'partial' : 'success',
                     ...getCurrentTrustrootsUsernameAnalyticsData(username),
                 });
+                trackNrWebOnboardingStep('link_trustroots_profile', profilePublish.failed.length > 0 ? 'partial' : 'success', {
+                    failed_count: profilePublish.failed.length,
+                    relay_count: r.length,
+                    signer: getChatSignerAnalyticsType(),
+                    ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                });
                 const backupHint = isNip7ChatActive()
                     ? ''
                     : ' Back up your nsec in your password manager before relying on this identity.';
                 showStatus(`Profile linked. You can now explore the app.${backupHint}`, 'success');
             } catch (e) {
                 appendKeysLinkLog(`Exception: ${e?.message || e}`);
+                trackNrWebOnboardingStep('link_trustroots_profile', 'failed', {
+                    signer: getChatSignerAnalyticsType(),
+                    ...getCurrentTrustrootsUsernameAnalyticsData(username),
+                });
                 showStatus(e?.message || 'Failed to link profile.', 'error');
             }
         }
 
         async function updateTrustrootsProfile() {
-            if (!currentPublicKey) { showStatus('No key connected.', 'error'); return; }
-            const npub = getDisplayNpub() || getCurrentNpub();
-            await navigator.clipboard.writeText(npub);
-            alert('Your public address was copied. Paste it into the Nostr field on Trustroots.');
-            window.open('https://www.trustroots.org/profile/edit/networks', '_blank');
+            trackNrWebOnboardingStep('update_trustroots_profile', 'started', {
+                signer: getChatSignerAnalyticsType(),
+                source: 'trustroots_profile_edit',
+                ...getCurrentTrustrootsUsernameAnalyticsData(),
+            });
+            if (!currentPublicKey) {
+                trackNrWebOnboardingStep('update_trustroots_profile', 'failed', {
+                    signer: getChatSignerAnalyticsType(),
+                    source: 'trustroots_profile_edit',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
+                showStatus('No key connected.', 'error');
+                return;
+            }
+            try {
+                const npub = getDisplayNpub() || getCurrentNpub();
+                await navigator.clipboard.writeText(npub);
+                alert('Your public address was copied. Paste it into the Nostr field on Trustroots.');
+                window.open('https://www.trustroots.org/profile/edit/networks', '_blank');
+                trackNrWebOnboardingStep('update_trustroots_profile', 'success', {
+                    signer: getChatSignerAnalyticsType(),
+                    source: 'trustroots_profile_edit',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
+            } catch (e) {
+                trackNrWebOnboardingStep('update_trustroots_profile', 'failed', {
+                    signer: getChatSignerAnalyticsType(),
+                    source: 'trustroots_profile_edit',
+                    ...getCurrentTrustrootsUsernameAnalyticsData(),
+                });
+                showStatus(e?.message || 'Failed to copy public address.', 'error');
+            }
         }
 
         function renderRelaysList() {

@@ -10,7 +10,10 @@ import {
     getKeyImportErrorMessage,
     nsecEncodeFromHex64,
     inspectNip7Capabilities,
+    hasNostrootsBrowserNip7Marker,
+    isNostrootsBrowserUserAgent,
     nrWebNip7Signer,
+    shouldAutoConnectNip7ForNostrootsBrowser,
 } from '../../index.js';
 
 const HEX_64 = '79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798';
@@ -19,6 +22,7 @@ describe('nr-web local key utils', () => {
     beforeEach(() => {
         try { localStorage.clear(); } catch (_) {}
         try { delete window.nostr; } catch (_) { window.nostr = undefined; }
+        try { delete window.__nostrootsNip7Installed; } catch (_) { window.__nostrootsNip7Installed = undefined; }
         nrWebNip7Signer.pubkey = '';
     });
 
@@ -130,9 +134,46 @@ describe('nr-web local key utils', () => {
             decrypt: async () => 'plain',
         };
         window.nostr.nip04 = {
+            encrypt: async () => 'cipher',
             decrypt: async () => 'plain',
         };
         expect(inspectNip7Capabilities().status).toBe('full');
+    });
+
+    it('detects Nostroots Browser by user agent marker', () => {
+        expect(isNostrootsBrowserUserAgent('Mozilla/5.0 NostrootsBrowser/1')).toBe(true);
+        expect(isNostrootsBrowserUserAgent('Mozilla/5.0 Safari/605.1.15')).toBe(false);
+    });
+
+    it('detects Nostroots Browser by injected NIP-07 marker', () => {
+        expect(hasNostrootsBrowserNip7Marker()).toBe(false);
+        window.__nostrootsNip7Installed = true;
+        expect(hasNostrootsBrowserNip7Marker()).toBe(true);
+        delete window.__nostrootsNip7Installed;
+        window.nostr = { __nostrootsBrowser: true };
+        expect(hasNostrootsBrowserNip7Marker()).toBe(true);
+    });
+
+    it('auto-connects NIP-07 only in Nostroots Browser with full provider support', () => {
+        window.nostr = {
+            getPublicKey: async () => '0'.repeat(64),
+            signEvent: async (event) => event,
+            nip44: {
+                encrypt: async () => 'cipher',
+                decrypt: async () => 'plain',
+            },
+            nip04: {
+                encrypt: async () => 'cipher',
+                decrypt: async () => 'plain',
+            },
+        };
+
+        expect(shouldAutoConnectNip7ForNostrootsBrowser('Mozilla/5.0 NostrootsBrowser/1')).toBe(true);
+        expect(shouldAutoConnectNip7ForNostrootsBrowser('Mozilla/5.0 Safari/605.1.15')).toBe(false);
+        window.__nostrootsNip7Installed = true;
+        expect(shouldAutoConnectNip7ForNostrootsBrowser('Mozilla/5.0 Safari/605.1.15')).toBe(true);
+        delete window.nostr.nip04.encrypt;
+        expect(shouldAutoConnectNip7ForNostrootsBrowser('Mozilla/5.0 NostrootsBrowser/1')).toBe(false);
     });
 
     it('does not connect sign-only NIP-07 as full Nostroots support', async () => {

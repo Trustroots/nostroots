@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nostrail</title>
+  <meta name="description" content="Foreground-only encrypted approximate location sharing for Trustroots people on Nostr.">
+  <meta name="theme-color" content="#0f8d75">
+  <link rel="canonical" href="https://nos.trustroots.org/nostrail/">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <link rel="icon" type="image/png" sizes="48x48" href="../favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --accent: #0f8d75;
+      --accent-strong: #087260;
+      --accent-soft: #e4f7f2;
+      --amber: #b76e00;
+      --blue: #235789;
+      --bg: #eff7f5;
+      --ink: #10231f;
+      --muted: #63746f;
+      --panel: #ffffff;
+      --line: rgba(16, 35, 31, 0.14);
+      --line-strong: rgba(16, 35, 31, 0.26);
+      --danger: #b42318;
+      --shadow: rgba(18, 44, 38, 0.18);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+    }
+
+    body {
+      overflow: hidden;
+      font-family: Nunito, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+    }
+
+    .nostrail-shell {
+      height: 100dvh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      background: var(--bg);
+    }
+
+    .topbar {
+      min-height: 64px;
+      padding: max(12px, env(safe-area-inset-top)) 14px 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      color: #ffffff;
+      background: var(--accent);
+      box-shadow: 0 1px 0 rgba(16, 35, 31, 0.16);
+      z-index: 8;
+    }
+
+    .brand {
+      min-width: 0;
+      display: grid;
+      gap: 1px;
+    }
+
+    .brand strong {
+      font-size: 24px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .brand span {
+      overflow: hidden;
+      color: rgba(255, 255, 255, 0.88);
+      font-size: 13px;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .topbar-status {
+      max-width: 48vw;
+      display: grid;
+      justify-items: end;
+      gap: 2px;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 12px;
+      font-weight: 900;
+      text-align: right;
+    }
+
+    .topbar-status span {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .topbar-status .connected {
+      color: #eafff6;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .map {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      background:
+        linear-gradient(30deg, rgba(35, 87, 137, 0.12) 0 1px, transparent 1px 110px),
+        linear-gradient(120deg, rgba(15, 141, 117, 0.18) 0 1px, transparent 1px 96px),
+        radial-gradient(circle at 24% 28%, rgba(255, 255, 255, 0.92), transparent 0 38px, rgba(255, 255, 255, 0) 39px),
+        linear-gradient(135deg, #d8eee8 0%, #f6faf8 50%, #c8dfec 100%);
+    }
+
+    .map::before,
+    .map::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .map::before {
+      background:
+        linear-gradient(90deg, rgba(16, 35, 31, 0.06) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(16, 35, 31, 0.06) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: linear-gradient(to bottom, transparent, #000 10%, #000 76%, transparent);
+    }
+
+    .map::after {
+      background:
+        linear-gradient(50deg, transparent 0 42%, rgba(15, 141, 117, 0.2) 42% 45%, transparent 45% 100%),
+        linear-gradient(145deg, transparent 0 48%, rgba(35, 87, 137, 0.14) 48% 51%, transparent 51% 100%);
+      opacity: 0.8;
+    }
+
+    .map-label {
+      position: absolute;
+      left: 14px;
+      top: 14px;
+      z-index: 2;
+      max-width: min(360px, calc(100vw - 28px));
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      color: #344054;
+      box-shadow: 0 12px 28px var(--shadow);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .marker {
+      position: absolute;
+      z-index: 3;
+      width: 28px;
+      height: 28px;
+      border: 3px solid #ffffff;
+      border-radius: 999px;
+      box-shadow: 0 8px 22px rgba(16, 35, 31, 0.28);
+      transform: translate(-50%, -50%);
+    }
+
+    .marker.own {
+      left: 50%;
+      top: 46%;
+      background: var(--accent);
+    }
+
+    .marker.peer {
+      background: var(--blue);
+    }
+
+    .marker.peer::after {
+      content: attr(data-label);
+      position: absolute;
+      left: 50%;
+      top: 30px;
+      min-width: 64px;
+      transform: translateX(-50%);
+      padding: 3px 6px;
+      border-radius: 999px;
+      background: rgba(16, 35, 31, 0.84);
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 900;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .status-strip {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 72px;
+      z-index: 4;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      min-height: 34px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255, 255, 255, 0.94);
+      color: #344054;
+      box-shadow: 0 10px 22px rgba(18, 44, 38, 0.12);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--amber);
+    }
+
+    .dot.good {
+      background: var(--accent);
+    }
+
+    .bottom-panel {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      z-index: 5;
+      max-height: min(48dvh, 430px);
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      overflow: auto;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 22px 52px var(--shadow);
+    }
+
+    .panel-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .subcopy,
+    .status-line {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .status-line.error {
+      color: var(--danger);
+      font-weight: 800;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .button {
+      min-height: 44px;
+      padding: 0 13px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      font-weight: 900;
+    }
+
+    .button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .button.danger {
+      border-color: rgba(180, 35, 24, 0.32);
+      color: var(--danger);
+    }
+
+    .people-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .person-row {
+      min-height: 44px;
+      padding: 8px 10px;
+      border: 1px solid rgba(16, 35, 31, 0.1);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      background: #f8fbfa;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .person-row small {
+      display: block;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .sheet {
+      position: absolute;
+      inset: auto 0 0;
+      z-index: 10;
+      max-height: min(78dvh, 620px);
+      padding: 16px;
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--line);
+      border-radius: 8px 8px 0 0;
+      display: grid;
+      gap: 12px;
+      overflow: auto;
+      background: var(--panel);
+      box-shadow: 0 -22px 52px var(--shadow);
+    }
+
+    .sheet[hidden] {
+      display: none;
+    }
+
+    .sheet-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .recipient-form {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .recipient-form input {
+      min-width: 0;
+      min-height: 44px;
+      padding: 0 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .empty {
+      padding: 12px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (min-width: 780px) {
+      .bottom-panel {
+        left: 18px;
+        right: auto;
+        width: 430px;
+        max-height: calc(100dvh - 118px);
+      }
+
+      .sheet {
+        left: auto;
+        width: min(430px, calc(100vw - 28px));
+        right: 14px;
+        bottom: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="nostrail-root" class="nostrail-shell">
+    <header class="topbar">
+      <div class="brand">
+        <strong>Nostrail</strong>
+        <span>Foreground location sharing for Trustroots people</span>
+      </div>
+      <div class="topbar-status" aria-live="polite">
+        <span id="signer-status">Checking signer...</span>
+        <span id="relay-status">Relays idle</span>
+      </div>
+    </header>
+
+    <section class="stage" aria-label="Nostrail map">
+      <div id="nostrail-map" class="map">
+        <div id="map-label" class="map-label">Choose people, then share your approximate area.</div>
+        <div id="own-marker" class="marker own" hidden></div>
+        <div id="peer-markers"></div>
+      </div>
+
+      <div class="status-strip">
+        <div class="pill"><span id="signer-dot" class="dot"></span><span id="signer-short">Signer unavailable</span></div>
+        <div class="pill"><span id="session-dot" class="dot"></span><span id="session-status">Not sharing</span></div>
+      </div>
+
+      <section class="bottom-panel" aria-labelledby="nostrail-title">
+        <div class="panel-head">
+          <div>
+            <h1 id="nostrail-title">Share your current area</h1>
+            <p id="current-area" class="subcopy">No location fix yet.</p>
+          </div>
+          <button id="open-recipient-sheet" class="button" type="button">People</button>
+        </div>
+
+        <p id="app-status" class="status-line">This web version shares while the page is open. It pauses if the browser closes or sleeps.</p>
+
+        <div class="actions">
+          <button id="share-action" class="button primary" type="button" disabled>Start Sharing</button>
+          <button id="share-current-area" class="button" type="button" disabled>Share Current Area</button>
+          <button id="stop-sharing" class="button danger" type="button" disabled>Stop Sharing</button>
+        </div>
+
+        <div>
+          <div class="subcopy">Selected people</div>
+          <div id="recipient-summary" class="people-list">
+            <div class="empty">Add Trustroots usernames, NIP-05 handles, npubs, or public keys.</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="subcopy">Received locations</div>
+          <div id="peer-list" class="people-list">
+            <div class="empty">No shared locations received yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="recipient-sheet" class="sheet" aria-labelledby="recipient-title" hidden>
+        <div class="sheet-head">
+          <div>
+            <h1 id="recipient-title">People</h1>
+            <p class="subcopy">Use Trustroots usernames, profile links, NIP-05 handles, npubs, or public keys.</p>
+          </div>
+          <button id="sheet-close" class="button" type="button">Close</button>
+        </div>
+
+        <form id="recipient-form" class="recipient-form">
+          <label class="sr-only" for="recipient-input">Recipient</label>
+          <input id="recipient-input" autocomplete="off" placeholder="alice, @bob, npub1..." spellcheck="false">
+          <button id="add-recipient" class="button primary" type="submit">Add</button>
+        </form>
+
+        <p id="recipient-feedback" class="status-line">Add at least one person before sharing.</p>
+        <div id="recipient-list" class="people-list"></div>
+
+        <div class="actions">
+          <button id="send-invite" class="button" type="button" disabled>Send Invite</button>
+          <button id="sheet-share" class="button primary" type="button" disabled>Start Sharing</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script type="module" src="./index.js"></script>
+</body>
+</html>

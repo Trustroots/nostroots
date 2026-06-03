@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Nostroots Browser",
+    "slug": "nr-browser",
+    "version": "0.0.1",
+    "orientation": "portrait",
+    "scheme": "nostroots-browser",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "org.trustroots.nostroots.browser",
+      "appleTeamId": "SUJ594N47C",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIStatusBarHidden": true,
+        "UIViewControllerBasedStatusBarAppearance": false
+      }
+    },
+    "android": {
+      "package": "org.trustroots.nostroots.browser"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-secure-store",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "tsconfigPaths": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      }
+    },
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "newArchEnabled": true
+  }
+}

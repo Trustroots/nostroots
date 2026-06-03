@@ -87,7 +87,7 @@ function AppContent() {
 
   return (
     <RootSiblingParent>
-      <GestureHandlerRootView>
+      <GestureHandlerRootView style={{ flex: 1 }}>
         <StatusBar
           barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
         />

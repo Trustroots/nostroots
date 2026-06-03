@@ -31,6 +31,7 @@
   "dependencies": {
     "@expo/dom-webview": "^56.0.5",
     "@expo/vector-icons": "^15.1.1",
+    "@gorhom/bottom-sheet": "^5.2.14",
     "@mobily/ts-belt": "^3.13.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-picker/picker": "2.11.4",
@@ -48,7 +49,7 @@
     "expo": "~56.0.8",
     "expo-clipboard": "~56.0.3",
     "expo-constants": "~56.0.16",
-    "expo-crypto": "~56.0.4",
+    "expo-crypto": "56.0.3",
     "expo-dev-client": "~56.0.18",
     "expo-device": "~56.0.4",
     "expo-font": "~56.0.5",

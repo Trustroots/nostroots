@@ -1,0 +1,7 @@
+.build/
+DerivedData/
+LocalPackages/
+LocalBuild.xcworkspace/
+OnlyProject.xcworkspace/
+NostrootsBrowser.xcworkspace/
+*.xcuserdata/

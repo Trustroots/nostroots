@@ -4,20 +4,21 @@ Static web workspace for Nostroots browser experiences.
 
 **Live version:** [https://nos.trustroots.org/](https://nos.trustroots.org/)
 
-The root page is a small hub. It links to the current Trustroots-on-Nostr app and to newer browser-native prototypes.
+The root page is a small hub. It links to classic Trustroots network settings and the current Trustroots-on-Nostr app by default, with experimental apps behind a toggle.
 
 ## Experiences
 
-- [`/trustroots-map/`](trustroots-map/) — the current map/chat/profile web app for Trustroots-style activity on Nostr.
-- [`/nostrail/`](nostrail/) — a focused foreground-only encrypted approximate-location sharing app for Nostroots/Vibe Browser.
-- [`/nostroots-map/`](nostroots-map/) — a small browser-native map prototype inspired by the mobile `nr-app`, built without React or Expo Web.
+- [`https://www.trustroots.org/profile/edit/networks`](https://www.trustroots.org/profile/edit/networks) — classic Trustroots network editing.
+- [`/trustroots-map/`](trustroots-map/) — Trustroots on Nostr, the current map/chat/profile web app for Trustroots-style activity.
+- [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots/Vibe Browser.
+- [`/nostroots-map/`](nostroots-map/) — experimental browser-native map prototype inspired by the mobile `nr-app`, built without React or Expo Web.
 - [`/examples/`](examples/) — optional demos and fork patterns.
 
 Legacy root hash/query links still land in the current app. For example, `/#stats` redirects to `/trustroots-map/#stats`, and `/?welcome=1` redirects to `/trustroots-map/?welcome=1`.
 
 ## Features
 
-- **Trustroots Map**: View Nostroots notes, post by plus code, manage keys, use NIP-07, chat, browse profiles, and configure relays.
+- **Trustroots on Nostr**: View Nostroots notes, post by plus code, manage keys, use NIP-07, chat, browse profiles, and configure relays.
 - **Nostrail**: Share a temporary approximate area with selected people using the browser-provided NIP-07 signer, NIP-44 encryption, NIP-42 relay auth, and foreground-only updates.
 - **Nostroots Map**: Map-first browser-native prototype with NIP-07 signer detection.
 - **Pixel**: Circle-scoped pixel sequencer (artists, burners, punks) — draw a 16×16, publish to Nostr, optional "Where" and invite/jam for IRL meetups. [examples/pixel.html](examples/pixel.html)

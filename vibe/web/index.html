@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nostroots Web</title>
-  <meta name="description" content="Choose a Nostroots web experience: the Trustroots social map, Nostrail location sharing, or browser-native map prototypes.">
+  <meta name="description" content="Choose between classic Trustroots account settings and Trustroots on Nostr experiments.">
   <meta name="theme-color" content="#12b591">
   <link rel="canonical" href="https://nos.trustroots.org/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Nostroots">
   <meta property="og:title" content="Nostroots Web">
-  <meta property="og:description" content="Choose a Nostroots web experience.">
+  <meta property="og:description" content="Choose between Trustroots.org and Trustroots on Nostr.">
   <meta property="og:url" content="https://nos.trustroots.org/">
   <meta property="og:image" content="https://nos.trustroots.org/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Nostroots Web">
-  <meta name="twitter:description" content="Choose a Nostroots web experience.">
+  <meta name="twitter:description" content="Choose between Trustroots.org and Trustroots on Nostr.">
   <meta name="twitter:image" content="https://nos.trustroots.org/og-image.png">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -108,10 +108,38 @@
       line-height: 1.55;
     }
 
+    .hub-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
     .cards {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 18px;
+    }
+
+    .cards.show-experimental {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
     .card {
@@ -175,9 +203,23 @@
       background: var(--blue);
     }
 
+    .experimental-card {
+      display: none;
+    }
+
+    .cards.show-experimental .experimental-card {
+      display: grid;
+    }
+
     .hub-footer {
       color: var(--muted);
       font-size: 14px;
+    }
+
+    @media (max-width: 1180px) {
+      .cards.show-experimental {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
     }
 
     @media (max-width: 980px) {
@@ -196,6 +238,10 @@
         grid-template-columns: 1fr;
       }
 
+      .cards.show-experimental {
+        grid-template-columns: 1fr;
+      }
+
       .card {
         min-height: 220px;
       }
@@ -209,20 +255,28 @@
         <img src="logo.svg" alt="" width="42" height="42">
         <span>Nostroots Web</span>
       </div>
-      <h1 id="hub-title">Choose your path.</h1>
-      <p class="lead">Three web experiences live here now: the current Trustroots social map on Nostr, a focused location-sharing app, and a small browser-native Nostroots map prototype.</p>
+      <h1 id="hub-title">Choose where to continue.</h1>
+      <p class="lead">Use classic Trustroots.org for your account and networks, or open the current Trustroots on Nostr web app. Experimental apps are hidden until you ask for them.</p>
     </header>
 
-    <section class="cards" aria-label="Web experiences">
-      <a class="card" href="trustroots-map/">
+    <section id="hub-cards" class="cards" aria-label="Web experiences">
+      <a class="card" href="https://www.trustroots.org/profile/edit/networks">
         <span>
-          <h2>Trustroots Map</h2>
-          <p>Explore Trustroots-flavored map notes, profiles, chat, circles, relays, and key management on Nostr.</p>
+          <h2>Trustroots.org</h2>
+          <p>Edit your classic Trustroots profile networks and account settings on the main Trustroots site.</p>
         </span>
-        <span class="card-action">Open Trustroots Map</span>
+        <span class="card-action">Edit Trustroots Networks</span>
       </a>
 
-      <a class="card location" href="nostrail/">
+      <a class="card" href="trustroots-map/">
+        <span>
+          <h2>Trustroots on Nostr</h2>
+          <p>Read traveler notes by area, manage your Nostr key, and post with your Trustroots identity.</p>
+        </span>
+        <span class="card-action">Open Trustroots on Nostr</span>
+      </a>
+
+      <a class="card location experimental-card" href="nostrail/">
         <span>
           <h2>Nostrail</h2>
           <p>Share your approximate area with selected Trustroots people through the Nostroots Browser NIP-07 signer.</p>
@@ -230,7 +284,7 @@
         <span class="card-action">Open Nostrail</span>
       </a>
 
-      <a class="card secondary" href="nostroots-map/">
+      <a class="card secondary experimental-card" href="nostroots-map/">
         <span>
           <h2>Nostroots Map</h2>
           <p>Try a browser-native map surface inspired by the mobile app, built without React or Expo Web.</p>
@@ -238,6 +292,27 @@
         <span class="card-action">Open Nostroots Map</span>
       </a>
     </section>
+
+    <div class="hub-controls">
+      <label class="toggle" for="show-experimental">
+        <input id="show-experimental" type="checkbox" aria-controls="hub-cards">
+        <span>Show experimental apps</span>
+      </label>
+    </div>
   </main>
+  <script>
+    (function () {
+      var toggle = document.getElementById('show-experimental');
+      var cards = document.getElementById('hub-cards');
+      if (!toggle || !cards) return;
+
+      function syncExperimentalCards() {
+        cards.classList.toggle('show-experimental', toggle.checked);
+      }
+
+      syncExperimentalCards();
+      toggle.addEventListener('change', syncExperimentalCards);
+    })();
+  </script>
 </body>
 </html>

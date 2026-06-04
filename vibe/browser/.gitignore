@@ -1,1 +1,8 @@
-expo
+expo/node_modules/
+expo/.expo/
+expo/android/
+expo/ios/
+expo/dist/
+expo/web-build/
+expo/coverage/
+expo/.turbo/

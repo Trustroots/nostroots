@@ -35,7 +35,7 @@ describe("BrowserScreen", () => {
     const header = getByTestId("browser-header");
     const webView = getByTestId("nostroots-webview");
 
-    expect(header.props.style).toMatchObject({ height: 105 });
+    expect(header.props.style).toMatchObject({ height: 86, paddingTop: 14 });
     expect(getByText("Nostroots")).toBeTruthy();
     expect(getByLabelText("Settings")).toBeTruthy();
     expect(webView.props.source).toEqual({ uri: NOSTROOTS_WEB_URL });

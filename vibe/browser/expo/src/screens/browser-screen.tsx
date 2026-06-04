@@ -209,9 +209,10 @@ export function BrowserScreen({ onKeyCleared }: BrowserScreenProps) {
       <View
         testID="browser-header"
         style={{
-          height: insets.top + 58,
-          paddingTop: insets.top + 10,
-          paddingHorizontal: 18,
+          height: 86,
+          paddingTop: 14,
+          paddingLeft: 24,
+          paddingRight: 40,
           backgroundColor: "#12a585",
           flexDirection: "row",
           alignItems: "flex-start",

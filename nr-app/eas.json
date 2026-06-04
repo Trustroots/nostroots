@@ -10,7 +10,7 @@
       "channel": "development"
     },
     "simulator": {
-      "developmentClient": false,
+      "developmentClient": true,
       "ios": {
         "simulator": true
       },

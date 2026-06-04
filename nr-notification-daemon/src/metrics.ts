@@ -1,6 +1,7 @@
 import {
   NOSTROOTS_METRICS_KIND,
   NOSTROOTS_METRICS_TYPE_TAG_NAME,
+  NOSTR_EXPIRATION_TAG_NAME,
   isPlusCode,
 } from "@trustroots/nr-common";
 import { finalizeEvent } from "nostr-tools/pure";
@@ -11,6 +12,7 @@ import type { SubscriptionStore } from "./subscriptionStore.ts";
 
 const METRICS_INTERVAL_MS = 10 * 60 * 1000;
 const WORLD_D_TAG_VALUE = "world";
+const METRICS_EXPIRATION_SECONDS = 30 * 24 * 60 * 60;
 
 function buildPlusCodeSubscriptionMetrics(
   store: SubscriptionStore,
@@ -56,14 +58,17 @@ async function publishPushSubscriptionMetrics(
 ): Promise<void> {
   const metrics = buildPlusCodeSubscriptionMetrics(store);
   const content = JSON.stringify(metrics);
+  const createdAt = Math.floor(Date.now() / 1000);
+  const expiration = (createdAt + METRICS_EXPIRATION_SECONDS).toString();
 
   const event = finalizeEvent(
     {
       kind: NOSTROOTS_METRICS_KIND,
-      created_at: Math.floor(Date.now() / 1000),
+      created_at: createdAt,
       tags: [
         [NOSTROOTS_METRICS_TYPE_TAG_NAME, "push-subscriptions"],
         ["d", WORLD_D_TAG_VALUE],
+        [NOSTR_EXPIRATION_TAG_NAME, expiration],
       ],
       content,
     },

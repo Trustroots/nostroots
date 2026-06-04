@@ -42,7 +42,7 @@ function getSingleDTagValue(tags: string[][]) {
   return dValue;
 }
 
-export const kind10400EventSchema = baseEventSchema
+export const kind30400EventSchema = baseEventSchema
   .extend({
     kind: z.literal(NOSTROOTS_METRICS_KIND),
     content: z.string().min(2),
@@ -125,4 +125,4 @@ export const kind10400EventSchema = baseEventSchema
     }
   });
 
-export type Kind10400Event = z.infer<typeof kind10400EventSchema>;
+export type Kind30400Event = z.infer<typeof kind30400EventSchema>;

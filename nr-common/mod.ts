@@ -6,7 +6,7 @@ export * from "./src/base.schema.ts";
 export * from "./src/utils.ts";
 export * from "./src/10390.schema.ts";
 export * from "./src/10395.schema.ts";
-export * from "./src/10400.schema.ts";
+export * from "./src/30400.schema.ts";
 export * from "./src/20398.schema.ts";
 export * from "./src/20400.schema.ts";
 export * from "./src/30397.schema.ts";

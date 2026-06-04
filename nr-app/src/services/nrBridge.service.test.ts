@@ -2,15 +2,19 @@ function mockJsonResponse({
   ok = true,
   status = 200,
   body = { success: true },
+  jsonRejects = false,
 }: {
   ok?: boolean;
   status?: number;
   body?: Record<string, unknown>;
+  jsonRejects?: boolean;
 } = {}) {
   return {
     ok,
     status,
-    json: jest.fn().mockResolvedValue(body),
+    json: jsonRejects
+      ? jest.fn().mockRejectedValue(new Error("not json"))
+      : jest.fn().mockResolvedValue(body),
   } as unknown as Response;
 }
 
@@ -52,6 +56,19 @@ describe("nrBridge.service", () => {
         },
         body: JSON.stringify({ username: "alice" }),
       },
+    );
+  });
+
+  it("normalizes a trailing slash in the bridge base URL", async () => {
+    const { requestVerificationToken } = await loadService(
+      "https://bridge.example/base/",
+    );
+
+    await requestVerificationToken("alice");
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      "https://bridge.example/base/verify_token",
+      expect.any(Object),
     );
   });
 
@@ -129,6 +146,24 @@ describe("nrBridge.service", () => {
     });
   });
 
+  it("uses a fallback message when an error response is not JSON", async () => {
+    const { requestVerificationToken } = await loadService();
+
+    (global.fetch as jest.Mock).mockResolvedValue(
+      mockJsonResponse({
+        ok: false,
+        status: 500,
+        jsonRejects: true,
+      }),
+    );
+
+    await expect(requestVerificationToken("alice")).rejects.toMatchObject({
+      code: "server",
+      message: "nr-bridge request failed.",
+      status: 500,
+    });
+  });
+
   it("throws a config error when the bridge URL is missing", async () => {
     const { NrBridgeError, requestVerificationToken } = await loadService("");
 
@@ -137,6 +172,15 @@ describe("nrBridge.service", () => {
     );
     await expect(requestVerificationToken("alice")).rejects.toMatchObject({
       code: "config",
+    });
+  });
+
+  it("throws a config error when the bridge URL is invalid", async () => {
+    const { requestVerificationToken } = await loadService("not a url");
+
+    await expect(requestVerificationToken("alice")).rejects.toMatchObject({
+      code: "config",
+      message: "nr-bridge base URL is invalid.",
     });
   });
 });

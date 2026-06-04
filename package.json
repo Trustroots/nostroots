@@ -23,6 +23,7 @@
     "test": "pnpm test:app && pnpm test:common",
     "test:watch": "pnpm --filter nr-app test",
     "test:app": "pnpm --filter nr-app test",
+    "test:app:ci": "pnpm --filter nr-app test:ci",
     "test:common": "cd nr-common && deno task test",
     "test:web": "cd nr-web && pnpm test:local"
   }

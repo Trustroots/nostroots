@@ -20,6 +20,25 @@ you'd have to register your device first using [this link](https://expo.dev/regi
 
 `pnpm run start`
 
+## Testing
+
+See [`TESTING.md`](./TESTING.md) for the full nr-app testing guide.
+
+Common commands:
+
+```bash
+pnpm --filter nr-app test
+pnpm --filter nr-app test:coverage
+pnpm --filter nr-app test:ci
+```
+
+Android Maestro E2E uses GitHub Actions with an EAS-built `e2e-android` APK and
+the deterministic local E2E network. iOS Maestro smoke runs through EAS using
+the `e2e-ios-simulator` profile.
+
+Required/repeatable tests must never rely on live Trustroots, public Nostr
+relays, or real email delivery.
+
 ## Preview builds for testing
 
 We're generating preview builds for android for testing. To create a new preview build, run the ["Build in EAS Cloud" GitHub action](https://github.com/Trustroots/nostroots/actions/workflows/eas-build.yaml) with `android-preview`.

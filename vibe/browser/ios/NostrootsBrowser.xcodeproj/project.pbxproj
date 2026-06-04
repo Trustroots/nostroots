@@ -1,0 +1,657 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		033CAAA04B87D357F2E603FF /* NostrEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECD3E1D3CAB0B1168933B80 /* NostrEvent.swift */; };
+		040C19CD1D84C13FAAA87157 /* NIP07PermissionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 569818970615240D486E9C2C /* NIP07PermissionStore.swift */; };
+		053C57B73A429E7AF3B8E031 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB810DAFBB68434EC9FFDD78 /* Foundation.framework */; };
+		096AA533296BBEDA3641D5A4 /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CAE796FEBF58CA3C0F6660 /* Hex.swift */; };
+		1321C04E8C51D1897A714F3B /* NostrootsBrowserApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA8B18E0EDD2BCA0474D131F /* NostrootsBrowserApp.swift */; };
+		1954AC00468C6844C658E510 /* BuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74EF6CE095B7F62DC89548BE /* BuildInfo.swift */; };
+		1BCF8B19CEF8B50E9BA3FC8A /* KeyImportParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A15F2DB8B7231F30782CF5 /* KeyImportParser.swift */; };
+		200D45F06F363AFA77E9B63A /* BuildInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74EF6CE095B7F62DC89548BE /* BuildInfo.swift */; };
+		2233E06876D92856D0ED9EDF /* VibePushStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CAEE6762C53D952A6F72247 /* VibePushStore.swift */; };
+		25A8C12FA77D03E4532DB213 /* NIP07Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 717820D8C4AB3381958E9971 /* NIP07Bridge.swift */; };
+		31B508659226A8F50423E197 /* NIP07Bridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 717820D8C4AB3381958E9971 /* NIP07Bridge.swift */; };
+		324500B9443875C2FA04C87E /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 223AAB046B542EA4A51779DA /* Constants.swift */; };
+		3542165CFEC920643EA60945 /* NostrSDKCryptoProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CF936526C0435CBB20FA21 /* NostrSDKCryptoProvider.swift */; };
+		371D5F12DE04C3DA97EA2523 /* VibePushNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BAC0D45F9BA8107879A5D11 /* VibePushNotificationManager.swift */; };
+		3D6EBB1D5C31E9A2A6A1F607 /* KeySetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30BE0D374212DDB072D3AA87 /* KeySetupView.swift */; };
+		48017B6A568D642F6F01EC75 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F113525651B2FFF59CB3DB52 /* Assets.xcassets */; };
+		4E3824D83BA84AD349FC4303 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72144E17D6C749ECB59B64B1 /* SettingsView.swift */; };
+		538766F1E3B0EF21F8162B84 /* BIP39EnglishWordList.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78330BA1FE203CF29092676 /* BIP39EnglishWordList.swift */; };
+		56174F2085E084DD20D3C188 /* NIP19.swift in Sources */ = {isa = PBXBuildFile; fileRef = A600E46B741DB25022B5CE44 /* NIP19.swift */; };
+		56D4D79720148F69E3A209BF /* KeyImportParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A15F2DB8B7231F30782CF5 /* KeyImportParser.swift */; };
+		59B76D5A5E8F92363A04DD12 /* NostrootsBrowserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA9102AC19F25FD653FBB7C /* NostrootsBrowserTests.swift */; };
+		7121EBE8F6034228FE3C0E94 /* VibePushPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C108C0C5039EC8F83C2F711 /* VibePushPublisher.swift */; };
+		75565E2CF46EB4F77A775FDB /* VibePushModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09B2316F1382AD316E2B7B52 /* VibePushModels.swift */; };
+		77FAFB8ADE7A5A93261ABCC3 /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CAE796FEBF58CA3C0F6660 /* Hex.swift */; };
+		7EB28405742485A40194B68F /* BrowserAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0958617F13CF156E8834A38D /* BrowserAppModel.swift */; };
+		8A1034998A86D308184A6384 /* VibePushPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C108C0C5039EC8F83C2F711 /* VibePushPublisher.swift */; };
+		8AD450C25B777F78967367DB /* NostrSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 88DCAD9131391961F56E302A /* NostrSDK */; };
+		8BBD0D32C4AA6A356B5ABDDE /* BrowserNavigationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C623DA66B6B454DB6007336 /* BrowserNavigationPolicy.swift */; };
+		9520637E43CF6AEC059E708E /* NIP44Box.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197B81B6989D1F996C99B2E1 /* NIP44Box.swift */; };
+		988900A139EE4CD840685E3A /* NativeBrowserWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61C77DADC83CB8690781F222 /* NativeBrowserWebView.swift */; };
+		9C0CD851C20C206548BC8FE5 /* NIP07PermissionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 569818970615240D486E9C2C /* NIP07PermissionStore.swift */; };
+		9F1C4878DBCD5EE6255CC5BE /* NostrootsBrowserRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCDBBABDC11CE5EC190FBFD /* NostrootsBrowserRootView.swift */; };
+		A43035A30FEB2017C2940EB4 /* SettingsCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 717B729486E7C004F4976C70 /* SettingsCopy.swift */; };
+		ACF813684C7038E680DAE110 /* BrowserNavigationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C623DA66B6B454DB6007336 /* BrowserNavigationPolicy.swift */; };
+		AD7351E73B704BA325A308A6 /* BIP39EnglishWordList.swift in Sources */ = {isa = PBXBuildFile; fileRef = D78330BA1FE203CF29092676 /* BIP39EnglishWordList.swift */; };
+		B036BFBCDB63055387898DC9 /* VibeNotificationBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0196A86BE0546741FA3DBDF0 /* VibeNotificationBridge.swift */; };
+		B25E05BA8ADE51310CDCD670 /* KeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A6B70422B2340CE948590B /* KeyStore.swift */; };
+		BCAA1F7519E0B0AF20883C99 /* NostrEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = EECD3E1D3CAB0B1168933B80 /* NostrEvent.swift */; };
+		BF7ECA81BF371BC8932B341A /* KeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33A6B70422B2340CE948590B /* KeyStore.swift */; };
+		C3BBE5557DEA32DFB4F064D7 /* NostrSDKCryptoProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4CF936526C0435CBB20FA21 /* NostrSDKCryptoProvider.swift */; };
+		CEF31287F395C0F0D3CFB7B5 /* SettingsCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 717B729486E7C004F4976C70 /* SettingsCopy.swift */; };
+		D7CA92D5D079A89D4E55D35B /* VibePushStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CAEE6762C53D952A6F72247 /* VibePushStore.swift */; };
+		DA5359470E6374FB74E2FB8D /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 223AAB046B542EA4A51779DA /* Constants.swift */; };
+		DED7B116EF55F1908CC902BB /* NIP44Box.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197B81B6989D1F996C99B2E1 /* NIP44Box.swift */; };
+		E175BC3658FEA23BAF62FE87 /* NIP19.swift in Sources */ = {isa = PBXBuildFile; fileRef = A600E46B741DB25022B5CE44 /* NIP19.swift */; };
+		E798177E5D8155E0E5DE4330 /* NostrSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 64B4F4CC62A6EA0F345F1A7B /* NostrSDK */; };
+		F2AFCF2EC546E76201445BA8 /* VibePushModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09B2316F1382AD316E2B7B52 /* VibePushModels.swift */; };
+		F5C6BE22C9D0A95543105792 /* VibePushNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BAC0D45F9BA8107879A5D11 /* VibePushNotificationManager.swift */; };
+		FFF357BA2EA9F825F0C843C2 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = AB810DAFBB68434EC9FFDD78 /* Foundation.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		B37DA6AC2A8AB5E6BA4C772F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10B73AB523FC1148217ADE1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7D2810BDCDB265CBEB7D5505;
+			remoteInfo = NostrootsBrowser;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		0196A86BE0546741FA3DBDF0 /* VibeNotificationBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VibeNotificationBridge.swift; sourceTree = "<group>"; };
+		02A15F2DB8B7231F30782CF5 /* KeyImportParser.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KeyImportParser.swift; path = Crypto/KeyImportParser.swift; sourceTree = "<group>"; };
+		0958617F13CF156E8834A38D /* BrowserAppModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BrowserAppModel.swift; sourceTree = "<group>"; };
+		09B2316F1382AD316E2B7B52 /* VibePushModels.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VibePushModels.swift; path = Services/VibePushModels.swift; sourceTree = "<group>"; };
+		0BAC0D45F9BA8107879A5D11 /* VibePushNotificationManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VibePushNotificationManager.swift; path = Services/VibePushNotificationManager.swift; sourceTree = "<group>"; };
+		197B81B6989D1F996C99B2E1 /* NIP44Box.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NIP44Box.swift; path = Crypto/NIP44Box.swift; sourceTree = "<group>"; };
+		223AAB046B542EA4A51779DA /* Constants.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		2C108C0C5039EC8F83C2F711 /* VibePushPublisher.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VibePushPublisher.swift; path = Services/VibePushPublisher.swift; sourceTree = "<group>"; };
+		2C623DA66B6B454DB6007336 /* BrowserNavigationPolicy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BrowserNavigationPolicy.swift; path = Services/BrowserNavigationPolicy.swift; sourceTree = "<group>"; };
+		30BE0D374212DDB072D3AA87 /* KeySetupView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = KeySetupView.swift; sourceTree = "<group>"; };
+		33A6B70422B2340CE948590B /* KeyStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KeyStore.swift; path = Crypto/KeyStore.swift; sourceTree = "<group>"; };
+		3B9F6E26BC3388D2055592DE /* NostrootsBrowser.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NostrootsBrowser.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4CAEE6762C53D952A6F72247 /* VibePushStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VibePushStore.swift; path = Services/VibePushStore.swift; sourceTree = "<group>"; };
+		569818970615240D486E9C2C /* NIP07PermissionStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NIP07PermissionStore.swift; path = Services/NIP07PermissionStore.swift; sourceTree = "<group>"; };
+		61C77DADC83CB8690781F222 /* NativeBrowserWebView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NativeBrowserWebView.swift; sourceTree = "<group>"; };
+		717820D8C4AB3381958E9971 /* NIP07Bridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NIP07Bridge.swift; path = Bridge/NIP07Bridge.swift; sourceTree = "<group>"; };
+		717B729486E7C004F4976C70 /* SettingsCopy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsCopy.swift; path = Services/SettingsCopy.swift; sourceTree = "<group>"; };
+		72144E17D6C749ECB59B64B1 /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		74EF6CE095B7F62DC89548BE /* BuildInfo.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BuildInfo.swift; path = Services/BuildInfo.swift; sourceTree = "<group>"; };
+		9BB34A2E63AC44AC080F1235 /* NostrootsBrowserTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NostrootsBrowserTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A600E46B741DB25022B5CE44 /* NIP19.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NIP19.swift; path = Crypto/NIP19.swift; sourceTree = "<group>"; };
+		AB810DAFBB68434EC9FFDD78 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		BDA9102AC19F25FD653FBB7C /* NostrootsBrowserTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NostrootsBrowserTests.swift; sourceTree = "<group>"; };
+		C4CF936526C0435CBB20FA21 /* NostrSDKCryptoProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrSDKCryptoProvider.swift; path = Crypto/NostrSDKCryptoProvider.swift; sourceTree = "<group>"; };
+		D78330BA1FE203CF29092676 /* BIP39EnglishWordList.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BIP39EnglishWordList.swift; path = Crypto/BIP39EnglishWordList.swift; sourceTree = "<group>"; };
+		DA8B18E0EDD2BCA0474D131F /* NostrootsBrowserApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NostrootsBrowserApp.swift; sourceTree = "<group>"; };
+		E9CAE796FEBF58CA3C0F6660 /* Hex.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Hex.swift; path = Crypto/Hex.swift; sourceTree = "<group>"; };
+		EBCDBBABDC11CE5EC190FBFD /* NostrootsBrowserRootView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NostrootsBrowserRootView.swift; sourceTree = "<group>"; };
+		EECD3E1D3CAB0B1168933B80 /* NostrEvent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrEvent.swift; path = Models/NostrEvent.swift; sourceTree = "<group>"; };
+		F113525651B2FFF59CB3DB52 /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1AC8D2ED26458EBA66DF1A3E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FFF357BA2EA9F825F0C843C2 /* Foundation.framework in Frameworks */,
+				E798177E5D8155E0E5DE4330 /* NostrSDK in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A0DB10BC50A7A1C453535A3B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				053C57B73A429E7AF3B8E031 /* Foundation.framework in Frameworks */,
+				8AD450C25B777F78967367DB /* NostrSDK in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		29721005A860411134BD81EB /* NostrootsBrowserTests */ = {
+			isa = PBXGroup;
+			children = (
+				BDA9102AC19F25FD653FBB7C /* NostrootsBrowserTests.swift */,
+			);
+			name = NostrootsBrowserTests;
+			path = NostrootsBrowserTests;
+			sourceTree = "<group>";
+		};
+		2AD82C56F046D78E78188C2F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				3B9F6E26BC3388D2055592DE /* NostrootsBrowser.app */,
+				9BB34A2E63AC44AC080F1235 /* NostrootsBrowserTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3850086BCA0C30EEF99C55DB = {
+			isa = PBXGroup;
+			children = (
+				2AD82C56F046D78E78188C2F /* Products */,
+				639A34A950CDCF97911D2E20 /* Frameworks */,
+				DBBD0DCB30AE73DECDA71297 /* SharedCore */,
+				5ED26F2DA27C9997A3E58E82 /* NostrootsBrowserApp */,
+				29721005A860411134BD81EB /* NostrootsBrowserTests */,
+			);
+			sourceTree = "<group>";
+		};
+		3B63A406404BD8A1869FCC68 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				AB810DAFBB68434EC9FFDD78 /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		5ED26F2DA27C9997A3E58E82 /* NostrootsBrowserApp */ = {
+			isa = PBXGroup;
+			children = (
+				0958617F13CF156E8834A38D /* BrowserAppModel.swift */,
+				30BE0D374212DDB072D3AA87 /* KeySetupView.swift */,
+				61C77DADC83CB8690781F222 /* NativeBrowserWebView.swift */,
+				DA8B18E0EDD2BCA0474D131F /* NostrootsBrowserApp.swift */,
+				EBCDBBABDC11CE5EC190FBFD /* NostrootsBrowserRootView.swift */,
+				72144E17D6C749ECB59B64B1 /* SettingsView.swift */,
+				0196A86BE0546741FA3DBDF0 /* VibeNotificationBridge.swift */,
+				F113525651B2FFF59CB3DB52 /* Assets.xcassets */,
+			);
+			name = NostrootsBrowserApp;
+			path = NostrootsBrowserApp;
+			sourceTree = "<group>";
+		};
+		639A34A950CDCF97911D2E20 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				3B63A406404BD8A1869FCC68 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		DBBD0DCB30AE73DECDA71297 /* SharedCore */ = {
+			isa = PBXGroup;
+			children = (
+				717820D8C4AB3381958E9971 /* NIP07Bridge.swift */,
+				223AAB046B542EA4A51779DA /* Constants.swift */,
+				D78330BA1FE203CF29092676 /* BIP39EnglishWordList.swift */,
+				E9CAE796FEBF58CA3C0F6660 /* Hex.swift */,
+				02A15F2DB8B7231F30782CF5 /* KeyImportParser.swift */,
+				33A6B70422B2340CE948590B /* KeyStore.swift */,
+				A600E46B741DB25022B5CE44 /* NIP19.swift */,
+				197B81B6989D1F996C99B2E1 /* NIP44Box.swift */,
+				C4CF936526C0435CBB20FA21 /* NostrSDKCryptoProvider.swift */,
+				EECD3E1D3CAB0B1168933B80 /* NostrEvent.swift */,
+				2C623DA66B6B454DB6007336 /* BrowserNavigationPolicy.swift */,
+				74EF6CE095B7F62DC89548BE /* BuildInfo.swift */,
+				569818970615240D486E9C2C /* NIP07PermissionStore.swift */,
+				717B729486E7C004F4976C70 /* SettingsCopy.swift */,
+				09B2316F1382AD316E2B7B52 /* VibePushModels.swift */,
+				0BAC0D45F9BA8107879A5D11 /* VibePushNotificationManager.swift */,
+				2C108C0C5039EC8F83C2F711 /* VibePushPublisher.swift */,
+				4CAEE6762C53D952A6F72247 /* VibePushStore.swift */,
+			);
+			name = SharedCore;
+			path = SharedCore;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		7D2810BDCDB265CBEB7D5505 /* NostrootsBrowser */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A9303F4034739144F4EEB752 /* Build configuration list for PBXNativeTarget "NostrootsBrowser" */;
+			buildPhases = (
+				D5041CA85353274115B3B178 /* Sources */,
+				A0DB10BC50A7A1C453535A3B /* Frameworks */,
+				6493BCFF4166465742C533C7 /* Resources */,
+				1993117287203E0F97189BB8 /* Stamp build time */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NostrootsBrowser;
+			packageProductDependencies = (
+				88DCAD9131391961F56E302A /* NostrSDK */,
+			);
+			productName = NostrootsBrowser;
+			productReference = 3B9F6E26BC3388D2055592DE /* NostrootsBrowser.app */;
+			productType = "com.apple.product-type.application";
+		};
+		90E979D3805DB211CB36BF76 /* NostrootsBrowserTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 414426EE72814833EA8EAA6A /* Build configuration list for PBXNativeTarget "NostrootsBrowserTests" */;
+			buildPhases = (
+				17C9222B7B5F6C4CC6FE955B /* Sources */,
+				1AC8D2ED26458EBA66DF1A3E /* Frameworks */,
+				B97BE0E00BCEDCE7B895F38C /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				584FA915B60F4DF4B471491B /* PBXTargetDependency */,
+			);
+			name = NostrootsBrowserTests;
+			packageProductDependencies = (
+				64B4F4CC62A6EA0F345F1A7B /* NostrSDK */,
+			);
+			productName = NostrootsBrowserTests;
+			productReference = 9BB34A2E63AC44AC080F1235 /* NostrootsBrowserTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10B73AB523FC1148217ADE1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = 2C52A6D907E6C87932B29DBE /* Build configuration list for PBXProject "NostrootsBrowser" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 3850086BCA0C30EEF99C55DB;
+			minimizedProjectReferenceProxies = 0;
+			packageReferences = (
+				B9001DC529C6CF3AB35D7FBC /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 2AD82C56F046D78E78188C2F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				7D2810BDCDB265CBEB7D5505 /* NostrootsBrowser */,
+				90E979D3805DB211CB36BF76 /* NostrootsBrowserTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		6493BCFF4166465742C533C7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				48017B6A568D642F6F01EC75 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B97BE0E00BCEDCE7B895F38C /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		1993117287203E0F97189BB8 /* Stamp build time */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Stamp build time";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -euo pipefail\nbuild_time=\"$(date '+%Y-%m-%d %H:%M')\"\nplist_path=\"${TARGET_BUILD_DIR}/${INFOPLIST_PATH}\"\n/usr/libexec/PlistBuddy -c \"Set :NRBuildTime ${build_time}\" \"${plist_path}\" 2>/dev/null || \\\n  /usr/libexec/PlistBuddy -c \"Add :NRBuildTime string ${build_time}\" \"${plist_path}\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		17C9222B7B5F6C4CC6FE955B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				25A8C12FA77D03E4532DB213 /* NIP07Bridge.swift in Sources */,
+				DA5359470E6374FB74E2FB8D /* Constants.swift in Sources */,
+				AD7351E73B704BA325A308A6 /* BIP39EnglishWordList.swift in Sources */,
+				77FAFB8ADE7A5A93261ABCC3 /* Hex.swift in Sources */,
+				56D4D79720148F69E3A209BF /* KeyImportParser.swift in Sources */,
+				B25E05BA8ADE51310CDCD670 /* KeyStore.swift in Sources */,
+				E175BC3658FEA23BAF62FE87 /* NIP19.swift in Sources */,
+				DED7B116EF55F1908CC902BB /* NIP44Box.swift in Sources */,
+				C3BBE5557DEA32DFB4F064D7 /* NostrSDKCryptoProvider.swift in Sources */,
+				033CAAA04B87D357F2E603FF /* NostrEvent.swift in Sources */,
+				8BBD0D32C4AA6A356B5ABDDE /* BrowserNavigationPolicy.swift in Sources */,
+				1954AC00468C6844C658E510 /* BuildInfo.swift in Sources */,
+				040C19CD1D84C13FAAA87157 /* NIP07PermissionStore.swift in Sources */,
+				A43035A30FEB2017C2940EB4 /* SettingsCopy.swift in Sources */,
+				F2AFCF2EC546E76201445BA8 /* VibePushModels.swift in Sources */,
+				371D5F12DE04C3DA97EA2523 /* VibePushNotificationManager.swift in Sources */,
+				7121EBE8F6034228FE3C0E94 /* VibePushPublisher.swift in Sources */,
+				D7CA92D5D079A89D4E55D35B /* VibePushStore.swift in Sources */,
+				59B76D5A5E8F92363A04DD12 /* NostrootsBrowserTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D5041CA85353274115B3B178 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				31B508659226A8F50423E197 /* NIP07Bridge.swift in Sources */,
+				324500B9443875C2FA04C87E /* Constants.swift in Sources */,
+				538766F1E3B0EF21F8162B84 /* BIP39EnglishWordList.swift in Sources */,
+				096AA533296BBEDA3641D5A4 /* Hex.swift in Sources */,
+				1BCF8B19CEF8B50E9BA3FC8A /* KeyImportParser.swift in Sources */,
+				BF7ECA81BF371BC8932B341A /* KeyStore.swift in Sources */,
+				56174F2085E084DD20D3C188 /* NIP19.swift in Sources */,
+				9520637E43CF6AEC059E708E /* NIP44Box.swift in Sources */,
+				3542165CFEC920643EA60945 /* NostrSDKCryptoProvider.swift in Sources */,
+				BCAA1F7519E0B0AF20883C99 /* NostrEvent.swift in Sources */,
+				ACF813684C7038E680DAE110 /* BrowserNavigationPolicy.swift in Sources */,
+				200D45F06F363AFA77E9B63A /* BuildInfo.swift in Sources */,
+				9C0CD851C20C206548BC8FE5 /* NIP07PermissionStore.swift in Sources */,
+				CEF31287F395C0F0D3CFB7B5 /* SettingsCopy.swift in Sources */,
+				75565E2CF46EB4F77A775FDB /* VibePushModels.swift in Sources */,
+				F5C6BE22C9D0A95543105792 /* VibePushNotificationManager.swift in Sources */,
+				8A1034998A86D308184A6384 /* VibePushPublisher.swift in Sources */,
+				2233E06876D92856D0ED9EDF /* VibePushStore.swift in Sources */,
+				7EB28405742485A40194B68F /* BrowserAppModel.swift in Sources */,
+				3D6EBB1D5C31E9A2A6A1F607 /* KeySetupView.swift in Sources */,
+				988900A139EE4CD840685E3A /* NativeBrowserWebView.swift in Sources */,
+				1321C04E8C51D1897A714F3B /* NostrootsBrowserApp.swift in Sources */,
+				9F1C4878DBCD5EE6255CC5BE /* NostrootsBrowserRootView.swift in Sources */,
+				4E3824D83BA84AD349FC4303 /* SettingsView.swift in Sources */,
+				B036BFBCDB63055387898DC9 /* VibeNotificationBridge.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		584FA915B60F4DF4B471491B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = NostrootsBrowser;
+			target = 7D2810BDCDB265CBEB7D5505 /* NostrootsBrowser */;
+			targetProxy = B37DA6AC2A8AB5E6BA4C772F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		0078B4FF8009F6432648DF1A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_ENTITLEMENTS = NostrootsBrowserApp/NostrootsBrowser.entitlements;
+				CODE_SIGN_IDENTITY = "";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NostrootsBrowserApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = org.trustroots.nostroots.browser;
+				PRODUCT_MODULE_NAME = NostrootsBrowser;
+				PRODUCT_NAME = "Nostroots Browser";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		11A0E8C1F1E8CAFF1E684512 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_ENTITLEMENTS = NostrootsBrowserApp/NostrootsBrowser.entitlements;
+				CODE_SIGN_IDENTITY = "";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NostrootsBrowserApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = org.trustroots.nostroots.browser;
+				PRODUCT_MODULE_NAME = NostrootsBrowser;
+				PRODUCT_NAME = "Nostroots Browser";
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		26B3B3120E92371D482295ED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		283F4C4FA55375459CDACADD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		6FF19F591728E9707D3F40F1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		88B6E6BE284EE0104DECD782 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2C52A6D907E6C87932B29DBE /* Build configuration list for PBXProject "NostrootsBrowser" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6FF19F591728E9707D3F40F1 /* Debug */,
+				88B6E6BE284EE0104DECD782 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		414426EE72814833EA8EAA6A /* Build configuration list for PBXNativeTarget "NostrootsBrowserTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				283F4C4FA55375459CDACADD /* Release */,
+				26B3B3120E92371D482295ED /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A9303F4034739144F4EEB752 /* Build configuration list for PBXNativeTarget "NostrootsBrowser" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				11A0E8C1F1E8CAFF1E684512 /* Release */,
+				0078B4FF8009F6432648DF1A /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		B9001DC529C6CF3AB35D7FBC /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/nostr-sdk/nostr-sdk-ios.git";
+			requirement = {
+				kind = revision;
+				revision = e5855cbd3bdabf44075fd2abdf76f63bac4cbd5f;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		64B4F4CC62A6EA0F345F1A7B /* NostrSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B9001DC529C6CF3AB35D7FBC /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */;
+			productName = NostrSDK;
+		};
+		88DCAD9131391961F56E302A /* NostrSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B9001DC529C6CF3AB35D7FBC /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */;
+			productName = NostrSDK;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A10B73AB523FC1148217ADE1 /* Project object */;
+}

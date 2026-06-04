@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nostroots Map</title>
+  <meta name="description" content="A browser-native Nostroots map experience inspired by the mobile app.">
+  <meta name="theme-color" content="#12a585">
+  <link rel="canonical" href="https://nos.trustroots.org/nostroots-map/">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <link rel="icon" type="image/png" sizes="48x48" href="../favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+  <style>
+    :root {
+      --accent: #12a585;
+      --accent-strong: #0f8d75;
+      --accent-soft: #e6f7f4;
+      --bg: #d9eee8;
+      --panel: #ffffff;
+      --foreground: #101828;
+      --muted: #667085;
+      --line: rgba(16, 24, 40, 0.12);
+      --line-strong: rgba(16, 24, 40, 0.22);
+      --danger: #b42318;
+      --shadow: rgba(16, 24, 40, 0.2);
+      --verified: #15803d;
+      --unverified: #d97706;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+    }
+
+    body {
+      overflow: hidden;
+      font-family: Nunito, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--foreground);
+      background: var(--bg);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app-shell {
+      height: 100dvh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      background: var(--bg);
+    }
+
+    .app-header {
+      min-height: 62px;
+      padding: max(12px, env(safe-area-inset-top)) 14px 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      background: var(--accent);
+      color: #ffffff;
+      box-shadow: 0 1px 0 rgba(16, 24, 40, 0.14);
+      z-index: 6;
+    }
+
+    .app-title {
+      min-width: 0;
+      display: grid;
+      gap: 1px;
+    }
+
+    .app-title strong {
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .app-title span {
+      font-size: 13px;
+      font-weight: 800;
+      opacity: 0.9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-status {
+      max-width: 46vw;
+      display: grid;
+      justify-items: end;
+      gap: 2px;
+      font-size: 12px;
+      font-weight: 900;
+      text-align: right;
+    }
+
+    .header-status span {
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .map-stage {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    #nostroots-map {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #c6e8df 0%, #f0f6f3 52%, #b7d8e8 100%);
+    }
+
+    .leaflet-container,
+    .maplibregl-map {
+      font-family: Nunito, system-ui, sans-serif;
+    }
+
+    .map-overlay {
+      position: absolute;
+      z-index: 4;
+    }
+
+    .layer-picker {
+      left: 12px;
+      top: 12px;
+      display: grid;
+      gap: 8px;
+      max-width: min(320px, calc(100vw - 112px));
+    }
+
+    .layer-toggle {
+      min-height: 44px;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      justify-self: start;
+      background: rgba(255, 255, 255, 0.94);
+      color: #344054;
+      box-shadow: 0 12px 28px var(--shadow);
+      font-weight: 900;
+    }
+
+    .layer-menu {
+      min-width: 220px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 18px 42px var(--shadow);
+    }
+
+    .layer-menu[hidden] {
+      display: none;
+    }
+
+    .layer-option {
+      width: 100%;
+      min-height: 48px;
+      padding: 10px 12px;
+      border: 0;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      background: transparent;
+      color: #344054;
+      text-align: left;
+      font-weight: 800;
+    }
+
+    .layer-option + .layer-option {
+      border-top: 1px solid rgba(16, 24, 40, 0.08);
+    }
+
+    .layer-option.active {
+      background: var(--accent-soft);
+      color: var(--accent-strong);
+    }
+
+    .layer-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+    }
+
+    .map-actions {
+      top: 12px;
+      right: 12px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .round-button {
+      width: 44px;
+      height: 44px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.94);
+      color: #344054;
+      box-shadow: 0 12px 28px var(--shadow);
+    }
+
+    .round-button:active,
+    .layer-toggle:active,
+    .primary-action:active,
+    .nav-pill:active {
+      transform: translateY(1px);
+    }
+
+    .round-button svg,
+    .layer-toggle svg,
+    .nav-pill svg,
+    .primary-action svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 2.35;
+    }
+
+    .location-button {
+      right: 14px;
+      bottom: 238px;
+    }
+
+    .read-status {
+      left: 12px;
+      bottom: 238px;
+      max-width: min(280px, calc(100vw - 86px));
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(16, 24, 40, 0.82);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .bottom-sheet {
+      left: 10px;
+      right: 10px;
+      bottom: 82px;
+      max-height: min(48dvh, 430px);
+      max-width: 680px;
+      margin: 0 auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.97);
+      box-shadow: 0 20px 48px var(--shadow);
+    }
+
+    .sheet-header {
+      padding: 8px 12px 9px;
+      border-bottom: 1px solid rgba(16, 24, 40, 0.08);
+      display: grid;
+      gap: 8px;
+    }
+
+    .sheet-handle {
+      width: 42px;
+      height: 4px;
+      margin: 0 auto 1px;
+      border-radius: 999px;
+      background: #d0d5dd;
+    }
+
+    .sheet-title-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .sheet-copy {
+      min-width: 0;
+    }
+
+    .sheet-copy h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.1;
+      letter-spacing: 0;
+    }
+
+    .sheet-copy p {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .primary-action {
+      min-height: 42px;
+      padding: 9px 12px;
+      border: 0;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 900;
+      box-shadow: 0 10px 22px rgba(18, 165, 133, 0.28);
+      white-space: nowrap;
+    }
+
+    .primary-action:disabled {
+      cursor: not-allowed;
+      background: #e4e7ec;
+      color: #98a2b3;
+      opacity: 1;
+      box-shadow: none;
+    }
+
+    .sheet-stats {
+      padding: 8px 12px;
+      border-bottom: 1px solid rgba(16, 24, 40, 0.08);
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat {
+      min-width: 0;
+      padding: 8px 9px;
+      border-radius: 8px;
+      background: #f8fafc;
+      color: #475467;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .stat strong {
+      display: block;
+      color: var(--foreground);
+      font-size: 17px;
+      line-height: 1.1;
+    }
+
+    .sheet-body {
+      min-height: 0;
+      overflow: auto;
+    }
+
+    .empty-state {
+      padding: 20px 14px;
+      color: var(--muted);
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .note-section-title {
+      margin: 0;
+      padding: 10px 12px;
+      border-left: 4px solid var(--accent);
+      background: #f0fdfa;
+      color: #155e59;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .note-section-title.nearby {
+      border-left-color: #22c55e;
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    .note-card {
+      width: 100%;
+      padding: 11px 12px;
+      border: 0;
+      border-bottom: 1px solid rgba(16, 24, 40, 0.08);
+      display: grid;
+      gap: 6px;
+      background: #ffffff;
+      color: var(--foreground);
+      text-align: left;
+    }
+
+    .note-card.selected {
+      background: var(--accent-soft);
+    }
+
+    .note-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .note-author {
+      min-width: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .badge {
+      min-width: 0;
+      padding: 3px 6px;
+      border-radius: 999px;
+      background: #f2f4f7;
+      color: #475467;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .badge.verified {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .badge.unverified {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .note-content {
+      font-size: 15px;
+      font-weight: 700;
+      line-height: 1.32;
+      overflow-wrap: anywhere;
+    }
+
+    .nav-pills {
+      left: 50%;
+      bottom: max(14px, env(safe-area-inset-bottom));
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 18px 42px var(--shadow);
+    }
+
+    .nav-pill {
+      min-width: 92px;
+      min-height: 46px;
+      border: 0;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: transparent;
+      color: #687076;
+      font-weight: 900;
+    }
+
+    .nav-pill.active {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      padding: 18px;
+      display: grid;
+      place-items: center;
+      background: rgba(16, 24, 40, 0.52);
+    }
+
+    .modal-backdrop[hidden] {
+      display: none;
+    }
+
+    .modal {
+      width: min(520px, 100%);
+      max-height: calc(100dvh - 36px);
+      border-radius: 8px;
+      display: grid;
+      overflow: hidden;
+      background: #ffffff;
+      box-shadow: 0 24px 72px rgba(16, 24, 40, 0.32);
+    }
+
+    .modal-header,
+    .modal-footer {
+      padding: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-header {
+      border-bottom: 1px solid rgba(16, 24, 40, 0.08);
+    }
+
+    .modal-header h2 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.1;
+    }
+
+    .modal-body {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      overflow: auto;
+    }
+
+    .modal-footer {
+      border-top: 1px solid rgba(16, 24, 40, 0.08);
+      justify-content: flex-end;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .field textarea,
+    .field select {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--foreground);
+      font-weight: 700;
+    }
+
+    .field textarea {
+      min-height: 116px;
+      padding: 11px 12px;
+      resize: vertical;
+    }
+
+    .field select {
+      min-height: 42px;
+      padding: 8px 10px;
+    }
+
+    .secondary-action {
+      min-height: 40px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: #ffffff;
+      color: #344054;
+      font-weight: 900;
+    }
+
+    .feedback {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.3;
+    }
+
+    .feedback.error {
+      color: var(--danger);
+    }
+
+    .feedback.success {
+      color: var(--verified);
+    }
+
+    .settings-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .relay-chip {
+      padding: 9px 10px;
+      border-radius: 8px;
+      background: #f8fafc;
+      color: #475467;
+      font-size: 13px;
+      font-weight: 800;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 560px) {
+      .app-header {
+        min-height: 58px;
+      }
+
+      .app-title strong {
+        font-size: 20px;
+      }
+
+      .header-status {
+        max-width: 42vw;
+      }
+
+      .layer-picker {
+        max-width: calc(100vw - 108px);
+      }
+
+      .bottom-sheet {
+        bottom: 80px;
+        max-height: 50dvh;
+      }
+
+      .location-button,
+      .read-status {
+        bottom: 246px;
+      }
+
+      .sheet-title-row {
+        grid-template-columns: 1fr;
+      }
+
+      .primary-action {
+        width: 100%;
+      }
+
+      .sheet-stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .nav-pill {
+        min-width: 84px;
+      }
+    }
+
+    @media (max-height: 680px) {
+      .bottom-sheet {
+        max-height: 42dvh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="app-title">
+        <strong>Nostroots</strong>
+        <span id="header-subtitle">Map notes</span>
+      </div>
+      <div class="header-status" aria-live="polite">
+        <span id="signer-status">Checking signer...</span>
+        <span id="relay-summary">Relays idle</span>
+      </div>
+    </header>
+
+    <main class="map-stage">
+      <div id="nostroots-map" role="region" aria-label="Nostroots map"></div>
+
+      <section class="map-overlay layer-picker" aria-label="Layer selector">
+        <button id="layer-toggle" class="layer-toggle" type="button" aria-expanded="false" aria-controls="layer-menu">
+          <span id="active-layer-dot" class="layer-dot"></span>
+          <span id="active-layer-label">Trustroots</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="m6 9 6 6 6-6"></path>
+          </svg>
+        </button>
+        <div id="layer-menu" class="layer-menu" hidden></div>
+      </section>
+
+      <div class="map-overlay map-actions" aria-label="Map actions">
+        <button id="key-button" class="round-button" type="button" aria-label="Key status">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <circle cx="7.5" cy="14.5" r="3.5"></circle>
+            <path d="M10 12l8-8"></path>
+            <path d="M15 5l2 2"></path>
+            <path d="M13 7l2 2"></path>
+          </svg>
+        </button>
+        <button id="settings-button" class="round-button" type="button" aria-label="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"></path>
+            <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.04.04a2.1 2.1 0 0 1-2.97 2.97l-.04-.04A1.8 1.8 0 0 0 14.8 19.6a1.8 1.8 0 0 0-1.08 1.64V21.3a2.1 2.1 0 0 1-4.2 0v-.06A1.8 1.8 0 0 0 8.4 19.6a1.8 1.8 0 0 0-1.98.36l-.04.04a2.1 2.1 0 0 1-2.97-2.97l.04-.04A1.8 1.8 0 0 0 3.8 15a1.8 1.8 0 0 0-1.64-1.08H2.1a2.1 2.1 0 0 1 0-4.2h.06A1.8 1.8 0 0 0 3.8 8.4a1.8 1.8 0 0 0-.36-1.98l-.04-.04a2.1 2.1 0 0 1 2.97-2.97l.04.04A1.8 1.8 0 0 0 8.4 3.8a1.8 1.8 0 0 0 1.08-1.64V2.1a2.1 2.1 0 0 1 4.2 0v.06A1.8 1.8 0 0 0 14.8 3.8a1.8 1.8 0 0 0 1.98-.36l.04-.04a2.1 2.1 0 0 1 2.97 2.97l-.04.04A1.8 1.8 0 0 0 19.4 8.4a1.8 1.8 0 0 0 1.64 1.08h.06a2.1 2.1 0 0 1 0 4.2h-.06A1.8 1.8 0 0 0 19.4 15z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <button id="location-button" class="map-overlay round-button location-button" type="button" aria-label="Center map">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+          <path d="M12 2v4"></path>
+          <path d="M12 18v4"></path>
+          <path d="M2 12h4"></path>
+          <path d="M18 12h4"></path>
+          <circle cx="12" cy="12" r="4"></circle>
+        </svg>
+      </button>
+
+      <div id="map-renderer-status" class="map-overlay read-status" aria-live="polite">Loading map...</div>
+
+      <section class="map-overlay bottom-sheet" aria-labelledby="nostroots-map-title">
+        <div class="sheet-header">
+          <div class="sheet-handle" aria-hidden="true"></div>
+          <div class="sheet-title-row">
+            <div class="sheet-copy">
+              <h1 id="nostroots-map-title">Map</h1>
+              <p id="area-summary">Tap the map to inspect an area.</p>
+            </div>
+            <button id="add-note-button" class="primary-action" type="button" disabled>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                <path d="M12 5v14"></path>
+                <path d="M5 12h14"></path>
+              </svg>
+              <span>Add Note</span>
+            </button>
+          </div>
+        </div>
+        <div class="sheet-stats" aria-live="polite">
+          <div class="stat"><strong id="exact-count">0</strong> exact</div>
+          <div class="stat"><strong id="nearby-count">0</strong> nearby</div>
+          <div class="stat"><strong id="visible-count">0</strong> visible</div>
+        </div>
+        <div id="notes-list" class="sheet-body">
+          <div class="empty-state">Notes will appear here after you select a plus-code cell.</div>
+        </div>
+      </section>
+
+      <nav class="map-overlay nav-pills" aria-label="Nostroots map sections">
+        <button class="nav-pill active" type="button" aria-current="page" data-section="map">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z"></path>
+            <path d="M9 3v15"></path>
+            <path d="M15 6v15"></path>
+          </svg>
+          <span>Map</span>
+        </button>
+        <button class="nav-pill" type="button" data-section="list">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+            <path d="M8 6h13"></path>
+            <path d="M8 12h13"></path>
+            <path d="M8 18h13"></path>
+            <path d="M3 6h.01"></path>
+            <path d="M3 12h.01"></path>
+            <path d="M3 18h.01"></path>
+          </svg>
+          <span>List</span>
+        </button>
+      </nav>
+    </main>
+  </div>
+
+  <div id="compose-modal" class="modal-backdrop" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="compose-title">
+      <header class="modal-header">
+        <h2 id="compose-title">Add Note to Map</h2>
+        <button id="close-compose" class="secondary-action" type="button">Close</button>
+      </header>
+      <div class="modal-body">
+        <label class="field">
+          Note
+          <textarea id="note-content" placeholder="What should travelers know here?"></textarea>
+        </label>
+        <label class="field">
+          Expires
+          <select id="note-expiry">
+            <option value="31536000">1 year</option>
+            <option value="2592000">1 month</option>
+            <option value="604800" selected>1 week</option>
+            <option value="3600">1 hour</option>
+            <option value="60">1 minute</option>
+          </select>
+        </label>
+        <div id="compose-feedback" class="feedback" aria-live="polite"></div>
+      </div>
+      <footer class="modal-footer">
+        <button id="cancel-compose" class="secondary-action" type="button">Cancel</button>
+        <button id="publish-note" class="primary-action" type="button">Add Note</button>
+      </footer>
+    </section>
+  </div>
+
+  <div id="settings-modal" class="modal-backdrop" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <header class="modal-header">
+        <h2 id="settings-title">Settings</h2>
+        <button id="close-settings" class="secondary-action" type="button">Close</button>
+      </header>
+      <div class="modal-body">
+        <div class="feedback" id="settings-signer">Checking signer...</div>
+        <div class="settings-list" id="relay-list"></div>
+      </div>
+    </section>
+  </div>
+
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="./index.js?v=20260603-nr-app-map"></script>
+</body>
+</html>

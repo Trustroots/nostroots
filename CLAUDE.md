@@ -10,13 +10,16 @@ Nostroots is a decentralized social network for travelers and hosts, transitioni
 
 ## Monorepo Structure
 
-This is a pnpm workspace monorepo with 5 main components:
+This is a pnpm workspace monorepo with the core app stack and an isolated Vibe stack:
 
 - **nr-app** - React Native mobile app (Expo) for iOS/Android
-- **nr-web** - Standalone HTML/CSS/JS web application (single file)
 - **nr-common** - Shared TypeScript/Deno library used by all components
 - **nr-server** - Deno-based validation and reposting service
 - **nr-push** - Go-based push notification service
+- **vibe/web** - Standalone HTML/CSS/JS web application (formerly `nr-web`)
+- **vibe/browser** - Nostroots Browser, with the native iOS app under `vibe/browser/ios` and the Expo prototype under `vibe/browser/expo`
+- **vibe/nip42relay** - Vibe NIP-42 relay and Trustroots import tooling
+- **vibe/push-notification-daemon** - Vibe-only APNs push daemon for native browser notifications
 
 ## Essential Commands
 
@@ -43,9 +46,9 @@ pnpm build:android-preview
 pnpm build:ios-production
 ```
 
-### nr-web (Web App)
+### vibe/web (Web App)
 ```bash
-cd nr-web
+cd vibe/web
 make test-fast           # Fast: Vitest + Playwright Chromium (use before merge or when touching critical paths)
 make test                # Full: all Playwright projects (CI-parity, slower)
 make test-watch          # Run tests in watch mode
@@ -61,7 +64,7 @@ pnpm test:local:fast
 
 See **Testing Philosophy** below: do not treat full test runs or broad test updates as mandatory on every `nr-web` edit.
 
-When changing first-impression UX or onboarding copy in `nr-web`, follow `nr-web/STYLE_GUIDE.md`.
+When changing first-impression UX or onboarding copy in `vibe/web`, follow `vibe/docs/STYLE_GUIDE.md`.
 
 ### nr-common (Shared Library)
 ```bash
@@ -127,7 +130,7 @@ User creates note → nr-app signs & publishes (kind 30397)
 
 **Tech:** Deno + TypeScript, uses nostr-tools and nostrify
 
-### nr-web Web Application
+### vibe/web Web Application
 
 **Architecture:** Single HTML file with embedded CSS and JavaScript
 - No build step required
@@ -141,12 +144,12 @@ User creates note → nr-app signs & publishes (kind 30397)
 
 ### Committing Changes
 
-**nr-web:** Skip pre-commit hooks (runs ESLint on nr-app which may fail):
+**vibe/web:** Skip pre-commit hooks (runs ESLint on nr-app which may fail):
 ```bash
 git commit --no-verify -m "message"
 ```
 
-When committing `nr-web/index.html`, be verbose about what changed in the product behavior; mention related tests only when helpful.
+When committing `vibe/web/index.html`, be verbose about what changed in the product behavior; mention related tests only when helpful.
 
 **nr-app:** Hooks will run ESLint automatically. Fix issues before committing.
 
@@ -167,7 +170,7 @@ pnpm i            # Update workspace dependencies
 
 ### Testing Philosophy
 
-**nr-web:** The stack is still moving quickly. Keep tests for **high-value** areas (e.g. key handling, protocol or routing edge cases, bugs you do not want back). Do **not** default to expanding or rewriting the suite on every change, and do not spend disproportionate time on test framework work. Run `make test-fast` (Docker) when you have touched critical logic or before merge/CI if your change could break covered flows.
+**vibe/web:** The stack is still moving quickly. Keep tests for **high-value** areas (e.g. key handling, protocol or routing edge cases, bugs you do not want back). Do **not** default to expanding or rewriting the suite on every change, and do not spend disproportionate time on test framework work. Run `make test-fast` (Docker) when you have touched critical logic or before merge/CI if your change could break covered flows.
 
 **nr-web stats/date copy:** On the `#stats` dashboard and similar operational/progress UI, format timestamps as `yyyy-mm-dd hh:mm` (for example `2026-05-13 11:42`) instead of locale phrases such as `May 13, 11:42 AM`.
 

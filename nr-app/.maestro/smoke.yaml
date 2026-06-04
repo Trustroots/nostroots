@@ -1,0 +1,7 @@
+appId: org.trustroots.nostroots
+---
+- openLink: "nostroots://e2e/reset"
+- launchApp:
+    clearState: true
+- assertVisible:
+    id: "screen-welcome"

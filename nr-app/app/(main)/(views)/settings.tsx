@@ -8,6 +8,7 @@ import { ScrollView, Switch, TextInput, View } from "react-native";
 import { BrowserSettingsSection } from "@/browser/BrowserSettingsSection";
 import BuildData from "@/components/BuildData";
 import { KeyInput } from "@/components/KeyInput";
+import { TEST_IDS } from "@/constants/testIds";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
 import { clearNip7Permissions } from "@/browser/permission-store";
@@ -310,7 +311,10 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView contentContainerClassName="px-safe-offset-4 pb-safe-offset-6 bg-background">
+    <ScrollView
+      testID={TEST_IDS.settings.root}
+      contentContainerClassName="px-safe-offset-4 pb-safe-offset-6 bg-background"
+    >
       <Stack.Screen
         options={{
           title: "Settings",
@@ -342,6 +346,7 @@ export default function SettingsScreen() {
 
         {deviceIsRegisteredForNotifications ? (
           <Button
+            testID={TEST_IDS.settings.importKeyButton}
             title="Disable notifications for this device"
             onPress={handleDisableNotifications}
             variant="destructive"

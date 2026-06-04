@@ -6,6 +6,7 @@ import { TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { TEST_IDS } from "@/constants/testIds";
 import {
   authenticateWithCode,
   NrBridgeError,
@@ -285,7 +286,10 @@ export default function OnboardingTrustrootsScreen() {
 
   return (
     <>
-      <View className="flex items-center gap-6">
+      <View
+        testID={TEST_IDS.trustroots.screen}
+        className="flex items-center gap-6"
+      >
         <MailCheckIcon size={128} color="#fff" strokeWidth={0.5} />
         <Text variant="h1" className="my-0">
           Verify your Trustroots email
@@ -321,6 +325,7 @@ export default function OnboardingTrustrootsScreen() {
               Trustroots username
             </Text>
             <TextInput
+              testID={TEST_IDS.trustroots.usernameInput}
               autoCapitalize="none"
               autoCorrect={false}
               value={usernameInput}
@@ -346,6 +351,7 @@ export default function OnboardingTrustrootsScreen() {
                   Six-digit code
                 </Text>
                 <TextInput
+                  testID={TEST_IDS.trustroots.codeInput}
                   value={code}
                   onChangeText={handleCodeChange}
                   keyboardType="number-pad"
@@ -357,6 +363,7 @@ export default function OnboardingTrustrootsScreen() {
                   className="w-full bg-muted text-foreground rounded-md p-3 text-lg tracking-widest text-center"
                 />
                 <Button
+                  testID={TEST_IDS.trustroots.submitCodeButton}
                   title={
                     screenState === "authenticating"
                       ? "Authenticating..."
@@ -366,6 +373,7 @@ export default function OnboardingTrustrootsScreen() {
                   onPress={handleAuthenticateCode}
                 />
                 <Button
+                  testID={TEST_IDS.trustroots.differentUsernameButton}
                   variant="outline"
                   title="Use a different username"
                   textClassName="text-foreground"
@@ -375,6 +383,7 @@ export default function OnboardingTrustrootsScreen() {
               </>
             ) : (
               <Button
+                testID={TEST_IDS.trustroots.requestCodeButton}
                 title={
                   screenState === "requesting"
                     ? "Sending..."
@@ -404,7 +413,7 @@ export default function OnboardingTrustrootsScreen() {
           disabled={isBusy}
         />
         <Button
-          testID="onboarding-trustroots-legacy-key"
+          testID={TEST_IDS.trustroots.legacyKeyButton}
           variant="outline"
           textClassName="text-white"
           onPress={goLegacyKeyFlow}

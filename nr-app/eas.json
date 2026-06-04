@@ -22,6 +22,31 @@
       "environment": "preview",
       "channel": "preview"
     },
+    "e2e-android": {
+      "distribution": "internal",
+      "channel": "e2e",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_E2E": "1",
+        "EXPO_PUBLIC_NR_BRIDGE_BASE_URL": "http://10.0.2.2:8000",
+        "EXPO_PUBLIC_NOSTR_RELAYS": "ws://10.0.2.2:7777"
+      }
+    },
+    "e2e-ios-simulator": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "e2e",
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_E2E": "1",
+        "EXPO_PUBLIC_NR_BRIDGE_BASE_URL": "http://127.0.0.1:8000",
+        "EXPO_PUBLIC_NOSTR_RELAYS": "ws://127.0.0.1:7777"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "channel": "preview"

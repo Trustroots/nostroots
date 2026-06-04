@@ -1,5 +1,6 @@
 import { useAppSelector } from "@/redux/hooks";
 import { mapSelectors } from "@/redux/slices/map.slice";
+import { metricsSelectors } from "@/redux/slices/metrics.slice";
 import { filterEventsForPlusCode } from "@/utils/map.utils";
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
@@ -35,11 +36,21 @@ export default function NotesList({
   );
   const { eventsForPlusCodeExactly, eventsWithinPlusCode } =
     useAppSelector(selector);
+  const allMetrics = useAppSelector(metricsSelectors.selectMetrics);
+  const metricsForPlusCode = useMemo(
+    () => allMetrics?.[plusCode] ?? null,
+    [allMetrics, plusCode],
+  );
+  const pushSubscriptions = metricsForPlusCode?.["push-subscriptions"] ?? 0;
 
   // console.log("#Lz8K48 selectedEventId", selectedEventId);
 
   return (
     <>
+      <Text className="text-gray-800 bg-amber-50 p-3 rounded-lg border-l-4 border-amber-500">
+        {pushSubscriptions.toString()} subscriptions for{" "}
+        <Text className="font-mono font-bold text-amber-600">{plusCode}</Text>
+      </Text>
       <Text className="text-gray-800 bg-blue-50 p-3 rounded-lg border-l-4 border-blue-500">
         {eventsForPlusCodeExactly.length.toString()} exact matches for{" "}
         <Text className="font-mono font-bold text-blue-600">{plusCode}</Text>

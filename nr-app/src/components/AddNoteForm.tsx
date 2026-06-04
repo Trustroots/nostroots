@@ -12,6 +12,7 @@ import { useCallback, useMemo, useState } from "react";
 import { View } from "react-native";
 import Toast from "react-native-root-toast";
 import { createSelector } from "reselect";
+import { TEST_IDS } from "@/constants/testIds";
 import SubscriptionPrompt from "./SubscriptionPrompt";
 import { Button } from "./ui/button";
 import {
@@ -180,6 +181,7 @@ export default function AddNoteForm() {
     <View className="w-full bg-card p-4 rounded-lg items-center gap-3">
       <Text variant="h4">Add Note to Map</Text>
       <BottomSheetTextInput
+        testID={TEST_IDS.map.addNoteContentInput}
         className="w-full h-20 p-3 bg-background border border-border rounded-md text-foreground"
         placeholder="Enter your note"
         placeholderTextColor="#9ca3af"
@@ -216,7 +218,12 @@ export default function AddNoteForm() {
       </View>
 
       <View className="w-full flex-row justify-center gap-4 mt-2">
-        <Button title="Add Note" onPress={handleAddNote} className="flex-1" />
+        <Button
+          testID={TEST_IDS.map.addNoteSubmitButton}
+          title="Add Note"
+          onPress={handleAddNote}
+          className="flex-1"
+        />
         <Button
           title="Cancel"
           variant="outline"

@@ -1,0 +1,23 @@
+name: nr-app iOS Maestro Smoke
+
+on:
+  pull_request:
+    paths:
+      - "nr-app/**"
+      - "development-utils/local-relay/**"
+      - "nr-bridge/**"
+
+jobs:
+  build_ios_simulator_for_e2e:
+    type: build
+    params:
+      platform: ios
+      profile: e2e-ios-simulator
+
+  maestro_ios_smoke:
+    needs:
+      - build_ios_simulator_for_e2e
+    type: maestro-cloud
+    params:
+      build_id: ${{ needs.build_ios_simulator_for_e2e.outputs.build_id }}
+      flows: nr-app/.maestro/smoke.yaml

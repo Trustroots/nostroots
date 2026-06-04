@@ -1,11 +1,12 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { AlertTriangleIcon, MailCheckIcon } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { TEST_IDS } from "@/constants/testIds";
 import {
   authenticateWithCode,
   NrBridgeError,
@@ -29,6 +30,33 @@ type TrustrootsScreenState =
   | "profile-publishing";
 
 const AUTHENTICATION_FAILURE_MESSAGE = "failed to authenticate you. try again";
+
+function getInitialStatusMessage({
+  errorParam,
+  pendingTrustrootsProfileUsername,
+  pendingTrustrootsUsername,
+}: {
+  errorParam?: string;
+  pendingTrustrootsProfileUsername: string | null;
+  pendingTrustrootsUsername: string | null;
+}) {
+  if (errorParam === "auth") {
+    return AUTHENTICATION_FAILURE_MESSAGE;
+  }
+  if (errorParam === "missing-token") {
+    return "Verification link is missing a token. Try again.";
+  }
+  if (errorParam === "start-in-app") {
+    return "Start verification in the app before opening the email link.";
+  }
+  if (pendingTrustrootsProfileUsername) {
+    return "Your Trustroots account was authenticated. Retry the profile publish to finish setup.";
+  }
+  if (pendingTrustrootsUsername) {
+    return "Enter the six-digit code from your email.";
+  }
+  return null;
+}
 
 function getRequestErrorMessage(error: unknown): string {
   if (error instanceof NrBridgeError) {
@@ -55,44 +83,25 @@ export default function OnboardingTrustrootsScreen() {
     settingsSelectors.selectPendingTrustrootsProfileUsername,
   );
 
-  const [screenState, setScreenState] = useState<TrustrootsScreenState>("idle");
-  const [usernameInput, setUsernameInput] = useState("");
+  const [screenState, setScreenState] = useState<TrustrootsScreenState>(
+    pendingTrustrootsProfileUsername
+      ? "profile-retry"
+      : pendingTrustrootsUsername
+        ? "code-entry"
+        : "idle",
+  );
+  const [usernameInput, setUsernameInput] = useState(
+    pendingTrustrootsProfileUsername ?? pendingTrustrootsUsername ?? "",
+  );
   const [code, setCode] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (errorParam === "auth") {
-      setStatusMessage(AUTHENTICATION_FAILURE_MESSAGE);
-    } else if (errorParam === "missing-token") {
-      setStatusMessage("Verification link is missing a token. Try again.");
-    } else if (errorParam === "start-in-app") {
-      setStatusMessage(
-        "Start verification in the app before opening the email link.",
-      );
-    }
-  }, [errorParam]);
-
-  useEffect(() => {
-    if (pendingTrustrootsProfileUsername) {
-      setUsernameInput(pendingTrustrootsProfileUsername);
-      setScreenState("profile-retry");
-      setStatusMessage(
-        "Your Trustroots account was authenticated. Retry the profile publish to finish setup.",
-      );
-      return;
-    }
-
-    if (pendingTrustrootsUsername && screenState === "idle") {
-      setUsernameInput(pendingTrustrootsUsername);
-      setScreenState("code-entry");
-      setStatusMessage("Enter the six-digit code from your email.");
-    }
-  }, [
-    pendingTrustrootsProfileUsername,
-    pendingTrustrootsUsername,
-    screenState,
-  ]);
+  const [statusMessage, setStatusMessage] = useState<string | null>(() =>
+    getInitialStatusMessage({
+      errorParam,
+      pendingTrustrootsProfileUsername,
+      pendingTrustrootsUsername,
+    }),
+  );
 
   const resetToUsernameEntry = useCallback(
     (message?: string) => {
@@ -241,7 +250,10 @@ export default function OnboardingTrustrootsScreen() {
 
   return (
     <>
-      <View className="flex items-center gap-6">
+      <View
+        testID={TEST_IDS.trustroots.screen}
+        className="flex items-center gap-6"
+      >
         <MailCheckIcon size={128} color="#fff" strokeWidth={0.5} />
         <Text variant="h1" className="my-0">
           Verify your Trustroots email
@@ -277,6 +289,7 @@ export default function OnboardingTrustrootsScreen() {
               Trustroots username
             </Text>
             <TextInput
+              testID={TEST_IDS.trustroots.usernameInput}
               autoCapitalize="none"
               autoCorrect={false}
               value={usernameInput}
@@ -302,6 +315,7 @@ export default function OnboardingTrustrootsScreen() {
                   Six-digit code
                 </Text>
                 <TextInput
+                  testID={TEST_IDS.trustroots.codeInput}
                   value={code}
                   onChangeText={handleCodeChange}
                   keyboardType="number-pad"
@@ -313,6 +327,7 @@ export default function OnboardingTrustrootsScreen() {
                   className="w-full bg-muted text-foreground rounded-md p-3 text-lg tracking-widest text-center"
                 />
                 <Button
+                  testID={TEST_IDS.trustroots.submitCodeButton}
                   title={
                     screenState === "authenticating"
                       ? "Authenticating..."
@@ -322,6 +337,7 @@ export default function OnboardingTrustrootsScreen() {
                   onPress={handleAuthenticateCode}
                 />
                 <Button
+                  testID={TEST_IDS.trustroots.differentUsernameButton}
                   variant="outline"
                   title="Use a different username"
                   textClassName="text-foreground"
@@ -331,6 +347,7 @@ export default function OnboardingTrustrootsScreen() {
               </>
             ) : (
               <Button
+                testID={TEST_IDS.trustroots.requestCodeButton}
                 title={
                   screenState === "requesting"
                     ? "Sending..."
@@ -360,6 +377,7 @@ export default function OnboardingTrustrootsScreen() {
           disabled={isBusy}
         />
         <Button
+          testID={TEST_IDS.trustroots.legacyKeyButton}
           variant="outline"
           textClassName="text-white"
           onPress={goLegacyKeyFlow}

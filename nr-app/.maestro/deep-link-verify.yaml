@@ -1,0 +1,7 @@
+appId: org.trustroots.nostroots
+---
+- openLink: "nostroots://e2e/reset"
+- openLink: "nostroots://e2e/seed?scenario=pending-verify"
+- openLink: "nostroots://verify?token=e2e-token"
+- assertVisible:
+    id: "screen-backup-confirm"

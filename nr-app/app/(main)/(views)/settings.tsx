@@ -9,6 +9,7 @@ import BuildData from "@/components/BuildData";
 import { KeyInput } from "@/components/KeyInput";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
+import { TEST_IDS } from "@/constants/testIds";
 import {
   SECURE_STORE_PRIVATE_KEY_HEX_KEY,
   SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
@@ -273,7 +274,10 @@ export default function SettingsScreen() {
   };
 
   return (
-    <ScrollView contentContainerClassName="px-safe-offset-4 pb-safe-offset-6 bg-background">
+    <ScrollView
+      testID={TEST_IDS.settings.root}
+      contentContainerClassName="px-safe-offset-4 pb-safe-offset-6 bg-background"
+    >
       <Stack.Screen
         options={{
           title: "Settings",
@@ -338,6 +342,7 @@ export default function SettingsScreen() {
             showPasteButton={true}
           />
           <Button
+            testID={TEST_IDS.settings.importKeyButton}
             size="lg"
             variant={importStatus === "failed" ? "destructive" : "default"}
             title={match({ isImporting, importStatus })

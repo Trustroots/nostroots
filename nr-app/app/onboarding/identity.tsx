@@ -5,6 +5,7 @@ import { View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
+import { TEST_IDS } from "@/constants/testIds";
 import { IdCardLanyardIcon } from "lucide-react-native";
 import { selectFeatureFlags } from "@/redux/slices/settings.slice";
 import { useAppSelector } from "@/redux/hooks";
@@ -53,6 +54,7 @@ export default function OnboardingIdentityScreen() {
           <Button variant="secondary" onPress={goBack} size="lg" title="Back" />
         )}
         <Button
+          testID={TEST_IDS.identity.continueButton}
           variant="secondary"
           onPress={goNext}
           size="lg"
@@ -60,6 +62,7 @@ export default function OnboardingIdentityScreen() {
         />
         {useSkipOnboarding && (
           <Button
+            testID={TEST_IDS.identity.skipButton}
             variant="outline"
             onPress={goSkip}
             size="lg"

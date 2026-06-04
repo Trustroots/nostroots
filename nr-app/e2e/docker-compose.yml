@@ -1,0 +1,60 @@
+services:
+  mongodb:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_DATABASE: trustroots-dev
+    ports:
+      - "27017:27017"
+    volumes:
+      - ../../.devcontainer/nr-bridge/init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
+    healthcheck:
+      test: mongosh --eval "db.adminCommand('ping')" --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.29.6
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  tiny-relay:
+    build:
+      context: ../..
+      dockerfile: .devcontainer/Dockerfile.app
+    working_dir: /app
+    command: deno task --config development-utils/local-relay/deno.jsonc run-tiny
+    environment:
+      PORT: "7777"
+    ports:
+      - "7777:7777"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:7777"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  nr-bridge:
+    build:
+      context: ../..
+      dockerfile: .devcontainer/Dockerfile.app
+    working_dir: /app/nr-bridge
+    command: deno task run
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/trustroots-dev
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_FROM: noreply@nostroots.local
+    ports:
+      - "8000:8000"

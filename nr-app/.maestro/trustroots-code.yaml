@@ -1,0 +1,15 @@
+appId: org.trustroots.nostroots
+---
+- openLink: "nostroots://e2e/reset"
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "welcome-get-started-button"
+- tapOn:
+    id: "identity-continue-button"
+- tapOn:
+    id: "trustroots-username-input"
+- inputText: "alice"
+- tapOn:
+    id: "trustroots-request-code-button"
+- assertVisible: "Six-digit code"

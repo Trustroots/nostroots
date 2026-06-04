@@ -4,6 +4,7 @@ import { View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { TEST_IDS } from "@/constants/testIds";
 
 export default function WelcomeScreen() {
   const router = useRouter();
@@ -13,7 +14,10 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View className="absolute inset-0 p-safe-offset-6 bg-background flex justify-center items-center gap-6">
+    <View
+      testID={TEST_IDS.welcome.screen}
+      className="absolute inset-0 p-safe-offset-6 bg-background flex justify-center items-center gap-6"
+    >
       <Text
         variant="h1"
         className="text-3xl font-bold text-foreground text-center mb-0"
@@ -37,6 +41,7 @@ export default function WelcomeScreen() {
 
       <View className="w-full max-w-xs">
         <Button
+          testID={TEST_IDS.welcome.getStartedButton}
           onPress={handleGetStarted}
           title="Get Started"
           size="lg"

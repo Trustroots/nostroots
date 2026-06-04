@@ -6,6 +6,7 @@ import { KeyInput } from "@/components/KeyInput";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Text, TextClassContext } from "@/components/ui/text";
+import { TEST_IDS } from "@/constants/testIds";
 import { useKeyImport } from "@/hooks/useKeyImport";
 import {
   getHasPrivateKeyInSecureStorage,
@@ -125,10 +126,10 @@ export default function OnboardingKeyScreen() {
           }
         >
           <TabsList>
-            <TabsTrigger value="generate">
+            <TabsTrigger testID={TEST_IDS.key.generateTab} value="generate">
               <Text>Generate</Text>
             </TabsTrigger>
-            <TabsTrigger value="existing">
+            <TabsTrigger testID={TEST_IDS.key.existingTab} value="existing">
               <Text>Import</Text>
             </TabsTrigger>
           </TabsList>
@@ -142,6 +143,7 @@ export default function OnboardingKeyScreen() {
                 <Text className="text-xs text-red-500">{importError}</Text>
               )}
               <KeyInput
+                testID={TEST_IDS.key.secretInput}
                 value={existingKeyInput}
                 onChangeText={setExistingKeyInput}
                 placeholder="Paste your nsec or mnemonic"
@@ -149,6 +151,7 @@ export default function OnboardingKeyScreen() {
                 showPasteButton={true}
               />
               <Button
+                testID={TEST_IDS.key.saveButton}
                 size="lg"
                 title={keySaved ? "Saved" : isImporting ? "Saving..." : "Save"}
                 disabled={isImporting || keySaved}
@@ -163,6 +166,7 @@ export default function OnboardingKeyScreen() {
                 <Text className="text-xs text-red-500">{mnemonicError}</Text>
               )}
               <KeyInput
+                testID={TEST_IDS.key.secretInput}
                 value={mnemonic}
                 onChangeText={setMnemonic}
                 placeholder=""
@@ -196,6 +200,7 @@ export default function OnboardingKeyScreen() {
           title="Back"
         />
         <Button
+          testID={TEST_IDS.key.continueButton}
           variant="secondary"
           onPress={goNext}
           size="lg"

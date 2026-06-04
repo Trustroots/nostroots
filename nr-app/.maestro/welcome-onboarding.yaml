@@ -1,0 +1,12 @@
+appId: org.trustroots.nostroots
+---
+- openLink: "nostroots://e2e/reset"
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "welcome-get-started-button"
+- assertVisible: "Your Key Is Your Identity"
+- tapOn:
+    id: "identity-continue-button"
+- assertVisible:
+    id: "screen-onboarding-trustroots"

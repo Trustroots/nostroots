@@ -6,6 +6,7 @@ import { Linking, TextInput, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
+import { TEST_IDS } from "@/constants/testIds";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import {
@@ -189,6 +190,7 @@ export default function OnboardingLinkScreen() {
             Tap on it to copy it to clipboard.
           </Text>
           <Text
+            testID={TEST_IDS.link.copyPublicKeyButton}
             className="text-sm bg-muted text-foreground rounded-md p-3 w-full text-left"
             numberOfLines={1}
             onPress={handleCopy}
@@ -203,7 +205,11 @@ export default function OnboardingLinkScreen() {
             Trustroots, scroll to the bottom of your Networks page, and paste it
             there.
           </Text>
-          <Button onPress={openTrustrootsNetworks} className="w-full">
+          <Button
+            testID={TEST_IDS.link.openTrustrootsButton}
+            onPress={openTrustrootsNetworks}
+            className="w-full"
+          >
             <Text>Open Trustroots Networks</Text>
             <SquareArrowOutUpRight size={16} color="white" />
           </Button>
@@ -223,6 +229,7 @@ export default function OnboardingLinkScreen() {
             className="w-full bg-muted text-foreground rounded-md p-3 text-sm mb-2 text-left"
           />
           <Button
+            testID={TEST_IDS.link.confirmButton}
             title={
               linkStatus === "error"
                 ? "Try Again"

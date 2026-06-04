@@ -1,0 +1,14 @@
+appId: org.trustroots.nostroots
+---
+- openLink: "nostroots://e2e/reset"
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "welcome-get-started-button"
+- tapOn:
+    id: "identity-skip-button"
+- tapOn:
+    id: "nav-settings"
+- assertVisible:
+    id: "screen-settings"
+- assertVisible: "Appearance"

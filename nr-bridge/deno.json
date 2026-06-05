@@ -2,7 +2,7 @@
   "tasks": {
     "run": "deno run --allow-net --allow-env --allow-sys --allow-read --allow-write --unstable-kv main.ts",
     "dev": "deno run --allow-net --allow-env --allow-sys --allow-read --allow-write --unstable-kv --watch main.ts",
-    "test": "deno test --allow-net --allow-env --allow-sys --allow-read --allow-write --unstable-kv",
+    "test": "SMTP_HOST=test deno test --allow-net --allow-env --allow-sys --allow-read --allow-write --unstable-kv",
     "seed:dev-users": "deno run --allow-net --allow-env --allow-sys scripts/seedUsers.ts dev-users",
     "seed:fake-user": "deno run --allow-net --allow-env --allow-sys scripts/seedUsers.ts fake-user"
   },

@@ -6,9 +6,9 @@
  * returned by {@link createApp}.
  */
 import { createApp } from "./src/server.ts";
+import { PORT } from "./src/config.ts";
 
-const port = Number(Deno.env.get("PORT") ?? "8000");
 const app = createApp();
 
-console.log(`nr-bridge listening on port ${port}`);
-Deno.serve({ port }, app.fetch);
+console.log(`#AMogo8 nr-bridge listening on port ${PORT}`);
+Deno.serve({ port: PORT }, app.fetch);

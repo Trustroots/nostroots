@@ -3,11 +3,9 @@
  *
  * Lazily-initialised MongoDB client and query helpers for the Trustroots
  * `users` collection.
- *
- * Connection is configured via the `MONGODB_URI` environment variable
- * (defaults to `mongodb://mongodb:27017/trustroots-dev`).
  */
 import { MongoClient, type Db, type Collection } from "mongodb";
+import { MONGODB_DB_NAME, MONGODB_URI } from "../config.ts";
 
 let client: MongoClient | null = null;
 let db: Db | null = null;
@@ -19,9 +17,7 @@ let db: Db | null = null;
  */
 export async function getMongoClient(): Promise<MongoClient> {
   if (client) return client;
-  const uri =
-    Deno.env.get("MONGODB_URI") ?? "mongodb://mongodb:27017/trustroots-dev";
-  client = new MongoClient(uri);
+  client = new MongoClient(MONGODB_URI);
   await client.connect();
   return client;
 }
@@ -35,10 +31,7 @@ export async function getMongoClient(): Promise<MongoClient> {
 export async function getDb(): Promise<Db> {
   if (db) return db;
   const c = await getMongoClient();
-  const uri =
-    Deno.env.get("MONGODB_URI") ?? "mongodb://mongodb:27017/trustroots-dev";
-  const dbName = new URL(uri).pathname.slice(1) || "trustroots-dev";
-  db = c.db(dbName);
+  db = c.db(MONGODB_DB_NAME);
   return db;
 }
 

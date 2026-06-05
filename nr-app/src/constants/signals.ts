@@ -14,7 +14,6 @@ export const SIGNAL_DURATIONS = [
   { key: "today", label: "Today", seconds: 24 * 60 * 60 },
   { key: "1-week", label: "1 week", seconds: 7 * 24 * 60 * 60 },
   { key: "1-month", label: "1 month", seconds: 30 * 24 * 60 * 60 },
-  { key: "3-months", label: "3 months", seconds: 90 * 24 * 60 * 60 },
 ] as const;
 
 export type SignalDuration = (typeof SIGNAL_DURATIONS)[number]["key"];

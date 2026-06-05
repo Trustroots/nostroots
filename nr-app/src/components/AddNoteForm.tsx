@@ -9,7 +9,7 @@ import {
 } from "@/constants/signals";
 import { getCurrentTimestamp } from "@trustroots/nr-common";
 import { nanoid } from "@reduxjs/toolkit";
-import { Send } from "lucide-react-native";
+import { CalendarDays, Send } from "lucide-react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useCallback, useState } from "react";
 import { Platform, Pressable, TextInput, View } from "react-native";
@@ -310,24 +310,26 @@ export default function AddNoteForm({
         })}
         <Pressable
           onPress={() => setShowDatePicker(!showDatePicker)}
-          className={`rounded-full px-2.5 py-1 border ${
+          className={`rounded-full px-1.5 py-1 border ${
             customDate
               ? "border-primary bg-primary/10"
               : "border-border/50 bg-muted/20"
           }`}
         >
-          <Text
-            className={`text-[11px] font-medium ${
-              customDate ? "text-primary" : "text-muted-foreground"
-            }`}
-          >
-            {customDate
-              ? customDate.toLocaleDateString(undefined, {
-                  month: "short",
-                  day: "numeric",
-                })
-              : "Custom..."}
-          </Text>
+          {customDate ? (
+            <Text className="text-[11px] font-medium text-primary">
+              {customDate.toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+              })}
+            </Text>
+          ) : (
+            <Icon
+              as={CalendarDays}
+              size={13}
+              className="text-muted-foreground"
+            />
+          )}
         </Pressable>
       </View>
 

@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Event } from "@trustroots/nr-common";
+import { Event, isPlusCodeInsidePlusCode } from "@trustroots/nr-common";
 
 const PUSH_SUBSCRIPTIONS_METRIC_TYPE = "push-subscriptions" as const;
 
@@ -48,8 +48,24 @@ export const metricsSlice = createSlice({
     selectMetrics: (state) => state.metrics,
     selectMetricsByPlusCode: (state, plusCode: string) =>
       state.metrics?.[plusCode] ?? null,
-    selectPushSubscriptionsMetricByPlusCode: (state, plusCode: string) =>
-      state.metrics?.[plusCode]?.[PUSH_SUBSCRIPTIONS_METRIC_TYPE] ?? 0,
+    selectPushSubscriptionsMetricByPlusCode: (state, plusCode: string) => {
+      if (!state.metrics) {
+        return 0;
+      }
+
+      let total = 0;
+      for (const [metricPlusCode, metricValues] of Object.entries(
+        state.metrics,
+      )) {
+        // Count subscriptions for this exact plus code and broader ancestor areas.
+        if (!isPlusCodeInsidePlusCode(metricPlusCode, plusCode)) {
+          continue;
+        }
+        total += metricValues[PUSH_SUBSCRIPTIONS_METRIC_TYPE] ?? 0;
+      }
+
+      return total;
+    },
     selectLastUpdated: (state) => state.lastUpdated,
   },
 });

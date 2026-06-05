@@ -4,6 +4,7 @@ import {
 } from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapSelectors } from "@/redux/slices/map.slice";
+import { metricsSelectors } from "@/redux/slices/metrics.slice";
 import { notificationSelectors } from "@/redux/slices/notifications.slice";
 import {
   doesFilterMatchParentPlusCode,
@@ -17,8 +18,16 @@ import { Icon } from "./ui/icon";
 import { Text } from "./ui/text";
 
 const selectSubscriptionState = createSelector(
-  [notificationSelectors.selectFilters, mapSelectors.selectSelectedPlusCode],
-  (filters, selectedPlusCode) => {
+  [
+    notificationSelectors.selectFilters,
+    mapSelectors.selectSelectedPlusCode,
+    (state) =>
+      metricsSelectors.selectPushSubscriptionsMetricByPlusCode(
+        state,
+        mapSelectors.selectSelectedPlusCode(state),
+      ),
+  ],
+  (filters, selectedPlusCode, subscriptionCount) => {
     const isExactMatch = filters.some(({ filter }) =>
       doesFilterMatchPlusCodeExactly(filter, selectedPlusCode),
     );
@@ -27,13 +36,17 @@ const selectSubscriptionState = createSelector(
       filters.some(({ filter }) =>
         doesFilterMatchParentPlusCode(filter, selectedPlusCode),
       );
-    return { selectedPlusCode, isSubscribed: isExactMatch || isParentMatch };
+    return {
+      selectedPlusCode,
+      subscriptionCount,
+      isSubscribed: isExactMatch || isParentMatch,
+    };
   },
 );
 
 export default function SubscribeBellIcon() {
   const dispatch = useAppDispatch();
-  const { selectedPlusCode, isSubscribed } = useAppSelector(
+  const { selectedPlusCode, subscriptionCount, isSubscribed } = useAppSelector(
     selectSubscriptionState,
   );
 
@@ -79,7 +92,7 @@ export default function SubscribeBellIcon() {
       <Text
         className={`text-xs ${isSubscribed ? "text-primary" : "text-muted-foreground"}`}
       >
-        {isSubscribed ? "Subscribed" : "Get notified"}
+        {`${subscriptionCount} people subscribed`}
       </Text>
     </Pressable>
   );

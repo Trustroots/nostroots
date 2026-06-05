@@ -1,6 +1,8 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Event } from "@trustroots/nr-common";
 
+const PUSH_SUBSCRIPTIONS_METRIC_TYPE = "push-subscriptions" as const;
+
 export type MetricsState = {
   // Shape: { [pluscode]: { [metricType]: value, ... }, ... }
   metrics: Record<string, Record<string, number>> | null;
@@ -46,6 +48,8 @@ export const metricsSlice = createSlice({
     selectMetrics: (state) => state.metrics,
     selectMetricsByPlusCode: (state, plusCode: string) =>
       state.metrics?.[plusCode] ?? null,
+    selectPushSubscriptionsMetricByPlusCode: (state, plusCode: string) =>
+      state.metrics?.[plusCode]?.[PUSH_SUBSCRIPTIONS_METRIC_TYPE] ?? 0,
     selectLastUpdated: (state) => state.lastUpdated,
   },
 });

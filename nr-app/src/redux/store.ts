@@ -14,6 +14,7 @@ import { persistedMapSlice } from "./slices/map.slice";
 import { metricsSlice } from "./slices/metrics.slice";
 import { notificationsSlice } from "./slices/notifications.slice";
 import { relaysSlice } from "./slices/relays.slice";
+import { profilesSlice } from "./slices/profiles.slice";
 import { settingsSlice } from "./slices/settings.slice";
 
 const isOnDevice = Platform.OS !== "web";
@@ -30,6 +31,7 @@ const rootReducer = combineSlices(
   persistedMapSlice,
   metricsSlice,
   notificationsSlice,
+  profilesSlice,
   relaysSlice,
   settingsSlice,
 );

@@ -16,6 +16,7 @@
     "build:ios-development": "eas build --platform ios --profile development --non-interactive",
     "build:ios-simulator": "eas build --platform ios --profile simulator --non-interactive",
     "build:android-preview": "eas build --platform android --profile preview --non-interactive",
+    "build:android-production": "eas build --platform android --profile production --non-interactive",
     "build:ios-production": "eas build --platform ios --profile production --non-interactive --auto-submit"
   },
   "pkgx": "facebook.com/watchman",

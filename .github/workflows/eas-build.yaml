@@ -4,13 +4,14 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: 'Android dev build (emulator and device), Android preview build (standalone .apk), iOS dev build (device), iOS dev build (simulator), iOS production build (TestFlight)'
+        description: 'Android dev build (emulator and device), Android preview build (standalone .apk), Android production build (AAB), iOS dev build (device), iOS dev build (simulator), iOS production build (TestFlight)'
         required: true
-        default: 'android'
+        default: 'android-development'
         type: choice
         options:
           - android-development
           - android-preview
+          - android-production
           - ios-development
           - ios-simulator
           - ios-production
@@ -95,6 +96,7 @@ jobs:
         platform:
           - android-development
           - android-preview
+          - android-production
           - ios-development
           - ios-simulator
           - ios-production

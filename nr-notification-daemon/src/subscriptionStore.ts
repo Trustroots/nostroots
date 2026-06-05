@@ -49,7 +49,7 @@ export class SubscriptionStore {
 
   getAllFilterPubkeyPairs(): readonly FilterPubkeyPair[] {
     return [...this.filtersByPubkey.entries()].flatMap(([pubkey, filters]) =>
-      filters.map((filter) => ({ filter, pubkey }))
+      filters.map((filter) => ({ filter, pubkey })),
     );
   }
 
@@ -66,5 +66,11 @@ export class SubscriptionStore {
       (sum, filters) => sum + filters.length,
       0,
     );
+  }
+
+  get pubkeysWithTokensCount(): number {
+    return [...this.tokensByPubkey.values()].filter(
+      (tokens) => tokens.length > 0,
+    ).length;
   }
 }

@@ -39,12 +39,16 @@ The key features the app requires are:
 
 ## Getting started
 
-There are 4 parts to this code.
+There are several parts to this code.
 
 - `nr-common` - A module that is shared between the rest of the projects
 - `nr-app` - An expo app
 - `nr-server` - A deno application that is hosted by Trustroots
 - `nr-push` - A Go application that handles push notifications for the app, code currently at https://github.com/trustroots/notification-daemon
+- `vibe/web` - The Nostroots web app
+- `vibe/browser` - Nostroots Browser, with a native iOS app and preserved Expo prototype
+- `vibe/nip42relay` - The Vibe NIP-42 relay/import stack
+- `vibe/push-notification-daemon` - The isolated Vibe APNs notification daemon
 
 Please refer to the READMEs in the respective subfolders for working on them.
 

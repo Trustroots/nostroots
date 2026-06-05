@@ -11,6 +11,7 @@ import rootSaga from "./sagas/root.saga";
 import { eventsSlice } from "./slices/events.slice";
 import { keystoreSlice } from "./slices/keystore.slice";
 import { persistedMapSlice } from "./slices/map.slice";
+import { metricsSlice } from "./slices/metrics.slice";
 import { notificationsSlice } from "./slices/notifications.slice";
 import { relaysSlice } from "./slices/relays.slice";
 import { settingsSlice } from "./slices/settings.slice";
@@ -27,6 +28,7 @@ const rootReducer = combineSlices(
   eventsSlice,
   keystoreSlice,
   persistedMapSlice,
+  metricsSlice,
   notificationsSlice,
   relaysSlice,
   settingsSlice,
@@ -35,7 +37,7 @@ const rootReducer = combineSlices(
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
-  whitelist: ["events", "keystore", "notifications", "settings"], // map has its own nested persist
+  whitelist: ["events", "keystore", "metrics", "notifications", "settings"], // map has its own nested persist
 };
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

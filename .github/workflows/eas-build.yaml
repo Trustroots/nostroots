@@ -128,3 +128,19 @@ jobs:
       - name: 🚀 Start Build
         working-directory: ./nr-app
         run: pnpm run build:${{ matrix.platform }}
+
+  ota-main-no-build:
+    needs: fingerprint-check
+    if: github.event_name == 'push' && needs.fingerprint-check.outputs.fingerprint_changed == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/repo-setup
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🗞️ Send OTA Update To Preview Channel
+        working-directory: ./nr-app
+        run: eas update --channel preview --non-interactive --auto

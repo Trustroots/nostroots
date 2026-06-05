@@ -6,13 +6,14 @@ import { Linking, TextInput, View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
+import { publishEventTemplatePromiseAction } from "@/redux/actions/publish.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
-import { publishTrustrootsProfile } from "@/services/trustrootsProfile.service";
+import { createKind10390EventTemplate } from "@trustroots/nr-common";
 import * as Clipboard from "expo-clipboard";
 import {
   AlertTriangleIcon,
@@ -95,34 +96,62 @@ export default function OnboardingLinkScreen() {
         return;
       }
 
-      const identifier = `${normalizedUsername}@trustroots.org`;
+      // Use www.trustroots.org directly — trustroots.org 302-redirects to www,
+      // but nostr-tools fetches with { redirect: "manual" } and treats any
+      // non-200 as a failure, so the redirect would silently return null.
+      const identifier = `${normalizedUsername}@www.trustroots.org`;
 
       setLinkStatus("verifying");
       setLinkError(null);
 
       try {
         // NIP-05 lookup: confirm Trustroots identifier maps to this pubkey.
+        console.log("[link] NIP-05 lookup for", identifier);
         const profile = await nip05.queryProfile(identifier);
+        console.log("[link] NIP-05 profile result:", JSON.stringify(profile));
 
         if (!profile?.pubkey) {
-          throw new Error("No pubkey in NIP-05 profile");
+          console.warn(
+            "[link] NIP-05 lookup returned no pubkey for",
+            identifier,
+          );
+          setLinkStatus("error");
+          setLinkError(
+            `Trustroots did not return a Nostr key for "${normalizedUsername}". ` +
+              "Make sure you have saved your npub in Trustroots → Edit profile → Networks, then try again.",
+          );
+          return;
         }
 
         const nip05Npub = nip19.npubEncode(profile.pubkey);
+        console.log("[link] NIP-05 npub:", nip05Npub, "local npub:", npub);
 
         if (nip05Npub !== npub) {
-          throw new Error("NIP-05 npub does not match local key");
+          console.warn("[link] NIP-05 pubkey mismatch", { nip05Npub, npub });
+          setLinkStatus("error");
+          setLinkError(
+            "The npub returned by Trustroots does not match your local key. " +
+              "Check that you copied the correct npub into Trustroots → Edit profile → Networks.",
+          );
+          return;
         }
 
-        await publishTrustrootsProfile(normalizedUsername, dispatch);
+        // Build Kind 10390 event using shared helper.
+        const eventTemplate = createKind10390EventTemplate(normalizedUsername);
+
+        // NOTE: relay URL should come from configuration; placeholder used here.
+        await dispatch(
+          publishEventTemplatePromiseAction.request({ eventTemplate }),
+        );
 
         dispatch(settingsActions.setUsername(normalizedUsername));
         setLinkStatus("linked");
-      } catch {
+      } catch (error) {
+        console.error("[link] verifyAndLink error:", error);
         setLinkStatus("error");
         setLinkError(
-          "We could not confirm your Trustroots identity via NIP-05 for this key. " +
-            "Ensure your Trustroots profile is configured and try again.",
+          `Could not reach Trustroots (${error instanceof Error ? error.message : String(error)}). ` +
+            "Check your internet connection and try again.",
         );
       }
     },
@@ -174,14 +203,11 @@ export default function OnboardingLinkScreen() {
         <LinkIcon size={128} color="#fff" strokeWidth={0.5} />
 
         <Text variant="h1" className="my-0">
-          Verify Your Trustroots Key
+          Connect to Trustroots
         </Text>
       </View>
 
-      <Text variant="p">
-        This path checks that your Trustroots profile already points to the key
-        saved on this device.
-      </Text>
+      <Text variant="p">To verify your identity, follow these steps:</Text>
 
       <View className="flex gap-6 w-full">
         <StepCard stepNumber={1} title="Copy Your Public Key">
@@ -199,9 +225,8 @@ export default function OnboardingLinkScreen() {
 
         <StepCard stepNumber={2} title="Add to Trustroots Profile">
           <Text className="text-sm text-muted-foreground mb-2 text-left">
-            If this key is not on your Trustroots profile yet, log in to
-            Trustroots, scroll to the bottom of your Networks page, and paste it
-            there.
+            Log in to Trustroots, then scroll to the bottom of your Networks
+            page and paste your public key there.
           </Text>
           <Button onPress={openTrustrootsNetworks} className="w-full">
             <Text>Open Trustroots Networks</Text>

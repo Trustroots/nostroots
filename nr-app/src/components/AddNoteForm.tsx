@@ -10,8 +10,9 @@ import {
 import { getCurrentTimestamp } from "@trustroots/nr-common";
 import { nanoid } from "@reduxjs/toolkit";
 import { Send } from "lucide-react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { useCallback, useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { Platform, Pressable, TextInput, View } from "react-native";
 import Toast from "react-native-root-toast";
 import { Button } from "./ui/button";
 import { Icon } from "./ui/icon";
@@ -57,6 +58,8 @@ export default function AddNoteForm({
   );
   const [selectedDuration, setSelectedDuration] =
     useState<SignalDuration>("1-week");
+  const [customDate, setCustomDate] = useState<Date | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [optimisticNotes, setOptimisticNotes] = useState<OptimisticNote[]>([]);
 
   // When not in signal mode, intent is always null
@@ -83,11 +86,16 @@ export default function AddNoteForm({
       return;
     }
 
-    const durationEntry = SIGNAL_DURATIONS.find(
-      (d) => d.key === selectedDuration,
-    );
-    const durationSeconds = durationEntry?.seconds ?? 3 * 24 * 60 * 60;
-    const expirationTimestampSeconds = getCurrentTimestamp() + durationSeconds;
+    let expirationTimestampSeconds: number;
+    if (customDate) {
+      expirationTimestampSeconds = Math.floor(customDate.getTime() / 1000);
+    } else {
+      const durationEntry = SIGNAL_DURATIONS.find(
+        (d) => d.key === selectedDuration,
+      );
+      const durationSeconds = durationEntry?.seconds ?? 7 * 24 * 60 * 60;
+      expirationTimestampSeconds = getCurrentTimestamp() + durationSeconds;
+    }
 
     // Create optimistic note
     const optimisticId = nanoid();
@@ -143,6 +151,7 @@ export default function AddNoteForm({
     noteContent,
     dispatch,
     selectedDuration,
+    customDate,
     effectiveIntent,
     onSent,
     onSignalSent,
@@ -156,12 +165,16 @@ export default function AddNoteForm({
         ),
       );
 
-      const durationEntry = SIGNAL_DURATIONS.find(
-        (d) => d.key === selectedDuration,
-      );
-      const durationSeconds = durationEntry?.seconds ?? 3 * 24 * 60 * 60;
-      const expirationTimestampSeconds =
-        getCurrentTimestamp() + durationSeconds;
+      let expirationTimestampSeconds: number;
+      if (customDate) {
+        expirationTimestampSeconds = Math.floor(customDate.getTime() / 1000);
+      } else {
+        const durationEntry = SIGNAL_DURATIONS.find(
+          (d) => d.key === selectedDuration,
+        );
+        const durationSeconds = durationEntry?.seconds ?? 7 * 24 * 60 * 60;
+        expirationTimestampSeconds = getCurrentTimestamp() + durationSeconds;
+      }
 
       try {
         await dispatch(
@@ -181,7 +194,7 @@ export default function AddNoteForm({
         );
       }
     },
-    [dispatch, selectedDuration, selectedIntent, selectedPlusCode],
+    [dispatch, selectedDuration, customDate, selectedIntent, selectedPlusCode],
   );
 
   return (
@@ -265,13 +278,20 @@ export default function AddNoteForm({
       </View>
 
       {/* Duration chips — always visible */}
-      <View className="flex-row gap-1.5">
+      <View className="flex-row items-center gap-1.5">
+        <Text className="text-[10px] text-muted-foreground font-semibold tracking-wider uppercase">
+          Expires
+        </Text>
         {SIGNAL_DURATIONS.map((duration) => {
-          const isSelected = selectedDuration === duration.key;
+          const isSelected = !customDate && selectedDuration === duration.key;
           return (
             <Pressable
               key={duration.key}
-              onPress={() => setSelectedDuration(duration.key)}
+              onPress={() => {
+                setSelectedDuration(duration.key);
+                setCustomDate(null);
+                setShowDatePicker(false);
+              }}
               className={`rounded-full px-2.5 py-1 border ${
                 isSelected
                   ? "border-primary bg-primary/10"
@@ -288,7 +308,46 @@ export default function AddNoteForm({
             </Pressable>
           );
         })}
+        <Pressable
+          onPress={() => setShowDatePicker(!showDatePicker)}
+          className={`rounded-full px-2.5 py-1 border ${
+            customDate
+              ? "border-primary bg-primary/10"
+              : "border-border/50 bg-muted/20"
+          }`}
+        >
+          <Text
+            className={`text-[11px] font-medium ${
+              customDate ? "text-primary" : "text-muted-foreground"
+            }`}
+          >
+            {customDate
+              ? customDate.toLocaleDateString(undefined, {
+                  month: "short",
+                  day: "numeric",
+                })
+              : "Custom..."}
+          </Text>
+        </Pressable>
       </View>
+
+      {/* Date picker for custom expiry */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={customDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)}
+          mode="date"
+          display={Platform.OS === "ios" ? "inline" : "default"}
+          minimumDate={new Date(Date.now() + 24 * 60 * 60 * 1000)}
+          onChange={(_event, date) => {
+            if (Platform.OS === "android") {
+              setShowDatePicker(false);
+            }
+            if (date) {
+              setCustomDate(date);
+            }
+          }}
+        />
+      )}
     </View>
   );
 }

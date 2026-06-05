@@ -56,7 +56,7 @@ export default function AddNoteForm({
     null,
   );
   const [selectedDuration, setSelectedDuration] =
-    useState<SignalDuration>("few-days");
+    useState<SignalDuration>("1-week");
   const [optimisticNotes, setOptimisticNotes] = useState<OptimisticNote[]>([]);
 
   // When not in signal mode, intent is always null

@@ -59,3 +59,9 @@ export const SMTP_FROM = optional("SMTP_FROM", "support@trustroots.org");
  * to a real filesystem path in production.
  */
 export const DENO_KV_PATH = required("DENO_KV_PATH");
+
+/**
+ * Base URL for the iOS deep link (e.g. `nostroots://verify`).
+ * When unset the deep-link button is omitted from verification emails.
+ */
+export const DEEP_LINK_BASE: string | undefined = Deno.env.get("DEEP_LINK_BASE");

@@ -11,6 +11,7 @@ import type { Context } from "hono";
 import { VerifyTokenRequestSchema } from "../../schemas/tokenRequest.ts";
 import { TOKEN_EXPIRY_MS } from "../../schemas/tokenRequest.ts";
 import type { TokenRequest } from "../../schemas/tokenRequest.ts";
+import { DEEP_LINK_BASE } from "../config.ts";
 import { findUserByUsername } from "../db/mongodb.ts";
 import { getTokenRequest, createTokenRequest } from "../db/kv.ts";
 import { generateSixDigitCode, generateToken } from "../utils.ts";
@@ -64,15 +65,15 @@ export async function handleVerifyToken(c: Context): Promise<Response> {
 
   await createTokenRequest(tokenRequest);
 
-  const deepLinkBase =
-    Deno.env.get("DEEP_LINK_BASE") ?? "nostroots://verify";
   const expiryMinutes = TOKEN_EXPIRY_MS / 60000;
+  const deepLink = DEEP_LINK_BASE
+    ? `${DEEP_LINK_BASE}?token=${encodeURIComponent(token)}`
+    : undefined;
 
   const { subject, html } = buildVerificationEmail({
     code,
-    token,
-    deepLinkBase,
     expiryMinutes,
+    deepLink,
   });
 
   await sendEmail({ to: user.email, subject, html });

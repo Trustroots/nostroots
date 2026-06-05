@@ -8,12 +8,10 @@
 interface VerificationEmailParams {
   /** The six-digit verification code to display prominently. */
   code: string;
-  /** The UUID token embedded in the deep link URL. */
-  token: string;
-  /** Base URL for the iOS deep link (e.g. `nostroots://verify`). */
-  deepLinkBase: string;
-  /** Number of minutes before the code/token expires. */
+  /** Number of minutes before the code expires. */
   expiryMinutes: number;
+  /** Full deep-link URL. When absent the button is omitted from the email. */
+  deepLink?: string;
 }
 
 /**
@@ -21,10 +19,10 @@ interface VerificationEmailParams {
  *
  * The resulting email contains:
  * - A large, styled six-digit code for manual entry.
- * - A deep-link button that opens the nr-app iOS app directly.
+ * - Optionally, a deep-link button that opens the nr-app iOS app directly.
  * - An expiry notice.
  *
- * @param params - Code, token, deep-link base URL, and expiry duration.
+ * @param params - Code, expiry duration, and optional deep-link URL.
  * @returns An object with `subject` and `html` strings ready for
  *          {@link sendEmail}.
  */
@@ -32,10 +30,20 @@ export function buildVerificationEmail(params: VerificationEmailParams): {
   subject: string;
   html: string;
 } {
-  const { code, token, deepLinkBase, expiryMinutes } = params;
-  const deepLink = `${deepLinkBase}?token=${encodeURIComponent(token)}`;
+  const { code, expiryMinutes, deepLink } = params;
 
   const subject = `Your Nostroots verification code: ${code}`;
+
+  const deepLinkSection = deepLink
+    ? `<p style="margin:0 0 24px;color:#333333;font-size:16px;line-height:1.5;">
+                Or tap the button below to open the app directly:
+              </p>
+              <div style="text-align:center;margin:0 0 32px;">
+                <a href="${deepLink}" style="display:inline-block;background-color:#2d6a4f;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;padding:14px 32px;border-radius:8px;">
+                  Open Nostroots
+                </a>
+              </div>`
+    : "";
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -64,14 +72,7 @@ export function buildVerificationEmail(params: VerificationEmailParams): {
                   ${code}
                 </span>
               </div>
-              <p style="margin:0 0 24px;color:#333333;font-size:16px;line-height:1.5;">
-                Or tap the button below to open the app directly:
-              </p>
-              <div style="text-align:center;margin:0 0 32px;">
-                <a href="${deepLink}" style="display:inline-block;background-color:#2d6a4f;color:#ffffff;text-decoration:none;font-size:16px;font-weight:600;padding:14px 32px;border-radius:8px;">
-                  Open Nostroots
-                </a>
-              </div>
+              ${deepLinkSection}
               <p style="margin:0;color:#888888;font-size:13px;line-height:1.5;">
                 This code expires in ${expiryMinutes} minutes. If you didn't request this, you can safely ignore this email.
               </p>

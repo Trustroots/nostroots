@@ -11,7 +11,7 @@ const {
   getFirstLabelValueFromEvent,
 } = nrCommon;
 
-const METRICS_INTERVAL_MS = 10 * 60 * 1000;
+const METRICS_INTERVAL_MS = 1 * 60 * 1000;
 const METRICS_FETCH_LIMIT = 1000;
 const WORLD_D_TAG_VALUE = "world";
 const METRICS_EXPIRATION_SECONDS = 30 * 24 * 60 * 60;

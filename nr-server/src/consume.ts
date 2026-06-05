@@ -6,6 +6,7 @@ const {
   AMQP_RELAY_INGEST_QUEUE_NAME,
 } = nrCommon;
 import { getRelayPool } from "./relays.ts";
+import { startMessagesMetricsPublisher } from "./metrics/messages.ts";
 import { processEventFactoryFactory } from "./validation/repost.ts";
 import { log } from "./log.ts";
 
@@ -21,11 +22,13 @@ export async function consume(
   amqpUrl?: string,
 ) {
   const relayPool = await getRelayPool(isDev);
+  await startMessagesMetricsPublisher(relayPool, privateKey);
   const processEventFactory = processEventFactoryFactory(relayPool, privateKey);
 
-  const amqpUrlActual = typeof amqpUrl === "string" && amqpUrl.length > 0
-    ? amqpUrl
-    : EMPTY_AMQP_URL;
+  const amqpUrlActual =
+    typeof amqpUrl === "string" && amqpUrl.length > 0
+      ? amqpUrl
+      : EMPTY_AMQP_URL;
 
   if (amqpUrlActual === EMPTY_AMQP_URL) {
     log.debug(`#nxcSXE Using the empty AMQP url`);
@@ -84,9 +87,8 @@ export async function consume(
           const { event: unvalidatedEvent } = strfryMessage;
 
           // If this throws, then the `channel.ack()` below won't happen
-          const { success, data: event } = eventSchema.safeParse(
-            unvalidatedEvent,
-          );
+          const { success, data: event } =
+            eventSchema.safeParse(unvalidatedEvent);
 
           if (!success) {
             await ack();

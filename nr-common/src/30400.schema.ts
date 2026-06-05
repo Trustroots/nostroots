@@ -107,9 +107,7 @@ export const kind30400EventSchema = baseEventSchema
       }
 
       const requiresNonNegativeInt =
-        metricsType === "push-subscriptions" ||
-        metricsType === "messages-single" ||
-        metricsType === "messages-total";
+        metricsType === "push-subscriptions" || metricsType === "messages";
       if (requiresNonNegativeInt) {
         const isNonNegativeInteger =
           typeof value === "number" && Number.isInteger(value) && value >= 0;

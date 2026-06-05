@@ -8,8 +8,9 @@
   },
   "imports": {
     "@faker-js/faker": "npm:@faker-js/faker@^10.4.0",
+    "@upyo/core": "jsr:@upyo/core@^0.4.0",
+    "@upyo/smtp": "jsr:@upyo/smtp@^0.4.0",
     "hono": "jsr:@hono/hono",
-    "denomailer": "https://deno.land/x/denomailer/mod.ts",
     "zod": "npm:zod@^3.25.76",
     "mongodb": "npm:mongodb@^6"
   }

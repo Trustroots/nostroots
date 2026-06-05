@@ -1,9 +1,10 @@
 /**
  * @module send
  *
- * SMTP email delivery via denomailer. Configuration is read from config.ts.
+ * SMTP email delivery via upyo. Configuration is read from config.ts.
  */
-import { SMTPClient } from "denomailer";
+import { createMessage } from "@upyo/core";
+import { SmtpTransport } from "@upyo/smtp";
 import {
   SMTP_FROM,
   SMTP_HOST,
@@ -22,28 +23,25 @@ export interface EmailOptions {
   html: string;
 }
 
-let smtpClient: SMTPClient | null = null;
+let transport: SmtpTransport | null = null;
 
-function getSmtpClient(): SMTPClient {
-  if (smtpClient) return smtpClient;
+function getTransport(): SmtpTransport {
+  if (transport) return transport;
 
   if ((SMTP_USER && !SMTP_PASS) || (!SMTP_USER && SMTP_PASS)) {
     throw new Error("SMTP_USER and SMTP_PASS must be provided together");
   }
 
-  smtpClient = new SMTPClient({
-    connection: {
-      hostname: SMTP_HOST,
-      port: SMTP_PORT,
-      tls: SMTP_PORT === 465,
-      ...(SMTP_USER && SMTP_PASS
-        ? { auth: { username: SMTP_USER, password: SMTP_PASS } }
-        : {}),
-    },
-
+  transport = new SmtpTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,
+    ...(SMTP_USER && SMTP_PASS
+      ? { auth: { user: SMTP_USER, pass: SMTP_PASS } }
+      : {}),
   });
 
-  return smtpClient;
+  return transport;
 }
 
 /**
@@ -52,23 +50,22 @@ function getSmtpClient(): SMTPClient {
  * @param options - Recipient, subject, and HTML body.
  */
 export async function sendEmail(options: EmailOptions): Promise<void> {
-  const client = getSmtpClient();
-
-  await client.send({
+  const message = createMessage({
     from: SMTP_FROM,
     to: options.to,
     subject: options.subject,
-    html: options.html,
+    content: { html: options.html },
   });
+  await getTransport().send(message);
 }
 
 /**
- * Close the shared SMTP client and reset internal state. Safe to call even if
- * no client has been created.
+ * Close all pooled SMTP connections and reset internal state. Safe to call
+ * even if no transport has been created.
  */
 export async function closeSmtpClient(): Promise<void> {
-  if (smtpClient) {
-    await smtpClient.close();
-    smtpClient = null;
+  if (transport) {
+    await transport.closeAllConnections();
+    transport = null;
   }
 }

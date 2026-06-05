@@ -19,7 +19,7 @@ import {
 import { mapRefService } from "@/utils/mapRef";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import MapView, { Details, Polygon, Region } from "react-native-maps";
+import MapView, { Polygon, Region } from "react-native-maps";
 // @ts-ignore
 import { getCurrentLocation } from "@/utils/location";
 import { FontAwesome } from "@expo/vector-icons";
@@ -169,8 +169,7 @@ export default function MapPlusCodes() {
 
   const handleMapRegionChange = useMemo(
     () =>
-      function handleMapRegionChangeHandler(region: Region, details: Details) {
-        __DEV__ && console.log("#rIMmxg Map move completed", region, details);
+      function handleMapRegionChangeHandler(region: Region) {
         const boundingBox = regionToBoundingBox(region);
         dispatch(mapActions.setBoundingBox(boundingBox));
         const visiblePlusCodes = allPlusCodesForRegion(region);

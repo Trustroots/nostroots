@@ -1,42 +1,73 @@
 /**
  * @module mongodb
  *
- * MongoDB client and query helpers for the Trustroots `users` collection.
+ * Lazily-initialised MongoDB client and query helpers for the Trustroots
+ * `users` collection.
  *
- * The shared {@link MongoClient} is constructed at module load. Connections
- * are established lazily by the driver on the first query.
+ * Connection is configured via the `MONGODB_URI` environment variable
+ * (defaults to `mongodb://mongodb:27017/trustroots-dev`).
  */
-import { type Collection, MongoClient } from "mongodb";
-import { MONGODB_DB_NAME, MONGODB_URI } from "../config.ts";
+import { MongoClient, type Db, type Collection } from "mongodb";
 
-const mongoClient = new MongoClient(MONGODB_URI);
-const usersCollection: Collection = mongoClient
-  .db(MONGODB_DB_NAME)
-  .collection("users");
+let client: MongoClient | null = null;
+let db: Db | null = null;
+
+/**
+ * Return a connected {@link MongoClient}, creating one on the first call.
+ *
+ * @returns The shared MongoClient instance.
+ */
+export async function getMongoClient(): Promise<MongoClient> {
+  if (client) return client;
+  const uri =
+    Deno.env.get("MONGODB_URI") ?? "mongodb://mongodb:27017/trustroots-dev";
+  client = new MongoClient(uri);
+  await client.connect();
+  return client;
+}
+
+/**
+ * Return the application {@link Db} handle, deriving the database name from
+ * `MONGODB_URI`.
+ *
+ * @returns The Mongo database instance.
+ */
+export async function getDb(): Promise<Db> {
+  if (db) return db;
+  const c = await getMongoClient();
+  const uri =
+    Deno.env.get("MONGODB_URI") ?? "mongodb://mongodb:27017/trustroots-dev";
+  const dbName = new URL(uri).pathname.slice(1) || "trustroots-dev";
+  db = c.db(dbName);
+  return db;
+}
+
+/**
+ * Convenience accessor for the `users` collection.
+ *
+ * @returns A promise resolving to the `users` {@link Collection}.
+ */
+export function getUsersCollection(): Promise<Collection> {
+  return getDb().then((d) => d.collection("users"));
+}
 
 /**
  * Look up a Trustroots user by their username.
  *
  * @param username - Case-insensitive Trustroots username.
- * @returns The user's stringified Mongo `_id` (as `id`), `email`, `username`,
- *          and optional `nostrNpub`, or `null` if no matching user exists.
- *          The returned `id` is the canonical user identifier — stable across
- *          username changes and the same regardless of whether the user was
- *          looked up by username or (in the future) by email. It is the
- *          correct key for per-user rate limiting.
+ * @returns The user's `email`, `username`, and optional `nostrNpub`, or `null`
+ *          if no matching user exists.
  */
 export async function findUserByUsername(
   username: string,
-): Promise<
-  { id: string; email: string; username: string; nostrNpub?: string } | null
-> {
-  const user = await usersCollection.findOne(
+): Promise<{ email: string; username: string; nostrNpub?: string } | null> {
+  const users = await getUsersCollection();
+  const user = await users.findOne(
     { username: username.toLowerCase() },
-    { projection: { _id: 1, email: 1, username: 1, nostrNpub: 1 } },
+    { projection: { email: 1, username: 1, nostrNpub: 1 } },
   );
   if (!user) return null;
   return {
-    id: user._id.toString(),
     email: user.email as string,
     username: user.username as string,
     nostrNpub: (user.nostrNpub as string) ?? undefined,
@@ -55,9 +86,22 @@ export async function setNpubForUsername(
   username: string,
   npub: string,
 ): Promise<boolean> {
-  const result = await usersCollection.updateOne(
+  const users = await getUsersCollection();
+  const result = await users.updateOne(
     { username: username.toLowerCase() },
     { $set: { nostrNpub: npub, updated: new Date() } },
   );
   return result.modifiedCount === 1;
+}
+
+/**
+ * Close the shared MongoDB client and reset internal state. Safe to call even
+ * if no client has been created.
+ */
+export async function closeMongoClient(): Promise<void> {
+  if (client) {
+    await client.close();
+    client = null;
+    db = null;
+  }
 }

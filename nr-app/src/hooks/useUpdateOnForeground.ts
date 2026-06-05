@@ -18,7 +18,7 @@ export function useUpdateOnForeground() {
             }, 5000);
           }
         } catch (e) {
-          console.log("Update check failed:", e);
+          console.warn("Update check failed:", e);
         }
       }
     });

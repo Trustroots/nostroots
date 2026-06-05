@@ -43,8 +43,6 @@ export default function NotesList({
   );
   const pushSubscriptions = metricsForPlusCode?.["push-subscriptions"] ?? 0;
 
-  // console.log("#Lz8K48 selectedEventId", selectedEventId);
-
   return (
     <>
       <Text className="text-gray-800 bg-amber-50 p-3 rounded-lg border-l-4 border-amber-500">

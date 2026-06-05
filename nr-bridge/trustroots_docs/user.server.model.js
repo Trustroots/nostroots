@@ -1,18 +1,14 @@
 /**
  * Module dependencies.
  */
-const _ = require("lodash");
-const textService = require(
-  "../../../core/server/services/text.server.service",
-);
-const languages = require("../../../../config/languages/languages.json");
-const authenticationService = require(
-  "../services/authentication.server.service",
-);
-const crypto = require("crypto");
-const mongoose = require("mongoose");
-const uniqueValidation = require("mongoose-beautiful-unique-validation");
-const validator = require("validator");
+const _ = require('lodash');
+const textService = require('../../../core/server/services/text.server.service');
+const languages = require('../../../../config/languages/languages.json');
+const authenticationService = require('../services/authentication.server.service');
+const crypto = require('crypto');
+const mongoose = require('mongoose');
+const uniqueValidation = require('mongoose-beautiful-unique-validation');
+const validator = require('validator');
 const Schema = mongoose.Schema;
 
 const passwordMinLength = 8;
@@ -21,7 +17,7 @@ const passwordMinLength = 8;
  * A Validation function for local strategy properties
  */
 const validateLocalStrategyProperty = function (property) {
-  return (this.provider !== "local" && !this.updated) || property.length;
+  return (this.provider !== 'local' && !this.updated) || property.length;
 };
 
 /**
@@ -29,7 +25,7 @@ const validateLocalStrategyProperty = function (property) {
  */
 const validateLocalStrategyEmail = function (email) {
   return (
-    (this.provider !== "local" && !this.updated) || validator.isEmail(email)
+    (this.provider !== 'local' && !this.updated) || validator.isEmail(email)
   );
 };
 
@@ -45,7 +41,7 @@ const validatePassword = function (password) {
  */
 const validateUsername = function (username) {
   return (
-    this.provider !== "local" ||
+    this.provider !== 'local' ||
     authenticationService.validateUsername(username)
   );
 };
@@ -69,7 +65,7 @@ const UserMemberSchema = new Schema(
   {
     tribe: {
       type: Schema.Types.ObjectId,
-      ref: "Tribe",
+      ref: 'Tribe',
       required: true,
     },
     since: {
@@ -89,7 +85,7 @@ const UserPushRegistrationSchema = new Schema(
     platform: {
       type: String,
       // android, ios, web → Firebase; expo → Exponent
-      enum: ["android", "ios", "web", "expo"],
+      enum: ['android', 'ios', 'web', 'expo'],
       required: true,
     },
     token: {
@@ -118,14 +114,14 @@ const UserSchema = new Schema({
     required: true,
     validate: [
       validateLocalStrategyProperty,
-      "Please fill in your first name.",
+      'Please fill in your first name.',
     ],
     set: setPlainTextField,
   },
   lastName: {
     type: String,
     required: true,
-    validate: [validateLocalStrategyProperty, "Please fill in your last name."],
+    validate: [validateLocalStrategyProperty, 'Please fill in your last name.'],
     set: setPlainTextField,
   },
   /* This is generated in Schema pre-save hook below */
@@ -135,12 +131,12 @@ const UserSchema = new Schema({
   email: {
     type: String,
     trim: true,
-    unique: "Account with this email exists already.",
+    unique: 'Account with this email exists already.',
     lowercase: true,
     required: true,
     validate: [
       validateLocalStrategyEmail,
-      "Please fill a valid email address.",
+      'Please fill a valid email address.',
     ],
   },
   /* New email is stored here until it is confirmed */
@@ -148,17 +144,17 @@ const UserSchema = new Schema({
     type: String,
     trim: true,
     lowercase: true,
-    default: "",
-    match: [/.+@.+\..+/, "Please enter a valid email address."],
+    default: '',
+    match: [/.+@.+\..+/, 'Please enter a valid email address.'],
   },
   tagline: {
     type: String,
-    default: "",
+    default: '',
     set: setPlainTextField,
   },
   description: {
     type: String,
-    default: "",
+    default: '',
     set: textService.html,
   },
   birthdate: {
@@ -166,8 +162,8 @@ const UserSchema = new Schema({
   },
   gender: {
     type: String,
-    enum: ["", "female", "male", "non-binary", "other"],
-    default: "",
+    enum: ['', 'female', 'male', 'non-binary', 'other'],
+    default: '',
   },
   languages: {
     type: [
@@ -189,7 +185,7 @@ const UserSchema = new Schema({
   // Lowercase enforced username
   username: {
     type: String,
-    unique: "Username exists already.",
+    unique: 'Username exists already.',
     required: true,
     validate: [
       validateUsername,
@@ -233,10 +229,10 @@ const UserSchema = new Schema({
   },
   password: {
     type: String,
-    default: "",
+    default: '',
     validate: [
       validatePassword,
-      "Password should be more than " + passwordMinLength + " characters long.",
+      'Password should be more than ' + passwordMinLength + ' characters long.',
     ],
   },
   emailHash: {
@@ -250,7 +246,7 @@ const UserSchema = new Schema({
   provider: {
     type: String,
     required: true,
-    default: "local",
+    default: 'local',
   },
   /* Facebook, Twitter etc data is stored here. */
   providerData: {},
@@ -260,17 +256,17 @@ const UserSchema = new Schema({
       {
         type: String,
         enum: [
-          "admin",
-          "moderator",
-          "shadowban",
-          "suspended",
-          "user",
-          "volunteer-alumni",
-          "volunteer",
+          'admin',
+          'moderator',
+          'shadowban',
+          'suspended',
+          'user',
+          'volunteer-alumni',
+          'volunteer',
         ],
       },
     ],
-    default: ["user"],
+    default: ['user'],
   },
   /* The last time the user was logged in; collected from July 2017 onwards */
   seen: {
@@ -285,8 +281,8 @@ const UserSchema = new Schema({
   },
   avatarSource: {
     type: String,
-    enum: ["none", "gravatar", "facebook", "local"],
-    default: "gravatar",
+    enum: ['none', 'gravatar', 'facebook', 'local'],
+    default: 'gravatar',
   },
   avatarUploaded: {
     type: Boolean,
@@ -299,7 +295,7 @@ const UserSchema = new Schema({
   /* Preferred interface language (client, emails, ...) */
   locale: {
     type: String,
-    default: "",
+    default: '',
   },
   passwordUpdated: {
     type: Date,
@@ -356,12 +352,12 @@ const UserSchema = new Schema({
   },
   blocked: {
     type: [Schema.Types.ObjectId],
-    ref: "User",
+    ref: 'User',
     default: [],
   },
   acquisitionStory: {
     type: String,
-    default: "",
+    default: '',
     set: setPlainTextFieldAndLimit(500),
   },
 });
@@ -369,27 +365,27 @@ const UserSchema = new Schema({
 /**
  * Hook a pre save method to hash the password
  */
-UserSchema.pre("save", function (next) {
+UserSchema.pre('save', function (next) {
   if (
     this.password &&
-    this.isModified("password") &&
+    this.isModified('password') &&
     this.password.length >= passwordMinLength
   ) {
-    this.salt = crypto.randomBytes(16).toString("base64");
+    this.salt = crypto.randomBytes(16).toString('base64');
     this.password = this.hashPassword(this.password);
   }
 
   // Pre-cached email hash to use with Gravatar
-  if (this.email && this.isModified("email") && this.email !== "") {
+  if (this.email && this.isModified('email') && this.email !== '') {
     this.emailHash = crypto
-      .createHash("md5")
+      .createHash('md5')
       .update(this.email.trim().toLowerCase())
-      .digest("hex");
+      .digest('hex');
   }
 
   // Generate `displayName`
-  if (this.isModified("firstName") || this.isModified("lastName")) {
-    this.displayName = this.firstName + " " + this.lastName;
+  if (this.isModified('firstName') || this.isModified('lastName')) {
+    this.displayName = this.firstName + ' ' + this.lastName;
   }
 
   next();
@@ -401,8 +397,8 @@ UserSchema.pre("save", function (next) {
 UserSchema.methods.hashPassword = function (password) {
   if (this.salt && password) {
     return crypto
-      .pbkdf2Sync(password, Buffer.from(this.salt, "base64"), 10000, 64, "SHA1")
-      .toString("base64");
+      .pbkdf2Sync(password, Buffer.from(this.salt, 'base64'), 10000, 64, 'SHA1')
+      .toString('base64');
   } else {
     return password;
   }
@@ -421,6 +417,6 @@ UserSchema.methods.authenticate = function (password) {
  */
 UserSchema.plugin(uniqueValidation);
 
-UserSchema.index({ username: "text", firstName: "text", lastName: "text" });
+UserSchema.index({ username: 'text', firstName: 'text', lastName: 'text' });
 
-mongoose.model("User", UserSchema);
+mongoose.model('User', UserSchema);

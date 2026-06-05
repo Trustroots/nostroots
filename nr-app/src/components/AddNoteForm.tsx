@@ -114,16 +114,6 @@ export default function AddNoteForm() {
         const expirationTimestampSeconds =
           getCurrentTimestamp() + parseInt(noteExpiry);
 
-        __DEV__ &&
-          console.log(
-            "#XmGopY handleNoteAdd()",
-            noteContent,
-            "at",
-            selectedPlusCode,
-            expirationTimestampSeconds,
-            noteExpiry,
-          );
-
         try {
           // time out after 5s
           const timeout = setTimeout(() => {

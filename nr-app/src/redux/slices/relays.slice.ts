@@ -88,14 +88,14 @@ export const relaysSlice = createSlice({
       const subscription = state.subscriptions[id];
       if (typeof subscription === "undefined") {
         if (__DEV__)
-          console.log(
+          console.warn(
             "Unable to set hasSeenEOSE on invalid subscription ID #AQ4WZB",
           );
       } else {
         const relayStatus = subscription.relaysStatus[relayUrl];
         if (typeof relayStatus === "undefined") {
           if (__DEV__)
-            console.log(
+            console.warn(
               "Unable to set hasSeenEOSE on invalid relay URL #WFAGJN",
             );
         }

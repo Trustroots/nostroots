@@ -1,7 +1,7 @@
 services:
   app:
     build:
-      context: .
+      context: ..
       dockerfile: Dockerfile.app
     volumes:
       - ../..:/app:cached
@@ -12,14 +12,20 @@ services:
         condition: service_healthy
     environment:
       MONGODB_URI: mongodb://mongodb:27017/trustroots-dev
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: "1025"
+      SMTP_FROM: noreply@nostroots.local
+      EXPO_USE_METRO_WORKSPACE_ROOT: "1"
+      EXPO_NO_DOTENV: "1"
 
   mongodb:
     build:
       context: .
       dockerfile: Dockerfile.mongodb
+    environment:
+      MONGO_INITDB_DATABASE: trustroots-dev
     volumes:
       - mongodb-data:/data/db
-      - ../../nr-bridge/trustroots_docs/trustroots-dev.archive:/archive/trustroots-dev.archive:ro
     ports:
       - "27017:27017"
     healthcheck:

@@ -1,76 +1,77 @@
 import { expect } from "jsr:@std/expect";
 import {
-  RequestTokenBodySchema,
-  VerifyCodeBodySchema,
-} from "@trustroots/nr-common";
-import { PendingVerificationSchema } from "../../schemas/pendingVerification.ts";
+  VerifyTokenRequestSchema,
+  AuthenticateRequestSchema,
+  TokenRequestSchema,
+} from "../../schemas/tokenRequest.ts";
 
-Deno.test("#sch1 RequestTokenBodySchema accepts valid username", () => {
-  const result = RequestTokenBodySchema.safeParse({ username: "alice" });
+Deno.test("#sch1 VerifyTokenRequestSchema accepts valid username", () => {
+  const result = VerifyTokenRequestSchema.safeParse({ username: "alice" });
   expect(result.success).toBe(true);
 });
 
-Deno.test("#sch2 RequestTokenBodySchema rejects empty username", () => {
-  const result = RequestTokenBodySchema.safeParse({ username: "" });
+Deno.test("#sch2 VerifyTokenRequestSchema rejects empty username", () => {
+  const result = VerifyTokenRequestSchema.safeParse({ username: "" });
   expect(result.success).toBe(false);
 });
 
-Deno.test("#sch3 RequestTokenBodySchema rejects missing username", () => {
-  const result = RequestTokenBodySchema.safeParse({});
+Deno.test("#sch3 VerifyTokenRequestSchema rejects missing username", () => {
+  const result = VerifyTokenRequestSchema.safeParse({});
   expect(result.success).toBe(false);
 });
 
-Deno.test("#sch4 VerifyCodeBodySchema accepts valid token, code, npub", () => {
-  const result = VerifyCodeBodySchema.safeParse({
+Deno.test("#sch4 AuthenticateRequestSchema accepts valid code request", () => {
+  const result = AuthenticateRequestSchema.safeParse({
+    username: "alice",
     npub: "npub1abc123",
-    token: "550e8400-e29b-41d4-a716-446655440000",
     code: "123456",
   });
   expect(result.success).toBe(true);
 });
 
-Deno.test("#sch5 VerifyCodeBodySchema rejects missing code", () => {
-  const result = VerifyCodeBodySchema.safeParse({
+Deno.test("#sch5 AuthenticateRequestSchema accepts valid token request", () => {
+  const result = AuthenticateRequestSchema.safeParse({
+    username: "alice",
     npub: "npub1abc123",
     token: "550e8400-e29b-41d4-a716-446655440000",
   });
-  expect(result.success).toBe(false);
+  expect(result.success).toBe(true);
 });
 
-Deno.test("#sch6 VerifyCodeBodySchema rejects missing token", () => {
-  const result = VerifyCodeBodySchema.safeParse({
+Deno.test("#sch6 AuthenticateRequestSchema rejects missing code and token", () => {
+  const result = AuthenticateRequestSchema.safeParse({
+    username: "alice",
     npub: "npub1abc123",
-    code: "123456",
   });
   expect(result.success).toBe(false);
 });
 
-Deno.test("#sch7 VerifyCodeBodySchema rejects invalid npub", () => {
-  const result = VerifyCodeBodySchema.safeParse({
+Deno.test("#sch7 AuthenticateRequestSchema rejects invalid npub", () => {
+  const result = AuthenticateRequestSchema.safeParse({
+    username: "alice",
     npub: "nsec1secret",
-    token: "550e8400-e29b-41d4-a716-446655440000",
     code: "123456",
   });
   expect(result.success).toBe(false);
 });
 
-Deno.test("#sch8 VerifyCodeBodySchema rejects invalid code format", () => {
-  const result = VerifyCodeBodySchema.safeParse({
+Deno.test("#sch8 AuthenticateRequestSchema rejects invalid code format", () => {
+  const result = AuthenticateRequestSchema.safeParse({
+    username: "alice",
     npub: "npub1abc123",
-    token: "550e8400-e29b-41d4-a716-446655440000",
     code: "12345",
   });
   expect(result.success).toBe(false);
 });
 
-Deno.test("#sch9 PendingVerificationSchema validates a full record", () => {
+Deno.test("#sch9 TokenRequestSchema validates a full token request", () => {
   const now = Date.now();
-  const result = PendingVerificationSchema.safeParse({
+  const result = TokenRequestSchema.safeParse({
     id: "550e8400-e29b-41d4-a716-446655440000",
     username: "alice",
     email: "alice@example.com",
-    token: "660e8400-e29b-41d4-a716-446655440000",
     code: "123456",
+    token: "660e8400-e29b-41d4-a716-446655440000",
     createdAt: now,
     expiresAt: now + 900000,
   });

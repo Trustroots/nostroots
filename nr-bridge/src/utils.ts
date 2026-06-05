@@ -20,8 +20,7 @@ export function generateSixDigitCode(): string {
 }
 
 /**
- * Generate a random UUID v4 token used as the KV lookup key for a pending
- * verification.
+ * Generate a random UUID v4 token suitable for use in deep-link URLs.
  *
  * @returns A UUID v4 string, e.g. `"550e8400-e29b-41d4-a716-446655440000"`.
  */

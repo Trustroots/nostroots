@@ -1,3 +1,4 @@
+import * as amqp from "@nashaddams/amqp";
 import { config, ServiceConfig } from "./config.ts";
 import { log } from "./log.ts";
 
@@ -12,9 +13,45 @@ export interface ServiceResult {
 const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 2000;
 
+async function checkAmqpServiceOnce(
+  service: ServiceConfig,
+): Promise<ServiceResult> {
+  const url = URL.parse(service.url);
+  if (!url) {
+    return { name: service.name, status: "error", error: "Invalid AMQP URL" };
+  }
+
+  const connectPromise = (async () => {
+    const connection = await amqp.connect({
+      hostname: url.hostname,
+      port: parseInt(url.port || "5672", 10),
+      username: url.username || "guest",
+      password: url.password || "guest",
+    });
+    await connection.close();
+    return { name: service.name, status: "ok" as const };
+  })();
+
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("Timeout")), config.healthCheckTimeoutMs)
+  );
+
+  try {
+    return await Promise.race([connectPromise, timeoutPromise]);
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    log.warn(`#hC4mS2 ${service.name} failed: ${error}`);
+    return { name: service.name, status: "error", error };
+  }
+}
+
 async function checkServiceOnce(
   service: ServiceConfig,
 ): Promise<ServiceResult> {
+  if (new URL(service.url).protocol === "amqp:") {
+    return checkAmqpServiceOnce(service);
+  }
+
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),

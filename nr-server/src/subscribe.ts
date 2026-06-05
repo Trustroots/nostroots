@@ -37,7 +37,10 @@ export async function subscribeAndRepost(
   log.debug(`#BmseJH Startup`);
 
   const relayPool = await getRelayPool(isDev);
-  await startMessagesMetricsPublisher(relayPool, privateKey);
+  // Start metrics publisher in background without blocking server startup
+  startMessagesMetricsPublisher(relayPool, privateKey).catch((error) => {
+    log.error("#5Kz9Lm Failed to start metrics publisher", error);
+  });
 
   let lastReceivedMessageTimestamp = 0;
   let controller: AbortController;

@@ -23,6 +23,7 @@ async function fetchMessageCounts(
 ): Promise<MessageCounts> {
   const counts: MessageCounts = {};
   let until: number | undefined = Math.floor(Date.now() / 1000);
+  const SUBSCRIPTION_TIMEOUT_MS = 30 * 1000; // 30 second timeout per page
 
   while (true) {
     const filter: nostrify.NostrFilter = {
@@ -35,12 +36,38 @@ async function fetchMessageCounts(
     const subscription = relayPool.req([filter]);
     const pageEvents: nostrify.NostrEvent[] = [];
 
-    for await (const msg of subscription) {
-      if (msg[0] !== "EVENT") {
-        continue;
-      }
+    try {
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(
+          () =>
+            reject(
+              new Error(
+                `#Kx8vQw Metrics subscription timeout after ${SUBSCRIPTION_TIMEOUT_MS}ms`,
+              ),
+            ),
+          SUBSCRIPTION_TIMEOUT_MS,
+        );
+      });
 
-      pageEvents.push(msg[2]);
+      await Promise.race([
+        (async () => {
+          for await (const msg of subscription) {
+            if (msg[0] !== "EVENT") {
+              continue;
+            }
+
+            pageEvents.push(msg[2]);
+          }
+        })(),
+        timeoutPromise,
+      ]);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("timeout")) {
+        log.warn(`#Kx8vQx Metrics fetch timed out, using partial results`);
+        // Continue with partial results
+      } else {
+        throw error;
+      }
     }
 
     if (pageEvents.length === 0) {

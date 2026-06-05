@@ -1,5 +1,6 @@
 import {
   NOSTROOTS_METRICS_KIND,
+  NOSTROOTS_METRICS_TYPE_PUSH_SUBSCRIPTIONS,
   NOSTROOTS_METRICS_TYPE_TAG_NAME,
   NOSTR_EXPIRATION_TAG_NAME,
   isPlusCode,
@@ -66,7 +67,10 @@ async function publishPushSubscriptionMetrics(
       kind: NOSTROOTS_METRICS_KIND,
       created_at: createdAt,
       tags: [
-        [NOSTROOTS_METRICS_TYPE_TAG_NAME, "push-subscriptions"],
+        [
+          NOSTROOTS_METRICS_TYPE_TAG_NAME,
+          NOSTROOTS_METRICS_TYPE_PUSH_SUBSCRIPTIONS,
+        ],
         ["d", WORLD_D_TAG_VALUE],
         [NOSTR_EXPIRATION_TAG_NAME, expiration],
       ],

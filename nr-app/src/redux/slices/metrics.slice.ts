@@ -1,7 +1,10 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { Event, isPlusCodeInsidePlusCode } from "@trustroots/nr-common";
-
-const PUSH_SUBSCRIPTIONS_METRIC_TYPE = "push-subscriptions" as const;
+import {
+  Event,
+  isPlusCodeInsidePlusCode,
+  NOSTROOTS_METRICS_TYPE_MESSAGES,
+  NOSTROOTS_METRICS_TYPE_PUSH_SUBSCRIPTIONS,
+} from "@trustroots/nr-common";
 
 export type MetricsState = {
   // Shape: { [pluscode]: { [metricType]: value, ... }, ... }
@@ -61,7 +64,25 @@ export const metricsSlice = createSlice({
         if (!isPlusCodeInsidePlusCode(metricPlusCode, plusCode)) {
           continue;
         }
-        total += metricValues[PUSH_SUBSCRIPTIONS_METRIC_TYPE] ?? 0;
+        total += metricValues[NOSTROOTS_METRICS_TYPE_PUSH_SUBSCRIPTIONS] ?? 0;
+      }
+
+      return total;
+    },
+    selectMessagesMetricByPlusCode: (state, plusCode: string) => {
+      if (!state.metrics) {
+        return 0;
+      }
+
+      let total = 0;
+      for (const [metricPlusCode, metricValues] of Object.entries(
+        state.metrics,
+      )) {
+        if (!isPlusCodeInsidePlusCode(plusCode, metricPlusCode)) {
+          continue;
+        }
+
+        total += metricValues[NOSTROOTS_METRICS_TYPE_MESSAGES] ?? 0;
       }
 
       return total;

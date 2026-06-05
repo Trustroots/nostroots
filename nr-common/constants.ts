@@ -33,9 +33,12 @@ export const ACCEPTED_KINDS = [
 ];
 
 export const NOSTROOTS_METRICS_TYPE_TAG_NAME = "t" as const;
+export const NOSTROOTS_METRICS_TYPE_PUSH_SUBSCRIPTIONS =
+  "push-subscriptions" as const;
+export const NOSTROOTS_METRICS_TYPE_MESSAGES = "messages" as const;
 export const NOSTROOTS_METRICS_SUPPORTED_TYPES = [
-  "push-subscriptions",
-  "messages",
+  NOSTROOTS_METRICS_TYPE_PUSH_SUBSCRIPTIONS,
+  NOSTROOTS_METRICS_TYPE_MESSAGES,
 ] as const;
 
 export const SERVER_MESSAGE_TYPE_TAG_NAME = "serverMessageType" as const;

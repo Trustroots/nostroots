@@ -4,6 +4,7 @@ import { log } from "../log.ts";
 const {
   MAP_NOTE_REPOST_KIND,
   NOSTROOTS_METRICS_KIND,
+  NOSTROOTS_METRICS_TYPE_MESSAGES,
   NOSTROOTS_METRICS_TYPE_TAG_NAME,
   NOSTR_EXPIRATION_TAG_NAME,
   OPEN_LOCATION_CODE_TAG_NAME,
@@ -123,7 +124,7 @@ async function publishMessagesMetrics(
     kind: NOSTROOTS_METRICS_KIND,
     created_at: createdAt,
     tags: [
-      [NOSTROOTS_METRICS_TYPE_TAG_NAME, "messages"],
+      [NOSTROOTS_METRICS_TYPE_TAG_NAME, NOSTROOTS_METRICS_TYPE_MESSAGES],
       ["d", WORLD_D_TAG_VALUE],
       [NOSTR_EXPIRATION_TAG_NAME, expiration],
     ],

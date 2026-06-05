@@ -1,8 +1,9 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Clipboard from "expo-clipboard";
 import { ShieldCheckIcon } from "lucide-react-native";
-import { nip19 } from "nostr-tools";
 import React, { useEffect, useState } from "react";
 import { TextInput, View } from "react-native";
+import Toast from "react-native-root-toast";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -13,6 +14,8 @@ import {
   getPrivateKeyHexFromSecureStorage,
   getPrivateKeyMnemonicFromSecureStorage,
 } from "@/nostr/keystore.nostr";
+import { useAppSelector } from "@/redux/hooks";
+import { settingsSelectors } from "@/redux/slices/settings.slice";
 import { getBech32PrivateKey } from "nip06";
 
 async function verifyBackupInput(rawInput: string): Promise<boolean> {
@@ -73,12 +76,15 @@ async function verifyBackupInput(rawInput: string): Promise<boolean> {
 
 export default function OnboardingBackupConfirmScreen() {
   const router = useRouter();
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const keyWasImported = useAppSelector(settingsSelectors.selectKeyWasImported);
 
   const [input, setInput] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
+  const [storedSecret, setStoredSecret] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +101,22 @@ export default function OnboardingBackupConfirmScreen() {
             setSetupError(
               "We could not find your key on this device. Please restart onboarding.",
             );
+          }
+        } else if (!keyWasImported) {
+          let secret: string | null = null;
+
+          if (hasMnemonic) {
+            secret = await getPrivateKeyMnemonicFromSecureStorage();
+          } else if (hasHex) {
+            const privateKey = await getPrivateKeyHexFromSecureStorage();
+            const { bech32PrivateKey: nsec } = getBech32PrivateKey({
+              privateKey,
+            });
+            secret = nsec;
+          }
+
+          if (!cancelled) {
+            setStoredSecret(secret);
           }
         }
       } catch {
@@ -113,7 +135,7 @@ export default function OnboardingBackupConfirmScreen() {
       setError(null);
       setSuccess(false);
     };
-  }, []);
+  }, [keyWasImported]);
 
   const handleConfirm = async () => {
     if (setupError) return;
@@ -156,7 +178,23 @@ export default function OnboardingBackupConfirmScreen() {
     setInput("");
     setError(null);
     setSuccess(false);
-    router.dismissTo("/onboarding/key");
+    router.dismissTo(
+      from === "bridge" ? "/onboarding/trustroots" : "/onboarding/key",
+    );
+  };
+
+  const handleCopySecret = async () => {
+    if (!storedSecret) return;
+
+    try {
+      await Clipboard.setStringAsync(storedSecret);
+      Toast.show("Copied secret to Clipboard!", {
+        duration: Toast.durations.SHORT,
+        position: Toast.positions.BOTTOM,
+      });
+    } catch (error) {
+      console.error("Failed to copy secret", error);
+    }
   };
 
   const isConfirmDisabled =
@@ -181,6 +219,26 @@ export default function OnboardingBackupConfirmScreen() {
           it safely.
         </Text>
       </View>
+
+      {storedSecret && (
+        <View className="w-full gap-2 bg-card rounded-lg p-3">
+          <Text className="text-sm font-bold text-foreground text-left">
+            Save this secret before continuing
+          </Text>
+          <Text
+            className="text-sm bg-muted text-foreground rounded-md p-3 text-left"
+            selectable
+          >
+            {storedSecret}
+          </Text>
+          <Button
+            variant="outline"
+            size="sm"
+            title="Copy secret"
+            onPress={handleCopySecret}
+          />
+        </View>
+      )}
 
       <View className="w-full gap-2">
         <TextInput

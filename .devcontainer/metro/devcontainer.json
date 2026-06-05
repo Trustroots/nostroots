@@ -1,6 +1,9 @@
 {
   "name": "Nostroots Metro",
-  "image": "node:24.14.1",
+  "build": {
+    "context": "..",
+    "dockerfile": "../Dockerfile.app"
+  },
   "workspaceFolder": "/app",
   "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
   "forwardPorts": [8081],

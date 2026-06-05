@@ -14,6 +14,8 @@ type SettingsState = {
   colorScheme: ColorSchemePreference;
   keyWasImported: boolean;
   hasAcknowledgedExperimentalLayers: boolean;
+  pendingTrustrootsUsername: string | null;
+  pendingTrustrootsProfileUsername: string | null;
 };
 
 const initialState: SettingsState = {
@@ -27,6 +29,8 @@ const initialState: SettingsState = {
   colorScheme: "system",
   keyWasImported: false,
   hasAcknowledgedExperimentalLayers: false,
+  pendingTrustrootsUsername: null,
+  pendingTrustrootsProfileUsername: null,
 };
 
 export const settingsSlice = createSlice({
@@ -66,6 +70,24 @@ export const settingsSlice = createSlice({
     ) => {
       state.hasAcknowledgedExperimentalLayers = action.payload;
     },
+    setPendingTrustrootsUsername: (
+      state,
+      action: PayloadAction<string | null>,
+    ) => {
+      state.pendingTrustrootsUsername = action.payload;
+    },
+    clearPendingTrustrootsUsername: (state) => {
+      state.pendingTrustrootsUsername = null;
+    },
+    setPendingTrustrootsProfileUsername: (
+      state,
+      action: PayloadAction<string | null>,
+    ) => {
+      state.pendingTrustrootsProfileUsername = action.payload;
+    },
+    clearPendingTrustrootsProfileUsername: (state) => {
+      state.pendingTrustrootsProfileUsername = null;
+    },
   },
   selectors: {
     selectAreTestFeaturesEnabled: (state) => state.areTestFeaturesEnabled,
@@ -76,6 +98,9 @@ export const settingsSlice = createSlice({
     selectKeyWasImported: (state) => state.keyWasImported,
     selectHasAcknowledgedExperimentalLayers: (state) =>
       state.hasAcknowledgedExperimentalLayers,
+    selectPendingTrustrootsUsername: (state) => state.pendingTrustrootsUsername,
+    selectPendingTrustrootsProfileUsername: (state) =>
+      state.pendingTrustrootsProfileUsername,
   },
 });
 

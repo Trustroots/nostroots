@@ -1,6 +1,7 @@
 import { all } from "redux-saga/effects";
 import { keystoreSaga } from "./keystore.saga";
 import mapSaga from "./map.saga";
+import metricsSaga from "./metrics.saga";
 import notificationsSaga from "./notifications.saga";
 import publishSaga from "./publish.saga";
 import subscriptionSaga from "./subscriptions.saga";
@@ -13,6 +14,7 @@ export default function* rootSaga() {
     eventsSaga(),
     keystoreSaga(),
     mapSaga(),
+    metricsSaga(),
     notificationsSaga(),
     profilesSaga(),
     publishSaga(),

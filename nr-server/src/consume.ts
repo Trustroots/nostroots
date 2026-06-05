@@ -43,6 +43,7 @@ export async function consume(
       port: parseInt(url.port),
       username: url.username,
       password: url.password,
+      heartbeatInterval: 30,
     });
     const channel = await connection.openChannel();
 

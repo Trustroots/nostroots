@@ -7,10 +7,17 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 const steps = [
   { id: "identity", label: "Identity" },
-  { id: "key", label: "Key" },
-  { id: "link", label: "Link" },
+  { id: "trustroots", label: "Trustroots" },
   { id: "backup-confirm", label: "Backup" },
 ];
+
+const routeStepMap: Record<string, string> = {
+  identity: "identity",
+  trustroots: "trustroots",
+  key: "trustroots",
+  link: "trustroots",
+  "backup-confirm": "backup-confirm",
+};
 
 function useOnboardingProgress() {
   const pathname = usePathname() || "";
@@ -18,14 +25,15 @@ function useOnboardingProgress() {
   // Extract the last non-empty segment from the pathname
   const segments = pathname.split("/").filter(Boolean);
   const lastSegment = segments[segments.length - 1];
+  const activeStepId = routeStepMap[lastSegment] ?? lastSegment;
 
   const currentStepIndex = Math.max(
     0,
-    steps.findIndex((step) => step.id === lastSegment),
+    steps.findIndex((step) => step.id === activeStepId),
   );
 
   const totalSteps = steps.length;
-  const isKnownStep = steps.some((step) => step.id === lastSegment);
+  const isKnownStep = steps.some((step) => step.id === activeStepId);
 
   const currentStepNumber =
     isKnownStep && currentStepIndex >= 0 && currentStepIndex < totalSteps

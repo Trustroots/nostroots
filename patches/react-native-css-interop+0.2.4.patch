@@ -1,0 +1,51 @@
+diff --git a/node_modules/react-native-css-interop/dist/metro/index.js b/node_modules/react-native-css-interop/dist/metro/index.js
+index c91ba6a..29bb1a8 100644
+--- a/node_modules/react-native-css-interop/dist/metro/index.js
++++ b/node_modules/react-native-css-interop/dist/metro/index.js
+@@ -176,18 +176,35 @@ async function startCSSProcessor(filePath, platform, isDev, { input, getCSSForPl
+                 ? css
+                 : getNativeJS((0, css_to_rn_1.cssToReactNativeRuntime)(css, options), debug)));
+             debug(`virtualStyles.emit ${platform}`);
++            // Metro >= 0.82 changed the "change" event shape on the
++            // haste/file-map emitter. It now expects
++            // `{ changes: { addedFiles, modifiedFiles, removedFiles }, rootDir }`
++            // instead of the old `{ eventsQueue: [...] }`. Emitting the old
++            // shape crashes DependencyGraph._onHasteChange with
++            //   "Cannot read properties of undefined (reading 'addedFiles')".
++            // See: https://stackoverflow.com/q/79931983
++            //
++            // We must also mark the virtual CSS filePath as modified, so
++            // Metro's DeltaCalculator adds it to the next rebuild. The
++            // absolute path is reconstructed by metro as
++            // `path.join(rootDir, canonicalPath)`; passing rootDir=""
++            // and canonicalPath=filePath (already absolute) yields the
++            // correct absolute path.
+             haste.emit("change", {
+-                eventsQueue: [
+-                    {
+-                        filePath,
+-                        metadata: {
+-                            modifiedTime: Date.now(),
+-                            size: 1,
+-                            type: "virtual",
+-                        },
+-                        type: "change",
+-                    },
+-                ],
++                changes: {
++                    addedFiles: new Map(),
++                    modifiedFiles: new Map([
++                        [
++                            filePath,
++                            {
++                                modifiedTime: Date.now(),
++                                isSymlink: false,
++                            },
++                        ],
++                    ]),
++                    removedFiles: new Map(),
++                },
++                rootDir: "",
+             });
+         }).then((css) => {
+             debug(`virtualStyles.initial ${platform}`);

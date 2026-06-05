@@ -11,7 +11,7 @@ export default function OnboardingErrorScreen() {
   const router = useRouter();
 
   const handleContinue = () => {
-    router.replace("/onboarding/link");
+    router.replace("/onboarding/trustroots");
   };
 
   const handleClose = () => {

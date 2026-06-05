@@ -37,11 +37,9 @@ export const keystoreSlice = createSlice({
     selectHasPrivateKeyMnemonicInSecureStorage: (state) =>
       state.hasPrivateKeyMnemonicInSecureStorage,
     selectPublicKeyHex: (state) => {
-      // console.log("seelct public key hex", state);
       return state.publicKeyHex;
     },
     selectPublicKeyNpub: (state) => {
-      // console.log("seelct public key npub", state);
       return state.publicKeyNpub;
     },
   },

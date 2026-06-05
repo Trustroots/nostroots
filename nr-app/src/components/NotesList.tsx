@@ -2,8 +2,7 @@ import { useAppSelector } from "@/redux/hooks";
 import { mapSelectors } from "@/redux/slices/map.slice";
 import { EventWithMetadata } from "@/redux/slices/events.slice";
 import { filterEventsForPlusCode } from "@/utils/map.utils";
-import { isEventExpired } from "@/utils/signal.utils";
-import { SIGNAL_TAG_NAME } from "@/constants/signals";
+import { hasSignalTag, isEventExpired } from "@/utils/signal.utils";
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
 import { View } from "react-native";
@@ -13,10 +12,6 @@ import { Text } from "./ui/text";
 interface MergedNoteData {
   eventWithMetadata: EventWithMetadata;
   isPlusCodeExact: boolean;
-}
-
-function hasSignalTag(event: { tags: string[][] }): boolean {
-  return event.tags.some((tag) => tag[0] === "t" && tag[1] === SIGNAL_TAG_NAME);
 }
 
 const notesListSelectorFactory = (plusCode: string) =>

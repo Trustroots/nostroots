@@ -24,7 +24,7 @@ export function getUnexpiredEvents(
   return events.filter((e) => !isEventExpired(e.event));
 }
 
-function hasSignalTag(event: NostrEvent): boolean {
+export function hasSignalTag(event: NostrEvent): boolean {
   return event.tags.some((tag) => tag[0] === "t" && tag[1] === SIGNAL_TAG_NAME);
 }
 

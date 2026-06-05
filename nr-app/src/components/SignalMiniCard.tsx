@@ -13,8 +13,7 @@ import {
 } from "@trustroots/nr-common";
 import { BadgeCheck, Clock, X } from "lucide-react-native";
 import { useMemo } from "react";
-import { Image, Pressable, View } from "react-native";
-import { ExternalLink } from "./ExternalLink";
+import { Image, Linking, Pressable, View } from "react-native";
 import { Icon } from "./ui/icon";
 import { Text } from "./ui/text";
 
@@ -129,13 +128,18 @@ export default function SignalMiniCard({
 
           {/* Trustroots link */}
           {typeof username !== "undefined" && (
-            <ExternalLink href={`https://trustroots.org/messages/${username}`}>
-              <View className="mt-3 rounded-lg bg-primary/10 py-2 px-3">
-                <Text className="text-sm font-medium text-primary text-center">
-                  Message on Trustroots →
-                </Text>
-              </View>
-            </ExternalLink>
+            <Pressable
+              onPress={() =>
+                Linking.openURL(
+                  `https://trustroots.org/messages/${username}`,
+                )
+              }
+              className="mt-3 rounded-lg bg-primary/10 py-2 px-3"
+            >
+              <Text className="text-sm font-medium text-primary text-center">
+                Message on Trustroots →
+              </Text>
+            </Pressable>
           )}
         </View>
 

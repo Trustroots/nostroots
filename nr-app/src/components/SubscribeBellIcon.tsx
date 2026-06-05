@@ -9,9 +9,10 @@ import { notificationSelectors } from "@/redux/slices/notifications.slice";
 import {
   doesFilterMatchParentPlusCode,
   doesFilterMatchPlusCodeExactly,
+  getMatchingParentPlusCode,
 } from "@/utils/notifications.utils";
 import { Bell, BellOff } from "lucide-react-native";
-import { Pressable } from "react-native";
+import { Pressable, View } from "react-native";
 import Toast from "react-native-root-toast";
 import { createSelector } from "reselect";
 import { Icon } from "./ui/icon";
@@ -31,28 +32,39 @@ const selectSubscriptionState = createSelector(
     const isExactMatch = filters.some(({ filter }) =>
       doesFilterMatchPlusCodeExactly(filter, selectedPlusCode),
     );
-    const isParentMatch =
-      !isExactMatch &&
-      filters.some(({ filter }) =>
-        doesFilterMatchParentPlusCode(filter, selectedPlusCode),
-      );
+
+    let parentPlusCode: string | undefined;
+    if (!isExactMatch) {
+      for (const { filter } of filters) {
+        if (doesFilterMatchParentPlusCode(filter, selectedPlusCode)) {
+          parentPlusCode = getMatchingParentPlusCode(filter, selectedPlusCode);
+          break;
+        }
+      }
+    }
+
     return {
       selectedPlusCode,
       subscriptionCount,
-      isSubscribed: isExactMatch || isParentMatch,
+      isExactMatch,
+      parentPlusCode,
     };
   },
 );
 
 export default function SubscribeBellIcon() {
   const dispatch = useAppDispatch();
-  const { selectedPlusCode, subscriptionCount, isSubscribed } = useAppSelector(
-    selectSubscriptionState,
-  );
+  const { selectedPlusCode, subscriptionCount, isExactMatch, parentPlusCode } =
+    useAppSelector(selectSubscriptionState);
+
+  const isParentSubscribed = !!parentPlusCode;
+  const isSubscribed = isExactMatch || isParentSubscribed;
 
   const handlePress = async () => {
+    if (isParentSubscribed) return;
+
     try {
-      if (isSubscribed) {
+      if (isExactMatch) {
         await dispatch(unsubscribeFromPlusCode(selectedPlusCode));
         Toast.show("Unsubscribed", {
           duration: Toast.durations.SHORT,
@@ -73,27 +85,55 @@ export default function SubscribeBellIcon() {
     }
   };
 
+  const label = isParentSubscribed
+    ? `Subscribed via ${parentPlusCode}`
+    : isExactMatch
+      ? "Notifications on"
+      : "Get notified";
+
+  const accessibilityLabel = isParentSubscribed
+    ? `Subscribed to notifications via ${parentPlusCode}`
+    : isExactMatch
+      ? "Unsubscribe from notifications"
+      : "Subscribe to notifications";
+
   return (
-    <Pressable
-      onPress={handlePress}
-      className="flex-row items-center gap-1.5 p-1"
-      accessibilityLabel={
-        isSubscribed
-          ? "Unsubscribe from notifications"
-          : "Subscribe to notifications"
-      }
-      accessibilityRole="button"
-    >
-      <Icon
-        as={isSubscribed ? Bell : BellOff}
-        size={16}
-        className={isSubscribed ? "text-primary" : "text-muted-foreground"}
-      />
-      <Text
-        className={`text-xs ${isSubscribed ? "text-primary" : "text-muted-foreground"}`}
+    <View className="flex-row items-center gap-2">
+      <Pressable
+        onPress={handlePress}
+        disabled={isParentSubscribed}
+        className={`flex-row items-center gap-1.5 p-1 ${isParentSubscribed ? "opacity-60" : ""}`}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
       >
-        {`${subscriptionCount} people subscribed`}
-      </Text>
-    </Pressable>
+        <Icon
+          as={isSubscribed ? Bell : BellOff}
+          size={16}
+          className={
+            isParentSubscribed
+              ? "text-muted-foreground"
+              : isExactMatch
+                ? "text-primary"
+                : "text-muted-foreground"
+          }
+        />
+        <Text
+          className={`text-xs ${
+            isParentSubscribed
+              ? "text-muted-foreground"
+              : isExactMatch
+                ? "text-primary"
+                : "text-muted-foreground"
+          }`}
+        >
+          {label}
+        </Text>
+      </Pressable>
+      {subscriptionCount > 0 && (
+        <Text className="text-[10px] text-muted-foreground">
+          {subscriptionCount} subscribed
+        </Text>
+      )}
+    </View>
   );
 }

@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
-import { Calendar, X } from "lucide-react-native";
+import { X } from "lucide-react-native";
 
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { EventWithMetadata } from "@/redux/slices/events.slice";
@@ -18,7 +18,6 @@ import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { RootState } from "@/redux/store";
 import { ROUTES } from "@/constants/routes";
 import AddNoteForm from "./AddNoteForm";
-import EventComposerModal from "./EventComposerModal";
 import { Button } from "./ui/button";
 import NotesList, { getNotesSummaryText, useNotesListData } from "./NotesList";
 import PeopleStrip from "./PeopleStrip";
@@ -47,7 +46,6 @@ export default function MapModal() {
   );
 
   const [signalMode, setSignalMode] = useState(false);
-  const [showEventComposer, setShowEventComposer] = useState(false);
   const isDark = colorScheme === "dark";
 
   const bottomSheetRef = useRef<BottomSheetModal>(null);
@@ -171,15 +169,6 @@ export default function MapModal() {
                   signalMode={signalMode}
                   onSignalSent={() => setSignalMode(false)}
                 />
-                <Pressable
-                  onPress={() => setShowEventComposer(true)}
-                  className="flex-row items-center justify-center gap-1.5 py-2 border-t border-border/10"
-                >
-                  <Icon as={Calendar} size={14} className="text-primary" />
-                  <Text className="text-xs font-medium text-primary">
-                    Create Event
-                  </Text>
-                </Pressable>
               </View>
             ) : (
               <View className="px-5 py-3">
@@ -191,10 +180,6 @@ export default function MapModal() {
           </View>
         </BottomSheetModal>
       </BottomSheetModalProvider>
-      <EventComposerModal
-        visible={showEventComposer}
-        onClose={() => setShowEventComposer(false)}
-      />
     </>
   );
 }

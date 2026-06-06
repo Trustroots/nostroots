@@ -6,6 +6,7 @@ import { useAppSelector } from "@/redux/hooks";
 
 jest.mock("@/redux/hooks", () => ({
   useAppSelector: jest.fn(),
+  useAppDispatch: jest.fn(() => jest.fn()),
 }));
 
 const mockUseAppSelector = useAppSelector as jest.Mock;
@@ -14,6 +15,9 @@ function fakeState(areTestFeaturesEnabled: boolean) {
   return {
     settings: {
       areTestFeaturesEnabled,
+    },
+    map: {
+      selectedPlusCode: "",
     },
   };
 }

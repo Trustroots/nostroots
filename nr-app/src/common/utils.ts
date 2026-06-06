@@ -59,11 +59,17 @@ function getAuthorFilter(layerConfig: MapLayer) {
   return {};
 }
 
+// Maximum number of events to fetch per layer filter to prevent
+// overwhelming the app with too many events (e.g. hitchmap has
+// thousands of data points globally).
+const MAX_EVENTS_PER_LAYER = 500;
+
 export function filterForMapLayerConfig(layerConfig: MapLayer): Filter {
   const authorFilter = getAuthorFilter(layerConfig);
   const filter: Filter = {
     ...authorFilter,
     kinds: [layerConfig.kind],
+    limit: MAX_EVENTS_PER_LAYER,
   };
 
   // Only fetch unverified events from the last week

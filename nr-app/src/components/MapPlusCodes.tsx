@@ -20,13 +20,15 @@ import {
 import { mapRefService } from "@/utils/mapRef";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
-import MapView, { Polygon, Region } from "react-native-maps";
+import MapView, { Marker, Polygon, Region } from "react-native-maps";
 // @ts-ignore
 import { getCurrentLocation } from "@/utils/location";
 import { FontAwesome } from "@expo/vector-icons";
 import { createSelector } from "reselect";
 
 import { Colors } from "@/constants/Colors";
+import CellAvatarCluster, { CellCountBadge } from "./CellAvatarCluster";
+import { plusCodeToCenter } from "@/utils/map.utils";
 
 // TODO - Only show if a plus code has direct notes, child notes, or no notes
 
@@ -45,6 +47,14 @@ function whatLengthOfPlusCodeToShow(region: Region) {
 }
 
 const selectRootState = (state: RootState) => state;
+
+const selectPlusCodeLength = createSelector(
+  [mapSelectors.selectBoundingBox],
+  (boundingBox: any): number => {
+    if (typeof boundingBox === "undefined") return 4;
+    return whatLengthOfPlusCodeToShow(boundariesToRegion(boundingBox));
+  },
+);
 
 const selectPlusCodesWithState = createSelector(
   [mapSelectors.selectBoundingBox, selectRootState],
@@ -89,6 +99,7 @@ export default function MapPlusCodes() {
   const [isMapReady, setIsMapReady] = useState(false);
 
   const plusCodesWithState = useAppSelector(selectPlusCodesWithState);
+  const plusCodeLength = useAppSelector(selectPlusCodeLength);
   const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
   const isMapModalOpen = useAppSelector(mapSelectors.selectIsMapModalOpen);
   const centerMapOnCurrentLocation = useAppSelector(
@@ -234,6 +245,31 @@ export default function MapPlusCodes() {
             );
           },
         )}
+        {/* Avatar cluster markers at zoom 6+ or count badges at zoom 2-4 */}
+        {(plusCodesWithState as any[]).map((plusCodeWithState: any) => {
+          if (plusCodeWithState.heatCount === 0) return null;
+          const center = plusCodeToCenter(plusCodeWithState.plusCode);
+          const showAvatars = plusCodeLength >= 6;
+          return (
+            <Marker
+              key={`marker-${plusCodeWithState.plusCode}`}
+              coordinate={center}
+              anchor={{ x: 0.5, y: 0.5 }}
+              tracksViewChanges={false}
+              onPress={() => {
+                dispatch(
+                  mapActions.setSelectedPlusCode(plusCodeWithState.plusCode),
+                );
+              }}
+            >
+              {showAvatars ? (
+                <CellAvatarCluster plusCode={plusCodeWithState.plusCode} />
+              ) : (
+                <CellCountBadge plusCode={plusCodeWithState.plusCode} />
+              )}
+            </Marker>
+          );
+        })}
       </MapView>
       <TouchableOpacity
         style={styles.locationButton}

@@ -79,6 +79,17 @@ export function plusCodeToArrayPairs(plusCode: string): [string, string][] {
   return pairs;
 }
 
+export function plusCodeToCenter(plusCode: string): {
+  latitude: number;
+  longitude: number;
+} {
+  const decoded = OpenLocationCode.decode(plusCode);
+  return {
+    latitude: decoded.latitudeCenter,
+    longitude: decoded.longitudeCenter,
+  };
+}
+
 export function plusCodeToCoordinates(plusCode: string): {
   latitude: number;
   longitude: number;

@@ -85,13 +85,9 @@ const selectPlusCodesWithState = createSelector(
   },
 );
 
-// Show the user's location dot when zoomed in past this threshold
-const USER_LOCATION_LAT_DELTA_THRESHOLD = 2;
-
 export default function MapPlusCodes() {
   const dispatch = useAppDispatch();
   const [isMapReady, setIsMapReady] = useState(false);
-  const [showUserLocation, setShowUserLocation] = useState(false);
   const [locationPermissionGranted, setLocationPermissionGranted] =
     useState(false);
 
@@ -200,10 +196,6 @@ export default function MapPlusCodes() {
         log.debug("#mzWdGm regionChange plusCode length", length);
         // Save the region so it can be restored when the app reopens
         dispatch(mapActions.setSavedRegion(region));
-        // Show user location dot when zoomed in enough
-        setShowUserLocation(
-          region.latitudeDelta < USER_LOCATION_LAT_DELTA_THRESHOLD,
-        );
       },
     [dispatch],
   );
@@ -215,7 +207,7 @@ export default function MapPlusCodes() {
         style={styles.map}
         rotateEnabled={false}
         pitchEnabled={false}
-        showsUserLocation={locationPermissionGranted && showUserLocation}
+        showsUserLocation={locationPermissionGranted}
         onRegionChangeComplete={handleMapRegionChange}
         initialRegion={savedRegion}
         provider={getMapProvider()}

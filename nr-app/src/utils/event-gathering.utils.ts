@@ -51,18 +51,17 @@ export function formatGatheringDateTime(unixSeconds: number): string {
 }
 
 /**
- * Get the user's timezone abbreviation, e.g. "CET", "PST"
+ * Get the user's UTC offset string, e.g. "UTC+2", "UTC-5", "UTC"
  */
 export function getLocalTimezoneAbbr(): string {
-  try {
-    const parts = new Intl.DateTimeFormat(undefined, {
-      timeZoneName: "short",
-    }).formatToParts(new Date());
-    const tz = parts.find((p) => p.type === "timeZoneName");
-    return tz?.value ?? "";
-  } catch {
-    return "";
-  }
+  const offsetMin = new Date().getTimezoneOffset();
+  if (offsetMin === 0) return "UTC";
+  const sign = offsetMin < 0 ? "+" : "-";
+  const hours = Math.floor(Math.abs(offsetMin) / 60);
+  const mins = Math.abs(offsetMin) % 60;
+  return mins === 0
+    ? `UTC${sign}${hours}`
+    : `UTC${sign}${hours}:${String(mins).padStart(2, "0")}`;
 }
 
 /**

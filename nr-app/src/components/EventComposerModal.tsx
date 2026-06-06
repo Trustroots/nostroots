@@ -2,9 +2,7 @@ import { publishGatheringPromiseAction } from "@/redux/actions/publishGathering.
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapSelectors } from "@/redux/slices/map.slice";
 import { getLocalTimezoneAbbr } from "@/utils/event-gathering.utils";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { Calendar, X } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
@@ -27,9 +25,6 @@ interface EventComposerModalProps {
   onClose: () => void;
 }
 
-type PickerMode = "date" | "time";
-type ActivePicker = "startDate" | "startTime" | "endDate" | "endTime" | null;
-
 export default function EventComposerModal({
   visible,
   onClose,
@@ -42,11 +37,10 @@ export default function EventComposerModal({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState<Date>(
-    () => new Date(Date.now() + 60 * 60 * 1000), // default: 1 hour from now
+    () => new Date(Date.now() + 60 * 60 * 1000),
   );
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [hasEnd, setHasEnd] = useState(false);
-  const [activePicker, setActivePicker] = useState<ActivePicker>(null);
   const [isSending, setIsSending] = useState(false);
 
   const resetForm = useCallback(() => {
@@ -55,7 +49,6 @@ export default function EventComposerModal({
     setStartDate(new Date(Date.now() + 60 * 60 * 1000));
     setEndDate(null);
     setHasEnd(false);
-    setActivePicker(null);
     setIsSending(false);
   }, []);
 
@@ -130,59 +123,17 @@ export default function EventComposerModal({
     handleClose,
   ]);
 
-  const handleDateChange = useCallback(
-    (picker: ActivePicker) =>
-      (_evt: DateTimePickerEvent, selectedDate?: Date) => {
-        if (Platform.OS === "android") {
-          setActivePicker(null);
-        }
-        if (!selectedDate) return;
-
-        if (picker === "startDate" || picker === "startTime") {
-          setStartDate(selectedDate);
-        } else if (picker === "endDate" || picker === "endTime") {
-          setEndDate(selectedDate);
-        }
-      },
-    [],
-  );
-
-  const getPickerMode = (picker: ActivePicker): PickerMode => {
-    if (picker === "startTime" || picker === "endTime") return "time";
-    return "date";
-  };
-
-  const getPickerValue = (picker: ActivePicker): Date => {
-    if (picker === "endDate" || picker === "endTime") {
-      return endDate ?? new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
-    }
-    return startDate;
-  };
-
-  const formatDate = (date: Date) =>
-    date.toLocaleDateString(undefined, {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
-
-  const formatTime = (date: Date) =>
-    date.toLocaleTimeString(undefined, {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-
   return (
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle="fullScreen"
       onRequestClose={handleClose}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1 bg-background"
-        style={{ paddingTop: Platform.OS === "android" ? top : 0 }}
+        style={{ paddingTop: top }}
       >
         {/* Header */}
         <View className="flex-row items-center justify-between px-5 py-4 border-b border-border/15">
@@ -204,7 +155,7 @@ export default function EventComposerModal({
 
         <ScrollView
           className="flex-1"
-          contentContainerStyle={{ padding: 20, gap: 20 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 40, gap: 20 }}
           keyboardShouldPersistTaps="handled"
         >
           {/* Location (read-only) */}
@@ -251,42 +202,23 @@ export default function EventComposerModal({
 
           {/* Start date/time */}
           <View>
-            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+            <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
               Start *{tzAbbr ? ` (${tzAbbr})` : ""}
             </Text>
-            <View className="flex-row gap-2">
-              <Pressable
-                onPress={() =>
-                  setActivePicker(
-                    activePicker === "startDate" ? null : "startDate",
-                  )
-                }
-                className={`flex-1 px-4 py-3 rounded-xl border ${
-                  activePicker === "startDate"
-                    ? "border-primary bg-primary/10"
-                    : "border-border/50 bg-muted/20"
-                }`}
-              >
-                <Text className="text-sm text-foreground">
-                  {formatDate(startDate)}
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() =>
-                  setActivePicker(
-                    activePicker === "startTime" ? null : "startTime",
-                  )
-                }
-                className={`px-4 py-3 rounded-xl border ${
-                  activePicker === "startTime"
-                    ? "border-primary bg-primary/10"
-                    : "border-border/50 bg-muted/20"
-                }`}
-              >
-                <Text className="text-sm text-foreground">
-                  {formatTime(startDate)}
-                </Text>
-              </Pressable>
+            <View className="flex-row items-center gap-3">
+              <DateTimePicker
+                value={startDate}
+                mode="date"
+                display="compact"
+                minimumDate={new Date()}
+                onChange={(_e, date) => date && setStartDate(date)}
+              />
+              <DateTimePicker
+                value={startDate}
+                mode="time"
+                display="compact"
+                onChange={(_e, date) => date && setStartDate(date)}
+              />
             </View>
           </View>
 
@@ -301,9 +233,8 @@ export default function EventComposerModal({
                     new Date(startDate.getTime() + 2 * 60 * 60 * 1000),
                   );
                 }
-                setActivePicker(null);
               }}
-              className="flex-row items-center gap-2 mb-1"
+              className="flex-row items-center gap-2 mb-2"
             >
               <View
                 className={`w-4 h-4 rounded border items-center justify-center ${
@@ -322,58 +253,29 @@ export default function EventComposerModal({
             </Pressable>
 
             {hasEnd && endDate && (
-              <View className="flex-row gap-2">
-                <Pressable
-                  onPress={() =>
-                    setActivePicker(
-                      activePicker === "endDate" ? null : "endDate",
-                    )
-                  }
-                  className={`flex-1 px-4 py-3 rounded-xl border ${
-                    activePicker === "endDate"
-                      ? "border-primary bg-primary/10"
-                      : "border-border/50 bg-muted/20"
-                  }`}
-                >
-                  <Text className="text-sm text-foreground">
-                    {formatDate(endDate)}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() =>
-                    setActivePicker(
-                      activePicker === "endTime" ? null : "endTime",
-                    )
-                  }
-                  className={`px-4 py-3 rounded-xl border ${
-                    activePicker === "endTime"
-                      ? "border-primary bg-primary/10"
-                      : "border-border/50 bg-muted/20"
-                  }`}
-                >
-                  <Text className="text-sm text-foreground">
-                    {formatTime(endDate)}
-                  </Text>
-                </Pressable>
+              <View className="flex-row items-center gap-3">
+                <DateTimePicker
+                  value={endDate}
+                  mode="date"
+                  display="compact"
+                  minimumDate={startDate}
+                  onChange={(_e, date) => date && setEndDate(date)}
+                />
+                <DateTimePicker
+                  value={endDate}
+                  mode="time"
+                  display="compact"
+                  onChange={(_e, date) => date && setEndDate(date)}
+                />
               </View>
             )}
           </View>
 
-          {/* Native date/time picker */}
-          {activePicker !== null && (
-            <DateTimePicker
-              value={getPickerValue(activePicker)}
-              mode={getPickerMode(activePicker)}
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              minimumDate={new Date()}
-              onChange={handleDateChange(activePicker)}
-            />
-          )}
-
           {/* Submit */}
           <Button
             onPress={handleSubmit}
-            className="rounded-xl py-3"
+            className="rounded-xl mt-4"
+            size="lg"
             disabled={isSending || title.trim().length < 2}
           >
             <Text className="text-primary-foreground font-semibold text-base">

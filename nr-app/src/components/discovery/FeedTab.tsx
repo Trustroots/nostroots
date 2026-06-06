@@ -1,20 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { SectionList, View } from "react-native";
 import { MAP_NOTE_REPOST_KIND } from "@trustroots/nr-common";
 
 import { EmptyState } from "@/components/EmptyState";
 import NotesSingle from "@/components/NotesSingle";
-import { FilterChips, FilterChip } from "./FilterChips";
 import { Text } from "@/components/ui/text";
 import { useAppSelector } from "@/redux/hooks";
 import {
   eventsSelectors,
   EventWithMetadata,
 } from "@/redux/slices/events.slice";
-
-type FeedFilter = "all";
-
-const FEED_CHIPS: FilterChip[] = [{ key: "all", label: "All areas" }];
 
 interface Section {
   title: string;
@@ -51,7 +46,6 @@ function groupByTime(events: EventWithMetadata[]): Section[] {
 }
 
 export function FeedTab() {
-  const [filter, setFilter] = useState<FeedFilter>("all");
   const allEvents = useAppSelector(eventsSelectors.selectAll);
 
   const mapNotes = useMemo(
@@ -66,11 +60,6 @@ export function FeedTab() {
 
   return (
     <View className="flex-1">
-      <FilterChips
-        chips={FEED_CHIPS}
-        selectedKey={filter}
-        onSelect={(key) => setFilter(key as FeedFilter)}
-      />
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.event.id}

@@ -27,7 +27,7 @@ const SIGNAL_CHIPS: FilterChip[] = [
 
 function isSignalEvent(event: EventWithMetadata): boolean {
   return event.event.tags.some(
-    (tag) => tag[0] === "t" && tag[1] !== "signal" && tag[1] !== undefined,
+    (tag) => tag[0] === "t" && tag[1] === "signal",
   );
 }
 

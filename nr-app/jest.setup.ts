@@ -108,6 +108,18 @@ jest.mock("react-native-webview", () => {
   };
 });
 
+// Mock @maplibre/maplibre-react-native (v11 named exports)
+jest.mock("@maplibre/maplibre-react-native", () => ({
+  __esModule: true,
+  Map: "Map",
+  Camera: "Camera",
+  GeoJSONSource: "GeoJSONSource",
+  Layer: "Layer",
+  Images: "Images",
+  Marker: "Marker",
+  UserLocation: "UserLocation",
+}));
+
 // Mock redux-devtools-expo-dev-plugin
 jest.mock("redux-devtools-expo-dev-plugin", () => ({
   __esModule: true,

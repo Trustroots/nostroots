@@ -1,10 +1,12 @@
 import { useMemo } from "react";
-import { SectionList, View } from "react-native";
+import { Pressable, SectionList, View } from "react-native";
 import { MAP_NOTE_REPOST_KIND } from "@trustroots/nr-common";
 
 import { EmptyState } from "@/components/EmptyState";
 import NotesSingle from "@/components/NotesSingle";
 import { Text } from "@/components/ui/text";
+import { getPlusCodeFromEvent } from "@/utils/event.utils";
+import { navigateToEvent } from "@/utils/navigation.utils";
 import { useAppSelector } from "@/redux/hooks";
 import {
   eventsSelectors,
@@ -63,9 +65,18 @@ export function FeedTab() {
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.event.id}
-        renderItem={({ item }) => (
-          <NotesSingle eventWithMetadata={item} isSelected={false} />
-        )}
+        renderItem={({ item }) => {
+          const plusCode = getPlusCodeFromEvent(item.event);
+          return (
+            <Pressable
+              onPress={() => {
+                if (plusCode) navigateToEvent(plusCode, item.event);
+              }}
+            >
+              <NotesSingle eventWithMetadata={item} isSelected={false} />
+            </Pressable>
+          );
+        }}
         renderSectionHeader={({ section: { title } }) => (
           <View className="px-4 pt-4 pb-2 bg-background">
             <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FlatList, View } from "react-native";
+import { FlatList, Pressable, View } from "react-native";
 import {
   getFirstTagValueFromEvent,
   MAP_NOTE_REPOST_KIND,
@@ -10,6 +10,8 @@ import { EmptyState } from "@/components/EmptyState";
 import SignalMiniCard from "@/components/SignalMiniCard";
 import { FilterChips, FilterChip } from "./FilterChips";
 import { SIGNAL_INTENTS } from "@/constants/signals";
+import { getPlusCodeFromEvent } from "@/utils/event.utils";
+import { navigateToEvent } from "@/utils/navigation.utils";
 import { useAppSelector } from "@/redux/hooks";
 import {
   eventsSelectors,
@@ -74,9 +76,18 @@ export function SignalsTab() {
       <FlatList
         data={signals}
         keyExtractor={(item) => item.event.id}
-        renderItem={({ item }) => (
-          <SignalMiniCard signal={item} onClose={() => {}} />
-        )}
+        renderItem={({ item }) => {
+          const plusCode = getPlusCodeFromEvent(item.event);
+          return (
+            <Pressable
+              onPress={() => {
+                if (plusCode) navigateToEvent(plusCode, item.event);
+              }}
+            >
+              <SignalMiniCard signal={item} onClose={() => {}} />
+            </Pressable>
+          );
+        }}
         ListEmptyComponent={
           <EmptyState
             title="No active signals"

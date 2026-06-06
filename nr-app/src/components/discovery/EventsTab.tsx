@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { FlatList, View } from "react-native";
+import { FlatList, Pressable, View } from "react-native";
 import {
   getFirstTagValueFromEvent,
   MAP_NOTE_REPOST_KIND,
@@ -8,6 +8,8 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import EventCard from "./EventCard";
 import { FilterChips, FilterChip } from "./FilterChips";
+import { getPlusCodeFromEvent } from "@/utils/event.utils";
+import { navigateToEvent } from "@/utils/navigation.utils";
 import { useAppSelector } from "@/redux/hooks";
 import {
   eventsSelectors,
@@ -82,7 +84,18 @@ export function EventsTab() {
       <FlatList
         data={events}
         keyExtractor={(item) => item.event.id}
-        renderItem={({ item }) => <EventCard eventWithMetadata={item} />}
+        renderItem={({ item }) => {
+          const plusCode = getPlusCodeFromEvent(item.event);
+          return (
+            <Pressable
+              onPress={() => {
+                if (plusCode) navigateToEvent(plusCode, item.event);
+              }}
+            >
+              <EventCard eventWithMetadata={item} />
+            </Pressable>
+          );
+        }}
         ListEmptyComponent={
           <EmptyState
             title="No events yet"

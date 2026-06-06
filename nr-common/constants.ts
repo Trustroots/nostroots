@@ -176,7 +176,7 @@ const unverified: MapLayer = {
 
 export const MAP_LAYERS = {
   trustroots,
-  hitchmap,
+  // hitchmap disabled — layer is non-functional and causes performance issues (#190)
   hitchwiki,
   timesafari,
   triphopping,

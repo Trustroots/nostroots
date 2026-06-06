@@ -45,6 +45,17 @@ export function countNotesToday(timestampsSeconds: number[]): number {
 }
 
 /**
+ * Returns true if a Unix timestamp (seconds) falls within the last `thresholdHours` hours.
+ */
+export function isTimestampRecent(
+  timestampSeconds: number,
+  thresholdHours: number = 3,
+): boolean {
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return nowSeconds - timestampSeconds < thresholdHours * 3600;
+}
+
+/**
  * Returns a summary string like "3 notes · 1 today" or "No notes yet".
  */
 export function getNoteSummaryText(

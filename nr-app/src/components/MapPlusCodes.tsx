@@ -6,6 +6,7 @@ import {
   mapActions,
   mapSelectors,
 } from "@/redux/slices/map.slice";
+import { eventsSelectors } from "@/redux/slices/events.slice";
 import { metricsSelectors } from "@/redux/slices/metrics.slice";
 import { RootState } from "@/redux/store";
 import { rootLogger } from "@/utils/logger.utils";
@@ -17,6 +18,8 @@ import {
   plusCodeToRectangle,
   regionToBoundingBox,
 } from "@/utils/map.utils";
+import { isEventWithinThisPlusCode } from "@/utils/event.utils";
+import { isTimestampRecent } from "@/utils/time.utils";
 import { mapRefService } from "@/utils/mapRef";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
@@ -27,6 +30,11 @@ import { FontAwesome } from "@expo/vector-icons";
 import { createSelector } from "reselect";
 
 import { Colors } from "@/constants/Colors";
+
+const PULSE_INTERVAL_MS = 2000;
+const PULSE_ALPHA_LOW = 0.3;
+const PULSE_ALPHA_HIGH = 0.7;
+const RECENT_ACTIVITY_HOURS = 3;
 
 // TODO - Only show if a plus code has direct notes, child notes, or no notes
 
@@ -71,22 +79,45 @@ const selectPlusCodesWithState = createSelector(
       length,
     );
 
+    const allEvents = eventsSelectors.selectAll(rootState);
+
     const output = plusCodes.map((plusCode) => {
       const messagesMetricCount =
         metricsSelectors.selectMessagesMetricByPlusCode(rootState, plusCode);
 
+      const isRecentlyActive = allEvents.some(
+        (ewm) =>
+          isEventWithinThisPlusCode(ewm.event, plusCode) &&
+          isTimestampRecent(ewm.event.created_at, RECENT_ACTIVITY_HOURS),
+      );
+
       return {
         plusCode,
         heatCount: messagesMetricCount,
+        isRecentlyActive,
       };
     });
     return output;
   },
 );
 
+function usePulseAlpha(): number {
+  const [pulseHigh, setPulseHigh] = useState(true);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPulseHigh((prev) => !prev);
+    }, PULSE_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, []);
+
+  return pulseHigh ? PULSE_ALPHA_HIGH : PULSE_ALPHA_LOW;
+}
+
 export default function MapPlusCodes() {
   const dispatch = useAppDispatch();
   const [isMapReady, setIsMapReady] = useState(false);
+  const pulseAlpha = usePulseAlpha();
 
   const plusCodesWithState = useAppSelector(selectPlusCodesWithState);
   const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
@@ -213,14 +244,15 @@ export default function MapPlusCodes() {
               selectedPlusCode?.startsWith(plusCodeWithState.plusCode) ||
               plusCodeWithState.plusCode.startsWith(selectedPlusCode ?? "");
             const shouldShowSelected = isMapModalOpen && isSelected;
+            const alpha = plusCodeWithState.isRecentlyActive ? pulseAlpha : 0.6;
             return (
               <Polygon
                 key={index}
                 coordinates={plusCodeToRectangle(plusCodeWithState.plusCode)}
                 fillColor={
                   shouldShowSelected
-                    ? "rgba(0, 90, 120, 0.6)" // Darker teal tint for selected cell
-                    : `rgba(${Math.min(255, plusCodeWithState.heatCount * 60).toString()}, 0, 0, 0.6)`
+                    ? `rgba(0, 90, 120, ${alpha})` // Darker teal tint for selected cell
+                    : `rgba(${Math.min(255, plusCodeWithState.heatCount * 60).toString()}, 0, 0, ${alpha})`
                 }
                 strokeColor="rgba(0, 0, 0, 0.5)"
                 strokeWidth={2}

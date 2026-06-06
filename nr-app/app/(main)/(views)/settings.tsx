@@ -146,6 +146,10 @@ export default function SettingsScreen() {
     settingsSelectors.selectAreTestFeaturesEnabled,
   ) as boolean;
 
+  const useMapLibre = useAppSelector(
+    settingsSelectors.selectUseMapLibre,
+  ) as boolean;
+
   // Onboarding configuration flags.
   const { useSkipOnboarding, forceOnboarding, forceWelcome } =
     useAppSelector(selectFeatureFlags);
@@ -495,6 +499,20 @@ export default function SettingsScreen() {
           }}
         />
       </Section>
+
+      {areTestFeaturesEnabled && (
+        <Section>
+          <Text variant="h2">Map</Text>
+
+          <ToggleSwitch
+            label="Use MapLibre map (experimental)"
+            value={useMapLibre}
+            onToggle={() => {
+              dispatch(settingsActions.toggleUseMapLibre());
+            }}
+          />
+        </Section>
+      )}
 
       {areTestFeaturesEnabled && (
         <Section>

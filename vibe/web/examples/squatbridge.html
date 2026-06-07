@@ -43,6 +43,7 @@
     }
     .sb-title { font-size: 1.15rem; font-weight: 700; margin: 0; white-space: nowrap; }
     .sb-title a { color: inherit; text-decoration: none; }
+    .sb-about-btn { font-size: 0.8rem; padding: 0.3rem 0.55rem; flex-shrink: 0; }
     .sb-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; flex: 1; }
     .sb-location-filter {
       display: flex;
@@ -182,6 +183,11 @@
       padding: 1.25rem;
     }
     .sb-modal h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
+    .sb-about-body { font-size: 0.9rem; line-height: 1.5; }
+    .sb-about-body p { margin: 0 0 0.75rem; }
+    .sb-about-body ul { margin: 0 0 0.75rem; padding-left: 1.25rem; }
+    .sb-about-body li + li { margin-top: 0.25rem; }
+    .sb-about-body .muted { color: var(--muted); font-size: 0.85rem; }
     .sb-modal textarea {
       width: 100%;
       min-height: 120px;
@@ -239,6 +245,7 @@
 <body>
   <header class="sb-header">
     <h1 class="sb-title"><a href="../">Squatbridge</a></h1>
+    <button type="button" class="sb-btn secondary sb-about-btn" id="sb-about">About</button>
     <div class="sb-controls">
       <div class="sb-location-filter">
         <div class="sb-filter-tabs" role="tablist" aria-label="Location type">
@@ -262,6 +269,39 @@
       </div>
       <div class="sb-list" id="sb-list">
         <p class="sb-empty">No events loaded yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-modal-backdrop" id="sb-about-modal" hidden>
+    <div class="sb-modal" role="dialog" aria-labelledby="sb-about-title">
+      <h2 id="sb-about-title">About Squatbridge</h2>
+      <div class="sb-about-body">
+        <p>
+          <a href="https://github.com/Trustroots/nostroots/blob/main/vibe/web/examples/squatbridge.html" target="_blank" rel="noopener noreferrer">Squatbridge</a>
+          is an experimental demo from the
+          <a href="../">Trustroots Nostr web hub</a>.
+          It pulls squat and autonomous-space events from
+          <a href="https://radar.squat.net" target="_blank" rel="noopener">radar.squat.net</a>
+          and lets you browse them on a map.
+        </p>
+        <ul>
+          <li>Pick a city or country — URLs like <code>#city/Berlin</code> are shareable.</li>
+          <li>The list shows today and upcoming events; filter by keyword or reveal past ones.</li>
+          <li>The map keeps markers from locations you loaded recently (15&nbsp;min cache).</li>
+          <li>
+            <strong>Share to Nostr</strong> publishes a kind&nbsp;30399 third-party event note with venue coordinates, a link back to radar, and optional Trustroots circles.
+          </li>
+        </ul>
+        <p class="muted">
+          You need a <a href="https://github.com/nostr-protocol/nips/blob/master/07.md" target="_blank" rel="noopener">NIP-07</a>
+          browser signer (e.g. nos2x, Alby) to publish. Sharing is manual — nothing is posted automatically.
+          Source:
+          <a href="https://github.com/Trustroots/nostroots/blob/main/vibe/web/examples/squatbridge.html" target="_blank" rel="noopener noreferrer"><code>vibe/web/examples/squatbridge.html</code></a>
+        </p>
+      </div>
+      <div class="sb-modal-actions">
+        <button type="button" class="sb-btn" id="sb-about-close">Close</button>
       </div>
     </div>
   </div>
@@ -1138,6 +1178,14 @@
     state.shareEvent = null;
   }
 
+  function openAboutModal() {
+    byId("sb-about-modal").hidden = false;
+  }
+
+  function closeAboutModal() {
+    byId("sb-about-modal").hidden = true;
+  }
+
   function publishToRelay(url, event) {
     return new Promise((resolve) => {
       let settled = false;
@@ -1284,6 +1332,12 @@
     if (!applyLocationHash({ fetch: true })) syncLocationHash();
   });
 
+  byId("sb-about").addEventListener("click", openAboutModal);
+  byId("sb-about-close").addEventListener("click", closeAboutModal);
+  byId("sb-about-modal").addEventListener("click", (e) => {
+    if (e.target === byId("sb-about-modal")) closeAboutModal();
+  });
+
   byId("sb-share-cancel").addEventListener("click", closeShareModal);
   byId("sb-share-publish").addEventListener("click", () => void publishShare());
   byId("sb-share-modal").addEventListener("click", (e) => {
@@ -1291,9 +1345,13 @@
   });
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Escape") return;
-    const modal = byId("sb-share-modal");
-    if (!modal || modal.hidden) return;
-    closeShareModal();
+    const aboutModal = byId("sb-about-modal");
+    if (aboutModal && !aboutModal.hidden) {
+      closeAboutModal();
+      return;
+    }
+    const shareModal = byId("sb-share-modal");
+    if (shareModal && !shareModal.hidden) closeShareModal();
   });
 
   initMap();

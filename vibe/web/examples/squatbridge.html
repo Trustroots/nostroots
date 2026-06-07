@@ -132,7 +132,9 @@
       color: var(--primary-fg);
       cursor: pointer;
     }
-    .sb-map-popup-actions .sb-map-share:disabled { opacity: 0.45; cursor: not-allowed; }
+    .sb-map-popup-actions .sb-map-share:disabled { opacity: 0.45; }
+    .sb-map-popup-actions .sb-share-wrap--disabled { cursor: help; }
+    .sb-map-popup-actions .sb-share-wrap--disabled .sb-map-share { pointer-events: none; }
     .sb-list-panel {
       width: min(420px, 42vw);
       border-left: 1px solid var(--border);
@@ -193,7 +195,10 @@
       cursor: pointer;
     }
     .sb-event-actions button.share { background: var(--primary); color: var(--primary-fg); border-color: transparent; }
-    .sb-event-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .sb-event-actions button:disabled { opacity: 0.45; }
+    .sb-share-wrap { display: inline-flex; }
+    .sb-share-wrap--disabled { cursor: help; }
+    .sb-share-wrap--disabled button { pointer-events: none; }
     .sb-empty { padding: 2rem 1rem; text-align: center; color: var(--muted); }
     .sb-modal-backdrop {
       position: fixed; inset: 0; background: rgba(0,0,0,0.45);
@@ -232,6 +237,8 @@
     .sb-about-taglist { margin: 0.5rem 0 0.75rem; padding-left: 0; list-style: none; font-size: 0.85rem; }
     .sb-about-taglist li { margin: 0.35rem 0; }
     .sb-about-taglist code { font-size: 0.8rem; }
+    .sb-about-tech-toggle { font-size: 0.8rem; padding: 0.3rem 0.55rem; margin: 0.25rem 0 0.75rem; }
+    .sb-about-tech[hidden] { display: none; }
     .sb-modal textarea {
       width: 100%;
       min-height: 120px;
@@ -339,7 +346,8 @@
         <p>
           <a href="https://github.com/Trustroots/nostroots/blob/main/vibe/web/examples/squatbridge.html" target="_blank" rel="noopener noreferrer">Squatbridge</a>
           is an experimental demo from the
-          <a href="../">Trustroots Nostr web hub</a>.
+          <a href="../">Trustroots Nostr web hub</a>
+          (<a href="https://github.com/Trustroots/nostroots/issues/237" target="_blank" rel="noopener noreferrer">#237</a>).
           It pulls squat and autonomous-space events from
           <a href="https://radar.squat.net" target="_blank" rel="noopener">radar.squat.net</a>
           and lets you browse them on a map.
@@ -348,9 +356,11 @@
           <li>Pick a city or country — URLs like <code>#city/Berlin</code> are shareable.</li>
           <li>The list shows today and upcoming events; filter by keyword or reveal past ones.</li>
           <li>The map keeps markers from cached locations (up to 7&nbsp;days; event lists stay fresh for 24&nbsp;h).</li>
-          <li><strong>Share to Nostr</strong> — see note format below.</li>
+          <li><strong>Share to Nostr</strong> — map notes and optional “I'm going” RSVP.</li>
         </ul>
 
+        <button type="button" class="sb-btn secondary sb-about-tech-toggle" id="sb-about-tech-toggle" aria-expanded="false" aria-controls="sb-about-tech">Nostr note format</button>
+        <div id="sb-about-tech" class="sb-about-tech" hidden>
         <h3>Note format (for other Nostr apps)</h3>
         <p>
           Shared events are kind&nbsp;<strong>30399</strong> third-party map notes, matching the
@@ -410,6 +420,7 @@
           Filter kind&nbsp;30399 with <code>#l</code> on <code>open-location-code-prefix</code> values for map tiles, or subscribe by pubkey.
           Trustroots Map already renders this shape; other clients can treat <code>content</code> as a note body and <code>r</code> as the outbound link.
         </p>
+        </div>
 
         <p class="muted">
           You need a <a href="https://github.com/nostr-protocol/nips/blob/master/07.md" target="_blank" rel="noopener">NIP-07</a>
@@ -1263,13 +1274,37 @@
   }
 
   function getShareUi(ev) {
-    const shareDisabled = !ev.hasCoords || !state.signer.connected;
-    const shareTitle = !ev.hasCoords
-      ? "No coordinates for this venue"
-      : !state.signer.connected
-        ? "Connect a NIP-07 signer to share"
-        : "Share to Nostr";
-    return { shareDisabled, shareTitle };
+    if (!ev.hasCoords) {
+      return {
+        shareDisabled: true,
+        shareTitle: "No venue coordinates for this event — map notes need a location.",
+      };
+    }
+    if (!state.signer.connected) {
+      return {
+        shareDisabled: true,
+        shareTitle: "Connect a NIP-07 browser signer (nos2x, Alby, etc.) to share.",
+      };
+    }
+    return {
+      shareDisabled: false,
+      shareTitle: "Share this event to Nostr",
+    };
+  }
+
+  function buildShareButtonHtml(className, nid, shareDisabled, shareTitle, dataAttr) {
+    const attr = dataAttr || "data-share";
+    const btn =
+      '<button type="button" class="' + escapeHtml(className) + '" ' +
+      attr + '="' + escapeHtml(nid) + '"' +
+      (shareDisabled ? ' disabled aria-disabled="true"' : "") +
+      ">Share to Nostr</button>";
+    const wrapClass = shareDisabled ? "sb-share-wrap sb-share-wrap--disabled" : "sb-share-wrap";
+    return (
+      '<span class="' + wrapClass + '" title="' + escapeHtml(shareTitle) + '">' +
+      btn +
+      "</span>"
+    );
   }
 
   function buildMapPopupHtml(ev) {
@@ -1280,9 +1315,7 @@
         escapeHtml(ev.when) + "<br>" +
         '<div class="sb-map-popup-actions">' +
           '<a href="' + escapeHtml(ev.url) + '" target="_blank" rel="noopener">radar</a>' +
-          '<button type="button" class="sb-map-share" data-nid="' + escapeHtml(ev.nid) + '"' +
-            (shareDisabled ? " disabled" : "") +
-            ' title="' + escapeHtml(shareTitle) + '">Share to Nostr</button>' +
+          buildShareButtonHtml("sb-map-share", ev.nid, shareDisabled, shareTitle, "data-nid") +
         "</div>" +
       "</div>"
     );
@@ -1327,9 +1360,7 @@
           (ev.categories.length ? '<p class="cats">' + escapeHtml(ev.categories.join(" · ")) + "</p>" : "") +
           '<div class="sb-event-actions">' +
             '<a href="' + escapeHtml(ev.url) + '" target="_blank" rel="noopener">radar</a>' +
-            '<button type="button" class="share" data-share="' + escapeHtml(ev.nid) + '"' +
-              (shareDisabled ? " disabled" : "") +
-              ' title="' + escapeHtml(shareTitle) + '">Share to Nostr</button>' +
+            buildShareButtonHtml("share", ev.nid, shareDisabled, shareTitle) +
           "</div>" +
         "</article>"
       );
@@ -1344,6 +1375,7 @@
     list.querySelectorAll("[data-share]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
+        if (btn.disabled) return;
         openShareModal(btn.dataset.share);
       });
     });
@@ -1413,7 +1445,17 @@
     state.shareEvent = null;
   }
 
+  function setAboutTechVisible(show) {
+    const panel = byId("sb-about-tech");
+    const btn = byId("sb-about-tech-toggle");
+    if (!panel || !btn) return;
+    panel.hidden = !show;
+    btn.setAttribute("aria-expanded", show ? "true" : "false");
+    btn.textContent = show ? "Hide note format" : "Nostr note format";
+  }
+
   function openAboutModal() {
+    setAboutTechVisible(false);
     byId("sb-about-modal").hidden = false;
   }
 
@@ -1602,6 +1644,10 @@
   });
 
   byId("sb-about").addEventListener("click", openAboutModal);
+  byId("sb-about-tech-toggle").addEventListener("click", () => {
+    const panel = byId("sb-about-tech");
+    setAboutTechVisible(Boolean(panel?.hidden));
+  });
   byId("sb-about-close").addEventListener("click", closeAboutModal);
   byId("sb-about-modal").addEventListener("click", (e) => {
     if (e.target === byId("sb-about-modal")) closeAboutModal();

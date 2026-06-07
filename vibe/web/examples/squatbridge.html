@@ -336,6 +336,7 @@
       text: "Checking signer…",
     },
     markers: [],
+    mapEventsByNid: Object.create(null),
     showPastEvents: false,
     eventFilterQuery: "",
   };
@@ -770,6 +771,18 @@
     else state.locationFilter.country = value;
   }
 
+  function sortedCities() {
+    return LOCATIONS.cities.slice().sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+    );
+  }
+
+  function sortedCountries() {
+    return LOCATIONS.countries.slice().sort((a, b) =>
+      a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
+    );
+  }
+
   function populateFilterOptions(preferredValue) {
     const filterType = getFilterType();
     const select = byId("sb-filter-value");
@@ -779,12 +792,12 @@
 
     let html = "";
     if (isCity) {
-      for (const city of LOCATIONS.cities) {
+      for (const city of sortedCities()) {
         html += '<option value="' + escapeHtml(city.name) + '">' +
           escapeHtml(city.name) + " (" + city.count + ")</option>";
       }
     } else {
-      for (const country of LOCATIONS.countries) {
+      for (const country of sortedCountries()) {
         html += '<option value="' + escapeHtml(country.code) + '">' +
           escapeHtml(country.label) + " (" + country.count + ")</option>";
       }
@@ -798,6 +811,39 @@
     rememberFilterValue(select.value);
   }
 
+  function findEvent(nid) {
+    return state.events.find((e) => e.nid === nid) || state.mapEventsByNid[nid] || null;
+  }
+
+  function mergeMapEvents(events) {
+    for (const ev of events) {
+      state.mapEventsByNid[ev.nid] = ev;
+    }
+  }
+
+  function rebuildMapEventsFromCache() {
+    if (!CACHE || typeof CACHE.listFresh !== "function") return;
+    state.mapEventsByNid = Object.create(null);
+    for (const entry of CACHE.listFresh("events:")) {
+      const data = entry.data;
+      if (!data || data.result === false) continue;
+      const events = Object.entries(data.result).map(([nid, raw]) => normalizeEvent(nid, raw));
+      mergeMapEvents(events);
+    }
+  }
+
+  function getMapEvents() {
+    return Object.values(state.mapEventsByNid);
+  }
+
+  function getVisibleMapEvents() {
+    const query = state.eventFilterQuery;
+    return getMapEvents().filter((ev) => {
+      if (!state.showPastEvents && isPastEvent(ev)) return false;
+      return eventMatchesFilter(ev, query);
+    });
+  }
+
   function applyEventsPayload(data, cacheNote) {
     if (!data.result || data.result === false) {
       state.events = [];
@@ -807,6 +853,7 @@
       state.totalCount = Number(data.count) || state.events.length;
       state.events.sort((a, b) => String(a.whenStart).localeCompare(String(b.whenStart)));
     }
+    rebuildMapEventsFromCache();
     renderEvents();
     const withCoords = state.events.filter((e) => e.hasCoords).length;
     const { upcoming, past } = partitionListEvents();
@@ -964,7 +1011,7 @@
 
   function selectEvent(nid) {
     state.selectedNid = nid;
-    const ev = state.events.find((e) => e.nid === nid);
+    const ev = findEvent(nid);
     renderEventList();
     if (ev?.coords && map) {
       map.setView([ev.coords.lat, ev.coords.lon], 14);
@@ -1042,7 +1089,7 @@
     markerLayer.clearLayers();
     state.markers = [];
     const bounds = [];
-    getVisibleEvents().forEach((ev) => {
+    getVisibleMapEvents().forEach((ev) => {
       if (!ev.coords) return;
       const marker = L.marker([ev.coords.lat, ev.coords.lon]);
       marker.bindPopup(
@@ -1250,6 +1297,8 @@
   });
 
   initMap();
+  rebuildMapEventsFromCache();
+  renderMapMarkers();
   if (!applyLocationHash({ fetch: false })) {
     syncFilterTabs();
     populateFilterOptions("Berlin");

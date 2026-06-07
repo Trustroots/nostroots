@@ -63,7 +63,7 @@
       background: var(--bg);
       color: var(--fg);
     }
-    .sb-controls input[type="text"] { width: 8rem; }
+    .sb-controls select { max-width: min(280px, 55vw); }
     .sb-btn {
       font: inherit;
       padding: 0.4rem 0.75rem;
@@ -75,7 +75,7 @@
     }
     .sb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .sb-btn.secondary { background: var(--card); color: var(--fg); }
-    .sb-signer { font-size: 0.8rem; color: var(--muted); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sb-signer { font-size: 0.8rem; color: var(--muted); max-width: min(280px, 40vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .sb-status { font-size: 0.85rem; color: var(--muted); padding: 0 1rem 0.5rem; flex-shrink: 0; }
     .sb-status.error { color: var(--danger); }
     .sb-main { display: flex; flex: 1; min-height: 0; }
@@ -140,6 +140,33 @@
     .sb-modal .feedback.error { color: var(--danger); }
     .sb-modal .feedback.ok { color: var(--ok); }
     .sb-relay-results { font-size: 0.8rem; color: var(--muted); margin: 0.5rem 0; }
+    .sb-circles { margin: 0.75rem 0 0; padding: 0; border: none; }
+    .sb-circles legend { font-size: 0.85rem; color: var(--muted); padding: 0; margin-bottom: 0.4rem; }
+    .sb-circles-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      max-height: 132px;
+      overflow-y: auto;
+      padding: 0.1rem 0;
+    }
+    .sb-circle-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.45rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--bg);
+      cursor: pointer;
+      user-select: none;
+    }
+    .sb-circle-toggle:has(input:checked) {
+      border-color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 18%, var(--bg));
+    }
+    .sb-circle-toggle input { margin: 0; accent-color: var(--primary); }
     .sb-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem; }
     @media (max-width: 720px) {
       .sb-main { flex-direction: column; }
@@ -160,9 +187,9 @@
       </label>
       <label>
         <span id="sb-filter-label">City</span>
-        <input type="text" id="sb-filter-value" value="Berlin" autocomplete="off">
+        <select id="sb-filter-value"></select>
       </label>
-      <button type="button" class="sb-btn" id="sb-load">Load events</button>
+      <button type="button" class="sb-btn" id="sb-load" title="Shift+click to refresh from radar (bypass cache)">Load events</button>
     </div>
     <span class="sb-signer" id="sb-signer">Checking signer…</span>
     <button type="button" class="sb-btn secondary" id="sb-theme" title="Toggle theme">Theme</button>
@@ -179,6 +206,10 @@
     <div class="sb-modal" role="dialog" aria-labelledby="sb-share-title">
       <h2 id="sb-share-title">Share to Nostr</h2>
       <p class="meta" id="sb-share-meta" style="font-size:0.85rem;color:var(--muted);margin:0 0 0.5rem;"></p>
+      <fieldset class="sb-circles">
+        <legend>Trustroots circles</legend>
+        <div class="sb-circles-grid" id="sb-share-circles"></div>
+      </fieldset>
       <textarea id="sb-share-content" aria-label="Note content"></textarea>
       <p class="feedback" id="sb-share-feedback" role="status"></p>
       <div class="sb-relay-results" id="sb-relay-results"></div>
@@ -189,12 +220,20 @@
     </div>
   </div>
 
+  <script src="squatbridge-locations.js"></script>
+  <script src="squatbridge-circles.js"></script>
+  <script src="squatbridge-cache.js"></script>
+  <script src="squatbridge-identity.js"></script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <script>
 (function () {
   "use strict";
 
   const RADAR_API = "https://radar.squat.net/api/1.2/search/events.json";
+  const LOCATIONS = window.SQUATBRIDGE_LOCATIONS || { countries: [], cities: [] };
+  const CIRCLES = window.SQUATBRIDGE_CIRCLES || { slugs: [], defaultSelected: [] };
+  const CACHE = window.SQUATBRIDGE_CACHE || null;
+  const IDENTITY = window.SQUATBRIDGE_IDENTITY || null;
   const SQUATBRIDGE_RELAYS = [
     "wss://relay.trustroots.org",
     "wss://relay.nomadwiki.org",
@@ -214,7 +253,18 @@
     totalCount: 0,
     selectedNid: null,
     shareEvent: null,
-    signer: { connected: false, pubkey: "", text: "Checking signer…" },
+    selectedCircles: new Set(
+      (CIRCLES.defaultSelected || []).filter((slug) => (CIRCLES.slugs || []).includes(slug))
+    ),
+    signer: {
+      connected: false,
+      pubkey: "",
+      nip05: "",
+      npub: "",
+      displayLabel: "",
+      identityStatus: "idle",
+      text: "Checking signer…",
+    },
     markers: [],
   };
 
@@ -295,6 +345,62 @@
     return { connected: false, text: "No NIP-07 signer (share disabled)." };
   }
 
+  function updateSignerUi() {
+    const el = byId("sb-signer");
+    if (!el) return;
+    if (!state.signer.connected) {
+      el.textContent = state.signer.text;
+      el.title = "";
+      return;
+    }
+    if (state.signer.identityStatus === "loading") {
+      el.textContent = "Looking up identity…";
+      el.title = state.signer.pubkey || "";
+      return;
+    }
+    el.textContent = state.signer.displayLabel || state.signer.text;
+    el.title = state.signer.pubkey || "";
+  }
+
+  function createSignAuthEvent(publicKeyHex) {
+    return async function (template, relayUrl) {
+      const provider = window.nostr;
+      if (!provider?.signEvent || !IDENTITY) return null;
+      const authTemplate = IDENTITY.normalizeRelayAuthTemplate(template, relayUrl);
+      if (!authTemplate.pubkey) authTemplate.pubkey = publicKeyHex;
+      try {
+        const signed = await provider.signEvent(authTemplate);
+        return signed && String(signed.pubkey || "").toLowerCase() === publicKeyHex ? signed : null;
+      } catch (_) {
+        return null;
+      }
+    };
+  }
+
+  async function resolveSignerIdentity() {
+    if (!state.signer.connected || !state.signer.pubkey) {
+      updateSignerUi();
+      return;
+    }
+    state.signer.identityStatus = "loading";
+    updateSignerUi();
+    if (!IDENTITY) {
+      state.signer.displayLabel = state.signer.pubkey.slice(0, 8) + "…";
+      state.signer.identityStatus = "ready";
+      updateSignerUi();
+      renderEventList();
+      return;
+    }
+    const signAuthEvent = createSignAuthEvent(state.signer.pubkey);
+    const identity = await IDENTITY.resolveDisplayIdentity(state.signer.pubkey, signAuthEvent);
+    state.signer.nip05 = identity.nip05;
+    state.signer.npub = identity.npub;
+    state.signer.displayLabel = identity.label;
+    state.signer.identityStatus = "ready";
+    updateSignerUi();
+    renderEventList();
+  }
+
   async function refreshSigner() {
     const result = getSignerStatus();
     let pubkey = "";
@@ -306,12 +412,21 @@
         result.text = "Signer key unavailable.";
       }
     }
-    state.signer = { ...result, pubkey };
-    const el = byId("sb-signer");
-    if (el) {
-      el.textContent = state.signer.pubkey
-        ? state.signer.text + " " + state.signer.pubkey.slice(0, 8) + "…"
-        : state.signer.text;
+    const pubkeyChanged = pubkey !== state.signer.pubkey;
+    state.signer = {
+      ...state.signer,
+      ...result,
+      pubkey,
+      nip05: pubkeyChanged ? "" : state.signer.nip05,
+      npub: pubkeyChanged ? "" : state.signer.npub,
+      displayLabel: pubkeyChanged ? "" : state.signer.displayLabel,
+      identityStatus: pubkeyChanged ? "idle" : state.signer.identityStatus,
+    };
+    updateSignerUi();
+    if (result.connected && pubkey && (pubkeyChanged || state.signer.identityStatus !== "ready")) {
+      void resolveSignerIdentity();
+    } else if (!result.connected) {
+      renderEventList();
     }
     return result.connected;
   }
@@ -382,6 +497,29 @@
     return lines.join("\n");
   }
 
+  function getSelectedCircles() {
+    return [...state.selectedCircles].sort();
+  }
+
+  function applyCircleHashtags(content) {
+    let next = String(content || "").trim();
+    for (const slug of getSelectedCircles()) {
+      const hashtag = "#" + slug;
+      if (!next.split(/\s+/).includes(hashtag)) next = next + " " + hashtag;
+    }
+    return next.trim();
+  }
+
+  function appendCircleTags(tags) {
+    const circles = getSelectedCircles();
+    if (!circles.length) return tags;
+    tags.push(["L", "trustroots-circle"]);
+    for (const slug of circles) {
+      tags.push(["l", slug, "trustroots-circle"]);
+    }
+    return tags;
+  }
+
   function buildShareTags(ev) {
     const plusCode = encodePlusCode(ev.coords.lat, ev.coords.lon);
     if (!plusCode) throw new Error("Could not encode location.");
@@ -394,6 +532,7 @@
       ["L", "open-location-code-prefix"],
       ...getPlusCodePrefixes(plusCode).map((prefix) => ["l", prefix, "open-location-code-prefix"]),
     ];
+    appendCircleTags(tags);
     const expiration = ev.endUnix && Number.isFinite(ev.endUnix)
       ? ev.endUnix + 86400
       : Math.floor(Date.now() / 1000) + 604800;
@@ -401,16 +540,83 @@
     return tags;
   }
 
-  async function fetchEvents() {
+  function renderShareCircles() {
+    const host = byId("sb-share-circles");
+    if (!host) return;
+    host.innerHTML = CIRCLES.slugs.map((slug) => {
+      const checked = state.selectedCircles.has(slug) ? " checked" : "";
+      return (
+        '<label class="sb-circle-toggle">' +
+          '<input type="checkbox" data-circle="' + escapeHtml(slug) + '"' + checked + ">" +
+          "#" + escapeHtml(slug) +
+        "</label>"
+      );
+    }).join("");
+    host.querySelectorAll("[data-circle]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const slug = input.dataset.circle;
+        if (!slug) return;
+        if (input.checked) state.selectedCircles.add(slug);
+        else state.selectedCircles.delete(slug);
+      });
+    });
+  }
+
+  function populateFilterOptions(preferredValue) {
     const filterType = byId("sb-filter-type").value;
-    const filterValue = byId("sb-filter-value").value.trim();
-    if (!filterValue) {
-      setStatus("Enter a city or country code.", "error");
+    const select = byId("sb-filter-value");
+    if (!select) return;
+
+    const isCity = filterType === "city";
+    byId("sb-filter-label").textContent = isCity ? "City" : "Country";
+
+    let html = "";
+    if (isCity) {
+      for (const city of LOCATIONS.cities) {
+        html += '<option value="' + escapeHtml(city.name) + '">' +
+          escapeHtml(city.name) + " (" + city.count + ")</option>";
+      }
+    } else {
+      for (const country of LOCATIONS.countries) {
+        html += '<option value="' + escapeHtml(country.code) + '">' +
+          escapeHtml(country.label) + " (" + country.count + ")</option>";
+      }
+    }
+    select.innerHTML = html;
+
+    const fallback = isCity ? "Berlin" : "NL";
+    const wanted = preferredValue || fallback;
+    const hasOption = Array.from(select.options).some((opt) => opt.value === wanted);
+    select.value = hasOption ? wanted : (select.options[0]?.value || "");
+  }
+
+  function applyEventsPayload(data, cacheNote) {
+    if (!data.result || data.result === false) {
+      state.events = [];
+      state.totalCount = 0;
+    } else {
+      state.events = Object.entries(data.result).map(([nid, raw]) => normalizeEvent(nid, raw));
+      state.totalCount = Number(data.count) || state.events.length;
+      state.events.sort((a, b) => String(a.whenStart).localeCompare(String(b.whenStart)));
+    }
+    renderEvents();
+    const withCoords = state.events.filter((e) => e.hasCoords).length;
+    let status =
+      "Showing " + state.events.length + " of " + state.totalCount +
+      " events (" + withCoords + " with map coordinates)." +
+      (state.totalCount > 500 ? " API limit: first 500 only." : "");
+    if (cacheNote) status += " " + cacheNote;
+    setStatus(status, cacheNote && cacheNote.indexOf("unreachable") >= 0 ? "error" : undefined);
+  }
+
+  async function fetchEvents(options) {
+    options = options || {};
+    const filterType = byId("sb-filter-type").value;
+    const filterValue = byId("sb-filter-value").value;
+    if (filterValue === undefined || filterValue === null) {
+      setStatus("Choose a city or country.", "error");
       return;
     }
-
-    setStatus("Loading from radar.squat.net…");
-    byId("sb-load").disabled = true;
 
     const params = new URLSearchParams();
     params.set("limit", "500");
@@ -419,29 +625,41 @@
     if (filterType === "city") {
       params.append("facets[city][]", filterValue);
     } else {
-      params.append("facets[country][]", filterValue.toUpperCase());
+      params.append("facets[country][]", filterValue);
     }
+
+    const cacheKey = "events:" + params.toString();
+    if (CACHE && !options.forceRefresh) {
+      const cached = CACHE.get(cacheKey);
+      if (cached && cached.fresh) {
+        applyEventsPayload(
+          cached.data,
+          "(cached " + CACHE.formatAge(cached.ageMs) + " ago)"
+        );
+        return;
+      }
+    }
+
+    setStatus("Loading from radar.squat.net…");
+    byId("sb-load").disabled = true;
 
     try {
       const res = await fetch(RADAR_API + "?" + params.toString());
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
-      if (!data.result || data.result === false) {
-        state.events = [];
-        state.totalCount = 0;
-      } else {
-        state.events = Object.entries(data.result).map(([nid, raw]) => normalizeEvent(nid, raw));
-        state.totalCount = Number(data.count) || state.events.length;
-        state.events.sort((a, b) => String(a.whenStart).localeCompare(String(b.whenStart)));
-      }
-      renderEvents();
-      const withCoords = state.events.filter((e) => e.hasCoords).length;
-      setStatus(
-        "Showing " + state.events.length + " of " + state.totalCount +
-        " events (" + withCoords + " with map coordinates)." +
-        (state.totalCount > 500 ? " API limit: first 500 only." : "")
-      );
+      if (CACHE) CACHE.set(cacheKey, data);
+      applyEventsPayload(data, "");
     } catch (err) {
+      if (CACHE) {
+        const stale = CACHE.get(cacheKey, { allowStale: true });
+        if (stale) {
+          applyEventsPayload(
+            stale.data,
+            "(cached " + CACHE.formatAge(stale.ageMs) + " ago; radar unreachable)"
+          );
+          return;
+        }
+      }
       setStatus(err?.message || "Failed to load events.", "error");
     } finally {
       byId("sb-load").disabled = false;
@@ -552,6 +770,7 @@
     byId("sb-share-title").textContent = "Share: " + ev.title;
     byId("sb-share-meta").textContent = ev.when + " · " + ev.venue;
     byId("sb-share-content").value = buildDefaultContent(ev);
+    renderShareCircles();
     byId("sb-share-feedback").textContent = "";
     byId("sb-share-feedback").className = "feedback";
     byId("sb-relay-results").textContent = "";
@@ -612,7 +831,7 @@
       return;
     }
 
-    const content = String(byId("sb-share-content").value || "").trim();
+    let content = applyCircleHashtags(String(byId("sb-share-content").value || "").trim());
     if (content.length < 3) {
       byId("sb-share-feedback").textContent = "Content must be at least 3 characters.";
       byId("sb-share-feedback").className = "feedback error";
@@ -682,16 +901,13 @@
   }
 
   byId("sb-filter-type").addEventListener("change", () => {
-    const isCity = byId("sb-filter-type").value === "city";
-    byId("sb-filter-label").textContent = isCity ? "City" : "Country";
-    byId("sb-filter-value").value = isCity ? "Berlin" : "NL";
-    byId("sb-filter-value").placeholder = isCity ? "Berlin" : "NL";
+    populateFilterOptions();
   });
 
-  byId("sb-load").addEventListener("click", () => void fetchEvents());
-  byId("sb-filter-value").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") void fetchEvents();
+  byId("sb-load").addEventListener("click", (e) => {
+    void fetchEvents({ forceRefresh: e.shiftKey });
   });
+  byId("sb-filter-value").addEventListener("change", () => void fetchEvents());
 
   byId("sb-share-cancel").addEventListener("click", closeShareModal);
   byId("sb-share-publish").addEventListener("click", () => void publishShare());
@@ -705,6 +921,8 @@
   });
 
   initMap();
+  populateFilterOptions("Berlin");
+  renderShareCircles();
   watchForSigner();
   void fetchEvents();
 })();

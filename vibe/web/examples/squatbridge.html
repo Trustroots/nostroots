@@ -372,7 +372,7 @@
         <p>Newline-separated plain text, in order:</p>
         <ol>
           <li>Event title</li>
-          <li>Date/time (start, or start → end)</li>
+          <li>Date/time as <code>yyyy-mm-dd hh:mm</code> (same-day ranges: <code>2026-06-08 16:00 → 18:00</code>)</li>
           <li>Venue name</li>
           <li>Categories (comma-separated), if any</li>
           <li>Canonical <code>radar.squat.net</code> URL</li>
@@ -401,7 +401,7 @@
 
         <div class="sb-about-format" aria-label="Example kind 30399 event">{
   "kind": 30399,
-  "content": "Workshop title\n2026-06-07T14:00:00+02:00\nVenue name\nworkshop\nhttps://radar.squat.net/en/node/123456\n#punks",
+  "content": "Workshop title\n2026-06-07 14:00\nVenue name\nworkshop\nhttps://radar.squat.net/en/node/123456\n#punks",
   "tags": [
     ["d", "squatbridge:radar:123456"],
     ["r", "https://radar.squat.net/en/node/123456"],
@@ -711,13 +711,41 @@
     return { lat, lon };
   }
 
+  function parseDateTimeParts(iso) {
+    if (!iso) return null;
+    const text = String(iso).trim();
+    const match = text.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+    if (match) return { date: match[1], time: match[2] };
+    const parsed = Date.parse(text);
+    if (!Number.isFinite(parsed)) return null;
+    const d = new Date(parsed);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const h = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    return { date: y + "-" + m + "-" + day, time: h + ":" + min };
+  }
+
+  function formatDateTimeDisplay(iso) {
+    const parts = parseDateTimeParts(iso);
+    if (!parts) return String(iso || "").trim();
+    return parts.date + " " + parts.time;
+  }
+
   function formatWhen(dateTime) {
     if (!dateTime) return "Time TBD";
-    const start = dateTime.time_start || "";
-    const end = dateTime.time_end || "";
-    if (!start) return "Time TBD";
-    if (!end || end === start) return start;
-    return start + " → " + end;
+    const startParts = parseDateTimeParts(dateTime.time_start || "");
+    const endParts = parseDateTimeParts(dateTime.time_end || "");
+    if (!startParts) return "Time TBD";
+    const start = startParts.date + " " + startParts.time;
+    if (!endParts || (startParts.date === endParts.date && startParts.time === endParts.time)) {
+      return start;
+    }
+    if (startParts.date === endParts.date) {
+      return start + " → " + endParts.time;
+    }
+    return start + " → " + endParts.date + " " + endParts.time;
   }
 
   function formatVenue(offlineEntry) {

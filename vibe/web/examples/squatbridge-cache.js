@@ -1,17 +1,20 @@
 /**
- * Simple TTL cache for Squatbridge API responses (memory + sessionStorage).
+ * Simple TTL cache for Squatbridge API responses (memory + localStorage).
+ * Radar events change slowly — fresh for 24h, stale fallback up to 7 days.
  */
 (function () {
   "use strict";
 
-  var TTL_MS = 15 * 60 * 1000;
-  var STALE_MAX_MS = 24 * 60 * 60 * 1000;
-  var STORAGE_PREFIX = "squatbridge:cache:v1:";
+  var TTL_MS = 24 * 60 * 60 * 1000;
+  var STALE_MAX_MS = 7 * 24 * 60 * 60 * 1000;
+  var STORAGE_PREFIX = "squatbridge:cache:v2:";
   var memory = Object.create(null);
+  var storage = typeof localStorage !== "undefined" ? localStorage : null;
 
   function readStorage(key) {
+    if (!storage) return null;
     try {
-      var raw = sessionStorage.getItem(STORAGE_PREFIX + key);
+      var raw = storage.getItem(STORAGE_PREFIX + key);
       return raw ? JSON.parse(raw) : null;
     } catch (_) {
       return null;
@@ -19,15 +22,16 @@
   }
 
   function writeStorage(key, entry) {
+    if (!storage) return;
     try {
-      sessionStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(entry));
+      storage.setItem(STORAGE_PREFIX + key, JSON.stringify(entry));
     } catch (_) {
       try {
-        for (var i = 0; i < sessionStorage.length; i += 1) {
-          var k = sessionStorage.key(i);
-          if (k && k.indexOf(STORAGE_PREFIX) === 0) sessionStorage.removeItem(k);
+        for (var i = storage.length - 1; i >= 0; i -= 1) {
+          var k = storage.key(i);
+          if (k && k.indexOf(STORAGE_PREFIX) === 0) storage.removeItem(k);
         }
-        sessionStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(entry));
+        storage.setItem(STORAGE_PREFIX + key, JSON.stringify(entry));
       } catch (_) {}
     }
   }
@@ -64,12 +68,15 @@
     var mins = Math.max(1, Math.round(ageMs / 60000));
     if (mins < 60) return mins + " min";
     var hours = Math.round(mins / 60);
-    return hours + " h";
+    if (hours < 48) return hours + " h";
+    var days = Math.round(hours / 24);
+    return days + " d";
   }
 
-  function listFresh(prefix) {
+  function listCached(prefix, maxAgeMs) {
     var now = Date.now();
     var keyPrefix = prefix || "";
+    var maxAge = typeof maxAgeMs === "number" ? maxAgeMs : STALE_MAX_MS;
     var seen = Object.create(null);
     var results = [];
 
@@ -79,31 +86,46 @@
       if (!normalized || seen[key]) return;
       seen[key] = true;
       var ageMs = now - normalized.storedAt;
-      if (ageMs > TTL_MS) return;
+      if (ageMs > maxAge) return;
       memory[key] = normalized;
-      results.push({ key: key, data: normalized.data, ageMs: ageMs });
+      results.push({
+        key: key,
+        data: normalized.data,
+        ageMs: ageMs,
+        fresh: ageMs <= TTL_MS,
+      });
     }
 
     Object.keys(memory).forEach(function (key) {
       consider(key, memory[key]);
     });
 
-    try {
-      for (var i = 0; i < sessionStorage.length; i += 1) {
-        var storageKey = sessionStorage.key(i);
-        if (!storageKey || storageKey.indexOf(STORAGE_PREFIX) !== 0) continue;
-        consider(storageKey.slice(STORAGE_PREFIX.length), readStorage(storageKey.slice(STORAGE_PREFIX.length)));
-      }
-    } catch (_) {}
+    if (storage) {
+      try {
+        for (var i = 0; i < storage.length; i += 1) {
+          var storageKey = storage.key(i);
+          if (!storageKey || storageKey.indexOf(STORAGE_PREFIX) !== 0) continue;
+          consider(storageKey.slice(STORAGE_PREFIX.length), readStorage(storageKey.slice(STORAGE_PREFIX.length)));
+        }
+      } catch (_) {}
+    }
 
     return results;
   }
 
+  function listFresh(prefix) {
+    return listCached(prefix, TTL_MS).filter(function (entry) {
+      return entry.fresh;
+    });
+  }
+
   window.SQUATBRIDGE_CACHE = {
     TTL_MS: TTL_MS,
+    STALE_MAX_MS: STALE_MAX_MS,
     get: get,
     set: set,
     listFresh: listFresh,
+    listCached: listCached,
     formatAge: formatAge,
   };
 })();

@@ -119,6 +119,20 @@
       flex-direction: column;
     }
     #sb-map { flex: 1; min-width: 0; min-height: 200px; }
+    .sb-map-popup { font-size: 0.85rem; line-height: 1.4; max-width: 220px; }
+    .sb-map-popup-actions { margin-top: 0.45rem; display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+    .sb-map-popup-actions a { font-size: 0.8rem; }
+    .sb-map-popup-actions .sb-map-share {
+      font: inherit;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.45rem;
+      border-radius: 4px;
+      border: none;
+      background: var(--primary);
+      color: var(--primary-fg);
+      cursor: pointer;
+    }
+    .sb-map-popup-actions .sb-map-share:disabled { opacity: 0.45; cursor: not-allowed; }
     .sb-list-panel {
       width: min(420px, 42vw);
       border-left: 1px solid var(--border);
@@ -265,6 +279,16 @@
       background: color-mix(in srgb, var(--primary) 18%, var(--bg));
     }
     .sb-circle-toggle input { margin: 0; accent-color: var(--primary); }
+    .sb-going-toggle {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      margin: 0.75rem 0 0;
+      cursor: pointer;
+    }
+    .sb-going-toggle input { margin: 0.2rem 0 0; accent-color: var(--primary); flex-shrink: 0; }
+    .sb-share-hint { font-size: 0.8rem; color: var(--muted); margin: 0.35rem 0 0.75rem; line-height: 1.4; }
     .sb-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem; }
     @media (max-width: 720px) {
       .sb-main { flex-direction: column; }
@@ -323,7 +347,7 @@
         <ul>
           <li>Pick a city or country — URLs like <code>#city/Berlin</code> are shareable.</li>
           <li>The list shows today and upcoming events; filter by keyword or reveal past ones.</li>
-          <li>The map keeps markers from locations you loaded recently (15&nbsp;min cache).</li>
+          <li>The map keeps markers from cached locations (up to 7&nbsp;days; event lists stay fresh for 24&nbsp;h).</li>
           <li><strong>Share to Nostr</strong> — see note format below.</li>
         </ul>
 
@@ -355,6 +379,15 @@
           <li><code>["L","trustroots-circle"]</code> + <code>["l","{slug}","trustroots-circle"]</code> — optional circle filters (lowercase slug).</li>
           <li><code>["expiration", "{unix}"]</code> — hide after event end (+1&nbsp;day) or +7&nbsp;days if open-ended.</li>
         </ul>
+
+        <h4>Going to the event (optional, NIP-52)</h4>
+        <p>
+          When the share toggle is on, Squatbridge also publishes a
+          <a href="https://github.com/nostr-protocol/nips/blob/master/52.md" target="_blank" rel="noopener noreferrer">NIP-52</a>
+          calendar event (kind&nbsp;<strong>31923</strong> or <strong>31922</strong>) plus an RSVP (kind&nbsp;<strong>31925</strong>)
+          with <code>["status", "accepted"]</code> and <code>["fb", "busy"]</code>.
+          The RSVP <code>a</code> tag points at <code>{kind}:{pubkey}:squatbridge:radar:{nid}</code>.
+        </p>
 
         <div class="sb-about-format" aria-label="Example kind 30399 event">{
   "kind": 30399,
@@ -396,6 +429,13 @@
       <h2 id="sb-share-title">Share to Nostr</h2>
       <p class="meta" id="sb-share-meta" style="font-size:0.85rem;color:var(--muted);margin:0 0 0.5rem;"></p>
       <textarea id="sb-share-content" aria-label="Note content"></textarea>
+      <label class="sb-going-toggle">
+        <input type="checkbox" id="sb-share-going">
+        <span><strong>I'm going to this event</strong> — also publish a
+          <a href="https://github.com/nostr-protocol/nips/blob/master/52.md" target="_blank" rel="noopener noreferrer">NIP-52</a>
+          RSVP with <code>status: accepted</code></span>
+      </label>
+      <p class="sb-share-hint">Sharing the map note helps others either way. Turn this on if you plan to attend.</p>
       <fieldset class="sb-circles">
         <legend>Trustroots circles</legend>
         <div class="sb-circles-grid" id="sb-share-circles"></div>
@@ -432,6 +472,9 @@
     "wss://relay.nomadwiki.org",
   ];
   const THIRD_PARTY_EVENT_KIND = 30399;
+  const CALENDAR_DATE_KIND = 31922;
+  const CALENDAR_TIME_KIND = 31923;
+  const CALENDAR_RSVP_KIND = 31925;
   const PLUS_CODE_ALPHABET = "23456789CFGHJMPQRVWX";
   const GRID_SIZE = 20;
   const PAIR_RESOLUTIONS = [20.0, 1.0, 0.05, 0.0025, 0.000125];
@@ -587,6 +630,7 @@
       state.signer.identityStatus = "ready";
       updateSignerUi();
       renderEventList();
+      renderMapMarkers();
       return;
     }
     const signAuthEvent = createSignAuthEvent(state.signer.pubkey);
@@ -597,6 +641,7 @@
     state.signer.identityStatus = "ready";
     updateSignerUi();
     renderEventList();
+    renderMapMarkers();
   }
 
   async function refreshSigner() {
@@ -625,6 +670,7 @@
       void resolveSignerIdentity();
     } else if (!result.connected) {
       renderEventList();
+      renderMapMarkers();
     }
     return result.connected;
   }
@@ -717,6 +763,71 @@
       tags.push(["l", slug, "trustroots-circle"]);
     }
     return tags;
+  }
+
+  function calendarDTag(ev) {
+    return "squatbridge:radar:" + ev.nid;
+  }
+
+  function appendCalendarDayTags(tags, startUnix, endUnix) {
+    const startDay = Math.floor(startUnix / 86400);
+    let endDay = startDay;
+    if (endUnix && Number.isFinite(endUnix) && endUnix > startUnix) {
+      endDay = Math.floor((endUnix - 1) / 86400);
+    }
+    for (let day = startDay; day <= endDay; day += 1) {
+      tags.push(["D", String(day)]);
+    }
+  }
+
+  function buildCalendarEventDraft(ev, description) {
+    const tags = [
+      ["d", calendarDTag(ev)],
+      ["title", String(ev.title || "Untitled event").slice(0, 200)],
+      ["location", ev.venue],
+      ["r", ev.url],
+    ];
+    ev.categories.forEach((cat) => tags.push(["t", cat]));
+
+    if (ev.startUnix && Number.isFinite(ev.startUnix)) {
+      tags.push(["start", String(ev.startUnix)]);
+      if (ev.endUnix && Number.isFinite(ev.endUnix)) {
+        tags.push(["end", String(ev.endUnix)]);
+      }
+      appendCalendarDayTags(tags, ev.startUnix, ev.endUnix || ev.startUnix);
+      return { kind: CALENDAR_TIME_KIND, content: description, tags };
+    }
+
+    const startDate = (ev.whenStart && ev.whenStart.length >= 10)
+      ? ev.whenStart.slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+    tags.push(["start", startDate]);
+    if (ev.whenEnd && ev.whenEnd.length >= 10 && ev.whenEnd.slice(0, 10) > startDate) {
+      tags.push(["end", ev.whenEnd.slice(0, 10)]);
+    }
+    return { kind: CALENDAR_DATE_KIND, content: description, tags };
+  }
+
+  function buildRsvpDraft(ev, pubkey) {
+    const calendarDraft = buildCalendarEventDraft(ev, "");
+    const relay = SQUATBRIDGE_RELAYS[0] || "";
+    const aValue = calendarDraft.kind + ":" + pubkey + ":" + calendarDTag(ev);
+    const tags = [
+      ["a", aValue, relay],
+      ["d", "squatbridge:rsvp:radar:" + ev.nid],
+      ["status", "accepted"],
+      ["fb", "busy"],
+      ["p", pubkey, relay],
+    ];
+    return { kind: CALENDAR_RSVP_KIND, content: "Going to " + ev.title, tags };
+  }
+
+  function shareKindLabel(kind) {
+    if (kind === THIRD_PARTY_EVENT_KIND) return "Map note (30399)";
+    if (kind === CALENDAR_DATE_KIND) return "Calendar event (31922)";
+    if (kind === CALENDAR_TIME_KIND) return "Calendar event (31923)";
+    if (kind === CALENDAR_RSVP_KIND) return "RSVP going (31925)";
+    return "Kind " + kind;
   }
 
   function buildShareTags(ev) {
@@ -947,9 +1058,9 @@
   }
 
   function rebuildMapEventsFromCache() {
-    if (!CACHE || typeof CACHE.listFresh !== "function") return;
+    if (!CACHE || typeof CACHE.listCached !== "function") return;
     state.mapEventsByNid = Object.create(null);
-    for (const entry of CACHE.listFresh("events:")) {
+    for (const entry of CACHE.listCached("events:")) {
       const data = entry.data;
       if (!data || data.result === false) continue;
       const events = Object.entries(data.result).map(([nid, raw]) => normalizeEvent(nid, raw));
@@ -1020,6 +1131,14 @@
         applyEventsPayload(
           cached.data,
           "(cached " + CACHE.formatAge(cached.ageMs) + " ago)"
+        );
+        return;
+      }
+      const stale = CACHE.get(cacheKey, { allowStale: true });
+      if (stale) {
+        applyEventsPayload(
+          stale.data,
+          "(cached " + CACHE.formatAge(stale.ageMs) + " ago; reusing stored list)"
         );
         return;
       }
@@ -1143,6 +1262,32 @@
     }
   }
 
+  function getShareUi(ev) {
+    const shareDisabled = !ev.hasCoords || !state.signer.connected;
+    const shareTitle = !ev.hasCoords
+      ? "No coordinates for this venue"
+      : !state.signer.connected
+        ? "Connect a NIP-07 signer to share"
+        : "Share to Nostr";
+    return { shareDisabled, shareTitle };
+  }
+
+  function buildMapPopupHtml(ev) {
+    const { shareDisabled, shareTitle } = getShareUi(ev);
+    return (
+      '<div class="sb-map-popup">' +
+        "<strong>" + escapeHtml(ev.title) + "</strong><br>" +
+        escapeHtml(ev.when) + "<br>" +
+        '<div class="sb-map-popup-actions">' +
+          '<a href="' + escapeHtml(ev.url) + '" target="_blank" rel="noopener">radar</a>' +
+          '<button type="button" class="sb-map-share" data-nid="' + escapeHtml(ev.nid) + '"' +
+            (shareDisabled ? " disabled" : "") +
+            ' title="' + escapeHtml(shareTitle) + '">Share to Nostr</button>' +
+        "</div>" +
+      "</div>"
+    );
+  }
+
   function renderEventList() {
     updatePastEventsToggle();
     const list = byId("sb-list");
@@ -1173,12 +1318,7 @@
     list.innerHTML = visibleEvents.map((ev) => {
       const active = ev.nid === state.selectedNid ? " active" : "";
       const pastClass = isPastEvent(ev) ? " sb-event-past" : "";
-      const shareDisabled = !ev.hasCoords || !state.signer.connected;
-      const shareTitle = !ev.hasCoords
-        ? "No coordinates for this venue"
-        : !state.signer.connected
-          ? "Connect a NIP-07 signer to share"
-          : "Share as kind 30399";
+      const { shareDisabled, shareTitle } = getShareUi(ev);
       return (
         '<article class="sb-event' + active + pastClass + '" data-nid="' + escapeHtml(ev.nid) + '">' +
           "<h3>" + escapeHtml(ev.title) + "</h3>" +
@@ -1209,6 +1349,18 @@
     });
   }
 
+  function wireMapPopupShare(marker, nid) {
+    marker.on("popupopen", () => {
+      const popupEl = marker.getPopup()?.getElement();
+      const btn = popupEl?.querySelector(".sb-map-share");
+      if (!btn || btn.disabled) return;
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openShareModal(nid);
+      }, { once: true });
+    });
+  }
+
   function renderMapMarkers() {
     if (!markerLayer) return;
     markerLayer.clearLayers();
@@ -1217,11 +1369,8 @@
     getVisibleMapEvents().forEach((ev) => {
       if (!ev.coords) return;
       const marker = L.marker([ev.coords.lat, ev.coords.lon]);
-      marker.bindPopup(
-        "<strong>" + escapeHtml(ev.title) + "</strong><br>" +
-        escapeHtml(ev.when) + "<br>" +
-        '<a href="' + escapeHtml(ev.url) + '" target="_blank" rel="noopener">View on radar</a>'
-      );
+      marker.bindPopup(buildMapPopupHtml(ev));
+      wireMapPopupShare(marker, ev.nid);
       marker.on("click", () => selectEvent(ev.nid));
       markerLayer.addLayer(marker);
       state.markers.push(marker);
@@ -1239,7 +1388,7 @@
   }
 
   function openShareModal(nid) {
-    const ev = state.events.find((e) => e.nid === nid);
+    const ev = findEvent(nid);
     if (!ev || !ev.hasCoords) return;
     if (!state.signer.connected) {
       setStatus("Connect a NIP-07 signer before sharing.", "error");
@@ -1249,6 +1398,7 @@
     byId("sb-share-title").textContent = "Share: " + ev.title;
     byId("sb-share-meta").textContent = ev.when + " · " + ev.venue;
     byId("sb-share-content").value = buildDefaultContent(ev);
+    byId("sb-share-going").checked = false;
     renderShareCircles();
     byId("sb-share-feedback").textContent = "";
     byId("sb-share-feedback").className = "feedback";
@@ -1331,13 +1481,14 @@
       return;
     }
 
+    const going = Boolean(byId("sb-share-going")?.checked);
     byId("sb-share-publish").disabled = true;
     byId("sb-share-feedback").textContent = "Signing…";
     byId("sb-share-feedback").className = "feedback";
 
-    let tags;
+    let mapTags;
     try {
-      tags = buildShareTags(ev);
+      mapTags = buildShareTags(ev);
     } catch (err) {
       byId("sb-share-feedback").textContent = err?.message || "Tag build failed.";
       byId("sb-share-feedback").className = "feedback error";
@@ -1345,44 +1496,77 @@
       return;
     }
 
-    let signed;
+    let pubkey;
     try {
-      const pubkey = state.signer.pubkey || await window.nostr.getPublicKey();
-      signed = await window.nostr.signEvent({
-        kind: THIRD_PARTY_EVENT_KIND,
-        content,
-        created_at: Math.floor(Date.now() / 1000),
-        pubkey,
-        tags,
-      });
+      pubkey = state.signer.pubkey || await window.nostr.getPublicKey();
     } catch (err) {
-      byId("sb-share-feedback").textContent = err?.message || "Signer rejected the event.";
+      byId("sb-share-feedback").textContent = err?.message || "Signer key unavailable.";
       byId("sb-share-feedback").className = "feedback error";
       byId("sb-share-publish").disabled = false;
       return;
     }
 
-    if (!signed?.id || !signed?.sig) {
-      byId("sb-share-feedback").textContent = "Incomplete signed event.";
+    const drafts = [];
+    if (going) drafts.push(buildCalendarEventDraft(ev, content));
+    drafts.push({ kind: THIRD_PARTY_EVENT_KIND, content, tags: mapTags });
+    if (going) drafts.push(buildRsvpDraft(ev, pubkey));
+
+    const publishLines = [];
+    let publishedAny = false;
+
+    try {
+      for (let i = 0; i < drafts.length; i += 1) {
+        const draft = drafts[i];
+        byId("sb-share-feedback").textContent =
+          "Signing " + shareKindLabel(draft.kind) + " (" + (i + 1) + "/" + drafts.length + ")…";
+
+        const signed = await window.nostr.signEvent({
+          kind: draft.kind,
+          content: draft.content,
+          created_at: Math.floor(Date.now() / 1000),
+          pubkey,
+          tags: draft.tags,
+        });
+
+        if (!signed?.id || !signed?.sig) {
+          throw new Error("Incomplete signed event for " + shareKindLabel(draft.kind) + ".");
+        }
+
+        byId("sb-share-feedback").textContent =
+          "Publishing " + shareKindLabel(draft.kind) + "…";
+        const results = await Promise.all(SQUATBRIDGE_RELAYS.map((url) => publishToRelay(url, signed)));
+        const okCount = results.filter((r) => r.ok).length;
+        if (okCount > 0) publishedAny = true;
+        publishLines.push(
+          "<strong>" + escapeHtml(shareKindLabel(draft.kind)) + "</strong>: " +
+          okCount + "/" + SQUATBRIDGE_RELAYS.length + " relays" +
+          results.map((r) => {
+            const host = r.url.replace(/^wss:\/\//, "");
+            const status = r.ok ? "ok" : "failed";
+            return "<br>&nbsp;&nbsp;" + escapeHtml(host) + ": " + status +
+              (r.message ? " (" + escapeHtml(r.message) + ")" : "");
+          }).join("")
+        );
+      }
+    } catch (err) {
+      byId("sb-share-feedback").textContent = err?.message || "Publish failed.";
       byId("sb-share-feedback").className = "feedback error";
+      if (publishLines.length) {
+        byId("sb-relay-results").innerHTML = publishLines.join("<br>");
+      }
       byId("sb-share-publish").disabled = false;
       return;
     }
 
-    byId("sb-share-feedback").textContent = "Publishing to relays…";
-    const results = await Promise.all(SQUATBRIDGE_RELAYS.map((url) => publishToRelay(url, signed)));
-    const okCount = results.filter((r) => r.ok).length;
-    byId("sb-relay-results").innerHTML = results.map((r) => {
-      const host = r.url.replace(/^wss:\/\//, "");
-      const status = r.ok ? "ok" : "failed";
-      return escapeHtml(host) + ": " + status + (r.message ? " (" + escapeHtml(r.message) + ")" : "");
-    }).join("<br>");
+    byId("sb-relay-results").innerHTML = publishLines.join("<br>");
 
-    if (okCount > 0) {
-      byId("sb-share-feedback").textContent = "Published to " + okCount + "/" + SQUATBRIDGE_RELAYS.length + " relays.";
+    if (publishedAny) {
+      byId("sb-share-feedback").textContent = going
+        ? "Published map note + calendar RSVP."
+        : "Published map note.";
       byId("sb-share-feedback").className = "feedback ok";
     } else {
-      byId("sb-share-feedback").textContent = "Signed, but no relay accepted the event yet.";
+      byId("sb-share-feedback").textContent = "Signed, but no relay accepted the events yet.";
       byId("sb-share-feedback").className = "feedback error";
       byId("sb-share-publish").disabled = false;
     }

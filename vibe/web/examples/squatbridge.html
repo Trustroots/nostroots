@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Squatbridge — radar.squat.net → Nostr</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      --bg: hsl(40, 28%, 96%);
+      --fg: hsl(168, 25%, 18%);
+      --card: hsl(45, 22%, 98%);
+      --muted: hsl(168, 15%, 38%);
+      --border: hsl(168, 20%, 80%);
+      --primary: hsl(168, 48%, 32%);
+      --primary-fg: hsl(45, 30%, 98%);
+      --danger: hsl(12, 48%, 48%);
+      --ok: hsl(142, 45%, 35%);
+      --link: hsl(168, 62%, 36%);
+    }
+    [data-theme="dark"] {
+      --bg: hsl(30, 14%, 11%);
+      --fg: hsl(40, 28%, 92%);
+      --card: hsl(30, 12%, 15%);
+      --muted: hsl(40, 15%, 62%);
+      --border: hsl(30, 12%, 24%);
+      --primary: hsl(88, 22%, 42%);
+      --primary-fg: hsl(30, 14%, 11%);
+      --link: hsl(188, 78%, 68%);
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    a { color: var(--link); }
+    .sb-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--card);
+      flex-shrink: 0;
+    }
+    .sb-title { font-size: 1.15rem; font-weight: 700; margin: 0; white-space: nowrap; }
+    .sb-title a { color: inherit; text-decoration: none; }
+    .sb-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; flex: 1; }
+    .sb-controls label { font-size: 0.85rem; color: var(--muted); display: flex; align-items: center; gap: 0.35rem; }
+    .sb-controls select, .sb-controls input {
+      font: inherit;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    .sb-controls input[type="text"] { width: 8rem; }
+    .sb-btn {
+      font: inherit;
+      padding: 0.4rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--primary);
+      color: var(--primary-fg);
+      cursor: pointer;
+    }
+    .sb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .sb-btn.secondary { background: var(--card); color: var(--fg); }
+    .sb-signer { font-size: 0.8rem; color: var(--muted); max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sb-status { font-size: 0.85rem; color: var(--muted); padding: 0 1rem 0.5rem; flex-shrink: 0; }
+    .sb-status.error { color: var(--danger); }
+    .sb-main { display: flex; flex: 1; min-height: 0; }
+    #sb-map { flex: 1; min-width: 0; min-height: 200px; }
+    .sb-list {
+      width: min(420px, 42vw);
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      background: var(--card);
+      flex-shrink: 0;
+    }
+    .sb-event {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .sb-event:hover, .sb-event.active { background: var(--bg); }
+    .sb-event h3 { margin: 0 0 0.25rem; font-size: 0.95rem; line-height: 1.3; }
+    .sb-event .meta { font-size: 0.8rem; color: var(--muted); margin: 0.15rem 0; }
+    .sb-event .cats { font-size: 0.75rem; color: var(--muted); }
+    .sb-event-actions { margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .sb-event-actions button {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--fg);
+      cursor: pointer;
+    }
+    .sb-event-actions button.share { background: var(--primary); color: var(--primary-fg); border-color: transparent; }
+    .sb-event-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .sb-empty { padding: 2rem 1rem; text-align: center; color: var(--muted); }
+    .sb-modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem; z-index: 1000;
+    }
+    .sb-modal-backdrop[hidden] { display: none; }
+    .sb-modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      width: min(520px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 1.25rem;
+    }
+    .sb-modal h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
+    .sb-modal textarea {
+      width: 100%;
+      min-height: 120px;
+      font: inherit;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--fg);
+      resize: vertical;
+    }
+    .sb-modal .feedback { font-size: 0.85rem; margin: 0.75rem 0; min-height: 1.2em; }
+    .sb-modal .feedback.error { color: var(--danger); }
+    .sb-modal .feedback.ok { color: var(--ok); }
+    .sb-relay-results { font-size: 0.8rem; color: var(--muted); margin: 0.5rem 0; }
+    .sb-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem; }
+    @media (max-width: 720px) {
+      .sb-main { flex-direction: column; }
+      .sb-list { width: 100%; max-height: 40vh; border-left: none; border-top: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body data-theme="dark">
+  <header class="sb-header">
+    <h1 class="sb-title"><a href="../">Squatbridge</a></h1>
+    <div class="sb-controls">
+      <label>
+        Filter
+        <select id="sb-filter-type">
+          <option value="city" selected>City</option>
+          <option value="country">Country</option>
+        </select>
+      </label>
+      <label>
+        <span id="sb-filter-label">City</span>
+        <input type="text" id="sb-filter-value" value="Berlin" autocomplete="off">
+      </label>
+      <button type="button" class="sb-btn" id="sb-load">Load events</button>
+    </div>
+    <span class="sb-signer" id="sb-signer">Checking signer…</span>
+    <button type="button" class="sb-btn secondary" id="sb-theme" title="Toggle theme">Theme</button>
+  </header>
+  <p class="sb-status" id="sb-status" role="status">Load events from radar.squat.net.</p>
+  <div class="sb-main">
+    <div id="sb-map" aria-label="Event map"></div>
+    <div class="sb-list" id="sb-list">
+      <p class="sb-empty">No events loaded yet.</p>
+    </div>
+  </div>
+
+  <div class="sb-modal-backdrop" id="sb-share-modal" hidden>
+    <div class="sb-modal" role="dialog" aria-labelledby="sb-share-title">
+      <h2 id="sb-share-title">Share to Nostr</h2>
+      <p class="meta" id="sb-share-meta" style="font-size:0.85rem;color:var(--muted);margin:0 0 0.5rem;"></p>
+      <textarea id="sb-share-content" aria-label="Note content"></textarea>
+      <p class="feedback" id="sb-share-feedback" role="status"></p>
+      <div class="sb-relay-results" id="sb-relay-results"></div>
+      <div class="sb-modal-actions">
+        <button type="button" class="sb-btn secondary" id="sb-share-cancel">Cancel</button>
+        <button type="button" class="sb-btn" id="sb-share-publish">Sign &amp; publish</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+(function () {
+  "use strict";
+
+  const RADAR_API = "https://radar.squat.net/api/1.2/search/events.json";
+  const SQUATBRIDGE_RELAYS = [
+    "wss://relay.trustroots.org",
+    "wss://relay.nomadwiki.org",
+  ];
+  const THIRD_PARTY_EVENT_KIND = 30399;
+  const PLUS_CODE_ALPHABET = "23456789CFGHJMPQRVWX";
+  const GRID_SIZE = 20;
+  const PAIR_RESOLUTIONS = [20.0, 1.0, 0.05, 0.0025, 0.000125];
+  const LATITUDE_MAX = 90;
+  const LONGITUDE_MAX = 180;
+  const PLUS_CODE_PREFIX_MIN = 2;
+  const SIGNER_TIMEOUT_MS = 12000;
+  const SIGNER_INTERVAL_MS = 250;
+
+  const state = {
+    events: [],
+    totalCount: 0,
+    selectedNid: null,
+    shareEvent: null,
+    signer: { connected: false, pubkey: "", text: "Checking signer…" },
+    markers: [],
+  };
+
+  let map = null;
+  let markerLayer = null;
+
+  function byId(id) { return document.getElementById(id); }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function setStatus(text, tone) {
+    const el = byId("sb-status");
+    if (!el) return;
+    el.textContent = text;
+    el.className = "sb-status" + (tone === "error" ? " error" : "");
+  }
+
+  function normalizeLongitude(lng) {
+    let next = Number(lng);
+    while (next > LONGITUDE_MAX) next -= 360;
+    while (next < -LONGITUDE_MAX) next += 360;
+    return next;
+  }
+
+  function encodePlusCode(latitude, longitude, codeLength = 8) {
+    const latNum = Number(latitude);
+    const lngNum = normalizeLongitude(Number(longitude));
+    if (
+      !Number.isFinite(latNum) || !Number.isFinite(lngNum) ||
+      latNum < -LATITUDE_MAX || latNum > LATITUDE_MAX ||
+      lngNum < -LONGITUDE_MAX || lngNum > LONGITUDE_MAX
+    ) return "";
+
+    let lat = latNum + LATITUDE_MAX;
+    let lng = lngNum + LONGITUDE_MAX;
+    let code = "";
+    const numPairs = Math.ceil(codeLength / 2);
+    for (let i = 0; i < numPairs; i += 1) {
+      const resolution = i < PAIR_RESOLUTIONS.length
+        ? PAIR_RESOLUTIONS[i]
+        : PAIR_RESOLUTIONS[PAIR_RESOLUTIONS.length - 1] /
+          Math.pow(GRID_SIZE, i - PAIR_RESOLUTIONS.length + 1);
+      const latDigit = Math.min(PLUS_CODE_ALPHABET.length - 1, Math.floor(lat / resolution));
+      const lngDigit = Math.min(PLUS_CODE_ALPHABET.length - 1, Math.floor(lng / resolution));
+      code += PLUS_CODE_ALPHABET[latDigit];
+      code += PLUS_CODE_ALPHABET[lngDigit];
+      lat -= latDigit * resolution;
+      lng -= lngDigit * resolution;
+    }
+    if (code.length < 8) code = code.padEnd(8, "0");
+    return code.substring(0, 8) + "+" + code.substring(8).replace(/\+$/, "");
+  }
+
+  function getPlusCodePrefixes(plusCode, minimumLength = PLUS_CODE_PREFIX_MIN) {
+    const prefixes = [];
+    const cleanCode = String(plusCode || "").split("+")[0];
+    const maxLength = Math.min(8, cleanCode.length);
+    for (let len = minimumLength; len <= maxLength; len += 2) {
+      prefixes.push(cleanCode.substring(0, len).padEnd(8, "0") + "+");
+    }
+    return [...new Set(prefixes)];
+  }
+
+  function getSignerStatus() {
+    const provider = window.nostr;
+    if (provider && typeof provider.signEvent === "function") {
+      return { connected: true, text: "NIP-07 signer ready." };
+    }
+    if (provider) {
+      return { connected: false, text: "Signer found but cannot sign." };
+    }
+    return { connected: false, text: "No NIP-07 signer (share disabled)." };
+  }
+
+  async function refreshSigner() {
+    const result = getSignerStatus();
+    let pubkey = "";
+    if (result.connected) {
+      try {
+        pubkey = String(await window.nostr.getPublicKey()).trim().toLowerCase();
+      } catch (_) {
+        result.connected = false;
+        result.text = "Signer key unavailable.";
+      }
+    }
+    state.signer = { ...result, pubkey };
+    const el = byId("sb-signer");
+    if (el) {
+      el.textContent = state.signer.pubkey
+        ? state.signer.text + " " + state.signer.pubkey.slice(0, 8) + "…"
+        : state.signer.text;
+    }
+    return result.connected;
+  }
+
+  function watchForSigner() {
+    const startedAt = Date.now();
+    let timer = null;
+    async function check() {
+      const connected = await refreshSigner();
+      if (connected || Date.now() - startedAt >= SIGNER_TIMEOUT_MS) {
+        if (timer) clearInterval(timer);
+        return;
+      }
+      byId("sb-signer").textContent = "Looking for NIP-07 signer…";
+    }
+    void check();
+    timer = setInterval(check, SIGNER_INTERVAL_MS);
+    window.addEventListener("focus", () => void refreshSigner());
+  }
+
+  function parseMapCoords(offlineEntry) {
+    const map = offlineEntry?.map;
+    if (!map || Array.isArray(map) || !map.lat || !map.lon) return null;
+    const lat = Number(map.lat);
+    const lon = Number(map.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return { lat, lon };
+  }
+
+  function formatWhen(dateTime) {
+    if (!dateTime) return "Time TBD";
+    const start = dateTime.time_start || "";
+    const end = dateTime.time_end || "";
+    if (!start) return "Time TBD";
+    if (!end || end === start) return start;
+    return start + " → " + end;
+  }
+
+  function formatVenue(offlineEntry) {
+    if (!offlineEntry) return "Venue TBD";
+    return offlineEntry.title || offlineEntry.address?.name_line || "Venue TBD";
+  }
+
+  function normalizeEvent(nid, raw) {
+    const offline = Array.isArray(raw.offline) && raw.offline[0] ? raw.offline[0] : null;
+    const coords = parseMapCoords(offline);
+    const dateTime = Array.isArray(raw.date_time) && raw.date_time[0] ? raw.date_time[0] : null;
+    const categories = (raw.category || []).map((c) => c.name).filter(Boolean);
+    return {
+      nid: String(nid),
+      title: raw.title || "Untitled event",
+      url: raw.url || ("https://radar.squat.net/en/node/" + nid),
+      when: formatWhen(dateTime),
+      whenStart: dateTime?.time_start || "",
+      whenEnd: dateTime?.time_end || "",
+      endUnix: dateTime?.value2 ? Number(dateTime.value2) : null,
+      venue: formatVenue(offline),
+      categories,
+      coords,
+      hasCoords: !!coords,
+    };
+  }
+
+  function buildDefaultContent(ev) {
+    const lines = [ev.title, ev.when, ev.venue];
+    if (ev.categories.length) lines.push(ev.categories.join(", "));
+    lines.push(ev.url);
+    return lines.join("\n");
+  }
+
+  function buildShareTags(ev) {
+    const plusCode = encodePlusCode(ev.coords.lat, ev.coords.lon);
+    if (!plusCode) throw new Error("Could not encode location.");
+    const tags = [
+      ["d", "squatbridge:radar:" + ev.nid],
+      ["r", ev.url],
+      ["linkLabel", "radar.squat.net"],
+      ["L", "open-location-code"],
+      ["l", plusCode, "open-location-code"],
+      ["L", "open-location-code-prefix"],
+      ...getPlusCodePrefixes(plusCode).map((prefix) => ["l", prefix, "open-location-code-prefix"]),
+    ];
+    const expiration = ev.endUnix && Number.isFinite(ev.endUnix)
+      ? ev.endUnix + 86400
+      : Math.floor(Date.now() / 1000) + 604800;
+    tags.push(["expiration", String(expiration)]);
+    return tags;
+  }
+
+  async function fetchEvents() {
+    const filterType = byId("sb-filter-type").value;
+    const filterValue = byId("sb-filter-value").value.trim();
+    if (!filterValue) {
+      setStatus("Enter a city or country code.", "error");
+      return;
+    }
+
+    setStatus("Loading from radar.squat.net…");
+    byId("sb-load").disabled = true;
+
+    const params = new URLSearchParams();
+    params.set("limit", "500");
+    params.set("fields", "title,url,date_time,offline,offline:map,offline:address,category");
+    params.set("language", "en");
+    if (filterType === "city") {
+      params.append("facets[city][]", filterValue);
+    } else {
+      params.append("facets[country][]", filterValue.toUpperCase());
+    }
+
+    try {
+      const res = await fetch(RADAR_API + "?" + params.toString());
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (!data.result || data.result === false) {
+        state.events = [];
+        state.totalCount = 0;
+      } else {
+        state.events = Object.entries(data.result).map(([nid, raw]) => normalizeEvent(nid, raw));
+        state.totalCount = Number(data.count) || state.events.length;
+        state.events.sort((a, b) => String(a.whenStart).localeCompare(String(b.whenStart)));
+      }
+      renderEvents();
+      const withCoords = state.events.filter((e) => e.hasCoords).length;
+      setStatus(
+        "Showing " + state.events.length + " of " + state.totalCount +
+        " events (" + withCoords + " with map coordinates)." +
+        (state.totalCount > 500 ? " API limit: first 500 only." : "")
+      );
+    } catch (err) {
+      setStatus(err?.message || "Failed to load events.", "error");
+    } finally {
+      byId("sb-load").disabled = false;
+    }
+  }
+
+  function initMap() {
+    map = L.map("sb-map", { zoomControl: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap",
+      maxZoom: 19,
+    }).addTo(map);
+    markerLayer = L.layerGroup().addTo(map);
+    map.setView([52.52, 13.405], 11);
+  }
+
+  function selectEvent(nid) {
+    state.selectedNid = nid;
+    const ev = state.events.find((e) => e.nid === nid);
+    renderEventList();
+    if (ev?.coords && map) {
+      map.setView([ev.coords.lat, ev.coords.lon], 14);
+    }
+  }
+
+  function renderEventList() {
+    const list = byId("sb-list");
+    if (!state.events.length) {
+      list.innerHTML = '<p class="sb-empty">No events found.</p>';
+      return;
+    }
+
+    list.innerHTML = state.events.map((ev) => {
+      const active = ev.nid === state.selectedNid ? " active" : "";
+      const shareDisabled = !ev.hasCoords || !state.signer.connected;
+      const shareTitle = !ev.hasCoords
+        ? "No coordinates for this venue"
+        : !state.signer.connected
+          ? "Connect a NIP-07 signer to share"
+          : "Share as kind 30399";
+      return (
+        '<article class="sb-event' + active + '" data-nid="' + escapeHtml(ev.nid) + '">' +
+          "<h3>" + escapeHtml(ev.title) + "</h3>" +
+          '<p class="meta">' + escapeHtml(ev.when) + "</p>" +
+          '<p class="meta">' + escapeHtml(ev.venue) + "</p>" +
+          (ev.categories.length ? '<p class="cats">' + escapeHtml(ev.categories.join(" · ")) + "</p>" : "") +
+          '<div class="sb-event-actions">' +
+            '<a href="' + escapeHtml(ev.url) + '" target="_blank" rel="noopener">radar</a>' +
+            '<button type="button" class="share" data-share="' + escapeHtml(ev.nid) + '"' +
+              (shareDisabled ? " disabled" : "") +
+              ' title="' + escapeHtml(shareTitle) + '">Share to Nostr</button>' +
+          "</div>" +
+        "</article>"
+      );
+    }).join("");
+
+    list.querySelectorAll(".sb-event").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        if (e.target.closest("a, button")) return;
+        selectEvent(el.dataset.nid);
+      });
+    });
+    list.querySelectorAll("[data-share]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openShareModal(btn.dataset.share);
+      });
+    });
+  }
+
+  function renderMapMarkers() {
+    if (!markerLayer) return;
+    markerLayer.clearLayers();
+    state.markers = [];
+    const bounds = [];
+    state.events.forEach((ev) => {
+      if (!ev.coords) return;
+      const marker = L.marker([ev.coords.lat, ev.coords.lon]);
+      marker.bindPopup(
+        "<strong>" + escapeHtml(ev.title) + "</strong><br>" +
+        escapeHtml(ev.when) + "<br>" +
+        '<a href="' + escapeHtml(ev.url) + '" target="_blank" rel="noopener">View on radar</a>'
+      );
+      marker.on("click", () => selectEvent(ev.nid));
+      markerLayer.addLayer(marker);
+      state.markers.push(marker);
+      bounds.push([ev.coords.lat, ev.coords.lon]);
+    });
+    if (bounds.length) {
+      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
+    }
+  }
+
+  function renderEvents() {
+    renderEventList();
+    renderMapMarkers();
+    state.selectedNid = null;
+  }
+
+  function openShareModal(nid) {
+    const ev = state.events.find((e) => e.nid === nid);
+    if (!ev || !ev.hasCoords) return;
+    if (!state.signer.connected) {
+      setStatus("Connect a NIP-07 signer before sharing.", "error");
+      return;
+    }
+    state.shareEvent = ev;
+    byId("sb-share-title").textContent = "Share: " + ev.title;
+    byId("sb-share-meta").textContent = ev.when + " · " + ev.venue;
+    byId("sb-share-content").value = buildDefaultContent(ev);
+    byId("sb-share-feedback").textContent = "";
+    byId("sb-share-feedback").className = "feedback";
+    byId("sb-relay-results").textContent = "";
+    byId("sb-share-modal").hidden = false;
+    byId("sb-share-publish").disabled = false;
+  }
+
+  function closeShareModal() {
+    byId("sb-share-modal").hidden = true;
+    state.shareEvent = null;
+  }
+
+  function publishToRelay(url, event) {
+    return new Promise((resolve) => {
+      let settled = false;
+      let ws;
+      const finish = (ok, message) => {
+        if (settled) return;
+        settled = true;
+        try { ws.close(); } catch (_) {}
+        resolve({ ok, message, url });
+      };
+      try {
+        ws = new WebSocket(url);
+      } catch (err) {
+        resolve({ ok: false, message: err?.message || "connection failed", url });
+        return;
+      }
+      const timeout = setTimeout(() => finish(false, "timeout"), 9000);
+      ws.addEventListener("open", () => {
+        ws.send(JSON.stringify(["EVENT", event]));
+      });
+      ws.addEventListener("message", (message) => {
+        let payload;
+        try { payload = JSON.parse(message.data); } catch (_) { return; }
+        if (Array.isArray(payload) && payload[0] === "OK" && payload[1] === event.id) {
+          clearTimeout(timeout);
+          finish(Boolean(payload[2]), String(payload[3] || ""));
+        }
+      });
+      ws.addEventListener("error", () => {
+        clearTimeout(timeout);
+        finish(false, "relay error");
+      });
+      ws.addEventListener("close", () => {
+        clearTimeout(timeout);
+        if (!settled) finish(false, "closed");
+      });
+    });
+  }
+
+  async function publishShare() {
+    const ev = state.shareEvent;
+    if (!ev) return;
+    if (!window.nostr?.signEvent) {
+      byId("sb-share-feedback").textContent = "No NIP-07 signer available.";
+      byId("sb-share-feedback").className = "feedback error";
+      return;
+    }
+
+    const content = String(byId("sb-share-content").value || "").trim();
+    if (content.length < 3) {
+      byId("sb-share-feedback").textContent = "Content must be at least 3 characters.";
+      byId("sb-share-feedback").className = "feedback error";
+      return;
+    }
+    if (/\bnsec1[023456789acdefghjklmnpqrstuvwxyz]+\b/i.test(content)) {
+      byId("sb-share-feedback").textContent = "Remove private keys from the note.";
+      byId("sb-share-feedback").className = "feedback error";
+      return;
+    }
+
+    byId("sb-share-publish").disabled = true;
+    byId("sb-share-feedback").textContent = "Signing…";
+    byId("sb-share-feedback").className = "feedback";
+
+    let tags;
+    try {
+      tags = buildShareTags(ev);
+    } catch (err) {
+      byId("sb-share-feedback").textContent = err?.message || "Tag build failed.";
+      byId("sb-share-feedback").className = "feedback error";
+      byId("sb-share-publish").disabled = false;
+      return;
+    }
+
+    let signed;
+    try {
+      const pubkey = state.signer.pubkey || await window.nostr.getPublicKey();
+      signed = await window.nostr.signEvent({
+        kind: THIRD_PARTY_EVENT_KIND,
+        content,
+        created_at: Math.floor(Date.now() / 1000),
+        pubkey,
+        tags,
+      });
+    } catch (err) {
+      byId("sb-share-feedback").textContent = err?.message || "Signer rejected the event.";
+      byId("sb-share-feedback").className = "feedback error";
+      byId("sb-share-publish").disabled = false;
+      return;
+    }
+
+    if (!signed?.id || !signed?.sig) {
+      byId("sb-share-feedback").textContent = "Incomplete signed event.";
+      byId("sb-share-feedback").className = "feedback error";
+      byId("sb-share-publish").disabled = false;
+      return;
+    }
+
+    byId("sb-share-feedback").textContent = "Publishing to relays…";
+    const results = await Promise.all(SQUATBRIDGE_RELAYS.map((url) => publishToRelay(url, signed)));
+    const okCount = results.filter((r) => r.ok).length;
+    byId("sb-relay-results").innerHTML = results.map((r) => {
+      const host = r.url.replace(/^wss:\/\//, "");
+      const status = r.ok ? "ok" : "failed";
+      return escapeHtml(host) + ": " + status + (r.message ? " (" + escapeHtml(r.message) + ")" : "");
+    }).join("<br>");
+
+    if (okCount > 0) {
+      byId("sb-share-feedback").textContent = "Published to " + okCount + "/" + SQUATBRIDGE_RELAYS.length + " relays.";
+      byId("sb-share-feedback").className = "feedback ok";
+    } else {
+      byId("sb-share-feedback").textContent = "Signed, but no relay accepted the event yet.";
+      byId("sb-share-feedback").className = "feedback error";
+      byId("sb-share-publish").disabled = false;
+    }
+  }
+
+  byId("sb-filter-type").addEventListener("change", () => {
+    const isCity = byId("sb-filter-type").value === "city";
+    byId("sb-filter-label").textContent = isCity ? "City" : "Country";
+    byId("sb-filter-value").value = isCity ? "Berlin" : "NL";
+    byId("sb-filter-value").placeholder = isCity ? "Berlin" : "NL";
+  });
+
+  byId("sb-load").addEventListener("click", () => void fetchEvents());
+  byId("sb-filter-value").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") void fetchEvents();
+  });
+
+  byId("sb-share-cancel").addEventListener("click", closeShareModal);
+  byId("sb-share-publish").addEventListener("click", () => void publishShare());
+  byId("sb-share-modal").addEventListener("click", (e) => {
+    if (e.target === byId("sb-share-modal")) closeShareModal();
+  });
+
+  byId("sb-theme").addEventListener("click", () => {
+    const body = document.body;
+    body.dataset.theme = body.dataset.theme === "dark" ? "light" : "dark";
+  });
+
+  initMap();
+  watchForSigner();
+  void fetchEvents();
+})();
+  </script>
+</body>
+</html>

@@ -20,16 +20,6 @@
       --ok: hsl(142, 45%, 35%);
       --link: hsl(168, 62%, 36%);
     }
-    [data-theme="dark"] {
-      --bg: hsl(30, 14%, 11%);
-      --fg: hsl(40, 28%, 92%);
-      --card: hsl(30, 12%, 15%);
-      --muted: hsl(40, 15%, 62%);
-      --border: hsl(30, 12%, 24%);
-      --primary: hsl(88, 22%, 42%);
-      --primary-fg: hsl(30, 14%, 11%);
-      --link: hsl(188, 78%, 68%);
-    }
     body {
       margin: 0;
       font-family: system-ui, -apple-system, sans-serif;
@@ -54,6 +44,40 @@
     .sb-title { font-size: 1.15rem; font-weight: 700; margin: 0; white-space: nowrap; }
     .sb-title a { color: inherit; text-decoration: none; }
     .sb-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; flex: 1; }
+    .sb-location-filter {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .sb-filter-tabs {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--bg);
+    }
+    .sb-filter-tab {
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.35rem 0.65rem;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .sb-filter-tab + .sb-filter-tab {
+      border-left: 1px solid var(--border);
+    }
+    .sb-filter-tab[aria-selected="true"] {
+      background: var(--primary);
+      color: var(--primary-fg);
+    }
+    .sb-filter-tab:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
     .sb-controls label { font-size: 0.85rem; color: var(--muted); display: flex; align-items: center; gap: 0.35rem; }
     .sb-controls select, .sb-controls input {
       font: inherit;
@@ -80,12 +104,43 @@
     .sb-status.error { color: var(--danger); }
     .sb-main { display: flex; flex: 1; min-height: 0; }
     #sb-map { flex: 1; min-width: 0; min-height: 200px; }
-    .sb-list {
+    .sb-list-panel {
       width: min(420px, 42vw);
       border-left: 1px solid var(--border);
-      overflow-y: auto;
       background: var(--card);
       flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .sb-list-toolbar {
+      flex-shrink: 0;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .sb-list-tools {
+      flex-shrink: 0;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .sb-event-filter {
+      width: 100%;
+      font: inherit;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.55rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card);
+      color: var(--fg);
+    }
+    .sb-event-filter::placeholder { color: var(--muted); }
+    .sb-past-toggle { width: 100%; font-size: 0.8rem; padding: 0.35rem 0.5rem; }
+    .sb-list {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
     }
     .sb-event {
       padding: 0.75rem 1rem;
@@ -93,6 +148,8 @@
       cursor: pointer;
     }
     .sb-event:hover, .sb-event.active { background: var(--bg); }
+    .sb-event.sb-event-past { opacity: 0.75; }
+    .sb-event.sb-event-past h3 { color: var(--muted); }
     .sb-event h3 { margin: 0 0 0.25rem; font-size: 0.95rem; line-height: 1.3; }
     .sb-event .meta { font-size: 0.8rem; color: var(--muted); margin: 0.15rem 0; }
     .sb-event .cats { font-size: 0.75rem; color: var(--muted); }
@@ -140,6 +197,11 @@
     .sb-modal .feedback.error { color: var(--danger); }
     .sb-modal .feedback.ok { color: var(--ok); }
     .sb-relay-results { font-size: 0.8rem; color: var(--muted); margin: 0.5rem 0; }
+    .sb-share-relays { font-size: 0.8rem; color: var(--muted); margin: 0.75rem 0 0; }
+    .sb-share-relays-label { display: block; margin-bottom: 0.25rem; }
+    .sb-share-relays-list { margin: 0; padding-left: 1.1rem; }
+    .sb-share-relays-list li { margin: 0.1rem 0; }
+    .sb-share-relays-list code { font-size: 0.8rem; color: var(--fg); }
     .sb-circles { margin: 0.75rem 0 0; padding: 0; border: none; }
     .sb-circles legend { font-size: 0.85rem; color: var(--muted); padding: 0; margin-bottom: 0.4rem; }
     .sb-circles-grid {
@@ -170,35 +232,37 @@
     .sb-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem; }
     @media (max-width: 720px) {
       .sb-main { flex-direction: column; }
-      .sb-list { width: 100%; max-height: 40vh; border-left: none; border-top: 1px solid var(--border); }
+      .sb-list-panel { width: 100%; max-height: 40vh; border-left: none; border-top: 1px solid var(--border); }
     }
   </style>
 </head>
-<body data-theme="dark">
+<body>
   <header class="sb-header">
     <h1 class="sb-title"><a href="../">Squatbridge</a></h1>
     <div class="sb-controls">
-      <label>
-        Filter
-        <select id="sb-filter-type">
-          <option value="city" selected>City</option>
-          <option value="country">Country</option>
-        </select>
-      </label>
-      <label>
-        <span id="sb-filter-label">City</span>
-        <select id="sb-filter-value"></select>
-      </label>
-      <button type="button" class="sb-btn" id="sb-load" title="Shift+click to refresh from radar (bypass cache)">Load events</button>
+      <div class="sb-location-filter">
+        <div class="sb-filter-tabs" role="tablist" aria-label="Location type">
+          <button type="button" class="sb-filter-tab" id="sb-tab-city" role="tab" aria-selected="true" aria-controls="sb-filter-value">City</button>
+          <button type="button" class="sb-filter-tab" id="sb-tab-country" role="tab" aria-selected="false" aria-controls="sb-filter-value">Country</button>
+        </div>
+        <select id="sb-filter-value" aria-label="City or country"></select>
+      </div>
     </div>
     <span class="sb-signer" id="sb-signer">Checking signer…</span>
-    <button type="button" class="sb-btn secondary" id="sb-theme" title="Toggle theme">Theme</button>
   </header>
-  <p class="sb-status" id="sb-status" role="status">Load events from radar.squat.net.</p>
+  <p class="sb-status" id="sb-status" role="status">Events from radar.squat.net.</p>
   <div class="sb-main">
     <div id="sb-map" aria-label="Event map"></div>
-    <div class="sb-list" id="sb-list">
-      <p class="sb-empty">No events loaded yet.</p>
+    <div class="sb-list-panel">
+      <div class="sb-list-tools">
+        <input type="search" class="sb-event-filter" id="sb-event-filter" placeholder="Filter events…" aria-label="Filter events" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="sb-list-toolbar" id="sb-list-toolbar" hidden>
+        <button type="button" class="sb-btn secondary sb-past-toggle" id="sb-toggle-past" aria-pressed="false"></button>
+      </div>
+      <div class="sb-list" id="sb-list">
+        <p class="sb-empty">No events loaded yet.</p>
+      </div>
     </div>
   </div>
 
@@ -206,11 +270,15 @@
     <div class="sb-modal" role="dialog" aria-labelledby="sb-share-title">
       <h2 id="sb-share-title">Share to Nostr</h2>
       <p class="meta" id="sb-share-meta" style="font-size:0.85rem;color:var(--muted);margin:0 0 0.5rem;"></p>
+      <textarea id="sb-share-content" aria-label="Note content"></textarea>
       <fieldset class="sb-circles">
         <legend>Trustroots circles</legend>
         <div class="sb-circles-grid" id="sb-share-circles"></div>
       </fieldset>
-      <textarea id="sb-share-content" aria-label="Note content"></textarea>
+      <div class="sb-share-relays">
+        <span class="sb-share-relays-label">Publishing to</span>
+        <ul class="sb-share-relays-list" id="sb-share-relays"></ul>
+      </div>
       <p class="feedback" id="sb-share-feedback" role="status"></p>
       <div class="sb-relay-results" id="sb-relay-results"></div>
       <div class="sb-modal-actions">
@@ -256,6 +324,8 @@
     selectedCircles: new Set(
       (CIRCLES.defaultSelected || []).filter((slug) => (CIRCLES.slugs || []).includes(slug))
     ),
+    locationFilter: { type: "city", city: "Berlin", country: "NL" },
+    applyingHash: false,
     signer: {
       connected: false,
       pubkey: "",
@@ -266,6 +336,8 @@
       text: "Checking signer…",
     },
     markers: [],
+    showPastEvents: false,
+    eventFilterQuery: "",
   };
 
   let map = null;
@@ -482,6 +554,7 @@
       when: formatWhen(dateTime),
       whenStart: dateTime?.time_start || "",
       whenEnd: dateTime?.time_end || "",
+      startUnix: dateTime?.value ? Number(dateTime.value) : null,
       endUnix: dateTime?.value2 ? Number(dateTime.value2) : null,
       venue: formatVenue(offline),
       categories,
@@ -540,6 +613,18 @@
     return tags;
   }
 
+  function relayDisplayHost(url) {
+    return String(url).replace(/^wss:\/\//i, "").replace(/\/$/, "");
+  }
+
+  function renderShareRelays() {
+    const host = byId("sb-share-relays");
+    if (!host) return;
+    host.innerHTML = SQUATBRIDGE_RELAYS.map((url) =>
+      "<li><code>" + escapeHtml(relayDisplayHost(url)) + "</code></li>"
+    ).join("");
+  }
+
   function renderShareCircles() {
     const host = byId("sb-share-circles");
     if (!host) return;
@@ -562,13 +647,135 @@
     });
   }
 
+  function getFilterType() {
+    return state.locationFilter.type === "country" ? "country" : "city";
+  }
+
+  function getDecodedHash() {
+    const h = location.hash ? location.hash.slice(1) : "";
+    if (!h) return "";
+    try {
+      return decodeURIComponent(h);
+    } catch (_) {
+      return h;
+    }
+  }
+
+  function resolveCityName(input) {
+    const norm = String(input || "").trim().toLowerCase();
+    if (!norm) return null;
+    for (const city of LOCATIONS.cities) {
+      if (city.name.toLowerCase() === norm) return city.name;
+    }
+    return null;
+  }
+
+  function resolveCountryCode(input) {
+    if (input === undefined || input === null) return null;
+    const code = String(input).trim().toUpperCase();
+    for (const country of LOCATIONS.countries) {
+      if (String(country.code).toUpperCase() === code) return country.code;
+    }
+    return null;
+  }
+
+  function buildLocationHash(type, value) {
+    const segment = type === "country" ? "country" : "city";
+    return segment + "/" + encodeURIComponent(value);
+  }
+
+  function parseLocationHash() {
+    const route = getDecodedHash().trim();
+    if (!route) return null;
+
+    const cityMatch = route.match(/^city\/(.+)$/i);
+    if (cityMatch) {
+      const city = resolveCityName(cityMatch[1]);
+      if (city) return { type: "city", value: city };
+      return null;
+    }
+
+    const countryMatch = route.match(/^country\/(.+)$/i);
+    if (countryMatch) {
+      const code = resolveCountryCode(countryMatch[1]);
+      if (code !== null) return { type: "country", value: code };
+      return null;
+    }
+
+    const shorthandCity = resolveCityName(route);
+    if (shorthandCity) return { type: "city", value: shorthandCity };
+
+    const shorthandCountry = resolveCountryCode(route);
+    if (shorthandCountry !== null) return { type: "country", value: shorthandCountry };
+
+    return null;
+  }
+
+  function syncLocationHash() {
+    if (state.applyingHash) return;
+    const select = byId("sb-filter-value");
+    if (!select || !select.value) return;
+    const hash = "#" + buildLocationHash(getFilterType(), select.value);
+    if (location.hash !== hash) {
+      history.replaceState(null, "", hash);
+    }
+  }
+
+  function applyLocationSelection(type, value, options) {
+    options = options || {};
+    state.locationFilter.type = type === "country" ? "country" : "city";
+    if (state.locationFilter.type === "city") state.locationFilter.city = value;
+    else state.locationFilter.country = value;
+    syncFilterTabs();
+    populateFilterOptions(value);
+    if (!options.skipHash) syncLocationHash();
+    if (options.fetch !== false) void fetchEvents();
+  }
+
+  function applyLocationHash(options) {
+    options = options || {};
+    const parsed = parseLocationHash();
+    if (!parsed) return false;
+    state.applyingHash = true;
+    applyLocationSelection(parsed.type, parsed.value, {
+      fetch: options.fetch,
+      skipHash: true,
+    });
+    state.applyingHash = false;
+    return true;
+  }
+
+  function syncFilterTabs() {
+    const isCity = getFilterType() === "city";
+    const cityTab = byId("sb-tab-city");
+    const countryTab = byId("sb-tab-country");
+    const select = byId("sb-filter-value");
+    if (cityTab) cityTab.setAttribute("aria-selected", isCity ? "true" : "false");
+    if (countryTab) countryTab.setAttribute("aria-selected", isCity ? "false" : "true");
+    if (select) {
+      select.setAttribute("aria-label", isCity ? "City" : "Country");
+    }
+  }
+
+  function setFilterType(type, options) {
+    options = options || {};
+    const preferred = type === "country"
+      ? state.locationFilter.country
+      : state.locationFilter.city;
+    applyLocationSelection(type, preferred, options);
+  }
+
+  function rememberFilterValue(value) {
+    if (getFilterType() === "city") state.locationFilter.city = value;
+    else state.locationFilter.country = value;
+  }
+
   function populateFilterOptions(preferredValue) {
-    const filterType = byId("sb-filter-type").value;
+    const filterType = getFilterType();
     const select = byId("sb-filter-value");
     if (!select) return;
 
     const isCity = filterType === "city";
-    byId("sb-filter-label").textContent = isCity ? "City" : "Country";
 
     let html = "";
     if (isCity) {
@@ -588,6 +795,7 @@
     const wanted = preferredValue || fallback;
     const hasOption = Array.from(select.options).some((opt) => opt.value === wanted);
     select.value = hasOption ? wanted : (select.options[0]?.value || "");
+    rememberFilterValue(select.value);
   }
 
   function applyEventsPayload(data, cacheNote) {
@@ -601,18 +809,23 @@
     }
     renderEvents();
     const withCoords = state.events.filter((e) => e.hasCoords).length;
+    const { upcoming, past } = partitionListEvents();
     let status =
       "Showing " + state.events.length + " of " + state.totalCount +
       " events (" + withCoords + " with map coordinates)." +
       (state.totalCount > 500 ? " API limit: first 500 only." : "");
+    if (past.length && !state.showPastEvents) {
+      status += " List: " + upcoming.length + " upcoming (" + past.length + " past hidden).";
+    }
     if (cacheNote) status += " " + cacheNote;
     setStatus(status, cacheNote && cacheNote.indexOf("unreachable") >= 0 ? "error" : undefined);
   }
 
   async function fetchEvents(options) {
     options = options || {};
-    const filterType = byId("sb-filter-type").value;
+    const filterType = getFilterType();
     const filterValue = byId("sb-filter-value").value;
+    rememberFilterValue(filterValue);
     if (filterValue === undefined || filterValue === null) {
       setStatus("Choose a city or country.", "error");
       return;
@@ -641,7 +854,6 @@
     }
 
     setStatus("Loading from radar.squat.net…");
-    byId("sb-load").disabled = true;
 
     try {
       const res = await fetch(RADAR_API + "?" + params.toString());
@@ -661,8 +873,6 @@
         }
       }
       setStatus(err?.message || "Failed to load events.", "error");
-    } finally {
-      byId("sb-load").disabled = false;
     }
   }
 
@@ -676,6 +886,82 @@
     map.setView([52.52, 13.405], 11);
   }
 
+  function startOfTodayMs() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+
+  function eventStartMs(ev) {
+    if (ev.whenStart) {
+      const parsed = Date.parse(ev.whenStart);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    if (ev.startUnix && Number.isFinite(ev.startUnix)) {
+      return ev.startUnix * 1000;
+    }
+    return null;
+  }
+
+  function isPastEvent(ev) {
+    const startMs = eventStartMs(ev);
+    if (startMs === null) return false;
+    const startDay = new Date(startMs);
+    startDay.setHours(0, 0, 0, 0);
+    return startDay.getTime() < startOfTodayMs();
+  }
+
+  function partitionListEvents() {
+    const upcoming = [];
+    const past = [];
+    for (const ev of state.events) {
+      if (isPastEvent(ev)) past.push(ev);
+      else upcoming.push(ev);
+    }
+    return { upcoming, past };
+  }
+
+  function getListEvents() {
+    const { upcoming } = partitionListEvents();
+    return state.showPastEvents ? state.events : upcoming;
+  }
+
+  function eventMatchesFilter(ev, query) {
+    const q = String(query || "").trim().toLowerCase();
+    if (!q) return true;
+    const haystack = [
+      ev.title,
+      ev.venue,
+      ev.when,
+      ev.categories.join(" "),
+    ].join(" ").toLowerCase();
+    return haystack.includes(q);
+  }
+
+  function getVisibleEvents() {
+    const query = state.eventFilterQuery;
+    return getListEvents().filter((ev) => eventMatchesFilter(ev, query));
+  }
+
+  function updatePastEventsToggle() {
+    const toolbar = byId("sb-list-toolbar");
+    const btn = byId("sb-toggle-past");
+    if (!toolbar || !btn) return;
+    const { past } = partitionListEvents();
+    if (!past.length) {
+      toolbar.hidden = true;
+      return;
+    }
+    toolbar.hidden = false;
+    if (state.showPastEvents) {
+      btn.textContent = "Hide past events (" + past.length + ")";
+      btn.setAttribute("aria-pressed", "true");
+    } else {
+      btn.textContent = "Show past events (" + past.length + ")";
+      btn.setAttribute("aria-pressed", "false");
+    }
+  }
+
   function selectEvent(nid) {
     state.selectedNid = nid;
     const ev = state.events.find((e) => e.nid === nid);
@@ -686,14 +972,35 @@
   }
 
   function renderEventList() {
+    updatePastEventsToggle();
     const list = byId("sb-list");
     if (!state.events.length) {
       list.innerHTML = '<p class="sb-empty">No events found.</p>';
       return;
     }
 
-    list.innerHTML = state.events.map((ev) => {
+    const visibleEvents = getVisibleEvents();
+    if (state.selectedNid && !visibleEvents.some((e) => e.nid === state.selectedNid)) {
+      state.selectedNid = null;
+    }
+
+    if (!visibleEvents.length) {
+      const { past } = partitionListEvents();
+      const filterActive = Boolean(String(state.eventFilterQuery || "").trim());
+      if (filterActive) {
+        list.innerHTML = '<p class="sb-empty">No events match your filter.</p>';
+        return;
+      }
+      list.innerHTML =
+        '<p class="sb-empty">No upcoming events.' +
+        (past.length ? " Use the button above to show past events." : "") +
+        "</p>";
+      return;
+    }
+
+    list.innerHTML = visibleEvents.map((ev) => {
       const active = ev.nid === state.selectedNid ? " active" : "";
+      const pastClass = isPastEvent(ev) ? " sb-event-past" : "";
       const shareDisabled = !ev.hasCoords || !state.signer.connected;
       const shareTitle = !ev.hasCoords
         ? "No coordinates for this venue"
@@ -701,7 +1008,7 @@
           ? "Connect a NIP-07 signer to share"
           : "Share as kind 30399";
       return (
-        '<article class="sb-event' + active + '" data-nid="' + escapeHtml(ev.nid) + '">' +
+        '<article class="sb-event' + active + pastClass + '" data-nid="' + escapeHtml(ev.nid) + '">' +
           "<h3>" + escapeHtml(ev.title) + "</h3>" +
           '<p class="meta">' + escapeHtml(ev.when) + "</p>" +
           '<p class="meta">' + escapeHtml(ev.venue) + "</p>" +
@@ -735,7 +1042,7 @@
     markerLayer.clearLayers();
     state.markers = [];
     const bounds = [];
-    state.events.forEach((ev) => {
+    getVisibleEvents().forEach((ev) => {
       if (!ev.coords) return;
       const marker = L.marker([ev.coords.lat, ev.coords.lon]);
       marker.bindPopup(
@@ -774,6 +1081,7 @@
     byId("sb-share-feedback").textContent = "";
     byId("sb-share-feedback").className = "feedback";
     byId("sb-relay-results").textContent = "";
+    renderShareRelays();
     byId("sb-share-modal").hidden = false;
     byId("sb-share-publish").disabled = false;
   }
@@ -900,29 +1208,55 @@
     }
   }
 
-  byId("sb-filter-type").addEventListener("change", () => {
-    populateFilterOptions();
+  byId("sb-event-filter").addEventListener("input", (e) => {
+    state.eventFilterQuery = e.target.value;
+    renderEventList();
+    renderMapMarkers();
   });
 
-  byId("sb-load").addEventListener("click", (e) => {
-    void fetchEvents({ forceRefresh: e.shiftKey });
+  byId("sb-toggle-past").addEventListener("click", () => {
+    state.showPastEvents = !state.showPastEvents;
+    renderEventList();
+    renderMapMarkers();
   });
-  byId("sb-filter-value").addEventListener("change", () => void fetchEvents());
+
+  byId("sb-tab-city").addEventListener("click", () => {
+    if (getFilterType() !== "city") setFilterType("city");
+  });
+  byId("sb-tab-country").addEventListener("click", () => {
+    if (getFilterType() !== "country") setFilterType("country");
+  });
+
+  byId("sb-filter-value").addEventListener("change", () => {
+    rememberFilterValue(byId("sb-filter-value").value);
+    syncLocationHash();
+    void fetchEvents();
+  });
+
+  window.addEventListener("hashchange", () => {
+    if (!applyLocationHash({ fetch: true })) syncLocationHash();
+  });
 
   byId("sb-share-cancel").addEventListener("click", closeShareModal);
   byId("sb-share-publish").addEventListener("click", () => void publishShare());
   byId("sb-share-modal").addEventListener("click", (e) => {
     if (e.target === byId("sb-share-modal")) closeShareModal();
   });
-
-  byId("sb-theme").addEventListener("click", () => {
-    const body = document.body;
-    body.dataset.theme = body.dataset.theme === "dark" ? "light" : "dark";
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const modal = byId("sb-share-modal");
+    if (!modal || modal.hidden) return;
+    closeShareModal();
   });
 
   initMap();
-  populateFilterOptions("Berlin");
+  if (!applyLocationHash({ fetch: false })) {
+    syncFilterTabs();
+    populateFilterOptions("Berlin");
+  }
+  syncLocationHash();
   renderShareCircles();
+  renderShareRelays();
   watchForSigner();
   void fetchEvents();
 })();

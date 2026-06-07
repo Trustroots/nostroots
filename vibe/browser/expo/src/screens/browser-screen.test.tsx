@@ -27,6 +27,7 @@ function renderBrowserScreen() {
 beforeEach(() => {
   (SecureStore as unknown as { __reset: () => void }).__reset();
   jest.clearAllMocks();
+  jest.useRealTimers();
 });
 
 describe("BrowserScreen", () => {
@@ -83,6 +84,51 @@ describe("BrowserScreen", () => {
         url: "https://example.com/",
       }),
     ).toBe(true);
+  });
+
+  it("auto-hides and reveals the developer address bar", async () => {
+    jest.useFakeTimers();
+    await act(async () => {
+      await SecureStore.setItemAsync(SECURE_STORE_DEVELOPER_MODE_KEY, "true");
+    });
+    const { getByLabelText, queryByLabelText } = renderBrowserScreen();
+
+    await waitFor(() => {
+      expect(getByLabelText("Developer URL")).toBeTruthy();
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(3000);
+    });
+
+    expect(queryByLabelText("Developer URL")).toBeNull();
+    fireEvent.press(getByLabelText("Show developer address bar"));
+    expect(getByLabelText("Developer URL")).toBeTruthy();
+  });
+
+  it("hides the developer address bar after Go and navigation", async () => {
+    await act(async () => {
+      await SecureStore.setItemAsync(SECURE_STORE_DEVELOPER_MODE_KEY, "true");
+    });
+    const { getByLabelText, getByTestId, queryByLabelText } =
+      renderBrowserScreen();
+
+    await waitFor(() => {
+      expect(getByLabelText("Developer URL")).toBeTruthy();
+    });
+
+    fireEvent.changeText(getByLabelText("Developer URL"), "example.com");
+    fireEvent.press(getByLabelText("Go to URL"));
+    expect(queryByLabelText("Developer URL")).toBeNull();
+
+    fireEvent.press(getByLabelText("Show developer address bar"));
+    expect(getByLabelText("Developer URL")).toBeTruthy();
+
+    const webView = getByTestId("nostroots-webview");
+    act(() => {
+      webView.props.onNavigationStateChange({ url: "https://example.com/" });
+    });
+    expect(queryByLabelText("Developer URL")).toBeNull();
   });
 
   it("renders remembered NIP-07 origins in settings", async () => {

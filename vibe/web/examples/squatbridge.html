@@ -44,6 +44,13 @@
     .sb-title { font-size: 1.15rem; font-weight: 700; margin: 0; white-space: nowrap; }
     .sb-title a { color: inherit; text-decoration: none; }
     .sb-about-btn { font-size: 0.8rem; padding: 0.3rem 0.55rem; flex-shrink: 0; }
+    .sb-header-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
     .sb-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; flex: 1; }
     .sb-location-filter {
       display: flex;
@@ -101,9 +108,16 @@
     .sb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .sb-btn.secondary { background: var(--card); color: var(--fg); }
     .sb-signer { font-size: 0.8rem; color: var(--muted); max-width: min(280px, 40vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .sb-status { font-size: 0.85rem; color: var(--muted); padding: 0 1rem 0.5rem; flex-shrink: 0; }
+    .sb-status { font-size: 0.85rem; color: var(--muted); padding: 0.35rem 1rem 0.5rem; flex-shrink: 0; }
     .sb-status.error { color: var(--danger); }
     .sb-main { display: flex; flex: 1; min-height: 0; }
+    .sb-map-column {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
     #sb-map { flex: 1; min-width: 0; min-height: 200px; }
     .sb-list-panel {
       width: min(420px, 42vw);
@@ -188,6 +202,22 @@
     .sb-about-body ul { margin: 0 0 0.75rem; padding-left: 1.25rem; }
     .sb-about-body li + li { margin-top: 0.25rem; }
     .sb-about-body .muted { color: var(--muted); font-size: 0.85rem; }
+    .sb-about-body h3 { font-size: 0.95rem; margin: 0.85rem 0 0.35rem; }
+    .sb-about-body h4 { font-size: 0.88rem; margin: 0.65rem 0 0.25rem; font-weight: 600; }
+    .sb-about-format {
+      font-size: 0.72rem;
+      line-height: 1.45;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.65rem 0.75rem;
+      overflow-x: auto;
+      margin: 0.5rem 0 0.75rem;
+      white-space: pre;
+    }
+    .sb-about-taglist { margin: 0.5rem 0 0.75rem; padding-left: 0; list-style: none; font-size: 0.85rem; }
+    .sb-about-taglist li { margin: 0.35rem 0; }
+    .sb-about-taglist code { font-size: 0.8rem; }
     .sb-modal textarea {
       width: 100%;
       min-height: 120px;
@@ -238,6 +268,7 @@
     .sb-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem; }
     @media (max-width: 720px) {
       .sb-main { flex-direction: column; }
+      .sb-map-column { min-height: 0; }
       .sb-list-panel { width: 100%; max-height: 40vh; border-left: none; border-top: 1px solid var(--border); }
     }
   </style>
@@ -245,7 +276,6 @@
 <body>
   <header class="sb-header">
     <h1 class="sb-title"><a href="../">Squatbridge</a></h1>
-    <button type="button" class="sb-btn secondary sb-about-btn" id="sb-about">About</button>
     <div class="sb-controls">
       <div class="sb-location-filter">
         <div class="sb-filter-tabs" role="tablist" aria-label="Location type">
@@ -255,11 +285,16 @@
         <select id="sb-filter-value" aria-label="City or country"></select>
       </div>
     </div>
-    <span class="sb-signer" id="sb-signer">Checking signer…</span>
+    <div class="sb-header-actions">
+      <span class="sb-signer" id="sb-signer">Checking signer…</span>
+      <button type="button" class="sb-btn secondary sb-about-btn" id="sb-about">About</button>
+    </div>
   </header>
-  <p class="sb-status" id="sb-status" role="status">Events from radar.squat.net.</p>
   <div class="sb-main">
-    <div id="sb-map" aria-label="Event map"></div>
+    <div class="sb-map-column">
+      <div id="sb-map" aria-label="Event map"></div>
+      <p class="sb-status" id="sb-status" role="status">Events from radar.squat.net.</p>
+    </div>
     <div class="sb-list-panel">
       <div class="sb-list-tools">
         <input type="search" class="sb-event-filter" id="sb-event-filter" placeholder="Filter events…" aria-label="Filter events" autocomplete="off" spellcheck="false">
@@ -289,10 +324,60 @@
           <li>Pick a city or country — URLs like <code>#city/Berlin</code> are shareable.</li>
           <li>The list shows today and upcoming events; filter by keyword or reveal past ones.</li>
           <li>The map keeps markers from locations you loaded recently (15&nbsp;min cache).</li>
-          <li>
-            <strong>Share to Nostr</strong> publishes a kind&nbsp;30399 third-party event note with venue coordinates, a link back to radar, and optional Trustroots circles.
-          </li>
+          <li><strong>Share to Nostr</strong> — see note format below.</li>
         </ul>
+
+        <h3>Note format (for other Nostr apps)</h3>
+        <p>
+          Shared events are kind&nbsp;<strong>30399</strong> third-party map notes, matching the
+          <a href="https://github.com/Trustroots/nostroots/blob/main/docs/Events.md" target="_blank" rel="noopener noreferrer">Trustroots Events schema</a>.
+          To render them, read <code>content</code> for the human text and the tags below for map placement, links, and filters.
+        </p>
+
+        <h4>Content (<code>content</code>)</h4>
+        <p>Newline-separated plain text, in order:</p>
+        <ol>
+          <li>Event title</li>
+          <li>Date/time (start, or start → end)</li>
+          <li>Venue name</li>
+          <li>Categories (comma-separated), if any</li>
+          <li>Canonical <code>radar.squat.net</code> URL</li>
+          <li>Optional <code>#circle</code> hashtags when Trustroots circles are selected</li>
+        </ol>
+
+        <h4>Tags</h4>
+        <ul class="sb-about-taglist">
+          <li><code>["d", "squatbridge:radar:{nid}"]</code> — stable id (NIP-33); dedupe on this.</li>
+          <li><code>["r", "{url}"]</code> — source link (NIP-01).</li>
+          <li><code>["linkLabel", "radar.squat.net"]</code> — short label for the link in map UIs.</li>
+          <li><code>["L","open-location-code"]</code> + <code>["l","{plus}","open-location-code"]</code> — pin on map (Open Location Code).</li>
+          <li><code>["L","open-location-code-prefix"]</code> + one <code>["l","{prefix}","open-location-code-prefix"]</code> per zoom level — area index for map queries.</li>
+          <li><code>["L","trustroots-circle"]</code> + <code>["l","{slug}","trustroots-circle"]</code> — optional circle filters (lowercase slug).</li>
+          <li><code>["expiration", "{unix}"]</code> — hide after event end (+1&nbsp;day) or +7&nbsp;days if open-ended.</li>
+        </ul>
+
+        <div class="sb-about-format" aria-label="Example kind 30399 event">{
+  "kind": 30399,
+  "content": "Workshop title\n2026-06-07T14:00:00+02:00\nVenue name\nworkshop\nhttps://radar.squat.net/en/node/123456\n#punks",
+  "tags": [
+    ["d", "squatbridge:radar:123456"],
+    ["r", "https://radar.squat.net/en/node/123456"],
+    ["linkLabel", "radar.squat.net"],
+    ["L", "open-location-code"],
+    ["l", "9F4MFXX6+XX", "open-location-code"],
+    ["L", "open-location-code-prefix"],
+    ["l", "9F4M0000+", "open-location-code-prefix"],
+    ["L", "trustroots-circle"],
+    ["l", "punks", "trustroots-circle"],
+    ["expiration", "1780844400"]
+  ]
+}</div>
+
+        <p class="muted">
+          Filter kind&nbsp;30399 with <code>#l</code> on <code>open-location-code-prefix</code> values for map tiles, or subscribe by pubkey.
+          Trustroots Map already renders this shape; other clients can treat <code>content</code> as a note body and <code>r</code> as the outbound link.
+        </p>
+
         <p class="muted">
           You need a <a href="https://github.com/nostr-protocol/nips/blob/master/07.md" target="_blank" rel="noopener">NIP-07</a>
           browser signer (e.g. nos2x, Alby) to publish. Sharing is manual — nothing is posted automatically.

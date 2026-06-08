@@ -2,7 +2,7 @@
   "expo": {
     "name": "Nostroots",
     "slug": "nr-app",
-    "version": "0.0.4",
+    "version": "0.5.0",
     "orientation": "portrait",
     "icon": "./assets/images/nostroots-300x300.png",
     "scheme": "nostroots",

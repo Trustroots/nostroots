@@ -231,6 +231,15 @@ export function BrowserScreen({ developerMode }: BrowserScreenProps) {
       >
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Close NIP-07 Browser"
+          onPress={() => router.replace(ROUTES.HOME)}
+          className="h-[42px] w-[42px] items-center justify-center rounded-full bg-white/95"
+        >
+          <Ionicons name="close-outline" size={24} color="#0f172a" />
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
           accessibilityLabel="Open Nostroots"
           onPress={goHome}
           className="min-h-11 flex-1 flex-row items-center gap-2"

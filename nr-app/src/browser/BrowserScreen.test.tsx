@@ -1,9 +1,13 @@
 import { act, fireEvent, render } from "@testing-library/react-native";
+import { useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { BrowserScreen } from "@/browser/BrowserScreen";
 import { NOSTROOTS_BROWSER_USER_AGENT, NOSTROOTS_WEB_URL } from "@/constants";
+import { ROUTES } from "@/constants/routes";
+
+const mockUseRouter = useRouter as jest.Mock;
 
 function renderBrowserScreen(developerMode: boolean) {
   return render(
@@ -21,6 +25,11 @@ function renderBrowserScreen(developerMode: boolean) {
 beforeEach(() => {
   jest.clearAllMocks();
   jest.useRealTimers();
+  mockUseRouter.mockReturnValue({
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+  });
 });
 
 describe("BrowserScreen", () => {
@@ -31,6 +40,7 @@ describe("BrowserScreen", () => {
 
     expect(getByTestId("browser-header")).toBeTruthy();
     expect(getByText("Nostroots")).toBeTruthy();
+    expect(getByLabelText("Close NIP-07 Browser")).toBeTruthy();
     expect(getByLabelText("Browser settings")).toBeTruthy();
     expect(webView.props.source).toEqual({ uri: NOSTROOTS_WEB_URL });
     expect(webView.props.applicationNameForUserAgent).toBe(
@@ -42,6 +52,20 @@ describe("BrowserScreen", () => {
     expect(webView.props.injectedJavaScriptBeforeContentLoaded).toContain(
       "window.nostrootsBrowser.notifications",
     );
+  });
+
+  it("closes the browser back to the normal map screen", () => {
+    const replace = jest.fn();
+    mockUseRouter.mockReturnValue({
+      push: jest.fn(),
+      replace,
+      back: jest.fn(),
+    });
+    const { getByLabelText } = renderBrowserScreen(false);
+
+    fireEvent.press(getByLabelText("Close NIP-07 Browser"));
+
+    expect(replace).toHaveBeenCalledWith(ROUTES.HOME);
   });
 
   it("opens blocked external navigation outside the app", () => {

@@ -10,9 +10,10 @@ The root page is a small hub. It links to classic Trustroots network settings an
 
 - [`https://www.trustroots.org/profile/edit/networks`](https://www.trustroots.org/profile/edit/networks) — classic Trustroots network editing.
 - [`/v0/`](v0/) — Nostroots Web, the current map/chat/profile app for Trustroots-style activity with light Nostr key support.
-- [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots/Vibe Browser.
+- [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots Browser.
 - [`/nostroots-map/`](nostroots-map/) — experimental browser-native map prototype inspired by the mobile `nr-app`, built without React or Expo Web.
-- [`/examples/squatbridge.html`](examples/squatbridge.html) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr (kind 30399); hidden on the hub until you enable experimental apps.
+- [`/examples/squatbridge.html`](examples/squatbridge.html) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr; hidden on the hub until you enable experimental apps.
+- [`https://treasures.to/`](https://treasures.to/) — external Treasures web app, hidden on the hub until you enable experimental apps.
 - [`/examples/`](examples/) — optional demos and fork patterns.
 
 Legacy root hash/query links still land in the current app. For example, `/#stats` redirects to `/v0/#stats`, and `/?welcome=1` redirects to `/v0/?welcome=1`.
@@ -22,6 +23,7 @@ Legacy root hash/query links still land in the current app. For example, `/#stat
 - **Nostroots Web**: View traveler notes, post by plus code with a Trustroots identity, manage keys, use NIP-07, chat, browse profiles, and configure relays.
 - **Nostrail**: Share a temporary approximate area with selected people using the browser-provided NIP-07 signer, NIP-44 encryption, NIP-42 relay auth, and foreground-only updates.
 - **Nostroots Map**: Map-first browser-native prototype with NIP-07 signer detection.
+- **Treasures**: External web app linked from the experimental hub.
 - **Pixel**: Circle-scoped pixel sequencer (artists, burners, punks) — draw a 16×16, publish to Nostr, optional "Where" and invite/jam for IRL meetups. [examples/pixel.html](examples/pixel.html)
 - **Examples hub**: [examples/index.html](examples/index.html) — overview of demo pages and fork patterns.
 

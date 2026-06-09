@@ -2,22 +2,30 @@ import { test, expect } from './fixtures.js';
 
 const publicKeyHex = 'a'.repeat(64);
 
-async function mockNip7Provider(page) {
-  await page.addInitScript((pubkey) => {
-    window.nostr = {
-      async getPublicKey() {
-        return pubkey;
-      },
-      async signEvent(template) {
-        return {
-          ...template,
-          id: '1'.repeat(64),
-          pubkey,
-          sig: '2'.repeat(128),
-        };
-      },
-    };
-  }, publicKeyHex);
+async function mockNip7Provider(page, { delayMs = 0 } = {}) {
+  await page.addInitScript(({ pubkey, delay }) => {
+    function installProvider() {
+      window.nostr = {
+        async getPublicKey() {
+          return pubkey;
+        },
+        async signEvent(template) {
+          return {
+            ...template,
+            id: '1'.repeat(64),
+            pubkey,
+            sig: '2'.repeat(128),
+          };
+        },
+      };
+    }
+
+    if (delay > 0) {
+      setTimeout(installProvider, delay);
+    } else {
+      installProvider();
+    }
+  }, { pubkey: publicKeyHex, delay: delayMs });
 }
 
 async function mockTrustrootsRelayEvents(page, events) {
@@ -90,12 +98,16 @@ test.describe('Nostroots Web hub', () => {
   test('shows stable options by default and reveals experimental apps on request', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByRole('heading', { name: 'Choose where to continue.' })).toBeVisible();
-    await expect(page.getByText('Use Trustroots.org for your profile, networks, and account settings')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'What do you want to open?' })).toBeVisible();
+    await expect(page.getByText('Manage your Trustroots profile, read traveler notes')).toBeVisible();
     await expect(page.locator('#nostr-key-status')).toContainText('Nostr key: No key detected');
     await expect(page.locator('#trustroots-identity-status')).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Trustroots\.org/ })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
+    await expect(page.locator('.trustroots .app-icon img')).toHaveAttribute('src', 'https://www.trustroots.org/img/logo/horizontal-white.svg');
     await expect(page.getByRole('link', { name: /Open Nostroots Web/ })).toHaveAttribute('href', 'v0/');
+    await expect(page.getByRole('link', { name: /Open Treasures/ })).toHaveAttribute('href', 'https://treasures.to/');
+    await expect(page.locator('.treasures .card-label')).toHaveText('3rd party');
+    await expect(page.locator('.treasures .app-icon img')).toHaveAttribute('src', 'https://treasures.to/icon.svg');
 
     const experimentalToggle = page.getByRole('checkbox', { name: 'Show experimental apps' });
     await expect(experimentalToggle).not.toBeChecked();
@@ -105,9 +117,19 @@ test.describe('Nostroots Web hub', () => {
 
     await experimentalToggle.check();
 
+    await expect(page.locator('.experimental-card').filter({ hasText: 'Squatbridge' })).toBeVisible();
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toHaveAttribute('href', 'nostrail/');
+    await expect(page.locator('.location .card-label')).toHaveText('Extra experimental');
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveAttribute('href', 'nostroots-map/');
+    await expect(page.locator('.secondary .card-label')).toHaveText('Extra experimental');
     await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toHaveAttribute('href', 'examples/squatbridge.html');
+    await expect(page.locator('.squatbridge .app-icon')).toHaveText('｟(･)｠');
+    await expect(page.locator('.squatbridge .card-action')).toHaveCSS('background-color', 'rgb(119, 119, 119)');
+    await expect(page.locator('.experimental-card h2')).toHaveText([
+      'Squatbridge',
+      'Nostrail',
+      'Nostroots Map',
+    ]);
   });
 
   test('keeps experimental apps visible after reload', async ({ page }) => {
@@ -134,8 +156,10 @@ test.describe('Nostroots Web hub', () => {
     await expect(card).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
     await expect(page.locator('#trustroots-card-description')).toContainText('Manage your classic Trustroots profile, networks, and account settings.');
     await expect(page.locator('#trustroots-card-action')).toHaveText('Open Trustroots.org');
-    await expect(page.locator('#nostr-key-status')).toContainText(/^Nostr key: npub1/);
-    await expect(page.locator('#trustroots-identity-status')).toContainText('Trustroots identity: alice@trustroots.org');
+    await expect(page.locator('#nostr-key-status')).toBeHidden();
+    await expect(page.locator('#trustroots-identity-status')).toHaveText('alice@trustroots.org');
+    await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('href', 'https://www.trustroots.org/profile/alice');
+    await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('title', /^npub1/);
   });
 
   test('prompts users to link Trustroots when the NIP-07 key has no Trustroots NIP-05', async ({ page }) => {
@@ -148,6 +172,16 @@ test.describe('Nostroots Web hub', () => {
     await expect(card).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
     await expect(page.locator('#trustroots-card-description')).toContainText('Manage your classic Trustroots profile, networks, and account settings.');
     await expect(page.locator('#trustroots-card-action')).toHaveText('Open Trustroots.org');
+    await expect(page.locator('#nostr-key-status')).toContainText(/^Nostr key: npub1/);
+    await expect(page.locator('#trustroots-identity-status')).toContainText('Trustroots identity: not linked');
+  });
+
+  test('detects a NIP-07 key injected after the hub starts', async ({ page }) => {
+    await mockNip7Provider(page, { delayMs: 500 });
+    await mockTrustrootsRelayEvents(page, []);
+
+    await page.goto('/');
+
     await expect(page.locator('#nostr-key-status')).toContainText(/^Nostr key: npub1/);
     await expect(page.locator('#trustroots-identity-status')).toContainText('Trustroots identity: not linked');
   });

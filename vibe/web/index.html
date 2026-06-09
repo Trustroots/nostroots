@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nostroots Web</title>
-  <meta name="description" content="Choose between Trustroots.org and Nostroots Web for Trustroots traveler notes with light Nostr key support.">
+  <meta name="description" content="Open Trustroots.org, Nostroots Web, and experimental traveler web apps from one place.">
   <meta name="theme-color" content="#12b591">
   <link rel="canonical" href="https://nos.trustroots.org/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Nostroots">
   <meta property="og:title" content="Nostroots Web">
-  <meta property="og:description" content="Choose between Trustroots.org and Nostroots Web.">
+  <meta property="og:description" content="Open Trustroots.org, Nostroots Web, and experimental traveler web apps from one place.">
   <meta property="og:url" content="https://nos.trustroots.org/">
   <meta property="og:image" content="https://nos.trustroots.org/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Nostroots Web">
-  <meta name="twitter:description" content="Choose between Trustroots.org and Nostroots Web.">
+  <meta name="twitter:description" content="Open Trustroots.org, Nostroots Web, and experimental traveler web apps from one place.">
   <meta name="twitter:image" content="https://nos.trustroots.org/og-image.png">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -64,6 +64,7 @@
     }
 
     .hub {
+      position: relative;
       width: min(1040px, calc(100% - 32px));
       min-height: 100vh;
       margin: 0 auto;
@@ -75,28 +76,30 @@
 
     .hub-header {
       display: grid;
-      gap: 10px;
+      gap: 14px;
     }
 
     .brand {
       display: flex;
       align-items: center;
       gap: 12px;
-      font-size: 17px;
+      font-size: 18px;
       font-weight: 800;
       color: var(--accent-dark);
     }
 
     .brand img {
-      width: 42px;
-      height: 42px;
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      box-shadow: 0 10px 26px rgba(20, 45, 39, 0.12);
     }
 
     h1 {
       margin: 0;
-      max-width: 760px;
-      font-size: clamp(34px, 6vw, 64px);
-      line-height: 1.02;
+      max-width: 700px;
+      font-size: clamp(38px, 5vw, 58px);
+      line-height: 1.08;
       letter-spacing: 0;
     }
 
@@ -109,13 +112,24 @@
     }
 
     .identity-status {
+      position: absolute;
+      top: 42px;
+      right: 0;
+      max-width: min(440px, 48%);
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: 10px;
       align-items: center;
+      justify-content: flex-end;
+      min-width: 0;
     }
 
     .status-pill {
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 0 1 auto;
       min-height: 38px;
       display: inline-flex;
       align-items: center;
@@ -137,6 +151,15 @@
 
     .status-pill[data-state="connected"] strong {
       color: var(--accent-dark);
+    }
+
+    a.status-pill {
+      text-decoration: none;
+    }
+
+    .identity-link[data-state="connected"] {
+      color: var(--accent-dark);
+      font-weight: 800;
     }
 
     .status-pill[hidden] {
@@ -198,6 +221,94 @@
       outline: none;
     }
 
+    .card-main {
+      display: grid;
+      gap: 14px;
+    }
+
+    .app-icon {
+      width: 54px;
+      height: 54px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #0e9a7b;
+      color: #ffffff;
+      box-shadow: inset 0 -16px 0 rgba(18, 181, 145, 0.28);
+      overflow: hidden;
+    }
+
+    .app-icon svg {
+      width: 40px;
+      height: 40px;
+      overflow: visible;
+    }
+
+    .app-icon img {
+      width: 100%;
+      height: 100%;
+      border-radius: 8px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .app-icon text {
+      font-family: Nunito, system-ui, sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .app-icon-text {
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .squatbridge .app-icon {
+      background: #ffffff;
+      color: #777777;
+      border: 1px solid #bdbdbd;
+      box-shadow: inset 0 -4px 0 #777777;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 19px;
+      letter-spacing: 0;
+    }
+
+    .squatbridge h2 {
+      color: #777777;
+      font-family: "Courier New", Courier, monospace;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .squatbridge .card-action {
+      background: #777777;
+    }
+
+    .location .app-icon {
+      background: #235789;
+      box-shadow: inset 0 -16px 0 rgba(80, 153, 218, 0.28);
+    }
+
+    .trustroots .app-icon img {
+      width: auto;
+      max-width: none;
+      height: 100%;
+      border-radius: 0;
+      object-fit: contain;
+    }
+
+    .secondary .app-icon {
+      background: #183a34;
+      box-shadow: inset 0 -16px 0 rgba(18, 165, 133, 0.2);
+    }
+
+    .treasures .app-icon {
+      background: #ffffff;
+      box-shadow: 0 0 0 1px rgba(20, 45, 39, 0.08);
+    }
+
     .card-kicker {
       color: var(--accent-dark);
       font-size: 13px;
@@ -209,6 +320,25 @@
       margin: 0 0 8px;
       font-size: 28px;
       letter-spacing: 0;
+    }
+
+    .card-label {
+      width: fit-content;
+      padding: 3px 8px;
+      border: 1px solid rgba(18, 165, 133, 0.24);
+      border-radius: 8px;
+      background: rgba(18, 165, 133, 0.08);
+      color: var(--accent-dark);
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.3;
+      text-transform: uppercase;
+    }
+
+    .treasures .card-label {
+      border-color: rgba(119, 84, 49, 0.28);
+      background: rgba(119, 84, 49, 0.08);
+      color: #775431;
     }
 
     .card p {
@@ -269,6 +399,12 @@
         padding-top: 28px;
       }
 
+      .identity-status {
+        position: static;
+        max-width: none;
+        justify-content: flex-start;
+      }
+
       .cards {
         grid-template-columns: 1fr;
       }
@@ -285,64 +421,100 @@
 </head>
 <body>
   <main class="hub" aria-labelledby="hub-title">
-    <header class="hub-header">
-      <div class="brand">
-        <img src="logo.svg" alt="" width="42" height="42">
-        <span>Nostroots Web</span>
-      </div>
-      <h1 id="hub-title">Choose where to continue.</h1>
-      <p class="lead">Use Trustroots.org for your profile, networks, and account settings, or open Nostroots Web to read traveler notes and post with your Trustroots identity.</p>
-    </header>
-
     <section class="identity-status" aria-label="Connection status">
       <span id="nostr-key-status" class="status-pill" data-state="missing">Nostr key: <strong>No key detected</strong></span>
-      <span id="trustroots-identity-status" class="status-pill" data-state="missing" hidden>Trustroots identity: <strong>not linked</strong></span>
+      <a id="trustroots-identity-status" class="status-pill identity-link" data-state="missing" hidden>Trustroots identity: <strong>not linked</strong></a>
     </section>
+
+    <header class="hub-header">
+      <div class="brand">
+        <img src="favicon.svg" alt="" width="44" height="44">
+        <span>Nostroots Web</span>
+      </div>
+      <h1 id="hub-title">What do you want to open?</h1>
+      <p class="lead">Manage your Trustroots profile, read traveler notes, or try the experimental map and sharing apps.</p>
+    </header>
 
     <section id="hub-cards" class="cards" aria-label="Web experiences">
       <a
         id="trustroots-card"
-        class="card"
+        class="card trustroots"
         href="https://www.trustroots.org/profile/edit/networks"
         data-default-href="https://www.trustroots.org/profile/edit/networks"
       >
-        <span>
+        <div class="card-main">
+          <span class="app-icon" aria-hidden="true">
+            <img src="https://www.trustroots.org/img/logo/horizontal-white.svg" alt="" width="296" height="54" loading="lazy">
+          </span>
           <h2 id="trustroots-card-title">Trustroots.org</h2>
           <p id="trustroots-card-description">Manage your classic Trustroots profile, networks, and account settings.</p>
-        </span>
+        </div>
         <span id="trustroots-card-action" class="card-action">Open Trustroots.org</span>
       </a>
 
       <a class="card" href="v0/">
-        <span>
+        <div class="card-main">
+          <span class="app-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <text x="24" y="25" text-anchor="middle" dominant-baseline="middle" fill="currentColor">N</text>
+              <path d="M24 31v9m0-4.5c-5.5 0-8.5 2.3-11 5M24 35.5c5.5 0 8.5 2.3 11 5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+            </svg>
+          </span>
           <h2>Nostroots Web</h2>
           <p>Read traveler notes by area. Connect a key when you want to post with your Trustroots identity.</p>
-        </span>
+        </div>
         <span class="card-action">Open Nostroots Web</span>
       </a>
 
+      <a class="card squatbridge experimental-card" href="examples/squatbridge.html">
+        <div class="card-main">
+          <span class="app-icon app-icon-text" aria-hidden="true">｟(･)｠</span>
+          <h2>Squatbridge</h2>
+          <p>Browse radar.squat.net events on a map and manually share them to Nostr.</p>
+        </div>
+        <span class="card-action">Open Squatbridge</span>
+      </a>
+
       <a class="card location experimental-card" href="nostrail/">
-        <span>
+        <div class="card-main">
+          <span class="card-label">Extra experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <path d="M24 7c-6.2 0-11.2 4.9-11.2 11 0 8 11.2 18 11.2 18s11.2-10 11.2-18c0-6.1-5-11-11.2-11Zm0 15.5a4.4 4.4 0 1 1 0-8.8 4.4 4.4 0 0 1 0 8.8Z" fill="currentColor"/>
+              <path d="M24 34v6m0-3c-5.5 0-8.5 1.5-11 4M24 37c5.5 0 8.5 1.5 11 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+            </svg>
+          </span>
           <h2>Nostrail</h2>
           <p>Share your approximate area with selected Trustroots people through the Nostroots Browser NIP-07 signer.</p>
-        </span>
+        </div>
         <span class="card-action">Open Nostrail</span>
       </a>
 
       <a class="card secondary experimental-card" href="nostroots-map/">
-        <span>
+        <div class="card-main">
+          <span class="card-label">Extra experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <path d="M11 12l8-3 10 3 8-3v25l-8 3-10-3-8 3V12Zm8-3v25m10-22v25" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+              <path d="M24 33v7m0-3.5c-5.5 0-8.5 2-11 4.5M24 36.5c5.5 0 8.5 2 11 4.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+            </svg>
+          </span>
           <h2>Nostroots Map</h2>
           <p>Try a browser-native map surface inspired by the mobile app, built without React or Expo Web.</p>
-        </span>
+        </div>
         <span class="card-action">Open Nostroots Map</span>
       </a>
 
-      <a class="card experimental-card" href="examples/squatbridge.html">
-        <span>
-          <h2>Squatbridge</h2>
-          <p>Browse radar.squat.net events on a map and manually share them to Nostr as kind 30399 map notes.</p>
-        </span>
-        <span class="card-action">Open Squatbridge</span>
+      <a class="card treasures" href="https://treasures.to/" target="_blank" rel="noopener noreferrer">
+        <div class="card-main">
+          <span class="card-label">3rd party</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="https://treasures.to/icon.svg" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Treasures</h2>
+          <p>Open the Treasures web app alongside the other experimental apps.</p>
+        </div>
+        <span class="card-action">Open Treasures</span>
       </a>
     </section>
 
@@ -393,6 +565,8 @@
       var TRUSTROOTS_PROFILE_CLAIM_KIND = 30390;
       var TRUSTROOTS_USERNAME_LABEL_NAMESPACE = 'org.trustroots:username';
       var RELAY_URLS = ['wss://relay.trustroots.org', 'wss://nip42.trustroots.org'];
+      var NIP7_DETECTION_TIMEOUT_MS = 12000;
+      var NIP7_DETECTION_INTERVAL_MS = 250;
 
       var card = document.getElementById('trustroots-card');
       var description = document.getElementById('trustroots-card-description');
@@ -482,7 +656,11 @@
         var strong = document.createElement('strong');
         strong.textContent = value;
         pill.appendChild(strong);
-        if (title) pill.title = title;
+        if (title) {
+          pill.title = title;
+        } else {
+          pill.removeAttribute('title');
+        }
       }
 
       function isHexKey(value) {
@@ -765,25 +943,66 @@
       }
 
       function applyUnlinkedIdentityState() {
+        identityStatus.removeAttribute('href');
         setStatus(identityStatus, 'Trustroots identity', 'not linked', 'missing');
       }
 
       function applyIdentityState(nip05) {
         var username = usernameFromTrustrootsNip05(nip05);
         if (!username) return;
-        setStatus(identityStatus, 'Trustroots identity', username + '@trustroots.org', 'connected');
+        var npub = npubEncodeFromHex(activePublicKeyHex);
+        keyStatus.hidden = true;
+        identityStatus.hidden = false;
+        identityStatus.dataset.state = 'connected';
+        identityStatus.href = 'https://www.trustroots.org/profile/' + encodeURIComponent(username);
+        identityStatus.title = npub || activePublicKeyHex;
+        identityStatus.textContent = username + '@trustroots.org';
       }
 
-      var publicKeyHex = await getNip7PublicKey();
-      if (!publicKeyHex) return;
-      applyKeyState(publicKeyHex);
-      applyUnlinkedIdentityState();
+      var activePublicKeyHex = '';
 
-      var signAuthEvent = function (template, relayUrl) {
-        return signNip7AuthEvent(template, relayUrl, publicKeyHex);
-      };
-      var nip05 = await lookupTrustrootsNip05(publicKeyHex, signAuthEvent);
-      if (nip05) applyIdentityState(nip05);
+      async function applyDetectedNip7Key(publicKeyHex) {
+        if (!publicKeyHex || publicKeyHex === activePublicKeyHex) return;
+        activePublicKeyHex = publicKeyHex;
+        applyKeyState(publicKeyHex);
+        applyUnlinkedIdentityState();
+        try {
+          var signAuthEvent = function (template, relayUrl) {
+            return signNip7AuthEvent(template, relayUrl, publicKeyHex);
+          };
+          var nip05 = await lookupTrustrootsNip05(publicKeyHex, signAuthEvent);
+          if (activePublicKeyHex === publicKeyHex && nip05) applyIdentityState(nip05);
+        } catch (_) {}
+      }
+
+      async function refreshNip7Key() {
+        var publicKeyHex = await getNip7PublicKey();
+        if (publicKeyHex) await applyDetectedNip7Key(publicKeyHex);
+        return !!publicKeyHex;
+      }
+
+      function watchForNip7Key() {
+        var startedAt = Date.now();
+        var timer = null;
+
+        async function check() {
+          var found = await refreshNip7Key();
+          if (found || Date.now() - startedAt >= NIP7_DETECTION_TIMEOUT_MS) {
+            if (timer) clearInterval(timer);
+          }
+        }
+
+        void check();
+        timer = setInterval(check, NIP7_DETECTION_INTERVAL_MS);
+        window.addEventListener('focus', function () {
+          void refreshNip7Key();
+        });
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') void refreshNip7Key();
+        });
+      }
+
+      watchForNip7Key();
     })();
   </script>
 </body>

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const htmlPath = resolve(__dirname, '..', 'trustroots-map', 'index.html');
+const htmlPath = resolve(__dirname, '..', 'v0', 'index.html');
 
 // Load HTML file
 const html = readFileSync(htmlPath, 'utf-8');
@@ -60,7 +60,7 @@ virtualConsole.on('jsdomError', (error) => {
 // Note: Module scripts with CDN imports will fail, but that's expected
 // Non-module scripts will execute and functions will be available on window
 const dom = new JSDOM(html, {
-  url: 'http://localhost/trustroots-map/',
+  url: 'http://localhost/v0/',
   runScripts: 'dangerously',
   resources: 'usable',
   pretendToBeVisual: true,
@@ -77,7 +77,7 @@ const dom = new JSDOM(html, {
 // Restore console.error after DOM is created
 console.error = originalError;
 
-// Keys + Settings modals are inlined in trustroots-map/index.html
+// Keys + Settings modals are inlined in v0/index.html
 
 // Make globals available to tests
 global.window = dom.window;

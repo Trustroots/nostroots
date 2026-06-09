@@ -1,5 +1,5 @@
 /**
- * Trustroots circle slugs for Nostr tags — aligned with trustroots-map
+ * Trustroots circle slugs for Nostr tags — aligned with web
  * TRUSTROOTS_CIRCLE_SLUG_LIST (lowercase, no ASCII hyphens).
  */
 window.SQUATBRIDGE_CIRCLES = {

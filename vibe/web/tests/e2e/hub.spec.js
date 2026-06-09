@@ -91,8 +91,11 @@ test.describe('Nostroots Web hub', () => {
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: 'Choose where to continue.' })).toBeVisible();
-    await expect(page.getByRole('link', { name: /Edit Trustroots Networks/ })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
-    await expect(page.getByRole('link', { name: /Open Trustroots on Nostr/ })).toHaveAttribute('href', 'trustroots-map/');
+    await expect(page.getByText('Use Trustroots.org for your profile, networks, and account settings')).toBeVisible();
+    await expect(page.locator('#nostr-key-status')).toContainText('Nostr key: No key detected');
+    await expect(page.locator('#trustroots-identity-status')).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open Trustroots\.org/ })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
+    await expect(page.getByRole('link', { name: /Open Nostroots Web/ })).toHaveAttribute('href', 'v0/');
 
     const experimentalToggle = page.getByRole('checkbox', { name: 'Show experimental apps' });
     await expect(experimentalToggle).not.toBeChecked();
@@ -128,9 +131,11 @@ test.describe('Nostroots Web hub', () => {
     await page.goto('/');
 
     const card = page.locator('#trustroots-card');
-    await expect(card).toHaveAttribute('href', 'https://www.trustroots.org/profile/alice');
-    await expect(page.locator('#trustroots-card-description')).toContainText('Open your linked Trustroots profile for alice@trustroots.org.');
-    await expect(page.locator('#trustroots-card-action')).toHaveText('Open Trustroots Profile');
+    await expect(card).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
+    await expect(page.locator('#trustroots-card-description')).toContainText('Manage your classic Trustroots profile, networks, and account settings.');
+    await expect(page.locator('#trustroots-card-action')).toHaveText('Open Trustroots.org');
+    await expect(page.locator('#nostr-key-status')).toContainText(/^Nostr key: npub1/);
+    await expect(page.locator('#trustroots-identity-status')).toContainText('Trustroots identity: alice@trustroots.org');
   });
 
   test('prompts users to link Trustroots when the NIP-07 key has no Trustroots NIP-05', async ({ page }) => {
@@ -141,19 +146,27 @@ test.describe('Nostroots Web hub', () => {
 
     const card = page.locator('#trustroots-card');
     await expect(card).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
-    await expect(page.locator('#trustroots-card-description')).toContainText('Link your Trustroots profile to your Nostr key so Trustroots on Nostr can recognize you.');
-    await expect(page.locator('#trustroots-card-action')).toHaveText('Link Trustroots Profile');
+    await expect(page.locator('#trustroots-card-description')).toContainText('Manage your classic Trustroots profile, networks, and account settings.');
+    await expect(page.locator('#trustroots-card-action')).toHaveText('Open Trustroots.org');
+    await expect(page.locator('#nostr-key-status')).toContainText(/^Nostr key: npub1/);
+    await expect(page.locator('#trustroots-identity-status')).toContainText('Trustroots identity: not linked');
   });
 
-  test('redirects legacy hash routes to Trustroots Map', async ({ page }) => {
+  test('redirects legacy hash routes to the v0 app', async ({ page }) => {
     await page.goto('/#stats');
 
-    await expect(page).toHaveURL(/\/trustroots-map\/#stats$/);
+    await expect(page).toHaveURL(/\/v0\/#stats$/);
   });
 
-  test('redirects legacy query shortcuts to Trustroots Map', async ({ page }) => {
+  test('redirects legacy query shortcuts to the v0 app', async ({ page }) => {
     await page.goto('/?welcome=1');
 
-    await expect(page).toHaveURL(/\/trustroots-map\/\?welcome=1/);
+    await expect(page).toHaveURL(/\/v0\/\?welcome=1/);
+  });
+
+  test('does not serve the old Trustroots map path', async ({ page }) => {
+    const response = await page.goto('/trustroots-map/');
+
+    expect(response?.status()).toBe(404);
   });
 });

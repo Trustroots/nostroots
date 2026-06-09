@@ -16,7 +16,7 @@ test.describe('Nostroots Map experience', () => {
     await expect(page.getByRole('button', { name: 'Map' })).toHaveClass(/active/);
     await expect(page.getByRole('button', { name: 'List' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Hub' })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: 'Trustroots Map' })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: 'Nostroots Web' })).toHaveCount(0);
   });
 
   test('detects the Nostroots Browser NIP-07 signer', async ({ page }) => {

@@ -5,7 +5,7 @@ import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const indexHtml = readFileSync(join(__dirname, '../../trustroots-map/index.html'), 'utf-8');
+const indexHtml = readFileSync(join(__dirname, '../../v0/index.html'), 'utf-8');
 
 describe('new conversation modal', () => {
   it('has an accessible inline feedback region', () => {

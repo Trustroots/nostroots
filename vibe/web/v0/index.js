@@ -7006,7 +7006,7 @@ function processIncomingEvent(event, sourceRelayUrl) {
         kind30397EventsReceived++;
     }
     
-    // Only process map note kinds (30397 and 30398).
+    // Only process map note kinds (30397, 30398, and third-party 30399).
     if (!MAP_NOTE_KINDS.includes(event.kind)) {
         return; // Skip all other kinds (kind 0 handled above)
     }
@@ -14808,7 +14808,7 @@ const __nrChatApp = (() => {
                     authPubkey: currentPublicKey,
                     signEvent: (template) => signEvent(template),
                     onEvent: (event) => {
-                        if (event && (event.kind === MAP_NOTE_KIND || event.kind === MAP_NOTE_REPOST_KIND)) {
+                        if (event && MAP_NOTE_KINDS.includes(event.kind)) {
                             onChannelEvent(event);
                         }
                     },
@@ -14848,7 +14848,7 @@ const __nrChatApp = (() => {
                 }
                 if (type === 'EVENT') {
                     const event = b;
-                    if (event && (event.kind === MAP_NOTE_KIND || event.kind === MAP_NOTE_REPOST_KIND)) {
+                    if (event && MAP_NOTE_KINDS.includes(event.kind)) {
                         onChannelEvent(event);
                     }
                     return;
@@ -16120,7 +16120,7 @@ const __nrChatApp = (() => {
         }
 
         function getMapNoteCanonicalKey(raw) {
-            if (!raw || (raw.kind !== MAP_NOTE_KIND && raw.kind !== MAP_NOTE_REPOST_KIND)) {
+            if (!raw || !MAP_NOTE_KINDS.includes(raw.kind)) {
                 return raw?.id ? `id:${raw.id}` : '';
             }
 
@@ -16268,7 +16268,7 @@ const __nrChatApp = (() => {
                     const plusCode = getPluscodeFromEvent(eventLike) || '';
                     const contentNormalized = (eventLike.content || '').trim();
                     const createdAtMinute = Math.floor((eventLike.created_at || 0) / 60);
-                    const similarityKey = (eventKind === MAP_NOTE_KIND || eventKind === MAP_NOTE_REPOST_KIND)
+                    const similarityKey = MAP_NOTE_KINDS.includes(eventKind)
                         ? `similar:${createdAtMinute}|${plusCode}|${contentNormalized}`
                         : '';
                     const key = similarityKey || canonicalKey || `id:${ev.id}`;

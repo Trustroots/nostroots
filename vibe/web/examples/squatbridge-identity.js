@@ -1,6 +1,6 @@
 /**
  * Trustroots identity lookup for Squatbridge (kind 0 / 10390 / 30390).
- * Mirrors nr-web hub and trustroots-map conventions.
+ * Mirrors nr-web hub and web conventions.
  */
 (function () {
   "use strict";

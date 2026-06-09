@@ -24,7 +24,7 @@ For `nr-web` product behavior, a kind `30397` seen via this auth relay should no
 ## How this appears in current nr-web code
 
 - NIP-42 AUTH subscribe/publish helpers: `common.js`.
-- Map app relay usage and sync paths: `trustroots-map/index.html`.
+- Map app relay usage and sync paths: `v0/index.html`.
 - Profile classification for validated map notes (treats `30398` as validated, and `30397` from auth relay as validated for profile UI): `nr-profile-page.js`.
 
 ## Relay-scope metadata vs validation

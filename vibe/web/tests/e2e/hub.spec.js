@@ -107,6 +107,20 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toHaveAttribute('href', 'examples/squatbridge.html');
   });
 
+  test('keeps experimental apps visible after reload', async ({ page }) => {
+    await page.goto('/');
+
+    const experimentalToggle = page.getByRole('checkbox', { name: 'Show experimental apps' });
+    await experimentalToggle.check();
+    await expect(page.getByRole('link', { name: /Open Nostrail/ })).toBeVisible();
+    expect(await page.evaluate(() => localStorage.getItem('nrweb_show_experimental_apps'))).toBe('true');
+
+    await page.reload();
+
+    await expect(experimentalToggle).toBeChecked();
+    await expect(page.getByRole('link', { name: /Open Nostrail/ })).toBeVisible();
+  });
+
   test('links to a Trustroots profile when the NIP-07 key has a Trustroots NIP-05', async ({ page }) => {
     await mockNip7Provider(page);
     await mockTrustrootsRelayEvents(page, [trustrootsKind0Event('Alice@www.trustroots.org')]);

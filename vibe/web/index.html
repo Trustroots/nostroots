@@ -315,16 +315,35 @@
   </main>
   <script>
     (function () {
+      var SHOW_EXPERIMENTAL_STORAGE_KEY = 'nrweb_show_experimental_apps';
       var toggle = document.getElementById('show-experimental');
       var cards = document.getElementById('hub-cards');
       if (!toggle || !cards) return;
+
+      function readStoredPreference() {
+        try {
+          return window.localStorage && window.localStorage.getItem(SHOW_EXPERIMENTAL_STORAGE_KEY) === 'true';
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function writeStoredPreference(value) {
+        try {
+          if (window.localStorage) window.localStorage.setItem(SHOW_EXPERIMENTAL_STORAGE_KEY, value ? 'true' : 'false');
+        } catch (_) {}
+      }
 
       function syncExperimentalCards() {
         cards.classList.toggle('show-experimental', toggle.checked);
       }
 
+      toggle.checked = readStoredPreference();
       syncExperimentalCards();
-      toggle.addEventListener('change', syncExperimentalCards);
+      toggle.addEventListener('change', function () {
+        writeStoredPreference(toggle.checked);
+        syncExperimentalCards();
+      });
     })();
   </script>
   <script type="module">

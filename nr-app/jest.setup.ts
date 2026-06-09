@@ -21,11 +21,22 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 
 // Mock expo-router
 jest.mock("expo-router", () => ({
+  Redirect: jest.fn(() => null),
+  Slot: ({ children }: { children?: unknown }) => children,
+  Stack: {
+    Screen: () => null,
+  },
   router: {
     push: jest.fn(),
     replace: jest.fn(),
     back: jest.fn(),
   },
+  usePathname: jest.fn(() => "/"),
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+  })),
 }));
 
 // Mock react-native-maps
@@ -33,6 +44,54 @@ jest.mock("react-native-maps", () => ({
   __esModule: true,
   default: "MapView",
 }));
+
+jest.mock("@rn-primitives/slot", () => ({
+  Text: "Text",
+}));
+
+jest.mock("expo-secure-store", () => {
+  const store = new Map<string, string>();
+
+  return {
+    AFTER_FIRST_UNLOCK: 1,
+    __reset: () => store.clear(),
+    __store: store,
+    getItemAsync: jest.fn(async (key: string) => store.get(key) ?? null),
+    setItemAsync: jest.fn(async (key: string, value: string) => {
+      store.set(key, value);
+    }),
+    deleteItemAsync: jest.fn(async (key: string) => {
+      store.delete(key);
+    }),
+  };
+});
+
+jest.mock("expo-web-browser", () => ({
+  openBrowserAsync: jest.fn(async () => ({ type: "opened" })),
+}));
+
+jest.mock("expo-clipboard", () => ({
+  getStringAsync: jest.fn(async () => ""),
+  setStringAsync: jest.fn(async () => undefined),
+}));
+
+jest.mock("react-native-root-toast", () => ({
+  show: jest.fn(),
+  durations: {
+    SHORT: 1000,
+    LONG: 3500,
+  },
+  positions: {
+    BOTTOM: -20,
+  },
+}));
+
+jest.mock("react-native-webview", () => {
+  return {
+    __esModule: true,
+    default: "WebView",
+  };
+});
 
 // Mock redux-devtools-expo-dev-plugin
 jest.mock("redux-devtools-expo-dev-plugin", () => ({

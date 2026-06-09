@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nostroots Web</title>
-  <meta name="description" content="Choose between classic Trustroots account settings and Trustroots on Nostr experiments.">
+  <meta name="description" content="Choose between Trustroots.org and Nostroots Web for Trustroots traveler notes with light Nostr key support.">
   <meta name="theme-color" content="#12b591">
   <link rel="canonical" href="https://nos.trustroots.org/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Nostroots">
   <meta property="og:title" content="Nostroots Web">
-  <meta property="og:description" content="Choose between Trustroots.org and Trustroots on Nostr.">
+  <meta property="og:description" content="Choose between Trustroots.org and Nostroots Web.">
   <meta property="og:url" content="https://nos.trustroots.org/">
   <meta property="og:image" content="https://nos.trustroots.org/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Nostroots Web">
-  <meta name="twitter:description" content="Choose between Trustroots.org and Trustroots on Nostr.">
+  <meta name="twitter:description" content="Choose between Trustroots.org and Nostroots Web.">
   <meta name="twitter:image" content="https://nos.trustroots.org/og-image.png">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -29,7 +29,7 @@
       var isRoot = path === '/' || path === '';
       if (!isRoot) return;
       if (!window.location.hash && !window.location.search) return;
-      window.location.replace('/trustroots-map/' + window.location.search + window.location.hash);
+      window.location.replace('/v0/' + window.location.search + window.location.hash);
     })();
   </script>
   <style>
@@ -106,6 +106,41 @@
       color: var(--muted);
       font-size: 19px;
       line-height: 1.55;
+    }
+
+    .identity-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .status-pill {
+      min-height: 38px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.78);
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 10px 28px rgba(20, 45, 39, 0.08);
+    }
+
+    .status-pill strong {
+      color: var(--foreground);
+      font-weight: 800;
+    }
+
+    .status-pill[data-state="connected"] strong {
+      color: var(--accent-dark);
+    }
+
+    .status-pill[hidden] {
+      display: none;
     }
 
     .hub-controls {
@@ -256,8 +291,13 @@
         <span>Nostroots Web</span>
       </div>
       <h1 id="hub-title">Choose where to continue.</h1>
-      <p class="lead">Use classic Trustroots.org for your account and networks, or open the current Trustroots on Nostr web app. Experimental apps are hidden until you ask for them.</p>
+      <p class="lead">Use Trustroots.org for your profile, networks, and account settings, or open Nostroots Web to read traveler notes and post with your Trustroots identity.</p>
     </header>
+
+    <section class="identity-status" aria-label="Connection status">
+      <span id="nostr-key-status" class="status-pill" data-state="missing">Nostr key: <strong>No key detected</strong></span>
+      <span id="trustroots-identity-status" class="status-pill" data-state="missing" hidden>Trustroots identity: <strong>not linked</strong></span>
+    </section>
 
     <section id="hub-cards" class="cards" aria-label="Web experiences">
       <a
@@ -268,17 +308,17 @@
       >
         <span>
           <h2 id="trustroots-card-title">Trustroots.org</h2>
-          <p id="trustroots-card-description">Edit your classic Trustroots profile networks and account settings on the main Trustroots site.</p>
+          <p id="trustroots-card-description">Manage your classic Trustroots profile, networks, and account settings.</p>
         </span>
-        <span id="trustroots-card-action" class="card-action">Edit Trustroots Networks</span>
+        <span id="trustroots-card-action" class="card-action">Open Trustroots.org</span>
       </a>
 
-      <a class="card" href="trustroots-map/">
+      <a class="card" href="v0/">
         <span>
-          <h2>Trustroots on Nostr</h2>
-          <p>Read traveler notes by area, manage your Nostr key, and post with your Trustroots identity.</p>
+          <h2>Nostroots Web</h2>
+          <p>Read traveler notes by area. Connect a key when you want to post with your Trustroots identity.</p>
         </span>
-        <span class="card-action">Open Trustroots on Nostr</span>
+        <span class="card-action">Open Nostroots Web</span>
       </a>
 
       <a class="card location experimental-card" href="nostrail/">
@@ -357,7 +397,93 @@
       var card = document.getElementById('trustroots-card');
       var description = document.getElementById('trustroots-card-description');
       var action = document.getElementById('trustroots-card-action');
-      if (!card || !description || !action) return;
+      var keyStatus = document.getElementById('nostr-key-status');
+      var identityStatus = document.getElementById('trustroots-identity-status');
+      if (!card || !description || !action || !keyStatus || !identityStatus) return;
+
+      var BECH32_CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+
+      function hexToBytes(hex) {
+        var clean = String(hex || '').trim().toLowerCase();
+        if (!/^[0-9a-f]{64}$/.test(clean)) return [];
+        var bytes = [];
+        for (var i = 0; i < clean.length; i += 2) {
+          bytes.push(parseInt(clean.slice(i, i + 2), 16));
+        }
+        return bytes;
+      }
+
+      function bech32Polymod(values) {
+        var generator = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
+        var chk = 1;
+        for (var i = 0; i < values.length; i += 1) {
+          var top = chk >> 25;
+          chk = ((chk & 0x1ffffff) << 5) ^ values[i];
+          for (var j = 0; j < 5; j += 1) {
+            if ((top >> j) & 1) chk ^= generator[j];
+          }
+        }
+        return chk;
+      }
+
+      function bech32HrpExpand(hrp) {
+        var values = [];
+        for (var i = 0; i < hrp.length; i += 1) values.push(hrp.charCodeAt(i) >> 5);
+        values.push(0);
+        for (var j = 0; j < hrp.length; j += 1) values.push(hrp.charCodeAt(j) & 31);
+        return values;
+      }
+
+      function bech32CreateChecksum(hrp, data) {
+        var values = bech32HrpExpand(hrp).concat(data, [0, 0, 0, 0, 0, 0]);
+        var polymod = bech32Polymod(values) ^ 1;
+        var checksum = [];
+        for (var i = 0; i < 6; i += 1) checksum.push((polymod >> (5 * (5 - i))) & 31);
+        return checksum;
+      }
+
+      function convertBits(data, fromBits, toBits, pad) {
+        var acc = 0;
+        var bits = 0;
+        var ret = [];
+        var maxv = (1 << toBits) - 1;
+        for (var i = 0; i < data.length; i += 1) {
+          acc = (acc << fromBits) | data[i];
+          bits += fromBits;
+          while (bits >= toBits) {
+            bits -= toBits;
+            ret.push((acc >> bits) & maxv);
+          }
+        }
+        if (pad && bits) ret.push((acc << (toBits - bits)) & maxv);
+        return ret;
+      }
+
+      function bech32Encode(hrp, data) {
+        var combined = data.concat(bech32CreateChecksum(hrp, data));
+        var encoded = hrp + '1';
+        for (var i = 0; i < combined.length; i += 1) encoded += BECH32_CHARSET[combined[i]];
+        return encoded;
+      }
+
+      function npubEncodeFromHex(hex) {
+        var bytes = hexToBytes(hex);
+        return bytes.length ? bech32Encode('npub', convertBits(bytes, 8, 5, true)) : '';
+      }
+
+      function shortenNpub(npub) {
+        return npub && npub.length > 22 ? npub.slice(0, 10) + '...' + npub.slice(-8) : npub;
+      }
+
+      function setStatus(pill, label, value, state, title) {
+        pill.hidden = false;
+        pill.dataset.state = state || 'missing';
+        pill.textContent = label + ': ';
+        var strong = document.createElement('strong');
+        strong.textContent = value;
+        pill.appendChild(strong);
+        if (title) pill.title = title;
+      }
 
       function isHexKey(value) {
         return typeof value === 'string' && /^[0-9a-f]{64}$/.test(value);
@@ -633,29 +759,31 @@
         }
       }
 
-      function applyLinkProfileState() {
-        card.href = TRUSTROOTS_EDIT_NETWORKS_URL;
-        description.textContent = 'Link your Trustroots profile to your Nostr key so Trustroots on Nostr can recognize you.';
-        action.textContent = 'Link Trustroots Profile';
+      function applyKeyState(publicKeyHex) {
+        var npub = npubEncodeFromHex(publicKeyHex);
+        setStatus(keyStatus, 'Nostr key', shortenNpub(npub) || publicKeyHex.slice(0, 10) + '...', 'connected', npub || publicKeyHex);
       }
 
-      function applyProfileState(nip05) {
+      function applyUnlinkedIdentityState() {
+        setStatus(identityStatus, 'Trustroots identity', 'not linked', 'missing');
+      }
+
+      function applyIdentityState(nip05) {
         var username = usernameFromTrustrootsNip05(nip05);
         if (!username) return;
-        card.href = 'https://www.trustroots.org/profile/' + encodeURIComponent(username);
-        description.textContent = 'Open your linked Trustroots profile for ' + username + '@trustroots.org.';
-        action.textContent = 'Open Trustroots Profile';
+        setStatus(identityStatus, 'Trustroots identity', username + '@trustroots.org', 'connected');
       }
 
       var publicKeyHex = await getNip7PublicKey();
       if (!publicKeyHex) return;
-      applyLinkProfileState();
+      applyKeyState(publicKeyHex);
+      applyUnlinkedIdentityState();
 
       var signAuthEvent = function (template, relayUrl) {
         return signNip7AuthEvent(template, relayUrl, publicKeyHex);
       };
       var nip05 = await lookupTrustrootsNip05(publicKeyHex, signAuthEvent);
-      if (nip05) applyProfileState(nip05);
+      if (nip05) applyIdentityState(nip05);
     })();
   </script>
 </body>

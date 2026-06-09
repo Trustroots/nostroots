@@ -9,20 +9,23 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     :root {
-      --bg: hsl(40, 28%, 96%);
-      --fg: hsl(168, 25%, 18%);
-      --card: hsl(45, 22%, 98%);
-      --muted: hsl(168, 15%, 38%);
-      --border: hsl(168, 20%, 80%);
-      --primary: hsl(168, 48%, 32%);
-      --primary-fg: hsl(45, 30%, 98%);
-      --danger: hsl(12, 48%, 48%);
-      --ok: hsl(142, 45%, 35%);
-      --link: hsl(168, 62%, 36%);
+      --bg: #ffffff;
+      --fg: #111111;
+      --card: #ffffff;
+      --muted: #777777;
+      --border: #bdbdbd;
+      --primary: #7d7d7d;
+      --primary-fg: #ffffff;
+      --danger: #9f3a2d;
+      --ok: #4f6f4f;
+      --link: #3030ff;
+      --soft: #eeeeee;
+      --body-font: Arial, Helvetica, sans-serif;
+      --display-font: "Courier New", Courier, monospace;
     }
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: var(--body-font);
       background: var(--bg);
       color: var(--fg);
       height: 100vh;
@@ -38,11 +41,33 @@
       gap: 0.75rem;
       padding: 0.65rem 1rem;
       border-bottom: 1px solid var(--border);
-      background: var(--card);
+      background: var(--bg);
       flex-shrink: 0;
     }
-    .sb-title { font-size: 1.15rem; font-weight: 700; margin: 0; white-space: nowrap; }
+    .sb-title {
+      color: var(--muted);
+      font-family: var(--display-font);
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      margin: 0;
+      white-space: nowrap;
+    }
     .sb-title a { color: inherit; text-decoration: none; }
+    .sb-mark {
+      display: inline-block;
+      margin-left: 0.45rem;
+      letter-spacing: 0;
+      transform: translateY(-0.05em);
+    }
+    .sb-summary {
+      flex: 1 1 360px;
+      min-width: 220px;
+      margin: 0;
+      color: #444444;
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
     .sb-about-btn { font-size: 0.8rem; padding: 0.3rem 0.55rem; flex-shrink: 0; }
     .sb-header-actions {
       margin-left: auto;
@@ -63,7 +88,7 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       overflow: hidden;
-      background: var(--bg);
+      background: var(--card);
     }
     .sb-filter-tab {
       font: inherit;
@@ -92,7 +117,7 @@
       padding: 0.35rem 0.5rem;
       border: 1px solid var(--border);
       border-radius: 6px;
-      background: var(--bg);
+      background: var(--card);
       color: var(--fg);
     }
     .sb-controls select { max-width: min(280px, 55vw); }
@@ -148,13 +173,13 @@
       flex-shrink: 0;
       padding: 0.5rem 0.75rem;
       border-bottom: 1px solid var(--border);
-      background: var(--bg);
+      background: var(--soft);
     }
     .sb-list-tools {
       flex-shrink: 0;
       padding: 0.5rem 0.75rem;
       border-bottom: 1px solid var(--border);
-      background: var(--bg);
+      background: var(--soft);
     }
     .sb-event-filter {
       width: 100%;
@@ -178,7 +203,7 @@
       border-bottom: 1px solid var(--border);
       cursor: pointer;
     }
-    .sb-event:hover, .sb-event.active { background: var(--bg); }
+    .sb-event:hover, .sb-event.active { background: var(--soft); }
     .sb-event.sb-event-past { opacity: 0.75; }
     .sb-event.sb-event-past h3 { color: var(--muted); }
     .sb-event h3 { margin: 0 0 0.25rem; font-size: 0.95rem; line-height: 1.3; }
@@ -190,7 +215,7 @@
       padding: 0.25rem 0.5rem;
       border-radius: 4px;
       border: 1px solid var(--border);
-      background: var(--bg);
+      background: var(--card);
       color: var(--fg);
       cursor: pointer;
     }
@@ -253,6 +278,8 @@
     .sb-modal .feedback { font-size: 0.85rem; margin: 0.75rem 0; min-height: 1.2em; }
     .sb-modal .feedback.error { color: var(--danger); }
     .sb-modal .feedback.ok { color: var(--ok); }
+    .sb-share-preflight { font-size: 0.8rem; color: var(--muted); margin: 0.35rem 0 0; min-height: 1.1em; }
+    .sb-share-preflight.error { color: var(--danger); }
     .sb-relay-results { font-size: 0.8rem; color: var(--muted); margin: 0.5rem 0; }
     .sb-share-relays { font-size: 0.8rem; color: var(--muted); margin: 0.75rem 0 0; }
     .sb-share-relays-label { display: block; margin-bottom: 0.25rem; }
@@ -306,7 +333,8 @@
 </head>
 <body>
   <header class="sb-header">
-    <h1 class="sb-title"><a href="../">Squatbridge</a></h1>
+    <h1 class="sb-title"><a href="../">Squatbridge</a><span class="sb-mark" aria-hidden="true">｟(･)｠</span></h1>
+    <p class="sb-summary">Browse radar.squat.net events on a map and share selected ones to Nostr.</p>
     <div class="sb-controls">
       <div class="sb-location-filter">
         <div class="sb-filter-tabs" role="tablist" aria-label="Location type">
@@ -441,6 +469,7 @@
       <h2 id="sb-share-title">Share to Nostr</h2>
       <p class="meta" id="sb-share-meta" style="font-size:0.85rem;color:var(--muted);margin:0 0 0.5rem;"></p>
       <textarea id="sb-share-content" aria-label="Note content"></textarea>
+      <p class="sb-share-preflight" id="sb-share-preflight" role="status" aria-live="polite"></p>
       <label class="sb-going-toggle">
         <input type="checkbox" id="sb-share-going">
         <span><strong>I'm going to this event</strong> — also publish a
@@ -605,15 +634,18 @@
     if (!state.signer.connected) {
       el.textContent = state.signer.text;
       el.title = "";
+      updateSharePreflight();
       return;
     }
     if (state.signer.identityStatus === "loading") {
       el.textContent = "Looking up identity…";
       el.title = state.signer.pubkey || "";
+      updateSharePreflight();
       return;
     }
     el.textContent = state.signer.displayLabel || state.signer.text;
     el.title = state.signer.pubkey || "";
+    updateSharePreflight();
   }
 
   function createSignAuthEvent(publicKeyHex) {
@@ -800,6 +832,29 @@
     return next.trim();
   }
 
+  function getPreparedShareContent() {
+    return applyCircleHashtags(String(byId("sb-share-content")?.value || "").trim());
+  }
+
+  function updateSharePreflight() {
+    const el = byId("sb-share-preflight");
+    if (!el) return;
+    if (!state.signer.connected) {
+      el.textContent = "";
+      el.className = "sb-share-preflight";
+      return;
+    }
+    const content = getPreparedShareContent();
+    if (content.length > MAP_NOTE_CONTENT_MAXIMUM_LENGTH) {
+      el.textContent =
+        "Content must be " + MAP_NOTE_CONTENT_MAXIMUM_LENGTH + " characters or fewer for Trustroots map validation.";
+      el.className = "sb-share-preflight error";
+      return;
+    }
+    el.textContent = "";
+    el.className = "sb-share-preflight";
+  }
+
   function appendCircleTags(tags) {
     const circles = getSelectedCircles();
     if (!circles.length) return tags;
@@ -925,6 +980,7 @@
         if (!slug) return;
         if (input.checked) state.selectedCircles.add(slug);
         else state.selectedCircles.delete(slug);
+        updateSharePreflight();
       });
     });
   }
@@ -1502,6 +1558,7 @@
     byId("sb-share-feedback").className = "feedback";
     byId("sb-relay-results").textContent = "";
     renderShareRelays();
+    updateSharePreflight();
     byId("sb-share-modal").hidden = false;
     byId("sb-share-publish").disabled = false;
   }
@@ -1577,7 +1634,7 @@
       return;
     }
 
-    let content = applyCircleHashtags(String(byId("sb-share-content").value || "").trim());
+    let content = getPreparedShareContent();
     if (content.length < 3) {
       byId("sb-share-feedback").textContent = "Content must be at least 3 characters.";
       byId("sb-share-feedback").className = "feedback error";
@@ -1727,6 +1784,7 @@
 
   byId("sb-share-cancel").addEventListener("click", closeShareModal);
   byId("sb-share-publish").addEventListener("click", () => void publishShare());
+  byId("sb-share-content").addEventListener("input", updateSharePreflight);
   byId("sb-share-modal").addEventListener("click", (e) => {
     if (e.target === byId("sb-share-modal")) closeShareModal();
   });

@@ -927,6 +927,45 @@
     return state.locationFilter.type === "country" ? "country" : "city";
   }
 
+  function getFilterLabel(type, value) {
+    if (type === "city") {
+      return String(value || "").trim() || "city";
+    }
+    const code = String(value || "").trim().toUpperCase();
+    for (const country of LOCATIONS.countries) {
+      if (String(country.code).toUpperCase() === code) return country.label;
+    }
+    return code || "country";
+  }
+
+  function getCurrentFilterLabel() {
+    const select = byId("sb-filter-value");
+    return getFilterLabel(getFilterType(), select ? select.value : "");
+  }
+
+  function formatEventsStatus(cacheNote) {
+    const location = getCurrentFilterLabel();
+    const count = state.events.length;
+    const total = state.totalCount;
+    const withoutCoords = state.events.filter((e) => !e.hasCoords).length;
+    const { past } = partitionListEvents();
+
+    let status = count + " event" + (count === 1 ? "" : "s") + " in " + location;
+    if (count < total) {
+      status += " (" + total + " on radar";
+      if (total > 500) status += ", first 500 shown";
+      status += ")";
+    }
+    if (withoutCoords > 0) {
+      status += " · " + withoutCoords + " without map location";
+    }
+    if (past.length && !state.showPastEvents) {
+      status += " · " + past.length + " past hidden";
+    }
+    if (cacheNote) status += " " + cacheNote;
+    return status;
+  }
+
   function getDecodedHash() {
     const h = location.hash ? location.hash.slice(1) : "";
     if (!h) return "";
@@ -1130,17 +1169,10 @@
     }
     rebuildMapEventsFromCache();
     renderEvents();
-    const withCoords = state.events.filter((e) => e.hasCoords).length;
-    const { upcoming, past } = partitionListEvents();
-    let status =
-      "Showing " + state.events.length + " of " + state.totalCount +
-      " events (" + withCoords + " with map coordinates)." +
-      (state.totalCount > 500 ? " API limit: first 500 only." : "");
-    if (past.length && !state.showPastEvents) {
-      status += " List: " + upcoming.length + " upcoming (" + past.length + " past hidden).";
-    }
-    if (cacheNote) status += " " + cacheNote;
-    setStatus(status, cacheNote && cacheNote.indexOf("unreachable") >= 0 ? "error" : undefined);
+    setStatus(
+      formatEventsStatus(cacheNote),
+      cacheNote && cacheNote.indexOf("unreachable") >= 0 ? "error" : undefined
+    );
   }
 
   async function fetchEvents(options) {
@@ -1183,7 +1215,7 @@
       }
     }
 
-    setStatus("Loading from radar.squat.net…");
+    setStatus("Loading " + getFilterLabel(filterType, filterValue) + " events from radar.squat.net…");
 
     try {
       const res = await fetch(RADAR_API + "?" + params.toString());

@@ -24,6 +24,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script defer src="analytics.js"></script>
   <script>
     (function () {
       var path = window.location.pathname.replace(/\/index\.html$/, '/');
@@ -738,11 +739,22 @@
         cards.classList.toggle('show-experimental', toggle.checked);
       }
 
+      function trackExperimentalToggle() {
+        try {
+          window.NrVibeAnalytics && window.NrVibeAnalytics.track('nr_vibe_experimental_toggle', {
+            enabled: toggle.checked,
+            source: 'show_experimental_toggle',
+            surface: 'hub',
+          });
+        } catch (_) {}
+      }
+
       toggle.checked = readStoredPreference();
       syncExperimentalCards();
       toggle.addEventListener('change', function () {
         writeStoredPreference(toggle.checked);
         syncExperimentalCards();
+        trackExperimentalToggle();
       });
     })();
   </script>

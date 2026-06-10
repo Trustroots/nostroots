@@ -98,9 +98,9 @@ test.describe('Nostroots Web hub', () => {
   test('shows default options and reveals more experimental apps on request', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page.getByRole('heading', { name: 'What do you want to open?' })).toBeVisible();
-    await expect(page.getByText('Manage your Trustroots profile, read traveler notes')).toBeVisible();
-    await expect(page.locator('#nostr-key-status')).toContainText('Nostr key: No key detected');
+    await expect(page.getByRole('heading', { name: 'Choose where to start with Nostroots.' })).toBeVisible();
+    await expect(page.getByText('Open your Trustroots profile, read traveler notes')).toBeVisible();
+    await expect(page.locator('#nostr-key-status')).toContainText('no nostr key detected');
     await expect(page.locator('#trustroots-identity-status')).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Trustroots\.org/ })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
     await expect(page.locator('.trustroots .app-icon img')).toHaveAttribute('src', 'https://www.trustroots.org/img/logo/horizontal-white.svg');
@@ -129,24 +129,63 @@ test.describe('Nostroots Web hub', () => {
     ]);
   });
 
+  test('tracks experimental app visibility changes', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.__umamiEvents = [];
+      window.umami = {
+        track(name, data) {
+          window.__umamiEvents.push({ name, data });
+        },
+      };
+    });
+
+    await page.goto('/');
+
+    const experimentalToggle = page.getByRole('checkbox', { name: 'Show more experimental apps' });
+    await experimentalToggle.check();
+    await experimentalToggle.uncheck();
+
+    expect(await page.evaluate(() => window.__umamiEvents)).toEqual([
+      {
+        name: 'nr_vibe_experimental_toggle',
+        data: {
+          enabled: true,
+          hostname: 'localhost',
+          source: 'show_experimental_toggle',
+          surface: 'hub',
+        },
+      },
+      {
+        name: 'nr_vibe_experimental_toggle',
+        data: {
+          enabled: false,
+          hostname: 'localhost',
+          source: 'show_experimental_toggle',
+          surface: 'hub',
+        },
+      },
+    ]);
+  });
+
   test('opens NIP-07 information from the missing key status', async ({ page }) => {
     await page.goto('/');
 
-    const keyStatusButton = page.getByRole('button', { name: /Nostr key: No key detected/ });
+    const keyStatusButton = page.getByRole('button', { name: 'No Nostr key detected. About Nostr keys' });
     await expect(keyStatusButton).toBeVisible();
     await expect(keyStatusButton).toHaveAttribute('aria-haspopup', 'dialog');
 
     await keyStatusButton.click();
 
-    const modal = page.getByRole('dialog', { name: 'About NIP-07' });
+    const modal = page.getByRole('dialog', { name: 'Nostr keys' });
     await expect(modal).toBeVisible();
-    await expect(modal).toContainText('browser extension standard for Nostr keys');
+    await expect(modal).toContainText('A Nostr key is your account for Nostr apps');
+    await expect(modal).toContainText('Keep the private key secret');
     await expect(modal.getByRole('link', { name: 'Alby' })).toHaveAttribute('href', 'https://guides.getalby.com/user-guide/browser-extension/faq/how-do-i-install-the-alby-browser-extension');
     await expect(modal.getByRole('link', { name: 'nos2x' })).toHaveAttribute('href', 'https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp');
     await expect(modal.getByRole('link', { name: 'Android' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots/releases');
     await expect(modal.getByRole('link', { name: 'iOS' })).toHaveAttribute('href', 'https://testflight.apple.com/join/n5WGu8Hu');
 
-    await modal.getByRole('button', { name: 'Close NIP-07 information' }).click();
+    await modal.getByRole('button', { name: 'Close Nostr keys information' }).click();
 
     await expect(modal).toBeHidden();
   });

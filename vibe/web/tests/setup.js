@@ -44,6 +44,7 @@ console.error = (...args) => {
 const isKnownJSDOMResourceNoise = (message) => (
   message.includes('Could not load link: "https://fonts.googleapis.com/') ||
   message.includes('Could not load link: "https://unpkg.com/') ||
+  message.includes('Could not load script: "http://localhost/analytics.js"') ||
   message.includes('Could not load script: "https://unpkg.com/') ||
   message.includes('Could not load script: "https://1p.trustroots.org/script.js"')
 );

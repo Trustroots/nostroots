@@ -129,6 +129,28 @@ test.describe('Nostroots Web hub', () => {
     ]);
   });
 
+  test('opens NIP-07 information from the missing key status', async ({ page }) => {
+    await page.goto('/');
+
+    const keyStatusButton = page.getByRole('button', { name: /Nostr key: No key detected/ });
+    await expect(keyStatusButton).toBeVisible();
+    await expect(keyStatusButton).toHaveAttribute('aria-haspopup', 'dialog');
+
+    await keyStatusButton.click();
+
+    const modal = page.getByRole('dialog', { name: 'About NIP-07' });
+    await expect(modal).toBeVisible();
+    await expect(modal).toContainText('browser extension standard for Nostr keys');
+    await expect(modal.getByRole('link', { name: 'Alby' })).toHaveAttribute('href', 'https://guides.getalby.com/user-guide/browser-extension/faq/how-do-i-install-the-alby-browser-extension');
+    await expect(modal.getByRole('link', { name: 'nos2x' })).toHaveAttribute('href', 'https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp');
+    await expect(modal.getByRole('link', { name: 'Android' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots/releases');
+    await expect(modal.getByRole('link', { name: 'iOS' })).toHaveAttribute('href', 'https://testflight.apple.com/join/n5WGu8Hu');
+
+    await modal.getByRole('button', { name: 'Close NIP-07 information' }).click();
+
+    await expect(modal).toBeHidden();
+  });
+
   test('keeps experimental apps visible after reload', async ({ page }) => {
     await page.goto('/');
 

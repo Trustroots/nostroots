@@ -10,7 +10,8 @@ import { generateSecretKey, getPublicKey } from "nostr-tools/pure";
 import { bytesToHex, hexToBytes, isHexKey, normalizeHexKey } from "./hex";
 
 export type KeyImportResult =
-  | { ok: true; privateKeyHex: string; source: "hex" | "nsec" | "mnemonic" }
+  | { ok: true; privateKeyHex: string; source: "hex" | "nsec" }
+  | { ok: true; privateKeyHex: string; source: "mnemonic"; mnemonic: string }
   | { ok: false; reason: "empty" | "npub" | "invalid" };
 
 function normalizeMnemonic(input: string): string {
@@ -45,9 +46,10 @@ export function parseKeyInput(input: string): KeyImportResult {
   }
 
   if (/\s/.test(trimmed)) {
+    const mnemonic = normalizeMnemonic(trimmed);
     const privateKeyHex = privateKeyFromMnemonic(trimmed);
     return privateKeyHex
-      ? { ok: true, privateKeyHex, source: "mnemonic" }
+      ? { ok: true, privateKeyHex, source: "mnemonic", mnemonic }
       : { ok: false, reason: "invalid" };
   }
 

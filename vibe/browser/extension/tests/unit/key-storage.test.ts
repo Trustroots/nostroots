@@ -11,8 +11,10 @@ import {
 import { MemoryStorage } from "../../src/shared/memory-storage";
 import {
   readAllowedOrigins,
+  readCachedTrustrootsNip05,
   readPrivateKeyHex,
   rememberAllowedOrigin,
+  writeCachedTrustrootsNip05,
   writePrivateKeyHex,
   clearPrivateKey,
 } from "../../src/shared/storage";
@@ -32,9 +34,13 @@ describe("key parsing and single-key storage", () => {
   });
 
   it("accepts NIP-06 recovery phrases", () => {
-    const parsed = parseKeyInput("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about");
+    const mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+    const parsed = parseKeyInput(mnemonic);
     expect(parsed.ok).toBe(true);
-    if (parsed.ok) expect(isHexKey(parsed.privateKeyHex)).toBe(true);
+    if (parsed.ok) {
+      expect(isHexKey(parsed.privateKeyHex)).toBe(true);
+      expect(parsed).toMatchObject({ source: "mnemonic", mnemonic });
+    }
   });
 
   it("rejects npub and reports private-key copy", () => {
@@ -64,5 +70,13 @@ describe("key parsing and single-key storage", () => {
     await clearPrivateKey(storage);
     expect(await readPrivateKeyHex(storage)).toBe(null);
     expect(await readAllowedOrigins(storage)).toEqual([]);
+  });
+
+  it("caches Trustroots NIP-05 addresses by public key", async () => {
+    const storage = new MemoryStorage();
+    await writeCachedTrustrootsNip05(HEX.toUpperCase(), "alice@trustroots.org", storage);
+
+    expect(await readCachedTrustrootsNip05(HEX, storage)).toBe("alice@trustroots.org");
+    expect(await readCachedTrustrootsNip05(OTHER_HEX, storage)).toBe(null);
   });
 });

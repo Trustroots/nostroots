@@ -7,6 +7,7 @@ export const MESSAGE_SOURCE_PROMPT = "nostroots-extension-prompt";
 export const STORAGE_KEYS = {
   privateKeyHex: "nostroots.browser.privateKeyHex",
   allowedOrigins: "nostroots.browser.allowedOrigins",
+  trustrootsNip05ByPubkey: "nostroots.browser.trustrootsNip05ByPubkey",
 } as const;
 
 export const TRUSTED_DOMAINS = ["trustroots.org"] as const;

@@ -41,6 +41,37 @@ export async function readAllowedOrigins(storage: ExtensionStorage = extensionSt
   return Array.from(new Set(value.filter((origin): origin is string => typeof origin === "string"))).sort();
 }
 
+export async function readCachedTrustrootsNip05(
+  publicKeyHex: string,
+  storage: ExtensionStorage = extensionStorage(),
+): Promise<string | null> {
+  const result = await storage.get(STORAGE_KEYS.trustrootsNip05ByPubkey);
+  const value = result[STORAGE_KEYS.trustrootsNip05ByPubkey];
+  if (!isHexKey(publicKeyHex) || !value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const cached = (value as Record<string, unknown>)[publicKeyHex.toLowerCase()];
+  return typeof cached === "string" && cached ? cached : null;
+}
+
+export async function writeCachedTrustrootsNip05(
+  publicKeyHex: string,
+  nip05: string,
+  storage: ExtensionStorage = extensionStorage(),
+): Promise<void> {
+  const normalizedPubkey = publicKeyHex.toLowerCase();
+  if (!isHexKey(normalizedPubkey) || !nip05) return;
+
+  const result = await storage.get(STORAGE_KEYS.trustrootsNip05ByPubkey);
+  const value = result[STORAGE_KEYS.trustrootsNip05ByPubkey];
+  const cache = value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  await storage.set({
+    [STORAGE_KEYS.trustrootsNip05ByPubkey]: {
+      ...(cache as Record<string, unknown>),
+      [normalizedPubkey]: nip05,
+    },
+  });
+}
+
 export async function rememberAllowedOrigin(
   origin: string,
   storage: ExtensionStorage = extensionStorage(),

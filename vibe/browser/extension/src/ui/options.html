@@ -17,9 +17,10 @@
       </header>
 
       <section>
-        <h2>Your Nostr Key</h2>
+        <h2>Your Nostroots Signing Key</h2>
+        <p class="muted">This is the private signing key this browser uses to prove you are you on Nostroots.</p>
         <div class="field">
-          <label>Public address</label>
+          <label>Public address (npub)</label>
           <div class="copy-row">
             <code id="npub">Loading...</code>
             <button id="copy-npub" type="button">Copy</button>
@@ -31,25 +32,37 @@
             <code id="nip05">Checking...</code>
             <button id="copy-nip05" type="button">Copy</button>
           </div>
+          <p id="nip05-help" class="muted"></p>
         </div>
         <div class="field">
-          <label>Private key</label>
+          <label>Private key (keep secret)</label>
           <div class="copy-row">
             <code id="nsec">Loading...</code>
             <button id="reveal-key" type="button">Reveal</button>
             <button id="copy-nsec" type="button">Copy</button>
           </div>
         </div>
-        <p id="generated-mnemonic" class="notice"></p>
+        <div id="generated-mnemonic-panel" class="recovery-panel" hidden>
+          <div class="recovery-heading">
+            <span>Recovery phrase</span>
+            <button id="copy-mnemonic" type="button">Copy</button>
+          </div>
+          <code id="generated-mnemonic"></code>
+          <p class="muted">Save this in a password manager or somewhere equally safe. Trustroots cannot recover it for you.</p>
+        </div>
       </section>
 
       <section>
-        <h2>Add Or Replace Your Key</h2>
-        <p class="muted">Use the one Nostroots key you want this browser to sign with.</p>
-        <textarea id="key-input" rows="4" spellcheck="false" placeholder="Paste your nsec, private-key hex, or recovery phrase"></textarea>
-        <div class="actions">
-          <button id="import-key" type="button">Use this key</button>
-          <button id="generate-key" type="button">Make a new key</button>
+        <h2 id="key-actions-title">Add a Nostroots Signing Key</h2>
+        <p id="key-actions-help" class="muted">A signing key is the private key this browser uses to prove you are you on Nostroots. Import your existing key if you already have one, or generate a new one and save its recovery phrase somewhere safe.</p>
+        <div id="key-import-controls" class="key-import-controls">
+          <textarea id="key-input" rows="4" spellcheck="false" placeholder="Paste your nsec, private-key hex, or recovery phrase"></textarea>
+          <div class="actions">
+            <button id="import-key" type="button">Import key</button>
+            <button id="generate-key" type="button">Generate new key</button>
+          </div>
+        </div>
+        <div id="key-remove-controls" class="actions" hidden>
           <button id="remove-key" type="button" class="danger">Forget this key</button>
         </div>
       </section>

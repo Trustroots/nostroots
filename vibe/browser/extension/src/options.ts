@@ -12,8 +12,10 @@ import { hostForOrigin, isTrustedOrigin } from "./shared/origins";
 import {
   clearPrivateKey,
   readAllowedOrigins,
+  readCachedTrustrootsNip05,
   readPrivateKeyHex,
   revokeAllowedOrigin,
+  writeCachedTrustrootsNip05,
   writePrivateKeyHex,
 } from "./shared/storage";
 
@@ -26,7 +28,12 @@ const elements = {
   status: mustElement("status"),
   npub: mustElement("npub"),
   nip05: mustElement("nip05"),
+  nip05Help: mustElement("nip05-help"),
   nsec: mustElement("nsec"),
+  keyActionsTitle: mustElement("key-actions-title"),
+  keyActionsHelp: mustElement("key-actions-help"),
+  keyImportControls: mustElement("key-import-controls"),
+  keyRemoveControls: mustElement("key-remove-controls"),
   keyInput: mustElement("key-input") as HTMLTextAreaElement,
   importButton: mustElement("import-key") as HTMLButtonElement,
   generateButton: mustElement("generate-key") as HTMLButtonElement,
@@ -35,6 +42,8 @@ const elements = {
   copyNpubButton: mustElement("copy-npub") as HTMLButtonElement,
   copyNip05Button: mustElement("copy-nip05") as HTMLButtonElement,
   copyNsecButton: mustElement("copy-nsec") as HTMLButtonElement,
+  copyMnemonicButton: mustElement("copy-mnemonic") as HTMLButtonElement,
+  generatedMnemonicPanel: mustElement("generated-mnemonic-panel"),
   generatedMnemonic: mustElement("generated-mnemonic"),
   permissions: mustElement("permissions"),
 };
@@ -70,6 +79,10 @@ elements.copyNsecButton.addEventListener("click", () => {
   void copyText(elements.nsec.textContent || "");
 });
 
+elements.copyMnemonicButton.addEventListener("click", () => {
+  void copyText(state.lastGeneratedMnemonic);
+});
+
 async function render(): Promise<void> {
   const privateKeyHex = await readPrivateKeyHex();
   const hasKey = Boolean(privateKeyHex);
@@ -82,24 +95,41 @@ async function render(): Promise<void> {
   elements.copyNpubButton.disabled = !hasKey;
   elements.copyNip05Button.disabled = true;
   elements.copyNsecButton.disabled = !hasKey || !state.showSecret;
+  elements.copyMnemonicButton.disabled = !state.showSecret || !state.lastGeneratedMnemonic;
+  elements.keyImportControls.hidden = hasKey;
+  elements.keyRemoveControls.hidden = !hasKey;
+  elements.generatedMnemonicPanel.hidden = !state.showSecret || !state.lastGeneratedMnemonic;
 
   if (privateKeyHex) {
+    elements.keyActionsTitle.textContent = "Forget This Browser's Key";
+    elements.keyActionsHelp.textContent =
+      "This only removes the key from this browser. It does not delete your Nostroots account or remove a backup you saved somewhere else.";
     const publicKeyHex = publicKeyFromPrivateKey(privateKeyHex);
+    const cachedNip05 = await readCachedTrustrootsNip05(publicKeyHex);
     elements.npub.textContent = npubFromPublicKey(publicKeyHex);
-    elements.nip05.textContent = "Checking relay.trustroots.org and nip42.trustroots.org...";
+    elements.nip05Help.textContent = "";
+    if (cachedNip05) {
+      showTrustrootsIdentity(cachedNip05);
+    } else {
+      elements.nip05.textContent = "Checking relay.trustroots.org and nip42.trustroots.org...";
+      void refreshTrustrootsIdentity(publicKeyHex, privateKeyHex);
+    }
     elements.nsec.textContent = state.showSecret ? nsecFromPrivateKey(privateKeyHex) : "••••••••••••••••";
     elements.revealButton.textContent = state.showSecret ? "Hide" : "Reveal";
-    void refreshTrustrootsIdentity(publicKeyHex, privateKeyHex);
   } else {
+    elements.keyActionsTitle.textContent = "Add a Nostroots Signing Key";
+    elements.keyActionsHelp.textContent =
+      "A signing key is the private key this browser uses to prove you are you on Nostroots. Import your existing key if you already have one, or generate a new one and save its recovery phrase somewhere safe.";
     elements.npub.textContent = "Add a key to see your public address.";
     elements.nip05.textContent = "Add a key to look up your Trustroots.org address.";
+    elements.nip05Help.textContent = "";
     elements.nsec.textContent = "Your private key will stay in this browser.";
     elements.revealButton.textContent = "Reveal";
     state.showSecret = false;
   }
 
   elements.generatedMnemonic.textContent = state.lastGeneratedMnemonic
-    ? `Recovery phrase for the generated key: ${state.lastGeneratedMnemonic}`
+    ? state.lastGeneratedMnemonic
     : "";
 
   await renderPermissions();
@@ -111,12 +141,33 @@ async function refreshTrustrootsIdentity(publicKeyHex: string, privateKeyHex: st
   if (currentKey !== privateKeyHex) return;
 
   if (nip05) {
-    elements.nip05.textContent = nip05;
-    elements.copyNip05Button.disabled = false;
+    await writeCachedTrustrootsNip05(publicKeyHex, nip05);
+    showTrustrootsIdentity(nip05);
   } else {
-    elements.nip05.textContent = "No Trustroots.org address found for this key yet.";
-    elements.copyNip05Button.disabled = true;
+    showTrustrootsIdentitySetupHelp();
   }
+}
+
+function showTrustrootsIdentity(nip05: string): void {
+  elements.nip05.textContent = nip05;
+  elements.nip05Help.textContent = "";
+  elements.copyNip05Button.disabled = false;
+}
+
+function showTrustrootsIdentitySetupHelp(): void {
+  elements.nip05.textContent = "No Trustroots.org address found for this key yet.";
+  elements.nip05Help.textContent = "";
+  const link = document.createElement("a");
+  link.href = "https://www.trustroots.org/profile/edit/networks";
+  link.textContent = "Trustroots profile networks";
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  elements.nip05Help.append(
+    "To connect this key to your Trustroots account, copy the public address above (the one starting with npub) and add it on ",
+    link,
+    ".",
+  );
+  elements.copyNip05Button.disabled = true;
 }
 
 async function renderPermissions(): Promise<void> {
@@ -163,7 +214,7 @@ async function importKey(): Promise<void> {
   await writePrivateKeyHex(parsed.privateKeyHex);
   elements.keyInput.value = "";
   state.showSecret = false;
-  state.lastGeneratedMnemonic = "";
+  state.lastGeneratedMnemonic = parsed.source === "mnemonic" ? parsed.mnemonic : "";
   showMessage("All set. Your key is ready, and old site approvals were cleared.", "success");
   await render();
 }
@@ -183,7 +234,19 @@ async function generateAndStoreKey(): Promise<void> {
 async function removeKey(): Promise<void> {
   const current = await readPrivateKeyHex();
   if (!current) return;
-  if (!globalThis.confirm("Forget this key and clear remembered site approvals?")) return;
+  if (
+    !globalThis.confirm(
+      [
+        "Forget this key from this browser and clear remembered site approvals?",
+        "",
+        "Before continuing, make sure you have a copy of this private key saved somewhere safe, such as a password manager or written recovery phrase.",
+        "",
+        "Trustroots does not have a copy of your private key and cannot recover it for you. If this browser is your only copy, forgetting it may permanently lock you out of this Nostroots identity.",
+      ].join("\n"),
+    )
+  ) {
+    return;
+  }
 
   await clearPrivateKey();
   state.showSecret = false;

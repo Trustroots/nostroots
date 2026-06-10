@@ -18,6 +18,10 @@
   box-sizing: border-box;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
@@ -51,6 +55,15 @@ h2 {
 button,
 textarea {
   font: inherit;
+}
+
+a {
+  color: var(--accent-dark);
+  font-weight: 800;
+}
+
+a:hover {
+  color: var(--accent);
 }
 
 button {
@@ -166,6 +179,36 @@ section {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+}
+
+.key-import-controls {
+  display: grid;
+  gap: 18px;
+}
+
+.recovery-panel {
+  display: grid;
+  gap: 10px;
+  border: 2px solid color-mix(in srgb, var(--gold) 45%, white);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--gold) 13%, white);
+  padding: 14px;
+}
+
+.recovery-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  color: var(--accent-dark);
+  font-weight: 900;
+}
+
+.recovery-panel code {
+  display: block;
+  color: var(--foreground);
+  font-size: 16px;
+  line-height: 1.6;
 }
 
 .copy-row code {

@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Nostroots Browser",
+  "description": "Small NIP-07 signer for Nostroots and compatible Nostr web apps.",
+  "version": "0.1.0",
+  "homepage_url": "https://nos.trustroots.org/",
+  "permissions": ["storage", "windows"],
+  "host_permissions": ["wss://relay.trustroots.org/*", "wss://nip42.trustroots.org/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Nostroots Browser",
+    "default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+    {
+      "matches": ["https://*/*", "http://localhost/*", "http://localhost:*/*", "http://127.0.0.1/*", "http://127.0.0.1:*/*", "http://*.localhost/*"],
+      "js": ["content.js"],
+      "run_at": "document_start",
+      "all_frames": true
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["provider.js"],
+      "matches": ["https://*/*", "http://localhost/*", "http://localhost:*/*", "http://127.0.0.1/*", "http://127.0.0.1:*/*", "http://*.localhost/*"]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nostroots Browser</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="popup">
+    <main>
+      <header class="brand-header compact">
+        <img src="nostroots-logo.png" alt="" />
+        <div>
+          <h1>Nostroots Browser</h1>
+          <p id="popup-status" class="muted">Checking your key...</p>
+        </div>
+      </header>
+      <code id="popup-npub">Loading...</code>
+      <p id="popup-nip05" class="identity-line">Checking Trustroots.org address...</p>
+      <div class="actions">
+        <button id="open-options" type="button">Settings</button>
+        <button id="open-trustroots" type="button">Nostroots</button>
+      </div>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

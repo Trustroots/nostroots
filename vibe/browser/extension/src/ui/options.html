@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nostroots Browser Settings</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="page">
+    <main class="shell">
+      <header class="brand-header">
+        <img src="nostroots-logo.png" alt="" />
+        <div>
+          <h1>Nostroots Browser</h1>
+          <p id="status" class="muted">Getting things ready...</p>
+        </div>
+      </header>
+
+      <section>
+        <h2>Your Nostr Key</h2>
+        <div class="field">
+          <label>Public address</label>
+          <div class="copy-row">
+            <code id="npub">Loading...</code>
+            <button id="copy-npub" type="button">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Trustroots.org address</label>
+          <div class="copy-row">
+            <code id="nip05">Checking...</code>
+            <button id="copy-nip05" type="button">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Private key</label>
+          <div class="copy-row">
+            <code id="nsec">Loading...</code>
+            <button id="reveal-key" type="button">Reveal</button>
+            <button id="copy-nsec" type="button">Copy</button>
+          </div>
+        </div>
+        <p id="generated-mnemonic" class="notice"></p>
+      </section>
+
+      <section>
+        <h2>Add Or Replace Your Key</h2>
+        <p class="muted">Use the one Nostroots key you want this browser to sign with.</p>
+        <textarea id="key-input" rows="4" spellcheck="false" placeholder="Paste your nsec, private-key hex, or recovery phrase"></textarea>
+        <div class="actions">
+          <button id="import-key" type="button">Use this key</button>
+          <button id="generate-key" type="button">Make a new key</button>
+          <button id="remove-key" type="button" class="danger">Forget this key</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>Site Access</h2>
+        <p id="trusted-origins" class="muted">Sites on *.trustroots.org can use this key automatically.</p>
+        <ul id="permissions" class="permissions"></ul>
+      </section>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

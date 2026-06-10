@@ -1,4 +1,5 @@
 import { MESSAGE_SOURCE_PROMPT } from "./shared/constants";
+import { extensionApi } from "./shared/extension-api";
 import { hostForOrigin } from "./shared/origins";
 
 type Decision = "allow_once" | "always_allow" | "deny";
@@ -25,7 +26,7 @@ bindDecision("deny", "deny");
 
 function bindDecision(id: string, decision: Decision): void {
   mustElement(id).addEventListener("click", () => {
-    chrome.runtime.sendMessage({
+    void extensionApi.runtime.sendMessage({
       source: MESSAGE_SOURCE_PROMPT,
       promptId,
       decision,

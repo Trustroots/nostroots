@@ -54,7 +54,7 @@ if (!window.nostr?.__nostrootsBrowser) {
     if (event.data.response.ok) {
       entry.resolve(event.data.response.result);
     } else {
-      entry.reject(new Error(event.data.response.error || "Nostroots Browser request failed."));
+      entry.reject(new Error(event.data.response.error || "Nostroots Browser Extension request failed."));
     }
   });
 

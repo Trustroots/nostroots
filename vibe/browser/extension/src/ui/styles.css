@@ -87,6 +87,34 @@ button:disabled {
   opacity: 0.55;
 }
 
+.icon-link {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  color: var(--accent-dark);
+  box-shadow: 0 8px 22px rgba(0, 75, 63, 0.08);
+}
+
+.icon-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.icon-link:focus-visible {
+  outline: 3px solid rgba(18, 138, 120, 0.16);
+  outline-offset: 2px;
+}
+
+.icon-link svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
 button.danger {
   background: var(--danger-soft);
 }
@@ -138,6 +166,11 @@ section,
   gap: 18px;
 }
 
+.header-icon-link {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
 .brand-header img {
   width: 72px;
   height: 72px;
@@ -171,6 +204,12 @@ section {
 .field label {
   color: var(--muted);
   font-weight: 800;
+}
+
+.build-time {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .copy-row,

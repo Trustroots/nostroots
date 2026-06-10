@@ -6,6 +6,7 @@ import {
   MESSAGE_SOURCE_PROMPT,
   isKnownNip07Method,
 } from "./shared/constants";
+import { extensionApi } from "./shared/extension-api";
 import { failure, success, type BridgeResponse, type ContentRequest } from "./shared/messages";
 import {
   nip04Decrypt,
@@ -36,13 +37,13 @@ type PendingPrompt = {
 
 const pendingPrompts = new Map<string, PendingPrompt>();
 
-chrome.runtime.onInstalled.addListener((details) => {
+extensionApi.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
-    chrome.runtime.openOptionsPage();
+    extensionApi.runtime.openOptionsPage();
   }
 });
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+extensionApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (isPromptRequest(message)) {
     void handlePromptResponse(message, sender).then(sendResponse);
     return true;
@@ -56,7 +57,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return false;
 });
 
-chrome.windows.onRemoved.addListener((windowId) => {
+extensionApi.windows.onRemoved.addListener((windowId) => {
   for (const [promptId, prompt] of pendingPrompts) {
     if (prompt.windowId === windowId) {
       pendingPrompts.delete(promptId);
@@ -69,7 +70,7 @@ async function handleContentRequest(request: ContentRequest): Promise<BridgeResp
   try {
     const origin = normalizeOrigin(request.origin);
     if (!origin || !isExtensionAllowedPageOrigin(origin)) {
-      return failure(request.id, "This page cannot use Nostroots Browser.");
+      return failure(request.id, "This page cannot use Nostroots Browser Extension.");
     }
 
     const privateKeyHex = await readPrivateKeyHex();
@@ -79,7 +80,7 @@ async function handleContentRequest(request: ContentRequest): Promise<BridgeResp
 
     const permission = await permissionDecisionForOrigin(origin);
     if (permission === "blocked") {
-      return failure(request.id, "This origin is not allowed to use Nostroots Browser.");
+      return failure(request.id, "This origin is not allowed to use Nostroots Browser Extension.");
     }
 
     if (permission === "prompt") {
@@ -177,9 +178,9 @@ async function requestPermission(origin: string, method: string, params: unknown
   return new Promise<PromptDecision>((resolve) => {
     pendingPrompts.set(promptId, { origin, method, resolve });
 
-    chrome.windows
+    extensionApi.windows
       .create({
-        url: chrome.runtime.getURL(`prompt.html?${query.toString()}`),
+        url: extensionApi.runtime.getURL(`prompt.html?${query.toString()}`),
         type: "popup",
         width: 460,
         height: 460,
@@ -206,7 +207,7 @@ async function handlePromptResponse(request: PromptRequest, sender: chrome.runti
 
   const windowId = sender.tab?.windowId ?? pending.windowId;
   if (typeof windowId === "number") {
-    await chrome.windows.remove(windowId).catch(() => undefined);
+    await extensionApi.windows.remove(windowId).catch(() => undefined);
   }
 
   return true;
@@ -214,7 +215,7 @@ async function handlePromptResponse(request: PromptRequest, sender: chrome.runti
 
 async function centeredPromptPosition(width: number, height: number): Promise<{ left: number; top: number }> {
   try {
-    const focused = await chrome.windows.getLastFocused();
+    const focused = await extensionApi.windows.getLastFocused();
     if (
       typeof focused.left === "number" &&
       typeof focused.top === "number" &&

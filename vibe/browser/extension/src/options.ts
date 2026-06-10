@@ -19,10 +19,14 @@ import {
   writePrivateKeyHex,
 } from "./shared/storage";
 
+declare const __NOSTROOTS_EXTENSION_BUILD_TIME__: string;
+
 const state = {
   showSecret: false,
   lastGeneratedMnemonic: "",
 };
+
+const NOSTROOTS_WEB_URL = "https://nos.trustroots.org/";
 
 const elements = {
   status: mustElement("status"),
@@ -46,7 +50,10 @@ const elements = {
   generatedMnemonicPanel: mustElement("generated-mnemonic-panel"),
   generatedMnemonic: mustElement("generated-mnemonic"),
   permissions: mustElement("permissions"),
+  buildTime: mustElement("settings-build-time"),
 };
+
+elements.buildTime.textContent = `Built ${__NOSTROOTS_EXTENSION_BUILD_TIME__}`;
 
 void render();
 
@@ -87,9 +94,7 @@ async function render(): Promise<void> {
   const privateKeyHex = await readPrivateKeyHex();
   const hasKey = Boolean(privateKeyHex);
 
-  elements.status.textContent = hasKey
-    ? "You are ready to sign in with Nostroots."
-    : "Add one key to start signing in with Nostroots.";
+  renderStatus(hasKey);
   elements.removeButton.disabled = !hasKey;
   elements.revealButton.disabled = !hasKey;
   elements.copyNpubButton.disabled = !hasKey;
@@ -133,6 +138,21 @@ async function render(): Promise<void> {
     : "";
 
   await renderPermissions();
+}
+
+function renderStatus(hasKey: boolean): void {
+  elements.status.className = "muted";
+  if (!hasKey) {
+    elements.status.textContent = "Add one key to start signing in with Nostroots.";
+    return;
+  }
+
+  const link = document.createElement("a");
+  link.href = NOSTROOTS_WEB_URL;
+  link.textContent = "Nostroots";
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  elements.status.replaceChildren("You are ready to sign in with ", link, ".");
 }
 
 async function refreshTrustrootsIdentity(publicKeyHex: string, privateKeyHex: string): Promise<void> {

@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { chromium, expect, test } from "@playwright/test";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const DIST = resolve(ROOT, "dist");
+const DIST = resolve(ROOT, "dist/chrome");
 const ALICE = "0000000000000000000000000000000000000000000000000000000000000001";
 const BROWSER_CANDIDATES = [
   "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",

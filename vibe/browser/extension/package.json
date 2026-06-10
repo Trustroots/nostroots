@@ -4,9 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node scripts/build.mjs",
-    "dev": "node scripts/build.mjs --watch",
+    "build": "node scripts/build.mjs --target=all",
+    "build:chrome": "node scripts/build.mjs --target=chrome",
+    "build:firefox": "node scripts/build.mjs --target=firefox",
+    "dev": "node scripts/build.mjs --watch --target=chrome",
+    "dev:firefox": "node scripts/build.mjs --watch --target=firefox",
     "lint": "tsc --noEmit",
+    "lint:firefox": "pnpm build:firefox && node scripts/validate-firefox.mjs",
+    "package:chrome": "node scripts/package.mjs chrome",
+    "package:firefox": "node scripts/package.mjs firefox",
     "test": "vitest run tests/unit",
     "test:e2e": "playwright test"
   },

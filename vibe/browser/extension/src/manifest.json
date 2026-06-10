@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Nostroots Browser",
+  "name": "Nostroots Browser Extension",
   "description": "Small NIP-07 signer for Nostroots and compatible Nostr web apps.",
   "version": "0.1.0",
   "homepage_url": "https://nos.trustroots.org/",
@@ -11,7 +11,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Nostroots Browser",
+    "default_title": "Nostroots Browser Extension",
     "default_popup": "popup.html"
   },
   "options_page": "options.html",

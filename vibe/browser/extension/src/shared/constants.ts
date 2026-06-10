@@ -1,4 +1,4 @@
-export const EXTENSION_BRAND = "Nostroots Browser";
+export const EXTENSION_BRAND = "Nostroots Browser Extension";
 
 export const MESSAGE_SOURCE_PAGE = "nostroots-extension-provider";
 export const MESSAGE_SOURCE_CONTENT = "nostroots-extension-content";

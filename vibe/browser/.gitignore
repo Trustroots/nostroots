@@ -8,4 +8,5 @@ expo/coverage/
 expo/.turbo/
 extension/node_modules/
 extension/dist/
+extension/packages/
 extension/test-results/

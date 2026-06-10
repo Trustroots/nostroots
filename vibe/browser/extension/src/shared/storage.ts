@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from "./constants";
+import { extensionApi } from "./extension-api";
 import { isHexKey } from "./hex";
 
 export interface ExtensionStorage {
@@ -9,7 +10,7 @@ export interface ExtensionStorage {
 }
 
 export function extensionStorage(): ExtensionStorage {
-  return chrome.storage.local;
+  return extensionApi.storage.local;
 }
 
 export async function readPrivateKeyHex(storage: ExtensionStorage = extensionStorage()): Promise<string | null> {

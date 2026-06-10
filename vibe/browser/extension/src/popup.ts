@@ -1,21 +1,27 @@
 import { lookupTrustrootsNip05 } from "./shared/identity";
+import { extensionApi } from "./shared/extension-api";
 import { npubFromPublicKey, publicKeyFromPrivateKey } from "./shared/keys";
 import { readPrivateKeyHex } from "./shared/storage";
+
+declare const __NOSTROOTS_EXTENSION_BUILD_TIME__: string;
 
 const status = mustElement("popup-status");
 const npub = mustElement("popup-npub");
 const nip05 = mustElement("popup-nip05");
+const buildTime = mustElement("popup-build-time");
 const optionsButton = mustElement("open-options") as HTMLButtonElement;
 const trustrootsButton = mustElement("open-trustroots") as HTMLButtonElement;
+
+buildTime.textContent = `Built ${__NOSTROOTS_EXTENSION_BUILD_TIME__}`;
 
 void render();
 
 optionsButton.addEventListener("click", () => {
-  chrome.runtime.openOptionsPage();
+  extensionApi.runtime.openOptionsPage();
 });
 
 trustrootsButton.addEventListener("click", () => {
-  void chrome.tabs.create({ url: "https://nos.trustroots.org/" });
+  void extensionApi.tabs.create({ url: "https://nos.trustroots.org/" });
 });
 
 async function render(): Promise<void> {

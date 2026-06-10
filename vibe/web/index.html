@@ -192,9 +192,13 @@
       font-weight: 800;
     }
 
-    .status-pill[data-state="connected"] strong {
-      color: var(--accent-dark);
-    }
+      .status-pill[data-state="connected"] strong {
+        color: var(--accent-dark);
+      }
+
+      .status-pill[data-state="pending"] strong {
+        color: var(--accent-dark);
+      }
 
     a.status-pill {
       text-decoration: none;
@@ -1026,9 +1030,13 @@
         });
       }
 
-      async function getNip7PublicKey() {
+      function getNip7Provider() {
         var provider = window.nostr;
-        if (!provider || typeof provider.getPublicKey !== 'function') return '';
+        return provider && typeof provider.getPublicKey === 'function' ? provider : null;
+      }
+
+      async function getNip7PublicKey(provider) {
+        if (!provider) return '';
         try {
           var publicKeyHex = String(await provider.getPublicKey()).trim().toLowerCase();
           return isHexKey(publicKeyHex) ? publicKeyHex : '';
@@ -1177,6 +1185,18 @@
         setStatus(keyStatus, 'Nostr key', shortenNpub(npub) || publicKeyHex.slice(0, 10) + '...', 'connected', npub || publicKeyHex);
       }
 
+      function applyProviderDetectedState() {
+        if (activePublicKeyHex) return;
+        keyStatus.setAttribute('aria-label', 'NIP-07 extension detected. Waiting for key access.');
+        setStatus(
+          keyStatus,
+          'NIP-07 extension',
+          'waiting for key access',
+          'pending',
+          'Approve key access in your browser extension if prompted.'
+        );
+      }
+
       function applyUnlinkedIdentityState() {
         identityStatus.removeAttribute('href');
         setStatus(identityStatus, 'Trustroots identity', 'not linked', 'missing');
@@ -1195,6 +1215,7 @@
       }
 
       var activePublicKeyHex = '';
+      var nip7PublicKeyRequestPending = false;
 
       async function applyDetectedNip7Key(publicKeyHex) {
         if (!publicKeyHex || publicKeyHex === activePublicKeyHex) return;
@@ -1211,19 +1232,35 @@
       }
 
       async function refreshNip7Key() {
-        var publicKeyHex = await getNip7PublicKey();
-        if (publicKeyHex) await applyDetectedNip7Key(publicKeyHex);
-        return !!publicKeyHex;
+        var provider = getNip7Provider();
+        if (!provider) return false;
+        applyProviderDetectedState();
+        if (nip7PublicKeyRequestPending) return true;
+        nip7PublicKeyRequestPending = true;
+        try {
+          var publicKeyHex = await getNip7PublicKey(provider);
+          if (publicKeyHex) await applyDetectedNip7Key(publicKeyHex);
+        } finally {
+          nip7PublicKeyRequestPending = false;
+        }
+        return true;
       }
 
       function watchForNip7Key() {
         var startedAt = Date.now();
         var timer = null;
+        var checking = false;
 
         async function check() {
-          var found = await refreshNip7Key();
-          if (found || Date.now() - startedAt >= NIP7_DETECTION_TIMEOUT_MS) {
-            if (timer) clearInterval(timer);
+          if (checking) return;
+          checking = true;
+          try {
+            var found = await refreshNip7Key();
+            if (found || Date.now() - startedAt >= NIP7_DETECTION_TIMEOUT_MS) {
+              if (timer) clearInterval(timer);
+            }
+          } finally {
+            checking = false;
           }
         }
 

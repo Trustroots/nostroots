@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nostroots Web</title>
   <meta name="description" content="Open Trustroots.org, Nostroots Web, and experimental traveler web apps from one place.">
-  <meta name="theme-color" content="#12b591">
+  <meta name="theme-color" content="#004b3f">
   <link rel="canonical" href="https://nos.trustroots.org/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Nostroots">
@@ -17,7 +17,8 @@
   <meta name="twitter:title" content="Nostroots Web">
   <meta name="twitter:description" content="Open Trustroots.org, Nostroots Web, and experimental traveler web apps from one place.">
   <meta name="twitter:image" content="https://nos.trustroots.org/og-image.png">
-  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="nostroots-logo.png">
+  <link rel="apple-touch-icon" href="nostroots-logo.png">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,15 +35,18 @@
   </script>
   <style>
     :root {
-      --background: #f7faf9;
-      --foreground: #10231f;
-      --muted: #5d706b;
-      --line: #d8e5e1;
-      --panel: #ffffff;
-      --accent: #12a585;
-      --accent-dark: #087260;
-      --shadow: rgba(20, 45, 39, 0.12);
-      --blue: #235789;
+      --background: #f7f8ef;
+      --foreground: #08261f;
+      --muted: #5f7169;
+      --line: #dbe3d2;
+      --panel: #fffdf4;
+      --accent: #128a78;
+      --accent-dark: #004b3f;
+      --olive: #98ad46;
+      --gold: #d0a337;
+      --orange: #ee8619;
+      --shadow: rgba(0, 75, 63, 0.14);
+      --blue: #2f9f91;
     }
 
     * {
@@ -55,7 +59,8 @@
       font-family: Nunito, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       color: var(--foreground);
       background:
-        linear-gradient(180deg, rgba(18, 165, 133, 0.12), transparent 360px),
+        linear-gradient(180deg, rgba(152, 173, 70, 0.18), transparent 360px),
+        linear-gradient(90deg, rgba(49, 189, 166, 0.08), rgba(243, 181, 42, 0.08)),
         var(--background);
     }
 
@@ -76,23 +81,25 @@
 
     .hub-header {
       display: grid;
-      gap: 14px;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 20px 26px;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
-      font-size: 18px;
+      gap: 18px;
+      font-size: 30px;
       font-weight: 800;
       color: var(--accent-dark);
     }
 
     .brand img {
-      width: 44px;
-      height: 44px;
-      border-radius: 8px;
-      box-shadow: 0 10px 26px rgba(20, 45, 39, 0.12);
+      width: 86px;
+      height: 86px;
+      border-radius: 10px;
+      box-shadow: 0 14px 34px rgba(0, 75, 63, 0.18);
     }
 
     h1 {
@@ -103,7 +110,12 @@
       letter-spacing: 0;
     }
 
+    .hub-title-line {
+      display: block;
+    }
+
     .lead {
+      grid-column: 2;
       max-width: 680px;
       margin: 0;
       color: var(--muted);
@@ -137,11 +149,11 @@
       padding: 0 12px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.78);
+      background: rgba(255, 253, 244, 0.84);
       color: var(--muted);
       font-size: 15px;
       font-weight: 700;
-      box-shadow: 0 10px 28px rgba(20, 45, 39, 0.08);
+      box-shadow: 0 10px 28px rgba(0, 75, 63, 0.1);
     }
 
     .status-pill-button {
@@ -152,13 +164,13 @@
 
     .status-pill-button:hover,
     .status-pill-button:focus-visible {
-      border-color: rgba(18, 165, 133, 0.65);
+      border-color: rgba(49, 189, 166, 0.72);
       color: var(--foreground);
       outline: none;
     }
 
     .status-pill-button:focus-visible {
-      box-shadow: 0 0 0 3px rgba(18, 165, 133, 0.18), 0 10px 28px rgba(20, 45, 39, 0.08);
+      box-shadow: 0 0 0 3px rgba(49, 189, 166, 0.2), 0 10px 28px rgba(0, 75, 63, 0.1);
     }
 
     .status-pill-info {
@@ -167,7 +179,7 @@
       display: inline-grid;
       place-items: center;
       border-radius: 50%;
-      background: rgba(18, 165, 133, 0.12);
+      background: rgba(49, 189, 166, 0.14);
       color: var(--accent-dark);
       font-size: 12px;
       font-weight: 900;
@@ -231,6 +243,7 @@
     }
 
     .card {
+      position: relative;
       min-height: 260px;
       padding: 22px;
       border: 1px solid var(--line);
@@ -246,7 +259,7 @@
 
     .card:hover,
     .card:focus-visible {
-      border-color: rgba(18, 165, 133, 0.65);
+      border-color: rgba(152, 173, 70, 0.7);
       transform: translateY(-2px);
       outline: none;
     }
@@ -262,9 +275,9 @@
       display: inline-grid;
       place-items: center;
       border-radius: 8px;
-      background: #0e9a7b;
+      background: #004b3f;
       color: #ffffff;
-      box-shadow: inset 0 -16px 0 rgba(18, 181, 145, 0.28);
+      box-shadow: inset 0 -16px 0 rgba(49, 189, 166, 0.28);
       overflow: hidden;
     }
 
@@ -317,8 +330,8 @@
     }
 
     .location .app-icon {
-      background: #235789;
-      box-shadow: inset 0 -16px 0 rgba(80, 153, 218, 0.28);
+      background: #128a78;
+      box-shadow: inset 0 -16px 0 rgba(49, 189, 166, 0.28);
     }
 
     .trustroots .app-icon img {
@@ -331,13 +344,13 @@
     }
 
     .secondary .app-icon {
-      background: #183a34;
-      box-shadow: inset 0 -16px 0 rgba(18, 165, 133, 0.2);
+      background: #004b3f;
+      box-shadow: inset 0 -16px 0 rgba(152, 173, 70, 0.24);
     }
 
     .treasures .app-icon {
       background: #ffffff;
-      box-shadow: 0 0 0 1px rgba(20, 45, 39, 0.08);
+      box-shadow: 0 0 0 1px rgba(0, 75, 63, 0.1);
     }
 
     .card-kicker {
@@ -354,11 +367,14 @@
     }
 
     .card-label {
+      position: absolute;
+      top: 22px;
+      right: 22px;
       width: fit-content;
       padding: 3px 8px;
-      border: 1px solid rgba(18, 165, 133, 0.24);
+      border: 1px solid rgba(152, 173, 70, 0.35);
       border-radius: 8px;
-      background: rgba(18, 165, 133, 0.08);
+      background: rgba(152, 173, 70, 0.12);
       color: var(--accent-dark);
       font-size: 12px;
       font-weight: 900;
@@ -367,9 +383,9 @@
     }
 
     .treasures .card-label {
-      border-color: rgba(119, 84, 49, 0.28);
-      background: rgba(119, 84, 49, 0.08);
-      color: #775431;
+      border-color: rgba(208, 163, 55, 0.38);
+      background: rgba(243, 181, 42, 0.16);
+      color: #7c5206;
     }
 
     .card p {
@@ -392,11 +408,15 @@
     }
 
     .secondary .card-action {
-      background: #183a34;
+      background: #004b3f;
     }
 
     .location .card-action {
       background: var(--blue);
+    }
+
+    .treasures .card-action {
+      background: #1d7721;
     }
 
     .experimental-card {
@@ -419,7 +439,7 @@
       display: grid;
       place-items: center;
       padding: 24px;
-      background: rgba(16, 35, 31, 0.36);
+      background: rgba(8, 38, 31, 0.42);
     }
 
     .info-modal[hidden] {
@@ -430,10 +450,10 @@
       width: min(520px, 100%);
       max-height: min(720px, calc(100vh - 48px));
       overflow: auto;
-      border: 1px solid rgba(216, 229, 225, 0.95);
+      border: 1px solid rgba(219, 227, 210, 0.95);
       border-radius: 8px;
       background: var(--panel);
-      box-shadow: 0 28px 70px rgba(20, 45, 39, 0.24);
+      box-shadow: 0 28px 70px rgba(0, 75, 63, 0.26);
     }
 
     .info-modal-header,
@@ -472,7 +492,7 @@
 
     .info-modal-close:hover,
     .info-modal-close:focus-visible {
-      border-color: rgba(18, 165, 133, 0.65);
+      border-color: rgba(49, 189, 166, 0.72);
       outline: none;
     }
 
@@ -537,6 +557,24 @@
       .card {
         min-height: 220px;
       }
+
+      .brand {
+        gap: 14px;
+        font-size: 24px;
+      }
+
+      .brand img {
+        width: 72px;
+        height: 72px;
+      }
+
+      .hub-header {
+        grid-template-columns: 1fr;
+      }
+
+      .lead {
+        grid-column: auto;
+      }
     }
   </style>
 </head>
@@ -551,18 +589,17 @@
         aria-haspopup="dialog"
         aria-controls="nip7-info-modal"
         aria-expanded="false"
-        aria-label="Nostr key: No key detected. About NIP-07"
-      >Nostr key: <strong>No key detected</strong><span class="status-pill-info" aria-hidden="true">i</span></button>
+        aria-label="No Nostr key detected. About Nostr keys"
+      ><strong>no nostr key detected</strong><span class="status-pill-info" aria-hidden="true">i</span></button>
       <a id="trustroots-identity-status" class="status-pill identity-link" data-state="missing" hidden>Trustroots identity: <strong>not linked</strong></a>
     </section>
 
     <header class="hub-header">
       <div class="brand">
-        <img src="favicon.svg" alt="" width="44" height="44">
-        <span>Nostroots Web</span>
+        <img src="nostroots-logo.png" alt="" width="86" height="86">
       </div>
-      <h1 id="hub-title">What do you want to open?</h1>
-      <p class="lead">Manage your Trustroots profile, read traveler notes, or open map and sharing apps.</p>
+      <h1 id="hub-title"><span class="hub-title-line">Choose where to start</span><span class="hub-title-line">with Nostroots.</span></h1>
+      <p class="lead">Open your Trustroots profile, read traveler notes, or try map and sharing tools.</p>
     </header>
 
     <section id="hub-cards" class="cards" aria-label="Web experiences">
@@ -642,7 +679,7 @@
             <img src="https://treasures.to/icon.svg" alt="" width="54" height="54" loading="lazy">
           </span>
           <h2>Treasures</h2>
-          <p>Open the Treasures web app alongside the other experimental apps.</p>
+          <p>Join a Nostr-powered treasure hunt. Hide treasures, find them, and meet explorers worldwide.</p>
         </div>
         <span class="card-action">Open Treasures</span>
       </a>
@@ -659,12 +696,13 @@
   <div id="nip7-info-modal" class="info-modal" role="dialog" aria-modal="true" aria-labelledby="nip7-info-title" hidden>
     <section class="info-modal-panel" tabindex="-1">
       <div class="info-modal-header">
-        <h2 id="nip7-info-title">About NIP-07</h2>
-        <button class="info-modal-close" type="button" data-nip7-close aria-label="Close NIP-07 information">X</button>
+        <h2 id="nip7-info-title">Nostr keys</h2>
+        <button class="info-modal-close" type="button" data-nip7-close aria-label="Close Nostr keys information">X</button>
       </div>
       <div class="info-modal-body">
-        <p><strong>NIP-07 is the browser extension standard for Nostr keys.</strong> It lets a website ask your extension for your public key and signed events.</p>
-        <p>Your private key stays in the extension. Nostroots can use that to recognize your Nostr identity without asking you to paste an nsec into this page.</p>
+        <p><strong>A Nostr key is your account for Nostr apps.</strong> It lets apps recognize you without a password or central account.</p>
+        <p>You have a public key, which is safe to share, and a private key, which proves you are you. Keep the private key secret.</p>
+        <p>A signer is an app or browser extension that holds your private key and approves actions for you. Nostroots can ask it for your public key, but your private key stays with the signer.</p>
         <ul>
           <li>On desktop, install a compatible signer such as <a href="https://guides.getalby.com/user-guide/browser-extension/faq/how-do-i-install-the-alby-browser-extension" target="_blank" rel="noopener noreferrer">Alby</a> or <a href="https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp" target="_blank" rel="noopener noreferrer">nos2x</a>.</li>
           <li>On mobile, install the Nostroots app for <a href="https://github.com/Trustroots/nostroots/releases" target="_blank" rel="noopener noreferrer">Android</a> or <a href="https://testflight.apple.com/join/n5WGu8Hu" target="_blank" rel="noopener noreferrer">iOS</a>.</li>

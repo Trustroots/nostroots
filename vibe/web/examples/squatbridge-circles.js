@@ -3,7 +3,7 @@
  * TRUSTROOTS_CIRCLE_SLUG_LIST (lowercase, no ASCII hyphens).
  */
 window.SQUATBRIDGE_CIRCLES = {
-  defaultSelected: ["punks", "activists"],
+  defaultSelected: ["squatters"],
   slugs: [
     "hosts",
     "hitch",

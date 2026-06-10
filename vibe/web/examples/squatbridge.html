@@ -133,8 +133,26 @@
     .sb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .sb-btn.secondary { background: var(--card); color: var(--fg); }
     .sb-signer { font-size: 0.8rem; color: var(--muted); max-width: min(280px, 40vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .sb-status { font-size: 0.85rem; color: var(--muted); padding: 0.35rem 1rem 0.5rem; flex-shrink: 0; }
-    .sb-status.error { color: var(--danger); }
+    .sb-status {
+      position: absolute;
+      top: 0.75rem;
+      left: 50%;
+      z-index: 500;
+      max-width: min(560px, calc(100% - 2rem));
+      transform: translateX(-50%);
+      margin: 0;
+      padding: 0.45rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+      color: var(--fg);
+      font-size: 0.85rem;
+      line-height: 1.3;
+      pointer-events: none;
+    }
+    .sb-status[hidden] { display: none; }
+    .sb-status.error { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--border)); }
     .sb-main { display: flex; flex: 1; min-height: 0; }
     .sb-map-column {
       flex: 1;
@@ -142,11 +160,35 @@
       min-height: 0;
       display: flex;
       flex-direction: column;
+      position: relative;
     }
     #sb-map { flex: 1; min-width: 0; min-height: 200px; }
     .sb-map-popup { font-size: 0.85rem; line-height: 1.4; max-width: 220px; }
     .sb-map-popup-actions { margin-top: 0.45rem; display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
-    .sb-map-popup-actions a { font-size: 0.8rem; }
+    .sb-map-popup-actions a,
+    .sb-event-actions a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 1.65rem;
+      font: inherit;
+      font-size: 0.75rem;
+      line-height: 1;
+      padding: 0.25rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--card);
+      color: var(--fg);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .sb-map-popup-actions a:hover,
+    .sb-map-popup-actions a:focus-visible,
+    .sb-event-actions a:hover,
+    .sb-event-actions a:focus-visible {
+      border-color: var(--primary);
+      outline: none;
+    }
     .sb-map-popup-actions .sb-map-share {
       font: inherit;
       font-size: 0.75rem;
@@ -267,6 +309,7 @@
     .sb-modal textarea {
       width: 100%;
       min-height: 120px;
+      max-height: min(46vh, 360px);
       font: inherit;
       padding: 0.5rem;
       border: 1px solid var(--border);
@@ -274,6 +317,7 @@
       background: var(--bg);
       color: var(--fg);
       resize: vertical;
+      overflow-y: auto;
     }
     .sb-modal .feedback { font-size: 0.85rem; margin: 0.75rem 0; min-height: 1.2em; }
     .sb-modal .feedback.error { color: var(--danger); }
@@ -352,7 +396,7 @@
   <div class="sb-main">
     <div class="sb-map-column">
       <div id="sb-map" aria-label="Event map"></div>
-      <p class="sb-status" id="sb-status" role="status">Events from radar.squat.net.</p>
+      <p class="sb-status" id="sb-status" role="status" hidden></p>
     </div>
     <div class="sb-list-panel">
       <div class="sb-list-tools">
@@ -373,7 +417,7 @@
       <div class="sb-about-body">
         <p>
           <a href="https://github.com/Trustroots/nostroots/blob/main/vibe/web/examples/squatbridge.html" target="_blank" rel="noopener noreferrer">Squatbridge</a>
-          is an experimental demo from the
+          bridges event listings into Nostr from the
           <a href="../">Trustroots Nostr web hub</a>
           (<a href="https://github.com/Trustroots/nostroots/issues/237" target="_blank" rel="noopener noreferrer">#237</a>).
           It pulls squat and autonomous-space events from
@@ -468,7 +512,7 @@
     <div class="sb-modal" role="dialog" aria-labelledby="sb-share-title">
       <h2 id="sb-share-title">Share to Nostr</h2>
       <p class="meta" id="sb-share-meta" style="font-size:0.85rem;color:var(--muted);margin:0 0 0.5rem;"></p>
-      <textarea id="sb-share-content" aria-label="Note content"></textarea>
+      <textarea id="sb-share-content" aria-label="Note content" rows="6" spellcheck="false" autocapitalize="none" autocomplete="off"></textarea>
       <p class="sb-share-preflight" id="sb-share-preflight" role="status" aria-live="polite"></p>
       <label class="sb-going-toggle">
         <input type="checkbox" id="sb-share-going">
@@ -525,6 +569,46 @@
   const PLUS_CODE_PREFIX_MIN = 2;
   const SIGNER_TIMEOUT_MS = 12000;
   const SIGNER_INTERVAL_MS = 250;
+  const CITY_FOCUS_ZOOM = 13;
+  const COUNTRY_FOCUS_ZOOM = 7;
+  const COUNTRY_FOCUS_MAX_ZOOM = 8;
+  const CIRCLE_KEYWORD_RULES = [
+    { circle: "hackers", terms: ["hacker", "hackerspace", "hacklab", "hack the planet", "python", "rust", "linux", "software", "hardware", "meshcore", "machine learning", "computer", "programming", "cryptosprechstunde"] },
+    { circle: "cypherpunks", terms: ["crypto", "cryptography", "encryption", "privacy", "surveillance", "digital security"] },
+    { circle: "musicians", terms: ["music/concert", "concert", "music", "choir", "open mic", "jam session", "jamsession", "orchestra", "song", "strijdliederenkoor"] },
+    { circle: "punks", terms: ["punk", "hardcore", "crust", "dbeat", "ska", "metal"] },
+    { circle: "ravers", terms: ["rave", "techno", "tehno", "electro", "elektro", "dj", "party"] },
+    { circle: "dancers", terms: ["dance", "dancing", "tango", "salsa", "contact improvisation"] },
+    { circle: "veg", terms: ["vegan", "vegetarian", "vegetarisch", "voku", "vokü", "kufa", "küfa"] },
+    { circle: "cooking", terms: ["food", "kitchen", "cooking", "dinner", "lunch", "meal", "eetcafe", "eetcafé"] },
+    { circle: "foodsharing", terms: ["foodsharing", "food sharing", "free food", "volxküche", "volxkuche"] },
+    { circle: "books", terms: ["book", "library", "infoshop", "info shop", "bookfair", "reading group", "lesekreis", "zine"] },
+    { circle: "artists", terms: ["exhibition", "artist", "drawing", "painting", "gallery", "performance art", "artivism", "diy workshop"] },
+    { circle: "filmmakers", terms: ["film", "cinema", "movie", "screening", "documentary"] },
+    { circle: "lgbtq", terms: ["queer", "qtbipoc", "lgbt", "transgender", "dyke", "drag"] },
+    { circle: "feminists", terms: ["feminist", "feminism", "flinta", "flti", "women", "dyke march"] },
+    { circle: "yoga", terms: ["yoga", "somatics", "acupuncture", "cupping"] },
+    { circle: "spirituals", terms: ["meditation", "mindfulness", "ritual", "healing", "wellness"] },
+    { circle: "activists", terms: ["action/protest/camp", "protest", "demo", "solidarity", "solidarisch", "antifa", "anti-fascist", "antifascist", "palestine", "gentrification", "mieten", "rent strike", "climate", "refugee", "mutual aid", "court case", "prisoner", "political prisoner"] },
+    { circle: "anarchists", terms: ["anarchist", "anarchism", "anarcha", "anarcho", "anti-authoritarian"] },
+    { circle: "families", terms: ["children", "children's activity", "kids", "family", "kinder"] },
+    { circle: "cyclists", terms: ["bike", "bicycle", "cycling", "fiets"] },
+    { circle: "runners", terms: ["running", "runner"] },
+    { circle: "skateboarders", terms: ["skate", "skateboard"] },
+    { circle: "gardeners", terms: ["garden", "gardening", "permaculture"] },
+    { circle: "ecoliving", terms: ["ecology", "ecological", "climate", "sustainability", "degrowth"] },
+    { circle: "zerowasters", terms: ["zero waste", "repair cafe", "repair café", "swap", "tausch", "free shop", "free market"] },
+    { circle: "dumpsterdivers", terms: ["dumpster", "freegan"] },
+    { circle: "circus", terms: ["circus", "acrobatics"] },
+    { circle: "jugglers", terms: ["juggling", "juggler"] },
+    { circle: "acroyoga", terms: ["acroyoga", "acro yoga"] },
+    { circle: "slackline", terms: ["slackline"] },
+    { circle: "climbers", terms: ["climbing", "climber"] },
+    { circle: "hikers", terms: ["hiking", "hike", "walk"] },
+    { circle: "sailors", terms: ["sailing", "sailboat"] },
+    { circle: "photographers", terms: ["photo", "photography"] },
+    { circle: "volunteers", terms: ["volunteer", "volunteering"] },
+  ];
 
   const state = {
     events: [],
@@ -547,12 +631,14 @@
     },
     markers: [],
     mapEventsByNid: Object.create(null),
+    refocusMapOnNextRender: true,
     showPastEvents: false,
     eventFilterQuery: "",
   };
 
   let map = null;
   let markerLayer = null;
+  let statusHideTimer = null;
 
   function byId(id) { return document.getElementById(id); }
 
@@ -567,8 +653,19 @@
   function setStatus(text, tone) {
     const el = byId("sb-status");
     if (!el) return;
+    if (statusHideTimer) {
+      clearTimeout(statusHideTimer);
+      statusHideTimer = null;
+    }
     el.textContent = text;
+    el.hidden = !text;
     el.className = "sb-status" + (tone === "error" ? " error" : "");
+    if (text && tone !== "loading" && tone !== "error") {
+      statusHideTimer = setTimeout(() => {
+        el.hidden = true;
+        statusHideTimer = null;
+      }, 3600);
+    }
   }
 
   function normalizeLongitude(lng) {
@@ -790,8 +887,10 @@
   function normalizeEvent(nid, raw) {
     const offline = Array.isArray(raw.offline) && raw.offline[0] ? raw.offline[0] : null;
     const coords = parseMapCoords(offline);
+    const address = offline?.address || {};
     const dateTime = Array.isArray(raw.date_time) && raw.date_time[0] ? raw.date_time[0] : null;
     const categories = (raw.category || []).map((c) => c.name).filter(Boolean);
+    const tags = (raw.tag || raw.tags || []).map((tag) => tag?.name || tag?.formatted || tag).filter(Boolean);
     return {
       nid: String(nid),
       title: raw.title || "Untitled event",
@@ -803,6 +902,9 @@
       endUnix: dateTime?.value2 ? Number(dateTime.value2) : null,
       venue: formatVenue(offline),
       categories,
+      tags,
+      city: String(address.locality || "").trim(),
+      country: String(address.country || "").trim().toUpperCase(),
       coords,
       hasCoords: !!coords,
     };
@@ -815,6 +917,57 @@
     return lines.join("\n");
   }
 
+  function normalizeMatchText(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  }
+
+  function addCircleSlug(set, slug) {
+    if ((CIRCLES.slugs || []).includes(slug)) set.add(slug);
+  }
+
+  function getDefaultCircleSlugs() {
+    const defaults = CIRCLES.defaultSelected || [];
+    return defaults.filter((slug) => (CIRCLES.slugs || []).includes(slug));
+  }
+
+  function getEventCircleText(ev) {
+    return normalizeMatchText([
+      ev?.title,
+      ev?.venue,
+      ev?.when,
+      (ev?.categories || []).join(" "),
+      (ev?.tags || []).join(" "),
+      ev?.url,
+    ].join(" "));
+  }
+
+  function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function eventTextMatchesTerm(text, term) {
+    const normalizedTerm = normalizeMatchText(term).trim();
+    if (!normalizedTerm) return false;
+    if (/^[a-z0-9]+$/.test(normalizedTerm)) {
+      return new RegExp("(^|[^a-z0-9])" + escapeRegExp(normalizedTerm) + "([^a-z0-9]|$)").test(text);
+    }
+    return text.includes(normalizedTerm);
+  }
+
+  function guessCirclesForEvent(ev) {
+    const selected = new Set(getDefaultCircleSlugs());
+    const text = getEventCircleText(ev);
+    for (const rule of CIRCLE_KEYWORD_RULES) {
+      if (rule.terms.some((term) => eventTextMatchesTerm(text, term))) {
+        addCircleSlug(selected, rule.circle);
+      }
+    }
+    return [...selected].sort();
+  }
+
   function getSelectedCircles() {
     return [...state.selectedCircles].sort();
   }
@@ -823,17 +976,51 @@
     return [...CIRCLES.slugs].sort((a, b) => a.localeCompare(b));
   }
 
-  function applyCircleHashtags(content) {
-    let next = String(content || "").trim();
-    for (const slug of getSelectedCircles()) {
-      const hashtag = "#" + slug;
-      if (!next.split(/\s+/).includes(hashtag)) next = next + " " + hashtag;
+  function getCircleHashtagLine(circles) {
+    return (circles || getSelectedCircles()).map((slug) => "#" + slug).join(" ");
+  }
+
+  function isCircleHashtagLine(line) {
+    const tokens = String(line || "").trim().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return false;
+    return tokens.every((token) => {
+      if (!/^#[a-z0-9]+$/i.test(token)) return false;
+      return (CIRCLES.slugs || []).includes(token.slice(1).toLowerCase());
+    });
+  }
+
+  function stripTrailingCircleHashtagLines(content) {
+    const lines = String(content || "").trimEnd().split("\n");
+    while (lines.length && isCircleHashtagLine(lines[lines.length - 1])) {
+      lines.pop();
     }
-    return next.trim();
+    return lines.join("\n").trimEnd();
+  }
+
+  function composeShareContent(baseContent, circles) {
+    const base = stripTrailingCircleHashtagLines(baseContent).trim();
+    const hashtagLine = getCircleHashtagLine(circles);
+    if (!hashtagLine) return base;
+    return base ? base + "\n" + hashtagLine : hashtagLine;
+  }
+
+  function resizeShareTextarea() {
+    const el = byId("sb-share-content");
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight + 2, Math.round(window.innerHeight * 0.46)) + "px";
+  }
+
+  function syncShareContentCircleLine() {
+    const el = byId("sb-share-content");
+    if (!el) return;
+    el.value = composeShareContent(el.value, getSelectedCircles());
+    resizeShareTextarea();
+    updateSharePreflight();
   }
 
   function getPreparedShareContent() {
-    return applyCircleHashtags(String(byId("sb-share-content")?.value || "").trim());
+    return composeShareContent(String(byId("sb-share-content")?.value || ""), getSelectedCircles());
   }
 
   function updateSharePreflight() {
@@ -980,7 +1167,7 @@
         if (!slug) return;
         if (input.checked) state.selectedCircles.add(slug);
         else state.selectedCircles.delete(slug);
-        updateSharePreflight();
+        syncShareContentCircleLine();
       });
     });
   }
@@ -1220,7 +1407,28 @@
     });
   }
 
+  function eventMatchesCurrentLocation(ev) {
+    const select = byId("sb-filter-value");
+    const value = String(select?.value || "").trim();
+    if (!value) return false;
+    if (getFilterType() === "country") {
+      return String(ev.country || "").trim().toUpperCase() === value.toUpperCase();
+    }
+    return normalizeMatchText(ev.city) === normalizeMatchText(value);
+  }
+
+  function getCachedFocusEventsForCurrentLocation() {
+    return getMapEvents().filter((ev) => ev.coords && eventMatchesCurrentLocation(ev));
+  }
+
+  function focusMapOnCurrentLocationFromCache() {
+    const bounds = getCachedFocusEventsForCurrentLocation().map((ev) => [ev.coords.lat, ev.coords.lon]);
+    if (bounds.length) focusMapOnBounds(bounds);
+  }
+
   function applyEventsPayload(data, cacheNote) {
+    state.selectedNid = null;
+    state.refocusMapOnNextRender = true;
     if (!data.result || data.result === false) {
       state.events = [];
       state.totalCount = 0;
@@ -1230,6 +1438,7 @@
       state.events.sort((a, b) => String(a.whenStart).localeCompare(String(b.whenStart)));
     }
     rebuildMapEventsFromCache();
+    if (map) map.closePopup();
     renderEvents();
     setStatus(
       formatEventsStatus(cacheNote),
@@ -1249,7 +1458,7 @@
 
     const params = new URLSearchParams();
     params.set("limit", "500");
-    params.set("fields", "title,url,date_time,offline,offline:map,offline:address,category");
+    params.set("fields", "title,url,date_time,offline,offline:map,offline:address,category,tag");
     params.set("language", "en");
     if (filterType === "city") {
       params.append("facets[city][]", filterValue);
@@ -1277,7 +1486,8 @@
       }
     }
 
-    setStatus("Loading " + getFilterLabel(filterType, filterValue) + " events from radar.squat.net…");
+    setStatus("Loading " + getFilterLabel(filterType, filterValue) + " events from radar.squat.net…", "loading");
+    focusMapOnCurrentLocationFromCache();
 
     try {
       const res = await fetch(RADAR_API + "?" + params.toString());
@@ -1358,6 +1568,7 @@
       ev.venue,
       ev.when,
       ev.categories.join(" "),
+      (ev.tags || []).join(" "),
     ].join(" ").toLowerCase();
     return haystack.includes(q);
   }
@@ -1365,6 +1576,12 @@
   function getVisibleEvents() {
     const query = state.eventFilterQuery;
     return getListEvents().filter((ev) => eventMatchesFilter(ev, query));
+  }
+
+  function getCurrentLocationFocusEvents() {
+    const visible = getVisibleEvents().filter((ev) => ev.coords);
+    if (visible.length) return visible;
+    return state.events.filter((ev) => ev.coords);
   }
 
   function updatePastEventsToggle() {
@@ -1515,6 +1732,19 @@
     });
   }
 
+  function focusMapOnBounds(bounds) {
+    if (!map || !bounds.length) return;
+    const isCountry = getFilterType() === "country";
+    if (bounds.length === 1) {
+      map.setView(bounds[0], isCountry ? COUNTRY_FOCUS_ZOOM : CITY_FOCUS_ZOOM);
+      return;
+    }
+    map.fitBounds(bounds, {
+      padding: [36, 36],
+      maxZoom: isCountry ? COUNTRY_FOCUS_MAX_ZOOM : CITY_FOCUS_ZOOM,
+    });
+  }
+
   function renderMapMarkers() {
     if (!markerLayer) return;
     markerLayer.clearLayers();
@@ -1530,15 +1760,17 @@
       state.markers.push(marker);
       bounds.push([ev.coords.lat, ev.coords.lon]);
     });
-    if (bounds.length) {
-      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
+    if (state.refocusMapOnNextRender) {
+      const focusBounds = getCurrentLocationFocusEvents().map((ev) => [ev.coords.lat, ev.coords.lon]);
+      if (focusBounds.length) focusMapOnBounds(focusBounds);
+      else if (bounds.length) focusMapOnBounds(bounds);
     }
+    state.refocusMapOnNextRender = false;
   }
 
   function renderEvents() {
     renderEventList();
     renderMapMarkers();
-    state.selectedNid = null;
   }
 
   function openShareModal(nid) {
@@ -1549,9 +1781,10 @@
       return;
     }
     state.shareEvent = ev;
+    state.selectedCircles = new Set(guessCirclesForEvent(ev));
     byId("sb-share-title").textContent = "Share: " + ev.title;
     byId("sb-share-meta").textContent = ev.when + " · " + ev.venue;
-    byId("sb-share-content").value = buildDefaultContent(ev);
+    byId("sb-share-content").value = composeShareContent(buildDefaultContent(ev), getSelectedCircles());
     byId("sb-share-going").checked = false;
     renderShareCircles();
     byId("sb-share-feedback").textContent = "";
@@ -1561,6 +1794,8 @@
     updateSharePreflight();
     byId("sb-share-modal").hidden = false;
     byId("sb-share-publish").disabled = false;
+    resizeShareTextarea();
+    byId("sb-share-content").focus({ preventScroll: true });
   }
 
   function closeShareModal() {
@@ -1784,7 +2019,10 @@
 
   byId("sb-share-cancel").addEventListener("click", closeShareModal);
   byId("sb-share-publish").addEventListener("click", () => void publishShare());
-  byId("sb-share-content").addEventListener("input", updateSharePreflight);
+  byId("sb-share-content").addEventListener("input", () => {
+    resizeShareTextarea();
+    updateSharePreflight();
+  });
   byId("sb-share-modal").addEventListener("click", (e) => {
     if (e.target === byId("sb-share-modal")) closeShareModal();
   });

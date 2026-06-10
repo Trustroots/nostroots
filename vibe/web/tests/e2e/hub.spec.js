@@ -95,7 +95,7 @@ function trustrootsKind0Event(nip05) {
 }
 
 test.describe('Nostroots Web hub', () => {
-  test('shows stable options by default and reveals experimental apps on request', async ({ page }) => {
+  test('shows default options and reveals more experimental apps on request', async ({ page }) => {
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: 'What do you want to open?' })).toBeVisible();
@@ -105,28 +105,25 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Trustroots\.org/ })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
     await expect(page.locator('.trustroots .app-icon img')).toHaveAttribute('src', 'https://www.trustroots.org/img/logo/horizontal-white.svg');
     await expect(page.getByRole('link', { name: /Open Nostroots Web/ })).toHaveAttribute('href', 'v0/');
+    await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toHaveAttribute('href', 'examples/squatbridge.html');
+    await expect(page.locator('.squatbridge .app-icon')).toHaveText('｟(･)｠');
+    await expect(page.locator('.squatbridge .card-action')).toHaveCSS('background-color', 'rgb(119, 119, 119)');
     await expect(page.getByRole('link', { name: /Open Treasures/ })).toHaveAttribute('href', 'https://treasures.to/');
     await expect(page.locator('.treasures .card-label')).toHaveText('3rd party');
     await expect(page.locator('.treasures .app-icon img')).toHaveAttribute('src', 'https://treasures.to/icon.svg');
 
-    const experimentalToggle = page.getByRole('checkbox', { name: 'Show experimental apps' });
+    const experimentalToggle = page.getByRole('checkbox', { name: 'Show more experimental apps' });
     await expect(experimentalToggle).not.toBeChecked();
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toBeHidden();
-    await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toBeHidden();
 
     await experimentalToggle.check();
 
-    await expect(page.locator('.experimental-card').filter({ hasText: 'Squatbridge' })).toBeVisible();
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toHaveAttribute('href', 'nostrail/');
-    await expect(page.locator('.location .card-label')).toHaveText('Extra experimental');
+    await expect(page.locator('.location .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveAttribute('href', 'nostroots-map/');
-    await expect(page.locator('.secondary .card-label')).toHaveText('Extra experimental');
-    await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toHaveAttribute('href', 'examples/squatbridge.html');
-    await expect(page.locator('.squatbridge .app-icon')).toHaveText('｟(･)｠');
-    await expect(page.locator('.squatbridge .card-action')).toHaveCSS('background-color', 'rgb(119, 119, 119)');
+    await expect(page.locator('.secondary .card-label')).toHaveText('More experimental');
     await expect(page.locator('.experimental-card h2')).toHaveText([
-      'Squatbridge',
       'Nostrail',
       'Nostroots Map',
     ]);
@@ -135,7 +132,7 @@ test.describe('Nostroots Web hub', () => {
   test('keeps experimental apps visible after reload', async ({ page }) => {
     await page.goto('/');
 
-    const experimentalToggle = page.getByRole('checkbox', { name: 'Show experimental apps' });
+    const experimentalToggle = page.getByRole('checkbox', { name: 'Show more experimental apps' });
     await experimentalToggle.check();
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem('nrweb_show_experimental_apps'))).toBe('true');

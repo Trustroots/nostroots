@@ -32,6 +32,10 @@ jest.mock("expo-router", () => ({
     back: jest.fn(),
   },
   usePathname: jest.fn(() => "/"),
+  useFocusEffect: (callback: () => void | (() => void)) => {
+    const React = require("react");
+    React.useEffect(callback, [callback]);
+  },
   useRouter: jest.fn(() => ({
     push: jest.fn(),
     replace: jest.fn(),

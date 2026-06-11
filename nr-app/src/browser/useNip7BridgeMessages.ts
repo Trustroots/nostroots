@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { RefObject } from "react";
 import type { WebView, WebViewMessageEvent } from "react-native-webview";
 
@@ -7,6 +7,7 @@ import {
   createNip7ResponseScript,
   handleNip7BridgeMessage,
   isKnownNip7Method,
+  type Nip7Method,
   requestMetadata,
 } from "@/browser/nip7-bridge";
 import {
@@ -29,19 +30,36 @@ import {
 export interface PermissionPrompt {
   origin: string;
   host: string;
-  method: string;
+  method: Nip7Method;
 }
 
 const permissionDeniedMessage =
   "This website is not allowed to use the Nostroots Browser NIP-07 key.";
 
+interface PendingPermissionMessages {
+  origin: string;
+  method: Nip7Method;
+  messages: string[];
+}
+
+function pendingPermissionKey(origin: string, method: Nip7Method): string {
+  return `${origin}\n${method}`;
+}
+
 export function useNip7BridgeMessages(
   webViewRef: RefObject<WebView | null>,
   currentUrlRef: RefObject<string>,
 ) {
-  const pendingMessagesByOrigin = useRef(new Map<string, string[]>());
+  const pendingMessagesByPermission = useRef(
+    new Map<string, PendingPermissionMessages>(),
+  );
   const [permissionPrompt, setPermissionPrompt] =
     useState<PermissionPrompt | null>(null);
+  const permissionPromptRef = useRef<PermissionPrompt | null>(null);
+
+  useEffect(() => {
+    permissionPromptRef.current = permissionPrompt;
+  }, [permissionPrompt]);
 
   const sendBridgeResponse = useCallback(
     async (rawMessage: string) => {
@@ -70,16 +88,71 @@ export function useNip7BridgeMessages(
     [webViewRef],
   );
 
+  const denyPendingForOrigin = useCallback(
+    (origin: string) => {
+      for (const [key, pending] of pendingMessagesByPermission.current) {
+        if (pending.origin !== origin) continue;
+        pendingMessagesByPermission.current.delete(key);
+        for (const message of pending.messages) {
+          denyBridgeMessage(message);
+        }
+      }
+    },
+    [denyBridgeMessage],
+  );
+
+  const showNextPermissionPrompt = useCallback(() => {
+    const next = pendingMessagesByPermission.current.values().next().value as
+      | PendingPermissionMessages
+      | undefined;
+    setPermissionPrompt(
+      next
+        ? {
+            origin: next.origin,
+            host: hostForOrigin(next.origin),
+            method: next.method,
+          }
+        : null,
+    );
+  }, []);
+
+  const handleNavigationUrlChange = useCallback(
+    (url: string) => {
+      const nextOrigin = originForUrl(url);
+      const previousOrigin = originForUrl(currentUrlRef.current);
+      currentUrlRef.current = url;
+
+      if (previousOrigin === nextOrigin) return;
+
+      const currentPrompt = permissionPromptRef.current;
+      if (currentPrompt && currentPrompt.origin !== nextOrigin) {
+        denyPendingForOrigin(currentPrompt.origin);
+        setPermissionPrompt(null);
+      }
+
+      for (const pending of [...pendingMessagesByPermission.current.values()]) {
+        if (pending.origin !== nextOrigin) {
+          denyPendingForOrigin(pending.origin);
+        }
+      }
+    },
+    [currentUrlRef, denyPendingForOrigin],
+  );
+
   const handleMessage = useCallback(
     async (event: WebViewMessageEvent) => {
       const rawMessage = event.nativeEvent.data;
       const metadata = requestMetadata(rawMessage);
-      if (!metadata || !isKnownNip7Method(metadata.method)) {
-        await sendBridgeResponse(rawMessage);
+      if (!metadata) return;
+
+      if (!isKnownNip7Method(metadata.method)) {
+        denyBridgeMessage(rawMessage);
         return;
       }
 
-      const origin = originForUrl(currentUrlRef.current);
+      const origin =
+        originForUrl(event.nativeEvent.url) ??
+        originForUrl(currentUrlRef.current);
       if (!origin) {
         denyBridgeMessage(rawMessage);
         return;
@@ -91,14 +164,19 @@ export function useNip7BridgeMessages(
         return;
       }
 
-      if (await isRememberedOrigin(origin)) {
+      if (await isRememberedOrigin(origin, metadata.method)) {
         await sendBridgeResponse(rawMessage);
         return;
       }
 
-      const pending = pendingMessagesByOrigin.current.get(origin) ?? [];
-      pending.push(rawMessage);
-      pendingMessagesByOrigin.current.set(origin, pending);
+      const key = pendingPermissionKey(origin, metadata.method);
+      const pending = pendingMessagesByPermission.current.get(key) ?? {
+        origin,
+        method: metadata.method,
+        messages: [],
+      };
+      pending.messages.push(rawMessage);
+      pendingMessagesByPermission.current.set(key, pending);
 
       setPermissionPrompt((current) => {
         if (current) return current;
@@ -115,34 +193,41 @@ export function useNip7BridgeMessages(
   const allowPrompt = useCallback(
     async (remember: boolean) => {
       if (!permissionPrompt) return;
-      const { origin } = permissionPrompt;
+      const { origin, method } = permissionPrompt;
       if (remember) {
-        await rememberOrigin(origin);
+        await rememberOrigin(origin, method);
       }
-      const messages = pendingMessagesByOrigin.current.get(origin) ?? [];
-      pendingMessagesByOrigin.current.delete(origin);
+      const key = pendingPermissionKey(origin, method);
+      const messages =
+        pendingMessagesByPermission.current.get(key)?.messages ?? [];
+      pendingMessagesByPermission.current.delete(key);
       setPermissionPrompt(null);
       for (const message of messages) {
         await sendBridgeResponse(message);
       }
+      showNextPermissionPrompt();
     },
-    [permissionPrompt, sendBridgeResponse],
+    [permissionPrompt, sendBridgeResponse, showNextPermissionPrompt],
   );
 
   const denyPrompt = useCallback(() => {
     if (!permissionPrompt) return;
-    const { origin } = permissionPrompt;
-    const messages = pendingMessagesByOrigin.current.get(origin) ?? [];
-    pendingMessagesByOrigin.current.delete(origin);
-    setPermissionPrompt(null);
+    const { origin, method } = permissionPrompt;
+    const key = pendingPermissionKey(origin, method);
+    const messages =
+      pendingMessagesByPermission.current.get(key)?.messages ?? [];
+    pendingMessagesByPermission.current.delete(key);
     for (const message of messages) {
       denyBridgeMessage(message);
     }
-  }, [denyBridgeMessage, permissionPrompt]);
+    setPermissionPrompt(null);
+    showNextPermissionPrompt();
+  }, [denyBridgeMessage, permissionPrompt, showNextPermissionPrompt]);
 
   return {
     permissionPrompt,
     handleMessage,
+    handleNavigationUrlChange,
     allowPrompt,
     denyPrompt,
   };

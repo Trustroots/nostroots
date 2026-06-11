@@ -1,4 +1,4 @@
-import { NOSTROOTS_WEB_ORIGIN, NOSTROOTS_WEB_URL } from "@/constants";
+import { NOSTROOTS_WEB_URL } from "@/constants";
 
 export type NavigationDecision = "allow" | "open-externally" | "cancel";
 
@@ -11,7 +11,6 @@ export function normalizeDeveloperUrl(input: string): string {
 
 export function navigationDecision(
   url: string | null | undefined,
-  developerMode: boolean,
 ): NavigationDecision {
   if (!url) return "cancel";
   try {
@@ -19,8 +18,7 @@ export function navigationDecision(
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
       return "open-externally";
     }
-    if (developerMode) return "allow";
-    return parsed.origin === NOSTROOTS_WEB_ORIGIN ? "allow" : "open-externally";
+    return "allow";
   } catch {
     return "cancel";
   }

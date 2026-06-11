@@ -140,6 +140,7 @@ export async function handleNip7BridgeMessage(
     switch (request.method) {
       case "getPublicKey":
         return createSuccessResponse(request.id, await api.getPublicKey());
+      // Dev browser: no event-kind allowlist. Restrict kinds before non-dev use.
       case "signEvent":
         return createSuccessResponse(
           request.id,

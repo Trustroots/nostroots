@@ -1,3 +1,6 @@
+// This screen is only reachable when Developer Mode is enabled (see browser.tsx
+// route guard). It always allows arbitrary HTTPS navigation and shows the
+// developer address bar — there is no separate nostroots-only mode in nr-app.
 import Ionicons from "@expo/vector-icons/Ionicons";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
@@ -7,11 +10,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import WebView, { WebViewNavigation } from "react-native-webview";
 
 import { Text } from "@/components/ui/text";
-import {
-  NOSTROOTS_BROWSER_USER_AGENT,
-  NOSTROOTS_WEB_ORIGIN,
-  NOSTROOTS_WEB_URL,
-} from "@/constants";
+import { NOSTROOTS_BROWSER_USER_AGENT, NOSTROOTS_WEB_URL } from "@/constants";
 import { ROUTES } from "@/constants/routes";
 import { createNip7InjectionScript } from "@/browser/nip7-bridge";
 import { createNotificationBridgeInjectionScript } from "@/browser/notification-bridge";
@@ -24,11 +23,7 @@ import {
   useNip7BridgeMessages,
 } from "@/browser/useNip7BridgeMessages";
 
-interface BrowserScreenProps {
-  developerMode: boolean;
-}
-
-export function BrowserScreen({ developerMode }: BrowserScreenProps) {
+export function BrowserScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
@@ -37,13 +32,18 @@ export function BrowserScreen({ developerMode }: BrowserScreenProps) {
     null,
   );
   const [isDeveloperAddressBarVisible, setIsDeveloperAddressBarVisible] =
-    useState(developerMode);
+    useState(true);
   const [isDeveloperAddressBarFocused, setIsDeveloperAddressBarFocused] =
     useState(false);
   const [currentUrl, setCurrentUrl] = useState<string>(NOSTROOTS_WEB_URL);
   const [addressInput, setAddressInput] = useState<string>(NOSTROOTS_WEB_URL);
-  const { permissionPrompt, handleMessage, allowPrompt, denyPrompt } =
-    useNip7BridgeMessages(webViewRef, currentUrlRef);
+  const {
+    permissionPrompt,
+    handleMessage,
+    handleNavigationUrlChange,
+    allowPrompt,
+    denyPrompt,
+  } = useNip7BridgeMessages(webViewRef, currentUrlRef);
 
   const clearAddressBarAutoHide = useCallback(() => {
     if (addressBarAutoHideRef.current) {
@@ -54,11 +54,7 @@ export function BrowserScreen({ developerMode }: BrowserScreenProps) {
 
   useEffect(() => {
     clearAddressBarAutoHide();
-    if (
-      developerMode &&
-      isDeveloperAddressBarVisible &&
-      !isDeveloperAddressBarFocused
-    ) {
+    if (isDeveloperAddressBarVisible && !isDeveloperAddressBarFocused) {
       addressBarAutoHideRef.current = setTimeout(() => {
         setIsDeveloperAddressBarVisible(false);
       }, 3000);
@@ -66,13 +62,12 @@ export function BrowserScreen({ developerMode }: BrowserScreenProps) {
     return clearAddressBarAutoHide;
   }, [
     clearAddressBarAutoHide,
-    developerMode,
     isDeveloperAddressBarVisible,
     isDeveloperAddressBarFocused,
   ]);
 
   const handleShouldStartLoadWithRequest = (request: { url: string }) => {
-    const decision = navigationDecision(request.url, developerMode);
+    const decision = navigationDecision(request.url);
     if (decision === "allow") return true;
     if (decision === "open-externally") {
       WebBrowser.openBrowserAsync(request.url);
@@ -82,23 +77,21 @@ export function BrowserScreen({ developerMode }: BrowserScreenProps) {
 
   const handleNavigationStateChange = (navigationState: WebViewNavigation) => {
     if (!navigationState.url) return;
-    currentUrlRef.current = navigationState.url;
+    handleNavigationUrlChange(navigationState.url);
     setCurrentUrl(navigationState.url);
     setAddressInput(navigationState.url);
-    if (developerMode && !isDeveloperAddressBarFocused) {
+    if (!isDeveloperAddressBarFocused) {
       setIsDeveloperAddressBarVisible(false);
     }
   };
 
   const goHome = () => {
-    currentUrlRef.current = NOSTROOTS_WEB_URL;
     setCurrentUrl(NOSTROOTS_WEB_URL);
     setAddressInput(NOSTROOTS_WEB_URL);
   };
 
   const handleDeveloperGo = () => {
     const url = normalizeDeveloperUrl(addressInput);
-    currentUrlRef.current = url;
     setCurrentUrl(url);
     setAddressInput(url);
     setIsDeveloperAddressBarFocused(false);
@@ -153,14 +146,14 @@ export function BrowserScreen({ developerMode }: BrowserScreenProps) {
         onMessage={handleMessage}
         onNavigationStateChange={handleNavigationStateChange}
         onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
-        originWhitelist={developerMode ? ["*"] : [NOSTROOTS_WEB_ORIGIN]}
+        originWhitelist={["*"]}
         allowsBackForwardNavigationGestures
         pullToRefreshEnabled
         setSupportMultipleWindows={false}
         style={{ flex: 1, backgroundColor: "#ffffff" }}
       />
 
-      {developerMode && isDeveloperAddressBarVisible ? (
+      {isDeveloperAddressBarVisible ? (
         <View
           testID="developer-address-bar"
           className="absolute left-3 right-3 min-h-14 flex-row items-center gap-2 rounded-xl border border-border bg-background/95 p-2"
@@ -191,7 +184,7 @@ export function BrowserScreen({ developerMode }: BrowserScreenProps) {
         </View>
       ) : null}
 
-      {developerMode && !isDeveloperAddressBarVisible ? (
+      {!isDeveloperAddressBarVisible ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Show developer address bar"

@@ -9,7 +9,7 @@ import { ROUTES } from "@/constants/routes";
 
 const mockUseRouter = useRouter as jest.Mock;
 
-function renderBrowserScreen(developerMode: boolean) {
+function renderBrowserScreen() {
   return render(
     <SafeAreaProvider
       initialMetrics={{
@@ -17,7 +17,7 @@ function renderBrowserScreen(developerMode: boolean) {
         insets: { top: 47, right: 0, bottom: 34, left: 0 },
       }}
     >
-      <BrowserScreen developerMode={developerMode} />
+      <BrowserScreen />
     </SafeAreaProvider>,
   );
 }
@@ -34,8 +34,7 @@ beforeEach(() => {
 
 describe("BrowserScreen", () => {
   it("loads Nostroots web with NIP-07 and notification injections", () => {
-    const { getByLabelText, getByTestId, getByText } =
-      renderBrowserScreen(false);
+    const { getByLabelText, getByTestId, getByText } = renderBrowserScreen();
     const webView = getByTestId("nostroots-webview");
 
     expect(getByTestId("browser-header")).toBeTruthy();
@@ -52,6 +51,7 @@ describe("BrowserScreen", () => {
     expect(webView.props.injectedJavaScriptBeforeContentLoaded).toContain(
       "window.nostrootsBrowser.notifications",
     );
+    expect(webView.props.originWhitelist).toEqual(["*"]);
   });
 
   it("closes the browser back to the normal map screen", () => {
@@ -61,33 +61,32 @@ describe("BrowserScreen", () => {
       replace,
       back: jest.fn(),
     });
-    const { getByLabelText } = renderBrowserScreen(false);
+    const { getByLabelText } = renderBrowserScreen();
 
     fireEvent.press(getByLabelText("Close NIP-07 Browser"));
 
     expect(replace).toHaveBeenCalledWith(ROUTES.HOME);
   });
 
-  it("opens blocked external navigation outside the app", () => {
-    const { getByTestId } = renderBrowserScreen(false);
+  it("opens non-HTTP(S) navigation outside the app", () => {
+    const { getByTestId } = renderBrowserScreen();
     const webView = getByTestId("nostroots-webview");
 
     expect(
       webView.props.onShouldStartLoadWithRequest({
-        url: "https://example.com/",
+        url: "mailto:hello@example.com",
       }),
     ).toBe(false);
     expect(WebBrowser.openBrowserAsync).toHaveBeenCalledWith(
-      "https://example.com/",
+      "mailto:hello@example.com",
     );
   });
 
-  it("allows arbitrary navigation and shows the address bar in dev mode", () => {
-    const { getByLabelText, getByTestId } = renderBrowserScreen(true);
+  it("allows arbitrary HTTPS navigation and shows the address bar", () => {
+    const { getByLabelText, getByTestId } = renderBrowserScreen();
     const webView = getByTestId("nostroots-webview");
 
     expect(getByLabelText("Developer URL")).toBeTruthy();
-    expect(webView.props.originWhitelist).toEqual(["*"]);
     expect(
       webView.props.onShouldStartLoadWithRequest({
         url: "https://example.com/",
@@ -97,7 +96,7 @@ describe("BrowserScreen", () => {
 
   it("auto-hides and reveals the developer address bar", () => {
     jest.useFakeTimers();
-    const { getByLabelText, queryByLabelText } = renderBrowserScreen(true);
+    const { getByLabelText, queryByLabelText } = renderBrowserScreen();
 
     expect(getByLabelText("Developer URL")).toBeTruthy();
 

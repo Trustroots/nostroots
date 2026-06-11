@@ -12,17 +12,12 @@ describe("navigation policy", () => {
     expect(normalizeDeveloperUrl("   ")).toBe("https://nos.trustroots.org/");
   });
 
-  it("allows Nostroots normally and arbitrary HTTP(S) in developer mode", () => {
-    expect(navigationDecision("https://nos.trustroots.org/", false)).toBe(
-      "allow",
-    );
-    expect(navigationDecision("https://example.com/", false)).toBe(
+  it("allows HTTP(S) in the browser and opens other schemes externally", () => {
+    expect(navigationDecision("https://nos.trustroots.org/")).toBe("allow");
+    expect(navigationDecision("https://example.com/")).toBe("allow");
+    expect(navigationDecision("mailto:hello@example.com")).toBe(
       "open-externally",
     );
-    expect(navigationDecision("mailto:hello@example.com", false)).toBe(
-      "open-externally",
-    );
-    expect(navigationDecision("https://example.com/", true)).toBe("allow");
-    expect(navigationDecision("not a url", true)).toBe("cancel");
+    expect(navigationDecision("not a url")).toBe("cancel");
   });
 });

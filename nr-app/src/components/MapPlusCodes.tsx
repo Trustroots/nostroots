@@ -23,7 +23,6 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 import MapView, { Polygon, Region } from "react-native-maps";
 // @ts-ignore
 import { getCurrentLocation } from "@/utils/location";
-import * as Location from "expo-location";
 import { FontAwesome } from "@expo/vector-icons";
 import { createSelector } from "reselect";
 
@@ -107,21 +106,6 @@ export default function MapPlusCodes() {
 
   const mapViewRef = useRef<MapView>(null);
 
-  // Request location permission on mount so we can show the user's location dot
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { status } =
-        await Location.requestForegroundPermissionsAsync();
-      if (!cancelled) {
-        setLocationPermissionGranted(status === "granted");
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   // Clean up the map ref on unmount
   useEffect(() => {
     return () => {
@@ -166,6 +150,7 @@ export default function MapPlusCodes() {
   const handleLocationPress = async () => {
     const location = await getCurrentLocation();
     if (location) {
+      setLocationPermissionGranted(true);
       dispatch(
         mapActions.setCurrentMapLocation({
           latitude: location.coords.latitude,
@@ -182,7 +167,10 @@ export default function MapPlusCodes() {
         ),
       );
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
+      return;
     }
+
+    setLocationPermissionGranted(false);
   };
 
   const handleMapRegionChange = useMemo(

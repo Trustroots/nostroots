@@ -61,6 +61,12 @@ elements.importButton.addEventListener("click", () => {
   void importKey();
 });
 
+elements.keyInput.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey) return;
+  event.preventDefault();
+  void importKey();
+});
+
 elements.generateButton.addEventListener("click", () => {
   void generateAndStoreKey();
 });

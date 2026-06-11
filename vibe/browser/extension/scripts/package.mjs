@@ -12,7 +12,7 @@ if (target !== "chrome" && target !== "firefox") {
 
 const packageJson = JSON.parse(await readFile(resolve(root, "package.json"), "utf8"));
 const packageDir = resolve(root, "packages");
-const zipName = `nostroots-browser-${target}-${packageJson.version}.zip`;
+const zipName = `nostroots-extension-${target}-${packageJson.version}.zip`;
 const zipPath = resolve(packageDir, zipName);
 
 await run("node", ["scripts/build.mjs", `--target=${target}`], { cwd: root });

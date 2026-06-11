@@ -166,11 +166,6 @@ section,
   gap: 18px;
 }
 
-.header-icon-link {
-  margin-left: auto;
-  flex: 0 0 auto;
-}
-
 .brand-header img {
   width: 72px;
   height: 72px;
@@ -210,6 +205,12 @@ section {
   color: var(--muted);
   font-size: 13px;
   font-weight: 700;
+}
+
+.page-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
 }
 
 .copy-row,

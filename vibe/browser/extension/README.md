@@ -1,4 +1,4 @@
-# Nostroots Browser Extension
+# Nostroots Extension
 
 MV3 NIP-07 signer for Nostroots and compatible Nostr web apps. Chrome, Brave, Edge, and Firefox desktop builds are generated from the same source.
 
@@ -48,10 +48,10 @@ pnpm package:firefox
 
 Package outputs are written to `vibe/browser/extension/packages/`:
 
-- `nostroots-browser-chrome-<version>.zip` is ready for Chrome Web Store upload.
-- `nostroots-browser-firefox-<version>.zip` is ready for Firefox AMO upload.
+- `nostroots-extension-chrome-<version>.zip` is ready for Chrome Web Store upload.
+- `nostroots-extension-firefox-<version>.zip` is ready for Firefox AMO upload.
 
-Firefox AMO source note: the submitted add-on is bundled from TypeScript with esbuild. Reviewers can reproduce it with `pnpm install && pnpm package:firefox`; the Firefox manifest is generated into `dist/firefox/manifest.json` with the Gecko ID `nostroots-browser@trustroots.org`.
+Firefox AMO source note: the submitted add-on is bundled from TypeScript with esbuild. Reviewers can reproduce it with `pnpm install && pnpm package:firefox`; the Firefox manifest is generated into `dist/firefox/manifest.json` with the Gecko ID `nostroots-extension@trustroots.org`.
 
 ## Reviewer notes
 

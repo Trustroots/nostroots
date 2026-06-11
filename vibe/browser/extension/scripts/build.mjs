@@ -34,6 +34,7 @@ async function buildTarget(browserTarget) {
     cp(resolve(root, "src/ui/prompt.html"), resolve(targetDist, "prompt.html")),
     cp(resolve(root, "src/ui/styles.css"), resolve(targetDist, "styles.css")),
     cp(resolve(root, "src/ui/nostroots-logo.png"), resolve(targetDist, "nostroots-logo.png")),
+    cp(resolve(root, "src/ui/icons"), resolve(targetDist, "icons"), { recursive: true }),
   ]);
 
   const common = {
@@ -85,7 +86,7 @@ async function writeManifest(browserTarget, targetDist) {
     };
     manifest.browser_specific_settings = {
       gecko: {
-        id: "nostroots-browser@trustroots.org",
+        id: "nostroots-extension@trustroots.org",
         strict_min_version: "109.0",
       },
     };

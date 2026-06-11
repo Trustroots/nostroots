@@ -36,7 +36,7 @@ window.addEventListener("message", (event: MessageEvent<unknown>) => {
             response: {
               ok: false,
               id: request.id,
-              error: error instanceof Error ? error.message : "Nostroots Browser Extension request failed.",
+              error: error instanceof Error ? error.message : "Nostroots Extension request failed.",
             },
           },
           window.location.origin,

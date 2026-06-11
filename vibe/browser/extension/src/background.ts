@@ -70,7 +70,7 @@ async function handleContentRequest(request: ContentRequest): Promise<BridgeResp
   try {
     const origin = normalizeOrigin(request.origin);
     if (!origin || !isExtensionAllowedPageOrigin(origin)) {
-      return failure(request.id, "This page cannot use Nostroots Browser Extension.");
+      return failure(request.id, "This page cannot use Nostroots Extension.");
     }
 
     const privateKeyHex = await readPrivateKeyHex();
@@ -80,7 +80,7 @@ async function handleContentRequest(request: ContentRequest): Promise<BridgeResp
 
     const permission = await permissionDecisionForOrigin(origin);
     if (permission === "blocked") {
-      return failure(request.id, "This origin is not allowed to use Nostroots Browser Extension.");
+      return failure(request.id, "This origin is not allowed to use Nostroots Extension.");
     }
 
     if (permission === "prompt") {

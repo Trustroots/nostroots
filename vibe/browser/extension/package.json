@@ -1,5 +1,5 @@
 {
-  "name": "@trustroots/nostroots-browser-extension",
+  "name": "@trustroots/nostroots-extension",
   "version": "0.1.0",
   "private": true,
   "type": "module",

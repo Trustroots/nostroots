@@ -4,10 +4,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal, Pressable, Switch, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import WebView, {
-  WebViewMessageEvent,
-  WebViewNavigation,
-} from "react-native-webview";
+import WebView, { WebViewNavigation } from "react-native-webview";
 
 import { Text } from "@/components/ui/text";
 import {
@@ -16,66 +13,37 @@ import {
   NOSTROOTS_WEB_URL,
 } from "@/constants";
 import { ROUTES } from "@/constants/routes";
-import {
-  createNip7InjectionScript,
-  createNip7ResponseScript,
-  failure,
-  handleNip7BridgeMessage,
-  isKnownNip7Method,
-  requestMetadata,
-} from "@/browser/nip7-bridge";
+import { createNip7InjectionScript } from "@/browser/nip7-bridge";
 import { createNotificationBridgeInjectionScript } from "@/browser/notification-bridge";
-import {
-  hostForOrigin,
-  isRememberedOrigin,
-  isTrustedNip7Origin,
-  originForUrl,
-  recordTrustedOriginUse,
-  rememberOrigin,
-} from "@/browser/permission-store";
 import {
   navigationDecision,
   normalizeDeveloperUrl,
 } from "@/browser/navigation-policy";
 import {
-  getPublicKeyHexStringFromSecureStorage,
-  nip04Decrypt,
-  nip04Encrypt,
-  nip44Decrypt,
-  nip44Encrypt,
-  signEventTemplate,
-} from "@/nostr/keystore.nostr";
+  PermissionPrompt,
+  useNip7BridgeMessages,
+} from "@/browser/useNip7BridgeMessages";
 
 interface BrowserScreenProps {
   developerMode: boolean;
 }
-
-interface PermissionPrompt {
-  origin: string;
-  host: string;
-  method: string;
-}
-
-const permissionDeniedMessage =
-  "This website is not allowed to use the Nostroots Browser NIP-07 key.";
 
 export function BrowserScreen({ developerMode }: BrowserScreenProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
   const currentUrlRef = useRef<string>(NOSTROOTS_WEB_URL);
-  const pendingMessagesByOrigin = useRef<Record<string, string[]>>({});
   const addressBarAutoHideRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const [permissionPrompt, setPermissionPrompt] =
-    useState<PermissionPrompt | null>(null);
   const [isDeveloperAddressBarVisible, setIsDeveloperAddressBarVisible] =
     useState(developerMode);
   const [isDeveloperAddressBarFocused, setIsDeveloperAddressBarFocused] =
     useState(false);
   const [currentUrl, setCurrentUrl] = useState<string>(NOSTROOTS_WEB_URL);
   const [addressInput, setAddressInput] = useState<string>(NOSTROOTS_WEB_URL);
+  const { permissionPrompt, handleMessage, allowPrompt, denyPrompt } =
+    useNip7BridgeMessages(webViewRef, currentUrlRef);
 
   const clearAddressBarAutoHide = useCallback(() => {
     if (addressBarAutoHideRef.current) {
@@ -102,88 +70,6 @@ export function BrowserScreen({ developerMode }: BrowserScreenProps) {
     isDeveloperAddressBarVisible,
     isDeveloperAddressBarFocused,
   ]);
-
-  const sendBridgeResponse = async (rawMessage: string) => {
-    const response = await handleNip7BridgeMessage(rawMessage, {
-      getPublicKey: getPublicKeyHexStringFromSecureStorage,
-      signEvent: signEventTemplate,
-      nip44Encrypt,
-      nip44Decrypt,
-      nip04Encrypt,
-      nip04Decrypt,
-    });
-    webViewRef.current?.injectJavaScript(createNip7ResponseScript(response));
-  };
-
-  const denyBridgeMessage = (rawMessage: string) => {
-    const id = requestMetadata(rawMessage)?.id || "unknown";
-    webViewRef.current?.injectJavaScript(
-      createNip7ResponseScript(failure(id, permissionDeniedMessage)),
-    );
-  };
-
-  const handleMessage = async (event: WebViewMessageEvent) => {
-    const rawMessage = event.nativeEvent.data;
-    const metadata = requestMetadata(rawMessage);
-    if (!metadata || !isKnownNip7Method(metadata.method)) {
-      await sendBridgeResponse(rawMessage);
-      return;
-    }
-
-    const origin = originForUrl(currentUrlRef.current);
-    if (!origin) {
-      denyBridgeMessage(rawMessage);
-      return;
-    }
-
-    if (isTrustedNip7Origin(origin)) {
-      await recordTrustedOriginUse(origin);
-      await sendBridgeResponse(rawMessage);
-      return;
-    }
-
-    if (await isRememberedOrigin(origin)) {
-      await sendBridgeResponse(rawMessage);
-      return;
-    }
-
-    pendingMessagesByOrigin.current[origin] = [
-      ...(pendingMessagesByOrigin.current[origin] || []),
-      rawMessage,
-    ];
-    if (!permissionPrompt) {
-      setPermissionPrompt({
-        origin,
-        host: hostForOrigin(origin),
-        method: metadata.method,
-      });
-    }
-  };
-
-  const allowPrompt = async (remember: boolean) => {
-    if (!permissionPrompt) return;
-    const { origin } = permissionPrompt;
-    if (remember) {
-      await rememberOrigin(origin);
-    }
-    const messages = pendingMessagesByOrigin.current[origin] || [];
-    delete pendingMessagesByOrigin.current[origin];
-    setPermissionPrompt(null);
-    for (const message of messages) {
-      await sendBridgeResponse(message);
-    }
-  };
-
-  const denyPrompt = () => {
-    if (!permissionPrompt) return;
-    const { origin } = permissionPrompt;
-    const messages = pendingMessagesByOrigin.current[origin] || [];
-    delete pendingMessagesByOrigin.current[origin];
-    setPermissionPrompt(null);
-    for (const message of messages) {
-      denyBridgeMessage(message);
-    }
-  };
 
   const handleShouldStartLoadWithRequest = (request: { url: string }) => {
     const decision = navigationDecision(request.url, developerMode);

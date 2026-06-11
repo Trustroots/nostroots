@@ -6,12 +6,15 @@ import { useAppSelector } from "@/redux/hooks";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { settingsSelectors } from "@/redux/slices/settings.slice";
 import { Redirect, Stack, useRouter } from "expo-router";
-import { View } from "react-native";
+import { ActivityIndicator, View } from "react-native";
 
 export default function Nip7BrowserRoute() {
   const router = useRouter();
   const areTestFeaturesEnabled = useAppSelector(
     settingsSelectors.selectAreTestFeaturesEnabled,
+  );
+  const isKeystoreLoaded = useAppSelector(
+    keystoreSelectors.selectIsKeystoreLoaded,
   );
   const hasKey = useAppSelector(
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
@@ -19,6 +22,15 @@ export default function Nip7BrowserRoute() {
 
   if (!areTestFeaturesEnabled) {
     return <Redirect href={ROUTES.HOME} />;
+  }
+
+  if (!isKeystoreLoaded) {
+    return (
+      <View className="flex-1 items-center justify-center bg-background">
+        <Stack.Screen options={{ headerShown: false }} />
+        <ActivityIndicator color="#12a585" />
+      </View>
+    );
   }
 
   if (!hasKey) {
@@ -45,7 +57,7 @@ export default function Nip7BrowserRoute() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <BrowserScreen developerMode={areTestFeaturesEnabled} />
+      <BrowserScreen />
     </>
   );
 }

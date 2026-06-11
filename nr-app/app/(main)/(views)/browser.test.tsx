@@ -1,4 +1,4 @@
-import { fireEvent, render } from "@testing-library/react-native";
+import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Redirect, useRouter } from "expo-router";
 
 import Nip7BrowserRoute from "./browser";
@@ -15,6 +15,7 @@ const mockUseRouter = useRouter as jest.Mock;
 function fakeState(
   areTestFeaturesEnabled: boolean,
   hasPrivateKeyHexInSecureStorage = true,
+  isKeystoreLoaded = true,
 ) {
   return {
     settings: {
@@ -22,6 +23,7 @@ function fakeState(
     },
     keystore: {
       hasPrivateKeyHexInSecureStorage,
+      isLoaded: isKeystoreLoaded,
     },
   };
 }
@@ -43,6 +45,15 @@ describe("Nip7BrowserRoute", () => {
     render(<Nip7BrowserRoute />);
 
     expect(Redirect).toHaveBeenCalledWith({ href: "/(main)/(map)" }, undefined);
+  });
+
+  it("shows a loading state until the keystore is hydrated", () => {
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(true, true, false)),
+    );
+    render(<Nip7BrowserRoute />);
+
+    expect(screen.UNSAFE_getByType("ActivityIndicator")).toBeTruthy();
   });
 
   it("prompts for a key and opens Settings with push when no key is loaded", () => {

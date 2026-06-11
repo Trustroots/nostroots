@@ -1,7 +1,27 @@
-import { setPrivateKeyInSecureStorage } from "@/nostr/keystore.nostr";
+import {
+  getPublicKeyHexFromSecureStorage,
+  setPrivateKeyInSecureStorage,
+} from "@/nostr/keystore.nostr";
 import { createPromiseActionSaga } from "@/utils/saga.utils";
 import { all, call, put } from "redux-saga/effects";
-import { setPublicKeyHex } from "../slices/keystore.slice";
+import { clearKeystoreState, setPublicKeyHex } from "../slices/keystore.slice";
+
+function* hydrateKeystoreFromSecureStorage() {
+  const stored: Awaited<ReturnType<typeof getPublicKeyHexFromSecureStorage>> =
+    yield call(getPublicKeyHexFromSecureStorage);
+
+  if (!stored) {
+    yield put(clearKeystoreState());
+    return;
+  }
+
+  yield put(
+    setPublicKeyHex({
+      hasMnemonic: stored.hasMnemonicInSecureStorage,
+      publicKeyHex: stored.publicKeyHex,
+    }),
+  );
+}
 
 export const [setPrivateKeyPromiseAction, setPrivateKeySaga] =
   createPromiseActionSaga<
@@ -26,5 +46,6 @@ export const [setPrivateKeyPromiseAction, setPrivateKeySaga] =
   });
 
 export function* keystoreSaga() {
+  yield call(hydrateKeystoreFromSecureStorage);
   yield all([setPrivateKeySaga()]);
 }

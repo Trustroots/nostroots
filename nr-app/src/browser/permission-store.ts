@@ -1,6 +1,6 @@
 import {
-  SECURE_STORE_NIP7_ALLOWED_ORIGINS_KEY,
-  SECURE_STORE_NIP7_TRUSTED_USE_ORIGINS_KEY,
+  STORAGE_NIP7_ALLOWED_ORIGINS_KEY,
+  STORAGE_NIP7_TRUSTED_USE_ORIGINS_KEY,
   TRUSTED_NIP7_DOMAINS,
 } from "@/constants";
 import {
@@ -25,7 +25,7 @@ export function originForUrl(value: string | null | undefined): string | null {
   try {
     const url = new URL(value);
     if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-    return `${url.protocol}//${url.host}`.toLowerCase();
+    return url.origin.toLowerCase();
   } catch {
     return null;
   }
@@ -57,15 +57,15 @@ export function trustedDomainLabel(origin: string): string | null {
 
 export async function isRememberedOrigin(origin: string): Promise<boolean> {
   return (
-    await readStringListPreference(SECURE_STORE_NIP7_ALLOWED_ORIGINS_KEY)
+    await readStringListPreference(STORAGE_NIP7_ALLOWED_ORIGINS_KEY)
   ).includes(origin);
 }
 
 export async function rememberOrigin(origin: string): Promise<void> {
   const origins = await readStringListPreference(
-    SECURE_STORE_NIP7_ALLOWED_ORIGINS_KEY,
+    STORAGE_NIP7_ALLOWED_ORIGINS_KEY,
   );
-  await writeStringListPreference(SECURE_STORE_NIP7_ALLOWED_ORIGINS_KEY, [
+  await writeStringListPreference(STORAGE_NIP7_ALLOWED_ORIGINS_KEY, [
     ...origins,
     origin,
   ]);
@@ -73,19 +73,19 @@ export async function rememberOrigin(origin: string): Promise<void> {
 
 export async function revokeOrigin(origin: string): Promise<void> {
   const origins = await readStringListPreference(
-    SECURE_STORE_NIP7_ALLOWED_ORIGINS_KEY,
+    STORAGE_NIP7_ALLOWED_ORIGINS_KEY,
   );
   await writeStringListPreference(
-    SECURE_STORE_NIP7_ALLOWED_ORIGINS_KEY,
+    STORAGE_NIP7_ALLOWED_ORIGINS_KEY,
     origins.filter((candidate) => candidate !== origin),
   );
 }
 
 export async function recordTrustedOriginUse(origin: string): Promise<void> {
   const origins = await readStringListPreference(
-    SECURE_STORE_NIP7_TRUSTED_USE_ORIGINS_KEY,
+    STORAGE_NIP7_TRUSTED_USE_ORIGINS_KEY,
   );
-  await writeStringListPreference(SECURE_STORE_NIP7_TRUSTED_USE_ORIGINS_KEY, [
+  await writeStringListPreference(STORAGE_NIP7_TRUSTED_USE_ORIGINS_KEY, [
     ...origins,
     origin,
   ]);
@@ -93,15 +93,15 @@ export async function recordTrustedOriginUse(origin: string): Promise<void> {
 
 export async function clearNip7Permissions(): Promise<void> {
   await Promise.all([
-    clearPreference(SECURE_STORE_NIP7_ALLOWED_ORIGINS_KEY),
-    clearPreference(SECURE_STORE_NIP7_TRUSTED_USE_ORIGINS_KEY),
+    clearPreference(STORAGE_NIP7_ALLOWED_ORIGINS_KEY),
+    clearPreference(STORAGE_NIP7_TRUSTED_USE_ORIGINS_KEY),
   ]);
 }
 
 export async function getPermissionEntries(): Promise<Nip7PermissionEntry[]> {
   const [allowedOrigins, usedTrustedOrigins] = await Promise.all([
-    readStringListPreference(SECURE_STORE_NIP7_ALLOWED_ORIGINS_KEY),
-    readStringListPreference(SECURE_STORE_NIP7_TRUSTED_USE_ORIGINS_KEY),
+    readStringListPreference(STORAGE_NIP7_ALLOWED_ORIGINS_KEY),
+    readStringListPreference(STORAGE_NIP7_TRUSTED_USE_ORIGINS_KEY),
   ]);
 
   const trustedEntries = usedTrustedOrigins

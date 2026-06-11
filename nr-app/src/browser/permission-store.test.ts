@@ -1,4 +1,4 @@
-import * as SecureStore from "expo-secure-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import {
   getPermissionEntries,
@@ -9,8 +9,8 @@ import {
   revokeOrigin,
 } from "@/browser/permission-store";
 
-beforeEach(() => {
-  (SecureStore as unknown as { __reset: () => void }).__reset();
+beforeEach(async () => {
+  await AsyncStorage.clear();
 });
 
 describe("NIP-07 permission store", () => {

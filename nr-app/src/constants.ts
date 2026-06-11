@@ -11,9 +11,9 @@ export const NOSTROOTS_WEB_ORIGIN = "https://nos.trustroots.org" as const;
 export const NOSTROOTS_WEB_URL = `${NOSTROOTS_WEB_ORIGIN}/` as const;
 export const NOSTROOTS_BROWSER_USER_AGENT = "NostrootsBrowser/1.0" as const;
 
-export const SECURE_STORE_NIP7_ALLOWED_ORIGINS_KEY =
+export const STORAGE_NIP7_ALLOWED_ORIGINS_KEY =
   "nostroots.browser.nip7.allowedOrigins" as const;
-export const SECURE_STORE_NIP7_TRUSTED_USE_ORIGINS_KEY =
+export const STORAGE_NIP7_TRUSTED_USE_ORIGINS_KEY =
   "nostroots.browser.nip7.usedTrustedOrigins" as const;
 
 export const TRUSTED_NIP7_DOMAINS = [

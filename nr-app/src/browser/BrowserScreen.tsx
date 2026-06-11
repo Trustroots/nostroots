@@ -23,11 +23,15 @@ import {
   useNip7BridgeMessages,
 } from "@/browser/useNip7BridgeMessages";
 
-export function BrowserScreen() {
+export function BrowserScreen({
+  initialUrl = NOSTROOTS_WEB_URL,
+}: {
+  initialUrl?: string;
+}) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
-  const currentUrlRef = useRef<string>(NOSTROOTS_WEB_URL);
+  const currentUrlRef = useRef<string>(initialUrl);
   const addressBarAutoHideRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -35,8 +39,8 @@ export function BrowserScreen() {
     useState(true);
   const [isDeveloperAddressBarFocused, setIsDeveloperAddressBarFocused] =
     useState(false);
-  const [currentUrl, setCurrentUrl] = useState<string>(NOSTROOTS_WEB_URL);
-  const [addressInput, setAddressInput] = useState<string>(NOSTROOTS_WEB_URL);
+  const [currentUrl, setCurrentUrl] = useState<string>(initialUrl);
+  const [addressInput, setAddressInput] = useState<string>(initialUrl);
   const {
     permissionPrompt,
     handleMessage,

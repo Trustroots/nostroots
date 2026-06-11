@@ -9,7 +9,7 @@ import { ROUTES } from "@/constants/routes";
 
 const mockUseRouter = useRouter as jest.Mock;
 
-function renderBrowserScreen() {
+function renderBrowserScreen(initialUrl?: string) {
   return render(
     <SafeAreaProvider
       initialMetrics={{
@@ -17,7 +17,7 @@ function renderBrowserScreen() {
         insets: { top: 47, right: 0, bottom: 34, left: 0 },
       }}
     >
-      <BrowserScreen />
+      <BrowserScreen initialUrl={initialUrl} />
     </SafeAreaProvider>,
   );
 }
@@ -92,6 +92,18 @@ describe("BrowserScreen", () => {
         url: "https://example.com/",
       }),
     ).toBe(true);
+  });
+
+  it("loads a custom initial URL when provided", () => {
+    const { getByTestId, getByLabelText } = renderBrowserScreen(
+      "https://example.com",
+    );
+    const webView = getByTestId("nostroots-webview");
+
+    expect(webView.props.source).toEqual({ uri: "https://example.com" });
+    expect(getByLabelText("Developer URL").props.value).toBe(
+      "https://example.com",
+    );
   });
 
   it("auto-hides and reveals the developer address bar", () => {

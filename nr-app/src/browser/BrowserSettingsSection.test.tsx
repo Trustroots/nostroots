@@ -38,6 +38,28 @@ describe("BrowserSettingsSection", () => {
     expect(push).toHaveBeenCalledWith(ROUTES.NIP7_BROWSER);
   });
 
+  it("opens remembered origins in the NIP-07 browser", async () => {
+    const push = jest.fn();
+    mockUseRouter.mockReturnValue({
+      push,
+      replace: jest.fn(),
+      back: jest.fn(),
+    });
+    await rememberOrigin("https://example.com", "getPublicKey");
+    const { getByLabelText } = render(<BrowserSettingsSection />);
+
+    await waitFor(() => {
+      expect(getByLabelText("Open example.com in NIP-07 browser")).toBeTruthy();
+    });
+
+    fireEvent.press(getByLabelText("Open example.com in NIP-07 browser"));
+
+    expect(push).toHaveBeenCalledWith({
+      pathname: ROUTES.NIP7_BROWSER,
+      params: { url: "https://example.com" },
+    });
+  });
+
   it("lists remembered origins and revokes them", async () => {
     await rememberOrigin("https://example.com", "getPublicKey");
     const { getByText, queryByText } = render(<BrowserSettingsSection />);

@@ -1,16 +1,25 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { Redirect, useRouter } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 
 import Nip7BrowserRoute from "./browser";
+import { NOSTROOTS_WEB_URL } from "@/constants";
 import { ROUTES } from "@/constants/routes";
 import { useAppSelector } from "@/redux/hooks";
+
+import { BrowserScreen } from "@/browser/BrowserScreen";
 
 jest.mock("@/redux/hooks", () => ({
   useAppSelector: jest.fn(),
 }));
 
+jest.mock("@/browser/BrowserScreen", () => ({
+  BrowserScreen: jest.fn(() => null),
+}));
+
 const mockUseAppSelector = useAppSelector as jest.Mock;
 const mockUseRouter = useRouter as jest.Mock;
+const mockUseLocalSearchParams = useLocalSearchParams as jest.Mock;
+const mockBrowserScreen = BrowserScreen as jest.Mock;
 
 function fakeState(
   areTestFeaturesEnabled: boolean,
@@ -36,6 +45,7 @@ describe("Nip7BrowserRoute", () => {
       replace: jest.fn(),
       back: jest.fn(),
     });
+    mockUseLocalSearchParams.mockReturnValue({});
   });
 
   it("redirects away when Developer Mode is off", () => {
@@ -54,6 +64,34 @@ describe("Nip7BrowserRoute", () => {
     render(<Nip7BrowserRoute />);
 
     expect(screen.UNSAFE_getByType("ActivityIndicator")).toBeTruthy();
+  });
+
+  it("passes a validated url param to BrowserScreen", () => {
+    mockUseLocalSearchParams.mockReturnValue({
+      url: "https://example.com/page",
+    });
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(true)),
+    );
+    render(<Nip7BrowserRoute />);
+
+    expect(mockBrowserScreen).toHaveBeenCalledWith(
+      { initialUrl: "https://example.com" },
+      undefined,
+    );
+  });
+
+  it("falls back to Nostroots web for invalid url params", () => {
+    mockUseLocalSearchParams.mockReturnValue({ url: "not-a-url" });
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(true)),
+    );
+    render(<Nip7BrowserRoute />);
+
+    expect(mockBrowserScreen).toHaveBeenCalledWith(
+      { initialUrl: NOSTROOTS_WEB_URL },
+      undefined,
+    );
   });
 
   it("prompts for a key and opens Settings with push when no key is loaded", () => {

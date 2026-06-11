@@ -1,3 +1,4 @@
+import { resolveNip7BrowserInitialUrl } from "@/browser/browser-route.utils";
 import { BrowserScreen } from "@/browser/BrowserScreen";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -5,11 +6,13 @@ import { ROUTES } from "@/constants/routes";
 import { useAppSelector } from "@/redux/hooks";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { settingsSelectors } from "@/redux/slices/settings.slice";
-import { Redirect, Stack, useRouter } from "expo-router";
+import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 
 export default function Nip7BrowserRoute() {
   const router = useRouter();
+  const { url } = useLocalSearchParams<{ url?: string }>();
+  const initialUrl = resolveNip7BrowserInitialUrl(url);
   const areTestFeaturesEnabled = useAppSelector(
     settingsSelectors.selectAreTestFeaturesEnabled,
   );
@@ -57,7 +60,7 @@ export default function Nip7BrowserRoute() {
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <BrowserScreen />
+      <BrowserScreen initialUrl={initialUrl} />
     </>
   );
 }

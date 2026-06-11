@@ -79,7 +79,17 @@ export function BrowserSettingsSection() {
               key={entry.id}
               className="flex-row items-center justify-between gap-3 rounded-md border border-border bg-background p-3"
             >
-              <Pressable className="min-w-0 flex-1 gap-1" disabled>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={`Open ${entry.displayName} in NIP-07 browser`}
+                className="min-w-0 flex-1 gap-1"
+                onPress={() =>
+                  router.push({
+                    pathname: ROUTES.NIP7_BROWSER,
+                    params: { url: entry.origin },
+                  })
+                }
+              >
                 <Text className="font-bold text-foreground">
                   {entry.displayName}
                 </Text>

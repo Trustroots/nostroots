@@ -1,3 +1,4 @@
+import { baseEventTemplateSchema } from "@trustroots/nr-common";
 import type { EventTemplate, VerifiedEvent } from "nostr-tools";
 import { z } from "zod";
 
@@ -13,10 +14,12 @@ export const NIP7_METHODS = [
   "nip04.decrypt",
 ] as const;
 
-const eventTemplateSchema = z
+// Lenient input schema for NIP-07 signEvent calls; finalized templates are
+// validated against the shared nr-common schema below.
+const signEventInputSchema = z
   .object({
-    kind: z.number().int(),
-    created_at: z.number().int().optional(),
+    kind: z.number(),
+    created_at: z.number().optional(),
     tags: z.array(z.array(z.string())).optional(),
     content: z.string().optional(),
   })
@@ -30,24 +33,30 @@ const requestSchema = z.object({
 });
 
 const peerTextParamsSchema = z.tuple([z.string(), z.string()]);
-const signEventParamsSchema = z.tuple([eventTemplateSchema]);
+const signEventParamsSchema = z.tuple([signEventInputSchema]);
+
+const successResponseSchema = z.object({
+  source: z.literal(NIP7_RESPONSE_SOURCE),
+  id: z.string(),
+  ok: z.literal(true),
+  result: z.unknown(),
+});
+
+const failureResponseSchema = z.object({
+  source: z.literal(NIP7_RESPONSE_SOURCE),
+  id: z.string(),
+  ok: z.literal(false),
+  error: z.string(),
+});
+
+export const nip7BridgeResponseSchema = z.discriminatedUnion("ok", [
+  successResponseSchema,
+  failureResponseSchema,
+]);
 
 export type Nip7Method = (typeof NIP7_METHODS)[number];
 export type Nip7BridgeRequest = z.infer<typeof requestSchema>;
-
-export type Nip7BridgeResponse =
-  | {
-      source: typeof NIP7_RESPONSE_SOURCE;
-      id: string;
-      ok: true;
-      result: unknown;
-    }
-  | {
-      source: typeof NIP7_RESPONSE_SOURCE;
-      id: string;
-      ok: false;
-      error: string;
-    };
+export type Nip7BridgeResponse = z.infer<typeof nip7BridgeResponseSchema>;
 
 export interface Nip7BridgeApi {
   getPublicKey: () => Promise<string>;
@@ -69,11 +78,10 @@ export function requestMetadata(
 ): { id: string; method: string } | null {
   try {
     const parsed = JSON.parse(rawMessage);
-    if (
-      parsed?.source === NIP7_BRIDGE_SOURCE &&
-      typeof parsed.id === "string" &&
-      typeof parsed.method === "string"
-    ) {
+    const isFromBridgeSource = parsed?.source === NIP7_BRIDGE_SOURCE;
+    const hasStringId = typeof parsed?.id === "string";
+    const hasStringMethod = typeof parsed?.method === "string";
+    if (isFromBridgeSource && hasStringId && hasStringMethod) {
       return { id: parsed.id, method: parsed.method };
     }
   } catch {
@@ -83,17 +91,21 @@ export function requestMetadata(
 }
 
 function sanitizeEventTemplate(input: unknown): EventTemplate {
-  const parsed = eventTemplateSchema.parse(input);
-
-  return {
+  const parsed = signEventInputSchema.parse(input);
+  const template = {
     kind: parsed.kind,
     created_at: parsed.created_at ?? Math.floor(Date.now() / 1000),
     tags: parsed.tags ?? [],
     content: parsed.content ?? "",
   };
+  baseEventTemplateSchema.parse(template);
+  return template;
 }
 
-export function success(id: string, result: unknown): Nip7BridgeResponse {
+export function createSuccessResponse(
+  id: string,
+  result: unknown,
+): Nip7BridgeResponse {
   return {
     source: NIP7_RESPONSE_SOURCE,
     id,
@@ -102,7 +114,10 @@ export function success(id: string, result: unknown): Nip7BridgeResponse {
   };
 }
 
-export function failure(id: string, error: string): Nip7BridgeResponse {
+export function createFailureResponse(
+  id: string,
+  error: string,
+): Nip7BridgeResponse {
   return {
     source: NIP7_RESPONSE_SOURCE,
     id,
@@ -124,9 +139,9 @@ export async function handleNip7BridgeMessage(
 
     switch (request.method) {
       case "getPublicKey":
-        return success(request.id, await api.getPublicKey());
+        return createSuccessResponse(request.id, await api.getPublicKey());
       case "signEvent":
-        return success(
+        return createSuccessResponse(
           request.id,
           await api.signEvent(
             sanitizeEventTemplate(
@@ -138,7 +153,7 @@ export async function handleNip7BridgeMessage(
         const [peerPubkeyHex, plaintext] = peerTextParamsSchema.parse(
           request.params,
         );
-        return success(
+        return createSuccessResponse(
           request.id,
           await api.nip44Encrypt(peerPubkeyHex, plaintext),
         );
@@ -147,7 +162,7 @@ export async function handleNip7BridgeMessage(
         const [peerPubkeyHex, ciphertext] = peerTextParamsSchema.parse(
           request.params,
         );
-        return success(
+        return createSuccessResponse(
           request.id,
           await api.nip44Decrypt(peerPubkeyHex, ciphertext),
         );
@@ -156,7 +171,7 @@ export async function handleNip7BridgeMessage(
         const [peerPubkeyHex, plaintext] = peerTextParamsSchema.parse(
           request.params,
         );
-        return success(
+        return createSuccessResponse(
           request.id,
           await api.nip04Encrypt(peerPubkeyHex, plaintext),
         );
@@ -165,14 +180,17 @@ export async function handleNip7BridgeMessage(
         const [peerPubkeyHex, ciphertext] = peerTextParamsSchema.parse(
           request.params,
         );
-        return success(
+        return createSuccessResponse(
           request.id,
           await api.nip04Decrypt(peerPubkeyHex, ciphertext),
         );
       }
     }
   } catch (error) {
-    return failure(id, error instanceof Error ? error.message : String(error));
+    return createFailureResponse(
+      id,
+      error instanceof Error ? error.message : String(error),
+    );
   }
 }
 

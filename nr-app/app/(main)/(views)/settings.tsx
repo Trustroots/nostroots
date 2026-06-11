@@ -9,7 +9,6 @@ import BuildData from "@/components/BuildData";
 import { KeyInput } from "@/components/KeyInput";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
-import { ROUTES } from "@/constants/routes";
 import {
   SECURE_STORE_PRIVATE_KEY_HEX_KEY,
   SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
@@ -43,7 +42,7 @@ import {
   getFirstLabelValueFromEvent,
   kind30397EventSchema,
 } from "@trustroots/nr-common";
-import { Stack, useRouter } from "expo-router";
+import { Stack } from "expo-router";
 import Toast from "react-native-root-toast";
 import { match } from "ts-pattern";
 import { z } from "zod";
@@ -135,7 +134,6 @@ function AppearanceSection() {
 }
 
 export default function SettingsScreen() {
-  const router = useRouter();
   const dispatch = useAppDispatch();
   const expoPushToken = useAppSelector(
     notificationSelectors.selectExpoPushToken,
@@ -497,16 +495,6 @@ export default function SettingsScreen() {
           }}
         />
       </Section>
-
-      {areTestFeaturesEnabled && (
-        <Section>
-          <Text variant="h2">Developer Tools</Text>
-          <Button
-            title="Open NIP-07 Browser"
-            onPress={() => router.push(ROUTES.NIP7_BROWSER)}
-          />
-        </Section>
-      )}
 
       {areTestFeaturesEnabled && (
         <Section>

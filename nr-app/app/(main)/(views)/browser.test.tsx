@@ -1,7 +1,8 @@
-import { render } from "@testing-library/react-native";
-import { Redirect } from "expo-router";
+import { fireEvent, render } from "@testing-library/react-native";
+import { Redirect, useRouter } from "expo-router";
 
 import Nip7BrowserRoute from "./browser";
+import { ROUTES } from "@/constants/routes";
 import { useAppSelector } from "@/redux/hooks";
 
 jest.mock("@/redux/hooks", () => ({
@@ -9,11 +10,18 @@ jest.mock("@/redux/hooks", () => ({
 }));
 
 const mockUseAppSelector = useAppSelector as jest.Mock;
+const mockUseRouter = useRouter as jest.Mock;
 
-function fakeState(areTestFeaturesEnabled: boolean) {
+function fakeState(
+  areTestFeaturesEnabled: boolean,
+  hasPrivateKeyHexInSecureStorage = true,
+) {
   return {
     settings: {
       areTestFeaturesEnabled,
+    },
+    keystore: {
+      hasPrivateKeyHexInSecureStorage,
     },
   };
 }
@@ -21,6 +29,11 @@ function fakeState(areTestFeaturesEnabled: boolean) {
 describe("Nip7BrowserRoute", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUseRouter.mockReturnValue({
+      push: jest.fn(),
+      replace: jest.fn(),
+      back: jest.fn(),
+    });
   });
 
   it("redirects away when Developer Mode is off", () => {
@@ -30,5 +43,22 @@ describe("Nip7BrowserRoute", () => {
     render(<Nip7BrowserRoute />);
 
     expect(Redirect).toHaveBeenCalledWith({ href: "/(main)/(map)" }, undefined);
+  });
+
+  it("prompts for a key and opens Settings with push when no key is loaded", () => {
+    const push = jest.fn();
+    mockUseRouter.mockReturnValue({
+      push,
+      replace: jest.fn(),
+      back: jest.fn(),
+    });
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(true, false)),
+    );
+    const { getByText } = render(<Nip7BrowserRoute />);
+
+    expect(getByText("No Nostr key available")).toBeTruthy();
+    fireEvent.press(getByText("Open Settings"));
+    expect(push).toHaveBeenCalledWith(ROUTES.SETTINGS);
   });
 });

@@ -12,7 +12,7 @@ The root page is a small hub. It links to classic Trustroots network settings an
 - [`/trustroots-map/`](trustroots-map/) — Trustroots on Nostr, the current map/chat/profile web app for Trustroots-style activity.
 - [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots/Vibe Browser.
 - [`/nostroots-map/`](nostroots-map/) — experimental browser-native map prototype inspired by the mobile `nr-app`, built without React or Expo Web.
-- [`/examples/squatbridge.html`](examples/squatbridge.html) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr (kind 30399); hidden on the hub until you enable experimental apps.
+- [`/examples/squatbridge.html`](examples/squatbridge.html) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr map notes; hidden on the hub until you enable experimental apps.
 - [`/examples/`](examples/) — optional demos and fork patterns.
 
 Legacy root hash/query links still land in the current app. For example, `/#stats` redirects to `/trustroots-map/#stats`, and `/?welcome=1` redirects to `/trustroots-map/?welcome=1`.

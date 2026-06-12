@@ -363,8 +363,8 @@
         <div id="sb-about-tech" class="sb-about-tech" hidden>
         <h3>Note format (for other Nostr apps)</h3>
         <p>
-          Shared events are kind&nbsp;<strong>30399</strong> third-party map notes, matching the
-          <a href="https://github.com/Trustroots/nostroots/blob/main/docs/Events.md" target="_blank" rel="noopener noreferrer">Trustroots Events schema</a>.
+          Shared events are kind&nbsp;<strong>30397</strong> map notes, matching the regular
+          Trustroots map-note shape.
           To render them, read <code>content</code> for the human text and the tags below for map placement, links, and filters.
         </p>
 
@@ -399,8 +399,8 @@
           The RSVP <code>a</code> tag points at <code>{kind}:{pubkey}:squatbridge:radar:{nid}</code>.
         </p>
 
-        <div class="sb-about-format" aria-label="Example kind 30399 event">{
-  "kind": 30399,
+        <div class="sb-about-format" aria-label="Example kind 30397 event">{
+  "kind": 30397,
   "content": "Workshop title\n2026-06-07 14:00\nVenue name\nworkshop\nhttps://radar.squat.net/en/node/123456\n#punks",
   "tags": [
     ["d", "squatbridge:radar:123456"],
@@ -417,7 +417,7 @@
 }</div>
 
         <p class="muted">
-          Filter kind&nbsp;30399 with <code>#l</code> on <code>open-location-code-prefix</code> values for map tiles, or subscribe by pubkey.
+          Filter kind&nbsp;30397 with <code>#l</code> on <code>open-location-code-prefix</code> values for map tiles, or subscribe by pubkey.
           Trustroots Map already renders this shape; other clients can treat <code>content</code> as a note body and <code>r</code> as the outbound link.
         </p>
         </div>
@@ -482,7 +482,7 @@
     "wss://relay.trustroots.org",
     "wss://relay.nomadwiki.org",
   ];
-  const THIRD_PARTY_EVENT_KIND = 30399;
+  const MAP_NOTE_KIND = 30397;
   const CALENDAR_DATE_KIND = 31922;
   const CALENDAR_TIME_KIND = 31923;
   const CALENDAR_RSVP_KIND = 31925;
@@ -862,7 +862,7 @@
   }
 
   function shareKindLabel(kind) {
-    if (kind === THIRD_PARTY_EVENT_KIND) return "Map note (30399)";
+    if (kind === MAP_NOTE_KIND) return "Map note (30397)";
     if (kind === CALENDAR_DATE_KIND) return "Calendar event (31922)";
     if (kind === CALENDAR_TIME_KIND) return "Calendar event (31923)";
     if (kind === CALENDAR_RSVP_KIND) return "RSVP going (31925)";
@@ -1578,7 +1578,7 @@
 
     const drafts = [];
     if (going) drafts.push(buildCalendarEventDraft(ev, content));
-    drafts.push({ kind: THIRD_PARTY_EVENT_KIND, content, tags: mapTags });
+    drafts.push({ kind: MAP_NOTE_KIND, content, tags: mapTags });
     if (going) drafts.push(buildRsvpDraft(ev, pubkey));
 
     const publishLines = [];

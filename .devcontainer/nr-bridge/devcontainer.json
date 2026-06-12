@@ -3,7 +3,12 @@
   "dockerComposeFile": "docker-compose.yml",
   "service": "app",
   "workspaceFolder": "/app",
-  "forwardPorts": [8081, 8000, 27017, 8025],
+  "forwardPorts": [
+    8081,
+    8000,
+    27017,
+    8025
+  ],
   "portsAttributes": {
     "8081": {
       "label": "Metro Bundler",
@@ -23,6 +28,8 @@
     }
   },
   "containerEnv": {
+    "ADB_SERVER_SOCKET": "tcp:host.docker.internal:5037",
+    "MAESTRO_HOST": "host.docker.internal",
     "MONGODB_URI": "mongodb://mongodb:27017/trustroots-dev",
     "SMTP_HOST": "127.0.0.1",
     "SMTP_PORT": "1025",

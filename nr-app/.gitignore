@@ -3,6 +3,7 @@ node_modules/
 android/
 ios/
 dist/
+.e2e-logs/
 npm-debug.*
 *.jks
 *.p8

@@ -1,10 +1,10 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 
+import { setPrivateKeyInSecureStorage } from "@/nostr/keystore.nostr";
 import { settingsSlice } from "@/redux/slices/settings.slice";
 import { renderWithProviders } from "@/test/render";
 import { resetSecureStoreMock } from "@/test/secureStoreMock";
-import { setPrivateKeyInSecureStorage } from "@/nostr/keystore.nostr";
-import OnboardingBackupConfirmScreen from "./backup-confirm";
+import OnboardingBackupConfirmScreen from "../../../../app/onboarding/backup-confirm";
 
 const mnemonic =
   "romance slim fame pipe puzzle priority actress must impulse tape super bike";

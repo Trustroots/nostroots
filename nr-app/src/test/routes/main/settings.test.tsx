@@ -2,7 +2,7 @@ import { fireEvent, screen } from "@testing-library/react-native";
 
 import { settingsSlice } from "@/redux/slices/settings.slice";
 import { renderWithProviders } from "@/test/render";
-import SettingsScreen from "./settings";
+import SettingsScreen from "../../../../app/(main)/(views)/settings";
 
 const mockImportKey = jest.fn(async () => ({
   success: true,

@@ -4,16 +4,18 @@ import { ROUTES } from "@/constants/routes";
 import { keystoreSlice } from "@/redux/slices/keystore.slice";
 import { settingsSlice } from "@/redux/slices/settings.slice";
 import { renderWithProviders } from "@/test/render";
-import OnboardingLinkScreen from "./link";
-
-const mockQueryProfile = jest.fn();
+import OnboardingLinkScreen from "../../../../app/onboarding/link";
 
 jest.mock("nostr-tools", () => ({
   ...jest.requireActual("nostr-tools"),
   nip05: {
-    queryProfile: mockQueryProfile,
+    ...jest.requireActual("nostr-tools").nip05,
+    queryProfile: jest.fn(),
   },
 }));
+
+const mockQueryProfile = jest.requireMock("nostr-tools").nip05
+  .queryProfile as jest.Mock;
 
 jest.mock("@/services/trustrootsProfile.service", () => ({
   publishTrustrootsProfile: jest.fn(async () => undefined),
@@ -28,7 +30,7 @@ describe("OnboardingLinkScreen", () => {
 
   it("shows an error when NIP-05 verification fails", async () => {
     mockQueryProfile.mockResolvedValue({
-      pubkey: publicKeyHex,
+      pubkey: "2".repeat(64),
       relays: [],
     });
     const { router } = renderWithProviders(<OnboardingLinkScreen />, {
@@ -55,9 +57,7 @@ describe("OnboardingLinkScreen", () => {
 
     expect(await screen.findByText("Try Again")).toBeTruthy();
     expect(
-      screen.getByText(
-        "We could not confirm your Trustroots identity via NIP-05 for this key. Ensure your Trustroots profile is configured and try again.",
-      ),
+      screen.getByText(/npub returned by Trustroots does not match/),
     ).toBeTruthy();
     expect(router.replace).not.toHaveBeenCalledWith(ROUTES.HOME);
   });

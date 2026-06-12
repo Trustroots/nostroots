@@ -4,6 +4,7 @@ import { promiseMiddleware } from "redux-saga-promise-actions";
 import { eventsSlice } from "@/redux/slices/events.slice";
 import { keystoreSlice } from "@/redux/slices/keystore.slice";
 import { mapSlice } from "@/redux/slices/map.slice";
+import { metricsSlice } from "@/redux/slices/metrics.slice";
 import { notificationsSlice } from "@/redux/slices/notifications.slice";
 import { relaysSlice } from "@/redux/slices/relays.slice";
 import { settingsSlice } from "@/redux/slices/settings.slice";
@@ -12,6 +13,7 @@ export const testRootReducer = combineSlices(
   eventsSlice,
   keystoreSlice,
   mapSlice,
+  metricsSlice,
   notificationsSlice,
   relaysSlice,
   settingsSlice,

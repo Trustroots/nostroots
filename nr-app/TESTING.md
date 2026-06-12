@@ -36,6 +36,25 @@ Run one test file:
 pnpm --filter nr-app test -- app/onboarding/trustroots.test.tsx
 ```
 
+Run installed-app Maestro flows:
+
+```bash
+pnpm --filter nr-app test:maestro
+```
+
+When running from the dev container, Android flows use the host emulator through
+the host ADB server. iOS Simulator flows must run on the macOS host because the
+Linux container cannot drive Xcode simulators.
+
+For Android-from-container, run `adb -a -P 5037 nodaemon server` in a normal
+host terminal, not in the dev container. The container prompt usually looks like
+`root@...:/app#`; starting ADB there creates a container-only server with no
+host emulator attached. Before running Maestro in the container, `adb devices -l`
+on the host must list an emulator or device, and
+`adb shell pm list packages org.trustroots.nostroots` in the container must list
+the installed app package. Build/install the local app with `EXPO_PUBLIC_E2E=1`
+so the E2E deep links are enabled.
+
 ## Test Helpers
 
 Shared Jest/RNTL helpers live in `src/test/`.

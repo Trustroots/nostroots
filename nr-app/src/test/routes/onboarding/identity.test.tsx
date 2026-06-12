@@ -2,7 +2,7 @@ import { fireEvent, screen } from "@testing-library/react-native";
 
 import { ROUTES } from "@/constants/routes";
 import { renderWithProviders } from "@/test/render";
-import OnboardingIdentityScreen from "./identity";
+import OnboardingIdentityScreen from "../../../../app/onboarding/identity";
 
 describe("OnboardingIdentityScreen", () => {
   it("continues to Trustroots verification", () => {

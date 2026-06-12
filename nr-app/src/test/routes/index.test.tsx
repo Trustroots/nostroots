@@ -4,7 +4,7 @@ import { ROUTES } from "@/constants/routes";
 import { keystoreSlice } from "@/redux/slices/keystore.slice";
 import { settingsSlice } from "@/redux/slices/settings.slice";
 import { renderWithProviders } from "@/test/render";
-import IndexRoute from "./index";
+import IndexRoute from "../../../app/index";
 
 function loadedSettings(overrides = {}) {
   return {

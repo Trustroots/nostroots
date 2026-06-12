@@ -1,7 +1,7 @@
 import { fireEvent, screen } from "@testing-library/react-native";
 
 import { renderWithProviders } from "@/test/render";
-import WelcomeScreen from "./welcome";
+import WelcomeScreen from "../../../app/welcome";
 
 describe("WelcomeScreen", () => {
   it("renders first-impression copy and starts onboarding", () => {

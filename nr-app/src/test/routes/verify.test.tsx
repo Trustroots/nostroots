@@ -2,7 +2,7 @@ import { waitFor } from "@testing-library/react-native";
 
 import { settingsSlice } from "@/redux/slices/settings.slice";
 import { renderWithProviders } from "@/test/render";
-import VerifyRoute from "./verify";
+import VerifyRoute from "../../../app/verify";
 
 jest.mock("@/services/nrBridge.service", () => ({
   authenticateWithToken: jest.fn(async () => undefined),

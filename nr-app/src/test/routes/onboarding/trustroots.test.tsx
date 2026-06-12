@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 
 import { settingsSlice } from "@/redux/slices/settings.slice";
 import { renderWithProviders } from "@/test/render";
-import OnboardingTrustrootsScreen from "./trustroots";
+import OnboardingTrustrootsScreen from "../../../../app/onboarding/trustroots";
 
 jest.mock("@/services/nrBridge.service", () => {
   const actual = jest.requireActual("@/services/nrBridge.service");

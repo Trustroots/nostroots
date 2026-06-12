@@ -29,7 +29,16 @@ export async function subscribeToFilter({
   relayUrl: string;
   subscriptionId: string;
 }) {
-  const relay = await getRelay(relayUrl);
+  const relay = await getRelay(relayUrl).catch((error) => {
+    if (__DEV__) {
+      console.error("#ZSN5kt Failed to connect to relay", relayUrl, error);
+    }
+    return undefined;
+  });
+
+  if (!relay) {
+    return subscriptionId;
+  }
 
   const subscription = relay.subscribe(filters, {
     subscriptionId,

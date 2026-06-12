@@ -1,7 +1,7 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 
 import { renderWithProviders } from "@/test/render";
-import OnboardingKeyScreen from "./key";
+import OnboardingKeyScreen from "../../../../app/onboarding/key";
 
 const mockImportKey = jest.fn(async () => ({
   success: true,

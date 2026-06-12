@@ -53,4 +53,16 @@ describe("subscriptions.nostr", () => {
 
     expect(subscription.close).toHaveBeenCalled();
   });
+
+  it("does not throw when relay connection fails", async () => {
+    (getRelay as jest.Mock).mockRejectedValue(new Error("connection failed"));
+
+    await expect(
+      subscribeToFilter({
+        filters: [{ kinds: [1] }],
+        relayUrl: "ws://10.0.2.2:7777",
+        subscriptionId: "sub-failed",
+      }),
+    ).resolves.toBe("sub-failed");
+  });
 });

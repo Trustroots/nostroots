@@ -4,18 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nostroots Web</title>
-  <meta name="description" content="Open Trustroots.org, Nostroots Web, and experimental traveler web apps from one place.">
+  <meta name="description" content="Open Trustroots.org, Nostroots Web, mobile app downloads, and background information from one place.">
   <meta name="theme-color" content="#004b3f">
   <link rel="canonical" href="https://nos.trustroots.org/">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Nostroots">
   <meta property="og:title" content="Nostroots Web">
-  <meta property="og:description" content="Open Trustroots.org, Nostroots Web, and experimental traveler web apps from one place.">
+  <meta property="og:description" content="Open Trustroots.org, Nostroots Web, mobile app downloads, and background information from one place.">
   <meta property="og:url" content="https://nos.trustroots.org/">
   <meta property="og:image" content="https://nos.trustroots.org/og-image.png">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Nostroots Web">
-  <meta name="twitter:description" content="Open Trustroots.org, Nostroots Web, and experimental traveler web apps from one place.">
+  <meta name="twitter:description" content="Open Trustroots.org, Nostroots Web, mobile app downloads, and background information from one place.">
   <meta name="twitter:image" content="https://nos.trustroots.org/og-image.png">
   <link rel="icon" type="image/png" href="nostroots-logo.png">
   <link rel="apple-touch-icon" href="nostroots-logo.png">
@@ -124,6 +124,19 @@
       line-height: 1.55;
     }
 
+    .lead a {
+      color: var(--accent-dark);
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .lead a:hover,
+    .lead a:focus-visible {
+      color: var(--accent);
+      outline: none;
+      text-decoration: underline;
+    }
+
     .identity-status {
       position: absolute;
       top: 42px;
@@ -211,6 +224,48 @@
 
     .status-pill[hidden] {
       display: none;
+    }
+
+    .hub-nav {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 0.75rem;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--muted);
+    }
+
+    .hub-nav a {
+      color: var(--muted);
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .hub-nav a:hover,
+    .hub-nav a:focus-visible {
+      color: var(--accent-dark);
+      outline: none;
+      text-decoration: underline;
+    }
+
+    .hub-nav .sep,
+    .hub-footer .sep {
+      color: rgba(95, 113, 105, 0.45);
+    }
+
+    .section-title {
+      margin: 0 0 4px;
+      font-size: 28px;
+      color: var(--accent-dark);
+      letter-spacing: 0;
+    }
+
+    .section-lead {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.5;
     }
 
     .hub-controls {
@@ -406,6 +461,31 @@
       line-height: 1.5;
     }
 
+    .card a {
+      color: var(--accent-dark);
+      font-weight: 800;
+    }
+
+    .card a.app-icon,
+    .card a.card-action {
+      color: #ffffff;
+      text-decoration: none;
+    }
+
+    .download-card {
+      min-height: 230px;
+    }
+
+    .download-card.android .app-icon,
+    .download-card.android .card-action {
+      background: #128a78;
+    }
+
+    .download-card.ios .app-icon,
+    .download-card.ios .card-action {
+      background: #004b3f;
+    }
+
     .card-action {
       display: inline-flex;
       width: fit-content;
@@ -444,9 +524,10 @@
 
     .hub-footer {
       display: flex;
+      flex-wrap: wrap;
       align-items: center;
       justify-content: flex-end;
-      gap: 14px;
+      gap: 8px 14px;
       color: var(--muted);
       font-size: 14px;
     }
@@ -463,26 +544,6 @@
       outline: none;
     }
 
-    .hub-footer-icon {
-      width: 34px;
-      height: 34px;
-      display: inline-grid;
-      place-items: center;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 253, 244, 0.84);
-      box-shadow: 0 10px 28px rgba(0, 75, 63, 0.1);
-    }
-
-    .hub-footer-icon svg {
-      width: 17px;
-      height: 17px;
-      fill: currentColor;
-    }
-
-    .hub-footer-icon:focus-visible {
-      box-shadow: 0 0 0 3px rgba(49, 189, 166, 0.2), 0 10px 28px rgba(0, 75, 63, 0.1);
-    }
 
     .info-modal {
       position: fixed;
@@ -632,6 +693,14 @@
 </head>
 <body>
   <main class="hub" aria-labelledby="hub-title">
+    <nav class="hub-nav" aria-label="Nostroots links">
+      <a href="background/">Background</a>
+      <span class="sep" aria-hidden="true">·</span>
+      <a href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots">Android</a>
+      <span class="sep" aria-hidden="true">·</span>
+      <a href="https://testflight.apple.com/join/n5WGu8Hu">iOS</a>
+    </nav>
+
     <section class="identity-status" aria-label="Connection status">
       <button
         id="nostr-key-status"
@@ -642,6 +711,7 @@
         aria-controls="nip7-info-modal"
         aria-expanded="false"
         aria-label="No Nostr key detected. About Nostr keys"
+        hidden
       ><strong>no nostr key detected</strong><span class="status-pill-info" aria-hidden="true">i</span></button>
       <a id="trustroots-identity-status" class="status-pill identity-link" data-state="missing" hidden>Trustroots identity: <strong>not linked</strong></a>
     </section>
@@ -651,10 +721,41 @@
         <img src="nostroots-logo.png" alt="" width="86" height="86">
       </div>
       <h1 id="hub-title"><span class="hub-title-line">Choose where to start</span><span class="hub-title-line">with Nostroots.</span></h1>
-      <p class="lead">Open your Trustroots profile, read traveler notes, or try map and sharing tools.</p>
+      <p class="lead">Open your Trustroots profile, read traveler notes, get the mobile app, or <a href="background/">learn why Nostroots is built on Nostr</a>.</p>
     </header>
 
-    <section id="hub-cards" class="cards" aria-label="Web experiences">
+    <section id="download-section" aria-labelledby="download-heading">
+      <h2 class="section-title" id="download-heading">Get the app</h2>
+      <p class="section-lead">Install Nostroots for mobile signing, notifications, and traveler notes on the go.</p>
+      <div class="cards" aria-label="Mobile app downloads">
+        <article class="card download-card android" id="android">
+          <div class="card-main">
+            <a class="app-icon" href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" aria-label="Get Nostroots on Google Play">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.48 19.44 6.3c.16-.31-.04-.68-.38-.68-.15 0-.29.08-.37.21l-1.87 3.24c-1.28-.58-2.72-.9-4.22-.9s-2.94.32-4.22.9L6.46 5.83c-.08-.13-.22-.21-.37-.21-.34 0-.54.37-.38.68l1.84 3.18C4.54 11.09 3 13.64 3 16.62h18c0-2.98-1.54-5.53-3.4-7.14ZM8.5 15.12c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Zm7 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Z" fill="currentColor"/></svg>
+            </a>
+            <h2>Android</h2>
+            <p>Available on Google Play. GitHub release APKs receive over-the-air updates for minor changes.</p>
+            <p><a href="https://github.com/Trustroots/nostroots/releases">Download the latest APK from GitHub releases</a></p>
+          </div>
+          <a class="card-action" href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots">Get on Google Play</a>
+        </article>
+        <article class="card download-card ios" id="ios">
+          <div class="card-main">
+            <a class="app-icon" href="https://testflight.apple.com/join/n5WGu8Hu" aria-label="Join Nostroots on TestFlight">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83ZM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11Z" fill="currentColor"/></svg>
+            </a>
+            <h2>iOS</h2>
+            <p>Install TestFlight on your iPhone, then join the Nostroots beta.</p>
+          </div>
+          <a class="card-action" href="https://testflight.apple.com/join/n5WGu8Hu">Join TestFlight</a>
+        </article>
+      </div>
+    </section>
+
+    <section id="web-experiences-section" aria-labelledby="web-experiences-heading">
+      <h2 class="section-title" id="web-experiences-heading">Web experiences</h2>
+      <p class="section-lead">Open your Trustroots profile, read traveler notes, or try map and sharing tools.</p>
+      <div id="hub-cards" class="cards" aria-label="Web experiences">
       <a
         id="trustroots-card"
         class="card trustroots"
@@ -750,6 +851,7 @@
         </div>
         <span class="card-action">Open Let's Miti</span>
       </a>
+      </div>
     </section>
 
     <div class="hub-controls">
@@ -759,19 +861,15 @@
       </label>
     </div>
     <footer class="hub-footer">
-      <a
-        class="hub-footer-icon"
-        href="https://github.com/Trustroots/nostroots/tree/main/vibe/web"
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Open vibe/web on GitHub"
-        title="vibe/web on GitHub"
-      >
-        <svg aria-hidden="true" viewBox="0 0 16 16" focusable="false">
-          <path d="M8 0C3.58 0 0 3.67 0 8.2c0 3.62 2.29 6.69 5.47 7.78.4.08.55-.18.55-.4 0-.2-.01-.85-.01-1.55-2.01.38-2.53-.5-2.69-.96-.09-.24-.48-.96-.82-1.15-.28-.16-.68-.55-.01-.56.63-.01 1.08.59 1.23.84.72 1.24 1.87.89 2.33.68.07-.53.28-.89.51-1.09-1.78-.21-3.64-.91-3.64-4.04 0-.89.31-1.62.82-2.19-.08-.21-.36-1.04.08-2.16 0 0 .67-.22 2.2.84A7.42 7.42 0 0 1 8 3.96c.68 0 1.36.09 2 .28 1.53-1.06 2.2-.84 2.2-.84.44 1.12.16 1.95.08 2.16.51.57.82 1.3.82 2.19 0 3.14-1.87 3.83-3.65 4.04.29.25.54.75.54 1.53 0 1.1-.01 1.98-.01 2.26 0 .22.15.48.55.4A8.08 8.08 0 0 0 16 8.2C16 3.67 12.42 0 8 0Z" />
-        </svg>
-      </a>
+      <a href="background/">Background</a>
+      <span class="sep" aria-hidden="true">·</span>
+      <a href="https://matrix.to/#/#nostroots:matrix.org">Matrix chat</a>
+      <span class="sep" aria-hidden="true">·</span>
+      <a href="https://www.trustroots.org/support">Support</a>
+      <span class="sep" aria-hidden="true">·</span>
       <a href="privacy/">Privacy Policy</a>
+      <span class="sep" aria-hidden="true">·</span>
+      <a href="https://github.com/Trustroots/nostroots">GitHub</a>
     </footer>
   </main>
 
@@ -881,6 +979,7 @@
       var TRUSTROOTS_USERNAME_LABEL_NAMESPACE = 'org.trustroots:username';
       var RELAY_URLS = ['wss://relay.trustroots.org', 'wss://nip42.trustroots.org'];
       var NIP7_DETECTION_TIMEOUT_MS = 12000;
+      var NIP7_MISSING_STATUS_DELAY_MS = 1000;
       var NIP7_DETECTION_INTERVAL_MS = 250;
 
       var card = document.getElementById('trustroots-card');
@@ -888,7 +987,15 @@
       var action = document.getElementById('trustroots-card-action');
       var keyStatus = document.getElementById('nostr-key-status');
       var identityStatus = document.getElementById('trustroots-identity-status');
+      var downloadSection = document.getElementById('download-section');
+      var webExperiencesSection = document.getElementById('web-experiences-section');
       if (!card || !description || !action || !keyStatus || !identityStatus) return;
+
+      function moveDownloadSectionAfterWebExperiences() {
+        if (!downloadSection || !webExperiencesSection || !webExperiencesSection.parentNode) return;
+        if (webExperiencesSection.nextElementSibling === downloadSection) return;
+        webExperiencesSection.parentNode.insertBefore(downloadSection, webExperiencesSection.nextSibling);
+      }
 
       var BECH32_CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
 
@@ -967,7 +1074,7 @@
       function setStatus(pill, label, value, state, title) {
         pill.hidden = false;
         pill.dataset.state = state || 'missing';
-        pill.textContent = label + ': ';
+        pill.textContent = label ? label + ': ' : '';
         var strong = document.createElement('strong');
         strong.textContent = value;
         pill.appendChild(strong);
@@ -1262,6 +1369,12 @@
         setStatus(keyStatus, 'Nostr key', shortenNpub(npub) || publicKeyHex.slice(0, 10) + '...', 'connected', npub || publicKeyHex);
       }
 
+      function applyMissingKeyState() {
+        if (activePublicKeyHex) return;
+        keyStatus.setAttribute('aria-label', 'No Nostr key detected. About Nostr keys');
+        setStatus(keyStatus, '', 'no nostr key detected', 'missing');
+      }
+
       function applyProviderDetectedState() {
         if (activePublicKeyHex) return;
         keyStatus.setAttribute('aria-label', 'NIP-07 extension detected. Waiting for key access.');
@@ -1327,13 +1440,19 @@
         var startedAt = Date.now();
         var timer = null;
         var checking = false;
+        var showedMissingKeyState = false;
 
         async function check() {
           if (checking) return;
           checking = true;
           try {
             var found = await refreshNip7Key();
-            if (found || Date.now() - startedAt >= NIP7_DETECTION_TIMEOUT_MS) {
+            var elapsed = Date.now() - startedAt;
+            if (!found && !showedMissingKeyState && !activePublicKeyHex && elapsed >= NIP7_MISSING_STATUS_DELAY_MS) {
+              showedMissingKeyState = true;
+              applyMissingKeyState();
+            }
+            if (found || elapsed >= NIP7_DETECTION_TIMEOUT_MS) {
               if (timer) clearInterval(timer);
             }
           } finally {

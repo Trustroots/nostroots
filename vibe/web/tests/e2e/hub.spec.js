@@ -100,6 +100,14 @@ test.describe('Nostroots Web hub', () => {
 
     await expect(page.getByRole('heading', { name: 'Choose where to start with Nostroots.' })).toBeVisible();
     await expect(page.getByText('Open your Trustroots profile, read traveler notes')).toBeVisible();
+    await expect(page.getByRole('link', { name: 'learn why Nostroots is built on Nostr' })).toHaveAttribute('href', 'background/');
+    await expect(page.getByRole('link', { name: 'Background' }).first()).toHaveAttribute('href', 'background/');
+    await expect(page.locator('#android').getByRole('link', { name: 'Get on Google Play' })).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots');
+    await expect(page.locator('#android').getByRole('link', { name: 'Download the latest APK from GitHub releases' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots/releases');
+    await expect(page.locator('#ios').getByRole('link', { name: 'Join TestFlight' })).toHaveAttribute('href', 'https://testflight.apple.com/join/n5WGu8Hu');
+    expect(await page.evaluate(() => Boolean(
+      document.getElementById('download-section').compareDocumentPosition(document.getElementById('web-experiences-section')) & Node.DOCUMENT_POSITION_FOLLOWING
+    ))).toBe(true);
     await expect(page.locator('#nostr-key-status')).toContainText('no nostr key detected');
     await expect(page.locator('#trustroots-identity-status')).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Trustroots\.org/ })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
@@ -111,6 +119,14 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Treasures/ })).toHaveAttribute('href', 'https://treasures.to/');
     await expect(page.locator('.treasures .card-label')).toHaveText('3rd party');
     await expect(page.locator('.treasures .app-icon img')).toHaveAttribute('src', 'https://treasures.to/icon.svg');
+
+    const footer = page.locator('footer.hub-footer');
+    await expect(footer.getByRole('link', { name: 'Background' })).toHaveAttribute('href', 'background/');
+    await expect(footer.getByRole('link', { name: 'Matrix chat' })).toHaveAttribute('href', 'https://matrix.to/#/#nostroots:matrix.org');
+    await expect(footer.getByRole('link', { name: 'Support' })).toHaveAttribute('href', 'https://www.trustroots.org/support');
+    await expect(footer.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', 'privacy/');
+    await expect(footer.getByRole('link', { name: 'GitHub' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots');
+    await expect(footer.locator('.hub-footer-icon')).toHaveCount(0);
 
     const experimentalToggle = page.getByRole('checkbox', { name: 'Show more experimental apps' });
     await expect(experimentalToggle).not.toBeChecked();
@@ -223,6 +239,9 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('#trustroots-identity-status')).toHaveText('alice@trustroots.org');
     await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('href', 'https://www.trustroots.org/profile/alice');
     await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('title', /^npub1/);
+    expect(await page.evaluate(() => Boolean(
+      document.getElementById('web-experiences-section').compareDocumentPosition(document.getElementById('download-section')) & Node.DOCUMENT_POSITION_FOLLOWING
+    ))).toBe(true);
   });
 
   test('prompts users to link Trustroots when the NIP-07 key has no Trustroots NIP-05', async ({ page }) => {
@@ -247,6 +266,38 @@ test.describe('Nostroots Web hub', () => {
 
     await expect(page.locator('#nostr-key-status')).toContainText(/^Nostr key: npub1/);
     await expect(page.locator('#trustroots-identity-status')).toContainText('Trustroots identity: not linked');
+  });
+
+
+  test('serves the background page with canonical metadata, anchors, and footer links', async ({ page }) => {
+    await page.goto('/background/');
+
+    await expect(page).toHaveTitle('Nostroots — Background');
+    await expect(page.getByRole('heading', { name: 'Background on Nostroots' })).toBeVisible();
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://nos.trustroots.org/background/');
+    await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', 'https://nos.trustroots.org/background/');
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', 'https://nos.trustroots.org/og-image.png');
+    await expect(page.getByRole('link', { name: 'Technology' })).toHaveAttribute('href', '#technology--protocol');
+
+    await page.getByRole('link', { name: 'Technology' }).click();
+    await expect(page).toHaveURL(/#technology--protocol$/);
+    await expect(page.getByRole('heading', { name: 'Technology & Protocol' })).toBeVisible();
+
+    const footer = page.locator('footer.hub-footer');
+    await expect(footer.getByRole('link', { name: 'Background' })).toHaveAttribute('href', '../background/');
+    await expect(footer.getByRole('link', { name: 'Matrix chat' })).toHaveAttribute('href', 'https://matrix.to/#/#nostroots:matrix.org');
+    await expect(footer.getByRole('link', { name: 'Support' })).toHaveAttribute('href', 'https://www.trustroots.org/support');
+    await expect(footer.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '../privacy/');
+    await expect(footer.getByRole('link', { name: 'GitHub' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots');
+    await expect(footer.locator('.hub-footer-icon')).toHaveCount(0);
+  });
+
+  test('keeps old more URLs compatible with the background page', async ({ page }) => {
+    for (const url of ['/more.html', '/more/']) {
+      const response = await page.request.get(url);
+      expect(response.status()).toBe(200);
+      expect(await response.text()).toContain('https://nos.trustroots.org/background/');
+    }
   });
 
   test('redirects legacy hash routes to the v0 app', async ({ page }) => {

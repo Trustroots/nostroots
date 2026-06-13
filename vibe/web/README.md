@@ -4,10 +4,11 @@ Static web workspace for Nostroots browser experiences.
 
 **Live version:** [https://nos.trustroots.org/](https://nos.trustroots.org/)
 
-The root page is a small hub. It links to classic Trustroots network settings and Nostroots Web by default, with experimental apps behind a toggle.
+The root page is a small hub. It links to classic Trustroots network settings, Nostroots Web, mobile app downloads, and background information by default, with experimental apps behind a toggle.
 
 ## Experiences
 
+- [`/background/`](background/) — background, vision, and FAQ for Nostroots and the Trustroots/Nostr direction.
 - [`https://www.trustroots.org/profile/edit/networks`](https://www.trustroots.org/profile/edit/networks) — classic Trustroots network editing.
 - [`/v0/`](v0/) — Nostroots Web, the current map/chat/profile app for Trustroots-style activity with light Nostr key support.
 - [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots Browser.

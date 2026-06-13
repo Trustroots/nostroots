@@ -68,6 +68,7 @@ test("NIP-07 provider signs on trusted origins and prompts unknown origins", asy
     );
     await expect(optionsPage.locator("#copy-nip05")).toHaveCount(0);
     await expect(optionsPage.getByRole("button", { name: "Reveal private key" })).toBeVisible();
+    await expect(optionsPage.getByRole("button", { name: "Forget this key" })).toBeVisible();
     await expect(optionsPage.getByRole("link", { name: "Privacy" })).toHaveAttribute(
       "href",
       "https://nos.trustroots.org/privacy/",
@@ -77,7 +78,7 @@ test("NIP-07 provider signs on trusted origins and prompts unknown origins", asy
       "href",
       "https://nos.trustroots.org/",
     );
-    await expect(optionsPage.getByText("No non-Trustroots sites are remembered.")).toBeVisible();
+    await expect(optionsPage.getByText("No other sites have access yet.")).toBeVisible();
 
     await context.route("https://treasures.to/fixture", (route) =>
       route.fulfill({ contentType: "text/html", body: html }),
@@ -102,7 +103,7 @@ test("NIP-07 provider signs on trusted origins and prompts unknown origins", asy
       "https://treasures.to",
     );
     await expect(optionsPage.getByRole("button", { name: "Revoke treasures.to access" })).toBeVisible();
-    await expect(optionsPage.getByText("No non-Trustroots sites are remembered.")).toBeHidden();
+    await expect(optionsPage.getByText("No other sites have access yet.")).toBeHidden();
 
     await serviceWorker.evaluate(() => chrome.storage.local.remove("nostroots.browser.privateKeyHex"));
     await serviceWorker.evaluate(() => chrome.storage.local.remove("nostroots.browser.allowedOrigins"));

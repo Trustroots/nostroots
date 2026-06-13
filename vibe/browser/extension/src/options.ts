@@ -75,6 +75,7 @@ const elements = {
 };
 
 elements.buildTime.textContent = `Built ${__NOSTROOTS_EXTENSION_BUILD_TIME__}`;
+elements.removeButton.innerHTML = TRASH_ICON;
 
 void render();
 
@@ -285,7 +286,7 @@ async function renderPermissions(): Promise<void> {
   if (rows.length === 0) {
     const item = document.createElement("li");
     item.className = "muted";
-    item.textContent = "No non-Trustroots sites are remembered.";
+    item.textContent = "No other sites have access yet.";
     elements.permissions.append(item);
   } else {
     elements.permissions.append(...rows);

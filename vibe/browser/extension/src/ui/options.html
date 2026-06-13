@@ -28,6 +28,7 @@
             <label>Public address (npub)</label>
             <div class="copy-row">
               <code id="npub" class="copyable-code" data-copyable="false">Loading...</code>
+              <span class="key-action-spacer" aria-hidden="true"></span>
             </div>
           </div>
           <div class="field">
@@ -45,6 +46,11 @@
             <code id="generated-mnemonic"></code>
             <p class="muted">Save this in a password manager or somewhere equally safe. Trustroots cannot recover it for you.</p>
           </div>
+          <div id="key-remove-controls" class="key-action-row" hidden>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <button id="remove-key" class="icon-button danger-icon-button" type="button" aria-label="Forget this key" title="Forget this key"></button>
+          </div>
         </div>
         <div id="key-import-controls" class="key-import-controls">
           <textarea id="key-input" rows="4" spellcheck="false" placeholder="Paste your nsec, private-key hex, or recovery phrase"></textarea>
@@ -52,9 +58,6 @@
             <button id="import-key" type="button">Import key</button>
             <button id="generate-key" type="button">Generate new key</button>
           </div>
-        </div>
-        <div id="key-remove-controls" class="actions" hidden>
-          <button id="remove-key" type="button" class="danger subtle-danger">Forget this key</button>
         </div>
       </section>
 
@@ -65,7 +68,6 @@
       </section>
 
       <footer class="page-footer">
-        <p id="settings-build-time" class="build-time">Built --</p>
         <a
           class="footer-link"
           href="https://nos.trustroots.org/privacy/"
@@ -86,6 +88,7 @@
             />
           </svg>
         </a>
+        <p id="settings-build-time" class="build-time">Built --</p>
       </footer>
     </main>
     <script src="options.js"></script>

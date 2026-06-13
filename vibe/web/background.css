@@ -241,7 +241,7 @@ a.card:focus-visible {
 }
 
 .download-card {
-  min-height: 260px;
+  min-height: 230px;
 }
 
 .card-main {
@@ -298,15 +298,15 @@ a.app-icon:focus-visible {
 }
 
 .android .app-icon {
-  background: #3ddc84;
-  color: #fff;
-  box-shadow: inset 0 -16px 0 rgba(0, 0, 0, 0.12);
+  background: #128a78;
+  color: #ffffff;
+  box-shadow: inset 0 -16px 0 rgba(49, 189, 166, 0.28);
 }
 
 .ios .app-icon {
-  background: #000;
-  color: #fff;
-  box-shadow: inset 0 -16px 0 rgba(255, 255, 255, 0.12);
+  background: #004b3f;
+  color: #ffffff;
+  box-shadow: inset 0 -16px 0 rgba(152, 173, 70, 0.24);
 }
 
 .squatbridge .app-icon {
@@ -417,6 +417,14 @@ a.app-icon:focus-visible {
   color: #ffffff;
   text-decoration: none;
   outline: none;
+}
+
+.download-card.android .card-action {
+  background: #128a78;
+}
+
+.download-card.ios .card-action {
+  background: #004b3f;
 }
 
 .secondary .card-action {

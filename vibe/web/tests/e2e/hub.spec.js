@@ -116,6 +116,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(experimentalToggle).not.toBeChecked();
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toBeHidden();
 
     await experimentalToggle.check();
 
@@ -123,9 +124,13 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('.location .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveAttribute('href', 'nostroots-map/');
     await expect(page.locator('.secondary .card-label')).toHaveText('More experimental');
+    await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toHaveAttribute('href', 'https://www.letsmiti.app/');
+    await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toHaveAttribute('target', '_blank');
+    await expect(page.locator('.miti .card-label')).toHaveText('More experimental / 3rd party');
     await expect(page.locator('.experimental-card h2')).toHaveText([
       'Nostrail',
       'Nostroots Map',
+      "Let's Miti",
     ]);
   });
 

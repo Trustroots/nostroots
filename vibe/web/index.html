@@ -358,6 +358,11 @@
       box-shadow: 0 0 0 1px rgba(0, 75, 63, 0.1);
     }
 
+    .miti .app-icon {
+      background: #395d7a;
+      box-shadow: inset 0 -16px 0 rgba(238, 134, 25, 0.28);
+    }
+
     .card-kicker {
       color: var(--accent-dark);
       font-size: 13px;
@@ -387,7 +392,8 @@
       text-transform: uppercase;
     }
 
-    .treasures .card-label {
+    .treasures .card-label,
+    .miti .card-label {
       border-color: rgba(208, 163, 55, 0.38);
       background: rgba(243, 181, 42, 0.16);
       color: #7c5206;
@@ -422,6 +428,10 @@
 
     .treasures .card-action {
       background: #1d7721;
+    }
+
+    .miti .card-action {
+      background: #395d7a;
     }
 
     .experimental-card {
@@ -724,6 +734,21 @@
           <p>Join a Nostr-powered treasure hunt. Hide treasures, find them, and meet explorers worldwide.</p>
         </div>
         <span class="card-action">Open Treasures</span>
+      </a>
+
+      <a class="card miti experimental-card" href="https://www.letsmiti.app/" target="_blank" rel="noopener noreferrer">
+        <div class="card-main">
+          <span class="card-label">More experimental / 3rd party</span>
+          <span class="app-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <text x="24" y="24" text-anchor="middle" dominant-baseline="middle" fill="currentColor">M</text>
+              <path d="M24 31v9m0-4.5c-5.5 0-8.5 2.3-11 5M24 35.5c5.5 0 8.5 2.3 11 5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+            </svg>
+          </span>
+          <h2>Let's Miti</h2>
+          <p>Try the third-party experimental Miti app from the traveler web app list.</p>
+        </div>
+        <span class="card-action">Open Let's Miti</span>
       </a>
     </section>
 

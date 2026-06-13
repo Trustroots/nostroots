@@ -1548,7 +1548,6 @@ const NDK = null;
 // Constants from nr-common
 const MAP_NOTE_KIND = 30397;
 const MAP_NOTE_REPOST_KIND = 30398;
-const THIRD_PARTY_EVENT_KIND = 30399;
 const PROFILE_CLAIM_KIND = 30390;
 const HOST_CLAIM_KIND = 30391;
 const RELATIONSHIP_CLAIM_KIND = 30392;
@@ -1560,7 +1559,7 @@ const TRUSTROOTS_CIRCLE_MEMBERSHIP_KIND = 30001;
 const TRUSTROOTS_CIRCLE_MEMBERSHIP_D_TAG = 'trustroots-circles';
 const NIP32_LABEL_KIND = 1985;
 const TRUSTROOTS_MAP_NOTE_KINDS = [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND];
-const MAP_NOTE_KINDS = [...TRUSTROOTS_MAP_NOTE_KINDS, THIRD_PARTY_EVENT_KIND];
+const MAP_NOTE_KINDS = TRUSTROOTS_MAP_NOTE_KINDS;
 const DELETION_KIND = 5; // NIP-05: Deletion events
 const TRUSTROOTS_PROFILE_KIND = 10390;
 // TRUSTROOTS_USERNAME_LABEL_NAMESPACE comes from folded claim-utils.js block above.
@@ -1622,7 +1621,7 @@ export function buildProfileMetadataFilter(authors, extra = {}) {
 
 /**
  * Compute engagement KPIs from in-memory note events.
- * Counts map-visible note events, including third-party event notes (kind 30399).
+ * Counts map-visible Trustroots map-note events.
  */
 export function computeHeaderKpiCounts(eventsList, nowTimestamp = Math.round(Date.now() / 1000)) {
     const source = Array.isArray(eventsList) ? eventsList : [];
@@ -5367,7 +5366,7 @@ function removeRelay(url) {
 // Browser notifications (only work while this tab is open).
 // Nostr: we use the same map-note stream as the map. Subscribed plus codes
 // are stored in IndexedDB (see nr-web-kv-idb.js). This ingest includes NIP-42 auth-relay 30397 reads
-// and public-relay 30397/30398/30399 reads. When a new map note arrives and its plus code
+// and public-relay 30397/30398 reads. When a new map note arrives and its plus code
 // matches a subscribed area, we show a browser Notification. No kind 10395, no server.
 // nr-app differs: it publishes kind 10395 (encrypted for the notification server) with
 // push tokens + Nostr filters; the server subscribes to kind 30398 (reposts) per filter
@@ -7006,7 +7005,7 @@ function processIncomingEvent(event, sourceRelayUrl) {
         kind30397EventsReceived++;
     }
     
-    // Only process map note kinds (30397, 30398, and third-party 30399).
+    // Only process map note kinds (30397 and 30398).
     if (!MAP_NOTE_KINDS.includes(event.kind)) {
         return; // Skip all other kinds (kind 0 handled above)
     }

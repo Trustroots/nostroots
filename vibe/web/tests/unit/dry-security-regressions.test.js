@@ -58,19 +58,19 @@ describe('nr-web DRY/security regression helpers', () => {
 
     it('centralizes relay filters used by map/profile/chat subscriptions', () => {
         expect(buildMapRelayReadFilter({ limit: 10000 })).toEqual({
-            kinds: [0, 5, 10390, 30390, 30397, 30398, 30399],
+            kinds: [0, 5, 10390, 30390, 30397, 30398],
             limit: 10000,
         });
         expect(buildMapRelayKeepAliveFilter()).toEqual({
-            kinds: [0, 5, 10390, 30390, 30397, 30398, 30399],
+            kinds: [0, 5, 10390, 30390, 30397, 30398],
             limit: 1,
         });
         expect(buildLimitedMapNoteFilter({ '#t': ['hosting-offer'] })).toEqual({
-            kinds: [30397, 30398, 30399],
+            kinds: [30397, 30398],
             limit: 10000,
             '#t': ['hosting-offer'],
         });
-        expect(getMapNoteKinds()).toEqual([30397, 30398, 30399]);
+        expect(getMapNoteKinds()).toEqual([30397, 30398]);
         expect(getTrustrootsMapNoteKinds()).toEqual([30397, 30398]);
         expect(buildProfileLookupFilter([HEX_64], { limit: 6 })).toEqual({
             kinds: [0, 30390, 10390],

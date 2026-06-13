@@ -35,9 +35,24 @@ if (!Array.isArray(manifest.web_accessible_resources) || manifest.web_accessible
   errors.push("Firefox build must expose provider.js as a web accessible resource.");
 }
 
+for (const pattern of collectMatchPatterns(manifest)) {
+  if (/^https?:\/\/[^/]+:\*\//.test(pattern)) {
+    errors.push(`Firefox match patterns must not include port wildcards: ${pattern}`);
+  }
+}
+
 if (errors.length > 0) {
   for (const error of errors) console.error(`Firefox manifest validation failed: ${error}`);
   process.exit(1);
 }
 
 console.log(`Firefox manifest validation passed: ${manifestPath}`);
+
+function collectMatchPatterns(manifest) {
+  const contentScriptMatches = (manifest.content_scripts ?? []).flatMap((script) => script.matches ?? []);
+  const webAccessibleMatches = (manifest.web_accessible_resources ?? []).flatMap(
+    (resource) => resource.matches ?? [],
+  );
+
+  return [...contentScriptMatches, ...webAccessibleMatches];
+}

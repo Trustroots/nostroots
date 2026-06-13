@@ -29,7 +29,12 @@
   "options_page": "options.html",
   "content_scripts": [
     {
-      "matches": ["https://*/*", "http://localhost/*", "http://localhost:*/*", "http://127.0.0.1/*", "http://127.0.0.1:*/*", "http://*.localhost/*"],
+      "matches": [
+        "https://*/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "http://*.localhost/*"
+      ],
       "js": ["content.js"],
       "run_at": "document_start",
       "all_frames": true
@@ -38,7 +43,12 @@
   "web_accessible_resources": [
     {
       "resources": ["provider.js"],
-      "matches": ["https://*/*", "http://localhost/*", "http://localhost:*/*", "http://127.0.0.1/*", "http://127.0.0.1:*/*", "http://*.localhost/*"]
+      "matches": [
+        "https://*/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+        "http://*.localhost/*"
+      ]
     }
   ]
 }

@@ -155,9 +155,51 @@ section,
 }
 
 .shell {
+  position: relative;
   width: min(900px, calc(100vw - 40px));
   margin: 0 auto;
   padding: 32px 0 48px;
+}
+
+.identity-status {
+  position: absolute;
+  top: 32px;
+  right: 0;
+  max-width: min(440px, 48%);
+  display: flex;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.status-pill {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 253, 244, 0.84);
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 10px 28px rgba(0, 75, 63, 0.1);
+}
+
+a.status-pill {
+  text-decoration: none;
+}
+
+.identity-link[data-state="connected"] {
+  color: var(--accent-dark);
+  font-weight: 800;
+}
+
+.status-pill[hidden] {
+  display: none;
 }
 
 .brand-header {
@@ -211,6 +253,19 @@ section {
   display: flex;
   justify-content: flex-end;
   align-items: center;
+  gap: 12px;
+}
+
+.footer-link {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  color: var(--accent-dark);
+  text-decoration: underline;
 }
 
 .copy-row,
@@ -219,6 +274,110 @@ section {
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
+}
+
+.key-details {
+  display: grid;
+  gap: 12px;
+}
+
+.key-details .field {
+  grid-template-columns: minmax(150px, 0.26fr) minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  border: 1px solid color-mix(in srgb, var(--line) 78%, white);
+  border-radius: 8px;
+  background: color-mix(in srgb, white 72%, var(--panel));
+  padding: 12px;
+}
+
+.key-details .field label {
+  color: var(--accent-dark);
+}
+
+.key-details .copy-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  width: 100%;
+}
+
+.copyable-code {
+  display: block;
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--background) 70%, white);
+  padding: 9px 11px;
+  line-height: 1.45;
+}
+
+.copyable-code[data-copyable="true"] {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--line));
+  background: white;
+  cursor: pointer;
+}
+
+.copyable-code[data-copyable="true"]:hover,
+.copyable-code[data-copyable="true"]:focus-visible {
+  border-color: var(--accent);
+  outline: 3px solid rgba(18, 138, 120, 0.12);
+}
+
+.icon-button {
+  width: 42px;
+  min-width: 42px;
+  height: 42px;
+  min-height: 42px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+}
+
+.icon-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-button circle {
+  fill: currentColor;
+  stroke: none;
+}
+
+.subtle-icon-button {
+  border: 1px solid color-mix(in srgb, var(--line) 82%, white);
+  background: white;
+  color: var(--muted);
+  box-shadow: 0 8px 20px rgba(0, 75, 63, 0.06);
+}
+
+.subtle-icon-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--danger) 42%, var(--line));
+  background: color-mix(in srgb, var(--danger-soft) 18%, white);
+  color: var(--danger);
+}
+
+#key-remove-controls {
+  justify-content: flex-end;
+}
+
+.subtle-danger {
+  min-height: 36px;
+  border: 1px solid color-mix(in srgb, var(--danger-soft) 72%, white);
+  background: color-mix(in srgb, var(--danger-soft) 32%, white);
+  color: color-mix(in srgb, var(--danger) 72%, var(--foreground));
+  box-shadow: none;
+}
+
+.subtle-danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  color: white;
 }
 
 .key-import-controls {
@@ -368,6 +527,12 @@ section {
 }
 
 @media (max-width: 600px) {
+  .identity-status {
+    position: static;
+    max-width: none;
+    justify-content: flex-start;
+  }
+
   .brand-header {
     align-items: flex-start;
   }
@@ -378,5 +543,18 @@ section {
 
   section {
     padding: 18px;
+  }
+
+  .key-details .field {
+    grid-template-columns: 1fr;
+  }
+
+  .key-details .copy-row {
+    grid-template-columns: 1fr;
+  }
+
+  #key-remove-controls,
+  .page-footer {
+    justify-content: flex-start;
   }
 }

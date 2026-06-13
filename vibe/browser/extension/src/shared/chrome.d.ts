@@ -31,6 +31,11 @@ declare namespace chrome {
   }
 
   namespace storage {
+    interface StorageChange {
+      oldValue?: unknown;
+      newValue?: unknown;
+    }
+
     interface StorageArea {
       get(keys?: string | string[] | Record<string, unknown> | null): Promise<Record<string, unknown>>;
       get(
@@ -46,6 +51,9 @@ declare namespace chrome {
     }
 
     const local: StorageArea;
+    const onChanged: {
+      addListener(callback: (changes: Record<string, StorageChange>, areaName: string) => void): void;
+    };
   }
 
   namespace windows {

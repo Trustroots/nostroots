@@ -28,6 +28,17 @@ describe("Nostr operations", () => {
     expect(signed.sig).toHaveLength(128);
   });
 
+  it("fills optional event template fields before signing", () => {
+    const before = Math.floor(Date.now() / 1000);
+    const signed = signNostrEvent(ALICE, { kind: 1 } as Parameters<typeof signNostrEvent>[1]);
+    const after = Math.floor(Date.now() / 1000);
+
+    expect(signed.tags).toEqual([]);
+    expect(signed.content).toBe("");
+    expect(signed.created_at).toBeGreaterThanOrEqual(before);
+    expect(signed.created_at).toBeLessThanOrEqual(after);
+  });
+
   it("encrypts and decrypts with NIP-44", async () => {
     const bobPubkey = publicKeyFromPrivateKey(BOB);
     const alicePubkey = publicKeyFromPrivateKey(ALICE);
@@ -44,5 +55,16 @@ describe("Nostr operations", () => {
 
   it("rejects invalid peers", async () => {
     await expect(nip44Encrypt(ALICE, "bad", "secret")).rejects.toThrow(/peer public key/i);
+  });
+
+  it("rejects malformed private keys during signing", () => {
+    expect(() =>
+      signNostrEvent("bad", {
+        kind: 1,
+        created_at: 1,
+        tags: [],
+        content: "hello",
+      }),
+    ).toThrow();
   });
 });

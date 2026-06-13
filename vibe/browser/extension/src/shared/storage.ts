@@ -1,6 +1,7 @@
 import { STORAGE_KEYS } from "./constants";
 import { extensionApi } from "./extension-api";
 import { isHexKey } from "./hex";
+import { isTrustedOrigin, normalizeOrigin } from "./origins";
 
 export interface ExtensionStorage {
   get(keys?: string | string[] | Record<string, unknown> | null): Promise<Record<string, unknown>>;
@@ -39,7 +40,12 @@ export async function readAllowedOrigins(storage: ExtensionStorage = extensionSt
   const result = await storage.get(STORAGE_KEYS.allowedOrigins);
   const value = result[STORAGE_KEYS.allowedOrigins];
   if (!Array.isArray(value)) return [];
-  return Array.from(new Set(value.filter((origin): origin is string => typeof origin === "string"))).sort();
+  const origins = value
+    .filter((origin): origin is string => typeof origin === "string")
+    .map((origin) => normalizeOrigin(origin))
+    .filter((origin): origin is string => origin !== null)
+    .filter((origin) => !isTrustedOrigin(origin));
+  return Array.from(new Set(origins)).sort();
 }
 
 export async function readCachedTrustrootsNip05(
@@ -77,8 +83,10 @@ export async function rememberAllowedOrigin(
   origin: string,
   storage: ExtensionStorage = extensionStorage(),
 ): Promise<void> {
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (!normalizedOrigin || isTrustedOrigin(normalizedOrigin)) return;
   const origins = new Set(await readAllowedOrigins(storage));
-  origins.add(origin);
+  origins.add(normalizedOrigin);
   await storage.set({ [STORAGE_KEYS.allowedOrigins]: Array.from(origins).sort() });
 }
 
@@ -86,7 +94,8 @@ export async function revokeAllowedOrigin(
   origin: string,
   storage: ExtensionStorage = extensionStorage(),
 ): Promise<void> {
-  const origins = (await readAllowedOrigins(storage)).filter((candidate) => candidate !== origin);
+  const normalizedOrigin = normalizeOrigin(origin);
+  const origins = (await readAllowedOrigins(storage)).filter((candidate) => candidate !== normalizedOrigin);
   await storage.set({ [STORAGE_KEYS.allowedOrigins]: origins });
 }
 

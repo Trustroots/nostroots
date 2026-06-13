@@ -1,4 +1,5 @@
-import { EXTENSION_BRAND } from "./shared/constants";
+import { EXTENSION_BRAND, STORAGE_KEYS } from "./shared/constants";
+import { extensionApi } from "./shared/extension-api";
 import { lookupTrustrootsNip05 } from "./shared/identity";
 import {
   generateKey,
@@ -27,15 +28,37 @@ const state = {
 };
 
 const NOSTROOTS_WEB_URL = "https://nos.trustroots.org/";
+const EYE_ICON = [
+  '<svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">',
+  '<path d="M2.1 12s3.4-6.5 9.9-6.5 9.9 6.5 9.9 6.5-3.4 6.5-9.9 6.5S2.1 12 2.1 12Z"/>',
+  '<circle cx="12" cy="12" r="3"/>',
+  "</svg>",
+].join("");
+const EYE_OFF_ICON = [
+  '<svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">',
+  '<path d="M3 3l18 18"/>',
+  '<path d="M10.7 5.7A10.3 10.3 0 0 1 12 5.6c6.5 0 9.9 6.4 9.9 6.4a18 18 0 0 1-3.1 3.8"/>',
+  '<path d="M14.1 14.1A3 3 0 0 1 9.9 9.9"/>',
+  '<path d="M6.4 6.4A17.6 17.6 0 0 0 2.1 12s3.4 6.5 9.9 6.5c1.7 0 3.2-.4 4.5-1"/>',
+  "</svg>",
+].join("");
+const TRASH_ICON = [
+  '<svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">',
+  '<path d="M3 6h18"/>',
+  '<path d="M8 6V4h8v2"/>',
+  '<path d="M19 6l-1 14H6L5 6"/>',
+  '<path d="M10 11v5"/>',
+  '<path d="M14 11v5"/>',
+  "</svg>",
+].join("");
 
 const elements = {
   status: mustElement("status"),
-  npub: mustElement("npub"),
-  nip05: mustElement("nip05"),
-  nip05Help: mustElement("nip05-help"),
-  nsec: mustElement("nsec"),
+  npub: mustElement("npub") as HTMLElement,
+  nsec: mustElement("nsec") as HTMLElement,
   keyActionsTitle: mustElement("key-actions-title"),
   keyActionsHelp: mustElement("key-actions-help"),
+  keyDetails: mustElement("key-details"),
   keyImportControls: mustElement("key-import-controls"),
   keyRemoveControls: mustElement("key-remove-controls"),
   keyInput: mustElement("key-input") as HTMLTextAreaElement,
@@ -43,12 +66,10 @@ const elements = {
   generateButton: mustElement("generate-key") as HTMLButtonElement,
   removeButton: mustElement("remove-key") as HTMLButtonElement,
   revealButton: mustElement("reveal-key") as HTMLButtonElement,
-  copyNpubButton: mustElement("copy-npub") as HTMLButtonElement,
-  copyNip05Button: mustElement("copy-nip05") as HTMLButtonElement,
-  copyNsecButton: mustElement("copy-nsec") as HTMLButtonElement,
   copyMnemonicButton: mustElement("copy-mnemonic") as HTMLButtonElement,
   generatedMnemonicPanel: mustElement("generated-mnemonic-panel"),
   generatedMnemonic: mustElement("generated-mnemonic"),
+  identityStatus: mustElement("trustroots-identity-status") as HTMLAnchorElement,
   permissions: mustElement("permissions"),
   buildTime: mustElement("settings-build-time"),
 };
@@ -80,20 +101,31 @@ elements.revealButton.addEventListener("click", () => {
   void render();
 });
 
-elements.copyNpubButton.addEventListener("click", () => {
+elements.npub.addEventListener("click", () => {
+  void copyText(elements.npub.textContent || "");
+});
+elements.npub.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  event.preventDefault();
   void copyText(elements.npub.textContent || "");
 });
 
-elements.copyNip05Button.addEventListener("click", () => {
-  void copyText(elements.nip05.textContent || "");
+elements.nsec.addEventListener("click", () => {
+  if (state.showSecret) void copyText(elements.nsec.textContent || "");
 });
-
-elements.copyNsecButton.addEventListener("click", () => {
+elements.nsec.addEventListener("keydown", (event) => {
+  if (!state.showSecret || (event.key !== "Enter" && event.key !== " ")) return;
+  event.preventDefault();
   void copyText(elements.nsec.textContent || "");
 });
 
 elements.copyMnemonicButton.addEventListener("click", () => {
   void copyText(state.lastGeneratedMnemonic);
+});
+
+extensionApi.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local" || !changes[STORAGE_KEYS.allowedOrigins]) return;
+  void renderPermissions();
 });
 
 async function render(): Promise<void> {
@@ -103,39 +135,39 @@ async function render(): Promise<void> {
   renderStatus(hasKey);
   elements.removeButton.disabled = !hasKey;
   elements.revealButton.disabled = !hasKey;
-  elements.copyNpubButton.disabled = !hasKey;
-  elements.copyNip05Button.disabled = true;
-  elements.copyNsecButton.disabled = !hasKey || !state.showSecret;
   elements.copyMnemonicButton.disabled = !state.showSecret || !state.lastGeneratedMnemonic;
+  elements.keyDetails.hidden = !hasKey;
   elements.keyImportControls.hidden = hasKey;
   elements.keyRemoveControls.hidden = !hasKey;
   elements.generatedMnemonicPanel.hidden = !state.showSecret || !state.lastGeneratedMnemonic;
 
   if (privateKeyHex) {
-    elements.keyActionsTitle.textContent = "Forget This Browser's Key";
+    elements.keyActionsTitle.textContent = "Your Nostroots Signing Key";
     elements.keyActionsHelp.textContent =
-      "This only removes the key from this browser. It does not delete your Nostroots account or remove a backup you saved somewhere else.";
+      "Stored only in this browser. Keep the private key secret and make sure you have a backup somewhere safe.";
     const publicKeyHex = publicKeyFromPrivateKey(privateKeyHex);
     const cachedNip05 = await readCachedTrustrootsNip05(publicKeyHex);
     elements.npub.textContent = npubFromPublicKey(publicKeyHex);
-    elements.nip05Help.textContent = "";
+    setCopyable(elements.npub, true, "Copy public address");
     if (cachedNip05) {
       showTrustrootsIdentity(cachedNip05);
     } else {
-      elements.nip05.textContent = "Checking relay.trustroots.org and nip42.trustroots.org...";
+      hideTrustrootsIdentityStatus();
       void refreshTrustrootsIdentity(publicKeyHex, privateKeyHex);
     }
     elements.nsec.textContent = state.showSecret ? nsecFromPrivateKey(privateKeyHex) : "••••••••••••••••";
-    elements.revealButton.textContent = state.showSecret ? "Hide" : "Reveal";
+    setCopyable(elements.nsec, state.showSecret, state.showSecret ? "Copy private key" : "");
+    setRevealButtonState(state.showSecret);
   } else {
     elements.keyActionsTitle.textContent = "Add a Nostroots Signing Key";
     elements.keyActionsHelp.textContent =
       "A signing key is the private key this browser uses to prove you are you on Nostroots. Import your existing key if you already have one, or generate a new one and save its recovery phrase somewhere safe.";
-    elements.npub.textContent = "Add a key to see your public address.";
-    elements.nip05.textContent = "Add a key to look up your Trustroots.org address.";
-    elements.nip05Help.textContent = "";
-    elements.nsec.textContent = "Your private key will stay in this browser.";
-    elements.revealButton.textContent = "Reveal";
+    elements.npub.textContent = "";
+    setCopyable(elements.npub, false, "");
+    hideTrustrootsIdentityStatus();
+    elements.nsec.textContent = "";
+    setCopyable(elements.nsec, false, "");
+    setRevealButtonState(false);
     state.showSecret = false;
   }
 
@@ -175,25 +207,50 @@ async function refreshTrustrootsIdentity(publicKeyHex: string, privateKeyHex: st
 }
 
 function showTrustrootsIdentity(nip05: string): void {
-  elements.nip05.textContent = nip05;
-  elements.nip05Help.textContent = "";
-  elements.copyNip05Button.disabled = false;
+  const profileUrl = trustrootsProfileUrlFromNip05(nip05);
+  if (profileUrl) {
+    elements.identityStatus.hidden = false;
+    elements.identityStatus.href = profileUrl;
+    elements.identityStatus.textContent = nip05;
+    elements.identityStatus.title = nip05;
+  }
 }
 
 function showTrustrootsIdentitySetupHelp(): void {
-  elements.nip05.textContent = "No Trustroots.org address found for this key yet.";
-  elements.nip05Help.textContent = "";
-  const link = document.createElement("a");
-  link.href = "https://www.trustroots.org/profile/edit/networks";
-  link.textContent = "Trustroots profile networks";
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
-  elements.nip05Help.append(
-    "To connect this key to your Trustroots account, copy the public address above (the one starting with npub) and add it on ",
-    link,
-    ".",
-  );
-  elements.copyNip05Button.disabled = true;
+  hideTrustrootsIdentityStatus();
+}
+
+function hideTrustrootsIdentityStatus(): void {
+  elements.identityStatus.hidden = true;
+  elements.identityStatus.removeAttribute("href");
+  elements.identityStatus.textContent = "";
+  elements.identityStatus.removeAttribute("title");
+}
+
+function trustrootsProfileUrlFromNip05(nip05: string): string | null {
+  const [username, domain] = nip05.toLowerCase().split("@");
+  if (!username || domain !== "trustroots.org") return null;
+  return `https://www.trustroots.org/profile/${encodeURIComponent(username)}`;
+}
+
+function setCopyable(element: HTMLElement, copyable: boolean, title: string): void {
+  element.dataset.copyable = copyable ? "true" : "false";
+  if (title) {
+    element.title = title;
+    element.setAttribute("role", "button");
+    element.tabIndex = 0;
+  } else {
+    element.removeAttribute("title");
+    element.removeAttribute("role");
+    element.removeAttribute("tabindex");
+  }
+}
+
+function setRevealButtonState(showingSecret: boolean): void {
+  const label = showingSecret ? "Hide private key" : "Reveal private key";
+  elements.revealButton.innerHTML = showingSecret ? EYE_OFF_ICON : EYE_ICON;
+  elements.revealButton.setAttribute("aria-label", label);
+  elements.revealButton.title = label;
 }
 
 async function renderPermissions(): Promise<void> {
@@ -203,11 +260,19 @@ async function renderPermissions(): Promise<void> {
     item.className = "permission-row";
 
     const text = document.createElement("span");
-    text.textContent = `${hostForOrigin(origin)} (${origin})`;
+    const link = document.createElement("a");
+    link.href = origin;
+    link.textContent = hostForOrigin(origin);
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    text.append(link);
 
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = "Revoke";
+    button.className = "icon-button subtle-icon-button";
+    button.innerHTML = TRASH_ICON;
+    button.setAttribute("aria-label", `Revoke ${hostForOrigin(origin)} access`);
+    button.title = `Revoke ${hostForOrigin(origin)} access`;
     button.addEventListener("click", () => {
       void revokeAllowedOrigin(origin).then(render);
     });
@@ -304,7 +369,15 @@ function mustElement(id: string): HTMLElement {
 
 const trusted = document.getElementById("trusted-origins");
 if (trusted) {
-  trusted.textContent = isTrustedOrigin("https://nos.trustroots.org")
-    ? "*.trustroots.org can use this key automatically. Other sites will ask first."
-    : `${EXTENSION_BRAND} is missing its Trustroots trust rule.`;
+  trusted.textContent = "";
+  if (isTrustedOrigin(NOSTROOTS_WEB_URL)) {
+    const link = document.createElement("a");
+    link.href = NOSTROOTS_WEB_URL;
+    link.textContent = "*.trustroots.org";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    trusted.append(link, " can use this key automatically. Other sites will ask first.");
+  } else {
+    trusted.textContent = `${EXTENSION_BRAND} is missing its Trustroots trust rule.`;
+  }
 }

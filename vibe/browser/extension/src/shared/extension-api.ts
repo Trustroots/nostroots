@@ -1,11 +1,12 @@
 type ExtensionRuntime = typeof chrome.runtime;
 type ExtensionStorageArea = chrome.storage.StorageArea;
+type ExtensionStorage = typeof chrome.storage;
 type ExtensionWindows = typeof chrome.windows;
 type ExtensionTabs = typeof chrome.tabs;
 
 type ExtensionNamespace = {
   runtime: ExtensionRuntime;
-  storage: { local: ExtensionStorageArea };
+  storage: Pick<ExtensionStorage, "local" | "onChanged">;
   windows: ExtensionWindows;
   tabs: ExtensionTabs;
 };
@@ -59,6 +60,11 @@ export const extensionApi = {
           (api) => api.storage.local.clear(),
           (api, callback) => api.storage.local.clear(callback),
         ),
+    },
+    onChanged: {
+      addListener: (callback: Parameters<ExtensionStorage["onChanged"]["addListener"]>[0]) => {
+        currentApi().api.storage.onChanged.addListener(callback);
+      },
     },
   },
   windows: {

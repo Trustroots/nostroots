@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { STORAGE_KEYS } from "../../src/shared/constants";
 import { isHexKey } from "../../src/shared/hex";
 import {
   generateKey,
@@ -14,6 +15,7 @@ import {
   readCachedTrustrootsNip05,
   readPrivateKeyHex,
   rememberAllowedOrigin,
+  revokeAllowedOrigin,
   writeCachedTrustrootsNip05,
   writePrivateKeyHex,
   clearPrivateKey,
@@ -70,6 +72,49 @@ describe("key parsing and single-key storage", () => {
     await clearPrivateKey(storage);
     expect(await readPrivateKeyHex(storage)).toBe(null);
     expect(await readAllowedOrigins(storage)).toEqual([]);
+  });
+
+  it("reads remembered origins as canonical non-Trustroots site approvals", async () => {
+    const storage = new MemoryStorage();
+    await storage.set({
+      [STORAGE_KEYS.allowedOrigins]: [
+        "https://Treasures.To/path?from=nostroots",
+        "https://treasures.to",
+        "https://example.com:8443/app",
+        "https://nos.trustroots.org",
+        "file:///tmp/test.html",
+        42,
+        null,
+      ],
+    });
+
+    expect(await readAllowedOrigins(storage)).toEqual([
+      "https://example.com:8443",
+      "https://treasures.to",
+    ]);
+  });
+
+  it("stores only normalized remembered origins", async () => {
+    const storage = new MemoryStorage();
+    await rememberAllowedOrigin("https://Treasures.To/path", storage);
+    await rememberAllowedOrigin("https://treasures.to/other", storage);
+    await rememberAllowedOrigin("file:///tmp/test.html", storage);
+    await rememberAllowedOrigin("https://nos.trustroots.org", storage);
+
+    expect(await readAllowedOrigins(storage)).toEqual(["https://treasures.to"]);
+    expect(await storage.get(STORAGE_KEYS.allowedOrigins)).toEqual({
+      [STORAGE_KEYS.allowedOrigins]: ["https://treasures.to"],
+    });
+  });
+
+  it("revokes normalized remembered origins and leaves other sites intact", async () => {
+    const storage = new MemoryStorage();
+    await rememberAllowedOrigin("https://treasures.to/app", storage);
+    await rememberAllowedOrigin("https://example.com", storage);
+
+    await revokeAllowedOrigin("https://Treasures.To/settings", storage);
+
+    expect(await readAllowedOrigins(storage)).toEqual(["https://example.com"]);
   });
 
   it("caches Trustroots NIP-05 addresses by public key", async () => {

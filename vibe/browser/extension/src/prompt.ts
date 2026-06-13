@@ -1,4 +1,4 @@
-import { MESSAGE_SOURCE_PROMPT } from "./shared/constants";
+import { isKnownNip07Method, MESSAGE_SOURCE_PROMPT, nip07MethodLabel, type Nip07Method } from "./shared/constants";
 import { extensionApi } from "./shared/extension-api";
 import { hostForOrigin } from "./shared/origins";
 
@@ -8,10 +8,11 @@ const params = new URLSearchParams(window.location.search);
 const promptId = params.get("promptId") || "";
 const origin = params.get("origin") || "";
 const method = params.get("method") || "NIP-07";
+const methods = methodsFromParams(params);
 const preview = params.get("preview") || "";
 
 mustElement("origin").textContent = hostForOrigin(origin);
-mustElement("detail").textContent = `${origin} would like to use your Nostroots key for ${method}.`;
+renderDetail(methods);
 
 const previewElement = mustElement("preview");
 if (preview) {
@@ -25,6 +26,12 @@ bindDecision("always-allow-method", "always_allow_method");
 bindDecision("always-allow-all", "always_allow_all");
 bindDecision("deny", "deny");
 
+extensionApi.runtime.onMessage.addListener((message) => {
+  if (!isPromptUpdate(message)) return false;
+  renderDetail(message.methods);
+  return false;
+});
+
 function bindDecision(id: string, decision: Decision): void {
   mustElement(id).addEventListener("click", () => {
     void extensionApi.runtime.sendMessage({
@@ -33,6 +40,47 @@ function bindDecision(id: string, decision: Decision): void {
       decision,
     });
   });
+}
+
+function renderDetail(currentMethods: Nip07Method[]): void {
+  const detail = mustElement("detail");
+  detail.textContent = "";
+  detail.append(`${origin} would like to use your Nostroots key for:`);
+
+  const list = document.createElement("span");
+  list.className = "prompt-action-list";
+  for (const currentMethod of currentMethods) {
+    const item = document.createElement("span");
+    item.className = "prompt-action";
+    item.textContent = nip07MethodLabel(currentMethod);
+    list.append(item);
+  }
+  detail.append(list);
+}
+
+function methodsFromParams(searchParams: URLSearchParams): Nip07Method[] {
+  const values = searchParams
+    .getAll("methods")
+    .flatMap((value) => value.split(","))
+    .filter(isKnownNip07Method);
+  if (values.length > 0) return Array.from(new Set(values));
+  return isKnownNip07Method(method) ? [method] : [];
+}
+
+function isPromptUpdate(message: unknown): message is {
+  source: typeof MESSAGE_SOURCE_PROMPT;
+  promptId: string;
+  update: "methods";
+  methods: Nip07Method[];
+} {
+  return (
+    typeof message === "object" &&
+    message !== null &&
+    (message as { source?: unknown }).source === MESSAGE_SOURCE_PROMPT &&
+    (message as { promptId?: unknown }).promptId === promptId &&
+    (message as { update?: unknown }).update === "methods" &&
+    Array.isArray((message as { methods?: unknown }).methods)
+  );
 }
 
 function renderPreview(container: HTMLElement, method: string, rawPreview = ""): void {

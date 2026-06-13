@@ -21,6 +21,8 @@ type StoredAllowedOriginAccess = {
   methods?: unknown;
 };
 
+let allowedOriginAccessWriteQueue = Promise.resolve();
+
 export function extensionStorage(): ExtensionStorage {
   return extensionApi.storage.local;
 }
@@ -98,9 +100,9 @@ export async function rememberAllowedOrigin(
 ): Promise<void> {
   const normalizedOrigin = normalizeOrigin(origin);
   if (!normalizedOrigin || isTrustedOrigin(normalizedOrigin)) return;
-  const access = await readAllowedOriginAccessRecord(storage);
-  access[normalizedOrigin] = { all: true, methods: access[normalizedOrigin]?.methods ?? [] };
-  await writeAllowedOriginAccessRecord(access, storage);
+  await updateAllowedOriginAccessRecord(storage, (access) => {
+    access[normalizedOrigin] = { all: true, methods: access[normalizedOrigin]?.methods ?? [] };
+  });
 }
 
 export async function rememberAllowedOriginMethod(
@@ -111,15 +113,15 @@ export async function rememberAllowedOriginMethod(
   const normalizedOrigin = normalizeOrigin(origin);
   if (!normalizedOrigin || isTrustedOrigin(normalizedOrigin)) return;
 
-  const access = await readAllowedOriginAccessRecord(storage);
-  const methods = new Set(access[normalizedOrigin]?.methods ?? []);
-  methods.add(method);
+  await updateAllowedOriginAccessRecord(storage, (access) => {
+    const methods = new Set(access[normalizedOrigin]?.methods ?? []);
+    methods.add(method);
 
-  access[normalizedOrigin] = {
-    all: access[normalizedOrigin]?.all ?? false,
-    methods: Array.from(methods).sort(),
-  };
-  await writeAllowedOriginAccessRecord(access, storage);
+    access[normalizedOrigin] = {
+      all: access[normalizedOrigin]?.all ?? false,
+      methods: Array.from(methods).sort(),
+    };
+  });
 }
 
 export async function revokeAllowedOrigin(
@@ -127,9 +129,9 @@ export async function revokeAllowedOrigin(
   storage: ExtensionStorage = extensionStorage(),
 ): Promise<void> {
   const normalizedOrigin = normalizeOrigin(origin);
-  const access = await readAllowedOriginAccessRecord(storage);
-  if (normalizedOrigin) delete access[normalizedOrigin];
-  await writeAllowedOriginAccessRecord(access, storage);
+  await updateAllowedOriginAccessRecord(storage, (access) => {
+    if (normalizedOrigin) delete access[normalizedOrigin];
+  });
 }
 
 export async function clearAllowedOrigins(storage: ExtensionStorage = extensionStorage()): Promise<void> {
@@ -170,4 +172,18 @@ async function writeAllowedOriginAccessRecord(
   storage: ExtensionStorage,
 ): Promise<void> {
   await storage.set({ [STORAGE_KEYS.allowedOriginAccess]: access });
+}
+
+async function updateAllowedOriginAccessRecord(
+  storage: ExtensionStorage,
+  update: (access: Record<string, Omit<AllowedOriginAccess, "origin">>) => void,
+): Promise<void> {
+  allowedOriginAccessWriteQueue = allowedOriginAccessWriteQueue
+    .catch(() => undefined)
+    .then(async () => {
+      const access = await readAllowedOriginAccessRecord(storage);
+      update(access);
+      await writeAllowedOriginAccessRecord(access, storage);
+    });
+  await allowedOriginAccessWriteQueue;
 }

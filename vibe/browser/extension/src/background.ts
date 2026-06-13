@@ -5,6 +5,7 @@ import {
   MESSAGE_SOURCE_CONTENT,
   MESSAGE_SOURCE_PROMPT,
   isKnownNip07Method,
+  nip07MethodLabel,
   type Nip07Method,
 } from "./shared/constants";
 import { extensionApi } from "./shared/extension-api";
@@ -30,13 +31,16 @@ type PromptRequest = {
 };
 
 type PendingPrompt = {
+  promptId: string;
   origin: string;
-  method: Nip07Method;
-  resolve: (decision: PromptDecision) => void;
+  methods: Set<Nip07Method>;
+  preview: string;
+  resolves: Array<(decision: PromptDecision) => void>;
   windowId?: number;
 };
 
-const pendingPrompts = new Map<string, PendingPrompt>();
+const pendingPromptsById = new Map<string, PendingPrompt>();
+const pendingPromptsByOrigin = new Map<string, PendingPrompt>();
 
 extensionApi.runtime.onInstalled.addListener((details) => {
   if (details.reason === "install") {
@@ -59,10 +63,9 @@ extensionApi.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 extensionApi.windows.onRemoved.addListener((windowId) => {
-  for (const [promptId, prompt] of pendingPrompts) {
+  for (const prompt of pendingPromptsById.values()) {
     if (prompt.windowId === windowId) {
-      pendingPrompts.delete(promptId);
-      prompt.resolve("deny");
+      resolvePendingPrompt(prompt, "deny");
     }
   }
 });
@@ -166,45 +169,69 @@ function peerTextParams(params: unknown): [string, string] {
 }
 
 async function requestPermission(origin: string, method: Nip07Method, params: unknown): Promise<PromptDecision> {
+  const existing = pendingPromptsByOrigin.get(origin);
+  if (existing) {
+    existing.methods.add(method);
+    return new Promise<PromptDecision>((resolve) => {
+      existing.resolves.push(resolve);
+      void notifyPromptUpdate(existing);
+    });
+  }
+
   const promptId = crypto.randomUUID();
-  const position = await centeredPromptPosition(460, 460);
   const preview = method === "signEvent" && Array.isArray(params) ? JSON.stringify(params[0], null, 2) : "";
-  const query = new URLSearchParams({
-    promptId,
-    origin,
-    method,
-    preview,
-  });
 
   return new Promise<PromptDecision>((resolve) => {
-    pendingPrompts.set(promptId, { origin, method, resolve });
+    const prompt: PendingPrompt = {
+      promptId,
+      origin,
+      methods: new Set([method]),
+      preview,
+      resolves: [resolve],
+    };
+    pendingPromptsById.set(promptId, prompt);
+    pendingPromptsByOrigin.set(origin, prompt);
 
-    extensionApi.windows
-      .create({
-        url: extensionApi.runtime.getURL(`prompt.html?${query.toString()}`),
-        type: "popup",
-        width: 460,
-        height: 460,
-        left: position.left,
-        top: position.top,
-      })
-      .then((createdWindow) => {
-        const prompt = pendingPrompts.get(promptId);
-        if (prompt) prompt.windowId = createdWindow.id;
-      })
-      .catch(() => {
-        pendingPrompts.delete(promptId);
-        resolve("deny");
-      });
+    void openPermissionPrompt(prompt, method, preview);
   });
 }
 
+async function openPermissionPrompt(prompt: PendingPrompt, method: Nip07Method, preview: string): Promise<void> {
+  const position = await centeredPromptPosition(460, 460);
+  const query = new URLSearchParams({
+    promptId: prompt.promptId,
+    origin: prompt.origin,
+    method,
+    methods: Array.from(prompt.methods).join(","),
+    preview,
+  });
+
+  extensionApi.windows
+    .create({
+      url: extensionApi.runtime.getURL(`prompt.html?${query.toString()}`),
+      type: "popup",
+      width: 460,
+      height: 460,
+      left: position.left,
+      top: position.top,
+    })
+    .then((createdWindow) => {
+      const pendingPrompt = pendingPromptsById.get(prompt.promptId);
+      if (pendingPrompt) {
+        pendingPrompt.windowId = createdWindow.id;
+        void notifyPromptUpdate(pendingPrompt);
+      }
+    })
+    .catch(() => {
+      resolvePendingPrompt(prompt, "deny");
+    });
+}
+
 async function handlePromptResponse(request: PromptRequest, sender: chrome.runtime.MessageSender): Promise<boolean> {
-  const pending = pendingPrompts.get(request.promptId);
+  const pending = pendingPromptsById.get(request.promptId);
   if (!pending) return false;
 
-  pendingPrompts.delete(request.promptId);
-  pending.resolve(request.decision);
+  resolvePendingPrompt(pending, request.decision);
 
   const windowId = sender.tab?.windowId ?? pending.windowId;
   if (typeof windowId === "number") {
@@ -212,6 +239,24 @@ async function handlePromptResponse(request: PromptRequest, sender: chrome.runti
   }
 
   return true;
+}
+
+function resolvePendingPrompt(prompt: PendingPrompt, decision: PromptDecision): void {
+  pendingPromptsById.delete(prompt.promptId);
+  pendingPromptsByOrigin.delete(prompt.origin);
+  for (const resolve of prompt.resolves.splice(0)) {
+    resolve(decision);
+  }
+}
+
+async function notifyPromptUpdate(prompt: PendingPrompt): Promise<void> {
+  await extensionApi.runtime.sendMessage({
+    source: MESSAGE_SOURCE_PROMPT,
+    promptId: prompt.promptId,
+    update: "methods",
+    methods: Array.from(prompt.methods),
+    methodLabels: Array.from(prompt.methods).map(nip07MethodLabel),
+  }).catch(() => undefined);
 }
 
 async function centeredPromptPosition(width: number, height: number): Promise<{ left: number; top: number }> {

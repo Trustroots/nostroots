@@ -86,27 +86,38 @@ test("NIP-07 provider signs on trusted origins and prompts unknown origins", asy
     const unknownPage = await context.newPage();
     await unknownPage.goto("https://treasures.to/fixture");
 
-    const signing = unknownPage.evaluate(() =>
-      window.nostr!.signEvent({ kind: 1, tags: [], content: "unknown" }),
+    const requestingMultipleActions = unknownPage.evaluate(() =>
+      Promise.all([
+        window.nostr!.getPublicKey(),
+        window.nostr!.signEvent({ kind: 1, tags: [], content: "unknown" }),
+      ]),
     );
     const prompt = await context.waitForEvent("page", (page) =>
       page.url().startsWith(`chrome-extension://${extensionId}/prompt.html`),
     );
+    await expect(prompt.getByText("Share public address")).toBeVisible();
+    await expect(prompt.getByText("Sign events")).toBeVisible();
+    await prompt.waitForTimeout(300);
+    expect(
+      context.pages().filter((page) => page.url().startsWith(`chrome-extension://${extensionId}/prompt.html`)),
+    ).toHaveLength(1);
     await expect(prompt.getByRole("button", { name: "Allow once" })).toBeVisible();
     await expect(prompt.getByRole("button", { name: "Always allow these actions" })).toBeVisible();
     await expect(prompt.getByRole("button", { name: "Always allow everything" })).toBeVisible();
     await prompt.getByRole("button", { name: "Always allow these actions" }).click();
-    expect((await signing) as { id: string }).toHaveProperty("id");
+    const [, signedUnknown] = (await requestingMultipleActions) as [string, { id: string }];
+    expect(signedUnknown).toHaveProperty("id");
 
     const stored = await serviceWorker.evaluate(() => chrome.storage.local.get("nostroots.browser.allowedOriginAccess"));
     expect(stored["nostroots.browser.allowedOriginAccess"]).toEqual({
-      "https://treasures.to": { all: false, methods: ["signEvent"] },
+      "https://treasures.to": { all: false, methods: ["getPublicKey", "signEvent"] },
     });
 
     await expect(optionsPage.getByRole("link", { name: "treasures.to" })).toHaveAttribute(
       "href",
       "https://treasures.to",
     );
+    await expect(optionsPage.getByText("Share public address")).toBeVisible();
     await expect(optionsPage.getByText("Sign events")).toBeVisible();
     await expect(optionsPage.getByRole("button", { name: "Revoke treasures.to access" })).toBeVisible();
     await expect(optionsPage.getByText("No other sites have access yet.")).toBeHidden();

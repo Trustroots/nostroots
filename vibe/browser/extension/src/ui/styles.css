@@ -554,6 +554,26 @@ section {
   color: var(--muted);
 }
 
+.prompt-action-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.prompt-action {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--accent) 24%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 8%, white);
+  color: var(--accent-dark);
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .request-summary dl {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);

@@ -40,3 +40,29 @@ Nostroots Extension is intentionally simple: one local key, clear site access, a
 Suggested privacy policy URL:
 
 https://nos.trustroots.org/privacy/
+
+Privacy practices tab:
+
+Single purpose:
+
+Nostroots Extension provides a NIP-07 browser signer for Nostroots and compatible Nostr web apps. It lets sites request the user's public Nostr key and ask the extension to sign Nostr events without exposing the user's private key to the site.
+
+Host permission justification:
+
+The extension injects a NIP-07 `window.nostr` provider on HTTPS pages so Nostroots and compatible Nostr web apps can detect the signer and request signatures. It also supports localhost origins for development. Non-Trustroots sites must ask for user approval before signing. The Trustroots relay WebSocket host permissions support identity lookup and NIP-42 relay sign-in flows.
+
+Storage permission justification:
+
+The extension uses local extension storage to save the user's Nostr private key and remembered site access choices. This allows the user to keep signing in and signing events locally without sending the private key to Nostroots, websites, or relays.
+
+Remote code use justification:
+
+The extension does not execute remotely hosted code. All JavaScript used by the extension is bundled in the submitted package. Network connections are used for Trustroots/Nostr relay communication, not for loading executable code.
+
+Data usage certification:
+
+The extension stores the user's Nostr private key locally in Chrome extension storage and uses it only to sign Nostr events when requested by approved sites. The private key is not sold, transferred, or used for unrelated purposes.
+
+Publisher contact email:
+
+Use a monitored Trustroots email address, then verify it from the Chrome Web Store settings page before publishing.

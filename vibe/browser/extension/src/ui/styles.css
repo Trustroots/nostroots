@@ -461,6 +461,31 @@ section {
   padding-top: 10px;
 }
 
+.permission-summary {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.permission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.permission-action {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--line) 82%, white);
+  border-radius: 999px;
+  background: color-mix(in srgb, white 76%, var(--background));
+  color: var(--muted);
+  padding: 2px 8px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .muted {
   color: var(--muted);
 }

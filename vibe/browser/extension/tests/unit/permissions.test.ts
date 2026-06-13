@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 
 import { isExtensionAllowedPageOrigin, isTrustedOrigin, normalizeOrigin } from "../../src/shared/origins";
-import { permissionDecisionForOrigin } from "../../src/shared/permissions";
+import { permissionDecisionForOrigin, rememberOriginIfRequested } from "../../src/shared/permissions";
 import { MemoryStorage } from "../../src/shared/memory-storage";
-import { readAllowedOrigins, rememberAllowedOrigin, revokeAllowedOrigin } from "../../src/shared/storage";
+import {
+  readAllowedOrigins,
+  readAllowedOriginAccess,
+  rememberAllowedOrigin,
+  rememberAllowedOriginMethod,
+  revokeAllowedOrigin,
+} from "../../src/shared/storage";
 
 describe("origin permissions", () => {
   it("normalizes web origins", () => {
@@ -35,11 +41,11 @@ describe("origin permissions", () => {
 
   it("auto-allows Trustroots, prompts unknown origins, and allows remembered origins", async () => {
     const storage = new MemoryStorage();
-    expect(await permissionDecisionForOrigin("https://nos.trustroots.org", storage)).toBe("allowed");
-    expect(await permissionDecisionForOrigin("https://example.com", storage)).toBe("prompt");
+    expect(await permissionDecisionForOrigin("https://nos.trustroots.org", "signEvent", storage)).toBe("allowed");
+    expect(await permissionDecisionForOrigin("https://example.com", "signEvent", storage)).toBe("prompt");
     await rememberAllowedOrigin("https://example.com", storage);
-    expect(await permissionDecisionForOrigin("https://example.com", storage)).toBe("allowed");
-    expect(await permissionDecisionForOrigin("file:///tmp/index.html", storage)).toBe("blocked");
+    expect(await permissionDecisionForOrigin("https://example.com", "signEvent", storage)).toBe("allowed");
+    expect(await permissionDecisionForOrigin("file:///tmp/index.html", "signEvent", storage)).toBe("blocked");
   });
 
   it("normalizes remembered origins before permission checks", async () => {
@@ -47,8 +53,30 @@ describe("origin permissions", () => {
     await rememberAllowedOrigin("https://Treasures.To/app?mode=nostr", storage);
 
     expect(await readAllowedOrigins(storage)).toEqual(["https://treasures.to"]);
-    expect(await permissionDecisionForOrigin("https://treasures.to/map", storage)).toBe("allowed");
-    expect(await permissionDecisionForOrigin("https://www.treasures.to", storage)).toBe("prompt");
+    expect(await permissionDecisionForOrigin("https://treasures.to/map", "signEvent", storage)).toBe("allowed");
+    expect(await permissionDecisionForOrigin("https://www.treasures.to", "signEvent", storage)).toBe("prompt");
+  });
+
+  it("allows only remembered actions when a site is granted specific access", async () => {
+    const storage = new MemoryStorage();
+    await rememberAllowedOriginMethod("https://treasures.to/app", "signEvent", storage);
+
+    expect(await readAllowedOriginAccess(storage)).toEqual([
+      { origin: "https://treasures.to", all: false, methods: ["signEvent"] },
+    ]);
+    expect(await permissionDecisionForOrigin("https://treasures.to", "signEvent", storage)).toBe("allowed");
+    expect(await permissionDecisionForOrigin("https://treasures.to", "getPublicKey", storage)).toBe("prompt");
+  });
+
+  it("remembers prompt decisions as either these actions or everything", async () => {
+    const storage = new MemoryStorage();
+
+    await rememberOriginIfRequested("https://treasures.to", "signEvent", "always_allow_method", storage);
+    expect(await permissionDecisionForOrigin("https://treasures.to", "signEvent", storage)).toBe("allowed");
+    expect(await permissionDecisionForOrigin("https://treasures.to", "getPublicKey", storage)).toBe("prompt");
+
+    await rememberOriginIfRequested("https://treasures.to", "getPublicKey", "always_allow_all", storage);
+    expect(await permissionDecisionForOrigin("https://treasures.to", "nip44.decrypt", storage)).toBe("allowed");
   });
 
   it("does not remember automatic Trustroots access as a manual site approval", async () => {
@@ -67,6 +95,6 @@ describe("origin permissions", () => {
     await revokeAllowedOrigin("https://Treasures.To/settings?tab=nostr", storage);
 
     expect(await readAllowedOrigins(storage)).toEqual(["https://example.com"]);
-    expect(await permissionDecisionForOrigin("https://treasures.to", storage)).toBe("prompt");
+    expect(await permissionDecisionForOrigin("https://treasures.to", "signEvent", storage)).toBe("prompt");
   });
 });

@@ -5,6 +5,7 @@ import {
   MESSAGE_SOURCE_CONTENT,
   MESSAGE_SOURCE_PROMPT,
   isKnownNip07Method,
+  type Nip07Method,
 } from "./shared/constants";
 import { extensionApi } from "./shared/extension-api";
 import { failure, success, type BridgeResponse, type ContentRequest } from "./shared/messages";
@@ -20,7 +21,7 @@ import { permissionDecisionForOrigin, rememberOriginIfRequested } from "./shared
 import { publicKeyFromPrivateKey } from "./shared/keys";
 import { readPrivateKeyHex } from "./shared/storage";
 
-type PromptDecision = "allow_once" | "always_allow" | "deny";
+type PromptDecision = "allow_once" | "always_allow_method" | "always_allow_all" | "deny";
 
 type PromptRequest = {
   source: typeof MESSAGE_SOURCE_PROMPT;
@@ -30,7 +31,7 @@ type PromptRequest = {
 
 type PendingPrompt = {
   origin: string;
-  method: string;
+  method: Nip07Method;
   resolve: (decision: PromptDecision) => void;
   windowId?: number;
 };
@@ -78,7 +79,7 @@ async function handleContentRequest(request: ContentRequest): Promise<BridgeResp
       return failure(request.id, `No key is stored in ${EXTENSION_BRAND}.`);
     }
 
-    const permission = await permissionDecisionForOrigin(origin);
+    const permission = await permissionDecisionForOrigin(origin, request.method);
     if (permission === "blocked") {
       return failure(request.id, "This origin is not allowed to use Nostroots Extension.");
     }
@@ -86,7 +87,7 @@ async function handleContentRequest(request: ContentRequest): Promise<BridgeResp
     if (permission === "prompt") {
       const decision = await requestPermission(origin, request.method, request.params);
       if (decision === "deny") return failure(request.id, "Permission denied.");
-      await rememberOriginIfRequested(origin, decision === "always_allow");
+      await rememberOriginIfRequested(origin, request.method, decision);
     }
 
     return success(request.id, await performOperation(privateKeyHex, request.method, request.params));
@@ -164,7 +165,7 @@ function peerTextParams(params: unknown): [string, string] {
   return [params[0].toLowerCase(), params[1]];
 }
 
-async function requestPermission(origin: string, method: string, params: unknown): Promise<PromptDecision> {
+async function requestPermission(origin: string, method: Nip07Method, params: unknown): Promise<PromptDecision> {
   const promptId = crypto.randomUUID();
   const position = await centeredPromptPosition(460, 460);
   const preview = method === "signEvent" && Array.isArray(params) ? JSON.stringify(params[0], null, 2) : "";
@@ -248,7 +249,10 @@ function isPromptRequest(message: unknown): message is PromptRequest {
     isRecord(message) &&
     message.source === MESSAGE_SOURCE_PROMPT &&
     typeof message.promptId === "string" &&
-    (message.decision === "allow_once" || message.decision === "always_allow" || message.decision === "deny")
+    (message.decision === "allow_once" ||
+      message.decision === "always_allow_method" ||
+      message.decision === "always_allow_all" ||
+      message.decision === "deny")
   );
 }
 

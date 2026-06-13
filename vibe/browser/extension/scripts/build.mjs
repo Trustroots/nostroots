@@ -84,10 +84,17 @@ async function writeManifest(browserTarget, targetDist) {
     manifest.background = {
       scripts: ["background.js"],
     };
+    manifest.permissions = manifest.permissions.filter((permission) => permission !== "windows");
     manifest.browser_specific_settings = {
       gecko: {
         id: "nostroots-extension@trustroots.org",
-        strict_min_version: "109.0",
+        strict_min_version: "140.0",
+        data_collection_permissions: {
+          required: ["none"],
+        },
+      },
+      gecko_android: {
+        strict_min_version: "142.0",
       },
     };
   } else {

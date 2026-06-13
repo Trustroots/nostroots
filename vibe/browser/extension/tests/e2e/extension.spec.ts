@@ -92,22 +92,28 @@ test("NIP-07 provider signs on trusted origins and prompts unknown origins", asy
     const prompt = await context.waitForEvent("page", (page) =>
       page.url().startsWith(`chrome-extension://${extensionId}/prompt.html`),
     );
-    await prompt.getByRole("button", { name: "Always allow" }).click();
+    await expect(prompt.getByRole("button", { name: "Allow once" })).toBeVisible();
+    await expect(prompt.getByRole("button", { name: "Always allow these actions" })).toBeVisible();
+    await expect(prompt.getByRole("button", { name: "Always allow everything" })).toBeVisible();
+    await prompt.getByRole("button", { name: "Always allow these actions" }).click();
     expect((await signing) as { id: string }).toHaveProperty("id");
 
-    const stored = await serviceWorker.evaluate(() => chrome.storage.local.get("nostroots.browser.allowedOrigins"));
-    expect(stored["nostroots.browser.allowedOrigins"]).toEqual(["https://treasures.to"]);
+    const stored = await serviceWorker.evaluate(() => chrome.storage.local.get("nostroots.browser.allowedOriginAccess"));
+    expect(stored["nostroots.browser.allowedOriginAccess"]).toEqual({
+      "https://treasures.to": { all: false, methods: ["signEvent"] },
+    });
 
     await expect(optionsPage.getByRole("link", { name: "treasures.to" })).toHaveAttribute(
       "href",
       "https://treasures.to",
     );
+    await expect(optionsPage.getByText("Sign events")).toBeVisible();
     await expect(optionsPage.getByRole("button", { name: "Revoke treasures.to access" })).toBeVisible();
     await expect(optionsPage.getByText("No other sites have access yet.")).toBeHidden();
 
     await serviceWorker.evaluate(() => chrome.storage.local.remove("nostroots.browser.privateKeyHex"));
-    await serviceWorker.evaluate(() => chrome.storage.local.remove("nostroots.browser.allowedOrigins"));
-    expect(await serviceWorker.evaluate(() => chrome.storage.local.get("nostroots.browser.allowedOrigins"))).toEqual({});
+    await serviceWorker.evaluate(() => chrome.storage.local.remove("nostroots.browser.allowedOriginAccess"));
+    expect(await serviceWorker.evaluate(() => chrome.storage.local.get("nostroots.browser.allowedOriginAccess"))).toEqual({});
   } finally {
     await context.close();
   }

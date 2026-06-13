@@ -1,4 +1,4 @@
-import { EXTENSION_BRAND, STORAGE_KEYS } from "./shared/constants";
+import { EXTENSION_BRAND, nip07MethodLabel, STORAGE_KEYS } from "./shared/constants";
 import { extensionApi } from "./shared/extension-api";
 import { lookupTrustrootsNip05 } from "./shared/identity";
 import {
@@ -12,7 +12,7 @@ import {
 import { hostForOrigin, isTrustedOrigin } from "./shared/origins";
 import {
   clearPrivateKey,
-  readAllowedOrigins,
+  readAllowedOriginAccess,
   readCachedTrustrootsNip05,
   readPrivateKeyHex,
   revokeAllowedOrigin,
@@ -28,29 +28,38 @@ const state = {
 };
 
 const NOSTROOTS_WEB_URL = "https://nos.trustroots.org/";
-const EYE_ICON = [
-  '<svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">',
-  '<path d="M2.1 12s3.4-6.5 9.9-6.5 9.9 6.5 9.9 6.5-3.4 6.5-9.9 6.5S2.1 12 2.1 12Z"/>',
-  '<circle cx="12" cy="12" r="3"/>',
-  "</svg>",
-].join("");
-const EYE_OFF_ICON = [
-  '<svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">',
-  '<path d="M3 3l18 18"/>',
-  '<path d="M10.7 5.7A10.3 10.3 0 0 1 12 5.6c6.5 0 9.9 6.4 9.9 6.4a18 18 0 0 1-3.1 3.8"/>',
-  '<path d="M14.1 14.1A3 3 0 0 1 9.9 9.9"/>',
-  '<path d="M6.4 6.4A17.6 17.6 0 0 0 2.1 12s3.4 6.5 9.9 6.5c1.7 0 3.2-.4 4.5-1"/>',
-  "</svg>",
-].join("");
-const TRASH_ICON = [
-  '<svg aria-hidden="true" viewBox="0 0 24 24" focusable="false">',
-  '<path d="M3 6h18"/>',
-  '<path d="M8 6V4h8v2"/>',
-  '<path d="M19 6l-1 14H6L5 6"/>',
-  '<path d="M10 11v5"/>',
-  '<path d="M14 11v5"/>',
-  "</svg>",
-].join("");
+const SVG_NS = "http://www.w3.org/2000/svg";
+type IconSpec = Array<{
+  tag: "circle" | "path";
+  attributes: Record<string, string>;
+}>;
+const EYE_ICON: IconSpec = [
+  { tag: "path", attributes: { d: "M2.1 12s3.4-6.5 9.9-6.5 9.9 6.5 9.9 6.5-3.4 6.5-9.9 6.5S2.1 12 2.1 12Z" } },
+  { tag: "circle", attributes: { cx: "12", cy: "12", r: "3" } },
+];
+const EYE_OFF_ICON: IconSpec = [
+  { tag: "path", attributes: { d: "M3 3l18 18" } },
+  {
+    tag: "path",
+    attributes: {
+      d: "M10.7 5.7A10.3 10.3 0 0 1 12 5.6c6.5 0 9.9 6.4 9.9 6.4a18 18 0 0 1-3.1 3.8",
+    },
+  },
+  { tag: "path", attributes: { d: "M14.1 14.1A3 3 0 0 1 9.9 9.9" } },
+  {
+    tag: "path",
+    attributes: {
+      d: "M6.4 6.4A17.6 17.6 0 0 0 2.1 12s3.4 6.5 9.9 6.5c1.7 0 3.2-.4 4.5-1",
+    },
+  },
+];
+const TRASH_ICON: IconSpec = [
+  { tag: "path", attributes: { d: "M3 6h18" } },
+  { tag: "path", attributes: { d: "M8 6V4h8v2" } },
+  { tag: "path", attributes: { d: "M19 6l-1 14H6L5 6" } },
+  { tag: "path", attributes: { d: "M10 11v5" } },
+  { tag: "path", attributes: { d: "M14 11v5" } },
+];
 
 const elements = {
   status: mustElement("status"),
@@ -75,7 +84,7 @@ const elements = {
 };
 
 elements.buildTime.textContent = `Built ${__NOSTROOTS_EXTENSION_BUILD_TIME__}`;
-elements.removeButton.innerHTML = TRASH_ICON;
+elements.removeButton.replaceChildren(createIcon(TRASH_ICON));
 
 void render();
 
@@ -125,7 +134,7 @@ elements.copyMnemonicButton.addEventListener("click", () => {
 });
 
 extensionApi.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== "local" || !changes[STORAGE_KEYS.allowedOrigins]) return;
+  if (areaName !== "local" || !changes[STORAGE_KEYS.allowedOriginAccess]) return;
   void renderPermissions();
 });
 
@@ -249,33 +258,45 @@ function setCopyable(element: HTMLElement, copyable: boolean, title: string): vo
 
 function setRevealButtonState(showingSecret: boolean): void {
   const label = showingSecret ? "Hide private key" : "Reveal private key";
-  elements.revealButton.innerHTML = showingSecret ? EYE_OFF_ICON : EYE_ICON;
+  elements.revealButton.replaceChildren(createIcon(showingSecret ? EYE_OFF_ICON : EYE_ICON));
   elements.revealButton.setAttribute("aria-label", label);
   elements.revealButton.title = label;
 }
 
 async function renderPermissions(): Promise<void> {
-  const origins = await readAllowedOrigins();
-  const rows = origins.map((origin) => {
+  const accessEntries = await readAllowedOriginAccess();
+  const rows = accessEntries.map((entry) => {
     const item = document.createElement("li");
     item.className = "permission-row";
 
     const text = document.createElement("span");
+    text.className = "permission-summary";
+
     const link = document.createElement("a");
-    link.href = origin;
-    link.textContent = hostForOrigin(origin);
+    link.href = entry.origin;
+    link.textContent = hostForOrigin(entry.origin);
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    text.append(link);
+
+    const actionList = document.createElement("span");
+    actionList.className = "permission-actions";
+    const labels = entry.all ? ["All actions"] : entry.methods.map(nip07MethodLabel);
+    for (const label of labels) {
+      const badge = document.createElement("span");
+      badge.className = "permission-action";
+      badge.textContent = label;
+      actionList.append(badge);
+    }
+    text.append(link, actionList);
 
     const button = document.createElement("button");
     button.type = "button";
     button.className = "icon-button subtle-icon-button";
-    button.innerHTML = TRASH_ICON;
-    button.setAttribute("aria-label", `Revoke ${hostForOrigin(origin)} access`);
-    button.title = `Revoke ${hostForOrigin(origin)} access`;
+    button.replaceChildren(createIcon(TRASH_ICON));
+    button.setAttribute("aria-label", `Revoke ${hostForOrigin(entry.origin)} access`);
+    button.title = `Revoke ${hostForOrigin(entry.origin)} access`;
     button.addEventListener("click", () => {
-      void revokeAllowedOrigin(origin).then(render);
+      void revokeAllowedOrigin(entry.origin).then(render);
     });
 
     item.append(text, button);
@@ -366,6 +387,23 @@ function mustElement(id: string): HTMLElement {
   const element = document.getElementById(id);
   if (!element) throw new Error(`Missing #${id}`);
   return element;
+}
+
+function createIcon(spec: IconSpec): SVGSVGElement {
+  const svg = document.createElementNS(SVG_NS, "svg");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("focusable", "false");
+
+  for (const childSpec of spec) {
+    const child = document.createElementNS(SVG_NS, childSpec.tag);
+    for (const [name, value] of Object.entries(childSpec.attributes)) {
+      child.setAttribute(name, value);
+    }
+    svg.append(child);
+  }
+
+  return svg;
 }
 
 const trusted = document.getElementById("trusted-origins");

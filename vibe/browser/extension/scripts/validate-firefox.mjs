@@ -23,8 +23,24 @@ if (!manifest.browser_specific_settings?.gecko?.id) {
   errors.push("Firefox build must include browser_specific_settings.gecko.id.");
 }
 
+if (manifest.browser_specific_settings?.gecko?.strict_min_version !== "140.0") {
+  errors.push("Firefox build must require Firefox 140 or newer for data collection permissions support.");
+}
+
+if (manifest.browser_specific_settings?.gecko_android?.strict_min_version !== "142.0") {
+  errors.push("Firefox build must require Firefox for Android 142 or newer for data collection permissions support.");
+}
+
+if (!manifest.browser_specific_settings?.gecko?.data_collection_permissions?.required?.includes("none")) {
+  errors.push("Firefox build must declare no data collection for AMO.");
+}
+
 if (!Array.isArray(manifest.permissions) || !manifest.permissions.includes("storage")) {
   errors.push("Firefox build must request storage permission.");
+}
+
+if (manifest.permissions?.includes("windows")) {
+  errors.push("Firefox build must not request the unsupported windows permission.");
 }
 
 if (!Array.isArray(manifest.content_scripts) || manifest.content_scripts.length === 0) {

@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from "./constants";
+import { isKnownNip07Method, STORAGE_KEYS, type Nip07Method } from "./constants";
 import { extensionApi } from "./extension-api";
 import { isHexKey } from "./hex";
 import { isTrustedOrigin, normalizeOrigin } from "./origins";
@@ -9,6 +9,17 @@ export interface ExtensionStorage {
   remove(keys: string | string[]): Promise<void>;
   clear(): Promise<void>;
 }
+
+export type AllowedOriginAccess = {
+  origin: string;
+  all: boolean;
+  methods: Nip07Method[];
+};
+
+type StoredAllowedOriginAccess = {
+  all?: unknown;
+  methods?: unknown;
+};
 
 export function extensionStorage(): ExtensionStorage {
   return extensionApi.storage.local;
@@ -37,15 +48,17 @@ export async function clearPrivateKey(storage: ExtensionStorage = extensionStora
 }
 
 export async function readAllowedOrigins(storage: ExtensionStorage = extensionStorage()): Promise<string[]> {
-  const result = await storage.get(STORAGE_KEYS.allowedOrigins);
-  const value = result[STORAGE_KEYS.allowedOrigins];
-  if (!Array.isArray(value)) return [];
-  const origins = value
-    .filter((origin): origin is string => typeof origin === "string")
-    .map((origin) => normalizeOrigin(origin))
-    .filter((origin): origin is string => origin !== null)
-    .filter((origin) => !isTrustedOrigin(origin));
-  return Array.from(new Set(origins)).sort();
+  const access = await readAllowedOriginAccess(storage);
+  return access.filter((entry) => entry.all).map((entry) => entry.origin);
+}
+
+export async function readAllowedOriginAccess(
+  storage: ExtensionStorage = extensionStorage(),
+): Promise<AllowedOriginAccess[]> {
+  const access = await readAllowedOriginAccessRecord(storage);
+  return Object.entries(access)
+    .map(([origin, entry]) => ({ origin, ...entry }))
+    .sort((left, right) => left.origin.localeCompare(right.origin));
 }
 
 export async function readCachedTrustrootsNip05(
@@ -85,9 +98,28 @@ export async function rememberAllowedOrigin(
 ): Promise<void> {
   const normalizedOrigin = normalizeOrigin(origin);
   if (!normalizedOrigin || isTrustedOrigin(normalizedOrigin)) return;
-  const origins = new Set(await readAllowedOrigins(storage));
-  origins.add(normalizedOrigin);
-  await storage.set({ [STORAGE_KEYS.allowedOrigins]: Array.from(origins).sort() });
+  const access = await readAllowedOriginAccessRecord(storage);
+  access[normalizedOrigin] = { all: true, methods: access[normalizedOrigin]?.methods ?? [] };
+  await writeAllowedOriginAccessRecord(access, storage);
+}
+
+export async function rememberAllowedOriginMethod(
+  origin: string,
+  method: Nip07Method,
+  storage: ExtensionStorage = extensionStorage(),
+): Promise<void> {
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (!normalizedOrigin || isTrustedOrigin(normalizedOrigin)) return;
+
+  const access = await readAllowedOriginAccessRecord(storage);
+  const methods = new Set(access[normalizedOrigin]?.methods ?? []);
+  methods.add(method);
+
+  access[normalizedOrigin] = {
+    all: access[normalizedOrigin]?.all ?? false,
+    methods: Array.from(methods).sort(),
+  };
+  await writeAllowedOriginAccessRecord(access, storage);
 }
 
 export async function revokeAllowedOrigin(
@@ -95,10 +127,47 @@ export async function revokeAllowedOrigin(
   storage: ExtensionStorage = extensionStorage(),
 ): Promise<void> {
   const normalizedOrigin = normalizeOrigin(origin);
-  const origins = (await readAllowedOrigins(storage)).filter((candidate) => candidate !== normalizedOrigin);
-  await storage.set({ [STORAGE_KEYS.allowedOrigins]: origins });
+  const access = await readAllowedOriginAccessRecord(storage);
+  if (normalizedOrigin) delete access[normalizedOrigin];
+  await writeAllowedOriginAccessRecord(access, storage);
 }
 
 export async function clearAllowedOrigins(storage: ExtensionStorage = extensionStorage()): Promise<void> {
-  await storage.remove(STORAGE_KEYS.allowedOrigins);
+  await storage.remove(STORAGE_KEYS.allowedOriginAccess);
+}
+
+async function readAllowedOriginAccessRecord(
+  storage: ExtensionStorage = extensionStorage(),
+): Promise<Record<string, Omit<AllowedOriginAccess, "origin">>> {
+  const result = await storage.get(STORAGE_KEYS.allowedOriginAccess);
+  const value = result[STORAGE_KEYS.allowedOriginAccess];
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  const access: Record<string, Omit<AllowedOriginAccess, "origin">> = {};
+  for (const [rawOrigin, rawEntry] of Object.entries(value as Record<string, StoredAllowedOriginAccess>)) {
+    const origin = normalizeOrigin(rawOrigin);
+    if (!origin || isTrustedOrigin(origin) || !rawEntry || typeof rawEntry !== "object" || Array.isArray(rawEntry)) {
+      continue;
+    }
+
+    const all = rawEntry.all === true;
+    const methods = Array.isArray(rawEntry.methods)
+      ? Array.from(new Set(rawEntry.methods.filter(isKnownNip07Method))).sort()
+      : [];
+    if (all || methods.length > 0) {
+      const previous = access[origin] ?? { all: false, methods: [] };
+      access[origin] = {
+        all: previous.all || all,
+        methods: Array.from(new Set([...previous.methods, ...methods])).sort(),
+      };
+    }
+  }
+  return access;
+}
+
+async function writeAllowedOriginAccessRecord(
+  access: Record<string, Omit<AllowedOriginAccess, "origin">>,
+  storage: ExtensionStorage,
+): Promise<void> {
+  await storage.set({ [STORAGE_KEYS.allowedOriginAccess]: access });
 }

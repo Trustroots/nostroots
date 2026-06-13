@@ -2,7 +2,7 @@ import { MESSAGE_SOURCE_PROMPT } from "./shared/constants";
 import { extensionApi } from "./shared/extension-api";
 import { hostForOrigin } from "./shared/origins";
 
-type Decision = "allow_once" | "always_allow" | "deny";
+type Decision = "allow_once" | "always_allow_method" | "always_allow_all" | "deny";
 
 const params = new URLSearchParams(window.location.search);
 const promptId = params.get("promptId") || "";
@@ -21,7 +21,8 @@ if (preview) {
 }
 
 bindDecision("allow-once", "allow_once");
-bindDecision("always-allow", "always_allow");
+bindDecision("always-allow-method", "always_allow_method");
+bindDecision("always-allow-all", "always_allow_all");
 bindDecision("deny", "deny");
 
 function bindDecision(id: string, decision: Decision): void {

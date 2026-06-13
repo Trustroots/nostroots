@@ -12,9 +12,11 @@ import {
 import { MemoryStorage } from "../../src/shared/memory-storage";
 import {
   readAllowedOrigins,
+  readAllowedOriginAccess,
   readCachedTrustrootsNip05,
   readPrivateKeyHex,
   rememberAllowedOrigin,
+  rememberAllowedOriginMethod,
   revokeAllowedOrigin,
   writeCachedTrustrootsNip05,
   writePrivateKeyHex,
@@ -77,20 +79,22 @@ describe("key parsing and single-key storage", () => {
   it("reads remembered origins as canonical non-Trustroots site approvals", async () => {
     const storage = new MemoryStorage();
     await storage.set({
-      [STORAGE_KEYS.allowedOrigins]: [
-        "https://Treasures.To/path?from=nostroots",
-        "https://treasures.to",
-        "https://example.com:8443/app",
-        "https://nos.trustroots.org",
-        "file:///tmp/test.html",
-        42,
-        null,
-      ],
+      [STORAGE_KEYS.allowedOriginAccess]: {
+        "https://Treasures.To/path?from=nostroots": { all: true },
+        "https://treasures.to": { methods: ["signEvent", "bad"] },
+        "https://example.com:8443/app": { all: true },
+        "https://nos.trustroots.org": { all: true },
+        "file:///tmp/test.html": { all: true },
+      },
     });
 
     expect(await readAllowedOrigins(storage)).toEqual([
       "https://example.com:8443",
       "https://treasures.to",
+    ]);
+    expect(await readAllowedOriginAccess(storage)).toEqual([
+      { origin: "https://example.com:8443", all: true, methods: [] },
+      { origin: "https://treasures.to", all: true, methods: ["signEvent"] },
     ]);
   });
 
@@ -102,9 +106,23 @@ describe("key parsing and single-key storage", () => {
     await rememberAllowedOrigin("https://nos.trustroots.org", storage);
 
     expect(await readAllowedOrigins(storage)).toEqual(["https://treasures.to"]);
-    expect(await storage.get(STORAGE_KEYS.allowedOrigins)).toEqual({
-      [STORAGE_KEYS.allowedOrigins]: ["https://treasures.to"],
+    expect(await storage.get(STORAGE_KEYS.allowedOriginAccess)).toEqual({
+      [STORAGE_KEYS.allowedOriginAccess]: {
+        "https://treasures.to": { all: true, methods: [] },
+      },
     });
+  });
+
+  it("stores only normalized remembered action approvals", async () => {
+    const storage = new MemoryStorage();
+    await rememberAllowedOriginMethod("https://Treasures.To/path", "signEvent", storage);
+    await rememberAllowedOriginMethod("https://treasures.to/other", "getPublicKey", storage);
+    await rememberAllowedOriginMethod("file:///tmp/test.html", "signEvent", storage);
+    await rememberAllowedOriginMethod("https://nos.trustroots.org", "signEvent", storage);
+
+    expect(await readAllowedOriginAccess(storage)).toEqual([
+      { origin: "https://treasures.to", all: false, methods: ["getPublicKey", "signEvent"] },
+    ]);
   });
 
   it("revokes normalized remembered origins and leaves other sites intact", async () => {

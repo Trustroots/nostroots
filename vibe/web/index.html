@@ -168,6 +168,16 @@
       font-size: 15px;
       font-weight: 700;
       box-shadow: 0 10px 28px rgba(0, 75, 63, 0.1);
+      transition: opacity 700ms ease;
+    }
+
+    .status-pill.is-fading-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .status-pill.is-fading-in {
+      opacity: 0;
     }
 
     .status-pill-button {
@@ -220,6 +230,7 @@
     .identity-link[data-state="connected"] {
       color: var(--accent-dark);
       font-weight: 800;
+      transition-duration: 1200ms;
     }
 
     .status-pill[hidden] {
@@ -981,6 +992,7 @@
       var NIP7_DETECTION_TIMEOUT_MS = 12000;
       var NIP7_MISSING_STATUS_DELAY_MS = 1000;
       var NIP7_DETECTION_INTERVAL_MS = 250;
+      var IDENTITY_REVEAL_DELAY_MS = 180;
 
       var card = document.getElementById('trustroots-card');
       var description = document.getElementById('trustroots-card-description');
@@ -989,12 +1001,18 @@
       var identityStatus = document.getElementById('trustroots-identity-status');
       var downloadSection = document.getElementById('download-section');
       var webExperiencesSection = document.getElementById('web-experiences-section');
+      var hubControls = document.querySelector('.hub-controls');
       if (!card || !description || !action || !keyStatus || !identityStatus) return;
+      var keyStatusFadeTimer = null;
+      var keyStatusRevealTimer = null;
+      var identityStatusRevealTimer = null;
 
       function moveDownloadSectionAfterWebExperiences() {
         if (!downloadSection || !webExperiencesSection || !webExperiencesSection.parentNode) return;
-        if (webExperiencesSection.nextElementSibling === downloadSection) return;
-        webExperiencesSection.parentNode.insertBefore(downloadSection, webExperiencesSection.nextSibling);
+        var parent = webExperiencesSection.parentNode;
+        var anchor = hubControls && hubControls.parentNode === parent ? hubControls : webExperiencesSection;
+        if (anchor.nextElementSibling === downloadSection) return;
+        parent.insertBefore(downloadSection, anchor.nextSibling);
       }
 
       var BECH32_CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
@@ -1071,8 +1089,7 @@
         return npub && npub.length > 22 ? npub.slice(0, 10) + '...' + npub.slice(-8) : npub;
       }
 
-      function setStatus(pill, label, value, state, title) {
-        pill.hidden = false;
+      function writeStatus(pill, label, value, state, title) {
         pill.dataset.state = state || 'missing';
         pill.textContent = label ? label + ': ' : '';
         var strong = document.createElement('strong');
@@ -1083,6 +1100,67 @@
         } else {
           pill.removeAttribute('title');
         }
+      }
+
+      function setStatus(pill, label, value, state, title) {
+        if (pill === keyStatus && keyStatusFadeTimer) {
+          clearTimeout(keyStatusFadeTimer);
+          keyStatusFadeTimer = null;
+        }
+        if (pill === keyStatus && keyStatusRevealTimer) {
+          clearTimeout(keyStatusRevealTimer);
+          keyStatusRevealTimer = null;
+        }
+        if (pill === identityStatus && identityStatusRevealTimer) {
+          clearTimeout(identityStatusRevealTimer);
+          identityStatusRevealTimer = null;
+        }
+        pill.classList.remove('is-fading-in', 'is-fading-out');
+        pill.removeAttribute('aria-hidden');
+        pill.hidden = false;
+        writeStatus(pill, label, value, state, title);
+      }
+
+      function revealKeyStatusAfterSettled() {
+        if (keyStatusRevealTimer) clearTimeout(keyStatusRevealTimer);
+        keyStatus.classList.add('is-fading-in');
+        keyStatus.hidden = true;
+        keyStatusRevealTimer = setTimeout(function () {
+          keyStatus.hidden = false;
+          requestAnimationFrame(function () {
+            keyStatus.classList.remove('is-fading-in');
+            keyStatusRevealTimer = null;
+          });
+        }, IDENTITY_REVEAL_DELAY_MS);
+      }
+
+      function revealIdentityStatusAfterSettled() {
+        if (identityStatusRevealTimer) clearTimeout(identityStatusRevealTimer);
+        identityStatus.classList.add('is-fading-in');
+        identityStatus.hidden = true;
+        identityStatusRevealTimer = setTimeout(function () {
+          identityStatus.hidden = false;
+          requestAnimationFrame(function () {
+            identityStatus.classList.remove('is-fading-in');
+            identityStatusRevealTimer = null;
+          });
+        }, IDENTITY_REVEAL_DELAY_MS);
+      }
+
+      function fadeOutKeyStatus(onComplete) {
+        if (keyStatus.hidden || keyStatusFadeTimer) {
+          if (typeof onComplete === 'function') onComplete();
+          return;
+        }
+        keyStatus.classList.add('is-fading-out');
+        keyStatus.setAttribute('aria-hidden', 'true');
+        keyStatusFadeTimer = setTimeout(function () {
+          keyStatus.hidden = true;
+          keyStatus.classList.remove('is-fading-out');
+          keyStatus.removeAttribute('aria-hidden');
+          keyStatusFadeTimer = null;
+          if (typeof onComplete === 'function') onComplete();
+        }, 700);
       }
 
       function isHexKey(value) {
@@ -1366,7 +1444,8 @@
       function applyKeyState(publicKeyHex) {
         var npub = npubEncodeFromHex(publicKeyHex);
         keyStatus.removeAttribute('aria-label');
-        setStatus(keyStatus, 'Nostr key', shortenNpub(npub) || publicKeyHex.slice(0, 10) + '...', 'connected', npub || publicKeyHex);
+        writeStatus(keyStatus, '', shortenNpub(npub) || publicKeyHex.slice(0, 10) + '...', 'connected', npub || publicKeyHex);
+        revealKeyStatusAfterSettled();
       }
 
       function applyMissingKeyState() {
@@ -1389,19 +1468,19 @@
 
       function applyUnlinkedIdentityState() {
         identityStatus.removeAttribute('href');
-        setStatus(identityStatus, 'Trustroots identity', 'not linked', 'missing');
+        writeStatus(identityStatus, 'Trustroots identity', 'not linked', 'missing');
+        revealIdentityStatusAfterSettled();
       }
 
       function applyIdentityState(nip05) {
         var username = usernameFromTrustrootsNip05(nip05);
         if (!username) return;
         var npub = npubEncodeFromHex(activePublicKeyHex);
-        keyStatus.hidden = true;
-        identityStatus.hidden = false;
         identityStatus.dataset.state = 'connected';
         identityStatus.href = 'https://www.trustroots.org/profile/' + encodeURIComponent(username);
         identityStatus.title = npub || activePublicKeyHex;
         identityStatus.textContent = username + '@trustroots.org';
+        fadeOutKeyStatus(revealIdentityStatusAfterSettled);
       }
 
       var activePublicKeyHex = '';
@@ -1410,26 +1489,35 @@
       async function applyDetectedNip7Key(publicKeyHex) {
         if (!publicKeyHex || publicKeyHex === activePublicKeyHex) return;
         activePublicKeyHex = publicKeyHex;
-        applyKeyState(publicKeyHex);
-        applyUnlinkedIdentityState();
         try {
           var signAuthEvent = function (template, relayUrl) {
             return signNip7AuthEvent(template, relayUrl, publicKeyHex);
           };
           var nip05 = await lookupTrustrootsNip05(publicKeyHex, signAuthEvent);
-          if (activePublicKeyHex === publicKeyHex && nip05) applyIdentityState(nip05);
-        } catch (_) {}
+          if (activePublicKeyHex !== publicKeyHex) return;
+          if (nip05) {
+            applyIdentityState(nip05);
+          } else {
+            applyKeyState(publicKeyHex);
+          }
+        } catch (_) {
+          if (activePublicKeyHex === publicKeyHex) applyKeyState(publicKeyHex);
+        }
       }
 
       async function refreshNip7Key() {
         var provider = getNip7Provider();
         if (!provider) return false;
-        applyProviderDetectedState();
+        moveDownloadSectionAfterWebExperiences();
         if (nip7PublicKeyRequestPending) return true;
         nip7PublicKeyRequestPending = true;
         try {
           var publicKeyHex = await getNip7PublicKey(provider);
-          if (publicKeyHex) await applyDetectedNip7Key(publicKeyHex);
+          if (publicKeyHex) {
+            await applyDetectedNip7Key(publicKeyHex);
+          } else {
+            applyProviderDetectedState();
+          }
         } finally {
           nip7PublicKeyRequestPending = false;
         }

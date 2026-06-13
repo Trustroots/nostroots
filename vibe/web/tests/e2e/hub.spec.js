@@ -242,6 +242,9 @@ test.describe('Nostroots Web hub', () => {
     expect(await page.evaluate(() => Boolean(
       document.getElementById('web-experiences-section').compareDocumentPosition(document.getElementById('download-section')) & Node.DOCUMENT_POSITION_FOLLOWING
     ))).toBe(true);
+    expect(await page.evaluate(() => Boolean(
+      document.querySelector('.hub-controls').compareDocumentPosition(document.getElementById('download-section')) & Node.DOCUMENT_POSITION_FOLLOWING
+    ))).toBe(true);
   });
 
   test('prompts users to link Trustroots when the NIP-07 key has no Trustroots NIP-05', async ({ page }) => {
@@ -254,8 +257,8 @@ test.describe('Nostroots Web hub', () => {
     await expect(card).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
     await expect(page.locator('#trustroots-card-description')).toContainText('Manage your classic Trustroots profile, networks, and account settings.');
     await expect(page.locator('#trustroots-card-action')).toHaveText('Open Trustroots.org');
-    await expect(page.locator('#nostr-key-status')).toContainText(/^Nostr key: npub1/);
-    await expect(page.locator('#trustroots-identity-status')).toContainText('Trustroots identity: not linked');
+    await expect(page.locator('#nostr-key-status')).toContainText(/^npub1/);
+    await expect(page.locator('#trustroots-identity-status')).toBeHidden();
   });
 
   test('detects a NIP-07 key injected after the hub starts', async ({ page }) => {
@@ -264,8 +267,8 @@ test.describe('Nostroots Web hub', () => {
 
     await page.goto('/');
 
-    await expect(page.locator('#nostr-key-status')).toContainText(/^Nostr key: npub1/);
-    await expect(page.locator('#trustroots-identity-status')).toContainText('Trustroots identity: not linked');
+    await expect(page.locator('#nostr-key-status')).toContainText(/^npub1/);
+    await expect(page.locator('#trustroots-identity-status')).toBeHidden();
   });
 
 

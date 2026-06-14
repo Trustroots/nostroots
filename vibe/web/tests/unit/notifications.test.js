@@ -56,7 +56,7 @@ describe('Browser notifications', () => {
     });
 
     it('has native Nostroots Browser notification bridge support', () => {
-      const source = readFileSync(resolve(process.cwd(), 'trustroots-map/index.js'), 'utf8');
+      const source = readFileSync(resolve(process.cwd(), 'v0/index.js'), 'utf8');
 
       expect(source).toContain('window.nostrootsBrowser?.notifications');
       expect(source).toContain('subscribePlusCode');

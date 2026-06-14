@@ -1558,7 +1558,8 @@ const TRUSTROOTS_CONTACT_SET_KIND = 30000;
 const TRUSTROOTS_CIRCLE_MEMBERSHIP_KIND = 30001;
 const TRUSTROOTS_CIRCLE_MEMBERSHIP_D_TAG = 'trustroots-circles';
 const NIP32_LABEL_KIND = 1985;
-const MAP_NOTE_KINDS = [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND];
+const TRUSTROOTS_MAP_NOTE_KINDS = [MAP_NOTE_KIND, MAP_NOTE_REPOST_KIND];
+const MAP_NOTE_KINDS = TRUSTROOTS_MAP_NOTE_KINDS;
 const DELETION_KIND = 5; // NIP-05: Deletion events
 const TRUSTROOTS_PROFILE_KIND = 10390;
 // TRUSTROOTS_USERNAME_LABEL_NAMESPACE comes from folded claim-utils.js block above.
@@ -1572,6 +1573,10 @@ const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2;
 
 export function getMapNoteKinds() {
     return MAP_NOTE_KINDS.slice();
+}
+
+export function getTrustrootsMapNoteKinds() {
+    return TRUSTROOTS_MAP_NOTE_KINDS.slice();
 }
 
 export function getProfileMetadataKinds() {
@@ -1616,7 +1621,7 @@ export function buildProfileMetadataFilter(authors, extra = {}) {
 
 /**
  * Compute engagement KPIs from in-memory note events.
- * Counts map notes and host mirrors only (kinds 30397/30398).
+ * Counts map-visible Trustroots map-note events.
  */
 export function computeHeaderKpiCounts(eventsList, nowTimestamp = Math.round(Date.now() / 1000)) {
     const source = Array.isArray(eventsList) ? eventsList : [];
@@ -2473,10 +2478,10 @@ export function parseCircleMemberMapNoteClaimEvent(event, circleSlug, opts = {})
     const acceptedSlugs = Array.isArray(opts.acceptedSlugs)
         ? opts.acceptedSlugs.map((slug) => canonicalTrustrootsCircleSlugKey(slug)).filter(Boolean)
         : [];
-    const eventKind = MAP_NOTE_KINDS.includes(event.kind)
+    const eventKind = TRUSTROOTS_MAP_NOTE_KINDS.includes(event.kind)
         ? event.kind
         : (acceptedSlugs.length ? MAP_NOTE_KIND : 0);
-    if (!MAP_NOTE_KINDS.includes(eventKind)) return null;
+    if (!TRUSTROOTS_MAP_NOTE_KINDS.includes(eventKind)) return null;
     if (eventKind === MAP_NOTE_REPOST_KIND && !hasClaimTagValue(event.tags, 'claimable', 'true')) return null;
     if (!tagSlugs.includes(slugKey) && !acceptedSlugs.includes(slugKey)) return null;
     const slugs = tagSlugs.includes(slugKey)
@@ -5359,9 +5364,9 @@ function removeRelay(url) {
 }
 
 // Browser notifications (only work while this tab is open).
-// Nostr: we use the same map-note stream as the map (kind 30397). Subscribed plus codes
+// Nostr: we use the same map-note stream as the map. Subscribed plus codes
 // are stored in IndexedDB (see nr-web-kv-idb.js). This ingest includes NIP-42 auth-relay 30397 reads
-// and public-relay 30397/30398 reads. When a new 30397 event arrives and its plus code
+// and public-relay 30397/30398 reads. When a new map note arrives and its plus code
 // matches a subscribed area, we show a browser Notification. No kind 10395, no server.
 // nr-app differs: it publishes kind 10395 (encrypted for the notification server) with
 // push tokens + Nostr filters; the server subscribes to kind 30398 (reposts) per filter
@@ -6677,7 +6682,7 @@ function isProfilePageCacheEventScoped(event, hex, bucket) {
         );
     }
     if (bucket === 'evNotes') {
-        return MAP_NOTE_KINDS.includes(event.kind) && author === h;
+        return TRUSTROOTS_MAP_NOTE_KINDS.includes(event.kind) && author === h;
     }
     if (bucket === 'evHost30398') {
         return event.kind === MAP_NOTE_REPOST_KIND && eventHasPTagForHex(event, h);
@@ -12666,7 +12671,7 @@ const __nrChatApp = (() => {
             if (event?.kind === PROFILE_CLAIM_KIND) {
                 return parseCircleMemberProfileClaim30390(event, slug, { expectedPubkeys });
             }
-            if (MAP_NOTE_KINDS.includes(event?.kind) || opts.acceptedSlugs?.length) {
+            if (TRUSTROOTS_MAP_NOTE_KINDS.includes(event?.kind) || opts.acceptedSlugs?.length) {
                 return parseCircleMemberMapNoteClaimEvent(event, slug, { expectedPubkeys, ...opts });
             }
             return null;
@@ -14802,7 +14807,7 @@ const __nrChatApp = (() => {
                     authPubkey: currentPublicKey,
                     signEvent: (template) => signEvent(template),
                     onEvent: (event) => {
-                        if (event && (event.kind === MAP_NOTE_KIND || event.kind === MAP_NOTE_REPOST_KIND)) {
+                        if (event && MAP_NOTE_KINDS.includes(event.kind)) {
                             onChannelEvent(event);
                         }
                     },
@@ -14842,7 +14847,7 @@ const __nrChatApp = (() => {
                 }
                 if (type === 'EVENT') {
                     const event = b;
-                    if (event && (event.kind === MAP_NOTE_KIND || event.kind === MAP_NOTE_REPOST_KIND)) {
+                    if (event && MAP_NOTE_KINDS.includes(event.kind)) {
                         onChannelEvent(event);
                     }
                     return;
@@ -16114,7 +16119,7 @@ const __nrChatApp = (() => {
         }
 
         function getMapNoteCanonicalKey(raw) {
-            if (!raw || (raw.kind !== MAP_NOTE_KIND && raw.kind !== MAP_NOTE_REPOST_KIND)) {
+            if (!raw || !MAP_NOTE_KINDS.includes(raw.kind)) {
                 return raw?.id ? `id:${raw.id}` : '';
             }
 
@@ -16262,7 +16267,7 @@ const __nrChatApp = (() => {
                     const plusCode = getPluscodeFromEvent(eventLike) || '';
                     const contentNormalized = (eventLike.content || '').trim();
                     const createdAtMinute = Math.floor((eventLike.created_at || 0) / 60);
-                    const similarityKey = (eventKind === MAP_NOTE_KIND || eventKind === MAP_NOTE_REPOST_KIND)
+                    const similarityKey = MAP_NOTE_KINDS.includes(eventKind)
                         ? `similar:${createdAtMinute}|${plusCode}|${contentNormalized}`
                         : '';
                     const key = similarityKey || canonicalKey || `id:${ev.id}`;
@@ -17321,7 +17326,7 @@ function isTrustrootsNip42RelayUrl(url) {
  * @param {string} authorHex
  */
 function isMapNoteTrustrootsValidated(ev, authorHex) {
-  if (!ev || !MAP_NOTE_KINDS.includes(ev.kind)) return false;
+  if (!ev || !TRUSTROOTS_MAP_NOTE_KINDS.includes(ev.kind)) return false;
   const h = String(authorHex || '').toLowerCase();
   if (String(ev.pubkey || '').toLowerCase() !== h) return false;
   if (ev.kind === MAP_NOTE_REPOST_KIND) return true;
@@ -18335,7 +18340,7 @@ function pickLatestMapNotesByIntentType(notesSorted, hostMirrorEvents, subjectHe
   const ownNotes = Array.isArray(notesSorted) ? notesSorted : [];
   const mirrorNotes = Array.isArray(hostMirrorEvents) ? hostMirrorEvents : [];
   const combined = [...ownNotes, ...mirrorNotes]
-    .filter((ev) => ev && MAP_NOTE_KINDS.includes(ev.kind))
+    .filter((ev) => ev && TRUSTROOTS_MAP_NOTE_KINDS.includes(ev.kind))
     .filter((ev) => {
       if (ev.kind === MAP_NOTE_KIND) return String(ev.pubkey || '').toLowerCase() === h;
       if (ev.kind === MAP_NOTE_REPOST_KIND) {
@@ -19138,7 +19143,7 @@ function applyStagedProfileView(refs, viewState, ctx) {
 
   const notesSorted = notesReady
     ? evNotes
-        .filter((e) => MAP_NOTE_KINDS.includes(e.kind))
+        .filter((e) => TRUSTROOTS_MAP_NOTE_KINDS.includes(e.kind))
         .sort((a, b) => b.created_at - a.created_at)
         .slice(0, 25)
     : [];
@@ -19896,8 +19901,8 @@ async function renderPublicProfile(profileId) {
     })());
     fetchTasks.push((async () => {
       const [byUnauth, byAuth, cached] = await Promise.all([
-        trackUnauth('30397/30398 authors=hex [unauth]', { kinds: MAP_NOTE_KINDS, authors: [hex], limit: 40 }),
-        trackAuth('30397/30398 authors=hex [auth]', { kinds: MAP_NOTE_KINDS, authors: [hex], limit: 120 }),
+        trackUnauth('30397/30398 authors=hex [unauth]', { kinds: TRUSTROOTS_MAP_NOTE_KINDS, authors: [hex], limit: 40 }),
+        trackAuth('30397/30398 authors=hex [auth]', { kinds: TRUSTROOTS_MAP_NOTE_KINDS, authors: [hex], limit: 120 }),
         cachedProfilePromise,
       ]);
       if (!isProfileRenderCurrent(renderToken)) return;

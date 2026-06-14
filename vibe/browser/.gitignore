@@ -6,3 +6,7 @@ expo/dist/
 expo/web-build/
 expo/coverage/
 expo/.turbo/
+extension/node_modules/
+extension/dist/
+extension/packages/
+extension/test-results/

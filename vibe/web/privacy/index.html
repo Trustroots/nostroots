@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nostroots Privacy Policy</title>
+  <meta name="description" content="Privacy policy for Nostroots Web, experimental Nostroots web tools, and the Nostroots Extension.">
+  <meta name="theme-color" content="#004b3f">
+  <link rel="canonical" href="https://nos.trustroots.org/privacy/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Nostroots">
+  <meta property="og:title" content="Nostroots Privacy Policy">
+  <meta property="og:description" content="How Nostroots Web and the Nostroots Extension handle keys, relays, analytics, location, and local data.">
+  <meta property="og:url" content="https://nos.trustroots.org/privacy/">
+  <meta property="og:image" content="https://nos.trustroots.org/og-image.png">
+  <link rel="icon" type="image/png" href="../nostroots-logo.png">
+  <link rel="apple-touch-icon" href="../nostroots-logo.png">
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <link rel="icon" type="image/png" sizes="48x48" href="../favicon.png">
+  <style>
+    :root {
+      --background: #f7f8ef;
+      --foreground: #08261f;
+      --muted: #5f7169;
+      --line: #dbe3d2;
+      --panel: #fffdf4;
+      --accent: #128a78;
+      --accent-dark: #004b3f;
+      --shadow: rgba(0, 75, 63, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Nunito, Avenir Next, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--foreground);
+      background:
+        linear-gradient(180deg, rgba(152, 173, 70, 0.18), transparent 360px),
+        linear-gradient(90deg, rgba(49, 189, 166, 0.08), rgba(243, 181, 42, 0.08)),
+        var(--background);
+    }
+
+    a {
+      color: var(--accent-dark);
+      font-weight: 800;
+    }
+
+    .shell {
+      width: min(920px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 42px 0 56px;
+    }
+
+    .brand-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+      color: var(--accent-dark);
+      text-decoration: none;
+      font-weight: 900;
+    }
+
+    .brand-link img {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      box-shadow: 0 10px 24px rgba(0, 75, 63, 0.14);
+    }
+
+    .policy {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 18px 42px var(--shadow);
+      padding: clamp(22px, 5vw, 48px);
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--accent-dark);
+      font-size: clamp(36px, 6vw, 58px);
+      line-height: 1.04;
+      letter-spacing: 0;
+    }
+
+    .updated {
+      margin: 14px 0 28px;
+      color: var(--muted);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    h2 {
+      margin: 34px 0 10px;
+      font-size: 25px;
+      letter-spacing: 0;
+    }
+
+    p,
+    li {
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.6;
+    }
+
+    p {
+      margin: 0 0 14px;
+    }
+
+    ul {
+      margin: 0 0 14px;
+      padding-left: 22px;
+    }
+
+    strong {
+      color: var(--foreground);
+      font-weight: 900;
+    }
+
+    code {
+      padding: 2px 5px;
+      border-radius: 6px;
+      background: rgba(18, 138, 120, 0.1);
+      color: var(--accent-dark);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.92em;
+    }
+
+    .summary {
+      margin-top: 26px;
+      padding: 18px;
+      border: 1px solid rgba(18, 138, 120, 0.2);
+      border-radius: 8px;
+      background: rgba(18, 138, 120, 0.07);
+    }
+
+    .summary p:last-child {
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 640px) {
+      .shell {
+        padding-top: 24px;
+      }
+
+      .policy {
+        padding: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <a class="brand-link" href="../">
+      <img src="../nostroots-logo.png" alt="" width="44" height="44">
+      <span>Nostroots</span>
+    </a>
+
+    <article class="policy">
+      <h1>Privacy Policy</h1>
+      <p class="updated">Last updated: June 11, 2026</p>
+
+      <div class="summary">
+        <p><strong>Short version:</strong> Nostroots Web and the Nostroots Extension are built to keep your private signing key on your device. When you publish to Nostr, the event you sign is sent to Nostr relays and can become public or shared with the people you chose. We use limited analytics on the web hub and apps to understand whether things work.</p>
+      </div>
+
+      <h2>What This Covers</h2>
+      <p>This policy covers the Nostroots web pages at <code>nos.trustroots.org</code>, including the hub, Nostroots Web, Nostrail, Nostroots Map, experimental examples under <code>vibe/web</code>, and the Nostroots Extension for desktop browsers.</p>
+
+      <h2>Nostr And Public Data</h2>
+      <p>Nostroots uses the Nostr protocol. Nostr is a decentralized network: when you publish a signed event, it may be sent to relays operated by Trustroots or by other people. Relays and other clients can copy, store, index, and redistribute Nostr events.</p>
+      <p>Public notes, profiles, map posts, relay metadata, and other public Nostr events should be treated as public. We cannot guarantee deletion from relays or clients we do not control.</p>
+
+      <h2>Private Keys</h2>
+      <p>Your private Nostr key proves that you are you. Keep it secret.</p>
+      <ul>
+        <li>The Nostroots Extension stores one private key locally in extension storage if you import or generate a key there.</li>
+        <li>Nostroots Web can use a browser signer such as the Nostroots Extension through <code>window.nostr</code>. In that case, Nostroots Web asks the signer to approve actions and does not receive your private key.</li>
+        <li>Nostroots Web also has local-key development and recovery flows. If you choose to store a local key in the web app, it is stored in your browser's local storage on that device.</li>
+        <li>Trustroots does not receive your private key and cannot recover it for you.</li>
+      </ul>
+
+      <h2>Data Stored On Your Device</h2>
+      <p>Nostroots pages may store data in your browser using local storage, session storage, IndexedDB, or extension storage. This can include:</p>
+      <ul>
+        <li>signer choice, public key, private key if you explicitly use a local-key flow, and key backup status;</li>
+        <li>relay settings, relay write preferences, theme, map renderer, and other app preferences;</li>
+        <li>cached Nostr events, profile data, map data, avatars, and statistics to make the app faster;</li>
+        <li>notification settings and area codes you subscribed to;</li>
+        <li>the Nostroots Extension's remembered site approvals and cached Trustroots NIP-05 address for your public key.</li>
+      </ul>
+      <p>You can clear this data through your browser's site data controls, the app's key/settings controls where available, or the Nostroots Extension settings page.</p>
+
+      <h2>The Nostroots Extension</h2>
+      <p>The Nostroots Extension provides a NIP-07 signer so compatible web apps can call <code>window.nostr</code>.</p>
+      <ul>
+        <li>It injects a provider into HTTPS pages and local development pages so websites can detect and request Nostr signing support.</li>
+        <li>Trustroots domains are allowed automatically. Other sites must ask before signing, encrypting, decrypting, or reading your public key.</li>
+        <li>If you choose "Always allow" for a site, the extension remembers that origin locally.</li>
+        <li>The extension may connect to <code>wss://relay.trustroots.org</code> and <code>wss://nip42.trustroots.org</code> to look up your Trustroots identity and support relay sign-in flows.</li>
+        <li>The extension does not sell data, use advertising trackers, or send your private key to Trustroots.</li>
+      </ul>
+
+      <h2>Trustroots Identity</h2>
+      <p>Nostroots may look up your Trustroots NIP-05 address, such as <code>alice@trustroots.org</code>, by reading public Nostr profile events and Trustroots relay data. If you add a Nostr public key to your Trustroots profile, that link can be visible to other people.</p>
+
+      <h2>Location</h2>
+      <p>Some experimental tools can ask your browser for your location. Your browser should show a permission prompt first. Location can be used to center a map, make an approximate area code, or help compose a location-sharing event.</p>
+      <p>If you publish a location or approximate area to Nostr, the recipients or relays involved may keep a copy. Do not publish a location if sharing it would put you or someone else at risk.</p>
+
+      <h2>Notifications</h2>
+      <p>Nostroots Web can ask for browser notification permission. Notification settings and subscribed area codes are stored locally. Notifications are generated by your browser while the page is active, or by a native Nostroots wrapper where that feature exists.</p>
+
+      <h2>Analytics</h2>
+      <p>The web hub and web apps load analytics from <code>1p.trustroots.org</code> using Umami. We use this to understand basic product health, such as which surfaces are used and whether important flows are working.</p>
+      <p>Analytics events are intentionally limited. They may include page paths, hostnames, basic browser request information, and small sanitized labels such as feature names or enabled/disabled states. They should not include private keys, private messages, precise location, or full Nostr event contents.</p>
+
+      <h2>Relays And Third Parties</h2>
+      <p>Nostroots can connect to Nostr relays, Trustroots services, and external websites you choose to open. Experimental examples may fetch data from third-party services relevant to that tool. Those services have their own privacy practices.</p>
+      <p>Links to outside projects, such as third-party Nostr tools, Chrome Web Store pages, GitHub, or other websites, are not controlled by Nostroots.</p>
+
+      <h2>Security</h2>
+      <p>We design Nostroots so private keys stay local where possible, but browser storage is still part of your device security. Protect your device, browser profile, and backups. If you use a shared computer, do not store a private key there.</p>
+
+      <h2>Children</h2>
+      <p>Nostroots is not intended for children. Do not use Nostroots if you are not old enough to use Trustroots or similar social networking services in your country.</p>
+
+      <h2>Changes</h2>
+      <p>We may update this policy as Nostroots changes. The updated date above shows when this page last changed.</p>
+
+      <h2>Contact</h2>
+      <p>For questions or requests, contact the Trustroots team through <a href="https://www.trustroots.org/support">Trustroots support</a> or the <a href="https://github.com/Trustroots/nostroots">Nostroots GitHub repository</a>.</p>
+    </article>
+  </main>
+</body>
+</html>

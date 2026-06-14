@@ -846,7 +846,7 @@
         const date = new Date(event.created_at * 1000).toISOString();
         const plusCode = getPlusCodeFromEvent(event);
         const plusCodeHtml = plusCode
-          ? ` | <a href="https://nos.trustroots.org/trustroots-map/#${escapeHtml(plusCode)}" target="_blank" rel="noopener noreferrer"><code>${escapeHtml(plusCode)}</code></a>`
+          ? ` | <a href="https://nos.trustroots.org/v0/#${escapeHtml(plusCode)}" target="_blank" rel="noopener noreferrer"><code>${escapeHtml(plusCode)}</code></a>`
           : "";
         box.innerHTML = `
           <div class="meta">

@@ -87,6 +87,8 @@ const selectPlusCodesWithState = createSelector(
 export default function MapPlusCodes() {
   const dispatch = useAppDispatch();
   const [isMapReady, setIsMapReady] = useState(false);
+  const [locationPermissionGranted, setLocationPermissionGranted] =
+    useState(false);
 
   const plusCodesWithState = useAppSelector(selectPlusCodesWithState);
   const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
@@ -148,6 +150,7 @@ export default function MapPlusCodes() {
   const handleLocationPress = async () => {
     const location = await getCurrentLocation();
     if (location) {
+      setLocationPermissionGranted(true);
       dispatch(
         mapActions.setCurrentMapLocation({
           latitude: location.coords.latitude,
@@ -164,7 +167,10 @@ export default function MapPlusCodes() {
         ),
       );
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
+      return;
     }
+
+    setLocationPermissionGranted(false);
   };
 
   const handleMapRegionChange = useMemo(
@@ -189,6 +195,7 @@ export default function MapPlusCodes() {
         style={styles.map}
         rotateEnabled={false}
         pitchEnabled={false}
+        showsUserLocation={locationPermissionGranted}
         onRegionChangeComplete={handleMapRegionChange}
         initialRegion={savedRegion}
         provider={getMapProvider()}

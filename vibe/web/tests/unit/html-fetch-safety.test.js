@@ -5,9 +5,9 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const indexHtml = readFileSync(join(__dirname, '../../trustroots-map/index.html'), 'utf-8');
+const indexHtml = readFileSync(join(__dirname, '../../v0/index.html'), 'utf-8');
 
-describe('trustroots-map/index.html fetch safety', () => {
+describe('v0/index.html fetch safety', () => {
     it('does not throw when metadata fetch runs without fetch support', async () => {
         const jsdomErrors = [];
         const virtualConsole = new VirtualConsole();
@@ -16,7 +16,7 @@ describe('trustroots-map/index.html fetch safety', () => {
         });
 
         const dom = new JSDOM(indexHtml, {
-            url: 'http://localhost/trustroots-map/',
+            url: 'http://localhost/v0/',
             runScripts: 'dangerously',
             resources: 'usable',
             pretendToBeVisual: true,

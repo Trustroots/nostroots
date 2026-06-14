@@ -5,24 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Squatbridge — radar.squat.net → Nostr</title>
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <script defer src="../analytics.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     :root {
-      --bg: hsl(40, 28%, 96%);
-      --fg: hsl(168, 25%, 18%);
-      --card: hsl(45, 22%, 98%);
-      --muted: hsl(168, 15%, 38%);
-      --border: hsl(168, 20%, 80%);
-      --primary: hsl(168, 48%, 32%);
-      --primary-fg: hsl(45, 30%, 98%);
-      --danger: hsl(12, 48%, 48%);
-      --ok: hsl(142, 45%, 35%);
-      --link: hsl(168, 62%, 36%);
+      --bg: #ffffff;
+      --fg: #111111;
+      --card: #ffffff;
+      --muted: #777777;
+      --border: #bdbdbd;
+      --primary: #7d7d7d;
+      --primary-fg: #ffffff;
+      --danger: #9f3a2d;
+      --ok: #4f6f4f;
+      --link: #3030ff;
+      --soft: #eeeeee;
+      --body-font: Arial, Helvetica, sans-serif;
+      --display-font: "Courier New", Courier, monospace;
     }
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: var(--body-font);
       background: var(--bg);
       color: var(--fg);
       height: 100vh;
@@ -38,11 +42,33 @@
       gap: 0.75rem;
       padding: 0.65rem 1rem;
       border-bottom: 1px solid var(--border);
-      background: var(--card);
+      background: var(--bg);
       flex-shrink: 0;
     }
-    .sb-title { font-size: 1.15rem; font-weight: 700; margin: 0; white-space: nowrap; }
+    .sb-title {
+      color: var(--muted);
+      font-family: var(--display-font);
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      margin: 0;
+      white-space: nowrap;
+    }
     .sb-title a { color: inherit; text-decoration: none; }
+    .sb-mark {
+      display: inline-block;
+      margin-left: 0.45rem;
+      letter-spacing: 0;
+      transform: translateY(-0.05em);
+    }
+    .sb-summary {
+      flex: 1 1 360px;
+      min-width: 220px;
+      margin: 0;
+      color: #444444;
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
     .sb-about-btn { font-size: 0.8rem; padding: 0.3rem 0.55rem; flex-shrink: 0; }
     .sb-header-actions {
       margin-left: auto;
@@ -63,7 +89,7 @@
       border: 1px solid var(--border);
       border-radius: 8px;
       overflow: hidden;
-      background: var(--bg);
+      background: var(--card);
     }
     .sb-filter-tab {
       font: inherit;
@@ -92,7 +118,7 @@
       padding: 0.35rem 0.5rem;
       border: 1px solid var(--border);
       border-radius: 6px;
-      background: var(--bg);
+      background: var(--card);
       color: var(--fg);
     }
     .sb-controls select { max-width: min(280px, 55vw); }
@@ -108,8 +134,26 @@
     .sb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .sb-btn.secondary { background: var(--card); color: var(--fg); }
     .sb-signer { font-size: 0.8rem; color: var(--muted); max-width: min(280px, 40vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .sb-status { font-size: 0.85rem; color: var(--muted); padding: 0.35rem 1rem 0.5rem; flex-shrink: 0; }
-    .sb-status.error { color: var(--danger); }
+    .sb-status {
+      position: absolute;
+      top: 0.75rem;
+      left: 50%;
+      z-index: 500;
+      max-width: min(560px, calc(100% - 2rem));
+      transform: translateX(-50%);
+      margin: 0;
+      padding: 0.45rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+      color: var(--fg);
+      font-size: 0.85rem;
+      line-height: 1.3;
+      pointer-events: none;
+    }
+    .sb-status[hidden] { display: none; }
+    .sb-status.error { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--border)); }
     .sb-main { display: flex; flex: 1; min-height: 0; }
     .sb-map-column {
       flex: 1;
@@ -117,11 +161,35 @@
       min-height: 0;
       display: flex;
       flex-direction: column;
+      position: relative;
     }
     #sb-map { flex: 1; min-width: 0; min-height: 200px; }
     .sb-map-popup { font-size: 0.85rem; line-height: 1.4; max-width: 220px; }
     .sb-map-popup-actions { margin-top: 0.45rem; display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
-    .sb-map-popup-actions a { font-size: 0.8rem; }
+    .sb-map-popup-actions a,
+    .sb-event-actions a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 1.65rem;
+      font: inherit;
+      font-size: 0.75rem;
+      line-height: 1;
+      padding: 0.25rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--card);
+      color: var(--fg);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .sb-map-popup-actions a:hover,
+    .sb-map-popup-actions a:focus-visible,
+    .sb-event-actions a:hover,
+    .sb-event-actions a:focus-visible {
+      border-color: var(--primary);
+      outline: none;
+    }
     .sb-map-popup-actions .sb-map-share {
       font: inherit;
       font-size: 0.75rem;
@@ -148,13 +216,13 @@
       flex-shrink: 0;
       padding: 0.5rem 0.75rem;
       border-bottom: 1px solid var(--border);
-      background: var(--bg);
+      background: var(--soft);
     }
     .sb-list-tools {
       flex-shrink: 0;
       padding: 0.5rem 0.75rem;
       border-bottom: 1px solid var(--border);
-      background: var(--bg);
+      background: var(--soft);
     }
     .sb-event-filter {
       width: 100%;
@@ -178,7 +246,7 @@
       border-bottom: 1px solid var(--border);
       cursor: pointer;
     }
-    .sb-event:hover, .sb-event.active { background: var(--bg); }
+    .sb-event:hover, .sb-event.active { background: var(--soft); }
     .sb-event.sb-event-past { opacity: 0.75; }
     .sb-event.sb-event-past h3 { color: var(--muted); }
     .sb-event h3 { margin: 0 0 0.25rem; font-size: 0.95rem; line-height: 1.3; }
@@ -190,7 +258,7 @@
       padding: 0.25rem 0.5rem;
       border-radius: 4px;
       border: 1px solid var(--border);
-      background: var(--bg);
+      background: var(--card);
       color: var(--fg);
       cursor: pointer;
     }
@@ -242,6 +310,7 @@
     .sb-modal textarea {
       width: 100%;
       min-height: 120px;
+      max-height: min(46vh, 360px);
       font: inherit;
       padding: 0.5rem;
       border: 1px solid var(--border);
@@ -249,10 +318,13 @@
       background: var(--bg);
       color: var(--fg);
       resize: vertical;
+      overflow-y: auto;
     }
     .sb-modal .feedback { font-size: 0.85rem; margin: 0.75rem 0; min-height: 1.2em; }
     .sb-modal .feedback.error { color: var(--danger); }
     .sb-modal .feedback.ok { color: var(--ok); }
+    .sb-share-preflight { font-size: 0.8rem; color: var(--muted); margin: 0.35rem 0 0; min-height: 1.1em; }
+    .sb-share-preflight.error { color: var(--danger); }
     .sb-relay-results { font-size: 0.8rem; color: var(--muted); margin: 0.5rem 0; }
     .sb-share-relays { font-size: 0.8rem; color: var(--muted); margin: 0.75rem 0 0; }
     .sb-share-relays-label { display: block; margin-bottom: 0.25rem; }
@@ -306,7 +378,8 @@
 </head>
 <body>
   <header class="sb-header">
-    <h1 class="sb-title"><a href="../">Squatbridge</a></h1>
+    <h1 class="sb-title"><a href="../">Squatbridge</a><span class="sb-mark" aria-hidden="true">｟(･)｠</span></h1>
+    <p class="sb-summary">Browse radar.squat.net events on a map and share selected ones to Nostr.</p>
     <div class="sb-controls">
       <div class="sb-location-filter">
         <div class="sb-filter-tabs" role="tablist" aria-label="Location type">
@@ -324,7 +397,7 @@
   <div class="sb-main">
     <div class="sb-map-column">
       <div id="sb-map" aria-label="Event map"></div>
-      <p class="sb-status" id="sb-status" role="status">Events from radar.squat.net.</p>
+      <p class="sb-status" id="sb-status" role="status" hidden></p>
     </div>
     <div class="sb-list-panel">
       <div class="sb-list-tools">
@@ -345,7 +418,7 @@
       <div class="sb-about-body">
         <p>
           <a href="https://github.com/Trustroots/nostroots/blob/main/vibe/web/examples/squatbridge.html" target="_blank" rel="noopener noreferrer">Squatbridge</a>
-          is an experimental demo from the
+          bridges event listings into Nostr from the
           <a href="../">Trustroots Nostr web hub</a>
           (<a href="https://github.com/Trustroots/nostroots/issues/237" target="_blank" rel="noopener noreferrer">#237</a>).
           It pulls squat and autonomous-space events from
@@ -363,9 +436,9 @@
         <div id="sb-about-tech" class="sb-about-tech" hidden>
         <h3>Note format (for other Nostr apps)</h3>
         <p>
-          Shared events are kind&nbsp;<strong>30397</strong> map notes, matching the regular
-          Trustroots map-note shape.
-          To render them, read <code>content</code> for the human text and the tags below for map placement, links, and filters.
+          Shared events are kind&nbsp;<strong>30397</strong> map notes so the Trustroots validation service can
+          repost them as kind&nbsp;<strong>30398</strong> for clients such as nr-app.
+          To render them directly, read <code>content</code> for the human text and the tags below for map placement, links, and filters.
         </p>
 
         <h4>Content (<code>content</code>)</h4>
@@ -417,8 +490,9 @@
 }</div>
 
         <p class="muted">
-          Filter kind&nbsp;30397 with <code>#l</code> on <code>open-location-code-prefix</code> values for map tiles, or subscribe by pubkey.
-          Trustroots Map already renders this shape; other clients can treat <code>content</code> as a note body and <code>r</code> as the outbound link.
+          Filter kind&nbsp;30397 with <code>#l</code> on <code>open-location-code-prefix</code> values for map tiles, or read validated
+          kind&nbsp;30398 reposts from the Trustroots validation pubkey. Trustroots Map already renders this shape; other clients can treat
+          <code>content</code> as a note body and <code>r</code> as the outbound link.
         </p>
         </div>
 
@@ -439,7 +513,8 @@
     <div class="sb-modal" role="dialog" aria-labelledby="sb-share-title">
       <h2 id="sb-share-title">Share to Nostr</h2>
       <p class="meta" id="sb-share-meta" style="font-size:0.85rem;color:var(--muted);margin:0 0 0.5rem;"></p>
-      <textarea id="sb-share-content" aria-label="Note content"></textarea>
+      <textarea id="sb-share-content" aria-label="Note content" rows="6" spellcheck="false" autocapitalize="none" autocomplete="off"></textarea>
+      <p class="sb-share-preflight" id="sb-share-preflight" role="status" aria-live="polite"></p>
       <label class="sb-going-toggle">
         <input type="checkbox" id="sb-share-going">
         <span><strong>I'm going to this event</strong> — also publish a
@@ -483,6 +558,7 @@
     "wss://relay.nomadwiki.org",
   ];
   const MAP_NOTE_KIND = 30397;
+  const MAP_NOTE_CONTENT_MAXIMUM_LENGTH = 300;
   const CALENDAR_DATE_KIND = 31922;
   const CALENDAR_TIME_KIND = 31923;
   const CALENDAR_RSVP_KIND = 31925;
@@ -494,6 +570,46 @@
   const PLUS_CODE_PREFIX_MIN = 2;
   const SIGNER_TIMEOUT_MS = 12000;
   const SIGNER_INTERVAL_MS = 250;
+  const CITY_FOCUS_ZOOM = 13;
+  const COUNTRY_FOCUS_ZOOM = 7;
+  const COUNTRY_FOCUS_MAX_ZOOM = 8;
+  const CIRCLE_KEYWORD_RULES = [
+    { circle: "hackers", terms: ["hacker", "hackerspace", "hacklab", "hack the planet", "python", "rust", "linux", "software", "hardware", "meshcore", "machine learning", "computer", "programming", "cryptosprechstunde"] },
+    { circle: "cypherpunks", terms: ["crypto", "cryptography", "encryption", "privacy", "surveillance", "digital security"] },
+    { circle: "musicians", terms: ["music/concert", "concert", "music", "choir", "open mic", "jam session", "jamsession", "orchestra", "song", "strijdliederenkoor"] },
+    { circle: "punks", terms: ["punk", "hardcore", "crust", "dbeat", "ska", "metal"] },
+    { circle: "ravers", terms: ["rave", "techno", "tehno", "electro", "elektro", "dj", "party"] },
+    { circle: "dancers", terms: ["dance", "dancing", "tango", "salsa", "contact improvisation"] },
+    { circle: "veg", terms: ["vegan", "vegetarian", "vegetarisch", "voku", "vokü", "kufa", "küfa"] },
+    { circle: "cooking", terms: ["food", "kitchen", "cooking", "dinner", "lunch", "meal", "eetcafe", "eetcafé"] },
+    { circle: "foodsharing", terms: ["foodsharing", "food sharing", "free food", "volxküche", "volxkuche"] },
+    { circle: "books", terms: ["book", "library", "infoshop", "info shop", "bookfair", "reading group", "lesekreis", "zine"] },
+    { circle: "artists", terms: ["exhibition", "artist", "drawing", "painting", "gallery", "performance art", "artivism", "diy workshop"] },
+    { circle: "filmmakers", terms: ["film", "cinema", "movie", "screening", "documentary"] },
+    { circle: "lgbtq", terms: ["queer", "qtbipoc", "lgbt", "transgender", "dyke", "drag"] },
+    { circle: "feminists", terms: ["feminist", "feminism", "flinta", "flti", "women", "dyke march"] },
+    { circle: "yoga", terms: ["yoga", "somatics", "acupuncture", "cupping"] },
+    { circle: "spirituals", terms: ["meditation", "mindfulness", "ritual", "healing", "wellness"] },
+    { circle: "activists", terms: ["action/protest/camp", "protest", "demo", "solidarity", "solidarisch", "antifa", "anti-fascist", "antifascist", "palestine", "gentrification", "mieten", "rent strike", "climate", "refugee", "mutual aid", "court case", "prisoner", "political prisoner"] },
+    { circle: "anarchists", terms: ["anarchist", "anarchism", "anarcha", "anarcho", "anti-authoritarian"] },
+    { circle: "families", terms: ["children", "children's activity", "kids", "family", "kinder"] },
+    { circle: "cyclists", terms: ["bike", "bicycle", "cycling", "fiets"] },
+    { circle: "runners", terms: ["running", "runner"] },
+    { circle: "skateboarders", terms: ["skate", "skateboard"] },
+    { circle: "gardeners", terms: ["garden", "gardening", "permaculture"] },
+    { circle: "ecoliving", terms: ["ecology", "ecological", "climate", "sustainability", "degrowth"] },
+    { circle: "zerowasters", terms: ["zero waste", "repair cafe", "repair café", "swap", "tausch", "free shop", "free market"] },
+    { circle: "dumpsterdivers", terms: ["dumpster", "freegan"] },
+    { circle: "circus", terms: ["circus", "acrobatics"] },
+    { circle: "jugglers", terms: ["juggling", "juggler"] },
+    { circle: "acroyoga", terms: ["acroyoga", "acro yoga"] },
+    { circle: "slackline", terms: ["slackline"] },
+    { circle: "climbers", terms: ["climbing", "climber"] },
+    { circle: "hikers", terms: ["hiking", "hike", "walk"] },
+    { circle: "sailors", terms: ["sailing", "sailboat"] },
+    { circle: "photographers", terms: ["photo", "photography"] },
+    { circle: "volunteers", terms: ["volunteer", "volunteering"] },
+  ];
 
   const state = {
     events: [],
@@ -516,12 +632,14 @@
     },
     markers: [],
     mapEventsByNid: Object.create(null),
+    refocusMapOnNextRender: true,
     showPastEvents: false,
     eventFilterQuery: "",
   };
 
   let map = null;
   let markerLayer = null;
+  let statusHideTimer = null;
 
   function byId(id) { return document.getElementById(id); }
 
@@ -536,8 +654,19 @@
   function setStatus(text, tone) {
     const el = byId("sb-status");
     if (!el) return;
+    if (statusHideTimer) {
+      clearTimeout(statusHideTimer);
+      statusHideTimer = null;
+    }
     el.textContent = text;
+    el.hidden = !text;
     el.className = "sb-status" + (tone === "error" ? " error" : "");
+    if (text && tone !== "loading" && tone !== "error") {
+      statusHideTimer = setTimeout(() => {
+        el.hidden = true;
+        statusHideTimer = null;
+      }, 3600);
+    }
   }
 
   function normalizeLongitude(lng) {
@@ -603,15 +732,18 @@
     if (!state.signer.connected) {
       el.textContent = state.signer.text;
       el.title = "";
+      updateSharePreflight();
       return;
     }
     if (state.signer.identityStatus === "loading") {
       el.textContent = "Looking up identity…";
       el.title = state.signer.pubkey || "";
+      updateSharePreflight();
       return;
     }
     el.textContent = state.signer.displayLabel || state.signer.text;
     el.title = state.signer.pubkey || "";
+    updateSharePreflight();
   }
 
   function createSignAuthEvent(publicKeyHex) {
@@ -756,8 +888,10 @@
   function normalizeEvent(nid, raw) {
     const offline = Array.isArray(raw.offline) && raw.offline[0] ? raw.offline[0] : null;
     const coords = parseMapCoords(offline);
+    const address = offline?.address || {};
     const dateTime = Array.isArray(raw.date_time) && raw.date_time[0] ? raw.date_time[0] : null;
     const categories = (raw.category || []).map((c) => c.name).filter(Boolean);
+    const tags = (raw.tag || raw.tags || []).map((tag) => tag?.name || tag?.formatted || tag).filter(Boolean);
     return {
       nid: String(nid),
       title: raw.title || "Untitled event",
@@ -769,6 +903,9 @@
       endUnix: dateTime?.value2 ? Number(dateTime.value2) : null,
       venue: formatVenue(offline),
       categories,
+      tags,
+      city: String(address.locality || "").trim(),
+      country: String(address.country || "").trim().toUpperCase(),
       coords,
       hasCoords: !!coords,
     };
@@ -781,17 +918,129 @@
     return lines.join("\n");
   }
 
+  function normalizeMatchText(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  }
+
+  function addCircleSlug(set, slug) {
+    if ((CIRCLES.slugs || []).includes(slug)) set.add(slug);
+  }
+
+  function getDefaultCircleSlugs() {
+    const defaults = CIRCLES.defaultSelected || [];
+    return defaults.filter((slug) => (CIRCLES.slugs || []).includes(slug));
+  }
+
+  function getEventCircleText(ev) {
+    return normalizeMatchText([
+      ev?.title,
+      ev?.venue,
+      ev?.when,
+      (ev?.categories || []).join(" "),
+      (ev?.tags || []).join(" "),
+      ev?.url,
+    ].join(" "));
+  }
+
+  function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function eventTextMatchesTerm(text, term) {
+    const normalizedTerm = normalizeMatchText(term).trim();
+    if (!normalizedTerm) return false;
+    if (/^[a-z0-9]+$/.test(normalizedTerm)) {
+      return new RegExp("(^|[^a-z0-9])" + escapeRegExp(normalizedTerm) + "([^a-z0-9]|$)").test(text);
+    }
+    return text.includes(normalizedTerm);
+  }
+
+  function guessCirclesForEvent(ev) {
+    const selected = new Set(getDefaultCircleSlugs());
+    const text = getEventCircleText(ev);
+    for (const rule of CIRCLE_KEYWORD_RULES) {
+      if (rule.terms.some((term) => eventTextMatchesTerm(text, term))) {
+        addCircleSlug(selected, rule.circle);
+      }
+    }
+    return [...selected].sort();
+  }
+
   function getSelectedCircles() {
     return [...state.selectedCircles].sort();
   }
 
-  function applyCircleHashtags(content) {
-    let next = String(content || "").trim();
-    for (const slug of getSelectedCircles()) {
-      const hashtag = "#" + slug;
-      if (!next.split(/\s+/).includes(hashtag)) next = next + " " + hashtag;
+  function getSortedCircleSlugs() {
+    return [...CIRCLES.slugs].sort((a, b) => a.localeCompare(b));
+  }
+
+  function getCircleHashtagLine(circles) {
+    return (circles || getSelectedCircles()).map((slug) => "#" + slug).join(" ");
+  }
+
+  function isCircleHashtagLine(line) {
+    const tokens = String(line || "").trim().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return false;
+    return tokens.every((token) => {
+      if (!/^#[a-z0-9]+$/i.test(token)) return false;
+      return (CIRCLES.slugs || []).includes(token.slice(1).toLowerCase());
+    });
+  }
+
+  function stripTrailingCircleHashtagLines(content) {
+    const lines = String(content || "").trimEnd().split("\n");
+    while (lines.length && isCircleHashtagLine(lines[lines.length - 1])) {
+      lines.pop();
     }
-    return next.trim();
+    return lines.join("\n").trimEnd();
+  }
+
+  function composeShareContent(baseContent, circles) {
+    const base = stripTrailingCircleHashtagLines(baseContent).trim();
+    const hashtagLine = getCircleHashtagLine(circles);
+    if (!hashtagLine) return base;
+    return base ? base + "\n" + hashtagLine : hashtagLine;
+  }
+
+  function resizeShareTextarea() {
+    const el = byId("sb-share-content");
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight + 2, Math.round(window.innerHeight * 0.46)) + "px";
+  }
+
+  function syncShareContentCircleLine() {
+    const el = byId("sb-share-content");
+    if (!el) return;
+    el.value = composeShareContent(el.value, getSelectedCircles());
+    resizeShareTextarea();
+    updateSharePreflight();
+  }
+
+  function getPreparedShareContent() {
+    return composeShareContent(String(byId("sb-share-content")?.value || ""), getSelectedCircles());
+  }
+
+  function updateSharePreflight() {
+    const el = byId("sb-share-preflight");
+    if (!el) return;
+    if (!state.signer.connected) {
+      el.textContent = "";
+      el.className = "sb-share-preflight";
+      return;
+    }
+    const content = getPreparedShareContent();
+    if (content.length > MAP_NOTE_CONTENT_MAXIMUM_LENGTH) {
+      el.textContent =
+        "Content must be " + MAP_NOTE_CONTENT_MAXIMUM_LENGTH + " characters or fewer for Trustroots map validation.";
+      el.className = "sb-share-preflight error";
+      return;
+    }
+    el.textContent = "";
+    el.className = "sb-share-preflight";
   }
 
   function appendCircleTags(tags) {
@@ -904,7 +1153,7 @@
   function renderShareCircles() {
     const host = byId("sb-share-circles");
     if (!host) return;
-    host.innerHTML = CIRCLES.slugs.map((slug) => {
+    host.innerHTML = getSortedCircleSlugs().map((slug) => {
       const checked = state.selectedCircles.has(slug) ? " checked" : "";
       return (
         '<label class="sb-circle-toggle">' +
@@ -919,12 +1168,52 @@
         if (!slug) return;
         if (input.checked) state.selectedCircles.add(slug);
         else state.selectedCircles.delete(slug);
+        syncShareContentCircleLine();
       });
     });
   }
 
   function getFilterType() {
     return state.locationFilter.type === "country" ? "country" : "city";
+  }
+
+  function getFilterLabel(type, value) {
+    if (type === "city") {
+      return String(value || "").trim() || "city";
+    }
+    const code = String(value || "").trim().toUpperCase();
+    for (const country of LOCATIONS.countries) {
+      if (String(country.code).toUpperCase() === code) return country.label;
+    }
+    return code || "country";
+  }
+
+  function getCurrentFilterLabel() {
+    const select = byId("sb-filter-value");
+    return getFilterLabel(getFilterType(), select ? select.value : "");
+  }
+
+  function formatEventsStatus(cacheNote) {
+    const location = getCurrentFilterLabel();
+    const count = state.events.length;
+    const total = state.totalCount;
+    const withoutCoords = state.events.filter((e) => !e.hasCoords).length;
+    const { past } = partitionListEvents();
+
+    let status = count + " event" + (count === 1 ? "" : "s") + " in " + location;
+    if (count < total) {
+      status += " (" + total + " on radar";
+      if (total > 500) status += ", first 500 shown";
+      status += ")";
+    }
+    if (withoutCoords > 0) {
+      status += " · " + withoutCoords + " without map location";
+    }
+    if (past.length && !state.showPastEvents) {
+      status += " · " + past.length + " past hidden";
+    }
+    if (cacheNote) status += " " + cacheNote;
+    return status;
   }
 
   function getDecodedHash() {
@@ -1119,7 +1408,28 @@
     });
   }
 
+  function eventMatchesCurrentLocation(ev) {
+    const select = byId("sb-filter-value");
+    const value = String(select?.value || "").trim();
+    if (!value) return false;
+    if (getFilterType() === "country") {
+      return String(ev.country || "").trim().toUpperCase() === value.toUpperCase();
+    }
+    return normalizeMatchText(ev.city) === normalizeMatchText(value);
+  }
+
+  function getCachedFocusEventsForCurrentLocation() {
+    return getMapEvents().filter((ev) => ev.coords && eventMatchesCurrentLocation(ev));
+  }
+
+  function focusMapOnCurrentLocationFromCache() {
+    const bounds = getCachedFocusEventsForCurrentLocation().map((ev) => [ev.coords.lat, ev.coords.lon]);
+    if (bounds.length) focusMapOnBounds(bounds);
+  }
+
   function applyEventsPayload(data, cacheNote) {
+    state.selectedNid = null;
+    state.refocusMapOnNextRender = true;
     if (!data.result || data.result === false) {
       state.events = [];
       state.totalCount = 0;
@@ -1129,18 +1439,12 @@
       state.events.sort((a, b) => String(a.whenStart).localeCompare(String(b.whenStart)));
     }
     rebuildMapEventsFromCache();
+    if (map) map.closePopup();
     renderEvents();
-    const withCoords = state.events.filter((e) => e.hasCoords).length;
-    const { upcoming, past } = partitionListEvents();
-    let status =
-      "Showing " + state.events.length + " of " + state.totalCount +
-      " events (" + withCoords + " with map coordinates)." +
-      (state.totalCount > 500 ? " API limit: first 500 only." : "");
-    if (past.length && !state.showPastEvents) {
-      status += " List: " + upcoming.length + " upcoming (" + past.length + " past hidden).";
-    }
-    if (cacheNote) status += " " + cacheNote;
-    setStatus(status, cacheNote && cacheNote.indexOf("unreachable") >= 0 ? "error" : undefined);
+    setStatus(
+      formatEventsStatus(cacheNote),
+      cacheNote && cacheNote.indexOf("unreachable") >= 0 ? "error" : undefined
+    );
   }
 
   async function fetchEvents(options) {
@@ -1155,7 +1459,7 @@
 
     const params = new URLSearchParams();
     params.set("limit", "500");
-    params.set("fields", "title,url,date_time,offline,offline:map,offline:address,category");
+    params.set("fields", "title,url,date_time,offline,offline:map,offline:address,category,tag");
     params.set("language", "en");
     if (filterType === "city") {
       params.append("facets[city][]", filterValue);
@@ -1183,7 +1487,8 @@
       }
     }
 
-    setStatus("Loading from radar.squat.net…");
+    setStatus("Loading " + getFilterLabel(filterType, filterValue) + " events from radar.squat.net…", "loading");
+    focusMapOnCurrentLocationFromCache();
 
     try {
       const res = await fetch(RADAR_API + "?" + params.toString());
@@ -1264,6 +1569,7 @@
       ev.venue,
       ev.when,
       ev.categories.join(" "),
+      (ev.tags || []).join(" "),
     ].join(" ").toLowerCase();
     return haystack.includes(q);
   }
@@ -1271,6 +1577,12 @@
   function getVisibleEvents() {
     const query = state.eventFilterQuery;
     return getListEvents().filter((ev) => eventMatchesFilter(ev, query));
+  }
+
+  function getCurrentLocationFocusEvents() {
+    const visible = getVisibleEvents().filter((ev) => ev.coords);
+    if (visible.length) return visible;
+    return state.events.filter((ev) => ev.coords);
   }
 
   function updatePastEventsToggle() {
@@ -1421,6 +1733,19 @@
     });
   }
 
+  function focusMapOnBounds(bounds) {
+    if (!map || !bounds.length) return;
+    const isCountry = getFilterType() === "country";
+    if (bounds.length === 1) {
+      map.setView(bounds[0], isCountry ? COUNTRY_FOCUS_ZOOM : CITY_FOCUS_ZOOM);
+      return;
+    }
+    map.fitBounds(bounds, {
+      padding: [36, 36],
+      maxZoom: isCountry ? COUNTRY_FOCUS_MAX_ZOOM : CITY_FOCUS_ZOOM,
+    });
+  }
+
   function renderMapMarkers() {
     if (!markerLayer) return;
     markerLayer.clearLayers();
@@ -1436,15 +1761,17 @@
       state.markers.push(marker);
       bounds.push([ev.coords.lat, ev.coords.lon]);
     });
-    if (bounds.length) {
-      map.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
+    if (state.refocusMapOnNextRender) {
+      const focusBounds = getCurrentLocationFocusEvents().map((ev) => [ev.coords.lat, ev.coords.lon]);
+      if (focusBounds.length) focusMapOnBounds(focusBounds);
+      else if (bounds.length) focusMapOnBounds(bounds);
     }
+    state.refocusMapOnNextRender = false;
   }
 
   function renderEvents() {
     renderEventList();
     renderMapMarkers();
-    state.selectedNid = null;
   }
 
   function openShareModal(nid) {
@@ -1455,17 +1782,21 @@
       return;
     }
     state.shareEvent = ev;
+    state.selectedCircles = new Set(guessCirclesForEvent(ev));
     byId("sb-share-title").textContent = "Share: " + ev.title;
     byId("sb-share-meta").textContent = ev.when + " · " + ev.venue;
-    byId("sb-share-content").value = buildDefaultContent(ev);
+    byId("sb-share-content").value = composeShareContent(buildDefaultContent(ev), getSelectedCircles());
     byId("sb-share-going").checked = false;
     renderShareCircles();
     byId("sb-share-feedback").textContent = "";
     byId("sb-share-feedback").className = "feedback";
     byId("sb-relay-results").textContent = "";
     renderShareRelays();
+    updateSharePreflight();
     byId("sb-share-modal").hidden = false;
     byId("sb-share-publish").disabled = false;
+    resizeShareTextarea();
+    byId("sb-share-content").focus({ preventScroll: true });
   }
 
   function closeShareModal() {
@@ -1539,9 +1870,15 @@
       return;
     }
 
-    let content = applyCircleHashtags(String(byId("sb-share-content").value || "").trim());
+    let content = getPreparedShareContent();
     if (content.length < 3) {
       byId("sb-share-feedback").textContent = "Content must be at least 3 characters.";
+      byId("sb-share-feedback").className = "feedback error";
+      return;
+    }
+    if (content.length > MAP_NOTE_CONTENT_MAXIMUM_LENGTH) {
+      byId("sb-share-feedback").textContent =
+        "Content must be " + MAP_NOTE_CONTENT_MAXIMUM_LENGTH + " characters or fewer for Trustroots map validation.";
       byId("sb-share-feedback").className = "feedback error";
       return;
     }
@@ -1683,6 +2020,10 @@
 
   byId("sb-share-cancel").addEventListener("click", closeShareModal);
   byId("sb-share-publish").addEventListener("click", () => void publishShare());
+  byId("sb-share-content").addEventListener("input", () => {
+    resizeShareTextarea();
+    updateSharePreflight();
+  });
   byId("sb-share-modal").addEventListener("click", (e) => {
     if (e.target === byId("sb-share-modal")) closeShareModal();
   });

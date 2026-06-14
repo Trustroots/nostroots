@@ -2,14 +2,14 @@ import { test, expect } from './fixtures.js';
 
 test.describe('Basic Page Load', () => {
   test('page loads and displays title', async ({ page }) => {
-    await page.goto('/trustroots-map/');
+    await page.goto('/v0/');
     
     // Check page title
     await expect(page).toHaveTitle('Nostroots Map');
   });
 
   test('page has main content', async ({ page }) => {
-    await page.goto('/trustroots-map/');
+    await page.goto('/v0/');
     
     // Wait for page to be fully loaded
     await page.waitForLoadState('networkidle');
@@ -39,7 +39,7 @@ test.describe('Basic Page Load', () => {
       errors.push(error.message);
     });
     
-    await page.goto('/trustroots-map/');
+    await page.goto('/v0/');
     await page.waitForLoadState('networkidle');
     
     // Filter out known non-critical errors (like CDN load failures in test env)

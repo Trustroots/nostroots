@@ -5,9 +5,9 @@ import { JSDOM } from 'jsdom';
 import { describe, expect, it } from 'vitest';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const indexHtml = readFileSync(join(__dirname, '../../trustroots-map/index.html'), 'utf-8');
+const indexHtml = readFileSync(join(__dirname, '../../v0/index.html'), 'utf-8');
 const commonSrcMatch = indexHtml.match(/\/\* NR_COMMON_JS_BEGIN \*\/([\s\S]*?)\/\* NR_COMMON_JS_END \*\//);
-if (!commonSrcMatch) throw new Error('NR_COMMON_JS markers not found in trustroots-map/index.html');
+if (!commonSrcMatch) throw new Error('NR_COMMON_JS markers not found in v0/index.html');
 const commonSrc = commonSrcMatch[1];
 
 /** Load nr-web common.js in an isolated window with NrWebTheme available. */

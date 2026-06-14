@@ -3,6 +3,7 @@ import {
   SECURE_STORE_PRIVATE_KEY_HEX_KEY,
   SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
 } from "@/constants";
+import { ROUTES } from "@/constants/routes";
 import { isE2EEnabled } from "@/utils/e2e.utils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
@@ -22,7 +23,7 @@ export default function E2EResetRoute() {
       await AsyncStorage.clear();
       await SecureStore.deleteItemAsync(SECURE_STORE_PRIVATE_KEY_HEX_KEY);
       await SecureStore.deleteItemAsync(SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC);
-      router.replace("/");
+      router.replace(ROUTES.WELCOME);
     }
 
     reset();

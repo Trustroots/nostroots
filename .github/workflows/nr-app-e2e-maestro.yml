@@ -246,7 +246,11 @@ jobs:
           name: ios-maestro-artifacts
           path: |
             ~/.maestro/tests
-            nr-app/.e2e-logs/ios
+            nr-app/.e2e-logs/ios/*.log
+            nr-app/.e2e-logs/ios/*.json
+            !nr-app/.e2e-logs/ios/build/**
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Dump iOS E2E network logs
         if: failure()

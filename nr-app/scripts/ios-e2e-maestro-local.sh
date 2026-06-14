@@ -164,21 +164,26 @@ prewarm_app_bundle() {
   fi
 }
 
-capture_pretest_hierarchy() {
-  echo "Capturing Maestro hierarchy before test..."
+capture_hierarchy() {
+  hierarchy_path="$1"
+  echo "Capturing Maestro hierarchy to ${hierarchy_path}..."
   if [ -n "${MAESTRO_HOST:-}" ]; then
-    if maestro --host "${MAESTRO_HOST}" hierarchy >"${PRETEST_HIERARCHY_PATH}"; then
-      echo "Saved pre-test hierarchy to ${PRETEST_HIERARCHY_PATH}"
+    if maestro --host "${MAESTRO_HOST}" hierarchy >"${hierarchy_path}"; then
+      echo "Saved Maestro hierarchy to ${hierarchy_path}"
     else
       echo "Unable to capture pre-test hierarchy with MAESTRO_HOST=${MAESTRO_HOST}." >&2
     fi
   else
-    if maestro hierarchy >"${PRETEST_HIERARCHY_PATH}"; then
-      echo "Saved pre-test hierarchy to ${PRETEST_HIERARCHY_PATH}"
+    if maestro hierarchy >"${hierarchy_path}"; then
+      echo "Saved Maestro hierarchy to ${hierarchy_path}"
     else
       echo "Unable to capture pre-test hierarchy." >&2
     fi
   fi
+}
+
+capture_pretest_hierarchy() {
+  capture_hierarchy "${PRETEST_HIERARCHY_PATH}"
 }
 
 cleanup() {
@@ -252,7 +257,10 @@ sleep "${DEV_CLIENT_LAUNCH_WAIT_SECONDS}"
 capture_pretest_hierarchy
 
 echo "Running Maestro..."
-prewarm_app_bundle
+if ! prewarm_app_bundle; then
+  capture_hierarchy "${LOG_DIR}/maestro-after-prewarm-failure.json"
+  exit 1
+fi
 prepare_local_flows "$@"
 if [ -n "${MAESTRO_HOST:-}" ]; then
   # LOCAL_FLOW_ARGS is generated from temporary paths without whitespace.

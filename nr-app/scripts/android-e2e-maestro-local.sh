@@ -7,12 +7,15 @@ BUNDLE_PREWARM_TIMEOUT_SECONDS="${BUNDLE_PREWARM_TIMEOUT_SECONDS:-180}"
 DEV_CLIENT_SCHEME="${DEV_CLIENT_SCHEME:-exp+nr-app}"
 DEV_CLIENT_MANIFEST_URL="${DEV_CLIENT_MANIFEST_URL:-http://10.0.2.2:8081?disableOnboarding=1}"
 DEV_CLIENT_LAUNCH_WAIT_SECONDS="${DEV_CLIENT_LAUNCH_WAIT_SECONDS:-15}"
+LOG_DIR="${LOG_DIR:-.e2e-logs/android}"
 METRO_PORT="${METRO_PORT:-8081}"
 METRO_TIMEOUT_SECONDS="${METRO_TIMEOUT_SECONDS:-120}"
-PRETEST_HIERARCHY_PATH="${PRETEST_HIERARCHY_PATH:-/tmp/maestro-before-test.json}"
+PRETEST_HIERARCHY_PATH="${PRETEST_HIERARCHY_PATH:-${LOG_DIR}/maestro-before-test.json}"
 METRO_STARTED_BY_SCRIPT=0
 LOCAL_FLOW_ROOT=""
 LOCAL_FLOW_ARGS=""
+
+mkdir -p "${LOG_DIR}"
 
 export EXPO_PUBLIC_E2E=1
 export EXPO_PUBLIC_NR_BRIDGE_BASE_URL="${EXPO_PUBLIC_NR_BRIDGE_BASE_URL:-http://10.0.2.2:8000}"
@@ -154,21 +157,26 @@ EOF
   fi
 }
 
-capture_pretest_hierarchy() {
-  echo "Capturing Maestro hierarchy before test..."
+capture_hierarchy() {
+  hierarchy_path="$1"
+  echo "Capturing Maestro hierarchy to ${hierarchy_path}..."
   if [ -n "${MAESTRO_HOST:-}" ]; then
-    if maestro --host "${MAESTRO_HOST}" hierarchy >"${PRETEST_HIERARCHY_PATH}"; then
-      echo "Saved pre-test hierarchy to ${PRETEST_HIERARCHY_PATH}"
+    if maestro --host "${MAESTRO_HOST}" hierarchy >"${hierarchy_path}"; then
+      echo "Saved Maestro hierarchy to ${hierarchy_path}"
     else
       echo "Unable to capture pre-test hierarchy with MAESTRO_HOST=${MAESTRO_HOST}." >&2
     fi
   else
-    if maestro hierarchy >"${PRETEST_HIERARCHY_PATH}"; then
-      echo "Saved pre-test hierarchy to ${PRETEST_HIERARCHY_PATH}"
+    if maestro hierarchy >"${hierarchy_path}"; then
+      echo "Saved Maestro hierarchy to ${hierarchy_path}"
     else
       echo "Unable to capture pre-test hierarchy." >&2
     fi
   fi
+}
+
+capture_pretest_hierarchy() {
+  capture_hierarchy "${PRETEST_HIERARCHY_PATH}"
 }
 
 cleanup() {
@@ -255,7 +263,10 @@ sleep "${DEV_CLIENT_LAUNCH_WAIT_SECONDS}"
 capture_pretest_hierarchy
 
 echo "Running Maestro..."
-prewarm_app_bundle
+if ! prewarm_app_bundle; then
+  capture_hierarchy "${LOG_DIR}/maestro-after-prewarm-failure.json"
+  exit 1
+fi
 prepare_local_flows "$@"
 if [ -n "${MAESTRO_HOST:-}" ]; then
   # LOCAL_FLOW_ARGS is generated from temporary paths without whitespace.

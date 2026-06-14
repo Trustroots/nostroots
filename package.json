@@ -21,6 +21,7 @@
     "app:start": "pnpm --filter nr-app start",
     "postinstall": "patch-package",
     "test": "pnpm test:app && pnpm test:common",
+    "test:app:coverage": "pnpm --filter nr-app exec jest --watchman=false --coverage",
     "test:watch": "pnpm --filter nr-app test",
     "test:app": "pnpm --filter nr-app test",
     "test:common": "cd nr-common && deno task test"

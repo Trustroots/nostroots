@@ -33,8 +33,10 @@ pnpm --filter nr-app test:ci
 ```
 
 Android Maestro E2E uses GitHub Actions with a locally prebuilt Android project,
-a Gradle-built debug APK, Metro, and the deterministic local E2E network. iOS
-Maestro smoke currently runs through EAS using the `e2e-ios-simulator` profile.
+a Gradle-built debug APK, Metro, and the deterministic local E2E network. iPhone
+Maestro E2E runs on a macOS GitHub Actions runner with a local iOS simulator
+build, Metro, and the same deterministic bridge, relay, and mail services. The
+EAS `e2e-ios-simulator` smoke remains available for hosted iOS checks.
 
 Required/repeatable tests must never rely on live Trustroots, public Nostr
 relays, or real email delivery.
@@ -88,6 +90,53 @@ REACT_NATIVE_PACKAGER_HOSTNAME=localhost \
 SENTRY_DISABLE_AUTO_UPLOAD=true \
 pnpm exec expo run:ios --no-bundler
 ```
+
+## Running iPhone Maestro E2E On macOS
+
+iPhone E2E runs from a normal macOS host terminal because Xcode simulators are
+not available inside the Linux dev container. The scripts use `127.0.0.1` for
+the local bridge and relay URLs, and write logs under `.e2e-logs/ios/`.
+
+Install local service dependencies with Homebrew if you want to mirror CI:
+
+```bash
+brew tap mongodb/brew
+brew install mongodb-community@7.0 mongosh mailpit
+```
+
+Build and install the E2E development client on a booted iPhone simulator:
+
+```bash
+cd /path/to/nostroots/nr-app
+pnpm run ios:e2e:simulator:reset
+pnpm run build:ios-e2e-local
+```
+
+The simulator helper picks an available iPhone simulator by default. To choose a
+specific simulator:
+
+```bash
+IOS_SIMULATOR_NAME="iPhone 16 Pro" pnpm run ios:e2e:simulator:reset
+IOS_SIMULATOR_UDID=<simulator-udid> pnpm run ios:e2e:simulator:reset
+```
+
+Start the deterministic E2E services from the repository root, then run Maestro
+from `nr-app`:
+
+```bash
+cd /path/to/nostroots
+docker compose -f nr-app/e2e/docker-compose.yml up -d --build
+
+cd nr-app
+pnpm run test:maestro:ios:local
+pnpm run test:maestro:ios:local -- .maestro/smoke.yaml
+```
+
+`test:maestro:ios:local` starts or reuses Metro on port `8081`, launches the
+Expo dev-client URL in the booted simulator, opens the E2E reset deep link, and
+runs temporary copies of the Maestro flows with `launchApp` removed. This keeps
+the dev client attached to the selected Metro project instead of reopening the
+development-server picker.
 
 ### Android
 

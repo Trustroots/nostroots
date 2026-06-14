@@ -1,4 +1,4 @@
-name: nr-app Android Maestro E2E
+name: nr-app Maestro E2E
 
 on:
   workflow_dispatch:
@@ -84,7 +84,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: maestro-artifacts
+          name: android-maestro-artifacts
           path: |
             ~/.maestro/tests
             nr-app/builds/app-e2e-debug.apk
@@ -97,3 +97,117 @@ jobs:
       - name: Stop E2E network
         if: always()
         run: docker compose -f nr-app/e2e/docker-compose.yml down -v
+
+  ios-maestro:
+    runs-on: macos-15
+    timeout-minutes: 120
+    env:
+      MONGODB_URI: mongodb://127.0.0.1:27017/trustroots-dev
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: "1025"
+      SMTP_FROM: noreply@nostroots.local
+      DENO_KV_PATH: ":memory:"
+      DEEP_LINK_BASE: "nostroots://verify"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Install macOS E2E dependencies
+        run: |
+          brew tap mongodb/brew
+          brew install mongodb-community@7.0 mongosh mailpit
+          echo "$(brew --prefix mongodb-community@7.0)/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix mongosh)/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Build and install iOS E2E app locally
+        working-directory: nr-app
+        run: pnpm run build:ios-e2e-local
+
+      - name: Start deterministic E2E network
+        run: |
+          mkdir -p nr-app/.e2e-logs/ios "$RUNNER_TEMP/mongodb"
+
+          mongod \
+            --dbpath "$RUNNER_TEMP/mongodb" \
+            --bind_ip 127.0.0.1 \
+            --port 27017 \
+            --logpath "$PWD/nr-app/.e2e-logs/ios/mongodb.log" \
+            --fork
+
+          MONGO_INITDB_DATABASE=trustroots-dev ./.devcontainer/nr-bridge/init-mongo.sh
+
+          mailpit \
+            --listen 127.0.0.1:8025 \
+            --smtp 127.0.0.1:1025 \
+            >nr-app/.e2e-logs/ios/mailpit.log 2>&1 &
+          echo "$!" >nr-app/.e2e-logs/ios/mailpit.pid
+
+          deno task --config development-utils/local-relay/deno.jsonc run-tiny \
+            >nr-app/.e2e-logs/ios/tiny-relay.log 2>&1 &
+          echo "$!" >nr-app/.e2e-logs/ios/tiny-relay.pid
+
+          (
+            cd nr-bridge
+            deno task run
+          ) >nr-app/.e2e-logs/ios/nr-bridge.log 2>&1 &
+          echo "$!" >nr-app/.e2e-logs/ios/nr-bridge.pid
+
+      - name: Wait for E2E network
+        run: |
+          curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:7777 >/dev/null
+          curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:8025 >/dev/null
+          curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:8000 >/dev/null
+
+      - name: Run iPhone Maestro flows
+        working-directory: nr-app
+        run: pnpm run test:maestro:ios:local
+
+      - name: Upload iOS Maestro artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-maestro-artifacts
+          path: |
+            ~/.maestro/tests
+            nr-app/.e2e-logs/ios
+
+      - name: Dump iOS E2E network logs
+        if: failure()
+        run: |
+          for log_file in nr-app/.e2e-logs/ios/*.log; do
+            if [ -f "$log_file" ]; then
+              echo "===== ${log_file} ====="
+              tail -n 200 "$log_file"
+            fi
+          done
+
+      - name: Stop iOS E2E network
+        if: always()
+        run: |
+          for pid_file in nr-app/.e2e-logs/ios/*.pid; do
+            if [ -f "$pid_file" ]; then
+              kill "$(cat "$pid_file")" 2>/dev/null || true
+            fi
+          done
+          mongod --dbpath "$RUNNER_TEMP/mongodb" --shutdown >/dev/null 2>&1 || true

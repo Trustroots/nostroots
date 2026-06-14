@@ -42,6 +42,14 @@ Run installed-app Maestro flows:
 pnpm --filter nr-app test:maestro
 ```
 
+Run iPhone simulator Maestro flows from macOS:
+
+```bash
+pnpm --filter nr-app ios:e2e:simulator:reset
+pnpm --filter nr-app build:ios-e2e-local
+pnpm --filter nr-app test:maestro:ios:local
+```
+
 When running from the dev container, Android flows use the host emulator through
 the host ADB server. iOS Simulator flows must run on the macOS host because the
 Linux container cannot drive Xcode simulators.
@@ -165,8 +173,9 @@ GitHub workflows:
 
 - `nr-app-unit.yml`: lint and Jest/RNTL coverage artifact.
 - `ci-nr-app.yml`: PR and main branch app CI.
-- `nr-app-e2e-maestro.yml`: Android Maestro E2E on Ubuntu/emulator with local
-  Expo prebuild, Gradle, Metro, and Maestro.
+- `nr-app-e2e-maestro.yml`: Android Maestro E2E on Ubuntu/emulator and iPhone
+  Maestro E2E on macOS/iOS Simulator, both with local Expo prebuild, Metro, and
+  Maestro.
 - `.eas/workflows/nr-app-ios-maestro-smoke.yaml`: EAS-run iOS simulator smoke.
 
 Android Maestro no longer uses EAS build credits in CI. It regenerates the
@@ -174,10 +183,10 @@ Android native project locally, builds a debug APK with Gradle, installs that
 APK on the emulator, starts Metro, and runs Maestro against the dev-client app.
 This keeps PR Android E2E independent from Expo cloud build availability.
 
-iOS Maestro can also move off EAS, but it needs a separate macOS-hosted job:
-local iOS prebuild, `xcodebuild` for a simulator app, booted iPhone simulator,
-app install, Metro, and Maestro. Keep that as a focused follow-up because macOS
-runner setup and minutes are separate from the Android path.
+iPhone Maestro also runs without EAS in CI. The macOS job starts native MongoDB,
+Mailpit, the tiny relay, and `nr-bridge`, builds a simulator app with
+`xcodebuild`, installs it on a booted iPhone simulator, starts Metro, and runs
+the shared Maestro flows.
 
 ## Migration Guide
 
@@ -190,10 +199,13 @@ From a fresh checkout:
    `pnpm --filter nr-app build:android-e2e-local`.
 5. Install the APK on an emulator.
 6. Run a Maestro smoke flow from `nr-app/.maestro`.
-7. Open a PR touching `nr-app/**` and verify unit coverage and Android Maestro.
-8. Configure `EXPO_TOKEN` in GitHub repository secrets for EAS release/iOS
+7. On macOS, run `pnpm --filter nr-app build:ios-e2e-local` and
+   `pnpm --filter nr-app test:maestro:ios:local -- .maestro/smoke.yaml`.
+8. Open a PR touching `nr-app/**` and verify unit coverage, Android Maestro,
+   and iPhone Maestro.
+9. Configure `EXPO_TOKEN` in GitHub repository secrets for EAS release/iOS
    simulator workflows.
-9. Enable or validate the EAS iOS Maestro smoke workflow.
+10. Enable or validate the EAS iOS Maestro smoke workflow.
 
 If a new CI job unexpectedly blocks work, disable the workflow trigger or remove
 the required branch protection check while debugging. Do not replace deterministic
@@ -232,6 +244,13 @@ Android local build issues:
 - Delete the generated `nr-app/android/` directory and rerun
   `pnpm --filter nr-app build:android-e2e-local` if native config looks stale.
 - Confirm Java, Android SDK, and Gradle can build a debug APK locally.
+
+iPhone local build issues:
+
+- Check `nr-app/.e2e-logs/ios/build-latest.log`.
+- Delete the generated `nr-app/ios/` directory and rerun
+  `pnpm --filter nr-app build:ios-e2e-local` if native config looks stale.
+- Confirm Xcode, CocoaPods, and an available iPhone simulator are installed.
 
 EAS artifact issues:
 

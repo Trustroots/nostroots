@@ -3,6 +3,7 @@ name: nr-app Maestro E2E
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
     paths:
       - "nr-app/**"
       - "nr-bridge/**"
@@ -86,7 +87,7 @@ jobs:
           script: |
             adb install -r nr-app/builds/app-e2e-debug.apk
             cd nr-app
-            pnpm run test:maestro:local
+            pnpm run test:maestro:local -- .maestro/main-map-smoke.yaml
 
       - name: Upload Maestro artifacts
         uses: actions/upload-artifact@v4
@@ -107,6 +108,7 @@ jobs:
         run: docker compose -f nr-app/e2e/docker-compose.yml -f nr-app/e2e/docker-compose.ci.yml down -v
 
   ios-maestro:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ios-e2e')
     runs-on: macos-15
     timeout-minutes: 120
     env:

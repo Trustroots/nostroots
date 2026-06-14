@@ -27,9 +27,21 @@ export const keystoreSlice = createSlice({
       state.hasPrivateKeyMnemonicInSecureStorage = action.payload.hasMnemonic;
       state.publicKeyHex = action.payload.publicKeyHex;
       state.publicKeyNpub = nip19.npubEncode(action.payload.publicKeyHex);
+      state.isLoaded = true;
+    },
+    clearKeystoreState: (state) => {
+      state.hasPrivateKeyHexInSecureStorage = false;
+      state.hasPrivateKeyMnemonicInSecureStorage = false;
+      state.publicKeyHex = undefined;
+      state.publicKeyNpub = undefined;
+      state.isLoaded = true;
+    },
+    setKeystoreHydrated: (state) => {
+      state.isLoaded = true;
     },
   },
   selectors: {
+    selectIsKeystoreLoaded: (state) => state.isLoaded,
     selectHasPrivateKeyInSecureStorage: (state) =>
       state.hasPrivateKeyHexInSecureStorage,
     selectHasPrivateKeyHexInSecureStorage: (state) =>
@@ -45,6 +57,7 @@ export const keystoreSlice = createSlice({
   },
 });
 
-export const { setPublicKeyHex } = keystoreSlice.actions;
+export const { clearKeystoreState, setPublicKeyHex, setKeystoreHydrated } =
+  keystoreSlice.actions;
 
 export const keystoreSelectors = keystoreSlice.selectors;

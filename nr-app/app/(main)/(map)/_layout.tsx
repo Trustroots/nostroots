@@ -44,13 +44,30 @@ export default function MapLayout() {
         style={{ top: insets.top + 10 }}
       >
         {areTestFeaturesEnabled && (
-          <Pressable
-            onPress={() => router.push(ROUTES.CONNECT)}
-            className="w-11 h-11 rounded-full items-center justify-center"
-            style={{ backgroundColor: overlayBgColor }}
-          >
-            <Ionicons name="key-outline" size={22} color={overlayIconColor} />
-          </Pressable>
+          <>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open NIP-07 Browser"
+              onPress={() => router.push(ROUTES.NIP7_BROWSER)}
+              className="w-11 h-11 rounded-full items-center justify-center"
+              style={{ backgroundColor: overlayBgColor }}
+            >
+              <Ionicons
+                name="globe-outline"
+                size={22}
+                color={overlayIconColor}
+              />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open NIP-46 Connect"
+              onPress={() => router.push(ROUTES.CONNECT)}
+              className="w-11 h-11 rounded-full items-center justify-center"
+              style={{ backgroundColor: overlayBgColor }}
+            >
+              <Ionicons name="key-outline" size={22} color={overlayIconColor} />
+            </Pressable>
+          </>
         )}
         <Pressable
           onPress={() => router.push(ROUTES.SETTINGS)}

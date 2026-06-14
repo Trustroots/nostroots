@@ -28,9 +28,7 @@ const SIGNAL_CHIPS: FilterChip[] = [
 ];
 
 function isSignalEvent(event: EventWithMetadata): boolean {
-  return event.event.tags.some(
-    (tag) => tag[0] === "t" && tag[1] === "signal",
-  );
+  return event.event.tags.some((tag) => tag[0] === "t" && tag[1] === "signal");
 }
 
 function isUnexpired(event: EventWithMetadata): boolean {

@@ -50,6 +50,16 @@ jest.mock("react-native-maps", () => ({
   default: "MapView",
 }));
 
+jest.mock("@expo/vector-icons/Ionicons", () => ({
+  __esModule: true,
+  default: "Ionicons",
+}));
+
+jest.mock("@expo/vector-icons", () => ({
+  __esModule: true,
+  FontAwesome: "FontAwesome",
+}));
+
 jest.mock("@rn-primitives/slot", () => ({
   Text: "Text",
 }));

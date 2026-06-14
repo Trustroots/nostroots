@@ -12,6 +12,7 @@ describe('header KPI helpers', () => {
         const events = [
             { kind: 30397, created_at: now - 5 },
             { kind: 30398, created_at: now - 20 },
+            { kind: 1, created_at: now - 30 },
             { kind: 30397, created_at: now - 86_400 }, // boundary: included
             { kind: 30397, created_at: now - 90_000 }, // outside window
             { kind: 0, created_at: now - 1 },

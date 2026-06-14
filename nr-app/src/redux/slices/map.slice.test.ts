@@ -70,10 +70,10 @@ describe("map.slice", () => {
     it("should update selectedLayer with enableLayer action", () => {
       const newState = mapSlice.reducer(
         initialState,
-        mapActions.enableLayer("hitchmap"),
+        mapActions.enableLayer("hitchwiki"),
       );
 
-      expect(newState.selectedLayer).toBe("hitchmap");
+      expect(newState.selectedLayer).toBe("hitchwiki");
     });
 
     it("toggles a non-selected layer on", () => {

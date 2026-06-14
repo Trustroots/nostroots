@@ -5,6 +5,7 @@
     "check": "deno run --allow-net --allow-env main.ts --check-once"
   },
   "imports": {
+    "@nashaddams/amqp": "jsr:@nashaddams/amqp@1.1.0",
     "@trustroots/nr-common": "../nr-common/mod.ts",
     "nostr-tools": "npm:nostr-tools@2.10.4",
     "nostr-tools/core": "npm:nostr-tools@2.10.4/core",

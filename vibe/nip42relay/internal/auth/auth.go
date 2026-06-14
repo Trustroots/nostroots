@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/nbd-wtf/go-nostr"
@@ -42,7 +43,7 @@ func Verify(event nostr.Event, challenge, relayURL string, maxAge time.Duration,
 	if tagValue(event.Tags, "challenge") != challenge {
 		return "", ErrWrongChallenge
 	}
-	if tagValue(event.Tags, "relay") != relayURL {
+	if normalizeRelayURLForAuth(tagValue(event.Tags, "relay")) != normalizeRelayURLForAuth(relayURL) {
 		return "", ErrWrongRelay
 	}
 
@@ -52,6 +53,10 @@ func Verify(event nostr.Event, challenge, relayURL string, maxAge time.Duration,
 	}
 
 	return event.PubKey, nil
+}
+
+func normalizeRelayURLForAuth(relayURL string) string {
+	return strings.TrimRight(relayURL, "/")
 }
 
 func tagValue(tags nostr.Tags, name string) string {

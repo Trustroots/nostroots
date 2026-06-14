@@ -21,8 +21,8 @@ describe("MapLayerSelector", () => {
     });
 
     fireEvent.press(screen.getByText("Trustroots"));
-    fireEvent.press(screen.getByText("Hitchmap"));
+    fireEvent.press(screen.getByText("Hitchwiki"));
 
-    expect(store.getState().map.selectedLayer).toBe("hitchmap");
+    expect(store.getState().map.selectedLayer).toBe("hitchwiki");
   });
 });

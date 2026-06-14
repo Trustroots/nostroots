@@ -97,10 +97,7 @@ export default function OnboardingLinkScreen() {
         return;
       }
 
-      // Use www.trustroots.org directly — trustroots.org 302-redirects to www,
-      // but nostr-tools fetches with { redirect: "manual" } and treats any
-      // non-200 as a failure, so the redirect would silently return null.
-      const identifier = `${normalizedUsername}@www.trustroots.org`;
+      const identifier = `${normalizedUsername}@trustroots.org`;
 
       setLinkStatus("verifying");
       setLinkError(null);

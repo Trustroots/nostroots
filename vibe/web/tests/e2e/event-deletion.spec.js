@@ -2,7 +2,7 @@ import { test, expect } from './fixtures.js';
 
 test.describe('Event Deletion E2E', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/trustroots-map/');
+    await page.goto('/v0/');
     await page.waitForLoadState('networkidle');
     
     // Generate a key if needed

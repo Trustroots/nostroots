@@ -30,3 +30,33 @@ export function getRelativeTime(timestampSeconds: number): string {
   const date = new Date(timestampSeconds * 1000);
   return date.toLocaleDateString();
 }
+
+/**
+ * Counts how many timestamps fall within today (UTC).
+ */
+export function countNotesToday(timestampsSeconds: number[]): number {
+  const now = new Date();
+  const startOfDay = Math.floor(
+    new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    ).getTime() / 1000,
+  );
+  return timestampsSeconds.filter((ts) => ts >= startOfDay).length;
+}
+
+/**
+ * Returns a summary string like "3 notes · 1 today" or "No notes yet".
+ */
+export function getNoteSummaryText(
+  totalCount: number,
+  todayCount: number,
+): string {
+  if (totalCount === 0) {
+    return "No notes yet";
+  }
+  const noteWord = totalCount === 1 ? "note" : "notes";
+  if (todayCount > 0) {
+    return `${totalCount} ${noteWord} \u00b7 ${todayCount} today`;
+  }
+  return `${totalCount} ${noteWord}`;
+}

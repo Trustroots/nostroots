@@ -2,6 +2,8 @@ import {
   NOSTROOTS_METRICS_KIND,
   NOSTROOTS_METRICS_SUPPORTED_TYPES,
   NOSTROOTS_METRICS_TYPE_TAG_NAME,
+  NOSTROOTS_METRICS_TYPE_MESSAGES,
+  NOSTROOTS_METRICS_TYPE_PUSH_SUBSCRIPTIONS,
 } from "../constants.ts";
 import { z } from "../deps.ts";
 import { baseEventSchema } from "./base.schema.ts";
@@ -107,9 +109,8 @@ export const kind30400EventSchema = baseEventSchema
       }
 
       const requiresNonNegativeInt =
-        metricsType === "push-subscriptions" ||
-        metricsType === "messages-single" ||
-        metricsType === "messages-total";
+        metricsType === NOSTROOTS_METRICS_TYPE_PUSH_SUBSCRIPTIONS ||
+        metricsType === NOSTROOTS_METRICS_TYPE_MESSAGES;
       if (requiresNonNegativeInt) {
         const isNonNegativeInteger =
           typeof value === "number" && Number.isInteger(value) && value >= 0;

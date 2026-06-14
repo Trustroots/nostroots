@@ -1,6 +1,6 @@
 import * as WebBrowser from "expo-web-browser";
-import { Home, Settings } from "lucide-react-native";
-import { useEffect, useRef, useState } from "react";
+import { Home, Link as LinkIcon, Settings } from "lucide-react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Modal,
   Pressable,
@@ -74,22 +74,61 @@ export function BrowserScreen({ onKeyCleared }: BrowserScreenProps) {
   const webViewRef = useRef<WebView>(null);
   const currentUrlRef = useRef<string>(NOSTROOTS_WEB_URL);
   const pendingMessagesByOrigin = useRef<Record<string, string[]>>({});
+  const addressBarAutoHideRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const [isShowingSettings, setIsShowingSettings] = useState(false);
   const [permissionPrompt, setPermissionPrompt] =
     useState<PermissionPrompt | null>(null);
   const [isDeveloperModeEnabled, setIsDeveloperModeEnabledState] =
     useState(false);
+  const [isDeveloperAddressBarVisible, setIsDeveloperAddressBarVisible] =
+    useState(false);
+  const [isDeveloperAddressBarFocused, setIsDeveloperAddressBarFocused] =
+    useState(false);
   const [currentUrl, setCurrentUrl] = useState<string>(NOSTROOTS_WEB_URL);
   const [addressInput, setAddressInput] = useState<string>(NOSTROOTS_WEB_URL);
 
-  useEffect(() => {
-    readBooleanPreference(SECURE_STORE_DEVELOPER_MODE_KEY).then(
-      setIsDeveloperModeEnabledState,
-    );
+  const clearAddressBarAutoHide = useCallback(() => {
+    if (addressBarAutoHideRef.current) {
+      clearTimeout(addressBarAutoHideRef.current);
+      addressBarAutoHideRef.current = null;
+    }
   }, []);
+
+  useEffect(() => {
+    readBooleanPreference(SECURE_STORE_DEVELOPER_MODE_KEY).then((value) => {
+      setIsDeveloperModeEnabledState(value);
+      setIsDeveloperAddressBarVisible(value);
+    });
+  }, []);
+
+  useEffect(() => {
+    clearAddressBarAutoHide();
+    if (
+      isDeveloperModeEnabled &&
+      isDeveloperAddressBarVisible &&
+      !isDeveloperAddressBarFocused
+    ) {
+      addressBarAutoHideRef.current = setTimeout(() => {
+        setIsDeveloperAddressBarVisible(false);
+      }, 3000);
+    }
+    return clearAddressBarAutoHide;
+  }, [
+    clearAddressBarAutoHide,
+    isDeveloperModeEnabled,
+    isDeveloperAddressBarVisible,
+    isDeveloperAddressBarFocused,
+  ]);
 
   const setDeveloperMode = async (value: boolean) => {
     setIsDeveloperModeEnabledState(value);
+    setIsDeveloperAddressBarVisible(value);
+    if (!value) {
+      setIsDeveloperAddressBarFocused(false);
+      clearAddressBarAutoHide();
+    }
     await writeBooleanPreference(SECURE_STORE_DEVELOPER_MODE_KEY, value);
   };
 
@@ -189,6 +228,9 @@ export function BrowserScreen({ onKeyCleared }: BrowserScreenProps) {
     currentUrlRef.current = navigationState.url;
     setCurrentUrl(navigationState.url);
     setAddressInput(navigationState.url);
+    if (isDeveloperModeEnabled && !isDeveloperAddressBarFocused) {
+      setIsDeveloperAddressBarVisible(false);
+    }
   };
 
   const goHome = () => {
@@ -202,6 +244,8 @@ export function BrowserScreen({ onKeyCleared }: BrowserScreenProps) {
     currentUrlRef.current = url;
     setCurrentUrl(url);
     setAddressInput(url);
+    setIsDeveloperAddressBarFocused(false);
+    setIsDeveloperAddressBarVisible(false);
   };
 
   return (
@@ -276,8 +320,9 @@ export function BrowserScreen({ onKeyCleared }: BrowserScreenProps) {
         style={{ flex: 1, backgroundColor: "#ffffff" }}
       />
 
-      {isDeveloperModeEnabled ? (
+      {isDeveloperModeEnabled && isDeveloperAddressBarVisible ? (
         <View
+          testID="developer-address-bar"
           style={{
             position: "absolute",
             left: 12,
@@ -299,6 +344,8 @@ export function BrowserScreen({ onKeyCleared }: BrowserScreenProps) {
             value={addressInput}
             onChangeText={setAddressInput}
             onSubmitEditing={handleDeveloperGo}
+            onFocus={() => setIsDeveloperAddressBarFocused(true)}
+            onBlur={() => setIsDeveloperAddressBarFocused(false)}
             autoCapitalize="none"
             autoCorrect={false}
             keyboardType="url"
@@ -330,6 +377,29 @@ export function BrowserScreen({ onKeyCleared }: BrowserScreenProps) {
             <Text style={{ color: "#ffffff", fontWeight: "700" }}>Go</Text>
           </Pressable>
         </View>
+      ) : null}
+
+      {isDeveloperModeEnabled && !isDeveloperAddressBarVisible ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Show developer address bar"
+          onPress={() => setIsDeveloperAddressBarVisible(true)}
+          style={{
+            position: "absolute",
+            right: 16,
+            bottom: insets.bottom + 12,
+            width: 46,
+            height: 46,
+            borderRadius: 23,
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 1,
+            borderColor: "rgba(15, 23, 42, 0.12)",
+            backgroundColor: "rgba(255, 255, 255, 0.96)",
+          }}
+        >
+          <LinkIcon size={21} color="#0f172a" />
+        </Pressable>
       ) : null}
 
       <Modal

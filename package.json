@@ -24,6 +24,7 @@
     "test:watch": "pnpm --filter nr-app test",
     "test:app": "pnpm --filter nr-app test",
     "test:app:ci": "pnpm --filter nr-app test:ci",
+    "test:app:coverage": "pnpm --filter nr-app exec jest --watchman=false --coverage",
     "test:common": "cd nr-common && deno task test",
     "test:web": "cd nr-web && pnpm test:local"
   }

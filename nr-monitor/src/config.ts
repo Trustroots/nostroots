@@ -48,7 +48,7 @@ export const config = {
 
   services: [
     { name: "strfry-relay", url: getEnvRequired("RELAY_URL") },
-    { name: "rabbitmq", url: getEnvRequired("RABBITMQ_URL") },
+    { name: "rabbitmq", url: getEnvRequired("AMQP_URL") },
     { name: "nr-relay-to-rabbit", url: getEnvRequired("RELAY_TO_RABBIT_URL") },
   ] as ServiceConfig[],
 

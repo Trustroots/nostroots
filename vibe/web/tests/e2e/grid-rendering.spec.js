@@ -7,7 +7,7 @@ import { test, expect } from './fixtures.js';
 test.describe('Grid Rendering', () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the app
-    await page.goto('/trustroots-map/');
+    await page.goto('/v0/');
     await page.waitForLoadState('networkidle');
     
     // Wait for map to load

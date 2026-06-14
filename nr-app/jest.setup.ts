@@ -122,14 +122,19 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ bottom: 0, left: 0, right: 0, top: 0 }),
 }));
 
-jest.mock("react-native-root-toast", () => ({
-  __esModule: true,
-  default: {
+jest.mock("react-native-root-toast", () => {
+  const toast = {
     durations: { LONG: 3500, SHORT: 2000 },
-    positions: { BOTTOM: -20 },
+    positions: { BOTTOM: -20, TOP: 20 },
     show: jest.fn(),
-  },
-}));
+  };
+
+  return {
+    __esModule: true,
+    default: toast,
+    ...toast,
+  };
+});
 
 jest.mock("react-native-reanimated", () => {
   const { View } = require("react-native");
@@ -150,6 +155,27 @@ jest.mock("react-native-worklets", () => ({}));
 jest.mock("redux-persist/integration/react", () => ({
   PersistGate: ({ children }: { children: React.ReactNode }) => children,
 }));
+
+jest.mock("@expo/vector-icons/Ionicons", () => ({
+  __esModule: true,
+  default: "Ionicons",
+}));
+
+jest.mock("@expo/vector-icons", () => ({
+  __esModule: true,
+  FontAwesome: "FontAwesome",
+}));
+
+jest.mock("@rn-primitives/slot", () => ({
+  Text: "Text",
+}));
+
+jest.mock("react-native-webview", () => {
+  return {
+    __esModule: true,
+    default: "WebView",
+  };
+});
 
 // Mock redux-devtools-expo-dev-plugin
 jest.mock("redux-devtools-expo-dev-plugin", () => ({

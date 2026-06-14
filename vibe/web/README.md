@@ -4,29 +4,35 @@ Static web workspace for Nostroots browser experiences.
 
 **Live version:** [https://nos.trustroots.org/](https://nos.trustroots.org/)
 
-The root page is a small hub. It links to classic Trustroots network settings and the current Trustroots-on-Nostr app by default, with experimental apps behind a toggle.
+The root page is a small hub. It links to classic Trustroots network settings, Nostroots Web, mobile app downloads, and background information by default, with experimental apps behind a toggle.
 
 ## Experiences
 
+- [`/background/`](background/) — background, vision, and FAQ for Nostroots and the Trustroots/Nostr direction.
 - [`https://www.trustroots.org/profile/edit/networks`](https://www.trustroots.org/profile/edit/networks) — classic Trustroots network editing.
-- [`/trustroots-map/`](trustroots-map/) — Trustroots on Nostr, the current map/chat/profile web app for Trustroots-style activity.
-- [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots/Vibe Browser.
+- [`/v0/`](v0/) — Nostroots Web, the current map/chat/profile app for Trustroots-style activity with light Nostr key support.
+- [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots Browser.
 - [`/nostroots-map/`](nostroots-map/) — experimental browser-native map prototype inspired by the mobile `nr-app`, built without React or Expo Web.
+- [`/examples/squatbridge.html`](examples/squatbridge.html) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr; hidden on the hub until you enable experimental apps.
+- [`https://www.letsmiti.app/`](https://www.letsmiti.app/) — external Let's Miti app, hidden on the hub until you enable experimental apps.
+- [`https://treasures.to/`](https://treasures.to/) — external Treasures web app, hidden on the hub until you enable experimental apps.
 - [`/examples/`](examples/) — optional demos and fork patterns.
 
-Legacy root hash/query links still land in the current app. For example, `/#stats` redirects to `/trustroots-map/#stats`, and `/?welcome=1` redirects to `/trustroots-map/?welcome=1`.
+Legacy root hash/query links still land in the current app. For example, `/#stats` redirects to `/v0/#stats`, and `/?welcome=1` redirects to `/v0/?welcome=1`.
 
 ## Features
 
-- **Trustroots on Nostr**: View Nostroots notes, post by plus code, manage keys, use NIP-07, chat, browse profiles, and configure relays.
+- **Nostroots Web**: View traveler notes, post by plus code with a Trustroots identity, manage keys, use NIP-07, chat, browse profiles, and configure relays.
 - **Nostrail**: Share a temporary approximate area with selected people using the browser-provided NIP-07 signer, NIP-44 encryption, NIP-42 relay auth, and foreground-only updates.
 - **Nostroots Map**: Map-first browser-native prototype with NIP-07 signer detection.
+- **Let's Miti**: External experimental web app linked from the hub.
+- **Treasures**: External web app linked from the experimental hub.
 - **Pixel**: Circle-scoped pixel sequencer (artists, burners, punks) — draw a 16×16, publish to Nostr, optional "Where" and invite/jam for IRL meetups. [examples/pixel.html](examples/pixel.html)
 - **Examples hub**: [examples/index.html](examples/index.html) — overview of demo pages and fork patterns.
 
 ## URL routing (hash)
 
-The current Trustroots Map app (`trustroots-map/index.html`) uses **`location.hash`** only (no path router; static hosting friendly). The parser lives inside `trustroots-map/index.html` (look for the `NR_HASH_ROUTER_BEGIN` / `NR_HASH_ROUTER_END` markers) and is exposed as `window.NrWebHashRouter`.
+Nostroots Web (`v0/index.html`) uses **`location.hash`** only (no path router; static hosting friendly). The parser lives inside `v0/index.html` (look for the `NR_HASH_ROUTER_BEGIN` / `NR_HASH_ROUTER_END` markers) and is exposed as `window.NrWebHashRouter`.
 
 | Fragment | Meaning |
 |----------|---------|
@@ -42,18 +48,18 @@ The current Trustroots Map app (`trustroots-map/index.html`) uses **`location.ha
 | Looks like NIP-05 (e.g. `alice%40trustroots.org`) | Chat — DM |
 | Otherwise | Chat — circle / channel slug |
 
-Circle slugs cannot match reserved words (`welcome`, `start`, etc.); see `NrWebHashRouter.EXTENDED_RESERVED` inside the `NR_HASH_ROUTER_BEGIN` block in `trustroots-map/index.html`.
+Circle slugs cannot match reserved words (`welcome`, `start`, etc.); see `NrWebHashRouter.EXTENDED_RESERVED` inside the `NR_HASH_ROUTER_BEGIN` block in `v0/index.html`.
 
-Query shortcuts (stripped after load): `?action=map|host|search`, `?welcome=1`, `?start=1` (see `processNrWebUrlAction()` in `trustroots-map/index.html`).
+Query shortcuts (stripped after load): `?action=map|host|search`, `?welcome=1`, `?start=1` (see `processNrWebUrlAction()` in `v0/index.html`).
 
 ## Getting Started
 
-The current Trustroots Map app is shipped as **two source files**:
+Nostroots Web is shipped as **two source files**:
 
-- [`trustroots-map/index.html`](trustroots-map/index.html) — markup, all CSS in a single `<style>` block, the classic-script helpers (`NrWeb*` globals + `NrWebHashRouter`), the inlined Keys/Settings modals, and a `<script type="module" src="./index.js">` that loads the rest.
-- [`trustroots-map/index.js`](trustroots-map/index.js) — a single ES module containing every Nostroots-authored helper (key utils, claim/note-intents helpers, nsec-guard, KV-IndexedDB layer, NIP-05 resolver, circle metadata, embedded chat, profile page, and the main map glue), exported by name so unit tests can import directly.
+- [`v0/index.html`](v0/index.html) — markup, all CSS in a single `<style>` block, the classic-script helpers (`NrWeb*` globals + `NrWebHashRouter`), the inlined Keys/Settings modals, and a `<script type="module" src="./index.js">` that loads the rest.
+- [`v0/index.js`](v0/index.js) — a single ES module containing every Nostroots-authored helper (key utils, claim/note-intents helpers, nsec-guard, KV-IndexedDB layer, NIP-05 resolver, circle metadata, embedded chat, profile page, and the main map glue), exported by name so unit tests can import directly.
 
-The root [`index.js`](index.js) re-exports Trustroots Map helpers for test/backward compatibility.
+The root [`index.js`](index.js) re-exports Nostroots Web helpers for test/backward compatibility.
 
 Third-party assets (`maplibre-gl`, `leaflet`, `nostr-tools`, `bip39`, `dompurify`, Google Fonts) stay on their respective CDNs. There is no build step: serve the folder from any static host.
 
@@ -104,7 +110,7 @@ When validating importer output and route rendering together:
    - `#hitchhikers`
    - confirm circle metadata image (from importer `30410` `content.picture`) is visible where circle image chrome is shown (chat/sidebar/thread header).
 
-If image tests pass in `test.html` but a route does not show the image, check importer event shape first (`30390`/`30410`) and then the client metadata wiring inside `trustroots-map/index.js` — the chat, profile, and circle-metadata code is all folded into that single module.
+If image tests pass in `test.html` but a route does not show the image, check importer event shape first (`30390`/`30410`) and then the client metadata wiring inside `v0/index.js` — the chat, profile, and circle-metadata code is all folded into that single module.
 
 ### Real Apple iOS Simulator (Xcode) automation
 

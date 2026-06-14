@@ -5,6 +5,7 @@ import {
   NOSTROOTS_METRICS_SUPPORTED_TYPES,
   NOSTROOTS_METRICS_TYPE_TAG_NAME,
   NOTIFICATION_SERVER_PUBKEY,
+  NOSTROOTS_VALIDATION_PUBKEY,
 } from "@trustroots/nr-common";
 import { AnyAction } from "redux-saga";
 import { all, put, take, takeEvery } from "redux-saga/effects";
@@ -89,7 +90,7 @@ function* subscribeToMetrics() {
       filters: [
         {
           kinds: [NOSTROOTS_METRICS_KIND],
-          authors: [NOTIFICATION_SERVER_PUBKEY],
+          authors: [NOSTROOTS_VALIDATION_PUBKEY, NOTIFICATION_SERVER_PUBKEY],
           "#t": [...NOSTROOTS_METRICS_SUPPORTED_TYPES],
           "#d": ["world"],
         },

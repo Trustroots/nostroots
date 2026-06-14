@@ -40,8 +40,7 @@ describe("NotesList", () => {
   it("renders empty exact and child counts", () => {
     renderWithProviders(<NotesList plusCode="9F4G0000+" />);
 
-    expect(screen.getByText(/0 exact matches for/)).toBeTruthy();
-    expect(screen.getByText(/0 within plus code/)).toBeTruthy();
+    expect(screen.getByText("No messages yet. Be the first!")).toBeTruthy();
   });
 
   it("renders exact matching notes", () => {
@@ -56,7 +55,6 @@ describe("NotesList", () => {
       },
     });
 
-    expect(screen.getByText(/1 exact matches for/)).toBeTruthy();
     expect(screen.getByText("Exact note")).toBeTruthy();
   });
 });

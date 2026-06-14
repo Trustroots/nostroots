@@ -1,5 +1,7 @@
 node_modules
 .pnpm-store
+coverage
+*/coverage
 .env
 .DS_Store
 nr-app/coverage/

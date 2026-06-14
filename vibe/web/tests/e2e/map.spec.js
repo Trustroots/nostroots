@@ -2,7 +2,7 @@ import { test, expect } from './fixtures.js';
 
 test.describe('Map Interactions', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/trustroots-map/');
+    await page.goto('/v0/');
     await page.waitForLoadState('networkidle');
     
     // Generate a key if needed
@@ -57,7 +57,7 @@ test.describe('Map Interactions', () => {
       }
     });
     
-    await page.goto('/trustroots-map/');
+    await page.goto('/v0/');
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(2000); // Give map time to initialize
     
@@ -83,7 +83,7 @@ test.describe('Map hash (coarse plus code)', () => {
   });
 
   test('area plus code in hash opens Host & Meet area page without switching to chat', async ({ page }) => {
-    await page.goto('/trustroots-map/#9G000000+');
+    await page.goto('/v0/#9G000000+');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body.nr-surface-chat')).toHaveCount(0);
     await expect(page.locator('body.nr-surface-host')).toBeVisible({ timeout: 20000 });
@@ -104,7 +104,7 @@ test.describe('Map hash (coarse plus code)', () => {
   });
 
   test('Map nav leaves the Host & Meet area page', async ({ page }) => {
-    await page.goto('/trustroots-map/#9G000000+');
+    await page.goto('/v0/#9G000000+');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body.nr-surface-host')).toBeVisible({ timeout: 20000 });
 
@@ -115,7 +115,7 @@ test.describe('Map hash (coarse plus code)', () => {
   });
 
   test('Host & Meet area preview opens the Map view', async ({ page }) => {
-    await page.goto('/trustroots-map/#9G000000+');
+    await page.goto('/v0/#9G000000+');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body.nr-surface-host')).toBeVisible({ timeout: 20000 });
     await expect(page.locator('.area-location-controls')).toHaveCount(0);
@@ -128,7 +128,7 @@ test.describe('Map hash (coarse plus code)', () => {
   });
 
   test('Host nav returns to the last Host & Meet area after visiting Chat', async ({ page }) => {
-    await page.goto('/trustroots-map/#8C000000+');
+    await page.goto('/v0/#8C000000+');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body.nr-surface-host')).toBeVisible({ timeout: 20000 });
     await expect(page.locator('#area-location-code')).toHaveText('8C000000+');
@@ -144,7 +144,7 @@ test.describe('Map hash (coarse plus code)', () => {
 
   test('mobile Host & Meet shows area info before thread in one page', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto('/trustroots-map/#9G000000+');
+    await page.goto('/v0/#9G000000+');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body.nr-surface-host')).toBeVisible({ timeout: 20000 });
 
@@ -174,7 +174,7 @@ test.describe('Leaflet fallback tap', () => {
   });
 
   async function gotoLeafletFallback(page) {
-    await page.goto('/trustroots-map/?map=leaflet');
+    await page.goto('/v0/?map=leaflet');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('#map[data-map-fallback="leaflet"]')).toBeVisible({ timeout: 20000 });
     // Make sure Leaflet finished its initial setView (pixel origin set, sized).

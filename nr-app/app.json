@@ -2,16 +2,11 @@
   "expo": {
     "name": "Nostroots",
     "slug": "nr-app",
-    "version": "0.0.4",
+    "version": "0.5.1",
     "orientation": "portrait",
     "icon": "./assets/images/nostroots-300x300.png",
     "scheme": "nostroots",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/images/nostroots-300x300.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.trustroots.nostroots",
@@ -66,7 +61,14 @@
           "locationWhenInUsePermission": "Allow Nostroots to use your location to show you nearby notes."
         }
       ],
-      "expo-splash-screen",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/nostroots-300x300.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
       "expo-status-bar",
       "@sentry/react-native",
       [
@@ -91,7 +93,6 @@
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
-    "newArchEnabled": true,
     "updates": {
       "url": "https://u.expo.dev/a6c7b2e0-f036-44a3-b57c-d05b9d383c30",
       "checkAutomatically": "ON_LOAD"

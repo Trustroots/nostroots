@@ -94,3 +94,14 @@ export function doesFilterMatchParentPlusCode(
   );
   return hasMatchingPlusCode;
 }
+
+export function getMatchingParentPlusCode(
+  filter: Filter,
+  plusCode: PlusCode,
+): string | undefined {
+  if (!hasLabelFilter(filter)) {
+    return undefined;
+  }
+  const labelValues = filter["#l"];
+  return labelValues.find((label) => isPlusCodeInsidePlusCode(label, plusCode));
+}

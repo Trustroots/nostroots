@@ -34,20 +34,16 @@ export const MONGODB_DB_NAME = new URL(MONGODB_URI).pathname.slice(1) ||
 /** HTTP server port. */
 export const PORT = Number(optional("PORT", "8000"));
 
-/**
- * SMTP server hostname. Validated at the time {@link sendEmail} is invoked,
- * not at module load — that way unit tests that never send mail don't need
- * dummy SMTP credentials in their environment.
- */
-export const SMTP_HOST = optional("SMTP_HOST", "");
+/** SMTP server hostname. */
+export const SMTP_HOST = required("SMTP_HOST");
 
 /** SMTP server port. */
 export const SMTP_PORT = Number(optional("SMTP_PORT", "587"));
 
-/** SMTP username. Validated at send time, see {@link SMTP_HOST}. */
+/** SMTP username. */
 export const SMTP_USER = optional("SMTP_USER", "");
 
-/** SMTP password. Validated at send time, see {@link SMTP_HOST}. */
+/** SMTP password. */
 export const SMTP_PASS = optional("SMTP_PASS", "");
 
 /** Sender address used for verification emails. */
@@ -59,3 +55,9 @@ export const SMTP_FROM = optional("SMTP_FROM", "support@trustroots.org");
  * to a real filesystem path in production.
  */
 export const DENO_KV_PATH = required("DENO_KV_PATH");
+
+/**
+ * Base URL for the iOS deep link (e.g. `nostroots://verify`).
+ * When unset the deep-link button is omitted from verification emails.
+ */
+export const DEEP_LINK_BASE: string | undefined = Deno.env.get("DEEP_LINK_BASE");

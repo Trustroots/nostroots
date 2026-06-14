@@ -1,236 +1,369 @@
 import { publishNotePromiseAction } from "@/redux/actions/publish.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
-import { notificationSelectors } from "@/redux/slices/notifications.slice";
+import { mapSelectors } from "@/redux/slices/map.slice";
 import {
-  doesFilterMatchParentPlusCode,
-  doesFilterMatchPlusCodeExactly,
-} from "@/utils/notifications.utils";
-import { BottomSheetTextInput } from "@expo/ui/community/bottom-sheet";
-import { getCurrentTimestamp, PlusCode } from "@trustroots/nr-common";
-import { useCallback, useMemo, useState } from "react";
-import { View } from "react-native";
+  SIGNAL_DURATIONS,
+  SIGNAL_INTENTS,
+  SignalDuration,
+  SignalIntent,
+} from "@/constants/signals";
+import { getCurrentTimestamp } from "@trustroots/nr-common";
+import { nanoid } from "@reduxjs/toolkit";
+import { CalendarDays, Send } from "lucide-react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { useCallback, useState } from "react";
+import { Platform, Pressable, TextInput, View } from "react-native";
 import Toast from "react-native-root-toast";
-import { createSelector } from "reselect";
 import { TEST_IDS } from "@/constants/testIds";
-import SubscriptionPrompt from "./SubscriptionPrompt";
 import { Button } from "./ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+import { Icon } from "./ui/icon";
 import { Text } from "./ui/text";
 
-const MINUTE_IN_SECONDS = 60;
-const HOUR_IN_SECONDS = 60 * MINUTE_IN_SECONDS;
-const DAY_IN_SECONDS = 24 * HOUR_IN_SECONDS;
-const WEEK_IN_SECONDS = 7 * DAY_IN_SECONDS;
-const MONTH_IN_SECONDS = 30 * DAY_IN_SECONDS;
-const YEAR_IN_SECONDS = 365 * DAY_IN_SECONDS;
+interface OptimisticNote {
+  id: string;
+  content: string;
+  createdAt: number;
+  status: "sending" | "failed";
+}
 
-const noteExpiryOptions = [
-  { label: "1 year", value: YEAR_IN_SECONDS.toString() },
-  { label: "1 month", value: MONTH_IN_SECONDS.toString() },
-  { label: "1 week", value: WEEK_IN_SECONDS.toString() },
-  { label: "1 day", value: DAY_IN_SECONDS.toString() },
-  { label: "1 hour", value: HOUR_IN_SECONDS.toString() },
-];
+interface AddNoteFormProps {
+  onSent?: () => void;
+  signalMode?: boolean;
+  onSignalSent?: () => void;
+}
 
-type FormState = "editing" | "success-prompt" | "subscribing";
+const INTENT_PLACEHOLDERS: Record<string, string> = {
+  coffee: "Anyone down for coffee?",
+  drinks: "Wanna get drinks with me?",
+  explore: "Who wants to explore around here?",
+  hosting: "I can host! Say more...",
+  ride: "Looking for a ride or offering one?",
+};
 
-const selectIsSubscribedToPlusCode = createSelector(
-  [
-    notificationSelectors.selectFilters,
-    (_state: unknown, plusCode: string) => plusCode,
-  ],
-  (filters, plusCode) => {
-    const isExactMatch = filters.some(({ filter }) =>
-      doesFilterMatchPlusCodeExactly(filter, plusCode),
-    );
-    const isParentMatch =
-      !isExactMatch &&
-      filters.some(({ filter }) =>
-        doesFilterMatchParentPlusCode(filter, plusCode),
-      );
-    return isExactMatch || isParentMatch;
-  },
-);
+function getIntentPlaceholder(intent: SignalIntent | null): string {
+  if (!intent) return "What are you up to?";
+  return INTENT_PLACEHOLDERS[intent] ?? "What are you up to?";
+}
 
-export default function AddNoteForm() {
+function createDatePickerDates() {
+  return {
+    defaultDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    minimumDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+  };
+}
+
+export default function AddNoteForm({
+  onSent,
+  signalMode = false,
+  onSignalSent,
+}: AddNoteFormProps) {
   const dispatch = useAppDispatch();
   const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
 
   const [noteContent, setNoteContent] = useState("");
-  const [noteExpiry, setNoteExpiry] = useState<string>(
-    WEEK_IN_SECONDS.toString(),
-  );
-  const [formState, setFormState] = useState<FormState>("editing");
-  const [publishedPlusCode, setPublishedPlusCode] = useState<PlusCode | null>(
+  const [selectedIntent, setSelectedIntent] = useState<SignalIntent | null>(
     null,
   );
+  const [selectedDuration, setSelectedDuration] =
+    useState<SignalDuration>("1-week");
+  const [customDate, setCustomDate] = useState<Date | null>(null);
+  const [datePickerDates, setDatePickerDates] = useState(createDatePickerDates);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [optimisticNotes, setOptimisticNotes] = useState<OptimisticNote[]>([]);
 
-  const isSubscribed = useAppSelector((state) =>
-    selectIsSubscribedToPlusCode(state, selectedPlusCode),
+  // When not in signal mode, intent is always null
+  const effectiveIntent = signalMode ? selectedIntent : null;
+
+  const handleSend = useCallback(async () => {
+    if (
+      typeof selectedPlusCode === "undefined" ||
+      selectedPlusCode.length === 0
+    ) {
+      Toast.show("Error: No plus code selected. #Rjbe0s", {
+        duration: Toast.durations.LONG,
+        position: Toast.positions.TOP,
+      });
+      return;
+    }
+
+    const trimmedContent = noteContent.trim();
+    if (trimmedContent.length < 3) {
+      Toast.show("Note must be at least 3 characters long", {
+        duration: Toast.durations.LONG,
+        position: Toast.positions.TOP,
+      });
+      return;
+    }
+
+    let expirationTimestampSeconds: number;
+    if (customDate) {
+      expirationTimestampSeconds = Math.floor(customDate.getTime() / 1000);
+    } else {
+      const durationEntry = SIGNAL_DURATIONS.find(
+        (d) => d.key === selectedDuration,
+      );
+      const durationSeconds = durationEntry?.seconds ?? 7 * 24 * 60 * 60;
+      expirationTimestampSeconds = getCurrentTimestamp() + durationSeconds;
+    }
+
+    // Create optimistic note
+    const optimisticId = nanoid();
+    const optimisticNote: OptimisticNote = {
+      id: optimisticId,
+      content: trimmedContent,
+      createdAt: getCurrentTimestamp(),
+      status: "sending",
+    };
+
+    // Immediately clear input and show optimistic note
+    setNoteContent("");
+    setOptimisticNotes((prev) => [...prev, optimisticNote]);
+    onSent?.();
+
+    try {
+      const timeout = setTimeout(() => {
+        setOptimisticNotes((prev) =>
+          prev.map((n) =>
+            n.id === optimisticId ? { ...n, status: "failed" as const } : n,
+          ),
+        );
+      }, 10000);
+
+      await dispatch(
+        publishNotePromiseAction(
+          trimmedContent,
+          selectedPlusCode,
+          expirationTimestampSeconds,
+          effectiveIntent ?? undefined,
+        ),
+      );
+
+      clearTimeout(timeout);
+
+      // Remove optimistic note on success (real note will appear via relay subscription)
+      setOptimisticNotes((prev) => prev.filter((n) => n.id !== optimisticId));
+
+      // Exit signal mode after successful send
+      if (effectiveIntent) {
+        onSignalSent?.();
+      }
+    } catch {
+      // Mark as failed
+      setOptimisticNotes((prev) =>
+        prev.map((n) =>
+          n.id === optimisticId ? { ...n, status: "failed" as const } : n,
+        ),
+      );
+    }
+  }, [
+    selectedPlusCode,
+    noteContent,
+    dispatch,
+    selectedDuration,
+    customDate,
+    effectiveIntent,
+    onSent,
+    onSignalSent,
+  ]);
+
+  const handleRetry = useCallback(
+    async (note: OptimisticNote) => {
+      setOptimisticNotes((prev) =>
+        prev.map((n) =>
+          n.id === note.id ? { ...n, status: "sending" as const } : n,
+        ),
+      );
+
+      let expirationTimestampSeconds: number;
+      if (customDate) {
+        expirationTimestampSeconds = Math.floor(customDate.getTime() / 1000);
+      } else {
+        const durationEntry = SIGNAL_DURATIONS.find(
+          (d) => d.key === selectedDuration,
+        );
+        const durationSeconds = durationEntry?.seconds ?? 7 * 24 * 60 * 60;
+        expirationTimestampSeconds = getCurrentTimestamp() + durationSeconds;
+      }
+
+      try {
+        await dispatch(
+          publishNotePromiseAction(
+            note.content,
+            selectedPlusCode,
+            expirationTimestampSeconds,
+            selectedIntent ?? undefined,
+          ),
+        );
+        setOptimisticNotes((prev) => prev.filter((n) => n.id !== note.id));
+      } catch {
+        setOptimisticNotes((prev) =>
+          prev.map((n) =>
+            n.id === note.id ? { ...n, status: "failed" as const } : n,
+          ),
+        );
+      }
+    },
+    [dispatch, selectedDuration, customDate, selectedIntent, selectedPlusCode],
   );
-
-  const closeModal = useCallback(() => {
-    dispatch(mapActions.closeAddNoteModal());
-    dispatch(mapActions.closeMapModal());
-    // Reset form state when closing
-    setFormState("editing");
-    setPublishedPlusCode(null);
-  }, [dispatch]);
-
-  const handleAddNote = useMemo(
-    () =>
-      async function handleAddNoteHandler() {
-        if (
-          typeof selectedPlusCode === "undefined" ||
-          selectedPlusCode.length === 0
-        ) {
-          Toast.show(
-            "Error: Cannot add note without a selected plus code. #Rjbe0s",
-            {
-              duration: Toast.durations.LONG,
-              position: Toast.positions.TOP,
-            },
-          );
-          return;
-        }
-
-        // validate note content. Must be longer than 3 chars
-        if (noteContent.trim().length < 3) {
-          Toast.show("Note must be at least 3 characters long", {
-            duration: Toast.durations.LONG,
-            position: Toast.positions.TOP,
-          });
-          return;
-        }
-
-        const expirationTimestampSeconds =
-          getCurrentTimestamp() + parseInt(noteExpiry);
-
-        try {
-          // time out after 5s
-          const timeout = setTimeout(() => {
-            throw new Error("Note publishing timed out.");
-          }, 5000);
-
-          await dispatch(
-            await publishNotePromiseAction(
-              noteContent,
-              selectedPlusCode,
-              expirationTimestampSeconds,
-            ),
-          );
-
-          clearTimeout(timeout);
-
-          Toast.show("Note added successfully", {
-            duration: Toast.durations.LONG,
-            position: Toast.positions.TOP,
-          });
-
-          setNoteContent("");
-
-          // If not subscribed, show the subscription prompt
-          if (!isSubscribed) {
-            setPublishedPlusCode(selectedPlusCode);
-            setFormState("success-prompt");
-            return;
-          }
-        } catch (error) {
-          Toast.show(
-            `Error: #3Rtob2 ${error instanceof Error ? error.message : JSON.stringify(error)}`,
-            {
-              duration: Toast.durations.LONG,
-              position: Toast.positions.TOP,
-            },
-          );
-        }
-
-        closeModal();
-      },
-    [
-      selectedPlusCode,
-      noteContent,
-      dispatch,
-      noteExpiry,
-      isSubscribed,
-      closeModal,
-    ],
-  );
-
-  // Show subscription prompt after successful publish
-  if (formState === "success-prompt" && publishedPlusCode) {
-    return (
-      <SubscriptionPrompt
-        plusCode={publishedPlusCode}
-        onSubscribe={closeModal}
-        onSkip={closeModal}
-      />
-    );
-  }
 
   return (
-    <View className="w-full bg-card p-4 rounded-lg items-center gap-3">
-      <Text variant="h4">Add Note to Map</Text>
-      <BottomSheetTextInput
-        testID={TEST_IDS.map.addNoteContentInput}
-        className="w-full h-20 p-3 bg-background border border-border rounded-md text-foreground"
-        placeholder="Enter your note"
-        placeholderTextColor="#9ca3af"
-        value={noteContent}
-        onChangeText={setNoteContent}
-        onSubmitEditing={handleAddNote}
-        multiline={true}
-      />
-
-      <View className="w-full gap-2">
-        <Text variant="small">Note expiry:</Text>
-        <Select
-          onValueChange={(selectedOption) => {
-            if (typeof selectedOption !== "undefined") {
-              setNoteExpiry(selectedOption.value);
-            }
-          }}
-          defaultValue={noteExpiryOptions[2]}
+    <View className="px-4 py-3 gap-2.5">
+      {/* Optimistic notes */}
+      {optimisticNotes.map((note) => (
+        <View
+          key={note.id}
+          className={`px-3 py-1 ${note.status === "sending" ? "opacity-40" : ""}`}
         >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select expiry" />
-          </SelectTrigger>
-          <SelectContent className="w-[200px]">
-            <SelectGroup>
-              <SelectLabel>Note expiry</SelectLabel>
-              {noteExpiryOptions.map(({ label, value }, index) => (
-                <SelectItem label={label} value={value} key={index}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-      </View>
+          <View className="flex-row items-baseline gap-1.5">
+            <Text className="text-sm font-semibold text-primary">You</Text>
+            {note.status === "sending" ? (
+              <Text className="text-[11px] text-muted-foreground">
+                sending...
+              </Text>
+            ) : (
+              <Pressable onPress={() => handleRetry(note)}>
+                <Text className="text-[11px] text-destructive font-semibold">
+                  tap to retry
+                </Text>
+              </Pressable>
+            )}
+          </View>
+          <Text className="text-[15px] leading-snug text-foreground mt-0.5">
+            {note.content}
+          </Text>
+        </View>
+      ))}
 
-      <View className="w-full flex-row justify-center gap-4 mt-2">
+      {/* Signal mode: intent chips (emoji only) */}
+      {signalMode && (
+        <View className="flex-row flex-wrap gap-1.5">
+          {SIGNAL_INTENTS.map((intent) => {
+            const isSelected = selectedIntent === intent.key;
+            return (
+              <Pressable
+                key={intent.key}
+                onPress={() =>
+                  setSelectedIntent(isSelected ? null : intent.key)
+                }
+                className={`rounded-full px-3 py-1.5 border ${
+                  isSelected
+                    ? "border-primary bg-primary/10"
+                    : "border-border/50 bg-muted/20"
+                }`}
+              >
+                <Text className="text-base">{intent.emoji}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
+
+      {/* Send bar: input + send button */}
+      <View className="flex-row items-end gap-2">
+        <View className="flex-1">
+          <TextInput
+            testID={TEST_IDS.map.addNoteContentInput}
+            className="w-full px-4 py-3 bg-muted/20 rounded-2xl text-foreground text-[15px]"
+            placeholder={
+              signalMode
+                ? getIntentPlaceholder(selectedIntent)
+                : "Share a tip or say hi..."
+            }
+            placeholderTextColor="#9ca3af"
+            value={noteContent}
+            onChangeText={setNoteContent}
+            onSubmitEditing={handleSend}
+            multiline={true}
+            style={{ maxHeight: 100 }}
+          />
+        </View>
         <Button
           testID={TEST_IDS.map.addNoteSubmitButton}
-          title="Add Note"
-          onPress={handleAddNote}
-          className="flex-1"
-        />
-        <Button
-          title="Cancel"
-          variant="outline"
-          onPress={closeModal}
-          className="flex-1"
-        />
+          onPress={handleSend}
+          size="icon"
+          className="h-11 w-11 rounded-full"
+          disabled={noteContent.trim().length < 3}
+        >
+          <Icon as={Send} size={18} className="text-primary-foreground" />
+        </Button>
       </View>
+
+      {/* Duration chips — always visible */}
+      <View className="flex-row items-center gap-1.5">
+        <Text className="text-[10px] text-muted-foreground font-semibold tracking-wider uppercase">
+          Expires
+        </Text>
+        {SIGNAL_DURATIONS.map((duration) => {
+          const isSelected = !customDate && selectedDuration === duration.key;
+          return (
+            <Pressable
+              key={duration.key}
+              onPress={() => {
+                setSelectedDuration(duration.key);
+                setCustomDate(null);
+                setShowDatePicker(false);
+              }}
+              className={`rounded-full px-2.5 py-1 border ${
+                isSelected
+                  ? "border-primary bg-primary/10"
+                  : "border-border/50 bg-muted/20"
+              }`}
+            >
+              <Text
+                className={`text-[11px] font-medium ${
+                  isSelected ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                {duration.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+        <Pressable
+          onPress={() => {
+            setDatePickerDates(createDatePickerDates());
+            setShowDatePicker(!showDatePicker);
+          }}
+          className={`rounded-full px-1.5 py-1 border ${
+            customDate
+              ? "border-primary bg-primary/10"
+              : "border-border/50 bg-muted/20"
+          }`}
+        >
+          {customDate ? (
+            <Text className="text-[11px] font-medium text-primary">
+              {customDate.toLocaleDateString(undefined, {
+                month: "short",
+                day: "numeric",
+              })}
+            </Text>
+          ) : (
+            <Icon
+              as={CalendarDays}
+              size={13}
+              className="text-muted-foreground"
+            />
+          )}
+        </Pressable>
+      </View>
+
+      {/* Date picker for custom expiry */}
+      {showDatePicker && (
+        <DateTimePicker
+          value={customDate ?? datePickerDates.defaultDate}
+          mode="date"
+          display={Platform.OS === "ios" ? "inline" : "default"}
+          minimumDate={datePickerDates.minimumDate}
+          onChange={(_event, date) => {
+            if (Platform.OS === "android") {
+              setShowDatePicker(false);
+            }
+            if (date) {
+              setCustomDate(date);
+            }
+          }}
+        />
+      )}
     </View>
   );
 }

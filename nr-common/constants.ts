@@ -33,10 +33,12 @@ export const ACCEPTED_KINDS = [
 ];
 
 export const NOSTROOTS_METRICS_TYPE_TAG_NAME = "t" as const;
+export const NOSTROOTS_METRICS_TYPE_PUSH_SUBSCRIPTIONS =
+  "push-subscriptions" as const;
+export const NOSTROOTS_METRICS_TYPE_MESSAGES = "messages" as const;
 export const NOSTROOTS_METRICS_SUPPORTED_TYPES = [
-  "push-subscriptions",
-  "messages-single",
-  "messages-total",
+  NOSTROOTS_METRICS_TYPE_PUSH_SUBSCRIPTIONS,
+  NOSTROOTS_METRICS_TYPE_MESSAGES,
 ] as const;
 
 export const SERVER_MESSAGE_TYPE_TAG_NAME = "serverMessageType" as const;
@@ -174,7 +176,7 @@ const unverified: MapLayer = {
 
 export const MAP_LAYERS = {
   trustroots,
-  hitchmap,
+  // hitchmap disabled — layer is non-functional and causes performance issues (#190)
   hitchwiki,
   timesafari,
   triphopping,

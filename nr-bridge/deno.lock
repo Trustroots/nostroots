@@ -6,6 +6,10 @@
     "jsr:@std/expect@*": "1.0.18",
     "jsr:@std/internal@^1.0.12": "1.0.12",
     "jsr:@std/path@^1.1.4": "1.1.4",
+    "jsr:@upyo/core@0.4": "0.4.0",
+    "jsr:@upyo/smtp@*": "0.4.0",
+    "jsr:@upyo/smtp@0.4": "0.4.0",
+    "jsr:@upyo/smtp@0.4.0": "0.4.0",
     "npm:@faker-js/faker@^10.4.0": "10.4.0",
     "npm:mongodb@6": "6.21.0",
     "npm:zod@^3.25.76": "3.25.76"
@@ -35,6 +39,15 @@
       "integrity": "1d2d43f39efb1b42f0b1882a25486647cb851481862dc7313390b2bb044314b5",
       "dependencies": [
         "jsr:@std/internal"
+      ]
+    },
+    "@upyo/core@0.4.0": {
+      "integrity": "ae4c8470d83166b4e360c5a79cdebb3f189b66d1142724f449d1d8acbc380e19"
+    },
+    "@upyo/smtp@0.4.0": {
+      "integrity": "0e8cacb12156352ed37f13415d6bfd031a96edf558551b3414121eaa0afbdf0d",
+      "dependencies": [
+        "jsr:@upyo/core"
       ]
     }
   },
@@ -132,6 +145,8 @@
   "workspace": {
     "dependencies": [
       "jsr:@hono/hono@*",
+      "jsr:@upyo/core@0.4",
+      "jsr:@upyo/smtp@0.4",
       "npm:@faker-js/faker@^10.4.0",
       "npm:mongodb@6",
       "npm:zod@^3.25.76"

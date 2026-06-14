@@ -4,21 +4,22 @@ on:
   workflow_dispatch:
     inputs:
       platform:
-        description: 'Android dev build (emulator and device), Android preview build (standalone .apk), iOS dev build (device), iOS dev build (simulator), iOS production build (TestFlight)'
+        description: 'Android dev build (emulator and device), Android preview build (standalone .apk), Android production build (AAB), iOS dev build (device), iOS dev build (simulator), iOS production build (TestFlight)'
         required: true
-        default: 'android'
+        default: 'android-development'
         type: choice
         options:
           - android-development
           - android-preview
+          - android-production
           - ios-development
           - ios-simulator
           - ios-production
-  schedule:
-    - cron: '0 3 1 * *'
-  push:
-    branches:
-      - main
+  # schedule:
+  #   - cron: '0 3 1 * *'
+  # push:
+  #   branches:
+  #     - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -95,6 +96,7 @@ jobs:
         platform:
           - android-development
           - android-preview
+          - android-production
           - ios-development
           - ios-simulator
           - ios-production
@@ -128,3 +130,19 @@ jobs:
       - name: 🚀 Start Build
         working-directory: ./nr-app
         run: pnpm run build:${{ matrix.platform }}
+
+  ota-main-no-build:
+    needs: fingerprint-check
+    if: github.event_name == 'push' && needs.fingerprint-check.outputs.fingerprint_changed == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - uses: ./.github/actions/repo-setup
+        with:
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: 🗞️ Send OTA Update To Preview Channel
+        working-directory: ./nr-app
+        run: eas update --channel preview --non-interactive --auto

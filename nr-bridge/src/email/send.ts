@@ -1,11 +1,17 @@
 /**
  * @module send
  *
- * SMTP email delivery via denomailer. Configuration is read from environment
- * variables: `SMTP_HOST`, `SMTP_PORT`, optional `SMTP_USER`/`SMTP_PASS`, and
- * `SMTP_FROM`.
+ * SMTP email delivery via upyo. Configuration is read from config.ts.
  */
-import { SMTPClient } from "denomailer";
+import { createMessage } from "@upyo/core";
+import { SmtpTransport } from "@upyo/smtp";
+import {
+  SMTP_FROM,
+  SMTP_HOST,
+  SMTP_PASS,
+  SMTP_PORT,
+  SMTP_USER,
+} from "../config.ts";
 
 /** Options accepted by {@link sendEmail}. */
 export interface EmailOptions {
@@ -17,78 +23,49 @@ export interface EmailOptions {
   html: string;
 }
 
-let smtpClient: SMTPClient | null = null;
+let transport: SmtpTransport | null = null;
 
-function isLocalMailpit(host: string, port: number): boolean {
-  return (host === "127.0.0.1" || host === "localhost") && port === 1025;
-}
+function getTransport(): SmtpTransport {
+  if (transport) return transport;
 
-/**
- * Return the lazily-created SMTP client. Throws if `SMTP_HOST` is missing or
- * if SMTP auth is only partially configured.
- *
- * @returns A connected {@link SMTPClient}.
- */
-function getSmtpClient(): SMTPClient {
-  if (smtpClient) return smtpClient;
-
-  const host = Deno.env.get("SMTP_HOST");
-  const port = Number(Deno.env.get("SMTP_PORT") ?? "587");
-  const username = Deno.env.get("SMTP_USER");
-  const password = Deno.env.get("SMTP_PASS");
-  const allowUnsecure = Deno.env.get("SMTP_ALLOW_UNSECURE") === "true" ||
-    isLocalMailpit(host ?? "", port);
-
-  if (!host) {
-    throw new Error("SMTP_HOST environment variable is required");
-  }
-
-  if ((username && !password) || (!username && password)) {
+  if ((SMTP_USER && !SMTP_PASS) || (!SMTP_USER && SMTP_PASS)) {
     throw new Error("SMTP_USER and SMTP_PASS must be provided together");
   }
 
-  smtpClient = new SMTPClient({
-    connection: {
-      hostname: host,
-      port,
-      tls: port === 465,
-      ...(username && password ? { auth: { username, password } } : {}),
-    },
-    debug: {
-      allowUnsecure,
-    },
+  transport = new SmtpTransport({
+    host: SMTP_HOST,
+    port: SMTP_PORT,
+    secure: SMTP_PORT === 465,
+    ...(SMTP_USER && SMTP_PASS
+      ? { auth: { user: SMTP_USER, pass: SMTP_PASS } }
+      : {}),
   });
 
-  return smtpClient;
+  return transport;
 }
 
 /**
  * Send an email via the configured SMTP server.
  *
- * The sender address is read from `SMTP_FROM` (default
- * `noreply@nostroots.com`).
- *
  * @param options - Recipient, subject, and HTML body.
  */
 export async function sendEmail(options: EmailOptions): Promise<void> {
-  const from = Deno.env.get("SMTP_FROM") ?? "noreply@nostroots.com";
-  const client = getSmtpClient();
-
-  await client.send({
-    from,
+  const message = createMessage({
+    from: SMTP_FROM,
     to: options.to,
     subject: options.subject,
-    html: options.html,
+    content: { html: options.html },
   });
+  await getTransport().send(message);
 }
 
 /**
- * Close the shared SMTP client and reset internal state. Safe to call even if
- * no client has been created.
+ * Close all pooled SMTP connections and reset internal state. Safe to call
+ * even if no transport has been created.
  */
 export async function closeSmtpClient(): Promise<void> {
-  if (smtpClient) {
-    await smtpClient.close();
-    smtpClient = null;
+  if (transport) {
+    await transport.closeAllConnections();
+    transport = null;
   }
 }

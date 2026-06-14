@@ -6,12 +6,13 @@ import {
   mapActions,
   mapSelectors,
 } from "@/redux/slices/map.slice";
+import { metricsSelectors } from "@/redux/slices/metrics.slice";
+import { RootState } from "@/redux/store";
 import { rootLogger } from "@/utils/logger.utils";
 import {
   allPlusCodesForRegion,
   boundariesToRegion,
   coordinatesToPlusCode,
-  filterEventsForPlusCode,
   getAllPlusCodesBetweenTwoPlusCodes,
   plusCodeToRectangle,
   regionToBoundingBox,
@@ -43,12 +44,11 @@ function whatLengthOfPlusCodeToShow(region: Region) {
   return 8;
 }
 
+const selectRootState = (state: RootState) => state;
+
 const selectPlusCodesWithState = createSelector(
-  [
-    mapSelectors.selectEventsForSelectedMapLayer,
-    mapSelectors.selectBoundingBox,
-  ],
-  (events: any, boundingBox: any) => {
+  [mapSelectors.selectBoundingBox, selectRootState],
+  (boundingBox: any, rootState: RootState) => {
     if (typeof boundingBox === "undefined") {
       return [];
     }
@@ -72,12 +72,12 @@ const selectPlusCodesWithState = createSelector(
     );
 
     const output = plusCodes.map((plusCode) => {
-      const { eventsForPlusCodeExactly, eventsWithinPlusCode } =
-        filterEventsForPlusCode(events, plusCode);
+      const messagesMetricCount =
+        metricsSelectors.selectMessagesMetricByPlusCode(rootState, plusCode);
+
       return {
         plusCode,
-        eventCountForThisPlusCodeExactly: eventsForPlusCodeExactly.length,
-        eventCountWithinThisPlusCode: eventsWithinPlusCode.length,
+        heatCount: messagesMetricCount,
       };
     });
     return output;
@@ -87,6 +87,8 @@ const selectPlusCodesWithState = createSelector(
 export default function MapPlusCodes() {
   const dispatch = useAppDispatch();
   const [isMapReady, setIsMapReady] = useState(false);
+  const [locationPermissionGranted, setLocationPermissionGranted] =
+    useState(false);
 
   const plusCodesWithState = useAppSelector(selectPlusCodesWithState);
   const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
@@ -148,6 +150,7 @@ export default function MapPlusCodes() {
   const handleLocationPress = async () => {
     const location = await getCurrentLocation();
     if (location) {
+      setLocationPermissionGranted(true);
       dispatch(
         mapActions.setCurrentMapLocation({
           latitude: location.coords.latitude,
@@ -164,7 +167,10 @@ export default function MapPlusCodes() {
         ),
       );
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
+      return;
     }
+
+    setLocationPermissionGranted(false);
   };
 
   const handleMapRegionChange = useMemo(
@@ -189,10 +195,11 @@ export default function MapPlusCodes() {
         style={styles.map}
         rotateEnabled={false}
         pitchEnabled={false}
+        showsUserLocation={locationPermissionGranted}
         onRegionChangeComplete={handleMapRegionChange}
         initialRegion={savedRegion}
         provider={getMapProvider()}
-        onMapReady={async (event) => {
+        onMapReady={async () => {
           if (mapViewRef.current === null) {
             log.error("#SHtaWM mapViewRef is null");
             return;
@@ -204,7 +211,7 @@ export default function MapPlusCodes() {
           const boundaries = await mapViewRef.current.getMapBoundaries();
           log.debug("#iztRxR onMapReady", boundaries);
           const region = boundariesToRegion(boundaries);
-          handleMapRegionChange(region, {});
+          handleMapRegionChange(region);
         }}
       >
         {(plusCodesWithState as any[]).map(
@@ -220,7 +227,7 @@ export default function MapPlusCodes() {
                 fillColor={
                   shouldShowSelected
                     ? "rgba(0, 90, 120, 0.6)" // Darker teal tint for selected cell
-                    : `rgba(${Math.min(255, (plusCodeWithState.eventCountForThisPlusCodeExactly + plusCodeWithState.eventCountWithinThisPlusCode) * 60).toString()}, 0, 0, 0.6)`
+                    : `rgba(${Math.min(255, plusCodeWithState.heatCount * 60).toString()}, 0, 0, 0.6)`
                 }
                 strokeColor="rgba(0, 0, 0, 0.5)"
                 strokeWidth={2}

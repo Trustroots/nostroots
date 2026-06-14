@@ -31,6 +31,7 @@ import {
   revokeOrigin,
 } from "@/nostr/permission-store";
 import type { Nip7PermissionEntry } from "@/nostr/permission-store";
+import { lookupTrustrootsNip05 } from "@/nostr/trustroots-identity";
 import { getBuildTimeText } from "@/utils/build-info";
 import { nip19 } from "nostr-tools";
 
@@ -47,6 +48,10 @@ interface KeyDetails {
   mnemonic: string | null;
 }
 
+type TrustrootsNip05State =
+  | { status: "loading"; value: null }
+  | { status: "loaded"; value: string | null };
+
 const noMnemonicStored =
   "No recovery phrase is stored. This usually means you imported this key as an nsec instead of a recovery phrase.";
 
@@ -61,6 +66,11 @@ export function SettingsScreen({
   const [permissionEntries, setPermissionEntries] = useState<
     Nip7PermissionEntry[]
   >([]);
+  const [trustrootsNip05, setTrustrootsNip05] =
+    useState<TrustrootsNip05State>({
+      status: "loading",
+      value: null,
+    });
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -79,44 +89,20 @@ export function SettingsScreen({
         mnemonic,
       });
       setError("");
+      setTrustrootsNip05({ status: "loading", value: null });
+      const nip05 = await lookupTrustrootsNip05(publicKeyHex);
+      setTrustrootsNip05({ status: "loaded", value: nip05 });
     } catch (err) {
       setError(err instanceof Error ? err.message : "We could not load settings.");
+      setTrustrootsNip05({ status: "loaded", value: null });
     }
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
-    getPermissionEntries()
-      .then(async (entries) => {
-        if (!isMounted) return;
-        setPermissionEntries(entries);
-        try {
-          const [publicKeyHex, nsec, mnemonic] = await Promise.all([
-            getPublicKeyHexFromSecureStorage(),
-            getNsecFromSecureStorage(),
-            getPrivateKeyMnemonicFromSecureStorage(),
-          ]);
-          if (!isMounted) return;
-          setDetails({
-            npub: nip19.npubEncode(publicKeyHex),
-            nsec,
-            mnemonic,
-          });
-          setError("");
-        } catch (err) {
-          if (!isMounted) return;
-          setError(
-            err instanceof Error ? err.message : "We could not load settings.",
-          );
-        }
-      })
-      .catch((err) => {
-        if (!isMounted) return;
-        setError(err instanceof Error ? err.message : "We could not load settings.");
-      });
-    return () => {
-      isMounted = false;
-    };
+    const timeout = setTimeout(() => {
+      void load();
+    }, 0);
+    return () => clearTimeout(timeout);
   }, [load]);
 
   const handleRemoveKey = () => {
@@ -208,6 +194,17 @@ export function SettingsScreen({
               Key
             </Text>
             <KeyValue label="npub" value={details.npub} />
+            <KeyValue
+              label="Trustroots NIP-05"
+              value={
+                trustrootsNip05.status === "loading"
+                  ? "Looking up on Trustroots relays..."
+                  : trustrootsNip05.value ?? "Not found on Trustroots relays"
+              }
+              disabled={
+                trustrootsNip05.status === "loading" || !trustrootsNip05.value
+              }
+            />
             <KeyValue label="nsec" value={details.nsec} secret />
             <KeyValue
               label="mnemonic"

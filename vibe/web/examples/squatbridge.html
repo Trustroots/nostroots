@@ -1,0 +1,2056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Squatbridge — radar.squat.net → Nostr</title>
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <script defer src="../analytics.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      --bg: #ffffff;
+      --fg: #111111;
+      --card: #ffffff;
+      --muted: #777777;
+      --border: #bdbdbd;
+      --primary: #7d7d7d;
+      --primary-fg: #ffffff;
+      --danger: #9f3a2d;
+      --ok: #4f6f4f;
+      --link: #3030ff;
+      --soft: #eeeeee;
+      --body-font: Arial, Helvetica, sans-serif;
+      --display-font: "Courier New", Courier, monospace;
+    }
+    body {
+      margin: 0;
+      font-family: var(--body-font);
+      background: var(--bg);
+      color: var(--fg);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    a { color: var(--link); }
+    .sb-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+      flex-shrink: 0;
+    }
+    .sb-title {
+      color: var(--muted);
+      font-family: var(--display-font);
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: 0.22em;
+      margin: 0;
+      white-space: nowrap;
+    }
+    .sb-title a { color: inherit; text-decoration: none; }
+    .sb-mark {
+      display: inline-block;
+      margin-left: 0.45rem;
+      letter-spacing: 0;
+      transform: translateY(-0.05em);
+    }
+    .sb-summary {
+      flex: 1 1 360px;
+      min-width: 220px;
+      margin: 0;
+      color: #444444;
+      font-size: 0.95rem;
+      line-height: 1.35;
+    }
+    .sb-about-btn { font-size: 0.8rem; padding: 0.3rem 0.55rem; flex-shrink: 0; }
+    .sb-header-actions {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-shrink: 0;
+    }
+    .sb-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; flex: 1; }
+    .sb-location-filter {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .sb-filter-tabs {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      background: var(--card);
+    }
+    .sb-filter-tab {
+      font: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.35rem 0.65rem;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .sb-filter-tab + .sb-filter-tab {
+      border-left: 1px solid var(--border);
+    }
+    .sb-filter-tab[aria-selected="true"] {
+      background: var(--primary);
+      color: var(--primary-fg);
+    }
+    .sb-filter-tab:focus-visible {
+      outline: 2px solid var(--primary);
+      outline-offset: -2px;
+    }
+    .sb-controls label { font-size: 0.85rem; color: var(--muted); display: flex; align-items: center; gap: 0.35rem; }
+    .sb-controls select, .sb-controls input {
+      font: inherit;
+      padding: 0.35rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card);
+      color: var(--fg);
+    }
+    .sb-controls select { max-width: min(280px, 55vw); }
+    .sb-btn {
+      font: inherit;
+      padding: 0.4rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--primary);
+      color: var(--primary-fg);
+      cursor: pointer;
+    }
+    .sb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .sb-btn.secondary { background: var(--card); color: var(--fg); }
+    .sb-signer { font-size: 0.8rem; color: var(--muted); max-width: min(280px, 40vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sb-status {
+      position: absolute;
+      top: 0.75rem;
+      left: 50%;
+      z-index: 500;
+      max-width: min(560px, calc(100% - 2rem));
+      transform: translateX(-50%);
+      margin: 0;
+      padding: 0.45rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+      color: var(--fg);
+      font-size: 0.85rem;
+      line-height: 1.3;
+      pointer-events: none;
+    }
+    .sb-status[hidden] { display: none; }
+    .sb-status.error { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 55%, var(--border)); }
+    .sb-main { display: flex; flex: 1; min-height: 0; }
+    .sb-map-column {
+      flex: 1;
+      min-width: 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    #sb-map { flex: 1; min-width: 0; min-height: 200px; }
+    .sb-map-popup { font-size: 0.85rem; line-height: 1.4; max-width: 220px; }
+    .sb-map-popup-actions { margin-top: 0.45rem; display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+    .sb-map-popup-actions a,
+    .sb-event-actions a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 1.65rem;
+      font: inherit;
+      font-size: 0.75rem;
+      line-height: 1;
+      padding: 0.25rem 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--card);
+      color: var(--fg);
+      text-decoration: none;
+      cursor: pointer;
+    }
+    .sb-map-popup-actions a:hover,
+    .sb-map-popup-actions a:focus-visible,
+    .sb-event-actions a:hover,
+    .sb-event-actions a:focus-visible {
+      border-color: var(--primary);
+      outline: none;
+    }
+    .sb-map-popup-actions .sb-map-share {
+      font: inherit;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.45rem;
+      border-radius: 4px;
+      border: none;
+      background: var(--primary);
+      color: var(--primary-fg);
+      cursor: pointer;
+    }
+    .sb-map-popup-actions .sb-map-share:disabled { opacity: 0.45; }
+    .sb-map-popup-actions .sb-share-wrap--disabled { cursor: help; }
+    .sb-map-popup-actions .sb-share-wrap--disabled .sb-map-share { pointer-events: none; }
+    .sb-list-panel {
+      width: min(420px, 42vw);
+      border-left: 1px solid var(--border);
+      background: var(--card);
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .sb-list-toolbar {
+      flex-shrink: 0;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--soft);
+    }
+    .sb-list-tools {
+      flex-shrink: 0;
+      padding: 0.5rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--soft);
+    }
+    .sb-event-filter {
+      width: 100%;
+      font: inherit;
+      font-size: 0.85rem;
+      padding: 0.4rem 0.55rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card);
+      color: var(--fg);
+    }
+    .sb-event-filter::placeholder { color: var(--muted); }
+    .sb-past-toggle { width: 100%; font-size: 0.8rem; padding: 0.35rem 0.5rem; }
+    .sb-list {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
+    .sb-event {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .sb-event:hover, .sb-event.active { background: var(--soft); }
+    .sb-event.sb-event-past { opacity: 0.75; }
+    .sb-event.sb-event-past h3 { color: var(--muted); }
+    .sb-event h3 { margin: 0 0 0.25rem; font-size: 0.95rem; line-height: 1.3; }
+    .sb-event .meta { font-size: 0.8rem; color: var(--muted); margin: 0.15rem 0; }
+    .sb-event .cats { font-size: 0.75rem; color: var(--muted); }
+    .sb-event-actions { margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .sb-event-actions button {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--fg);
+      cursor: pointer;
+    }
+    .sb-event-actions button.share { background: var(--primary); color: var(--primary-fg); border-color: transparent; }
+    .sb-event-actions button:disabled { opacity: 0.45; }
+    .sb-share-wrap { display: inline-flex; }
+    .sb-share-wrap--disabled { cursor: help; }
+    .sb-share-wrap--disabled button { pointer-events: none; }
+    .sb-empty { padding: 2rem 1rem; text-align: center; color: var(--muted); }
+    .sb-modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem; z-index: 1000;
+    }
+    .sb-modal-backdrop[hidden] { display: none; }
+    .sb-modal {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      width: min(520px, 100%);
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 1.25rem;
+    }
+    .sb-modal h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
+    .sb-about-body { font-size: 0.9rem; line-height: 1.5; }
+    .sb-about-body p { margin: 0 0 0.75rem; }
+    .sb-about-body ul { margin: 0 0 0.75rem; padding-left: 1.25rem; }
+    .sb-about-body li + li { margin-top: 0.25rem; }
+    .sb-about-body .muted { color: var(--muted); font-size: 0.85rem; }
+    .sb-about-body h3 { font-size: 0.95rem; margin: 0.85rem 0 0.35rem; }
+    .sb-about-body h4 { font-size: 0.88rem; margin: 0.65rem 0 0.25rem; font-weight: 600; }
+    .sb-about-format {
+      font-size: 0.72rem;
+      line-height: 1.45;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.65rem 0.75rem;
+      overflow-x: auto;
+      margin: 0.5rem 0 0.75rem;
+      white-space: pre;
+    }
+    .sb-about-taglist { margin: 0.5rem 0 0.75rem; padding-left: 0; list-style: none; font-size: 0.85rem; }
+    .sb-about-taglist li { margin: 0.35rem 0; }
+    .sb-about-taglist code { font-size: 0.8rem; }
+    .sb-about-tech-toggle { font-size: 0.8rem; padding: 0.3rem 0.55rem; margin: 0.25rem 0 0.75rem; }
+    .sb-about-tech[hidden] { display: none; }
+    .sb-modal textarea {
+      width: 100%;
+      min-height: 120px;
+      max-height: min(46vh, 360px);
+      font: inherit;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      color: var(--fg);
+      resize: vertical;
+      overflow-y: auto;
+    }
+    .sb-modal .feedback { font-size: 0.85rem; margin: 0.75rem 0; min-height: 1.2em; }
+    .sb-modal .feedback.error { color: var(--danger); }
+    .sb-modal .feedback.ok { color: var(--ok); }
+    .sb-share-preflight { font-size: 0.8rem; color: var(--muted); margin: 0.35rem 0 0; min-height: 1.1em; }
+    .sb-share-preflight.error { color: var(--danger); }
+    .sb-relay-results { font-size: 0.8rem; color: var(--muted); margin: 0.5rem 0; }
+    .sb-share-relays { font-size: 0.8rem; color: var(--muted); margin: 0.75rem 0 0; }
+    .sb-share-relays-label { display: block; margin-bottom: 0.25rem; }
+    .sb-share-relays-list { margin: 0; padding-left: 1.1rem; }
+    .sb-share-relays-list li { margin: 0.1rem 0; }
+    .sb-share-relays-list code { font-size: 0.8rem; color: var(--fg); }
+    .sb-circles { margin: 0.75rem 0 0; padding: 0; border: none; }
+    .sb-circles legend { font-size: 0.85rem; color: var(--muted); padding: 0; margin-bottom: 0.4rem; }
+    .sb-circles-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      max-height: 132px;
+      overflow-y: auto;
+      padding: 0.1rem 0;
+    }
+    .sb-circle-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.45rem;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: var(--bg);
+      cursor: pointer;
+      user-select: none;
+    }
+    .sb-circle-toggle:has(input:checked) {
+      border-color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 18%, var(--bg));
+    }
+    .sb-circle-toggle input { margin: 0; accent-color: var(--primary); }
+    .sb-going-toggle {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.5rem;
+      font-size: 0.85rem;
+      margin: 0.75rem 0 0;
+      cursor: pointer;
+    }
+    .sb-going-toggle input { margin: 0.2rem 0 0; accent-color: var(--primary); flex-shrink: 0; }
+    .sb-share-hint { font-size: 0.8rem; color: var(--muted); margin: 0.35rem 0 0.75rem; line-height: 1.4; }
+    .sb-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem; }
+    @media (max-width: 720px) {
+      .sb-main { flex-direction: column; }
+      .sb-map-column { min-height: 0; }
+      .sb-list-panel { width: 100%; max-height: 40vh; border-left: none; border-top: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+  <header class="sb-header">
+    <h1 class="sb-title"><a href="../">Squatbridge</a><span class="sb-mark" aria-hidden="true">｟(･)｠</span></h1>
+    <p class="sb-summary">Browse radar.squat.net events on a map and share selected ones to Nostr.</p>
+    <div class="sb-controls">
+      <div class="sb-location-filter">
+        <div class="sb-filter-tabs" role="tablist" aria-label="Location type">
+          <button type="button" class="sb-filter-tab" id="sb-tab-city" role="tab" aria-selected="true" aria-controls="sb-filter-value">City</button>
+          <button type="button" class="sb-filter-tab" id="sb-tab-country" role="tab" aria-selected="false" aria-controls="sb-filter-value">Country</button>
+        </div>
+        <select id="sb-filter-value" aria-label="City or country"></select>
+      </div>
+    </div>
+    <div class="sb-header-actions">
+      <span class="sb-signer" id="sb-signer">Checking signer…</span>
+      <button type="button" class="sb-btn secondary sb-about-btn" id="sb-about">About</button>
+    </div>
+  </header>
+  <div class="sb-main">
+    <div class="sb-map-column">
+      <div id="sb-map" aria-label="Event map"></div>
+      <p class="sb-status" id="sb-status" role="status" hidden></p>
+    </div>
+    <div class="sb-list-panel">
+      <div class="sb-list-tools">
+        <input type="search" class="sb-event-filter" id="sb-event-filter" placeholder="Filter events…" aria-label="Filter events" autocomplete="off" spellcheck="false">
+      </div>
+      <div class="sb-list-toolbar" id="sb-list-toolbar" hidden>
+        <button type="button" class="sb-btn secondary sb-past-toggle" id="sb-toggle-past" aria-pressed="false"></button>
+      </div>
+      <div class="sb-list" id="sb-list">
+        <p class="sb-empty">No events loaded yet.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-modal-backdrop" id="sb-about-modal" hidden>
+    <div class="sb-modal" role="dialog" aria-labelledby="sb-about-title">
+      <h2 id="sb-about-title">About Squatbridge</h2>
+      <div class="sb-about-body">
+        <p>
+          <a href="https://github.com/Trustroots/nostroots/blob/main/vibe/web/examples/squatbridge.html" target="_blank" rel="noopener noreferrer">Squatbridge</a>
+          bridges event listings into Nostr from the
+          <a href="../">Trustroots Nostr web hub</a>
+          (<a href="https://github.com/Trustroots/nostroots/issues/237" target="_blank" rel="noopener noreferrer">#237</a>).
+          It pulls squat and autonomous-space events from
+          <a href="https://radar.squat.net" target="_blank" rel="noopener">radar.squat.net</a>
+          and lets you browse them on a map.
+        </p>
+        <ul>
+          <li>Pick a city or country — URLs like <code>#city/Berlin</code> are shareable.</li>
+          <li>The list shows today and upcoming events; filter by keyword or reveal past ones.</li>
+          <li>The map keeps markers from cached locations (up to 7&nbsp;days; event lists stay fresh for 24&nbsp;h).</li>
+          <li><strong>Share to Nostr</strong> — map notes and optional “I'm going” RSVP.</li>
+        </ul>
+
+        <button type="button" class="sb-btn secondary sb-about-tech-toggle" id="sb-about-tech-toggle" aria-expanded="false" aria-controls="sb-about-tech">Nostr note format</button>
+        <div id="sb-about-tech" class="sb-about-tech" hidden>
+        <h3>Note format (for other Nostr apps)</h3>
+        <p>
+          Shared events are kind&nbsp;<strong>30397</strong> map notes so the Trustroots validation service can
+          repost them as kind&nbsp;<strong>30398</strong> for clients such as nr-app.
+          To render them directly, read <code>content</code> for the human text and the tags below for map placement, links, and filters.
+        </p>
+
+        <h4>Content (<code>content</code>)</h4>
+        <p>Newline-separated plain text, in order:</p>
+        <ol>
+          <li>Event title</li>
+          <li>Date/time as <code>yyyy-mm-dd hh:mm</code> (same-day ranges: <code>2026-06-08 16:00 → 18:00</code>)</li>
+          <li>Venue name</li>
+          <li>Categories (comma-separated), if any</li>
+          <li>Canonical <code>radar.squat.net</code> URL</li>
+          <li>Optional <code>#circle</code> hashtags when Trustroots circles are selected</li>
+        </ol>
+
+        <h4>Tags</h4>
+        <ul class="sb-about-taglist">
+          <li><code>["d", "squatbridge:radar:{nid}"]</code> — stable id (NIP-33); dedupe on this.</li>
+          <li><code>["r", "{url}"]</code> — source link (NIP-01).</li>
+          <li><code>["linkLabel", "radar.squat.net"]</code> — short label for the link in map UIs.</li>
+          <li><code>["L","open-location-code"]</code> + <code>["l","{plus}","open-location-code"]</code> — pin on map (Open Location Code).</li>
+          <li><code>["L","open-location-code-prefix"]</code> + one <code>["l","{prefix}","open-location-code-prefix"]</code> per zoom level — area index for map queries.</li>
+          <li><code>["L","trustroots-circle"]</code> + <code>["l","{slug}","trustroots-circle"]</code> — optional circle filters (lowercase slug).</li>
+          <li><code>["expiration", "{unix}"]</code> — hide after event end (+1&nbsp;day) or +7&nbsp;days if open-ended.</li>
+        </ul>
+
+        <h4>Going to the event (optional, NIP-52)</h4>
+        <p>
+          When the share toggle is on, Squatbridge also publishes a
+          <a href="https://github.com/nostr-protocol/nips/blob/master/52.md" target="_blank" rel="noopener noreferrer">NIP-52</a>
+          calendar event (kind&nbsp;<strong>31923</strong> or <strong>31922</strong>) plus an RSVP (kind&nbsp;<strong>31925</strong>)
+          with <code>["status", "accepted"]</code> and <code>["fb", "busy"]</code>.
+          The RSVP <code>a</code> tag points at <code>{kind}:{pubkey}:squatbridge:radar:{nid}</code>.
+        </p>
+
+        <div class="sb-about-format" aria-label="Example kind 30397 event">{
+  "kind": 30397,
+  "content": "Workshop title\n2026-06-07 14:00\nVenue name\nworkshop\nhttps://radar.squat.net/en/node/123456\n#punks",
+  "tags": [
+    ["d", "squatbridge:radar:123456"],
+    ["r", "https://radar.squat.net/en/node/123456"],
+    ["linkLabel", "radar.squat.net"],
+    ["L", "open-location-code"],
+    ["l", "9F4MFXX6+XX", "open-location-code"],
+    ["L", "open-location-code-prefix"],
+    ["l", "9F4M0000+", "open-location-code-prefix"],
+    ["L", "trustroots-circle"],
+    ["l", "punks", "trustroots-circle"],
+    ["expiration", "1780844400"]
+  ]
+}</div>
+
+        <p class="muted">
+          Filter kind&nbsp;30397 with <code>#l</code> on <code>open-location-code-prefix</code> values for map tiles, or read validated
+          kind&nbsp;30398 reposts from the Trustroots validation pubkey. Trustroots Map already renders this shape; other clients can treat
+          <code>content</code> as a note body and <code>r</code> as the outbound link.
+        </p>
+        </div>
+
+        <p class="muted">
+          You need a <a href="https://github.com/nostr-protocol/nips/blob/master/07.md" target="_blank" rel="noopener">NIP-07</a>
+          browser signer (e.g. nos2x, Alby) to publish. Sharing is manual — nothing is posted automatically.
+          Source:
+          <a href="https://github.com/Trustroots/nostroots/blob/main/vibe/web/examples/squatbridge.html" target="_blank" rel="noopener noreferrer"><code>vibe/web/examples/squatbridge.html</code></a>
+        </p>
+      </div>
+      <div class="sb-modal-actions">
+        <button type="button" class="sb-btn" id="sb-about-close">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-modal-backdrop" id="sb-share-modal" hidden>
+    <div class="sb-modal" role="dialog" aria-labelledby="sb-share-title">
+      <h2 id="sb-share-title">Share to Nostr</h2>
+      <p class="meta" id="sb-share-meta" style="font-size:0.85rem;color:var(--muted);margin:0 0 0.5rem;"></p>
+      <textarea id="sb-share-content" aria-label="Note content" rows="6" spellcheck="false" autocapitalize="none" autocomplete="off"></textarea>
+      <p class="sb-share-preflight" id="sb-share-preflight" role="status" aria-live="polite"></p>
+      <label class="sb-going-toggle">
+        <input type="checkbox" id="sb-share-going">
+        <span><strong>I'm going to this event</strong> — also publish a
+          <a href="https://github.com/nostr-protocol/nips/blob/master/52.md" target="_blank" rel="noopener noreferrer">NIP-52</a>
+          RSVP with <code>status: accepted</code></span>
+      </label>
+      <p class="sb-share-hint">Sharing the map note helps others either way. Turn this on if you plan to attend.</p>
+      <fieldset class="sb-circles">
+        <legend>Trustroots circles</legend>
+        <div class="sb-circles-grid" id="sb-share-circles"></div>
+      </fieldset>
+      <div class="sb-share-relays">
+        <span class="sb-share-relays-label">Publishing to</span>
+        <ul class="sb-share-relays-list" id="sb-share-relays"></ul>
+      </div>
+      <p class="feedback" id="sb-share-feedback" role="status"></p>
+      <div class="sb-relay-results" id="sb-relay-results"></div>
+      <div class="sb-modal-actions">
+        <button type="button" class="sb-btn secondary" id="sb-share-cancel">Cancel</button>
+        <button type="button" class="sb-btn" id="sb-share-publish">Sign &amp; publish</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="squatbridge-locations.js"></script>
+  <script src="squatbridge-circles.js"></script>
+  <script src="squatbridge-cache.js"></script>
+  <script src="squatbridge-identity.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+(function () {
+  "use strict";
+
+  const RADAR_API = "https://radar.squat.net/api/1.2/search/events.json";
+  const LOCATIONS = window.SQUATBRIDGE_LOCATIONS || { countries: [], cities: [] };
+  const CIRCLES = window.SQUATBRIDGE_CIRCLES || { slugs: [], defaultSelected: [] };
+  const CACHE = window.SQUATBRIDGE_CACHE || null;
+  const IDENTITY = window.SQUATBRIDGE_IDENTITY || null;
+  const SQUATBRIDGE_RELAYS = [
+    "wss://relay.trustroots.org",
+    "wss://relay.nomadwiki.org",
+  ];
+  const MAP_NOTE_KIND = 30397;
+  const MAP_NOTE_CONTENT_MAXIMUM_LENGTH = 300;
+  const CALENDAR_DATE_KIND = 31922;
+  const CALENDAR_TIME_KIND = 31923;
+  const CALENDAR_RSVP_KIND = 31925;
+  const PLUS_CODE_ALPHABET = "23456789CFGHJMPQRVWX";
+  const GRID_SIZE = 20;
+  const PAIR_RESOLUTIONS = [20.0, 1.0, 0.05, 0.0025, 0.000125];
+  const LATITUDE_MAX = 90;
+  const LONGITUDE_MAX = 180;
+  const PLUS_CODE_PREFIX_MIN = 2;
+  const SIGNER_TIMEOUT_MS = 12000;
+  const SIGNER_INTERVAL_MS = 250;
+  const CITY_FOCUS_ZOOM = 13;
+  const COUNTRY_FOCUS_ZOOM = 7;
+  const COUNTRY_FOCUS_MAX_ZOOM = 8;
+  const CIRCLE_KEYWORD_RULES = [
+    { circle: "hackers", terms: ["hacker", "hackerspace", "hacklab", "hack the planet", "python", "rust", "linux", "software", "hardware", "meshcore", "machine learning", "computer", "programming", "cryptosprechstunde"] },
+    { circle: "cypherpunks", terms: ["crypto", "cryptography", "encryption", "privacy", "surveillance", "digital security"] },
+    { circle: "musicians", terms: ["music/concert", "concert", "music", "choir", "open mic", "jam session", "jamsession", "orchestra", "song", "strijdliederenkoor"] },
+    { circle: "punks", terms: ["punk", "hardcore", "crust", "dbeat", "ska", "metal"] },
+    { circle: "ravers", terms: ["rave", "techno", "tehno", "electro", "elektro", "dj", "party"] },
+    { circle: "dancers", terms: ["dance", "dancing", "tango", "salsa", "contact improvisation"] },
+    { circle: "veg", terms: ["vegan", "vegetarian", "vegetarisch", "voku", "vokü", "kufa", "küfa"] },
+    { circle: "cooking", terms: ["food", "kitchen", "cooking", "dinner", "lunch", "meal", "eetcafe", "eetcafé"] },
+    { circle: "foodsharing", terms: ["foodsharing", "food sharing", "free food", "volxküche", "volxkuche"] },
+    { circle: "books", terms: ["book", "library", "infoshop", "info shop", "bookfair", "reading group", "lesekreis", "zine"] },
+    { circle: "artists", terms: ["exhibition", "artist", "drawing", "painting", "gallery", "performance art", "artivism", "diy workshop"] },
+    { circle: "filmmakers", terms: ["film", "cinema", "movie", "screening", "documentary"] },
+    { circle: "lgbtq", terms: ["queer", "qtbipoc", "lgbt", "transgender", "dyke", "drag"] },
+    { circle: "feminists", terms: ["feminist", "feminism", "flinta", "flti", "women", "dyke march"] },
+    { circle: "yoga", terms: ["yoga", "somatics", "acupuncture", "cupping"] },
+    { circle: "spirituals", terms: ["meditation", "mindfulness", "ritual", "healing", "wellness"] },
+    { circle: "activists", terms: ["action/protest/camp", "protest", "demo", "solidarity", "solidarisch", "antifa", "anti-fascist", "antifascist", "palestine", "gentrification", "mieten", "rent strike", "climate", "refugee", "mutual aid", "court case", "prisoner", "political prisoner"] },
+    { circle: "anarchists", terms: ["anarchist", "anarchism", "anarcha", "anarcho", "anti-authoritarian"] },
+    { circle: "families", terms: ["children", "children's activity", "kids", "family", "kinder"] },
+    { circle: "cyclists", terms: ["bike", "bicycle", "cycling", "fiets"] },
+    { circle: "runners", terms: ["running", "runner"] },
+    { circle: "skateboarders", terms: ["skate", "skateboard"] },
+    { circle: "gardeners", terms: ["garden", "gardening", "permaculture"] },
+    { circle: "ecoliving", terms: ["ecology", "ecological", "climate", "sustainability", "degrowth"] },
+    { circle: "zerowasters", terms: ["zero waste", "repair cafe", "repair café", "swap", "tausch", "free shop", "free market"] },
+    { circle: "dumpsterdivers", terms: ["dumpster", "freegan"] },
+    { circle: "circus", terms: ["circus", "acrobatics"] },
+    { circle: "jugglers", terms: ["juggling", "juggler"] },
+    { circle: "acroyoga", terms: ["acroyoga", "acro yoga"] },
+    { circle: "slackline", terms: ["slackline"] },
+    { circle: "climbers", terms: ["climbing", "climber"] },
+    { circle: "hikers", terms: ["hiking", "hike", "walk"] },
+    { circle: "sailors", terms: ["sailing", "sailboat"] },
+    { circle: "photographers", terms: ["photo", "photography"] },
+    { circle: "volunteers", terms: ["volunteer", "volunteering"] },
+  ];
+
+  const state = {
+    events: [],
+    totalCount: 0,
+    selectedNid: null,
+    shareEvent: null,
+    selectedCircles: new Set(
+      (CIRCLES.defaultSelected || []).filter((slug) => (CIRCLES.slugs || []).includes(slug))
+    ),
+    locationFilter: { type: "city", city: "Berlin", country: "NL" },
+    applyingHash: false,
+    signer: {
+      connected: false,
+      pubkey: "",
+      nip05: "",
+      npub: "",
+      displayLabel: "",
+      identityStatus: "idle",
+      text: "Checking signer…",
+    },
+    markers: [],
+    mapEventsByNid: Object.create(null),
+    refocusMapOnNextRender: true,
+    showPastEvents: false,
+    eventFilterQuery: "",
+  };
+
+  let map = null;
+  let markerLayer = null;
+  let statusHideTimer = null;
+
+  function byId(id) { return document.getElementById(id); }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function setStatus(text, tone) {
+    const el = byId("sb-status");
+    if (!el) return;
+    if (statusHideTimer) {
+      clearTimeout(statusHideTimer);
+      statusHideTimer = null;
+    }
+    el.textContent = text;
+    el.hidden = !text;
+    el.className = "sb-status" + (tone === "error" ? " error" : "");
+    if (text && tone !== "loading" && tone !== "error") {
+      statusHideTimer = setTimeout(() => {
+        el.hidden = true;
+        statusHideTimer = null;
+      }, 3600);
+    }
+  }
+
+  function normalizeLongitude(lng) {
+    let next = Number(lng);
+    while (next > LONGITUDE_MAX) next -= 360;
+    while (next < -LONGITUDE_MAX) next += 360;
+    return next;
+  }
+
+  function encodePlusCode(latitude, longitude, codeLength = 8) {
+    const latNum = Number(latitude);
+    const lngNum = normalizeLongitude(Number(longitude));
+    if (
+      !Number.isFinite(latNum) || !Number.isFinite(lngNum) ||
+      latNum < -LATITUDE_MAX || latNum > LATITUDE_MAX ||
+      lngNum < -LONGITUDE_MAX || lngNum > LONGITUDE_MAX
+    ) return "";
+
+    let lat = latNum + LATITUDE_MAX;
+    let lng = lngNum + LONGITUDE_MAX;
+    let code = "";
+    const numPairs = Math.ceil(codeLength / 2);
+    for (let i = 0; i < numPairs; i += 1) {
+      const resolution = i < PAIR_RESOLUTIONS.length
+        ? PAIR_RESOLUTIONS[i]
+        : PAIR_RESOLUTIONS[PAIR_RESOLUTIONS.length - 1] /
+          Math.pow(GRID_SIZE, i - PAIR_RESOLUTIONS.length + 1);
+      const latDigit = Math.min(PLUS_CODE_ALPHABET.length - 1, Math.floor(lat / resolution));
+      const lngDigit = Math.min(PLUS_CODE_ALPHABET.length - 1, Math.floor(lng / resolution));
+      code += PLUS_CODE_ALPHABET[latDigit];
+      code += PLUS_CODE_ALPHABET[lngDigit];
+      lat -= latDigit * resolution;
+      lng -= lngDigit * resolution;
+    }
+    if (code.length < 8) code = code.padEnd(8, "0");
+    return code.substring(0, 8) + "+" + code.substring(8).replace(/\+$/, "");
+  }
+
+  function getPlusCodePrefixes(plusCode, minimumLength = PLUS_CODE_PREFIX_MIN) {
+    const prefixes = [];
+    const cleanCode = String(plusCode || "").split("+")[0];
+    const maxLength = Math.min(8, cleanCode.length);
+    for (let len = minimumLength; len <= maxLength; len += 2) {
+      prefixes.push(cleanCode.substring(0, len).padEnd(8, "0") + "+");
+    }
+    return [...new Set(prefixes)];
+  }
+
+  function getSignerStatus() {
+    const provider = window.nostr;
+    if (provider && typeof provider.signEvent === "function") {
+      return { connected: true, text: "NIP-07 signer ready." };
+    }
+    if (provider) {
+      return { connected: false, text: "Signer found but cannot sign." };
+    }
+    return { connected: false, text: "No NIP-07 signer (share disabled)." };
+  }
+
+  function updateSignerUi() {
+    const el = byId("sb-signer");
+    if (!el) return;
+    if (!state.signer.connected) {
+      el.textContent = state.signer.text;
+      el.title = "";
+      updateSharePreflight();
+      return;
+    }
+    if (state.signer.identityStatus === "loading") {
+      el.textContent = "Looking up identity…";
+      el.title = state.signer.pubkey || "";
+      updateSharePreflight();
+      return;
+    }
+    el.textContent = state.signer.displayLabel || state.signer.text;
+    el.title = state.signer.pubkey || "";
+    updateSharePreflight();
+  }
+
+  function createSignAuthEvent(publicKeyHex) {
+    return async function (template, relayUrl) {
+      const provider = window.nostr;
+      if (!provider?.signEvent || !IDENTITY) return null;
+      const authTemplate = IDENTITY.normalizeRelayAuthTemplate(template, relayUrl);
+      if (!authTemplate.pubkey) authTemplate.pubkey = publicKeyHex;
+      try {
+        const signed = await provider.signEvent(authTemplate);
+        return signed && String(signed.pubkey || "").toLowerCase() === publicKeyHex ? signed : null;
+      } catch (_) {
+        return null;
+      }
+    };
+  }
+
+  async function resolveSignerIdentity() {
+    if (!state.signer.connected || !state.signer.pubkey) {
+      updateSignerUi();
+      return;
+    }
+    state.signer.identityStatus = "loading";
+    updateSignerUi();
+    if (!IDENTITY) {
+      state.signer.displayLabel = state.signer.pubkey.slice(0, 8) + "…";
+      state.signer.identityStatus = "ready";
+      updateSignerUi();
+      renderEventList();
+      renderMapMarkers();
+      return;
+    }
+    const signAuthEvent = createSignAuthEvent(state.signer.pubkey);
+    const identity = await IDENTITY.resolveDisplayIdentity(state.signer.pubkey, signAuthEvent);
+    state.signer.nip05 = identity.nip05;
+    state.signer.npub = identity.npub;
+    state.signer.displayLabel = identity.label;
+    state.signer.identityStatus = "ready";
+    updateSignerUi();
+    renderEventList();
+    renderMapMarkers();
+  }
+
+  async function refreshSigner() {
+    const result = getSignerStatus();
+    let pubkey = "";
+    if (result.connected) {
+      try {
+        pubkey = String(await window.nostr.getPublicKey()).trim().toLowerCase();
+      } catch (_) {
+        result.connected = false;
+        result.text = "Signer key unavailable.";
+      }
+    }
+    const pubkeyChanged = pubkey !== state.signer.pubkey;
+    state.signer = {
+      ...state.signer,
+      ...result,
+      pubkey,
+      nip05: pubkeyChanged ? "" : state.signer.nip05,
+      npub: pubkeyChanged ? "" : state.signer.npub,
+      displayLabel: pubkeyChanged ? "" : state.signer.displayLabel,
+      identityStatus: pubkeyChanged ? "idle" : state.signer.identityStatus,
+    };
+    updateSignerUi();
+    if (result.connected && pubkey && (pubkeyChanged || state.signer.identityStatus !== "ready")) {
+      void resolveSignerIdentity();
+    } else if (!result.connected) {
+      renderEventList();
+      renderMapMarkers();
+    }
+    return result.connected;
+  }
+
+  function watchForSigner() {
+    const startedAt = Date.now();
+    let timer = null;
+    async function check() {
+      const connected = await refreshSigner();
+      if (connected || Date.now() - startedAt >= SIGNER_TIMEOUT_MS) {
+        if (timer) clearInterval(timer);
+        return;
+      }
+      byId("sb-signer").textContent = "Looking for NIP-07 signer…";
+    }
+    void check();
+    timer = setInterval(check, SIGNER_INTERVAL_MS);
+    window.addEventListener("focus", () => void refreshSigner());
+  }
+
+  function parseMapCoords(offlineEntry) {
+    const map = offlineEntry?.map;
+    if (!map || Array.isArray(map) || !map.lat || !map.lon) return null;
+    const lat = Number(map.lat);
+    const lon = Number(map.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    return { lat, lon };
+  }
+
+  function parseDateTimeParts(iso) {
+    if (!iso) return null;
+    const text = String(iso).trim();
+    const match = text.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+    if (match) return { date: match[1], time: match[2] };
+    const parsed = Date.parse(text);
+    if (!Number.isFinite(parsed)) return null;
+    const d = new Date(parsed);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    const h = String(d.getHours()).padStart(2, "0");
+    const min = String(d.getMinutes()).padStart(2, "0");
+    return { date: y + "-" + m + "-" + day, time: h + ":" + min };
+  }
+
+  function formatDateTimeDisplay(iso) {
+    const parts = parseDateTimeParts(iso);
+    if (!parts) return String(iso || "").trim();
+    return parts.date + " " + parts.time;
+  }
+
+  function formatWhen(dateTime) {
+    if (!dateTime) return "Time TBD";
+    const startParts = parseDateTimeParts(dateTime.time_start || "");
+    const endParts = parseDateTimeParts(dateTime.time_end || "");
+    if (!startParts) return "Time TBD";
+    const start = startParts.date + " " + startParts.time;
+    if (!endParts || (startParts.date === endParts.date && startParts.time === endParts.time)) {
+      return start;
+    }
+    if (startParts.date === endParts.date) {
+      return start + " → " + endParts.time;
+    }
+    return start + " → " + endParts.date + " " + endParts.time;
+  }
+
+  function formatVenue(offlineEntry) {
+    if (!offlineEntry) return "Venue TBD";
+    return offlineEntry.title || offlineEntry.address?.name_line || "Venue TBD";
+  }
+
+  function normalizeEvent(nid, raw) {
+    const offline = Array.isArray(raw.offline) && raw.offline[0] ? raw.offline[0] : null;
+    const coords = parseMapCoords(offline);
+    const address = offline?.address || {};
+    const dateTime = Array.isArray(raw.date_time) && raw.date_time[0] ? raw.date_time[0] : null;
+    const categories = (raw.category || []).map((c) => c.name).filter(Boolean);
+    const tags = (raw.tag || raw.tags || []).map((tag) => tag?.name || tag?.formatted || tag).filter(Boolean);
+    return {
+      nid: String(nid),
+      title: raw.title || "Untitled event",
+      url: raw.url || ("https://radar.squat.net/en/node/" + nid),
+      when: formatWhen(dateTime),
+      whenStart: dateTime?.time_start || "",
+      whenEnd: dateTime?.time_end || "",
+      startUnix: dateTime?.value ? Number(dateTime.value) : null,
+      endUnix: dateTime?.value2 ? Number(dateTime.value2) : null,
+      venue: formatVenue(offline),
+      categories,
+      tags,
+      city: String(address.locality || "").trim(),
+      country: String(address.country || "").trim().toUpperCase(),
+      coords,
+      hasCoords: !!coords,
+    };
+  }
+
+  function buildDefaultContent(ev) {
+    const lines = [ev.title, ev.when, ev.venue];
+    if (ev.categories.length) lines.push(ev.categories.join(", "));
+    lines.push(ev.url);
+    return lines.join("\n");
+  }
+
+  function normalizeMatchText(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  }
+
+  function addCircleSlug(set, slug) {
+    if ((CIRCLES.slugs || []).includes(slug)) set.add(slug);
+  }
+
+  function getDefaultCircleSlugs() {
+    const defaults = CIRCLES.defaultSelected || [];
+    return defaults.filter((slug) => (CIRCLES.slugs || []).includes(slug));
+  }
+
+  function getEventCircleText(ev) {
+    return normalizeMatchText([
+      ev?.title,
+      ev?.venue,
+      ev?.when,
+      (ev?.categories || []).join(" "),
+      (ev?.tags || []).join(" "),
+      ev?.url,
+    ].join(" "));
+  }
+
+  function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function eventTextMatchesTerm(text, term) {
+    const normalizedTerm = normalizeMatchText(term).trim();
+    if (!normalizedTerm) return false;
+    if (/^[a-z0-9]+$/.test(normalizedTerm)) {
+      return new RegExp("(^|[^a-z0-9])" + escapeRegExp(normalizedTerm) + "([^a-z0-9]|$)").test(text);
+    }
+    return text.includes(normalizedTerm);
+  }
+
+  function guessCirclesForEvent(ev) {
+    const selected = new Set(getDefaultCircleSlugs());
+    const text = getEventCircleText(ev);
+    for (const rule of CIRCLE_KEYWORD_RULES) {
+      if (rule.terms.some((term) => eventTextMatchesTerm(text, term))) {
+        addCircleSlug(selected, rule.circle);
+      }
+    }
+    return [...selected].sort();
+  }
+
+  function getSelectedCircles() {
+    return [...state.selectedCircles].sort();
+  }
+
+  function getSortedCircleSlugs() {
+    return [...CIRCLES.slugs].sort((a, b) => a.localeCompare(b));
+  }
+
+  function getCircleHashtagLine(circles) {
+    return (circles || getSelectedCircles()).map((slug) => "#" + slug).join(" ");
+  }
+
+  function isCircleHashtagLine(line) {
+    const tokens = String(line || "").trim().split(/\s+/).filter(Boolean);
+    if (!tokens.length) return false;
+    return tokens.every((token) => {
+      if (!/^#[a-z0-9]+$/i.test(token)) return false;
+      return (CIRCLES.slugs || []).includes(token.slice(1).toLowerCase());
+    });
+  }
+
+  function stripTrailingCircleHashtagLines(content) {
+    const lines = String(content || "").trimEnd().split("\n");
+    while (lines.length && isCircleHashtagLine(lines[lines.length - 1])) {
+      lines.pop();
+    }
+    return lines.join("\n").trimEnd();
+  }
+
+  function composeShareContent(baseContent, circles) {
+    const base = stripTrailingCircleHashtagLines(baseContent).trim();
+    const hashtagLine = getCircleHashtagLine(circles);
+    if (!hashtagLine) return base;
+    return base ? base + "\n" + hashtagLine : hashtagLine;
+  }
+
+  function resizeShareTextarea() {
+    const el = byId("sb-share-content");
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight + 2, Math.round(window.innerHeight * 0.46)) + "px";
+  }
+
+  function syncShareContentCircleLine() {
+    const el = byId("sb-share-content");
+    if (!el) return;
+    el.value = composeShareContent(el.value, getSelectedCircles());
+    resizeShareTextarea();
+    updateSharePreflight();
+  }
+
+  function getPreparedShareContent() {
+    return composeShareContent(String(byId("sb-share-content")?.value || ""), getSelectedCircles());
+  }
+
+  function updateSharePreflight() {
+    const el = byId("sb-share-preflight");
+    if (!el) return;
+    if (!state.signer.connected) {
+      el.textContent = "";
+      el.className = "sb-share-preflight";
+      return;
+    }
+    const content = getPreparedShareContent();
+    if (content.length > MAP_NOTE_CONTENT_MAXIMUM_LENGTH) {
+      el.textContent =
+        "Content must be " + MAP_NOTE_CONTENT_MAXIMUM_LENGTH + " characters or fewer for Trustroots map validation.";
+      el.className = "sb-share-preflight error";
+      return;
+    }
+    el.textContent = "";
+    el.className = "sb-share-preflight";
+  }
+
+  function appendCircleTags(tags) {
+    const circles = getSelectedCircles();
+    if (!circles.length) return tags;
+    tags.push(["L", "trustroots-circle"]);
+    for (const slug of circles) {
+      tags.push(["l", slug, "trustroots-circle"]);
+    }
+    return tags;
+  }
+
+  function calendarDTag(ev) {
+    return "squatbridge:radar:" + ev.nid;
+  }
+
+  function appendCalendarDayTags(tags, startUnix, endUnix) {
+    const startDay = Math.floor(startUnix / 86400);
+    let endDay = startDay;
+    if (endUnix && Number.isFinite(endUnix) && endUnix > startUnix) {
+      endDay = Math.floor((endUnix - 1) / 86400);
+    }
+    for (let day = startDay; day <= endDay; day += 1) {
+      tags.push(["D", String(day)]);
+    }
+  }
+
+  function buildCalendarEventDraft(ev, description) {
+    const tags = [
+      ["d", calendarDTag(ev)],
+      ["title", String(ev.title || "Untitled event").slice(0, 200)],
+      ["location", ev.venue],
+      ["r", ev.url],
+    ];
+    ev.categories.forEach((cat) => tags.push(["t", cat]));
+
+    if (ev.startUnix && Number.isFinite(ev.startUnix)) {
+      tags.push(["start", String(ev.startUnix)]);
+      if (ev.endUnix && Number.isFinite(ev.endUnix)) {
+        tags.push(["end", String(ev.endUnix)]);
+      }
+      appendCalendarDayTags(tags, ev.startUnix, ev.endUnix || ev.startUnix);
+      return { kind: CALENDAR_TIME_KIND, content: description, tags };
+    }
+
+    const startDate = (ev.whenStart && ev.whenStart.length >= 10)
+      ? ev.whenStart.slice(0, 10)
+      : new Date().toISOString().slice(0, 10);
+    tags.push(["start", startDate]);
+    if (ev.whenEnd && ev.whenEnd.length >= 10 && ev.whenEnd.slice(0, 10) > startDate) {
+      tags.push(["end", ev.whenEnd.slice(0, 10)]);
+    }
+    return { kind: CALENDAR_DATE_KIND, content: description, tags };
+  }
+
+  function buildRsvpDraft(ev, pubkey) {
+    const calendarDraft = buildCalendarEventDraft(ev, "");
+    const relay = SQUATBRIDGE_RELAYS[0] || "";
+    const aValue = calendarDraft.kind + ":" + pubkey + ":" + calendarDTag(ev);
+    const tags = [
+      ["a", aValue, relay],
+      ["d", "squatbridge:rsvp:radar:" + ev.nid],
+      ["status", "accepted"],
+      ["fb", "busy"],
+      ["p", pubkey, relay],
+    ];
+    return { kind: CALENDAR_RSVP_KIND, content: "Going to " + ev.title, tags };
+  }
+
+  function shareKindLabel(kind) {
+    if (kind === MAP_NOTE_KIND) return "Map note (30397)";
+    if (kind === CALENDAR_DATE_KIND) return "Calendar event (31922)";
+    if (kind === CALENDAR_TIME_KIND) return "Calendar event (31923)";
+    if (kind === CALENDAR_RSVP_KIND) return "RSVP going (31925)";
+    return "Kind " + kind;
+  }
+
+  function buildShareTags(ev) {
+    const plusCode = encodePlusCode(ev.coords.lat, ev.coords.lon);
+    if (!plusCode) throw new Error("Could not encode location.");
+    const tags = [
+      ["d", "squatbridge:radar:" + ev.nid],
+      ["r", ev.url],
+      ["linkLabel", "radar.squat.net"],
+      ["L", "open-location-code"],
+      ["l", plusCode, "open-location-code"],
+      ["L", "open-location-code-prefix"],
+      ...getPlusCodePrefixes(plusCode).map((prefix) => ["l", prefix, "open-location-code-prefix"]),
+    ];
+    appendCircleTags(tags);
+    const expiration = ev.endUnix && Number.isFinite(ev.endUnix)
+      ? ev.endUnix + 86400
+      : Math.floor(Date.now() / 1000) + 604800;
+    tags.push(["expiration", String(expiration)]);
+    return tags;
+  }
+
+  function relayDisplayHost(url) {
+    return String(url).replace(/^wss:\/\//i, "").replace(/\/$/, "");
+  }
+
+  function renderShareRelays() {
+    const host = byId("sb-share-relays");
+    if (!host) return;
+    host.innerHTML = SQUATBRIDGE_RELAYS.map((url) =>
+      "<li><code>" + escapeHtml(relayDisplayHost(url)) + "</code></li>"
+    ).join("");
+  }
+
+  function renderShareCircles() {
+    const host = byId("sb-share-circles");
+    if (!host) return;
+    host.innerHTML = getSortedCircleSlugs().map((slug) => {
+      const checked = state.selectedCircles.has(slug) ? " checked" : "";
+      return (
+        '<label class="sb-circle-toggle">' +
+          '<input type="checkbox" data-circle="' + escapeHtml(slug) + '"' + checked + ">" +
+          "#" + escapeHtml(slug) +
+        "</label>"
+      );
+    }).join("");
+    host.querySelectorAll("[data-circle]").forEach((input) => {
+      input.addEventListener("change", () => {
+        const slug = input.dataset.circle;
+        if (!slug) return;
+        if (input.checked) state.selectedCircles.add(slug);
+        else state.selectedCircles.delete(slug);
+        syncShareContentCircleLine();
+      });
+    });
+  }
+
+  function getFilterType() {
+    return state.locationFilter.type === "country" ? "country" : "city";
+  }
+
+  function getFilterLabel(type, value) {
+    if (type === "city") {
+      return String(value || "").trim() || "city";
+    }
+    const code = String(value || "").trim().toUpperCase();
+    for (const country of LOCATIONS.countries) {
+      if (String(country.code).toUpperCase() === code) return country.label;
+    }
+    return code || "country";
+  }
+
+  function getCurrentFilterLabel() {
+    const select = byId("sb-filter-value");
+    return getFilterLabel(getFilterType(), select ? select.value : "");
+  }
+
+  function formatEventsStatus(cacheNote) {
+    const location = getCurrentFilterLabel();
+    const count = state.events.length;
+    const total = state.totalCount;
+    const withoutCoords = state.events.filter((e) => !e.hasCoords).length;
+    const { past } = partitionListEvents();
+
+    let status = count + " event" + (count === 1 ? "" : "s") + " in " + location;
+    if (count < total) {
+      status += " (" + total + " on radar";
+      if (total > 500) status += ", first 500 shown";
+      status += ")";
+    }
+    if (withoutCoords > 0) {
+      status += " · " + withoutCoords + " without map location";
+    }
+    if (past.length && !state.showPastEvents) {
+      status += " · " + past.length + " past hidden";
+    }
+    if (cacheNote) status += " " + cacheNote;
+    return status;
+  }
+
+  function getDecodedHash() {
+    const h = location.hash ? location.hash.slice(1) : "";
+    if (!h) return "";
+    try {
+      return decodeURIComponent(h);
+    } catch (_) {
+      return h;
+    }
+  }
+
+  function resolveCityName(input) {
+    const norm = String(input || "").trim().toLowerCase();
+    if (!norm) return null;
+    for (const city of LOCATIONS.cities) {
+      if (city.name.toLowerCase() === norm) return city.name;
+    }
+    return null;
+  }
+
+  function resolveCountryCode(input) {
+    if (input === undefined || input === null) return null;
+    const code = String(input).trim().toUpperCase();
+    for (const country of LOCATIONS.countries) {
+      if (String(country.code).toUpperCase() === code) return country.code;
+    }
+    return null;
+  }
+
+  function buildLocationHash(type, value) {
+    const segment = type === "country" ? "country" : "city";
+    return segment + "/" + encodeURIComponent(value);
+  }
+
+  function parseLocationHash() {
+    const route = getDecodedHash().trim();
+    if (!route) return null;
+
+    const cityMatch = route.match(/^city\/(.+)$/i);
+    if (cityMatch) {
+      const city = resolveCityName(cityMatch[1]);
+      if (city) return { type: "city", value: city };
+      return null;
+    }
+
+    const countryMatch = route.match(/^country\/(.+)$/i);
+    if (countryMatch) {
+      const code = resolveCountryCode(countryMatch[1]);
+      if (code !== null) return { type: "country", value: code };
+      return null;
+    }
+
+    const shorthandCity = resolveCityName(route);
+    if (shorthandCity) return { type: "city", value: shorthandCity };
+
+    const shorthandCountry = resolveCountryCode(route);
+    if (shorthandCountry !== null) return { type: "country", value: shorthandCountry };
+
+    return null;
+  }
+
+  function syncLocationHash() {
+    if (state.applyingHash) return;
+    const select = byId("sb-filter-value");
+    if (!select || !select.value) return;
+    const hash = "#" + buildLocationHash(getFilterType(), select.value);
+    if (location.hash !== hash) {
+      history.replaceState(null, "", hash);
+    }
+  }
+
+  function applyLocationSelection(type, value, options) {
+    options = options || {};
+    state.locationFilter.type = type === "country" ? "country" : "city";
+    if (state.locationFilter.type === "city") state.locationFilter.city = value;
+    else state.locationFilter.country = value;
+    syncFilterTabs();
+    populateFilterOptions(value);
+    if (!options.skipHash) syncLocationHash();
+    if (options.fetch !== false) void fetchEvents();
+  }
+
+  function applyLocationHash(options) {
+    options = options || {};
+    const parsed = parseLocationHash();
+    if (!parsed) return false;
+    state.applyingHash = true;
+    applyLocationSelection(parsed.type, parsed.value, {
+      fetch: options.fetch,
+      skipHash: true,
+    });
+    state.applyingHash = false;
+    return true;
+  }
+
+  function syncFilterTabs() {
+    const isCity = getFilterType() === "city";
+    const cityTab = byId("sb-tab-city");
+    const countryTab = byId("sb-tab-country");
+    const select = byId("sb-filter-value");
+    if (cityTab) cityTab.setAttribute("aria-selected", isCity ? "true" : "false");
+    if (countryTab) countryTab.setAttribute("aria-selected", isCity ? "false" : "true");
+    if (select) {
+      select.setAttribute("aria-label", isCity ? "City" : "Country");
+    }
+  }
+
+  function setFilterType(type, options) {
+    options = options || {};
+    const preferred = type === "country"
+      ? state.locationFilter.country
+      : state.locationFilter.city;
+    applyLocationSelection(type, preferred, options);
+  }
+
+  function rememberFilterValue(value) {
+    if (getFilterType() === "city") state.locationFilter.city = value;
+    else state.locationFilter.country = value;
+  }
+
+  function sortedCities() {
+    return LOCATIONS.cities.slice().sort((a, b) =>
+      a.name.localeCompare(b.name, undefined, { sensitivity: "base" })
+    );
+  }
+
+  function sortedCountries() {
+    return LOCATIONS.countries.slice().sort((a, b) =>
+      a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
+    );
+  }
+
+  function populateFilterOptions(preferredValue) {
+    const filterType = getFilterType();
+    const select = byId("sb-filter-value");
+    if (!select) return;
+
+    const isCity = filterType === "city";
+
+    let html = "";
+    if (isCity) {
+      for (const city of sortedCities()) {
+        html += '<option value="' + escapeHtml(city.name) + '">' +
+          escapeHtml(city.name) + " (" + city.count + ")</option>";
+      }
+    } else {
+      for (const country of sortedCountries()) {
+        html += '<option value="' + escapeHtml(country.code) + '">' +
+          escapeHtml(country.label) + " (" + country.count + ")</option>";
+      }
+    }
+    select.innerHTML = html;
+
+    const fallback = isCity ? "Berlin" : "NL";
+    const wanted = preferredValue || fallback;
+    const hasOption = Array.from(select.options).some((opt) => opt.value === wanted);
+    select.value = hasOption ? wanted : (select.options[0]?.value || "");
+    rememberFilterValue(select.value);
+  }
+
+  function findEvent(nid) {
+    return state.events.find((e) => e.nid === nid) || state.mapEventsByNid[nid] || null;
+  }
+
+  function mergeMapEvents(events) {
+    for (const ev of events) {
+      state.mapEventsByNid[ev.nid] = ev;
+    }
+  }
+
+  function rebuildMapEventsFromCache() {
+    if (!CACHE || typeof CACHE.listCached !== "function") return;
+    state.mapEventsByNid = Object.create(null);
+    for (const entry of CACHE.listCached("events:")) {
+      const data = entry.data;
+      if (!data || data.result === false) continue;
+      const events = Object.entries(data.result).map(([nid, raw]) => normalizeEvent(nid, raw));
+      mergeMapEvents(events);
+    }
+  }
+
+  function getMapEvents() {
+    return Object.values(state.mapEventsByNid);
+  }
+
+  function getVisibleMapEvents() {
+    const query = state.eventFilterQuery;
+    return getMapEvents().filter((ev) => {
+      if (!state.showPastEvents && isPastEvent(ev)) return false;
+      return eventMatchesFilter(ev, query);
+    });
+  }
+
+  function eventMatchesCurrentLocation(ev) {
+    const select = byId("sb-filter-value");
+    const value = String(select?.value || "").trim();
+    if (!value) return false;
+    if (getFilterType() === "country") {
+      return String(ev.country || "").trim().toUpperCase() === value.toUpperCase();
+    }
+    return normalizeMatchText(ev.city) === normalizeMatchText(value);
+  }
+
+  function getCachedFocusEventsForCurrentLocation() {
+    return getMapEvents().filter((ev) => ev.coords && eventMatchesCurrentLocation(ev));
+  }
+
+  function focusMapOnCurrentLocationFromCache() {
+    const bounds = getCachedFocusEventsForCurrentLocation().map((ev) => [ev.coords.lat, ev.coords.lon]);
+    if (bounds.length) focusMapOnBounds(bounds);
+  }
+
+  function applyEventsPayload(data, cacheNote) {
+    state.selectedNid = null;
+    state.refocusMapOnNextRender = true;
+    if (!data.result || data.result === false) {
+      state.events = [];
+      state.totalCount = 0;
+    } else {
+      state.events = Object.entries(data.result).map(([nid, raw]) => normalizeEvent(nid, raw));
+      state.totalCount = Number(data.count) || state.events.length;
+      state.events.sort((a, b) => String(a.whenStart).localeCompare(String(b.whenStart)));
+    }
+    rebuildMapEventsFromCache();
+    if (map) map.closePopup();
+    renderEvents();
+    setStatus(
+      formatEventsStatus(cacheNote),
+      cacheNote && cacheNote.indexOf("unreachable") >= 0 ? "error" : undefined
+    );
+  }
+
+  async function fetchEvents(options) {
+    options = options || {};
+    const filterType = getFilterType();
+    const filterValue = byId("sb-filter-value").value;
+    rememberFilterValue(filterValue);
+    if (filterValue === undefined || filterValue === null) {
+      setStatus("Choose a city or country.", "error");
+      return;
+    }
+
+    const params = new URLSearchParams();
+    params.set("limit", "500");
+    params.set("fields", "title,url,date_time,offline,offline:map,offline:address,category,tag");
+    params.set("language", "en");
+    if (filterType === "city") {
+      params.append("facets[city][]", filterValue);
+    } else {
+      params.append("facets[country][]", filterValue);
+    }
+
+    const cacheKey = "events:" + params.toString();
+    if (CACHE && !options.forceRefresh) {
+      const cached = CACHE.get(cacheKey);
+      if (cached && cached.fresh) {
+        applyEventsPayload(
+          cached.data,
+          "(cached " + CACHE.formatAge(cached.ageMs) + " ago)"
+        );
+        return;
+      }
+      const stale = CACHE.get(cacheKey, { allowStale: true });
+      if (stale) {
+        applyEventsPayload(
+          stale.data,
+          "(cached " + CACHE.formatAge(stale.ageMs) + " ago; reusing stored list)"
+        );
+        return;
+      }
+    }
+
+    setStatus("Loading " + getFilterLabel(filterType, filterValue) + " events from radar.squat.net…", "loading");
+    focusMapOnCurrentLocationFromCache();
+
+    try {
+      const res = await fetch(RADAR_API + "?" + params.toString());
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (CACHE) CACHE.set(cacheKey, data);
+      applyEventsPayload(data, "");
+    } catch (err) {
+      if (CACHE) {
+        const stale = CACHE.get(cacheKey, { allowStale: true });
+        if (stale) {
+          applyEventsPayload(
+            stale.data,
+            "(cached " + CACHE.formatAge(stale.ageMs) + " ago; radar unreachable)"
+          );
+          return;
+        }
+      }
+      setStatus(err?.message || "Failed to load events.", "error");
+    }
+  }
+
+  function initMap() {
+    map = L.map("sb-map", { zoomControl: true });
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap",
+      maxZoom: 19,
+    }).addTo(map);
+    markerLayer = L.layerGroup().addTo(map);
+    map.setView([52.52, 13.405], 11);
+  }
+
+  function startOfTodayMs() {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  }
+
+  function eventStartMs(ev) {
+    if (ev.whenStart) {
+      const parsed = Date.parse(ev.whenStart);
+      if (Number.isFinite(parsed)) return parsed;
+    }
+    if (ev.startUnix && Number.isFinite(ev.startUnix)) {
+      return ev.startUnix * 1000;
+    }
+    return null;
+  }
+
+  function isPastEvent(ev) {
+    const startMs = eventStartMs(ev);
+    if (startMs === null) return false;
+    const startDay = new Date(startMs);
+    startDay.setHours(0, 0, 0, 0);
+    return startDay.getTime() < startOfTodayMs();
+  }
+
+  function partitionListEvents() {
+    const upcoming = [];
+    const past = [];
+    for (const ev of state.events) {
+      if (isPastEvent(ev)) past.push(ev);
+      else upcoming.push(ev);
+    }
+    return { upcoming, past };
+  }
+
+  function getListEvents() {
+    const { upcoming } = partitionListEvents();
+    return state.showPastEvents ? state.events : upcoming;
+  }
+
+  function eventMatchesFilter(ev, query) {
+    const q = String(query || "").trim().toLowerCase();
+    if (!q) return true;
+    const haystack = [
+      ev.title,
+      ev.venue,
+      ev.when,
+      ev.categories.join(" "),
+      (ev.tags || []).join(" "),
+    ].join(" ").toLowerCase();
+    return haystack.includes(q);
+  }
+
+  function getVisibleEvents() {
+    const query = state.eventFilterQuery;
+    return getListEvents().filter((ev) => eventMatchesFilter(ev, query));
+  }
+
+  function getCurrentLocationFocusEvents() {
+    const visible = getVisibleEvents().filter((ev) => ev.coords);
+    if (visible.length) return visible;
+    return state.events.filter((ev) => ev.coords);
+  }
+
+  function updatePastEventsToggle() {
+    const toolbar = byId("sb-list-toolbar");
+    const btn = byId("sb-toggle-past");
+    if (!toolbar || !btn) return;
+    const { past } = partitionListEvents();
+    if (!past.length) {
+      toolbar.hidden = true;
+      return;
+    }
+    toolbar.hidden = false;
+    if (state.showPastEvents) {
+      btn.textContent = "Hide past events (" + past.length + ")";
+      btn.setAttribute("aria-pressed", "true");
+    } else {
+      btn.textContent = "Show past events (" + past.length + ")";
+      btn.setAttribute("aria-pressed", "false");
+    }
+  }
+
+  function selectEvent(nid) {
+    state.selectedNid = nid;
+    const ev = findEvent(nid);
+    renderEventList();
+    if (ev?.coords && map) {
+      map.setView([ev.coords.lat, ev.coords.lon], 14);
+    }
+  }
+
+  function getShareUi(ev) {
+    if (!ev.hasCoords) {
+      return {
+        shareDisabled: true,
+        shareTitle: "No venue coordinates for this event — map notes need a location.",
+      };
+    }
+    if (!state.signer.connected) {
+      return {
+        shareDisabled: true,
+        shareTitle: "Connect a NIP-07 browser signer (nos2x, Alby, etc.) to share.",
+      };
+    }
+    return {
+      shareDisabled: false,
+      shareTitle: "Share this event to Nostr",
+    };
+  }
+
+  function buildShareButtonHtml(className, nid, shareDisabled, shareTitle, dataAttr) {
+    const attr = dataAttr || "data-share";
+    const btn =
+      '<button type="button" class="' + escapeHtml(className) + '" ' +
+      attr + '="' + escapeHtml(nid) + '"' +
+      (shareDisabled ? ' disabled aria-disabled="true"' : "") +
+      ">Share to Nostr</button>";
+    const wrapClass = shareDisabled ? "sb-share-wrap sb-share-wrap--disabled" : "sb-share-wrap";
+    return (
+      '<span class="' + wrapClass + '" title="' + escapeHtml(shareTitle) + '">' +
+      btn +
+      "</span>"
+    );
+  }
+
+  function buildMapPopupHtml(ev) {
+    const { shareDisabled, shareTitle } = getShareUi(ev);
+    return (
+      '<div class="sb-map-popup">' +
+        "<strong>" + escapeHtml(ev.title) + "</strong><br>" +
+        escapeHtml(ev.when) + "<br>" +
+        '<div class="sb-map-popup-actions">' +
+          '<a href="' + escapeHtml(ev.url) + '" target="_blank" rel="noopener">radar</a>' +
+          buildShareButtonHtml("sb-map-share", ev.nid, shareDisabled, shareTitle, "data-nid") +
+        "</div>" +
+      "</div>"
+    );
+  }
+
+  function renderEventList() {
+    updatePastEventsToggle();
+    const list = byId("sb-list");
+    if (!state.events.length) {
+      list.innerHTML = '<p class="sb-empty">No events found.</p>';
+      return;
+    }
+
+    const visibleEvents = getVisibleEvents();
+    if (state.selectedNid && !visibleEvents.some((e) => e.nid === state.selectedNid)) {
+      state.selectedNid = null;
+    }
+
+    if (!visibleEvents.length) {
+      const { past } = partitionListEvents();
+      const filterActive = Boolean(String(state.eventFilterQuery || "").trim());
+      if (filterActive) {
+        list.innerHTML = '<p class="sb-empty">No events match your filter.</p>';
+        return;
+      }
+      list.innerHTML =
+        '<p class="sb-empty">No upcoming events.' +
+        (past.length ? " Use the button above to show past events." : "") +
+        "</p>";
+      return;
+    }
+
+    list.innerHTML = visibleEvents.map((ev) => {
+      const active = ev.nid === state.selectedNid ? " active" : "";
+      const pastClass = isPastEvent(ev) ? " sb-event-past" : "";
+      const { shareDisabled, shareTitle } = getShareUi(ev);
+      return (
+        '<article class="sb-event' + active + pastClass + '" data-nid="' + escapeHtml(ev.nid) + '">' +
+          "<h3>" + escapeHtml(ev.title) + "</h3>" +
+          '<p class="meta">' + escapeHtml(ev.when) + "</p>" +
+          '<p class="meta">' + escapeHtml(ev.venue) + "</p>" +
+          (ev.categories.length ? '<p class="cats">' + escapeHtml(ev.categories.join(" · ")) + "</p>" : "") +
+          '<div class="sb-event-actions">' +
+            '<a href="' + escapeHtml(ev.url) + '" target="_blank" rel="noopener">radar</a>' +
+            buildShareButtonHtml("share", ev.nid, shareDisabled, shareTitle) +
+          "</div>" +
+        "</article>"
+      );
+    }).join("");
+
+    list.querySelectorAll(".sb-event").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        if (e.target.closest("a, button")) return;
+        selectEvent(el.dataset.nid);
+      });
+    });
+    list.querySelectorAll("[data-share]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (btn.disabled) return;
+        openShareModal(btn.dataset.share);
+      });
+    });
+  }
+
+  function wireMapPopupShare(marker, nid) {
+    marker.on("popupopen", () => {
+      const popupEl = marker.getPopup()?.getElement();
+      const btn = popupEl?.querySelector(".sb-map-share");
+      if (!btn || btn.disabled) return;
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        openShareModal(nid);
+      }, { once: true });
+    });
+  }
+
+  function focusMapOnBounds(bounds) {
+    if (!map || !bounds.length) return;
+    const isCountry = getFilterType() === "country";
+    if (bounds.length === 1) {
+      map.setView(bounds[0], isCountry ? COUNTRY_FOCUS_ZOOM : CITY_FOCUS_ZOOM);
+      return;
+    }
+    map.fitBounds(bounds, {
+      padding: [36, 36],
+      maxZoom: isCountry ? COUNTRY_FOCUS_MAX_ZOOM : CITY_FOCUS_ZOOM,
+    });
+  }
+
+  function renderMapMarkers() {
+    if (!markerLayer) return;
+    markerLayer.clearLayers();
+    state.markers = [];
+    const bounds = [];
+    getVisibleMapEvents().forEach((ev) => {
+      if (!ev.coords) return;
+      const marker = L.marker([ev.coords.lat, ev.coords.lon]);
+      marker.bindPopup(buildMapPopupHtml(ev));
+      wireMapPopupShare(marker, ev.nid);
+      marker.on("click", () => selectEvent(ev.nid));
+      markerLayer.addLayer(marker);
+      state.markers.push(marker);
+      bounds.push([ev.coords.lat, ev.coords.lon]);
+    });
+    if (state.refocusMapOnNextRender) {
+      const focusBounds = getCurrentLocationFocusEvents().map((ev) => [ev.coords.lat, ev.coords.lon]);
+      if (focusBounds.length) focusMapOnBounds(focusBounds);
+      else if (bounds.length) focusMapOnBounds(bounds);
+    }
+    state.refocusMapOnNextRender = false;
+  }
+
+  function renderEvents() {
+    renderEventList();
+    renderMapMarkers();
+  }
+
+  function openShareModal(nid) {
+    const ev = findEvent(nid);
+    if (!ev || !ev.hasCoords) return;
+    if (!state.signer.connected) {
+      setStatus("Connect a NIP-07 signer before sharing.", "error");
+      return;
+    }
+    state.shareEvent = ev;
+    state.selectedCircles = new Set(guessCirclesForEvent(ev));
+    byId("sb-share-title").textContent = "Share: " + ev.title;
+    byId("sb-share-meta").textContent = ev.when + " · " + ev.venue;
+    byId("sb-share-content").value = composeShareContent(buildDefaultContent(ev), getSelectedCircles());
+    byId("sb-share-going").checked = false;
+    renderShareCircles();
+    byId("sb-share-feedback").textContent = "";
+    byId("sb-share-feedback").className = "feedback";
+    byId("sb-relay-results").textContent = "";
+    renderShareRelays();
+    updateSharePreflight();
+    byId("sb-share-modal").hidden = false;
+    byId("sb-share-publish").disabled = false;
+    resizeShareTextarea();
+    byId("sb-share-content").focus({ preventScroll: true });
+  }
+
+  function closeShareModal() {
+    byId("sb-share-modal").hidden = true;
+    state.shareEvent = null;
+  }
+
+  function setAboutTechVisible(show) {
+    const panel = byId("sb-about-tech");
+    const btn = byId("sb-about-tech-toggle");
+    if (!panel || !btn) return;
+    panel.hidden = !show;
+    btn.setAttribute("aria-expanded", show ? "true" : "false");
+    btn.textContent = show ? "Hide note format" : "Nostr note format";
+  }
+
+  function openAboutModal() {
+    setAboutTechVisible(false);
+    byId("sb-about-modal").hidden = false;
+  }
+
+  function closeAboutModal() {
+    byId("sb-about-modal").hidden = true;
+  }
+
+  function publishToRelay(url, event) {
+    return new Promise((resolve) => {
+      let settled = false;
+      let ws;
+      const finish = (ok, message) => {
+        if (settled) return;
+        settled = true;
+        try { ws.close(); } catch (_) {}
+        resolve({ ok, message, url });
+      };
+      try {
+        ws = new WebSocket(url);
+      } catch (err) {
+        resolve({ ok: false, message: err?.message || "connection failed", url });
+        return;
+      }
+      const timeout = setTimeout(() => finish(false, "timeout"), 9000);
+      ws.addEventListener("open", () => {
+        ws.send(JSON.stringify(["EVENT", event]));
+      });
+      ws.addEventListener("message", (message) => {
+        let payload;
+        try { payload = JSON.parse(message.data); } catch (_) { return; }
+        if (Array.isArray(payload) && payload[0] === "OK" && payload[1] === event.id) {
+          clearTimeout(timeout);
+          finish(Boolean(payload[2]), String(payload[3] || ""));
+        }
+      });
+      ws.addEventListener("error", () => {
+        clearTimeout(timeout);
+        finish(false, "relay error");
+      });
+      ws.addEventListener("close", () => {
+        clearTimeout(timeout);
+        if (!settled) finish(false, "closed");
+      });
+    });
+  }
+
+  async function publishShare() {
+    const ev = state.shareEvent;
+    if (!ev) return;
+    if (!window.nostr?.signEvent) {
+      byId("sb-share-feedback").textContent = "No NIP-07 signer available.";
+      byId("sb-share-feedback").className = "feedback error";
+      return;
+    }
+
+    let content = getPreparedShareContent();
+    if (content.length < 3) {
+      byId("sb-share-feedback").textContent = "Content must be at least 3 characters.";
+      byId("sb-share-feedback").className = "feedback error";
+      return;
+    }
+    if (content.length > MAP_NOTE_CONTENT_MAXIMUM_LENGTH) {
+      byId("sb-share-feedback").textContent =
+        "Content must be " + MAP_NOTE_CONTENT_MAXIMUM_LENGTH + " characters or fewer for Trustroots map validation.";
+      byId("sb-share-feedback").className = "feedback error";
+      return;
+    }
+    if (/\bnsec1[023456789acdefghjklmnpqrstuvwxyz]+\b/i.test(content)) {
+      byId("sb-share-feedback").textContent = "Remove private keys from the note.";
+      byId("sb-share-feedback").className = "feedback error";
+      return;
+    }
+
+    const going = Boolean(byId("sb-share-going")?.checked);
+    byId("sb-share-publish").disabled = true;
+    byId("sb-share-feedback").textContent = "Signing…";
+    byId("sb-share-feedback").className = "feedback";
+
+    let mapTags;
+    try {
+      mapTags = buildShareTags(ev);
+    } catch (err) {
+      byId("sb-share-feedback").textContent = err?.message || "Tag build failed.";
+      byId("sb-share-feedback").className = "feedback error";
+      byId("sb-share-publish").disabled = false;
+      return;
+    }
+
+    let pubkey;
+    try {
+      pubkey = state.signer.pubkey || await window.nostr.getPublicKey();
+    } catch (err) {
+      byId("sb-share-feedback").textContent = err?.message || "Signer key unavailable.";
+      byId("sb-share-feedback").className = "feedback error";
+      byId("sb-share-publish").disabled = false;
+      return;
+    }
+
+    const drafts = [];
+    if (going) drafts.push(buildCalendarEventDraft(ev, content));
+    drafts.push({ kind: MAP_NOTE_KIND, content, tags: mapTags });
+    if (going) drafts.push(buildRsvpDraft(ev, pubkey));
+
+    const publishLines = [];
+    let publishedAny = false;
+
+    try {
+      for (let i = 0; i < drafts.length; i += 1) {
+        const draft = drafts[i];
+        byId("sb-share-feedback").textContent =
+          "Signing " + shareKindLabel(draft.kind) + " (" + (i + 1) + "/" + drafts.length + ")…";
+
+        const signed = await window.nostr.signEvent({
+          kind: draft.kind,
+          content: draft.content,
+          created_at: Math.floor(Date.now() / 1000),
+          pubkey,
+          tags: draft.tags,
+        });
+
+        if (!signed?.id || !signed?.sig) {
+          throw new Error("Incomplete signed event for " + shareKindLabel(draft.kind) + ".");
+        }
+
+        byId("sb-share-feedback").textContent =
+          "Publishing " + shareKindLabel(draft.kind) + "…";
+        const results = await Promise.all(SQUATBRIDGE_RELAYS.map((url) => publishToRelay(url, signed)));
+        const okCount = results.filter((r) => r.ok).length;
+        if (okCount > 0) publishedAny = true;
+        publishLines.push(
+          "<strong>" + escapeHtml(shareKindLabel(draft.kind)) + "</strong>: " +
+          okCount + "/" + SQUATBRIDGE_RELAYS.length + " relays" +
+          results.map((r) => {
+            const host = r.url.replace(/^wss:\/\//, "");
+            const status = r.ok ? "ok" : "failed";
+            return "<br>&nbsp;&nbsp;" + escapeHtml(host) + ": " + status +
+              (r.message ? " (" + escapeHtml(r.message) + ")" : "");
+          }).join("")
+        );
+      }
+    } catch (err) {
+      byId("sb-share-feedback").textContent = err?.message || "Publish failed.";
+      byId("sb-share-feedback").className = "feedback error";
+      if (publishLines.length) {
+        byId("sb-relay-results").innerHTML = publishLines.join("<br>");
+      }
+      byId("sb-share-publish").disabled = false;
+      return;
+    }
+
+    byId("sb-relay-results").innerHTML = publishLines.join("<br>");
+
+    if (publishedAny) {
+      byId("sb-share-feedback").textContent = going
+        ? "Published map note + calendar RSVP."
+        : "Published map note.";
+      byId("sb-share-feedback").className = "feedback ok";
+    } else {
+      byId("sb-share-feedback").textContent = "Signed, but no relay accepted the events yet.";
+      byId("sb-share-feedback").className = "feedback error";
+      byId("sb-share-publish").disabled = false;
+    }
+  }
+
+  byId("sb-event-filter").addEventListener("input", (e) => {
+    state.eventFilterQuery = e.target.value;
+    renderEventList();
+    renderMapMarkers();
+  });
+
+  byId("sb-toggle-past").addEventListener("click", () => {
+    state.showPastEvents = !state.showPastEvents;
+    renderEventList();
+    renderMapMarkers();
+  });
+
+  byId("sb-tab-city").addEventListener("click", () => {
+    if (getFilterType() !== "city") setFilterType("city");
+  });
+  byId("sb-tab-country").addEventListener("click", () => {
+    if (getFilterType() !== "country") setFilterType("country");
+  });
+
+  byId("sb-filter-value").addEventListener("change", () => {
+    rememberFilterValue(byId("sb-filter-value").value);
+    syncLocationHash();
+    void fetchEvents();
+  });
+
+  window.addEventListener("hashchange", () => {
+    if (!applyLocationHash({ fetch: true })) syncLocationHash();
+  });
+
+  byId("sb-about").addEventListener("click", openAboutModal);
+  byId("sb-about-tech-toggle").addEventListener("click", () => {
+    const panel = byId("sb-about-tech");
+    setAboutTechVisible(Boolean(panel?.hidden));
+  });
+  byId("sb-about-close").addEventListener("click", closeAboutModal);
+  byId("sb-about-modal").addEventListener("click", (e) => {
+    if (e.target === byId("sb-about-modal")) closeAboutModal();
+  });
+
+  byId("sb-share-cancel").addEventListener("click", closeShareModal);
+  byId("sb-share-publish").addEventListener("click", () => void publishShare());
+  byId("sb-share-content").addEventListener("input", () => {
+    resizeShareTextarea();
+    updateSharePreflight();
+  });
+  byId("sb-share-modal").addEventListener("click", (e) => {
+    if (e.target === byId("sb-share-modal")) closeShareModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const aboutModal = byId("sb-about-modal");
+    if (aboutModal && !aboutModal.hidden) {
+      closeAboutModal();
+      return;
+    }
+    const shareModal = byId("sb-share-modal");
+    if (shareModal && !shareModal.hidden) closeShareModal();
+  });
+
+  initMap();
+  rebuildMapEventsFromCache();
+  renderMapMarkers();
+  if (!applyLocationHash({ fetch: false })) {
+    syncFilterTabs();
+    populateFilterOptions("Berlin");
+  }
+  syncLocationHash();
+  renderShareCircles();
+  renderShareRelays();
+  watchForSigner();
+  void fetchEvents();
+})();
+  </script>
+</body>
+</html>

@@ -5,10 +5,12 @@ import { getBech32PrivateKey } from "nip06";
 import { useState } from "react";
 import { ScrollView, Switch, TextInput, View } from "react-native";
 
+import { BrowserSettingsSection } from "@/browser/BrowserSettingsSection";
 import BuildData from "@/components/BuildData";
 import { KeyInput } from "@/components/KeyInput";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
+import { clearNip7Permissions } from "@/browser/permission-store";
 import { TEST_IDS } from "@/constants/testIds";
 import {
   SECURE_STORE_PRIVATE_KEY_HEX_KEY,
@@ -26,7 +28,10 @@ import {
 } from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { sendNotificationSubscriptionEventAction } from "@/redux/sagas/notifications.saga";
-import { keystoreSelectors } from "@/redux/slices/keystore.slice";
+import {
+  clearKeystoreState,
+  keystoreSelectors,
+} from "@/redux/slices/keystore.slice";
 import {
   notificationsActions,
   notificationSelectors,
@@ -429,6 +434,8 @@ export default function SettingsScreen() {
                 await SecureStore.deleteItemAsync(
                   SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
                 );
+                await clearNip7Permissions();
+                dispatch(clearKeystoreState());
                 Toast.show("SecureStorage successfully cleared", {
                   duration: Toast.durations.SHORT,
                 });
@@ -500,6 +507,8 @@ export default function SettingsScreen() {
           }}
         />
       </Section>
+
+      {areTestFeaturesEnabled ? <BrowserSettingsSection /> : null}
 
       {areTestFeaturesEnabled && (
         <Section>

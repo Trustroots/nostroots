@@ -91,9 +91,10 @@ export function isPlusCodeInsidePlusCode(
   const indexOfFirstZero = containingPlusCode.indexOf("0");
   // If the plus code has a trailing zero, use the code up to that as a search
   // prefix, otherwise use the whole code
-  const startsWithPrefix = indexOfFirstZero === -1
-    ? containingPlusCode
-    : containingPlusCode.slice(0, indexOfFirstZero);
+  const startsWithPrefix =
+    indexOfFirstZero === -1
+      ? containingPlusCode
+      : containingPlusCode.slice(0, indexOfFirstZero);
   const isWithin = targetPlusCode.startsWith(startsWithPrefix);
   return isWithin;
 }
@@ -135,11 +136,11 @@ export function getCurrentTimestamp() {
   return Math.round(Date.now() / 1e3);
 }
 
-export function getFirstTagValueFromEvent(
-  nostrEvent: Event,
+export function getFirstTagValueFromTags(
+  tags: string[][],
   tagName: string,
 ): string | undefined {
-  const firstMatchingTagPair = nostrEvent.tags.find(([key]) => key === tagName);
+  const firstMatchingTagPair = tags.find(([key]) => key === tagName);
 
   if (typeof firstMatchingTagPair === "undefined") {
     return;
@@ -148,6 +149,13 @@ export function getFirstTagValueFromEvent(
   const [, firstValue] = firstMatchingTagPair;
 
   return firstValue;
+}
+
+export function getFirstTagValueFromEvent(
+  nostrEvent: Event,
+  tagName: string,
+): string | undefined {
+  return getFirstTagValueFromTags(nostrEvent.tags, tagName);
 }
 
 export function getAllLabelValuesFromTags(
@@ -216,9 +224,8 @@ export function getAllPlusCodePrefixes(
     throw new Error("#HqXbxX-invalid-minimum-length");
   }
   const numberOfCodes = (8 - minimumLength) / 2 + 1;
-  const plusCodes = Array.from(
-    { length: numberOfCodes },
-    (_value, index) => getPlusCodePrefix(plusCode, minimumLength + index * 2),
+  const plusCodes = Array.from({ length: numberOfCodes }, (_value, index) =>
+    getPlusCodePrefix(plusCode, minimumLength + index * 2),
   );
   const uniquePlusCodePrefixes = unique(plusCodes);
   return uniquePlusCodePrefixes;
@@ -250,7 +257,8 @@ export function hasOpenLocationCode(tags: string[][]): boolean {
 
   const plusCodeTags = tags.filter(
     (tag) =>
-      tag.length > 3 && tag[0] === "l" &&
+      tag.length > 3 &&
+      tag[0] === "l" &&
       tag[2] === OPEN_LOCATION_CODE_TAG_NAME,
   );
   if (plusCodeTags.length === 0) return false;
@@ -277,8 +285,7 @@ export async function getNip5PubKey(
   trustrootsUsername: string,
 ): Promise<string | undefined> {
   try {
-    const url =
-      `https://www.trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`;
+    const url = `https://trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`;
     const nip5Response = await fetch(url);
 
     const { names, error } = (await nip5Response.json()) as {

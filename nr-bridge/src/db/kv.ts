@@ -9,21 +9,18 @@
  */
 import type { TokenRequest } from "../../schemas/tokenRequest.ts";
 import { TOKEN_EXPIRY_MS } from "../../schemas/tokenRequest.ts";
+import { DENO_KV_PATH } from "../config.ts";
 
 let kv: Deno.Kv | null = null;
 
 /**
  * Return the shared Deno KV store, opening it on first call.
  *
- * The store path is read from the `DENO_KV_PATH` env var; when unset Deno uses
- * its default location.
- *
  * @returns The open {@link Deno.Kv} instance.
  */
 export async function getKv(): Promise<Deno.Kv> {
   if (kv) return kv;
-  const path = Deno.env.get("DENO_KV_PATH");
-  kv = await Deno.openKv(path);
+  kv = await Deno.openKv(DENO_KV_PATH);
   return kv;
 }
 

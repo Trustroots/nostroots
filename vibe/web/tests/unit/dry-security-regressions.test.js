@@ -7,6 +7,8 @@ import {
     buildProfileHashRoute,
     buildProfileLookupFilter,
     buildProfileMetadataFilter,
+    getMapNoteKinds,
+    getTrustrootsMapNoteKinds,
     getPlusCodeFromEvent,
     isTrustrootsAuthRelayUrl,
     linkifyTrustrootsUrls,
@@ -68,6 +70,8 @@ describe('nr-web DRY/security regression helpers', () => {
             limit: 10000,
             '#t': ['hosting-offer'],
         });
+        expect(getMapNoteKinds()).toEqual([30397, 30398]);
+        expect(getTrustrootsMapNoteKinds()).toEqual([30397, 30398]);
         expect(buildProfileLookupFilter([HEX_64], { limit: 6 })).toEqual({
             kinds: [0, 30390, 10390],
             authors: [HEX_64],

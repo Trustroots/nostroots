@@ -6,10 +6,10 @@ import { describe, it, expect, beforeAll } from 'vitest';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 beforeAll(() => {
-  // nr-hash-router was inlined into trustroots-map/index.html; extract by markers and eval.
-  const html = readFileSync(join(__dirname, '../../trustroots-map/index.html'), 'utf8');
+  // nr-hash-router was inlined into v0/index.html; extract by markers and eval.
+  const html = readFileSync(join(__dirname, '../../v0/index.html'), 'utf8');
   const m = html.match(/\/\* NR_HASH_ROUTER_BEGIN \*\/([\s\S]*?)\/\* NR_HASH_ROUTER_END \*\//);
-  if (!m) throw new Error('NR_HASH_ROUTER markers not found in trustroots-map/index.html');
+  if (!m) throw new Error('NR_HASH_ROUTER markers not found in v0/index.html');
   (0, eval)(m[1]);
 });
 

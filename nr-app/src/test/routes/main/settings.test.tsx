@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react-native";
+import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 
 import { settingsSlice } from "@/redux/slices/settings.slice";
 import { renderWithProviders } from "@/test/render";
@@ -36,7 +36,7 @@ describe("SettingsScreen", () => {
     expect(store.getState().settings.colorScheme).toBe("dark");
   });
 
-  it("shows test feature controls when enabled", () => {
+  it("shows test feature controls when enabled", async () => {
     renderWithProviders(<SettingsScreen />, {
       preloadedState: {
         settings: {
@@ -48,5 +48,10 @@ describe("SettingsScreen", () => {
 
     expect(screen.getByText("Notification Debug")).toBeTruthy();
     expect(screen.getByText("Set visible plus codes")).toBeTruthy();
+    await waitFor(() => {
+      expect(
+        screen.getByText("No websites have used NIP-07 yet."),
+      ).toBeTruthy();
+    });
   });
 });

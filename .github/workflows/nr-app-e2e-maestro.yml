@@ -87,6 +87,12 @@ jobs:
           curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:8025 >/dev/null
           curl --retry 30 --retry-delay 2 --retry-all-errors -sS http://127.0.0.1:8000 >/dev/null
 
+      - name: Enable KVM group permissions
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
       - name: Install Maestro
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
@@ -98,7 +104,17 @@ jobs:
           api-level: 35
           target: google_apis
           arch: x86_64
+          profile: pixel_7
+          cores: 2
+          ram-size: 4096M
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-linux-hw-accel: false
+          pre-emulator-launch-script: |
+            adb kill-server || true
+            adb start-server
           script: |
+            adb devices -l
             adb install -r nr-app/builds/app-e2e-debug.apk
             cd nr-app
             pnpm run test:maestro:local -- .maestro/main-map-smoke.yaml
@@ -185,6 +201,17 @@ jobs:
             --logpath "$PWD/nr-app/.e2e-logs/ios/mongodb.log" \
             --fork
 
+          for attempt in {1..30}; do
+            if mongosh --host 127.0.0.1 --port 27017 --eval 'db.adminCommand("ping")' --quiet >/dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "MongoDB did not become ready" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+
           MONGO_INITDB_DATABASE=trustroots-dev ./.devcontainer/nr-bridge/init-mongo.sh
 
           mailpit \
@@ -193,7 +220,7 @@ jobs:
             >nr-app/.e2e-logs/ios/mailpit.log 2>&1 &
           echo "$!" >nr-app/.e2e-logs/ios/mailpit.pid
 
-          deno task --config development-utils/local-relay/deno.jsonc run-tiny \
+          DENO_DIR="$RUNNER_TEMP/deno-cache" deno run --no-lock --allow-net --allow-env development-utils/local-relay/tiny-relay.ts \
             >nr-app/.e2e-logs/ios/tiny-relay.log 2>&1 &
           echo "$!" >nr-app/.e2e-logs/ios/tiny-relay.pid
 

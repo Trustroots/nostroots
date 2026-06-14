@@ -21,7 +21,7 @@ appId: org.trustroots.nostroots
     id: "screen-map"
 - tapOn:
     id: "nav-list"
-- assertVisible: "List"
+- assertVisible: "Discover"
 - tapOn:
     id: "nav-settings"
 - assertVisible:

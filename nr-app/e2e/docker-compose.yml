@@ -1,3 +1,9 @@
+name: nr-app-e2e
+
+x-app-build: &app-build
+  context: ../..
+  dockerfile: .devcontainer/Dockerfile.app
+
 services:
   mongodb:
     image: mongo:7
@@ -25,13 +31,14 @@ services:
       retries: 10
 
   tiny-relay:
-    build:
-      context: ../..
-      dockerfile: .devcontainer/Dockerfile.app
+    build: *app-build
     working_dir: /app
     command: deno task --config development-utils/local-relay/deno.jsonc run-tiny
     environment:
+      HOST: 0.0.0.0
       PORT: "7777"
+    volumes:
+      - ../..:/app:ro
     ports:
       - "7777:7777"
     healthcheck:
@@ -41,17 +48,20 @@ services:
       retries: 10
 
   nr-bridge:
-    build:
-      context: ../..
-      dockerfile: .devcontainer/Dockerfile.app
+    build: *app-build
     working_dir: /app/nr-bridge
     command: deno task run
+    volumes:
+      - ../..:/app:ro
     depends_on:
       mongodb:
         condition: service_healthy
       mailpit:
         condition: service_healthy
     environment:
+      DEEP_LINK_BASE: nostroots://verify
+      DENO_KV_PATH: ":memory:"
+      HOST: 0.0.0.0
       MONGODB_URI: mongodb://mongodb:27017/trustroots-dev
       SMTP_HOST: mailpit
       SMTP_PORT: "1025"

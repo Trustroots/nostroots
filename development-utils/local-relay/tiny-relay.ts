@@ -18,6 +18,7 @@ type Subscription = {
   socket: WebSocket;
 };
 
+const hostname = Deno.env.get("HOST") ?? "127.0.0.1";
 const port = Number(Deno.env.get("PORT") ?? 7777);
 const events: Event[] = [];
 const subscriptions = new Map<string, Subscription>();
@@ -145,7 +146,7 @@ async function handleAdmin(request: Request, pathname: string) {
 
 seed();
 
-Deno.serve({ port }, (request) => {
+Deno.serve({ hostname, port }, (request) => {
   const url = new URL(request.url);
 
   if (url.pathname.startsWith("/__admin/")) {

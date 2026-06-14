@@ -36,6 +36,9 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
@@ -46,6 +49,8 @@ jobs:
             "platform-tools" \
             "platforms;android-36" \
             "build-tools;36.0.0" \
+            "cmake;3.22.1" \
+            "ndk;27.0.12077973" \
             "ndk;27.1.12297006"
 
       - name: Install dependencies
@@ -55,8 +60,11 @@ jobs:
         working-directory: nr-app
         run: pnpm run build:android-e2e-local
 
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Start deterministic E2E network
-        run: docker compose -f nr-app/e2e/docker-compose.yml up -d --build
+        run: docker compose -f nr-app/e2e/docker-compose.yml -f nr-app/e2e/docker-compose.ci.yml up -d --build --wait
 
       - name: Wait for E2E network
         run: |
@@ -92,11 +100,11 @@ jobs:
 
       - name: Dump E2E network logs
         if: failure()
-        run: docker compose -f nr-app/e2e/docker-compose.yml logs --no-color
+        run: docker compose -f nr-app/e2e/docker-compose.yml -f nr-app/e2e/docker-compose.ci.yml logs --no-color
 
       - name: Stop E2E network
         if: always()
-        run: docker compose -f nr-app/e2e/docker-compose.yml down -v
+        run: docker compose -f nr-app/e2e/docker-compose.yml -f nr-app/e2e/docker-compose.ci.yml down -v
 
   ios-maestro:
     runs-on: macos-15

@@ -24,10 +24,16 @@ export SENTRY_DISABLE_AUTO_UPLOAD="${SENTRY_DISABLE_AUTO_UPLOAD:-true}"
   echo "EXPO_PUBLIC_NR_BRIDGE_BASE_URL=${EXPO_PUBLIC_NR_BRIDGE_BASE_URL}"
   echo "EXPO_PUBLIC_NOSTR_RELAYS=${EXPO_PUBLIC_NOSTR_RELAYS}"
   echo "REACT_NATIVE_ARCHITECTURES=${REACT_NATIVE_ARCHITECTURES}"
+  echo "E2E_REUSE_PREBUILD=${E2E_REUSE_PREBUILD:-0}"
   echo "SENTRY_DISABLE_AUTO_UPLOAD=${SENTRY_DISABLE_AUTO_UPLOAD}"
   echo
-  echo "Regenerating Android native project for E2E..."
-  pnpm exec expo prebuild --platform android --clean --no-install
+  if [ "${E2E_REUSE_PREBUILD:-0}" = "1" ] && [ -f android/settings.gradle ]; then
+    echo "Refreshing cached Android native project for E2E..."
+    pnpm exec expo prebuild --platform android --no-install
+  else
+    echo "Regenerating Android native project for E2E..."
+    pnpm exec expo prebuild --platform android --clean --no-install
+  fi
   echo
   echo "Building Android debug APK with Gradle..."
   (
@@ -37,6 +43,7 @@ export SENTRY_DISABLE_AUTO_UPLOAD="${SENTRY_DISABLE_AUTO_UPLOAD:-true}"
       -x test \
       --configure-on-demand \
       --build-cache \
+      --parallel \
       -PreactNativeDevServerPort=8081 \
       -PreactNativeArchitectures="${REACT_NATIVE_ARCHITECTURES}"
   )

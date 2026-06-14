@@ -57,8 +57,22 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Restore Android native build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            nr-app/android
+            nr-app/android/.gradle
+            nr-app/android/build
+            nr-app/android/app/build
+          key: ${{ runner.os }}-android-native-${{ hashFiles('pnpm-lock.yaml', 'nr-app/package.json', 'nr-app/app.config.js', 'nr-app/app.json', 'nr-app/metro.config.js', 'nr-app/babel.config.js', 'nr-app/scripts/android-e2e-build.sh', 'nr-app/scripts/android-e2e-maestro-local.sh', '.github/workflows/nr-app-e2e-maestro.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-android-native-
+
       - name: Build Android E2E APK locally
         working-directory: nr-app
+        env:
+          E2E_REUSE_PREBUILD: "1"
         run: pnpm run build:android-e2e-local
 
       - name: Setup Docker Buildx
@@ -109,7 +123,7 @@ jobs:
 
   ios-maestro:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ios-e2e')
-    runs-on: macos-15
+    runs-on: macos-26-arm64
     timeout-minutes: 120
     env:
       MONGODB_URI: mongodb://127.0.0.1:27017/trustroots-dev
@@ -134,6 +148,12 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      - name: Select Xcode 26
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.4.1.app/Contents/Developer
+          xcodebuild -version
+          swift --version
 
       - name: Install macOS E2E dependencies
         run: |

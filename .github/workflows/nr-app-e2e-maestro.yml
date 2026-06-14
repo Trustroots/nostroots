@@ -126,15 +126,35 @@ jobs:
             adb install -r nr-app/builds/app-e2e-debug.apk
             pnpm --dir nr-app run test:maestro:local -- .maestro/main-map-smoke.yaml
 
+      - name: Collect Android Maestro artifacts
+        if: always()
+        run: |
+          mkdir -p nr-app/.e2e-artifacts/android/maestro-tests nr-app/.e2e-artifacts/android/logs nr-app/.e2e-artifacts/android/builds
+          if [ -d "$HOME/.maestro/tests" ]; then
+            rsync -a \
+              --include="*/" \
+              --include="*.json" \
+              --include="*.log" \
+              --include="*.mp4" \
+              --include="*.png" \
+              --include="*.yaml" \
+              --exclude="*" \
+              "$HOME/.maestro/tests/" \
+              nr-app/.e2e-artifacts/android/maestro-tests/
+          fi
+          if [ -f nr-app/builds/app-e2e-debug.apk ]; then
+            cp nr-app/builds/app-e2e-debug.apk nr-app/.e2e-artifacts/android/builds/
+          fi
+          if [ -d nr-app/.e2e-logs/android ]; then
+            rsync -a nr-app/.e2e-logs/android/ nr-app/.e2e-artifacts/android/logs/
+          fi
+
       - name: Upload Maestro artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: android-maestro-artifacts
-          path: |
-            ~/.maestro/tests
-            nr-app/builds/app-e2e-debug.apk
-            nr-app/.e2e-logs/android
+          path: nr-app/.e2e-artifacts/android
 
       - name: Dump E2E network logs
         if: failure()
@@ -247,16 +267,31 @@ jobs:
         working-directory: nr-app
         run: pnpm run test:maestro:ios:local -- .maestro/main-map-smoke.yaml
 
+      - name: Collect iOS Maestro artifacts
+        if: always()
+        run: |
+          mkdir -p nr-app/.e2e-artifacts/ios/maestro-tests nr-app/.e2e-artifacts/ios/logs
+          if [ -d "$HOME/.maestro/tests" ]; then
+            rsync -a \
+              --include="*/" \
+              --include="*.json" \
+              --include="*.log" \
+              --include="*.mp4" \
+              --include="*.png" \
+              --include="*.yaml" \
+              --exclude="*" \
+              "$HOME/.maestro/tests/" \
+              nr-app/.e2e-artifacts/ios/maestro-tests/
+          fi
+          find nr-app/.e2e-logs/ios -maxdepth 1 -type f \( -name "*.log" -o -name "*.json" \) \
+            -exec cp {} nr-app/.e2e-artifacts/ios/logs/ \;
+
       - name: Upload iOS Maestro artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ios-maestro-artifacts
-          path: |
-            ~/.maestro/tests
-            nr-app/.e2e-logs/ios/*.log
-            nr-app/.e2e-logs/ios/*.json
-            !nr-app/.e2e-logs/ios/build/**
+          path: nr-app/.e2e-artifacts/ios
           if-no-files-found: ignore
           retention-days: 7
 

@@ -116,8 +116,7 @@ jobs:
           script: |
             adb devices -l
             adb install -r nr-app/builds/app-e2e-debug.apk
-            cd nr-app
-            pnpm run test:maestro:local -- .maestro/main-map-smoke.yaml
+            pnpm --dir nr-app run test:maestro:local -- .maestro/main-map-smoke.yaml
 
       - name: Upload Maestro artifacts
         uses: actions/upload-artifact@v4
@@ -212,7 +211,7 @@ jobs:
             sleep 2
           done
 
-          MONGO_INITDB_DATABASE=trustroots-dev ./.devcontainer/nr-bridge/init-mongo.sh
+          MONGO_INITDB_DATABASE=trustroots-dev bash ./.devcontainer/nr-bridge/init-mongo.sh
 
           mailpit \
             --listen 127.0.0.1:8025 \

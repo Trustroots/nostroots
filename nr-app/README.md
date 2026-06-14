@@ -32,9 +32,9 @@ pnpm --filter nr-app test:coverage
 pnpm --filter nr-app test:ci
 ```
 
-Android Maestro E2E uses GitHub Actions with an EAS-built `e2e-android` APK and
-the deterministic local E2E network. iOS Maestro smoke runs through EAS using
-the `e2e-ios-simulator` profile.
+Android Maestro E2E uses GitHub Actions with a locally prebuilt Android project,
+a Gradle-built debug APK, Metro, and the deterministic local E2E network. iOS
+Maestro smoke currently runs through EAS using the `e2e-ios-simulator` profile.
 
 Required/repeatable tests must never rely on live Trustroots, public Nostr
 relays, or real email delivery.
@@ -303,9 +303,10 @@ want the normal Expo dev-client experience again, rebuild/reinstall without
 uninstall the app or clear app data once before reinstalling so Expo's stored
 dev-menu preferences do not override the new defaults.
 
-CI should continue using the EAS-built `e2e-android` APK and `maestro test`
-without Metro; the bundled APK has the JavaScript and E2E environment baked in,
-which is less flaky than a dev-client Metro workflow in CI.
+CI uses the same local development-build shape as this flow: Expo prebuild
+regenerates `android/`, Gradle creates a debug APK, the emulator installs it,
+and `test:maestro:local` starts Metro before running Maestro. This avoids EAS
+Android build credits at the cost of keeping Metro alive during the CI smoke.
 
 ## Local nr-bridge email verification flow
 

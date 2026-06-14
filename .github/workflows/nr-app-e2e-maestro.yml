@@ -21,86 +21,80 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Decide whether to run Android E2E
-        id: android-e2e
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ vars.NR_APP_ANDROID_E2E_ON_PR }}" = "true" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-            echo "Android Maestro E2E enabled for this run."
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Android Maestro E2E is opt-in on pull requests while EAS build credits are limited. Run this workflow manually or set repository variable NR_APP_ANDROID_E2E_ON_PR=true to enable it on PRs."
-          fi
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
 
-      - uses: ./.github/actions/repo-setup
-        if: steps.android-e2e.outputs.run == 'true'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          token: ${{ secrets.EXPO_TOKEN }}
+          node-version: 24
+          cache: pnpm
 
-      - name: Build Android E2E APK
-        if: steps.android-e2e.outputs.run == 'true'
-        working-directory: nr-app
-        env:
-          EXPO_PUBLIC_E2E: "1"
-          EXPO_PUBLIC_NR_BRIDGE_BASE_URL: http://10.0.2.2:8000
-          EXPO_PUBLIC_NOSTR_RELAYS: ws://10.0.2.2:7777
-        run: pnpm run build:android-e2e
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: gradle
 
-      - name: Download latest Android E2E APK
-        if: steps.android-e2e.outputs.run == 'true'
-        working-directory: nr-app
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
         run: |
-          BUILD_INFO=$(pnpm exec eas build:list --platform android --build-profile e2e-android --json --non-interactive --status finished --limit 1)
-          BUILD_URL=$(echo "$BUILD_INFO" | jq -r '.[0].artifacts.buildUrl')
-          if [ -z "$BUILD_URL" ] || [ "$BUILD_URL" = "null" ]; then
-            echo "No E2E Android artifact URL found"
-            exit 1
-          fi
-          mkdir -p builds
-          curl -fsSL --retry 3 -o builds/app-e2e.apk "$BUILD_URL"
-          unzip -t builds/app-e2e.apk >/dev/null
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "ndk;27.1.12297006"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build Android E2E APK locally
+        working-directory: nr-app
+        run: pnpm run build:android-e2e-local
 
       - name: Start deterministic E2E network
-        if: steps.android-e2e.outputs.run == 'true'
         run: docker compose -f nr-app/e2e/docker-compose.yml up -d --build
 
       - name: Wait for E2E network
-        if: steps.android-e2e.outputs.run == 'true'
         run: |
           curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:7777 >/dev/null
           curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:8025 >/dev/null
           curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:8000 >/dev/null
 
       - name: Install Maestro
-        if: steps.android-e2e.outputs.run == 'true'
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
 
       - name: Run Maestro flows
-        if: steps.android-e2e.outputs.run == 'true'
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: 35
           target: google_apis
           arch: x86_64
           script: |
-            adb install -r nr-app/builds/app-e2e.apk
-            maestro test nr-app/.maestro
+            adb install -r nr-app/builds/app-e2e-debug.apk
+            cd nr-app
+            pnpm run test:maestro:local
 
       - name: Upload Maestro artifacts
         uses: actions/upload-artifact@v4
-        if: always() && steps.android-e2e.outputs.run == 'true'
+        if: always()
         with:
           name: maestro-artifacts
           path: |
             ~/.maestro/tests
-            nr-app/builds/app-e2e.apk
+            nr-app/builds/app-e2e-debug.apk
+            nr-app/.e2e-logs/android
 
       - name: Dump E2E network logs
-        if: failure() && steps.android-e2e.outputs.run == 'true'
+        if: failure()
         run: docker compose -f nr-app/e2e/docker-compose.yml logs --no-color
 
       - name: Stop E2E network
-        if: always() && steps.android-e2e.outputs.run == 'true'
+        if: always()
         run: docker compose -f nr-app/e2e/docker-compose.yml down -v

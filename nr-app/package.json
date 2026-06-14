@@ -24,6 +24,7 @@
     "test:watch": "jest --watchAll",
     "lint": "eslint .",
     "prepare": "cd .. && husky nr-app/.husky",
+    "build:android-e2e-local": "bash ./scripts/android-e2e-build.sh",
     "build:android-development": "eas build --platform android --profile development --non-interactive",
     "build:ios-development": "eas build --platform ios --profile development --non-interactive",
     "build:ios-simulator": "eas build --platform ios --profile simulator --non-interactive",

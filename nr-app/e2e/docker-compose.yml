@@ -7,6 +7,10 @@ x-app-build: &app-build
 services:
   mongodb:
     image: mongo:7
+    command:
+      - mongod
+      - --setParameter
+      - diagnosticDataCollectionEnabled=false
     environment:
       MONGO_INITDB_DATABASE: trustroots-dev
     ports:

@@ -132,12 +132,10 @@ jobs:
           mkdir -p nr-app/.e2e-artifacts/android/maestro-tests nr-app/.e2e-artifacts/android/logs nr-app/.e2e-artifacts/android/builds
           if [ -d "$HOME/.maestro/tests" ]; then
             rsync -a \
-              --include="*/" \
               --include="*.json" \
               --include="*.log" \
-              --include="*.mp4" \
-              --include="*.png" \
               --include="*.yaml" \
+              --include="*/" \
               --exclude="*" \
               "$HOME/.maestro/tests/" \
               nr-app/.e2e-artifacts/android/maestro-tests/
@@ -154,7 +152,10 @@ jobs:
         if: always()
         with:
           name: android-maestro-artifacts
-          path: nr-app/.e2e-artifacts/android
+          path: |
+            nr-app/.e2e-artifacts/android/maestro-tests
+            nr-app/.e2e-artifacts/android/logs
+            nr-app/.e2e-artifacts/android/builds
 
       - name: Dump E2E network logs
         if: failure()
@@ -265,6 +266,9 @@ jobs:
 
       - name: Run iPhone Maestro flows
         working-directory: nr-app
+        env:
+          E2E_PREWARM_ENABLED: "0"
+          E2E_PREWARM_REQUIRED: "0"
         run: pnpm run test:maestro:ios:local -- .maestro/main-map-smoke.yaml
 
       - name: Collect iOS Maestro artifacts
@@ -273,12 +277,10 @@ jobs:
           mkdir -p nr-app/.e2e-artifacts/ios/maestro-tests nr-app/.e2e-artifacts/ios/logs
           if [ -d "$HOME/.maestro/tests" ]; then
             rsync -a \
-              --include="*/" \
               --include="*.json" \
               --include="*.log" \
-              --include="*.mp4" \
-              --include="*.png" \
               --include="*.yaml" \
+              --include="*/" \
               --exclude="*" \
               "$HOME/.maestro/tests/" \
               nr-app/.e2e-artifacts/ios/maestro-tests/
@@ -291,7 +293,9 @@ jobs:
         if: always()
         with:
           name: ios-maestro-artifacts
-          path: nr-app/.e2e-artifacts/ios
+          path: |
+            nr-app/.e2e-artifacts/ios/maestro-tests
+            nr-app/.e2e-artifacts/ios/logs
           if-no-files-found: ignore
           retention-days: 7
 

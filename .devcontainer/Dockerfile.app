@@ -19,7 +19,12 @@ RUN apt-get update && \
     curl -fsSL https://deno.land/install.sh | sh -s v${DENO_VERSION} && \
     curl -fsSL "https://get.maestro.mobile.dev" | bash && \
     maestro --help >/dev/null && \
-    curl -fsSL https://downloads.mongodb.com/compass/mongodb-mongosh_${MONGOSH_VERSION}_amd64.deb -o /tmp/mongosh.deb && \
+    MONGOSH_ARCH="$(dpkg --print-architecture)" && \
+    case "$MONGOSH_ARCH" in \
+      amd64|arm64) ;; \
+      *) echo "Unsupported mongosh architecture: $MONGOSH_ARCH" >&2; exit 1 ;; \
+    esac && \
+    curl -fsSL "https://downloads.mongodb.com/compass/mongodb-mongosh_${MONGOSH_VERSION}_${MONGOSH_ARCH}.deb" -o /tmp/mongosh.deb && \
     apt-get install -y --no-install-recommends /tmp/mongosh.deb && \
     rm /tmp/mongosh.deb && \
     MAILPIT_ARCH="$(dpkg --print-architecture)" && \

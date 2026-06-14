@@ -85,7 +85,7 @@ jobs:
         run: |
           curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:7777 >/dev/null
           curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:8025 >/dev/null
-          curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:8000 >/dev/null
+          curl --retry 30 --retry-delay 2 --retry-all-errors -sS http://127.0.0.1:8000 >/dev/null
 
       - name: Install Maestro
         run: |
@@ -123,7 +123,7 @@ jobs:
 
   ios-maestro:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ios-e2e')
-    runs-on: macos-26-arm64
+    runs-on: macos-26
     timeout-minutes: 120
     env:
       MONGODB_URI: mongodb://127.0.0.1:27017/trustroots-dev
@@ -207,7 +207,7 @@ jobs:
         run: |
           curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:7777 >/dev/null
           curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:8025 >/dev/null
-          curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:8000 >/dev/null
+          curl --retry 30 --retry-delay 2 --retry-all-errors -sS http://127.0.0.1:8000 >/dev/null
 
       - name: Run iPhone Maestro flows
         working-directory: nr-app

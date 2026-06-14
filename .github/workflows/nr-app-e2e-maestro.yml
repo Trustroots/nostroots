@@ -57,6 +57,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Free Android E2E disk space
+        run: |
+          df -h
+          docker system prune -af || true
+          docker builder prune -af || true
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL || true
+          df -h
+
       - name: Restore Android native build cache
         uses: actions/cache@v4
         with:

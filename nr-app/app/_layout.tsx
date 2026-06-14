@@ -17,7 +17,6 @@ import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 
 import { rehydrated } from "@/redux/actions/startup.actions";
-import { setupNotificationHandling } from "@/services/notifications.service";
 import { PortalHost } from "@rn-primitives/portal";
 import { SENTRY_DSN } from "@trustroots/nr-common";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -39,6 +38,7 @@ import { persistor, store } from "@/redux/store";
 import "@/global.css";
 import { useUpdateOnForeground } from "@/hooks/useUpdateOnForeground";
 import { StatusBar } from "react-native";
+import { isE2EEnabled } from "@/utils/e2e.utils";
 import { configureNavigationDispatch } from "@/utils/navigation.utils";
 
 // Construct a new integration instance. This is needed to communicate between the integration and React
@@ -107,9 +107,28 @@ function RootLayout() {
 
   useEffect(() => {
     configureNavigationDispatch(store.dispatch);
-    const subscription = setupNotificationHandling();
+
+    if (isE2EEnabled()) {
+      return;
+    }
+
+    let isCancelled = false;
+    let subscription: { remove: () => void } | undefined;
+
+    void import("@/services/notifications.service")
+      .then(({ setupNotificationHandling }) => {
+        if (isCancelled) return;
+        subscription = setupNotificationHandling();
+      })
+      .catch((error) => {
+        if (__DEV__) {
+          console.warn("#xmkX4n Failed to set up notification handling", error);
+        }
+      });
+
     return () => {
-      subscription.remove();
+      isCancelled = true;
+      subscription?.remove();
     };
   }, []);
 

@@ -13,12 +13,38 @@ appId: org.trustroots.nostroots
       - tapOn: "Open"
 - launchApp:
     clearState: true
-- tapOn:
-    id: "welcome-get-started-button"
-- tapOn:
-    id: "identity-skip-button"
-- assertVisible:
-    id: "screen-map"
+- runFlow:
+    when:
+      visible:
+        id: "screen-welcome"
+    commands:
+      - tapOn:
+          id: "welcome-get-started-button"
+- runFlow:
+    when:
+      visible:
+        id: "identity-skip-button"
+    commands:
+      - tapOn:
+          id: "identity-skip-button"
+- runFlow:
+    when:
+      visible:
+        id: "identity-continue-button"
+    commands:
+      - tapOn:
+          id: "identity-continue-button"
+- runFlow:
+    when:
+      visible:
+        id: "identity-skip-button"
+    commands:
+      - tapOn:
+          id: "identity-skip-button"
+- extendedWaitUntil:
+    visible:
+      id: "screen-map"
+    timeout: 30000
 - tapOn:
     id: "nav-list"
 - assertVisible: "Discover"

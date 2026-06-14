@@ -7,6 +7,9 @@ BUNDLE_PREWARM_TIMEOUT_SECONDS="${BUNDLE_PREWARM_TIMEOUT_SECONDS:-180}"
 DEV_CLIENT_SCHEME="${DEV_CLIENT_SCHEME:-exp+nr-app}"
 DEV_CLIENT_MANIFEST_URL="${DEV_CLIENT_MANIFEST_URL:-http://10.0.2.2:8081?disableOnboarding=1}"
 DEV_CLIENT_LAUNCH_WAIT_SECONDS="${DEV_CLIENT_LAUNCH_WAIT_SECONDS:-15}"
+E2E_PREWARM_REQUIRED="${E2E_PREWARM_REQUIRED:-1}"
+E2E_PREWARM_SCREEN_ID="${E2E_PREWARM_SCREEN_ID:-}"
+E2E_PREWARM_ENABLED="${E2E_PREWARM_ENABLED:-1}"
 LOG_DIR="${LOG_DIR:-.e2e-logs/android}"
 METRO_PORT="${METRO_PORT:-8081}"
 METRO_TIMEOUT_SECONDS="${METRO_TIMEOUT_SECONDS:-120}"
@@ -139,27 +142,33 @@ prewarm_app_bundle() {
   fi
 
   prewarm_flow="${LOCAL_FLOW_ROOT}/prewarm.yaml"
-  cat >"${prewarm_flow}" <<EOF
-appId: ${APP_ID}
----
-- openLink: "nostroots://e2e/reset"
-- runFlow:
-    when:
-      visible: "Open"
-    commands:
-      - tapOn: "Open"
-- runFlow:
-    when:
-      visible: "Open"
-    commands:
-      - tapOn: "Open"
-- extendedWaitUntil:
-    visible:
-      id: "screen-welcome"
-    timeout: ${APP_READY_TIMEOUT_MS}
-EOF
+  {
+    echo "appId: ${APP_ID}"
+    echo "---"
+    echo "- openLink: \"nostroots://e2e/reset\""
+    echo "- runFlow:"
+    echo "    when:"
+    echo "      visible: \"Open\""
+    echo "    commands:"
+    echo "      - tapOn: \"Open\""
+    echo "- runFlow:"
+    echo "    when:"
+    echo "      visible: \"Open\""
+    echo "    commands:"
+    echo "      - tapOn: \"Open\""
+    if [ -n "${E2E_PREWARM_SCREEN_ID}" ]; then
+      echo "- extendedWaitUntil:"
+      echo "    visible:"
+      echo "      id: \"${E2E_PREWARM_SCREEN_ID}\""
+      echo "    timeout: ${APP_READY_TIMEOUT_MS}"
+    fi
+  } >"${prewarm_flow}"
 
-  echo "Prewarming app bundle and waiting for screen-welcome..."
+  if [ -n "${E2E_PREWARM_SCREEN_ID}" ]; then
+    echo "Prewarming app bundle and waiting for ${E2E_PREWARM_SCREEN_ID}..."
+  else
+    echo "Prewarming app bundle without explicit readiness check..."
+  fi
   if [ -n "${MAESTRO_HOST:-}" ]; then
     maestro --host "${MAESTRO_HOST}" test "${prewarm_flow}"
   else
@@ -273,9 +282,17 @@ sleep "${DEV_CLIENT_LAUNCH_WAIT_SECONDS}"
 capture_pretest_hierarchy
 
 echo "Running Maestro..."
-if ! prewarm_app_bundle; then
-  capture_hierarchy "${LOG_DIR}/maestro-after-prewarm-failure.json"
-  exit 1
+if [ "${E2E_PREWARM_ENABLED}" = "1" ]; then
+  if ! prewarm_app_bundle; then
+    capture_hierarchy "${LOG_DIR}/maestro-after-prewarm-failure.json"
+    if [ "${E2E_PREWARM_REQUIRED}" != "1" ]; then
+      echo "Prewarm failed, but continuing due E2E_PREWARM_REQUIRED=${E2E_PREWARM_REQUIRED}."
+    else
+      exit 1
+    fi
+  fi
+else
+  echo "Skipping Maestro prewarm for this run (E2E_PREWARM_ENABLED=${E2E_PREWARM_ENABLED})."
 fi
 prepare_local_flows "$@"
 if [ -n "${MAESTRO_HOST:-}" ]; then

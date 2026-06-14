@@ -6,6 +6,11 @@ appId: org.trustroots.nostroots
       visible: "Open"
     commands:
       - tapOn: "Open"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
 - launchApp:
     clearState: true
 - assertVisible:

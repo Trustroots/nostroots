@@ -148,6 +148,11 @@ appId: ${APP_ID}
       visible: "Open"
     commands:
       - tapOn: "Open"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
 - extendedWaitUntil:
     visible:
       id: "screen-welcome"

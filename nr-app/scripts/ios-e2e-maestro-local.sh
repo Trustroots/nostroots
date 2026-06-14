@@ -140,6 +140,14 @@ prepare_local_flows() {
   done
 }
 
+emit_open_prompt_tap() {
+  echo "- runFlow:"
+  echo "    when:"
+  echo "      visible: \"Open\""
+  echo "    commands:"
+  echo "      - tapOn: \"Open\""
+}
+
 prewarm_app_bundle() {
   if [ -z "${LOCAL_FLOW_ROOT}" ]; then
     LOCAL_FLOW_ROOT="$(mktemp -d)"
@@ -149,12 +157,10 @@ prewarm_app_bundle() {
   {
     echo "appId: ${APP_ID}"
     echo "---"
+    emit_open_prompt_tap
     echo "- openLink: \"nostroots://e2e/reset\""
-    echo "- runFlow:"
-    echo "    when:"
-    echo "      visible: \"Open\""
-    echo "    commands:"
-    echo "      - tapOn: \"Open\""
+    emit_open_prompt_tap
+    emit_open_prompt_tap
     echo "- extendedWaitUntil:"
     echo "    visible:"
     echo "      id: \"screen-welcome\""

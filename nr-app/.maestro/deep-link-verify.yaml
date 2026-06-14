@@ -6,13 +6,28 @@ appId: org.trustroots.nostroots
       visible: "Open"
     commands:
       - tapOn: "Open"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
 - openLink: "nostroots://e2e/seed?scenario=pending-verify"
 - runFlow:
     when:
       visible: "Open"
     commands:
       - tapOn: "Open"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
 - openLink: "nostroots://verify?token=e2e-token"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
 - runFlow:
     when:
       visible: "Open"

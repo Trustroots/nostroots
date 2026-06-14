@@ -164,8 +164,14 @@ GitHub workflows:
 
 - `nr-app-unit.yml`: lint and Jest/RNTL coverage artifact.
 - `ci-nr-app.yml`: PR and main branch app CI.
-- `nr-app-e2e-maestro.yml`: Android Maestro PR E2E on Ubuntu/emulator.
+- `nr-app-e2e-maestro.yml`: Android Maestro E2E on Ubuntu/emulator.
 - `.eas/workflows/nr-app-ios-maestro-smoke.yaml`: EAS-run iOS simulator smoke.
+
+Android Maestro uses EAS build credits, so PR runs are opt-in. Maintainers can
+run it manually with `workflow_dispatch`, or enable it for pull requests by
+setting repository variable `NR_APP_ANDROID_E2E_ON_PR=true`. When the variable
+is not set, the PR job exits successfully with a notice instead of starting an
+EAS build.
 
 ## Migration Guide
 
@@ -179,8 +185,10 @@ From a fresh checkout:
 6. Run a Maestro smoke flow from `nr-app/.maestro`.
 7. Configure `EXPO_TOKEN` in GitHub repository secrets.
 8. Confirm EAS has access to the project and can build `e2e-android`.
-9. Open a PR touching `nr-app/**` and verify unit coverage and Android Maestro.
-10. Enable or validate the EAS iOS Maestro smoke workflow.
+9. Open a PR touching `nr-app/**` and verify unit coverage.
+10. Run Android Maestro manually, or set `NR_APP_ANDROID_E2E_ON_PR=true` when
+    EAS build credits are available and PR e2e should be enforced.
+11. Enable or validate the EAS iOS Maestro smoke workflow.
 
 If a new CI job unexpectedly blocks work, disable the workflow trigger or remove
 the required branch protection check while debugging. Do not replace deterministic

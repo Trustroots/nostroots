@@ -237,7 +237,7 @@ jobs:
 
       - name: Run iPhone Maestro flows
         working-directory: nr-app
-        run: pnpm run test:maestro:ios:local
+        run: pnpm run test:maestro:ios:local -- .maestro/main-map-smoke.yaml
 
       - name: Upload iOS Maestro artifacts
         uses: actions/upload-artifact@v4

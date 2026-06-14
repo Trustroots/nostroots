@@ -1,6 +1,11 @@
 appId: org.trustroots.nostroots
 ---
 - openLink: "nostroots://e2e/reset"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
 - launchApp:
     clearState: true
 - assertVisible:

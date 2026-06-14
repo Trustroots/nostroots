@@ -143,6 +143,11 @@ prewarm_app_bundle() {
 appId: ${APP_ID}
 ---
 - openLink: "nostroots://e2e/reset"
+- runFlow:
+    when:
+      visible: "Open"
+    commands:
+      - tapOn: "Open"
 - extendedWaitUntil:
     visible:
       id: "screen-welcome"

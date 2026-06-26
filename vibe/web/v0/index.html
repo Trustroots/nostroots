@@ -1026,13 +1026,17 @@
             id: 'android',
             href: 'https://github.com/Trustroots/nostroots/releases',
             label: 'Android',
-            title: 'Download Android APK from GitHub releases'
+            title: 'Download Android APK from GitHub releases',
+            umamiEvent: 'Click Android APK',
+            umamiTarget: 'android-apk'
         },
         {
             id: 'ios',
             href: 'https://apps.apple.com/app/nostroots/id6755037304',
             label: 'iOS',
-            title: 'Get iOS app on the App Store'
+            title: 'Get iOS app on the App Store',
+            umamiEvent: 'Click iOS app',
+            umamiTarget: 'ios-app'
         }
     ];
 
@@ -1043,6 +1047,12 @@
                 escapeHtml(item.href) +
                 '" title="' +
                 escapeHtml(item.title) +
+                '" data-umami-event="' +
+                escapeHtml(item.umamiEvent) +
+                '" data-umami-event-placement="mobile-menu" data-umami-event-target="' +
+                escapeHtml(item.umamiTarget) +
+                '" data-umami-event-url="' +
+                escapeHtml(item.href) +
                 '" target="_blank" rel="noopener noreferrer">' +
                 escapeHtml(item.label) +
                 '</a>'

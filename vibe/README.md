@@ -10,3 +10,8 @@ the main `nr-app`, `nr-common`, and `nr-notification-daemon` stack.
 - `push-notification-daemon/` - Vibe-only APNs notification daemon for
   Nostroots Browser.
 - `docs/` - Vibe documentation moved from the web/browser prototypes.
+- `openspec/` - Vibe-scoped OpenSpec baseline specs and backlog changes.
+
+Durable Vibe behavior is captured in [`openspec/project.md`](openspec/project.md)
+and [`openspec/specs/`](openspec/specs/). Narrative docs remain in
+[`docs/`](docs/), with a local index at [`docs/README.md`](docs/README.md).

@@ -9,12 +9,9 @@ import (
 	"github.com/nbd-wtf/go-nostr"
 )
 
-// profileClaimPictureURL matches Trustroots API / web behaviour for profile images.
+// profileClaimPictureURL returns only Trustroots-hosted local profile uploads.
 // Served from www.trustroots.org (browsers load it on nos.trustroots.org via normal <img cross-origin>).
 func profileClaimPictureURL(u User) string {
-	if s := strings.TrimSpace(u.Avatar); s != "" {
-		return s
-	}
 	src := strings.ToLower(strings.TrimSpace(u.AvatarSource))
 	if src == "local" && u.AvatarUploaded && !u.ID.IsZero() {
 		base := fmt.Sprintf("https://www.trustroots.org/uploads-profile/%s/avatar/256.jpg", u.ID.Hex())
@@ -22,12 +19,6 @@ func profileClaimPictureURL(u User) string {
 			return base + fmt.Sprintf("?%d", u.Updated.UnixMilli())
 		}
 		return base
-	}
-	if src == "gravatar" {
-		h := strings.TrimSpace(strings.ToLower(u.EmailHash))
-		if h != "" {
-			return fmt.Sprintf("https://www.gravatar.com/avatar/%s?s=256&d=identicon", h)
-		}
 	}
 	return ""
 }
@@ -39,9 +30,11 @@ func eventForProfileClaim(user User, circles []string, privateKey string) (nostr
 		"name":               user.Username,
 		"display_name":       strings.TrimSpace(user.DisplayName),
 		"about":              strings.TrimSpace(user.Description),
-		"picture":            profileClaimPictureURL(user),
 		"nip05":              strings.ToLower(strings.TrimSpace(user.Username)) + "@trustroots.org",
 		"trustrootsUsername": strings.TrimSpace(user.Username),
+	}
+	if picture := profileClaimPictureURL(user); picture != "" {
+		metadata["picture"] = picture
 	}
 	appendProfileClaimFields(metadata, user)
 	contentBytes, err := json.Marshal(metadata)

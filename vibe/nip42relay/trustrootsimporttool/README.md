@@ -62,10 +62,9 @@ normal strfry import workflow.
 Use these checks to verify that import output matches `nr-web` rendering expectations.
 
 - `30390` profile claim:
-  - content `picture` follows Trustroots profile image rules:
-    - explicit `avatar` URL when present
-    - local upload fallback: `https://www.trustroots.org/uploads-profile/<userId>/avatar/256.jpg[?<updatedMs>]`
-    - gravatar fallback: `https://www.gravatar.com/avatar/<emailHash>?s=256&d=identicon`
+  - content `picture` is emitted only for Trustroots local uploads:
+    - `https://www.trustroots.org/uploads-profile/<userId>/avatar/256.jpg[?<updatedMs>]`
+    - external/raw avatar URLs, Gravatar, Facebook, and other non-local sources are omitted
   - content may also include structured profile fields (when present in Mongo user docs):
     - `gender` (string, normalized lowercase where possible)
     - `memberSince` (unix seconds)

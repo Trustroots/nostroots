@@ -40,8 +40,8 @@ func TestEventForProfileClaim(t *testing.T) {
 	if err := json.Unmarshal([]byte(event.Content), &meta); err != nil {
 		t.Fatal(err)
 	}
-	if meta["picture"] != "https://example.com/a.jpg" {
-		t.Fatalf("picture = %q", meta["picture"])
+	if _, has := meta["picture"]; has {
+		t.Fatalf("expected external avatar URL to be omitted, got picture = %q", meta["picture"])
 	}
 }
 
@@ -81,15 +81,26 @@ func TestProfileClaimPictureURL_localUpload(t *testing.T) {
 	}
 }
 
-func TestProfileClaimPictureURL_gravatar(t *testing.T) {
+func TestProfileClaimPictureURL_omitsGravatar(t *testing.T) {
 	u := User{
 		ID:           primitive.NewObjectID(),
 		AvatarSource: "gravatar",
 		EmailHash:    "abc",
 	}
 	got := profileClaimPictureURL(u)
-	if got != "https://www.gravatar.com/avatar/abc?s=256&d=identicon" {
-		t.Fatalf("got %q", got)
+	if got != "" {
+		t.Fatalf("got %q want empty", got)
+	}
+}
+
+func TestProfileClaimPictureURL_omitsFacebook(t *testing.T) {
+	u := User{
+		ID:           primitive.NewObjectID(),
+		AvatarSource: "facebook",
+	}
+	got := profileClaimPictureURL(u)
+	if got != "" {
+		t.Fatalf("got %q want empty", got)
 	}
 }
 

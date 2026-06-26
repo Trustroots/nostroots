@@ -10,6 +10,9 @@ import {
   firstSeenOnNostrootsLine,
   profileHasMeaningfulRelayData,
   classifyNostrootsSetupState,
+  mergeProfile30390AndKind0,
+  pictureUrlFromTrustrootsUserApiJson,
+  isTrustrootsLocalProfileUploadUrl,
 } from '../../index.js';
 
 describe('profile claim field normalization', () => {
@@ -115,6 +118,53 @@ describe('profile stats projection', () => {
     expect(profileHasMeaningfulRelayData({ meta: { about: 'hello' } })).toBe(true);
     expect(profileHasMeaningfulRelayData({ notes: [{ id: 'note' }] })).toBe(true);
     expect(profileHasMeaningfulRelayData({ trustMetric: 2 })).toBe(true);
+  });
+});
+
+describe('profile picture precedence', () => {
+  const localUpload =
+    'https://www.trustroots.org/uploads-profile/665033c061af073e7e3c628c/avatar/256.jpg?1710000000000';
+  const nostrPicture = 'https://cdn.example.net/nostr/avatar.webp';
+  const gravatar = 'https://www.gravatar.com/avatar/abc?s=256&d=identicon';
+
+  it('prefers Nostr kind 0 picture over imported Trustroots profile picture', () => {
+    const meta = mergeProfile30390AndKind0(
+      { content: JSON.stringify({ picture: localUpload, display_name: 'Trustroots Alice' }) },
+      { content: JSON.stringify({ picture: nostrPicture, name: 'Nostr Alice' }) }
+    );
+    expect(meta.picture).toBe(nostrPicture);
+  });
+
+  it('ignores stale non-local Trustroots import pictures', () => {
+    const meta = mergeProfile30390AndKind0(
+      { content: JSON.stringify({ picture: gravatar, display_name: 'Trustroots Alice' }) },
+      { content: JSON.stringify({ about: 'No picture here' }) }
+    );
+    expect(meta.picture).toBe('');
+  });
+
+  it('uses Trustroots local uploads as the fallback picture', () => {
+    const meta = mergeProfile30390AndKind0(
+      { content: JSON.stringify({ picture: localUpload }) },
+      { content: JSON.stringify({ about: 'No picture here' }) }
+    );
+    expect(meta.picture).toBe(localUpload);
+  });
+
+  it('returns local-upload Trustroots API avatars and omits Gravatar', () => {
+    expect(isTrustrootsLocalProfileUploadUrl(localUpload)).toBe(true);
+    expect(
+      pictureUrlFromTrustrootsUserApiJson({
+        _id: '665033c061af073e7e3c628c',
+        avatarSource: 'local',
+        avatarUploaded: true,
+        updated: '2024-03-09T16:00:00.000Z',
+      })
+    ).toBe(localUpload);
+    expect(pictureUrlFromTrustrootsUserApiJson({
+      avatarSource: 'gravatar',
+      emailHash: 'abc',
+    })).toBe('');
   });
 });
 

@@ -81,7 +81,7 @@ type User struct {
 	DisplayName string             `bson:"displayName"`
 	Description string             `bson:"description"`
 	Avatar      string             `bson:"avatar"`
-	// Trustroots user.server.model.js — used when `avatar` is absent to build kind 30390 `picture`.
+	// Trustroots user.server.model.js — only local uploads are used to build kind 30390 `picture`.
 	AvatarSource     string       `bson:"avatarSource"`
 	AvatarUploaded   bool         `bson:"avatarUploaded"`
 	EmailHash        string       `bson:"emailHash"`

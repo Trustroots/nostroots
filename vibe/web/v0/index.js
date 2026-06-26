@@ -2345,6 +2345,26 @@ export function sanitizeProfileImageUrl(url) {
     }
 }
 
+export function isTrustrootsLocalProfileUploadUrl(url) {
+    const safe = sanitizeProfileImageUrl(url);
+    if (!safe) return false;
+    try {
+        const parsed = new URL(safe);
+        return (
+            parsed.protocol === 'https:' &&
+            parsed.hostname.toLowerCase() === 'www.trustroots.org' &&
+            /^\/uploads-profile\/[a-f0-9]{24}\/avatar\/256\.jpg$/i.test(parsed.pathname)
+        );
+    } catch (_) {
+        return false;
+    }
+}
+
+function sanitizeTrustrootsLocalProfileUploadUrl(url) {
+    const safe = sanitizeProfileImageUrl(url);
+    return isTrustrootsLocalProfileUploadUrl(safe) ? safe : '';
+}
+
 /** Shared nip42 relay classifier used by map/chat/profile flows. */
 export function isTrustrootsAuthRelayUrl(url) {
     const raw = String(url || '').trim();
@@ -15236,8 +15256,8 @@ const __nrChatApp = (() => {
             } catch (_) {
                 return null;
             }
-            const picture = String(profile?.picture || '').trim();
-            if (!picture || !isSafeHttpUrl(picture)) return null;
+            const picture = sanitizeTrustrootsLocalProfileUploadUrl(profile?.picture);
+            if (!picture) return null;
             const pTag = (event.tags || []).find((t) => Array.isArray(t) && t[0] === 'p' && t[1]);
             const byTag = String(pTag?.[1] || '').trim().toLowerCase();
             const byAuthor = String(event.pubkey || '').trim().toLowerCase();
@@ -17576,7 +17596,9 @@ function extractPictureCandidatesFromEvents(events) {
   const out = [];
   const seen = new Set();
   const push = (url, via, ev) => {
-    const clean = sanitizePictureUrl(url);
+    const clean = ev?.kind === PROFILE_CLAIM_KIND
+      ? sanitizeTrustrootsLocalProfileUploadUrl(url)
+      : sanitizePictureUrl(url);
     if (!clean || seen.has(clean)) return;
     seen.add(clean);
     out.push({
@@ -18134,11 +18156,11 @@ function pictureUrlFromTrustrootsUserApiJson(j) {
   if (!j || typeof j !== 'object') return '';
   const src = j.avatarSource;
   if (src === 'local' && j.avatarUploaded && j._id) {
-    const ts = j.updated ? new Date(j.updated).getTime() : '';
-    return sanitizePictureUrl(`https://www.trustroots.org/uploads-profile/${j._id}/avatar/256.jpg?${ts}`);
-  }
-  if (src === 'gravatar' && j.emailHash) {
-    return sanitizePictureUrl(`https://www.gravatar.com/avatar/${j.emailHash}?s=256&d=identicon`);
+    const ts = j.updated ? new Date(j.updated).getTime() : NaN;
+    const suffix = Number.isFinite(ts) ? `?${ts}` : '';
+    return sanitizeTrustrootsLocalProfileUploadUrl(
+      `https://www.trustroots.org/uploads-profile/${j._id}/avatar/256.jpg${suffix}`
+    );
   }
   return '';
 }
@@ -18194,8 +18216,8 @@ function mergeProfile30390AndKind0(ev30390, ev0) {
     } catch (_) {}
   }
   const picture =
-    sanitizePictureUrl(from90.picture) ||
     sanitizePictureUrl(from0.picture) ||
+    sanitizeTrustrootsLocalProfileUploadUrl(from90.picture) ||
     '';
   const displayName =
     String(from90.display_name || from90.name || '').trim() ||
@@ -20147,6 +20169,8 @@ async function renderProfileEdit(profileId) {
       hostMeetSnapshot,
       profileAboutHtmlWithHashtagLinks,
       extractProfileHashtagSlugsFromMeta,
+      mergeProfile30390AndKind0,
+      pictureUrlFromTrustrootsUserApiJson,
     };
 })();
 export const renderPublicProfile = __nrProfilePage.renderPublicProfile;
@@ -20157,3 +20181,5 @@ export const pickLatestMapNotesByIntentType = __nrProfilePage.pickLatestMapNotes
 export const hostMeetSnapshot = __nrProfilePage.hostMeetSnapshot;
 export const profileAboutHtmlWithHashtagLinks = __nrProfilePage.profileAboutHtmlWithHashtagLinks;
 export const extractProfileHashtagSlugsFromMeta = __nrProfilePage.extractProfileHashtagSlugsFromMeta;
+export const mergeProfile30390AndKind0 = __nrProfilePage.mergeProfile30390AndKind0;
+export const pictureUrlFromTrustrootsUserApiJson = __nrProfilePage.pictureUrlFromTrustrootsUserApiJson;

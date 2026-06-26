@@ -103,8 +103,8 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: 'learn why Nostroots is built on Nostr' })).toHaveAttribute('href', 'background/');
     await expect(page.getByRole('link', { name: 'Background' }).first()).toHaveAttribute('href', 'background/');
     await expect(page.locator('#android').getByRole('link', { name: 'Get on Google Play' })).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots');
-    await expect(page.locator('#android').getByRole('link', { name: 'Download the latest APK from GitHub releases' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots/releases');
-    await expect(page.locator('#ios').getByRole('link', { name: 'Join TestFlight' })).toHaveAttribute('href', 'https://testflight.apple.com/join/n5WGu8Hu');
+    await expect(page.locator('#android').getByRole('link', { name: 'latest APK' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots/releases');
+    await expect(page.locator('#ios').getByRole('link', { name: 'Get on the App Store' })).toHaveAttribute('href', 'https://apps.apple.com/app/nostroots/id6755037304');
     expect(await page.evaluate(() => Boolean(
       document.getElementById('download-section').compareDocumentPosition(document.getElementById('web-experiences-section')) & Node.DOCUMENT_POSITION_FOLLOWING
     ))).toBe(true);
@@ -157,6 +157,23 @@ test.describe('Nostroots Web hub', () => {
       'wikistr ⭐',
       "Let's Miti",
     ]);
+  });
+
+  test('shows app QR codes only on wider screens', async ({ page }) => {
+    await page.setViewportSize({ width: 1200, height: 800 });
+    await page.goto('/');
+
+    await expect(page.locator('#android .app-qr')).toBeVisible();
+    await expect(page.locator('#android .app-qr')).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots');
+    await expect(page.locator('#android .app-qr img')).toHaveAttribute('src', 'app-qr-android.svg');
+    await expect(page.locator('#ios .app-qr')).toBeVisible();
+    await expect(page.locator('#ios .app-qr')).toHaveAttribute('href', 'https://apps.apple.com/app/nostroots/id6755037304');
+    await expect(page.locator('#ios .app-qr img')).toHaveAttribute('src', 'app-qr-ios.svg');
+
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    await expect(page.locator('#android .app-qr')).toBeHidden();
+    await expect(page.locator('#ios .app-qr')).toBeHidden();
   });
 
   test('tracks experimental app visibility changes', async ({ page }) => {
@@ -213,7 +230,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(modal.getByRole('link', { name: 'Alby' })).toHaveAttribute('href', 'https://guides.getalby.com/user-guide/browser-extension/faq/how-do-i-install-the-alby-browser-extension');
     await expect(modal.getByRole('link', { name: 'nos2x' })).toHaveAttribute('href', 'https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp');
     await expect(modal.getByRole('link', { name: 'Android' })).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots');
-    await expect(modal.getByRole('link', { name: 'iOS' })).toHaveAttribute('href', 'https://testflight.apple.com/join/n5WGu8Hu');
+    await expect(modal.getByRole('link', { name: 'iOS' })).toHaveAttribute('href', 'https://apps.apple.com/app/nostroots/id6755037304');
 
     await modal.getByRole('button', { name: 'Close Nostr keys information' }).click();
 

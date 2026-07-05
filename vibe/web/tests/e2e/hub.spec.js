@@ -108,6 +108,9 @@ test.describe('Nostroots Web hub', () => {
     expect(await page.evaluate(() => Boolean(
       document.getElementById('download-section').compareDocumentPosition(document.getElementById('web-experiences-section')) & Node.DOCUMENT_POSITION_FOLLOWING
     ))).toBe(true);
+    expect(await page.evaluate(() => Boolean(
+      document.getElementById('browser-extensions-section').compareDocumentPosition(document.getElementById('web-experiences-section')) & Node.DOCUMENT_POSITION_FOLLOWING
+    ))).toBe(true);
     await expect(page.locator('#nostr-key-status')).toContainText('no nostr key detected');
     await expect(page.locator('#trustroots-identity-status')).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Trustroots\.org/ })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');

@@ -576,7 +576,7 @@
                 ? 'NIP-07 browser extension support detected.'
                 : nip7Status === 'partial'
                     ? 'A NIP-07 extension was detected, but it does not expose the encrypted features Nostroots needs. You can still import or generate a local key.'
-                ? 'No NIP-07 browser extension was detected. Install the Nostroots Extension from the Chrome Web Store (Chrome, Brave, and other Chromium browsers); Firefox is in review.';
+                    : 'No NIP-07 browser extension was detected. Install the Nostroots Extension from the Chrome Web Store (Chrome, Brave, and other Chromium browsers); Firefox is in review.';
             var missingNip7StatusHtml = 'No NIP-07 browser extension detected. Install <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> from the Chrome Web Store (Chrome, Brave, and other Chromium browsers). Firefox is in review.';
             var statusHtml = nip7Status === 'none' && !isNip7Active
                 ? missingNip7StatusHtml

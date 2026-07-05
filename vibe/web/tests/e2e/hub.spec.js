@@ -129,13 +129,12 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('.browser-extension .app-icon img')).toHaveAttribute('src', 'browser-icon-chrome.svg');
     await expect(page.locator('.firefox-extension .app-icon img')).toHaveAttribute('src', 'browser-icon-firefox.svg');
 
-    const footer = page.locator('footer.hub-footer');
-    await expect(footer.getByRole('link', { name: 'Background' })).toHaveAttribute('href', 'background/');
-    await expect(footer.getByRole('link', { name: 'Matrix chat' })).toHaveAttribute('href', 'https://matrix.to/#/#nostroots:matrix.org');
+    const footer = page.locator('footer.site-footer');
+    await expect(footer.getByRole('link', { name: 'Trustroots.org' })).toHaveAttribute('href', 'https://www.trustroots.org/');
+    await expect(footer.getByRole('link', { name: 'Nostroots' })).toHaveAttribute('href', /\/$/);
     await expect(footer.getByRole('link', { name: 'Support' })).toHaveAttribute('href', 'https://www.trustroots.org/support');
-    await expect(footer.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', 'privacy/');
-    await expect(footer.getByRole('link', { name: 'GitHub' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots');
-    await expect(footer.locator('.hub-footer-icon')).toHaveCount(0);
+    await expect(footer.getByRole('link', { name: 'Edit this page' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots/edit/main/vibe/web/index.html');
+    await expect(footer.locator('.site-footer-build')).toBeVisible();
 
     const experimentalToggle = page.getByRole('checkbox', { name: 'Show more experimental apps' });
     await expect(experimentalToggle).not.toBeChecked();
@@ -318,18 +317,19 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', 'https://nos.trustroots.org/background/');
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', 'https://nos.trustroots.org/og-image.png');
     await expect(page.getByRole('link', { name: 'Technology' })).toHaveAttribute('href', '#technology--protocol');
+    await expect(page.locator('#nostr-key-status')).toContainText('no nostr key detected');
+    await expect(page.locator('#trustroots-identity-status')).toBeHidden();
 
     await page.getByRole('link', { name: 'Technology' }).click();
     await expect(page).toHaveURL(/#technology--protocol$/);
     await expect(page.getByRole('heading', { name: 'Technology & Protocol' })).toBeVisible();
 
-    const footer = page.locator('footer.hub-footer');
-    await expect(footer.getByRole('link', { name: 'Background' })).toHaveAttribute('href', '../background/');
-    await expect(footer.getByRole('link', { name: 'Matrix chat' })).toHaveAttribute('href', 'https://matrix.to/#/#nostroots:matrix.org');
+    const footer = page.locator('footer.site-footer');
+    await expect(footer.getByRole('link', { name: 'Trustroots.org' })).toHaveAttribute('href', 'https://www.trustroots.org/');
+    await expect(footer.getByRole('link', { name: 'Nostroots' })).toHaveAttribute('href', '../');
     await expect(footer.getByRole('link', { name: 'Support' })).toHaveAttribute('href', 'https://www.trustroots.org/support');
-    await expect(footer.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '../privacy/');
-    await expect(footer.getByRole('link', { name: 'GitHub' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots');
-    await expect(footer.locator('.hub-footer-icon')).toHaveCount(0);
+    await expect(footer.getByRole('link', { name: 'Edit this page' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots/edit/main/vibe/web/background/index.html');
+    await expect(footer.locator('.site-footer-build')).toBeVisible();
   });
 
   test('keeps old more URLs compatible with the background page', async ({ page }) => {

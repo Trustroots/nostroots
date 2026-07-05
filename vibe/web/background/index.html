@@ -8,7 +8,7 @@
       name="description"
       content="Background, vision, and FAQ about Nostroots — Trustroots' integration with the Nostr protocol for decentralized, user-owned social networking."
     />
-    <meta name="theme-color" content="#004b3f" />
+    <meta name="theme-color" content="#12b591" />
     <link rel="canonical" href="https://nos.trustroots.org/background/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Nostroots" />
@@ -27,31 +27,47 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="../site-chrome.css" />
     <link rel="stylesheet" href="../background.css" />
     <script defer src="../analytics.js"></script>
   </head>
   <body>
+    <header class="header" role="banner">
+      <div class="header-inner">
+        <nav class="hub-nav" aria-label="Platform links">
+          <a href="../">Home</a>
+          <a
+            href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+            data-umami-event="Click Android app"
+            data-umami-event-placement="top-nav"
+            data-umami-event-target="android-app"
+            data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+          >Android</a>
+          <a
+            href="https://apps.apple.com/app/nostroots/id6755037304"
+            data-umami-event="Click iOS app"
+            data-umami-event-placement="top-nav"
+            data-umami-event-target="ios-app"
+            data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304"
+          >iOS</a>
+        </nav>
+        <section class="identity-status" aria-label="Connection status">
+          <button
+            id="nostr-key-status"
+            class="status-pill status-pill-button"
+            data-state="missing"
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="nip7-info-modal"
+            aria-expanded="false"
+            aria-label="No Nostr key detected. About Nostr keys"
+            hidden
+          ><strong>no nostr key detected</strong><span class="status-pill-info" aria-hidden="true">i</span></button>
+          <a id="trustroots-identity-status" class="status-pill identity-link" data-state="missing" hidden>Trustroots identity: <strong>not linked</strong></a>
+        </section>
+      </div>
+    </header>
     <main class="hub hub-content" aria-labelledby="hub-title">
-      <nav class="hub-nav" aria-label="Platform links">
-        <a href="../">Home</a>
-        <span class="sep" aria-hidden="true">·</span>
-        <a
-          href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
-          data-umami-event="Click Android app"
-          data-umami-event-placement="top-nav"
-          data-umami-event-target="android-app"
-          data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
-        >Android</a>
-        <span class="sep" aria-hidden="true">·</span>
-        <a
-          href="https://apps.apple.com/app/nostroots/id6755037304"
-          data-umami-event="Click iOS app"
-          data-umami-event-placement="top-nav"
-          data-umami-event-target="ios-app"
-          data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304"
-        >iOS</a>
-      </nav>
-
       <header class="hub-header">
         <div class="brand">
           <a href="../"><img src="../nostroots-logo.png" alt="" width="86" height="86" /></a>
@@ -352,17 +368,53 @@
         </aside>
       </div>
 
-      <footer class="hub-footer">
-        <a href="../background/">Background</a>
-        <span class="sep" aria-hidden="true">·</span>
-        <a href="https://matrix.to/#/#nostroots:matrix.org">Matrix chat</a>
-        <span class="sep" aria-hidden="true">·</span>
-        <a href="https://www.trustroots.org/support">Support</a>
-        <span class="sep" aria-hidden="true">·</span>
-        <a href="../privacy/">Privacy Policy</a>
-        <span class="sep" aria-hidden="true">·</span>
-        <a href="https://github.com/Trustroots/nostroots">GitHub</a>
+      <footer class="site-footer" role="contentinfo">
+        <div class="site-footer-content">
+          <ul class="site-footer-links">
+            <li><a href="https://www.trustroots.org/">Trustroots.org</a></li>
+            <li><a href="../">Nostroots</a></li>
+            <li><a href="https://www.trustroots.org/support">Support</a></li>
+          </ul>
+          <div class="site-footer-meta">
+            <a
+              id="site-footer-build"
+              class="site-footer-build"
+              href="https://github.com/Trustroots/nostroots"
+              aria-label="Nostroots on GitHub"
+            >
+              <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+                <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.36c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+              </svg>
+              <span id="site-footer-build-commit" class="site-footer-build-commit"></span>
+            </a>
+            <small>
+              <a class="footer-edit" href="https://github.com/Trustroots/nostroots/edit/main/vibe/web/background/index.html">Edit this page</a>
+            </small>
+          </div>
+        </div>
       </footer>
     </main>
+    <div id="nip7-info-modal" class="info-modal" role="dialog" aria-modal="true" aria-labelledby="nip7-info-title" hidden>
+      <section class="info-modal-panel" tabindex="-1">
+        <div class="info-modal-header">
+          <h2 id="nip7-info-title">Nostr keys</h2>
+          <button class="info-modal-close" type="button" data-nip7-close aria-label="Close Nostr keys information">X</button>
+        </div>
+        <div class="info-modal-body">
+          <p><strong>A Nostr key is your account for Nostr apps.</strong> It lets apps recognize you without a password or central account.</p>
+          <p>You have a public key, which is safe to share, and a private key, which proves you are you. Keep the private key secret.</p>
+          <p>A signer is an app or browser extension that holds your private key and approves actions for you. Nostroots can ask it for your public key, but your private key stays with the signer.</p>
+          <ul>
+            <li>On desktop, install the <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> from the Chrome Web Store. Works in Chrome, Brave, and Edge. Firefox is in review and coming soon.</li>
+            <li>On mobile, install the Nostroots app for <a href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" target="_blank" rel="noopener noreferrer" data-umami-event="Click Android app" data-umami-event-placement="key-modal" data-umami-event-target="android-app" data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots">Android</a> or <a href="https://apps.apple.com/app/nostroots/id6755037304" target="_blank" rel="noopener noreferrer" data-umami-event="Click iOS app" data-umami-event-placement="key-modal" data-umami-event-target="ios-app" data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304">iOS</a>.</li>
+            <li>Reload this page after the signer is available.</li>
+            <li>Connect your Trustroots identity so Nostroots can link your profile and Nostr key.</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <script defer src="../site-chrome.js" data-deploy-metadata="../deploy-metadata.json"></script>
+    <script src="../site-chrome-identity.js"></script>
   </body>
 </html>

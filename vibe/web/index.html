@@ -25,6 +25,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="site-chrome.css">
+  <link rel="stylesheet" href="site-typography.css">
   <script defer src="analytics.js"></script>
   <script>
     (function () {
@@ -60,34 +61,32 @@
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: Nunito, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      color: var(--foreground);
       background:
         linear-gradient(180deg, rgba(152, 173, 70, 0.18), transparent 360px),
         linear-gradient(90deg, rgba(49, 189, 166, 0.08), rgba(243, 181, 42, 0.08)),
         var(--background);
     }
 
-    a {
+    .hub a {
       color: inherit;
+      text-decoration: none;
+      font-weight: inherit;
+    }
+
+    .hub a:hover,
+    .hub a:focus-visible {
+      text-decoration: none;
     }
 
     .hub {
       position: relative;
-      width: min(1040px, calc(100% - 32px));
+      width: var(--chrome-content-width);
       min-height: calc(100vh - var(--chrome-total-height));
       margin: 0 auto;
       padding: 26px 0 42px;
       display: grid;
       align-content: center;
       gap: 28px;
-    }
-
-    .hub-header {
-      display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
-      align-items: center;
-      gap: 20px 26px;
     }
 
     .hub-header .brand {
@@ -104,18 +103,6 @@
       height: 86px;
       border-radius: 10px;
       box-shadow: 0 14px 34px rgba(0, 75, 63, 0.18);
-    }
-
-    h1 {
-      margin: 0;
-      max-width: 700px;
-      font-size: clamp(38px, 5vw, 58px);
-      line-height: 1.08;
-      letter-spacing: 0;
-    }
-
-    .hub-title-line {
-      display: block;
     }
 
     .lead {
@@ -548,10 +535,6 @@
         height: 72px;
       }
 
-      .hub-header {
-        grid-template-columns: 1fr;
-      }
-
       .lead {
         grid-column: auto;
       }
@@ -562,7 +545,9 @@
   <header class="header" role="banner">
     <div class="header-inner">
       <nav class="hub-nav" aria-label="Nostroots links">
-        <a href="background/">Background</a>
+        <a class="header-brand" href="./" aria-label="Nostroots home">
+          <img src="nostroots-logo.png" alt="" width="32" height="32">
+        </a>
         <a
           href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
           data-umami-event="Click Android app"
@@ -577,6 +562,7 @@
           data-umami-event-target="ios-app"
           data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304"
         >iOS</a>
+        <a href="background/">Background</a>
       </nav>
       <section class="identity-status" aria-label="Connection status">
         <button

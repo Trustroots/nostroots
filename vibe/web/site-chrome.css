@@ -5,29 +5,45 @@
   --chrome-header-height: 50px;
   --chrome-header-border: 3px;
   --chrome-total-height: calc(var(--chrome-header-height) + var(--chrome-header-border));
+  --chrome-content-width: min(1040px, calc(100% - 32px));
+  --hub-brand-size: 86px;
+  --hub-header-gap: 26px;
 }
 
 .header {
   background: var(--brand-green);
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
   border-bottom: var(--chrome-header-border) solid #e9ece1;
-  font-family: var(--chrome-font);
-  line-height: 1.55;
 }
 
 .header-inner {
-  width: min(1040px, calc(100% - 32px));
+  width: var(--chrome-content-width);
   margin: 0 auto;
-  height: var(--chrome-header-height);
   min-height: var(--chrome-header-height);
-  max-height: var(--chrome-header-height);
   box-sizing: border-box;
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px 28px;
-  padding: 6px 0;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 9px 0;
+}
+
+.hub-header {
+  display: grid;
+  grid-template-columns: var(--hub-brand-size) minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--hub-header-gap);
+  row-gap: 20px;
+}
+
+.hub-header h1 {
+  margin: 0;
+  max-width: 760px;
+}
+
+.hub-title-line {
+  display: block;
 }
 
 .header .hub-nav {
@@ -37,26 +53,44 @@
   justify-content: flex-start;
   gap: 0.5rem 1rem;
   margin: 0;
+  padding: 0;
   min-width: 0;
-  font-family: var(--chrome-font);
+  flex: 0 1 auto;
   font-size: 15px;
   font-weight: 700;
-  line-height: 1;
+}
+
+.header .hub-nav .header-brand {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin: 0;
+  text-decoration: none;
+  text-shadow: none;
 }
 
 .header .hub-nav a {
   color: var(--white);
-  font-family: inherit;
-  font-size: inherit;
-  font-weight: 700;
-  line-height: 1;
   text-decoration: none;
   text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+}
+
+.header .hub-nav .header-brand img {
+  display: block;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.header .hub-nav .header-brand:hover,
+.header .hub-nav .header-brand:focus-visible {
+  outline: none;
 }
 
 .header .hub-nav a:hover,
 .header .hub-nav a:focus-visible {
   color: var(--white);
+  text-decoration: none;
   outline: none;
 }
 
@@ -256,9 +290,18 @@ a.status-pill {
 }
 
 @media (max-width: 760px) {
+  :root {
+    --hub-brand-size: 72px;
+    --hub-header-gap: 14px;
+  }
+
   .header .identity-status {
     max-width: none;
     justify-content: flex-end;
+  }
+
+  .hub-header {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -354,6 +397,6 @@ a.status-pill {
 
 @media (max-width: 600px) {
   .header .hub-nav {
-    gap: 0.5rem 0.75rem;
+    justify-content: flex-start;
   }
 }

@@ -138,6 +138,10 @@ User creates note → nr-app signs & publishes (kind 30397)
 - Supports NIP-07 browser extensions
 - Compatible with nr-app event formats via nr-common schemas
 
+**Editing guardrails (v0 hash-page):** `vibe/web/v0/index.html` is parsed as inline scripts and is sensitive to malformed conditional expressions. Prefer explicit `if/else` for multi-branch selection over deeply nested ternaries to avoid `missing : in conditional expression` parser failures (this can break `#welcome` and other hash routes). At minimum, run a syntax sanity check after editing:
+- `OPENSSL_CONF=/dev/null node -e \"const fs=require('fs'); const acorn=require('acorn'); const html=fs.readFileSync('vibe/web/v0/index.html','utf8'); const scripts=[...html.matchAll(/<script(.*?)>([\\s\\S]*?)<\\/script>/gi)]; scripts.forEach((m)=>{ const attrs=m[1]||''; const body=(m[2]||'').trim(); if(!body||/src\\s*=/.test(attrs)) return; try { acorn.parse(body,{ecmaVersion:'latest',sourceType:/type\\s*=\\s*[\\\"\\']module[\\\"\\']/.test(attrs)?'module':'script',locations:true}); } catch(e){ console.error('script parse error', e.message); process.exit(1);} });\"`
+- `OPENSSL_CONF=/dev/null node --check vibe/web/v0/index.js`
+
 **Testing:** Vitest + Playwright in Docker when you run the suite; coverage is intentionally pragmatic while the UI evolves (see Testing Philosophy)
 
 ## Development Workflows

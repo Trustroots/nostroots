@@ -121,6 +121,10 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('.treasures .app-icon img')).toHaveAttribute('src', 'https://treasures.to/icon.svg');
     await expect(page.locator('#browser-extensions-section')).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Browser extensions' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nostroots Extension for Chrome' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nostroots Extension for Firefox' })).toBeVisible();
+    await expect(page.locator('.browser-extension .app-icon img')).toHaveAttribute('src', 'browser-icon-chrome.svg');
+    await expect(page.locator('.firefox-extension .app-icon img')).toHaveAttribute('src', 'browser-icon-firefox.svg');
 
     const footer = page.locator('footer.hub-footer');
     await expect(footer.getByRole('link', { name: 'Background' })).toHaveAttribute('href', 'background/');

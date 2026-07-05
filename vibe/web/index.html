@@ -419,9 +419,10 @@
       box-shadow: inset 0 -16px 0 rgba(152, 173, 70, 0.24);
     }
 
-    .browser-extension .app-icon {
-      background: #4b6cb7;
-      box-shadow: inset 0 -16px 0 rgba(255, 255, 255, 0.18);
+    .browser-extension .app-icon,
+    .firefox-extension .app-icon {
+      background: #ffffff;
+      box-shadow: 0 0 0 1px rgba(0, 75, 63, 0.1);
     }
 
     .treasures .app-icon {
@@ -1046,19 +1047,23 @@
           rel="noopener noreferrer"
         >
           <div class="card-main">
-            <span class="app-icon app-icon-text" aria-hidden="true">N</span>
-            <h2>Nostroots Extension</h2>
+            <span class="app-icon" aria-hidden="true">
+              <img src="browser-icon-chrome.svg" alt="" width="54" height="54" loading="lazy">
+            </span>
+            <h2>Nostroots Extension for Chrome</h2>
             <p>Recommended NIP-07 signer for desktop. Your key stays on your device. Works in Chrome, Brave, and Edge.</p>
           </div>
           <span class="card-action">Get on Chrome Web Store</span>
         </a>
 
-        <article class="card secondary coming-soon" aria-label="Firefox extension review pending">
+        <article class="card firefox-extension secondary coming-soon" aria-label="Nostroots Extension for Firefox review pending">
           <div class="card-main">
             <span class="card-label">Coming soon</span>
-            <span class="app-icon app-icon-text" aria-hidden="true">FF</span>
-            <h2>Firefox extension</h2>
-            <p>Firefox review is pending and will be available once approved.</p>
+            <span class="app-icon" aria-hidden="true">
+              <img src="browser-icon-firefox.svg" alt="" width="54" height="54" loading="lazy">
+            </span>
+            <h2>Nostroots Extension for Firefox</h2>
+            <p>Same Nostroots Extension signer for Firefox. Review is pending and will be available once approved.</p>
           </div>
           <span class="card-action">Firefox — review in progress</span>
         </article>

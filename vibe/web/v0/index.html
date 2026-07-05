@@ -576,11 +576,8 @@
                 ? 'NIP-07 browser extension support detected.'
                 : nip7Status === 'partial'
                     ? 'A NIP-07 extension was detected, but it does not expose the encrypted features Nostroots needs. You can still import or generate a local key.'
-                    : 'No NIP-07 browser extension was detected. You can use Alby, nos2x, or another compatible extension, or continue with a local key.';
-            var missingNip7StatusHtml = 'No NIP-07 browser extension detected. Compatible extensions include '
-                + '<a href="https://guides.getalby.com/user-guide/browser-extension/faq/how-do-i-install-the-alby-browser-extension" target="_blank" rel="noopener noreferrer">Alby</a>'
-                + ' and '
-                + '<a href="https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp" target="_blank" rel="noopener noreferrer">nos2x</a>.';
+                    : 'No NIP-07 browser extension was detected. Install the Nostroots Extension (Chrome, Brave, and other Chromium browsers); Firefox is in review.';
+            var missingNip7StatusHtml = 'No NIP-07 browser extension detected. Install <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> (Chrome, Brave, and other Chromium browsers). Firefox is in review.';
             var statusHtml = nip7Status === 'none' && !isNip7Active
                 ? missingNip7StatusHtml
                 : escapeHtml(signerStatusText || defaultStatus);
@@ -7895,7 +7892,7 @@ body.nr-surface-host .host-compose-selected-circle button {
         <!-- NIP-07 browser extension signer (only shown when no key is set) -->
         <div class="keys-option-section" id="keys-nip7-section" style="display: none;">
             <h3 class="keys-option-heading" id="keys-nip7-heading">Option 1: Connect browser extension</h3>
-            <p class="keys-onboarding-option-text" id="keys-nip7-description">Use a NIP-07 extension such as Alby or nos2x to sign without pasting your nsec into this browser.</p>
+            <p class="keys-onboarding-option-text" id="keys-nip7-description">Use the Nostroots Extension on desktop to sign without pasting your nsec into this browser. It works in Chrome, Brave, Edge, and other Chromium browsers. Firefox is in review.</p>
             <div class="keys-option-content">
                 <button class="btn btn-secondary" id="keys-nip7-connect-btn" onclick="onboardingNip7Connect()" type="button" style="width: 100%;">Use browser extension</button>
             </div>

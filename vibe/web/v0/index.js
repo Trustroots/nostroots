@@ -1988,7 +1988,7 @@ function getNip7StatusText() {
     }
     if (caps.isFull) return 'NIP-07 browser extension support detected.';
     if (caps.hasProvider) return 'NIP-07 extension detected, but encrypted messaging support is incomplete.';
-    return 'No NIP-07 browser extension detected. Compatible extensions include Alby and nos2x.';
+    return 'No NIP-07 browser extension detected. Install the Nostroots Extension (Chrome, Brave, and other Chromium browsers) from the Chrome Web Store (Firefox review is pending).';
 }
 
 async function buildSignedAuthEvent(relayUrl, challenge) {
@@ -14131,7 +14131,7 @@ const __nrChatApp = (() => {
                             ? 'NIP-07 browser extension support detected.'
                             : nip7Caps.status === 'partial'
                                 ? 'NIP-07 extension detected, but encrypted messaging support is incomplete.'
-                                : 'No NIP-07 browser extension detected. Compatible extensions include Alby and nos2x.'
+                                : 'No NIP-07 browser extension detected. Install the Nostroots Extension (Chrome, Brave, and other Chromium browsers) from the Chrome Web Store (Firefox review is pending).'
                 });
             }
             if (currentPublicKey && options.skipProfileLookup !== true) checkProfileLinked();

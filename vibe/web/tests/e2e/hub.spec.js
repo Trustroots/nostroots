@@ -227,8 +227,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(modal).toBeVisible();
     await expect(modal).toContainText('A Nostr key is your account for Nostr apps');
     await expect(modal).toContainText('Keep the private key secret');
-    await expect(modal.getByRole('link', { name: 'Alby' })).toHaveAttribute('href', 'https://guides.getalby.com/user-guide/browser-extension/faq/how-do-i-install-the-alby-browser-extension');
-    await expect(modal.getByRole('link', { name: 'nos2x' })).toHaveAttribute('href', 'https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp');
+    await expect(modal.getByRole('link', { name: 'Nostroots Extension' })).toHaveAttribute('href', 'https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf');
     await expect(modal.getByRole('link', { name: 'Android' })).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots');
     await expect(modal.getByRole('link', { name: 'iOS' })).toHaveAttribute('href', 'https://apps.apple.com/app/nostroots/id6755037304');
 

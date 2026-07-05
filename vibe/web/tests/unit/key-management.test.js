@@ -65,9 +65,8 @@ describe('Key Management', () => {
       expect(document.getElementById('keys-onboarding-intro').textContent).not.toContain('browser extension');
 
       const statusLinks = Array.from(document.querySelectorAll('#keys-signer-status a'));
-      expect(statusLinks.map((link) => link.textContent)).toEqual(['Alby', 'nos2x']);
-      expect(statusLinks[0].href).toBe('https://guides.getalby.com/user-guide/browser-extension/faq/how-do-i-install-the-alby-browser-extension');
-      expect(statusLinks[1].href).toBe('https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp');
+      expect(statusLinks.map((link) => link.textContent)).toEqual(['Nostroots Extension']);
+      expect(statusLinks[0].href).toBe('https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf');
       expect(statusLinks.every((link) => link.target === '_blank')).toBe(true);
       expect(statusLinks.every((link) => link.rel === 'noopener noreferrer')).toBe(true);
     });

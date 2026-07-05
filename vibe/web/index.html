@@ -419,6 +419,11 @@
       box-shadow: inset 0 -16px 0 rgba(152, 173, 70, 0.24);
     }
 
+    .browser-extension .app-icon {
+      background: #4b6cb7;
+      box-shadow: inset 0 -16px 0 rgba(255, 255, 255, 0.18);
+    }
+
     .treasures .app-icon {
       background: #ffffff;
       box-shadow: 0 0 0 1px rgba(0, 75, 63, 0.1);
@@ -559,6 +564,10 @@
       background: #004b3f;
     }
 
+    .browser-extension .card-action {
+      background: #4b6cb7;
+    }
+
     .location .card-action {
       background: var(--blue);
     }
@@ -577,6 +586,17 @@
 
     .experimental-card {
       display: none;
+    }
+
+    .coming-soon .card-action {
+      background: #9fb3ab;
+      cursor: default;
+    }
+
+    .coming-soon .card-action:hover,
+    .coming-soon .card-action:focus-visible {
+      box-shadow: none;
+      transform: none;
     }
 
     .cards.show-experimental .experimental-card {
@@ -1015,6 +1035,36 @@
       </div>
     </section>
 
+    <section id="browser-extensions-section" aria-labelledby="browser-extensions-heading">
+      <h2 class="section-title" id="browser-extensions-heading">Browser extensions</h2>
+      <p class="section-lead">Use a desktop browser extension for secure in-browser signing.</p>
+      <div class="cards" aria-label="Browser extensions">
+        <a
+          class="card browser-extension secondary"
+          href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <div class="card-main">
+            <span class="app-icon app-icon-text" aria-hidden="true">N</span>
+            <h2>Nostroots Extension</h2>
+            <p>Recommended NIP-07 signer for desktop browsers. Your key stays on your device. Works on Chrome, Brave, and other Chromium browsers.</p>
+          </div>
+          <span class="card-action">Get on Chromium</span>
+        </a>
+
+        <article class="card secondary coming-soon" aria-label="Firefox extension review pending">
+          <div class="card-main">
+            <span class="card-label">Coming soon</span>
+            <span class="app-icon app-icon-text" aria-hidden="true">FF</span>
+            <h2>Firefox extension</h2>
+            <p>Firefox review is pending and will be available once approved.</p>
+          </div>
+          <span class="card-action">Firefox — review in progress</span>
+        </article>
+      </div>
+    </section>
+
     <div class="hub-controls">
       <label class="toggle" for="show-experimental">
         <input id="show-experimental" type="checkbox" aria-controls="hub-cards">
@@ -1045,7 +1095,7 @@
         <p>You have a public key, which is safe to share, and a private key, which proves you are you. Keep the private key secret.</p>
         <p>A signer is an app or browser extension that holds your private key and approves actions for you. Nostroots can ask it for your public key, but your private key stays with the signer.</p>
         <ul>
-          <li>On desktop, install a browser extension such as <a href="https://guides.getalby.com/user-guide/browser-extension/faq/how-do-i-install-the-alby-browser-extension" target="_blank" rel="noopener noreferrer">Alby</a> or <a href="https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp" target="_blank" rel="noopener noreferrer">nos2x</a>.</li>
+          <li>On desktop, install the <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> from the Chrome Web Store. It also works in Chromium-based browsers like Brave. Firefox is in review and coming soon.</li>
           <li>On mobile, install the Nostroots app for <a href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" target="_blank" rel="noopener noreferrer" data-umami-event="Click Android app" data-umami-event-placement="key-modal" data-umami-event-target="android-app" data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots">Android</a> or <a href="https://apps.apple.com/app/nostroots/id6755037304" target="_blank" rel="noopener noreferrer" data-umami-event="Click iOS app" data-umami-event-placement="key-modal" data-umami-event-target="ios-app" data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304">iOS</a>.</li>
           <li>Reload this page after the signer is available.</li>
           <li>Connect your Trustroots identity so Nostroots can link your profile and Nostr key.</li>

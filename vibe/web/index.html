@@ -1048,7 +1048,7 @@
           <div class="card-main">
             <span class="app-icon app-icon-text" aria-hidden="true">N</span>
             <h2>Nostroots Extension</h2>
-            <p>Recommended NIP-07 signer for desktop browsers. Your key stays on your device. Works on Chrome, Brave, and other Chromium browsers.</p>
+            <p>Recommended NIP-07 signer for desktop. Your key stays on your device. Works in Chrome, Brave, and Edge.</p>
           </div>
           <span class="card-action">Get on Chrome Web Store</span>
         </a>
@@ -1095,7 +1095,7 @@
         <p>You have a public key, which is safe to share, and a private key, which proves you are you. Keep the private key secret.</p>
         <p>A signer is an app or browser extension that holds your private key and approves actions for you. Nostroots can ask it for your public key, but your private key stays with the signer.</p>
         <ul>
-          <li>On desktop, install the <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> from the Chrome Web Store. It also works in Chromium-based browsers like Brave. Firefox is in review and coming soon.</li>
+          <li>On desktop, install the <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> from the Chrome Web Store. Works in Chrome, Brave, and Edge. Firefox is in review and coming soon.</li>
           <li>On mobile, install the Nostroots app for <a href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" target="_blank" rel="noopener noreferrer" data-umami-event="Click Android app" data-umami-event-placement="key-modal" data-umami-event-target="android-app" data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots">Android</a> or <a href="https://apps.apple.com/app/nostroots/id6755037304" target="_blank" rel="noopener noreferrer" data-umami-event="Click iOS app" data-umami-event-placement="key-modal" data-umami-event-target="ios-app" data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304">iOS</a>.</li>
           <li>Reload this page after the signer is available.</li>
           <li>Connect your Trustroots identity so Nostroots can link your profile and Nostr key.</li>
@@ -1201,6 +1201,7 @@
       var identityStatus = document.getElementById('trustroots-identity-status');
       var downloadSection = document.getElementById('download-section');
       var webExperiencesSection = document.getElementById('web-experiences-section');
+      var browserExtensionsSection = document.getElementById('browser-extensions-section');
       var hubControls = document.querySelector('.hub-controls');
       if (!card || !description || !action || !keyStatus || !identityStatus) return;
       var keyStatusFadeTimer = null;
@@ -1213,6 +1214,11 @@
         var anchor = hubControls && hubControls.parentNode === parent ? hubControls : webExperiencesSection;
         if (anchor.nextElementSibling === downloadSection) return;
         parent.insertBefore(downloadSection, anchor.nextSibling);
+      }
+
+      function syncBrowserExtensionsSection(hasNip7Provider) {
+        if (!browserExtensionsSection) return;
+        browserExtensionsSection.hidden = !!hasNip7Provider;
       }
 
       var BECH32_CHARSET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
@@ -1708,6 +1714,7 @@
       async function refreshNip7Key() {
         var provider = getNip7Provider();
         if (!provider) return false;
+        syncBrowserExtensionsSection(true);
         moveDownloadSectionAfterWebExperiences();
         if (nip7PublicKeyRequestPending) return true;
         nip7PublicKeyRequestPending = true;

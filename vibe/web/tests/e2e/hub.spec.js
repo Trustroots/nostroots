@@ -119,6 +119,8 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Treasures/ })).toHaveAttribute('href', 'https://treasures.to/');
     await expect(page.locator('.treasures .card-label')).toHaveText('3rd party');
     await expect(page.locator('.treasures .app-icon img')).toHaveAttribute('src', 'https://treasures.to/icon.svg');
+    await expect(page.locator('#browser-extensions-section')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Browser extensions' })).toBeVisible();
 
     const footer = page.locator('footer.hub-footer');
     await expect(footer.getByRole('link', { name: 'Background' })).toHaveAttribute('href', 'background/');
@@ -264,6 +266,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('#trustroots-identity-status')).toHaveText('alice@trustroots.org');
     await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('href', 'https://www.trustroots.org/profile/alice');
     await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('title', /^npub1/);
+    await expect(page.locator('#browser-extensions-section')).toBeHidden();
     expect(await page.evaluate(() => Boolean(
       document.getElementById('web-experiences-section').compareDocumentPosition(document.getElementById('download-section')) & Node.DOCUMENT_POSITION_FOLLOWING
     ))).toBe(true);
@@ -284,6 +287,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('#trustroots-card-action')).toHaveText('Open Trustroots.org');
     await expect(page.locator('#nostr-key-status')).toContainText(/^npub1/);
     await expect(page.locator('#trustroots-identity-status')).toBeHidden();
+    await expect(page.locator('#browser-extensions-section')).toBeHidden();
   });
 
   test('detects a NIP-07 key injected after the hub starts', async ({ page }) => {
@@ -294,6 +298,7 @@ test.describe('Nostroots Web hub', () => {
 
     await expect(page.locator('#nostr-key-status')).toContainText(/^npub1/);
     await expect(page.locator('#trustroots-identity-status')).toBeHidden();
+    await expect(page.locator('#browser-extensions-section')).toBeHidden();
   });
 
 

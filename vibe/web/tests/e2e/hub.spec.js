@@ -95,7 +95,7 @@ function trustrootsKind0Event(nip05) {
 }
 
 test.describe('Nostroots Web hub', () => {
-  test('shows default options and reveals more experimental apps on request', async ({ page }) => {
+  test('shows default options and reveals more experimental apps on request', async ({ page, isMobile }) => {
     await page.goto('/');
 
     await expect(page.getByRole('heading', { name: 'Choose where to start with Nostroots.' })).toBeVisible();
@@ -122,12 +122,16 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Treasures/ })).toHaveAttribute('href', 'https://treasures.to/');
     await expect(page.locator('.treasures .card-label')).toHaveText('3rd party');
     await expect(page.locator('.treasures .app-icon img')).toHaveAttribute('src', 'https://treasures.to/icon.svg');
-    await expect(page.locator('#browser-extensions-section')).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Browser extensions' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Nostroots Extension for Chrome' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Nostroots Extension for Firefox' })).toBeVisible();
-    await expect(page.locator('.browser-extension .app-icon img')).toHaveAttribute('src', 'browser-icon-chrome.svg');
-    await expect(page.locator('.firefox-extension .app-icon img')).toHaveAttribute('src', 'browser-icon-firefox.svg');
+    if (!isMobile) {
+      await expect(page.locator('#browser-extensions-section')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Browser extensions' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Nostroots Extension for Chrome' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Nostroots Extension for Firefox' })).toBeVisible();
+      await expect(page.locator('.browser-extension .app-icon img')).toHaveAttribute('src', 'browser-icon-chrome.svg');
+      await expect(page.locator('.firefox-extension .app-icon img')).toHaveAttribute('src', 'browser-icon-firefox.svg');
+    } else {
+      await expect(page.locator('#browser-extensions-section')).toBeHidden();
+    }
 
     const footer = page.locator('footer.site-footer');
     await expect(footer.getByRole('link', { name: 'Trustroots.org' })).toHaveAttribute('href', 'https://www.trustroots.org/');

@@ -572,11 +572,12 @@
 
         var signerStatus = global.document.getElementById('keys-signer-status');
         if (signerStatus) {
-            var defaultStatus = nip7Status === 'full'
-                ? 'NIP-07 browser extension support detected.'
-                : nip7Status === 'partial'
-                    ? 'A NIP-07 extension was detected, but it does not expose the encrypted features Nostroots needs. You can still import or generate a local key.'
-                    : 'No NIP-07 browser extension was detected. Install the Nostroots Extension from the Chrome Web Store (Chrome, Brave, and other Chromium browsers); Firefox is in review.';
+            var defaultStatus = 'No NIP-07 browser extension was detected. Install the Nostroots Extension from the Chrome Web Store (Chrome, Brave, and other Chromium browsers); Firefox is in review.';
+            if (nip7Status === 'full') {
+                defaultStatus = 'NIP-07 browser extension support detected.';
+            } else if (nip7Status === 'partial') {
+                defaultStatus = 'A NIP-07 extension was detected, but it does not expose the encrypted features Nostroots needs. You can still import or generate a local key.';
+            }
             var missingNip7StatusHtml = 'No NIP-07 browser extension detected. Install <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> from the Chrome Web Store (Chrome, Brave, and other Chromium browsers). Firefox is in review.';
             var statusHtml = nip7Status === 'none' && !isNip7Active
                 ? missingNip7StatusHtml
@@ -610,7 +611,10 @@
             setDisplayById('update-trustroots-profile-group', 'none');
         }
 
-        var keysTitle = hasPublicKey ? (signerMode === 'nip7' ? 'Keys (browser extension)' : 'Keys') : 'Connect key to post';
+        var keysTitle = 'Connect key to post';
+        if (hasPublicKey) {
+            keysTitle = signerMode === 'nip7' ? 'Keys (browser extension)' : 'Keys';
+        }
         ['keys-icon-btn', 'keys-icon-btn-mobile'].forEach(function (id) {
             var keysBtn = global.document.getElementById(id);
             if (keysBtn) keysBtn.title = keysTitle;
@@ -2022,7 +2026,13 @@
             }
         } catch (_) {}
     }, 0);
-})(typeof window !== 'undefined' ? window : typeof globalThis !== 'undefined' ? globalThis : this);
+var nrWebCommonGlobal = this;
+if (typeof window !== 'undefined') {
+    nrWebCommonGlobal = window;
+} else if (typeof globalThis !== 'undefined') {
+    nrWebCommonGlobal = globalThis;
+}
+})(nrWebCommonGlobal);
 /* NR_COMMON_JS_END */
     </script>
     <script>
@@ -2109,7 +2119,9 @@
             } catch (_) {
                 idRaw = idPart;
             }
-            var kindSuffix = tab === 'edit' ? '_edit' : tab === 'contacts' ? '_contacts' : '';
+            var kindSuffix = '';
+            if (tab === 'edit') kindSuffix = '_edit';
+            else if (tab === 'contacts') kindSuffix = '_contacts';
             var profileKind = 'profile' + kindSuffix;
             if (looksLikeNpub(idPart) || looksLikeHex64(idPart)) {
                 return { kind: profileKind, profileId: idPart };

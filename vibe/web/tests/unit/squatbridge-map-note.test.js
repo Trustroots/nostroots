@@ -69,3 +69,32 @@ describe('Squatbridge map-note publishing shape', () => {
     expect(prefixTags.every((tag) => tag.length === 3 && /^[23456789CFGHJMPQRVWX0]{8}\+$/.test(tag[1]))).toBe(true);
   });
 });
+
+describe('Squatbridge layout and Berlin prefetch', () => {
+  it('keeps the flex layout chain that lets the map fill the viewport', () => {
+    expect(squatbridgeHtml).toContain('class="sb-app"');
+    expect(squatbridgeHtml).toMatch(/\.sb-app\s*\{[^}]*display:\s*flex/);
+    expect(squatbridgeHtml).toMatch(/\.sb-app\s*\{[^}]*flex:\s*1/);
+    expect(squatbridgeHtml).toMatch(/\.sb-app\s*\{[^}]*min-height:\s*0/);
+    expect(squatbridgeHtml).toMatch(/#sb-map\s*\{[^}]*min-height:\s*0/);
+    expect(squatbridgeHtml).toContain('function refreshMapSize()');
+  });
+
+  it('loads Berlin from static prefetch before localStorage and radar', () => {
+    expect(squatbridgeHtml).toContain('function berlinStaticCacheUrl()');
+    expect(squatbridgeHtml).toContain('squatbridge-data/city/berlin.json');
+    expect(squatbridgeHtml).toContain('await tryBerlinStaticPrefetch(cacheKey, options)');
+    const staticCallIdx = squatbridgeHtml.indexOf('await tryBerlinStaticPrefetch(cacheKey, options)');
+    const radarIdx = squatbridgeHtml.indexOf('fetch(RADAR_API + "?" + params.toString())');
+    expect(staticCallIdx).toBeGreaterThan(-1);
+    expect(radarIdx).toBeGreaterThan(staticCallIdx);
+  });
+
+  it('uses shared Nostroots site chrome for the header', () => {
+    expect(squatbridgeHtml).toContain('site-chrome.css');
+    expect(squatbridgeHtml).toContain('site-chrome-identity.js');
+    expect(squatbridgeHtml).toContain('id="nostr-key-status"');
+    expect(squatbridgeHtml).toContain('h1 class="sb-title"');
+    expect(squatbridgeHtml).not.toContain('id="sb-signer"');
+  });
+});

@@ -15,11 +15,11 @@ step for the main pages.
 
 #### Scenario: Root hub
 
-- **GIVEN** a user opens the Vibe Web root page
-- **WHEN** the page renders
+- **GIVEN** a user opens the Vibe Web root page in a normal browser
+- **WHEN** the page renders and the client is not detected as an in-app WebView
 - **THEN** it MUST act as a hub for Nostroots Web, background information,
-  classic Trustroots network settings, app downloads, and optional experimental
-  experiences.
+  classic Trustroots network settings, mobile app downloads, and optional
+  experimental experiences.
 
 #### Scenario: Current Nostroots Web app
 
@@ -27,6 +27,60 @@ step for the main pages.
 - **WHEN** the browser loads the app
 - **THEN** the experience MUST provide the current map, chat, profile, keys,
   settings, stats, relay, and Trustroots-style activity flows.
+
+### Requirement: Hub visibility by client context
+
+The root hub at `nos.trustroots.org/` MUST adapt install prompts and related
+copy based on whether the page runs inside a Nostroots native WebView shell.
+
+The page MUST treat the client as in-app when any of these is true:
+
+- `navigator.userAgent` contains the marker `NostrootsBrowser/`
+- `window.nostr.__nostrootsBrowser === true` (injected NIP-07 bridge)
+- `window.__nostrootsNip7Installed === true` (injected before content load)
+
+Shells that set this marker include `nr-app` BrowserScreen,
+`vibe/browser/expo`, and native iOS `WKWebView`.
+
+#### Scenario: Hub card tiers in a regular browser
+
+- **GIVEN** a user opens the hub in a normal mobile or desktop browser
+- **WHEN** the page renders and the client is not detected as in-app
+- **THEN** the hub MUST show Trustroots.org, Nostroots Web, and Squatbridge
+  (`examples/squatbridge.html`) as default web experiences
+- **AND** it MUST show the "Get the app" download section (`#download-section`)
+  with Android and iOS store links, top-nav Android and iOS store links, hub lead
+  copy that mentions getting the mobile app, and the NIP-7 info modal bullet
+  recommending mobile app install
+- **AND** additional experimental experiences (Nostrail, Nostroots Map, Wikistr,
+  and external third-party links such as Treasures and Miti) MUST remain hidden
+  until the user enables "Show more experimental apps"
+- **AND** on desktop, the browser-extensions section MUST be visible until a
+  NIP-07 signer is detected; on mobile viewports it MAY stay hidden by layout
+  rules
+
+#### Scenario: In-app WebView visit
+
+- **GIVEN** a user opens the hub inside a Nostroots app WebView that identifies
+  itself as in-app
+- **WHEN** the page renders
+- **THEN** the hub MUST still show Trustroots.org, Nostroots Web, Squatbridge,
+  and other default web experiences; additional experimental cards and external
+  third-party links still follow the user's toggle
+- **AND** it MUST hide `#download-section` ("Get the app" cards), top-nav
+  Android and iOS store links, background-page download cards that share
+  `#download-section`, hub lead copy about getting the mobile app, and the
+  NIP-7 info modal bullet recommending mobile app install
+- **AND** it MUST NOT hide Squatbridge or other default web-experience cards
+  solely because the client is in-app
+
+#### Scenario: NIP-07 reorder unchanged
+
+- **GIVEN** a desktop browser with a NIP-07 signer connected on the hub
+- **WHEN** the signer is detected
+- **THEN** the browser-extensions section MUST hide and the download section MAY
+  reorder below web experiences (no-op when the download section is already hidden
+  in-app)
 
 ### Requirement: Hash-based routing
 

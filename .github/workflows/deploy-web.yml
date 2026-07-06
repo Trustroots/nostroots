@@ -48,6 +48,9 @@ jobs:
         env:
           COMMIT_TIMESTAMP: ${{ github.event.head_commit.timestamp }}
 
+      - name: Prefetch Squatbridge Berlin cache
+        run: node vibe/web/scripts/prefetch-squatbridge-berlin.mjs
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

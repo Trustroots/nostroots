@@ -39,6 +39,9 @@ next-env.d.ts
 .DS_Store
 Thumbs.db
 
+# Squatbridge deploy-time Berlin prefetch
+examples/squatbridge-data/city/berlin.json
+
 # Test artifacts
 coverage
 .vitest

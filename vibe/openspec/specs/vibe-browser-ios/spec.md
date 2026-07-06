@@ -19,6 +19,13 @@ Nostroots web experience.
 - **WHEN** the web view is created
 - **THEN** it MUST load `https://nos.trustroots.org/` by default.
 
+#### Scenario: Hub in-app detection user agent
+
+- **GIVEN** the WebView loads `https://nos.trustroots.org/`
+- **WHEN** the web view is created
+- **THEN** it MUST append or set a User-Agent containing `NostrootsBrowser/` so
+  the hub can suppress redundant install prompts.
+
 #### Scenario: Native-backed NIP-07 provider
 
 - **GIVEN** the loaded web app calls `window.nostr`

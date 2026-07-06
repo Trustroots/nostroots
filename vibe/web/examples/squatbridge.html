@@ -5,36 +5,71 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Squatbridge — radar.squat.net → Nostr</title>
   <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../site-chrome.css">
   <script defer src="../analytics.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     :root {
-      --bg: #ffffff;
-      --fg: #111111;
-      --card: #ffffff;
-      --muted: #777777;
-      --border: #bdbdbd;
-      --primary: #7d7d7d;
-      --primary-fg: #ffffff;
-      --danger: #9f3a2d;
-      --ok: #4f6f4f;
-      --link: #3030ff;
-      --soft: #eeeeee;
-      --body-font: Arial, Helvetica, sans-serif;
+      --background: #f7f8ef;
+      --foreground: #08261f;
+      --muted: #5f7169;
+      --line: #dbe3d2;
+      --panel: #fffdf4;
+      --accent: #128a78;
+      --accent-dark: #004b3f;
+      --shadow: rgba(0, 75, 63, 0.14);
+      --brand-green: #12b591;
+      --white: #fff;
+      --bg: var(--background);
+      --fg: var(--foreground);
+      --card: var(--panel);
+      --border: var(--line);
+      --primary: var(--accent);
+      --primary-fg: var(--white);
+      --link: var(--accent-dark);
+      --soft: rgba(152, 173, 70, 0.14);
+      --danger: #b42318;
+      --ok: #15803d;
+      --body-font: Nunito, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       --display-font: "Courier New", Courier, monospace;
     }
     body {
       margin: 0;
       font-family: var(--body-font);
-      background: var(--bg);
+      background:
+        linear-gradient(180deg, rgba(152, 173, 70, 0.14), transparent 220px),
+        linear-gradient(90deg, rgba(49, 189, 166, 0.06), rgba(243, 181, 42, 0.05)),
+        var(--background);
       color: var(--fg);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
       height: 100vh;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
-    a { color: var(--link); }
+    button, input, select, textarea { font: inherit; }
+    .sb-app a {
+      color: var(--accent-dark);
+      text-decoration: none;
+      font-weight: 700;
+    }
+    .sb-app a:hover,
+    .sb-app a:focus-visible {
+      color: var(--accent);
+      text-decoration: underline;
+      outline: none;
+    }
+    .sb-app {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
     .sb-header {
       display: flex;
       flex-wrap: wrap;
@@ -42,11 +77,12 @@
       gap: 0.75rem;
       padding: 0.65rem 1rem;
       border-bottom: 1px solid var(--border);
-      background: var(--bg);
+      background: var(--panel);
       flex-shrink: 0;
+      box-shadow: 0 1px 0 rgba(0, 75, 63, 0.06);
     }
     .sb-title {
-      color: var(--muted);
+      color: var(--accent-dark);
       font-family: var(--display-font);
       font-size: 1.45rem;
       font-weight: 700;
@@ -54,7 +90,7 @@
       margin: 0;
       white-space: nowrap;
     }
-    .sb-title a { color: inherit; text-decoration: none; }
+    .sb-title a { color: inherit; text-decoration: none; font-weight: 700; }
     .sb-mark {
       display: inline-block;
       margin-left: 0.45rem;
@@ -65,9 +101,9 @@
       flex: 1 1 360px;
       min-width: 220px;
       margin: 0;
-      color: #444444;
+      color: var(--muted);
       font-size: 0.95rem;
-      line-height: 1.35;
+      line-height: 1.45;
     }
     .sb-about-btn { font-size: 0.8rem; padding: 0.3rem 0.55rem; flex-shrink: 0; }
     .sb-header-actions {
@@ -94,7 +130,7 @@
     .sb-filter-tab {
       font: inherit;
       font-size: 0.85rem;
-      font-weight: 600;
+      font-weight: 700;
       padding: 0.35rem 0.65rem;
       border: none;
       background: transparent;
@@ -109,7 +145,7 @@
       color: var(--primary-fg);
     }
     .sb-filter-tab:focus-visible {
-      outline: 2px solid var(--primary);
+      outline: 2px solid var(--accent);
       outline-offset: -2px;
     }
     .sb-controls label { font-size: 0.85rem; color: var(--muted); display: flex; align-items: center; gap: 0.35rem; }
@@ -117,23 +153,39 @@
       font: inherit;
       padding: 0.35rem 0.5rem;
       border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--card);
+      border-radius: 8px;
+      background: var(--white);
       color: var(--fg);
     }
     .sb-controls select { max-width: min(280px, 55vw); }
     .sb-btn {
       font: inherit;
+      font-weight: 700;
       padding: 0.4rem 0.75rem;
-      border: 1px solid var(--border);
-      border-radius: 6px;
+      border: 1px solid transparent;
+      border-radius: 8px;
       background: var(--primary);
       color: var(--primary-fg);
       cursor: pointer;
+      box-shadow: 0 8px 20px var(--shadow);
     }
     .sb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .sb-btn.secondary { background: var(--card); color: var(--fg); }
-    .sb-signer { font-size: 0.8rem; color: var(--muted); max-width: min(280px, 40vw); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sb-btn.secondary {
+      background: var(--white);
+      color: var(--accent-dark);
+      border-color: var(--border);
+      box-shadow: none;
+    }
+    .sb-btn:hover:not(:disabled),
+    .sb-btn:focus-visible:not(:disabled) {
+      filter: brightness(1.03);
+      outline: none;
+    }
+    .sb-btn.secondary:hover:not(:disabled),
+    .sb-btn.secondary:focus-visible:not(:disabled) {
+      border-color: rgba(49, 189, 166, 0.72);
+      filter: none;
+    }
     .sb-status {
       position: absolute;
       top: 0.75rem;
@@ -144,12 +196,12 @@
       margin: 0;
       padding: 0.45rem 0.7rem;
       border: 1px solid var(--border);
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.94);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+      border-radius: 8px;
+      background: rgba(255, 253, 244, 0.94);
+      box-shadow: 0 10px 28px var(--shadow);
       color: var(--fg);
       font-size: 0.85rem;
-      line-height: 1.3;
+      line-height: 1.4;
       pointer-events: none;
     }
     .sb-status[hidden] { display: none; }
@@ -163,7 +215,8 @@
       flex-direction: column;
       position: relative;
     }
-    #sb-map { flex: 1; min-width: 0; min-height: 200px; }
+    #sb-map { flex: 1; min-width: 0; min-height: 0; height: 100%; }
+    #sb-map .leaflet-container { width: 100%; height: 100%; }
     .sb-map-popup { font-size: 0.85rem; line-height: 1.4; max-width: 220px; }
     .sb-map-popup-actions { margin-top: 0.45rem; display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
     .sb-map-popup-actions a,
@@ -230,8 +283,8 @@
       font-size: 0.85rem;
       padding: 0.4rem 0.55rem;
       border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--card);
+      border-radius: 8px;
+      background: var(--white);
       color: var(--fg);
     }
     .sb-event-filter::placeholder { color: var(--muted); }
@@ -249,7 +302,13 @@
     .sb-event:hover, .sb-event.active { background: var(--soft); }
     .sb-event.sb-event-past { opacity: 0.75; }
     .sb-event.sb-event-past h3 { color: var(--muted); }
-    .sb-event h3 { margin: 0 0 0.25rem; font-size: 0.95rem; line-height: 1.3; }
+    .sb-event h3 {
+      margin: 0 0 0.25rem;
+      font-size: 0.95rem;
+      font-weight: 800;
+      line-height: 1.35;
+      color: var(--foreground);
+    }
     .sb-event .meta { font-size: 0.8rem; color: var(--muted); margin: 0.15rem 0; }
     .sb-event .cats { font-size: 0.75rem; color: var(--muted); }
     .sb-event-actions { margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
@@ -269,28 +328,29 @@
     .sb-share-wrap--disabled button { pointer-events: none; }
     .sb-empty { padding: 2rem 1rem; text-align: center; color: var(--muted); }
     .sb-modal-backdrop {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+      position: fixed; inset: 0; background: rgba(8, 38, 31, 0.42);
       display: flex; align-items: center; justify-content: center;
       padding: 1rem; z-index: 1000;
     }
     .sb-modal-backdrop[hidden] { display: none; }
     .sb-modal {
       background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 10px;
+      border: 1px solid rgba(219, 227, 210, 0.95);
+      border-radius: 8px;
       width: min(520px, 100%);
       max-height: 90vh;
       overflow-y: auto;
       padding: 1.25rem;
+      box-shadow: 0 28px 70px rgba(0, 75, 63, 0.26);
     }
-    .sb-modal h2 { margin: 0 0 0.75rem; font-size: 1.1rem; }
+    .sb-modal h2 { margin: 0 0 0.75rem; font-size: 1.25rem; font-weight: 800; color: var(--accent-dark); }
     .sb-about-body { font-size: 0.9rem; line-height: 1.5; }
     .sb-about-body p { margin: 0 0 0.75rem; }
     .sb-about-body ul { margin: 0 0 0.75rem; padding-left: 1.25rem; }
     .sb-about-body li + li { margin-top: 0.25rem; }
     .sb-about-body .muted { color: var(--muted); font-size: 0.85rem; }
-    .sb-about-body h3 { font-size: 0.95rem; margin: 0.85rem 0 0.35rem; }
-    .sb-about-body h4 { font-size: 0.88rem; margin: 0.65rem 0 0.25rem; font-weight: 600; }
+    .sb-about-body h3 { font-size: 0.95rem; margin: 0.85rem 0 0.35rem; font-weight: 800; color: var(--accent-dark); }
+    .sb-about-body h4 { font-size: 0.88rem; margin: 0.65rem 0 0.25rem; font-weight: 800; color: var(--muted); }
     .sb-about-format {
       font-size: 0.72rem;
       line-height: 1.45;
@@ -357,7 +417,7 @@
       border-color: var(--primary);
       background: color-mix(in srgb, var(--primary) 18%, var(--bg));
     }
-    .sb-circle-toggle input { margin: 0; accent-color: var(--primary); }
+    .sb-circle-toggle input { margin: 0; accent-color: var(--accent); }
     .sb-going-toggle {
       display: flex;
       align-items: flex-start;
@@ -366,7 +426,7 @@
       margin: 0.75rem 0 0;
       cursor: pointer;
     }
-    .sb-going-toggle input { margin: 0.2rem 0 0; accent-color: var(--primary); flex-shrink: 0; }
+    .sb-going-toggle input { margin: 0.2rem 0 0; accent-color: var(--accent); flex-shrink: 0; }
     .sb-share-hint { font-size: 0.8rem; color: var(--muted); margin: 0.35rem 0 0.75rem; line-height: 1.4; }
     .sb-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem; }
     @media (max-width: 720px) {
@@ -377,6 +437,45 @@
   </style>
 </head>
 <body>
+  <header class="header" role="banner">
+    <div class="header-inner">
+      <nav class="hub-nav" aria-label="Nostroots links">
+        <a class="header-brand" href="../" aria-label="Nostroots home">
+          <img src="../nostroots-logo.png" alt="" width="32" height="32">
+        </a>
+        <a
+          href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+          data-umami-event="Click Android app"
+          data-umami-event-placement="top-nav"
+          data-umami-event-target="android-app"
+          data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+        >Android</a>
+        <a
+          href="https://apps.apple.com/app/nostroots/id6755037304"
+          data-umami-event="Click iOS app"
+          data-umami-event-placement="top-nav"
+          data-umami-event-target="ios-app"
+          data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304"
+        >iOS</a>
+        <a href="../background/">Background</a>
+      </nav>
+      <section class="identity-status" aria-label="Connection status">
+        <button
+          id="nostr-key-status"
+          class="status-pill status-pill-button"
+          data-state="missing"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="nip7-info-modal"
+          aria-expanded="false"
+          aria-label="No Nostr key detected. About Nostr keys"
+          hidden
+        ><strong>no nostr key detected</strong><span class="status-pill-info" aria-hidden="true">i</span></button>
+        <a id="trustroots-identity-status" class="status-pill identity-link" data-state="missing" hidden>Trustroots identity: <strong>not linked</strong></a>
+      </section>
+    </div>
+  </header>
+  <div class="sb-app">
   <header class="sb-header">
     <h1 class="sb-title"><a href="../">Squatbridge</a><span class="sb-mark" aria-hidden="true">｟(･)｠</span></h1>
     <p class="sb-summary">Browse radar.squat.net events on a map and share selected ones to Nostr.</p>
@@ -390,7 +489,6 @@
       </div>
     </div>
     <div class="sb-header-actions">
-      <span class="sb-signer" id="sb-signer">Checking signer…</span>
       <button type="button" class="sb-btn secondary sb-about-btn" id="sb-about">About</button>
     </div>
   </header>
@@ -537,6 +635,7 @@
         <button type="button" class="sb-btn" id="sb-share-publish">Sign &amp; publish</button>
       </div>
     </div>
+  </div>
   </div>
 
   <script src="squatbridge-locations.js"></script>
@@ -727,22 +826,6 @@
   }
 
   function updateSignerUi() {
-    const el = byId("sb-signer");
-    if (!el) return;
-    if (!state.signer.connected) {
-      el.textContent = state.signer.text;
-      el.title = "";
-      updateSharePreflight();
-      return;
-    }
-    if (state.signer.identityStatus === "loading") {
-      el.textContent = "Looking up identity…";
-      el.title = state.signer.pubkey || "";
-      updateSharePreflight();
-      return;
-    }
-    el.textContent = state.signer.displayLabel || state.signer.text;
-    el.title = state.signer.pubkey || "";
     updateSharePreflight();
   }
 
@@ -827,7 +910,6 @@
         if (timer) clearInterval(timer);
         return;
       }
-      byId("sb-signer").textContent = "Looking for NIP-07 signer…";
     }
     void check();
     timer = setInterval(check, SIGNER_INTERVAL_MS);
@@ -1447,6 +1529,32 @@
     );
   }
 
+  function berlinStaticCacheUrl() {
+    return "squatbridge-data/city/berlin.json";
+  }
+
+  async function tryBerlinStaticPrefetch(cacheKey, options) {
+    if (options.forceRefresh) return false;
+    if (getFilterType() !== "city" || byId("sb-filter-value").value !== "Berlin") return false;
+    try {
+      const res = await fetch(berlinStaticCacheUrl());
+      if (!res.ok) return false;
+      const wrapper = await res.json();
+      const payload = wrapper && wrapper.data;
+      if (!payload || payload.result === false) return false;
+      if (CACHE) CACHE.set(cacheKey, payload);
+      const fetchedAt = wrapper.fetchedAt ? Date.parse(wrapper.fetchedAt) : NaN;
+      const ageMs = Number.isFinite(fetchedAt) ? Date.now() - fetchedAt : null;
+      const note = Number.isFinite(ageMs) && CACHE
+        ? "(prefetched " + CACHE.formatAge(ageMs) + " ago)"
+        : "(prefetched)";
+      applyEventsPayload(payload, note);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   async function fetchEvents(options) {
     options = options || {};
     const filterType = getFilterType();
@@ -1468,6 +1576,9 @@
     }
 
     const cacheKey = "events:" + params.toString();
+    if (!options.forceRefresh && await tryBerlinStaticPrefetch(cacheKey, options)) {
+      return;
+    }
     if (CACHE && !options.forceRefresh) {
       const cached = CACHE.get(cacheKey);
       if (cached && cached.fresh) {
@@ -1519,6 +1630,13 @@
     }).addTo(map);
     markerLayer = L.layerGroup().addTo(map);
     map.setView([52.52, 13.405], 11);
+    requestAnimationFrame(function () {
+      requestAnimationFrame(refreshMapSize);
+    });
+  }
+
+  function refreshMapSize() {
+    if (map) map.invalidateSize();
   }
 
   function startOfTodayMs() {
@@ -1767,6 +1885,7 @@
       else if (bounds.length) focusMapOnBounds(bounds);
     }
     state.refocusMapOnNextRender = false;
+    refreshMapSize();
   }
 
   function renderEvents() {
@@ -2049,8 +2168,29 @@
   renderShareCircles();
   renderShareRelays();
   watchForSigner();
+  window.addEventListener("resize", refreshMapSize);
   void fetchEvents();
 })();
   </script>
+  <div id="nip7-info-modal" class="info-modal" role="dialog" aria-modal="true" aria-labelledby="nip7-info-title" hidden>
+    <section class="info-modal-panel" tabindex="-1">
+      <div class="info-modal-header">
+        <h2 id="nip7-info-title">Nostr keys</h2>
+        <button class="info-modal-close" type="button" data-nip7-close aria-label="Close Nostr keys information">X</button>
+      </div>
+      <div class="info-modal-body">
+        <p><strong>A Nostr key is your account for Nostr apps.</strong> It lets apps recognize you without a password or central account.</p>
+        <p>You have a public key, which is safe to share, and a private key, which proves you are you. Keep the private key secret.</p>
+        <p>A signer is an app or browser extension that holds your private key and approves actions for you. Nostroots can ask it for your public key, but your private key stays with the signer.</p>
+        <ul>
+          <li>On desktop, install the <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> from the Chrome Web Store. Works in Chrome, Brave, and Edge. Firefox is in review and coming soon.</li>
+          <li>On mobile, install the Nostroots app for <a href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" target="_blank" rel="noopener noreferrer" data-umami-event="Click Android app" data-umami-event-placement="key-modal" data-umami-event-target="android-app" data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots">Android</a> or <a href="https://apps.apple.com/app/nostroots/id6755037304" target="_blank" rel="noopener noreferrer" data-umami-event="Click iOS app" data-umami-event-placement="key-modal" data-umami-event-target="ios-app" data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304">iOS</a>.</li>
+          <li>Reload this page after the signer is available.</li>
+          <li>Connect your Trustroots identity so Nostroots can link your profile and Nostr key.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+  <script src="../site-chrome-identity.js"></script>
 </body>
 </html>

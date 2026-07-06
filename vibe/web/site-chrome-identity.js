@@ -1,3 +1,40 @@
+var NR_WEB_NOSTROOTS_BROWSER_USER_AGENT_MARKER = 'NostrootsBrowser/';
+
+function isInNostrootsApp() {
+  var ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+  if (ua.indexOf(NR_WEB_NOSTROOTS_BROWSER_USER_AGENT_MARKER) !== -1) return true;
+  if (typeof window !== 'undefined') {
+    if (window.nostr && window.nostr.__nostrootsBrowser === true) return true;
+    if (window.__nostrootsNip7Installed === true) return true;
+  }
+  return false;
+}
+
+function hideAppDownloadPrompts() {
+  if (!isInNostrootsApp()) return;
+
+  var downloadSection = document.getElementById('download-section');
+  if (downloadSection) downloadSection.hidden = true;
+
+  document.querySelectorAll(
+    '.hub-nav a[data-umami-event-target="android-app"], .hub-nav a[data-umami-event-target="ios-app"]'
+  ).forEach(function (link) {
+    link.hidden = true;
+  });
+
+  var lead = document.querySelector('.lead');
+  if (lead && lead.innerHTML) {
+    lead.innerHTML = lead.innerHTML.replace(/, get the mobile app/, '');
+  }
+
+  var nip7Modal = document.getElementById('nip7-info-modal');
+  if (nip7Modal) {
+    nip7Modal.querySelectorAll('li').forEach(function (item) {
+      if (item.textContent.indexOf('On mobile, install') !== -1) item.hidden = true;
+    });
+  }
+}
+
 function initNip7InfoModal() {
 var trigger = document.getElementById('nostr-key-status');
   var modal = document.getElementById('nip7-info-modal');
@@ -33,6 +70,7 @@ var trigger = document.getElementById('nostr-key-status');
 
 async function initSiteChromeIdentity() {
   initNip7InfoModal();
+  hideAppDownloadPrompts();
 
 var TRUSTROOTS_EDIT_NETWORKS_URL = 'https://www.trustroots.org/profile/edit/networks';
 var TRUSTROOTS_PROFILE_KIND = 10390;

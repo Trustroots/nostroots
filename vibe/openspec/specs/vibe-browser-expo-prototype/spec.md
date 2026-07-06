@@ -36,6 +36,13 @@ Browser while keeping native push and EAS build profiles out of v1 scope.
 - **WHEN** the browser screen renders
 - **THEN** it SHOULD load `https://nos.trustroots.org/`.
 
+#### Scenario: Hub in-app detection user agent
+
+- **GIVEN** the WebView loads `https://nos.trustroots.org/`
+- **WHEN** the browser screen renders
+- **THEN** it MUST append or set a User-Agent containing `NostrootsBrowser/` so
+  the hub can suppress redundant install prompts.
+
 #### Scenario: Expo key and permission storage
 
 - **GIVEN** the Expo prototype handles a local key or NIP-07 permission

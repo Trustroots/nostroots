@@ -149,6 +149,8 @@ node --check vibe/web/v0/index.js
 
 **Testing:** Vitest + Playwright in Docker when you run the suite; coverage is intentionally pragmatic while the UI evolves (see Testing Philosophy)
 
+**Vibe OpenSpec:** When a change under `vibe/` alters product or protocol behavior (web hub, browser shell, relay, push, import tooling, etc.), update the matching capability spec in `vibe/openspec/specs/` so documented behavior stays in sync. See `vibe/openspec/project.md` for layout and style. For in-flight proposals, use `vibe/openspec/changes/<change-id>/`; for shipped behavior, edit the baseline spec directly.
+
 ## Development Workflows
 
 ### Committing Changes

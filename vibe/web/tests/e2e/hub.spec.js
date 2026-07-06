@@ -248,6 +248,22 @@ test.describe('Nostroots Web hub', () => {
     await expect(modal).toBeHidden();
   });
 
+  test('hides app download prompts in Nostroots Browser', async ({ browser }) => {
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (iPhone) NostrootsBrowser/1.0',
+    });
+    const page = await context.newPage();
+    await page.goto('/');
+
+    await expect(page.locator('#download-section')).toBeHidden();
+    await expect(page.locator('.hub-nav').getByRole('link', { name: 'Android' })).toBeHidden();
+    await expect(page.locator('.hub-nav').getByRole('link', { name: 'iOS' })).toBeHidden();
+    await expect(page.locator('.lead')).not.toContainText('get the mobile app');
+    await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toBeVisible();
+
+    await context.close();
+  });
+
   test('keeps experimental apps visible after reload', async ({ page }) => {
     await page.goto('/');
 

@@ -213,4 +213,52 @@ test.describe('Squatbridge', () => {
     await expect(page.getByRole('heading', { name: 'About Squatbridge' })).toBeVisible();
     await expect(page.locator('#sb-about-modal').getByRole('link', { name: 'radar.squat.net' })).toBeVisible();
   });
+
+  test('opens the Nostr key info modal above the map', async ({ page }) => {
+    await gotoSquatbridgeBerlin(page);
+    await waitForBerlinEvents(page);
+
+    const keyStatus = page.locator('#nostr-key-status');
+    await expect(keyStatus).toContainText('no nostr key detected', { timeout: 15000 });
+    await keyStatus.click();
+
+    const modal = page.locator('#nip7-info-modal');
+    const panel = modal.locator('.info-modal-panel');
+    await expect(modal).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nostr keys' })).toBeVisible();
+    await expect(panel.getByText('A Nostr key is your account for Nostr apps.')).toBeVisible();
+    await expect(panel.getByRole('link', { name: 'Nostroots Extension' })).toBeVisible();
+
+    const stacking = await page.evaluate(() => {
+      const modalEl = document.getElementById('nip7-info-modal');
+      const panelEl = modalEl?.querySelector('.info-modal-panel');
+      const mapEl = document.getElementById('sb-map');
+      if (!modalEl || !panelEl || !mapEl) return null;
+      return {
+        modalZ: Number(getComputedStyle(modalEl).zIndex),
+        panelTop: panelEl.getBoundingClientRect().top,
+        panelBottom: panelEl.getBoundingClientRect().bottom,
+        mapTop: mapEl.getBoundingClientRect().top,
+        mapBottom: mapEl.getBoundingClientRect().bottom,
+      };
+    });
+    expect(stacking).not.toBeNull();
+    expect(stacking.modalZ).toBeGreaterThanOrEqual(2000);
+    expect(stacking.panelTop).toBeLessThan(stacking.mapBottom);
+    expect(stacking.panelBottom).toBeGreaterThan(stacking.mapTop);
+
+    await page.keyboard.press('Escape');
+    await expect(modal).toBeHidden();
+  });
+
+  test('closes the Nostr key info modal from the close button', async ({ page }) => {
+    await gotoSquatbridgeBerlin(page);
+    await expect(page.locator('#nostr-key-status')).toContainText('no nostr key detected', { timeout: 15000 });
+    await page.locator('#nostr-key-status').click();
+
+    const modal = page.locator('#nip7-info-modal');
+    await expect(modal).toBeVisible();
+    await modal.getByRole('button', { name: 'Close Nostr keys information' }).click();
+    await expect(modal).toBeHidden();
+  });
 });

@@ -94,6 +94,8 @@ describe('Squatbridge layout and Berlin prefetch', () => {
     expect(squatbridgeHtml).toContain('site-chrome.css');
     expect(squatbridgeHtml).toContain('site-chrome-identity.js');
     expect(squatbridgeHtml).toContain('id="nostr-key-status"');
+    expect(squatbridgeHtml).toContain('id="nip7-info-modal"');
+    expect(squatbridgeHtml).toMatch(/<\/header>\s*<div id="nip7-info-modal"/);
     expect(squatbridgeHtml).toContain('h1 class="sb-title"');
     expect(squatbridgeHtml).not.toContain('id="sb-signer"');
   });

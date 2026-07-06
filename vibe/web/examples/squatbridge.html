@@ -475,6 +475,25 @@
       </section>
     </div>
   </header>
+  <div id="nip7-info-modal" class="info-modal" role="dialog" aria-modal="true" aria-labelledby="nip7-info-title" hidden>
+    <section class="info-modal-panel" tabindex="-1">
+      <div class="info-modal-header">
+        <h2 id="nip7-info-title">Nostr keys</h2>
+        <button class="info-modal-close" type="button" data-nip7-close aria-label="Close Nostr keys information">X</button>
+      </div>
+      <div class="info-modal-body">
+        <p><strong>A Nostr key is your account for Nostr apps.</strong> It lets apps recognize you without a password or central account.</p>
+        <p>You have a public key, which is safe to share, and a private key, which proves you are you. Keep the private key secret.</p>
+        <p>A signer is an app or browser extension that holds your private key and approves actions for you. Nostroots can ask it for your public key, but your private key stays with the signer.</p>
+        <ul>
+          <li>On desktop, install the <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> from the Chrome Web Store. Works in Chrome, Brave, and Edge. Firefox is in review and coming soon.</li>
+          <li>On mobile, install the Nostroots app for <a href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" target="_blank" rel="noopener noreferrer" data-umami-event="Click Android app" data-umami-event-placement="key-modal" data-umami-event-target="android-app" data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots">Android</a> or <a href="https://apps.apple.com/app/nostroots/id6755037304" target="_blank" rel="noopener noreferrer" data-umami-event="Click iOS app" data-umami-event-placement="key-modal" data-umami-event-target="ios-app" data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304">iOS</a>.</li>
+          <li>Reload this page after the signer is available.</li>
+          <li>Connect your Trustroots identity so Nostroots can link your profile and Nostr key.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
   <div class="sb-app">
   <header class="sb-header">
     <h1 class="sb-title"><a href="../">Squatbridge</a><span class="sb-mark" aria-hidden="true">｟(･)｠</span></h1>
@@ -2172,25 +2191,6 @@
   void fetchEvents();
 })();
   </script>
-  <div id="nip7-info-modal" class="info-modal" role="dialog" aria-modal="true" aria-labelledby="nip7-info-title" hidden>
-    <section class="info-modal-panel" tabindex="-1">
-      <div class="info-modal-header">
-        <h2 id="nip7-info-title">Nostr keys</h2>
-        <button class="info-modal-close" type="button" data-nip7-close aria-label="Close Nostr keys information">X</button>
-      </div>
-      <div class="info-modal-body">
-        <p><strong>A Nostr key is your account for Nostr apps.</strong> It lets apps recognize you without a password or central account.</p>
-        <p>You have a public key, which is safe to share, and a private key, which proves you are you. Keep the private key secret.</p>
-        <p>A signer is an app or browser extension that holds your private key and approves actions for you. Nostroots can ask it for your public key, but your private key stays with the signer.</p>
-        <ul>
-          <li>On desktop, install the <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> from the Chrome Web Store. Works in Chrome, Brave, and Edge. Firefox is in review and coming soon.</li>
-          <li>On mobile, install the Nostroots app for <a href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" target="_blank" rel="noopener noreferrer" data-umami-event="Click Android app" data-umami-event-placement="key-modal" data-umami-event-target="android-app" data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots">Android</a> or <a href="https://apps.apple.com/app/nostroots/id6755037304" target="_blank" rel="noopener noreferrer" data-umami-event="Click iOS app" data-umami-event-placement="key-modal" data-umami-event-target="ios-app" data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304">iOS</a>.</li>
-          <li>Reload this page after the signer is available.</li>
-          <li>Connect your Trustroots identity so Nostroots can link your profile and Nostr key.</li>
-        </ul>
-      </div>
-    </section>
-  </div>
   <script src="../site-chrome-identity.js"></script>
 </body>
 </html>

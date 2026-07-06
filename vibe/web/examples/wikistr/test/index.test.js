@@ -524,8 +524,8 @@ test('normalizes safe wiki resources and rejects script-like resource URLs', () 
   assert.equal(app.normalizeWikiResourceUrl('data:text/html,<h1>x</h1>'), '');
   assert.equal(app.normalizeWikiResourceUrl('file:///etc/passwd'), '');
   assert.equal(
-    app.normalizeWikiSrcset('/images/a-small.png 1x, javascript:alert(1) 2x, /images/a-large.png 2x'),
-    'https://nomadwiki.org/images/a-small.png 1x, https://nomadwiki.org/images/a-large.png 2x'
+    app.normalizeWikiSrcset('/images/a-small.png 1x, javascript:alert(1) 2x, /images/a-large.png 2x', true),
+    'https://relay.guaka.org/proxy/nomadwiki.org/images/a-small.png 1x, https://relay.guaka.org/proxy/nomadwiki.org/images/a-large.png 2x'
   );
 });
 

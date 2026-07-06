@@ -109,7 +109,6 @@
   };
 
   const authCache = new Map();
-  const imageBlobUrls = new Set();
   const WRAPSTER_AUTH_TTL_MS = 45 * 1000;
   const NOSTROOTS_ANDROID_URL = 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots';
   const NOSTROOTS_IOS_URL = 'https://apps.apple.com/app/nostroots/id6755037304';
@@ -748,88 +747,6 @@
     }
   }
 
-  async function wikiFetchBlob(requestURL) {
-    const headers = new Headers();
-    try {
-      await addWrapsterAuth(headers, requestURL, 'GET');
-    } catch (err) {
-      return { ok: false, status: 0, error: err.message || 'Nostr auth unavailable.', url: requestURL };
-    }
-    try {
-      const res = await fetch(requestURL, { headers, mode: 'cors', credentials: 'omit' });
-      if (!res.ok) {
-        return { ok: false, status: res.status, error: `HTTP ${res.status}`, url: requestURL };
-      }
-      const blob = await res.blob();
-      return { ok: true, status: res.status, blob, url: requestURL };
-    } catch (err) {
-      return { ok: false, status: 0, error: err.message || 'Network error', url: requestURL };
-    }
-  }
-
-  function revokeImageBlobUrls() {
-    for (const blobUrl of imageBlobUrls) {
-      URL.revokeObjectURL(blobUrl);
-    }
-    imageBlobUrls.clear();
-  }
-
-  function wikiNeedsProxiedImages(config = activeConfig()) {
-    const origin = String(config?.wikiOrigin || '').replace(/\/+$/, '');
-    return origin === 'https://trashwiki.org';
-  }
-
-  function isSameWikiImageUrl(value) {
-    const config = activeConfig();
-    if (!config || !value) {
-      return false;
-    }
-    try {
-      return new URL(value).origin === config.wikiOrigin;
-    } catch {
-      return false;
-    }
-  }
-
-  async function replaceWikiImageFromProxy(img, proxyUrl) {
-    const result = await wikiFetchBlob(proxyUrl);
-    if (!result.ok || !result.blob) {
-      return false;
-    }
-    const blobUrl = URL.createObjectURL(result.blob);
-    imageBlobUrls.add(blobUrl);
-    img.src = blobUrl;
-    img.removeAttribute('srcset');
-    return true;
-  }
-
-  function prepareWikiImages(root) {
-    if (!root || !shouldProxyResources()) {
-      return;
-    }
-    for (const img of root.querySelectorAll('img[src]')) {
-      const normalized = normalizeWikiResourceUrl(img.getAttribute('src'));
-      if (!isSameWikiImageUrl(normalized)) {
-        continue;
-      }
-      const proxyUrl = proxiedWikiResourceUrl(normalized);
-      if (proxyUrl === normalized) {
-        continue;
-      }
-      const loadFromProxy = () => {
-        void replaceWikiImageFromProxy(img, proxyUrl);
-      };
-      img.addEventListener('error', loadFromProxy, { once: true });
-      if (wikiNeedsProxiedImages()) {
-        loadFromProxy();
-      }
-    }
-  }
-
-  async function hydrateWikiImages(root) {
-    prepareWikiImages(root);
-  }
-
   function relayEvents(relay, filter, subID = 'wikistr-discovery') {
     return new Promise((resolve, reject) => {
       const events = [];
@@ -1114,9 +1031,7 @@
       setMainPageMessage('No page content returned.');
       return;
     }
-    revokeImageBlobUrls();
     els.mainPageContent.innerHTML = rewriteWikiHTML(html);
-    await hydrateWikiImages(els.mainPageContent);
   }
 
   async function loadRecentChanges() {
@@ -1148,7 +1063,6 @@
     if (!els.mainPageContent) {
       return;
     }
-    revokeImageBlobUrls();
     if (options.html) {
       els.mainPageContent.innerHTML = message;
       return;
@@ -1212,10 +1126,10 @@
     for (const img of template.content.querySelectorAll('img[src]')) {
       const src = normalizeWikiResourceUrl(img.getAttribute('src'));
       if (src) {
-        img.setAttribute('src', src);
+        img.setAttribute('src', proxiedWikiResourceUrl(src));
       }
       if (img.hasAttribute('srcset')) {
-        img.setAttribute('srcset', normalizeWikiSrcset(img.getAttribute('srcset')));
+        img.setAttribute('srcset', normalizeWikiSrcset(img.getAttribute('srcset'), true));
       }
     }
     return template.innerHTML;
@@ -1546,9 +1460,7 @@
     formatMissingSignerHelpHTML,
     formatMissingSignerHelpText,
     formatWikiFetchError,
-    hydrateWikiImages,
     isMissingSignerWikiError,
-    isSameWikiImageUrl,
     isServiceAdvert,
     loadCachedServiceAdverts,
     loadBuildInfo,
@@ -1576,9 +1488,7 @@
     extractTrustrootsNip05,
     toWikiAPITimestamp,
     truncateForDisplay,
-    wikiFetchBlob,
     wikiFetchJSON,
-    wikiNeedsProxiedImages,
     wikiPageTitleFromUrl
   }, TEST_MODE ? {
     setActiveWikiForTest(config, page = '') {

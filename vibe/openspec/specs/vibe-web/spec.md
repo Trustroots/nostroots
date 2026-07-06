@@ -54,7 +54,7 @@ Shells that set this marker include `nr-app` BrowserScreen,
 - **GIVEN** a user opens the hub in a normal mobile or desktop browser
 - **WHEN** the page renders and the client is not detected as in-app
 - **THEN** the hub MUST show Trustroots.org, Nostroots Web, and Squatbridge
-  (`examples/squatbridge.html`) as default web experiences
+  (`examples/squatbridge/`) as default web experiences
 - **AND** it MUST show the "Get the app" download section (`#download-section`)
   with Android and iOS store links, top-nav Android and iOS store links, hub lead
   copy that mentions getting the mobile app, and the NIP-7 info modal bullet

@@ -13,7 +13,8 @@ The root page is a small hub. It links to classic Trustroots network settings, N
 - [`/web/`](web/) — Nostroots Web, the current map/chat/profile app for Trustroots-style activity with light Nostr key support.
 - [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots Browser.
 - [`/nostroots-map/`](nostroots-map/) — experimental browser-native map prototype inspired by the mobile `nr-app`, built without React or Expo Web.
-- [`/examples/squatbridge.html`](examples/squatbridge.html) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr; hidden on the hub until you enable experimental apps.
+- [`/examples/squatbridge/`](examples/squatbridge/) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr; hidden on the hub until you enable experimental apps.
+- [`/examples/wikistr/`](examples/wikistr/) — experimental Nostr-powered wiki reader, hidden on the hub until you enable experimental apps.
 - [`https://www.letsmiti.app/`](https://www.letsmiti.app/) — external Let's Miti app, hidden on the hub until you enable experimental apps.
 - [`https://treasures.to/`](https://treasures.to/) — external Treasures web app, hidden on the hub until you enable experimental apps.
 - [`/examples/`](examples/) — optional demos and fork patterns.
@@ -27,7 +28,6 @@ Legacy root hash/query links still land in the current app. For example, `/#stat
 - **Nostroots Map**: Map-first browser-native prototype with NIP-07 signer detection.
 - **Let's Miti**: External experimental web app linked from the hub.
 - **Treasures**: External web app linked from the experimental hub.
-- **Pixel**: Circle-scoped pixel sequencer (artists, burners, punks) — draw a 16×16, publish to Nostr, optional "Where" and invite/jam for IRL meetups. [examples/pixel.html](examples/pixel.html)
 - **Examples hub**: [examples/index.html](examples/index.html) — overview of demo pages and fork patterns.
 
 ## URL routing (hash)

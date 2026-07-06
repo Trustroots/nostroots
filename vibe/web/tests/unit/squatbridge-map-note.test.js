@@ -4,13 +4,13 @@ import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const squatbridgeHtml = readFileSync(join(__dirname, '../../examples/squatbridge.html'), 'utf8');
+const squatbridgeHtml = readFileSync(join(__dirname, '../../examples/squatbridge/index.html'), 'utf8');
 
 function extractFunctionSource(name) {
   const start = squatbridgeHtml.indexOf(`  function ${name}(`);
-  if (start === -1) throw new Error(`Could not find ${name} in squatbridge.html`);
+  if (start === -1) throw new Error(`Could not find ${name} in squatbridge/index.html`);
   const next = squatbridgeHtml.indexOf('\n  function ', start + 1);
-  if (next === -1) throw new Error(`Could not find end of ${name} in squatbridge.html`);
+  if (next === -1) throw new Error(`Could not find end of ${name} in squatbridge/index.html`);
   return squatbridgeHtml.slice(start, next);
 }
 

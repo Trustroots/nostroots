@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const RADAR_API = "https://radar.squat.net/api/1.2/search/events.json";
 const FILTER_VALUE = "Berlin";
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
-const OUT_DIR = join(SCRIPT_DIR, "../examples/squatbridge-data/city");
+const OUT_DIR = join(SCRIPT_DIR, "../examples/squatbridge/squatbridge-data/city");
 const OUT_PATH = join(OUT_DIR, "berlin.json");
 const SEED_PATH = join(OUT_DIR, "berlin.seed.json");
 const USER_AGENT = "Nostroots/1.0 (+https://nos.trustroots.org; squatbridge prefetch)";

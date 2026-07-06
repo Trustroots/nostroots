@@ -8,7 +8,7 @@ const BERLIN_FIXTURE = JSON.parse(
   readFileSync(join(__dirname, '../fixtures/squatbridge-berlin.json'), 'utf8'),
 );
 const PUBLIC_KEY_HEX = 'a'.repeat(64);
-const BERLIN_STATIC_PATH = '**/examples/squatbridge-data/city/berlin.json';
+const BERLIN_STATIC_PATH = '**/examples/squatbridge/squatbridge-data/city/berlin.json';
 const RADAR_API_PATTERN = '**/radar.squat.net/**';
 
 async function clearSquatbridgeStorage(page) {
@@ -109,7 +109,7 @@ async function mockTrustrootsRelayEvents(page, events = []) {
 }
 
 async function gotoSquatbridgeBerlin(page) {
-  await page.goto('/examples/squatbridge.html#city/Berlin');
+  await page.goto('/examples/squatbridge/#city/Berlin');
   await expect(page.locator('#sb-filter-value')).toHaveValue('Berlin');
 }
 

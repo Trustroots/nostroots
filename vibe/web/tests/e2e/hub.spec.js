@@ -137,7 +137,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(footer.getByRole('link', { name: 'Trustroots.org' })).toHaveAttribute('href', 'https://www.trustroots.org/');
     await expect(footer.getByRole('link', { name: 'Nostroots', exact: true })).toHaveAttribute('href', /\/$/);
     await expect(footer.getByRole('link', { name: 'Support' })).toHaveAttribute('href', 'https://www.trustroots.org/support');
-    await expect(footer.getByRole('link', { name: 'Edit this page' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots/edit/main/vibe/web/index.html');
+    await expect(footer.getByRole('link', { name: 'Edit this page' })).toHaveCount(0);
     await expect(footer.locator('.site-footer-build')).toBeVisible();
 
     const experimentalToggle = page.getByRole('checkbox', { name: 'Show more experimental apps' });

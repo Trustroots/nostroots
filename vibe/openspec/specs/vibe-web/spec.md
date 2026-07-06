@@ -161,6 +161,15 @@ allowing them to share Vibe protocol conventions.
 - **THEN** each example MUST remain optional demo/fork material rather than a
   required current app surface.
 
+#### Scenario: Radiostr social radio example
+
+- **GIVEN** a user opens `/examples/radiostr/`
+- **WHEN** they browse stations, chat, or the listening-now panel
+- **THEN** the page MUST work read-only without a signer for listening and
+  reading the `#radiostr` room
+- **AND** posting chat or now-playing notes MUST require NIP-07 or a generated
+  ephemeral key stored locally.
+
 ### Requirement: Vibe Web testing guidance
 
 Vibe Web tests MUST focus on high-value behavior and use Docker-first commands

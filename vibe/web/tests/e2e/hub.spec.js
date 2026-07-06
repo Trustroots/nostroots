@@ -145,6 +145,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open wikistr/ })).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open Radiostr/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toBeHidden();
 
     await experimentalToggle.check();
@@ -154,10 +155,14 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveAttribute('href', 'nostroots-map/');
     await expect(page.locator('.secondary .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveAttribute('href', 'examples/wikistr/');
+    await expect(page.getByRole('link', { name: /Open Radiostr/ })).toHaveAttribute('href', 'examples/radiostr/');
     await expect(page.locator('.wikistr .card-label')).toHaveText('More experimental');
     await expect(page.locator('.wikistr .app-icon')).toHaveText('⭐');
     await expect(page.locator('.wikistr .app-icon')).toHaveCSS('background-color', 'rgb(79, 143, 102)');
     await expect(page.locator('.wikistr .card-action')).toHaveCSS('background-color', 'rgb(79, 143, 102)');
+    await expect(page.locator('.radiostr .card-label')).toHaveText('More experimental');
+    await expect(page.locator('.radiostr .app-icon')).toHaveText('◎');
+    await expect(page.locator('.radiostr .card-action')).toHaveCSS('background-color', 'rgb(18, 138, 120)');
     await expect(page.locator('.wikistr')).toContainText('Nomadwiki, Trashwiki, Hitchwiki, and Trustroots wiki');
     await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toHaveAttribute('href', 'https://www.letsmiti.app/');
     await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toHaveAttribute('target', '_blank');
@@ -166,6 +171,7 @@ test.describe('Nostroots Web hub', () => {
       'Nostrail',
       'Nostroots Map',
       'wikistr ⭐',
+      'Radiostr',
       "Let's Miti",
     ]);
   });

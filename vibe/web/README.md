@@ -15,6 +15,7 @@ The root page is a small hub. It links to classic Trustroots network settings, N
 - [`/nostroots-map/`](nostroots-map/) — experimental browser-native map prototype inspired by the mobile `nr-app`, built without React or Expo Web.
 - [`/examples/squatbridge/`](examples/squatbridge/) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr; hidden on the hub until you enable experimental apps.
 - [`/examples/wikistr/`](examples/wikistr/) — experimental Nostr-powered wiki reader, hidden on the hub until you enable experimental apps.
+- [`/examples/radiostr/`](examples/radiostr/) — experimental social internet radio with Nostr chat and listening-now discovery, hidden on the hub until you enable experimental apps.
 - [`https://www.letsmiti.app/`](https://www.letsmiti.app/) — external Let's Miti app, hidden on the hub until you enable experimental apps.
 - [`https://treasures.to/`](https://treasures.to/) — external Treasures web app, hidden on the hub until you enable experimental apps.
 - [`/examples/`](examples/) — optional demos and fork patterns.

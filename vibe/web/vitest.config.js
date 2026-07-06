@@ -34,6 +34,7 @@ export default defineConfig({
       '**/.{idea,git,cache,output,temp}/**',
       '**/tests/e2e/**',
       '**/examples/wikistr/test/**',
+      '**/examples/radiostr/test/**',
       '**/*.e2e.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
     ],
   },

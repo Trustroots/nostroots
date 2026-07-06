@@ -429,6 +429,22 @@
     .sb-going-toggle input { margin: 0.2rem 0 0; accent-color: var(--accent); flex-shrink: 0; }
     .sb-share-hint { font-size: 0.8rem; color: var(--muted); margin: 0.35rem 0 0.75rem; line-height: 1.4; }
     .sb-modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.75rem; }
+    .sb-page .header-inner {
+      width: 100%;
+      max-width: none;
+      padding-left: 1rem;
+      padding-right: 1rem;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .sb-page .header .hub-nav {
+      flex: 0 0 auto;
+    }
+    .sb-page .header .identity-status {
+      margin-left: auto;
+      flex: 0 1 auto;
+      max-width: min(50vw, 520px);
+    }
     @media (max-width: 720px) {
       .sb-main { flex-direction: column; }
       .sb-map-column { min-height: 0; }
@@ -436,7 +452,7 @@
     }
   </style>
 </head>
-<body>
+<body class="sb-page">
   <header class="header" role="banner">
     <div class="header-inner">
       <nav class="hub-nav" aria-label="Nostroots links">

@@ -164,6 +164,24 @@ test.describe('Squatbridge', () => {
 
     const chrome = page.locator('header.header');
     await expect(chrome).toBeVisible();
+    const headerLayout = await page.evaluate(() => {
+      const inner = document.querySelector('.header-inner');
+      const nav = document.querySelector('.header .hub-nav');
+      const identity = document.querySelector('.header .identity-status');
+      if (!inner || !nav || !identity) return null;
+      const innerBox = inner.getBoundingClientRect();
+      const navBox = nav.getBoundingClientRect();
+      const identityBox = identity.getBoundingClientRect();
+      return {
+        innerLeft: innerBox.left,
+        navLeft: navBox.left,
+        identityRight: identityBox.right,
+        viewportWidth: window.innerWidth,
+      };
+    });
+    expect(headerLayout).not.toBeNull();
+    expect(headerLayout.navLeft - headerLayout.innerLeft).toBeLessThan(24);
+    expect(headerLayout.viewportWidth - headerLayout.identityRight).toBeLessThan(24);
     await expect(chrome.locator('.header-brand img')).toBeVisible();
     await expect(chrome.getByRole('link', { name: 'Android' })).toBeVisible();
     await expect(chrome.getByRole('link', { name: 'iOS' })).toBeVisible();

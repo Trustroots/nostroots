@@ -81,4 +81,4 @@ A lot of coordination around events and groups occurs on telegram, whatsapp and 
 See https://github.com/Trustroots/nostroots/issues/102 for ideas around partner orgs.
 
 
-https://team.trustroots.org/nostr.html is the project's home page.
+https://nos.trustroots.org/ is the project's home page.

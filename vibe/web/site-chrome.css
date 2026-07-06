@@ -88,11 +88,18 @@
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
-  color: var(--white);
+  color: var(--white, #fff);
   text-shadow: none;
 }
 
 .header .hub-nav .header-app-link svg {
+  width: 27px;
+  height: 27px;
+  display: block;
+  filter: drop-shadow(1px 1px 1px rgba(0, 0, 0, 0.28));
+}
+
+.header .hub-nav .header-app-link img {
   width: 27px;
   height: 27px;
   display: block;

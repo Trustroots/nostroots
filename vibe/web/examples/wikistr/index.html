@@ -1,0 +1,375 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; connect-src 'self' https: wss://relay.guaka.org wss://relay.trustroots.org wss://nip42.trustroots.org; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%232f855a%22/%3E%3Cpath d=%22M15 18h6l5 24 6-24h5l6 24 5-24h6l-8 32h-6l-6-22-6 22h-6z%22 fill=%22white%22/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="../../site-chrome.css">
+  <title>wikistr</title>
+  <style>
+    :root {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.5;
+      color: #08261f;
+      --brand-green: #12b591;
+      --card-border: #dbe3d2;
+      --card-bg: #fffdf4;
+      --text-muted: #5f7169;
+      --accent: #128a78;
+      --accent-dark: #004b3f;
+      --accent-soft: #ecf8f1;
+      --danger: #b42318;
+      --foreground: #08261f;
+      --line: var(--card-border);
+      --muted: var(--text-muted);
+      --white: #fff;
+      --shadow-sm: 0 1px 2px rgba(20, 30, 43, 0.04);
+      --chrome-width: min(1320px, calc(100% - 32px));
+      --chrome-content-width: var(--chrome-width);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(152, 173, 70, 0.18), transparent 360px),
+        linear-gradient(90deg, rgba(49, 189, 166, 0.08), rgba(243, 181, 42, 0.08)),
+        #f7f8ef;
+      color: #08261f;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .shell {
+      width: var(--chrome-width);
+      margin: 0 auto;
+      padding: 8px 0 28px;
+    }
+
+    .header-title {
+      position: relative;
+      margin: 0;
+      padding: 0.15rem 0.35rem 0.15rem 0.45rem;
+      color: var(--white);
+      font-size: 1.2rem;
+      font-weight: 800;
+      line-height: 1;
+      text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
+      white-space: nowrap;
+    }
+
+    .header-title::before {
+      content: "★";
+      position: absolute;
+      left: -0.28rem;
+      top: 50%;
+      transform: translateY(-50%) rotate(-10deg);
+      color: rgba(255, 253, 244, 0.3);
+      font-size: 2.15rem;
+      line-height: 1;
+      text-shadow: none;
+      pointer-events: none;
+    }
+
+    .header-title span {
+      position: relative;
+    }
+
+    .header-title a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .hero {
+      margin: 0 0 8px;
+      padding: 0;
+    }
+
+    .hero-content {
+      max-width: 52rem;
+    }
+
+    .muted {
+      color: var(--text-muted);
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .small {
+      font-size: 0.9rem;
+    }
+
+    .error {
+      color: var(--danger);
+      font-weight: 650;
+    }
+
+    .wiki-switcher button {
+      border: 1px solid #b7c2d1;
+      background: #fff;
+      color: #18212f;
+      min-height: 36px;
+      padding: 7px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 650;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .wiki-switcher button:hover {
+      background: var(--accent-soft);
+      border-color: var(--accent);
+    }
+
+    .wiki-switcher {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 0;
+      min-height: 36px;
+    }
+
+    .wiki-switcher:empty {
+      min-height: 0;
+    }
+
+    .wiki-switch-btn.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: #1f4d33;
+    }
+
+    .content-columns {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .card {
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 14px;
+      background: var(--card-bg);
+      box-shadow: var(--shadow-sm);
+      min-width: 0;
+    }
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 1.02rem;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: var(--accent);
+    }
+
+    .main-page-content {
+      width: 100%;
+      min-height: 32rem;
+      height: 68vh;
+      padding: 12px;
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      background: #fff;
+      overflow: auto;
+      line-height: 1.45;
+      font-size: 0.95rem;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .main-page-content img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .recent-list {
+      list-style: none;
+      margin: 4px 0 0;
+      padding: 0;
+    }
+
+    .recent-list li {
+      margin: 0;
+      padding: 10px 0;
+      border-top: 1px solid #eef1f5;
+    }
+
+    .recent-list li:first-child {
+      border-top: none;
+      padding-top: 2px;
+    }
+
+    .recent-list li > a {
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    .recent-list li > a:hover {
+      text-decoration: underline;
+    }
+
+    .rc-edits {
+      list-style: none;
+      margin: 5px 0 0;
+      padding: 0;
+    }
+
+    .rc-edit {
+      margin: 0;
+      padding: 5px 0;
+      border-top: 1px dashed #eef1f5;
+    }
+
+    .rc-edit:first-child {
+      border-top: 0;
+    }
+
+    .rc-section {
+      display: inline-block;
+      font-size: 0.74rem;
+      font-weight: 650;
+      line-height: 1.4;
+      color: var(--accent);
+      background: var(--accent-soft);
+      border: 1px solid rgba(47, 133, 90, 0.2);
+      border-radius: 6px;
+      padding: 0 6px;
+      margin-right: 5px;
+    }
+
+    .rc-comment {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .rc-diff {
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(47, 133, 90, 0.45);
+    }
+
+    @media (max-width: 900px) {
+      .shell {
+        width: 100%;
+        padding: 12px;
+      }
+
+      .hero {
+        padding: 0;
+      }
+
+      .content-columns {
+        grid-template-columns: 1fr;
+      }
+
+      .main-page-content {
+        height: 52vh;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .site-footer {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header" role="banner">
+    <div class="header-inner">
+      <nav class="hub-nav" aria-label="Wikistr links">
+        <a class="header-brand" href="../../" aria-label="Nostroots home">
+          <img src="../../nostroots-logo.png" alt="" width="32" height="32">
+        </a>
+        <h1 class="header-title"><a href="/examples/wikistr/#trustroots-wiki/Wikistr"><span>Wikistr</span></a></h1>
+        <a class="header-app-link" href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" aria-label="Android">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.48 19.44 6.3c.16-.31-.04-.68-.38-.68-.15 0-.29.08-.37.21l-1.87 3.24c-1.28-.58-2.72-.9-4.22-.9s-2.94.32-4.22.9L6.46 5.83c-.08-.13-.22-.21-.37-.21-.34 0-.54.37-.38.68l1.84 3.18C4.54 11.09 3 13.64 3 16.62h18c0-2.98-1.54-5.53-3.4-7.14ZM8.5 15.12c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Zm7 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Z" fill="currentColor"/></svg>
+        </a>
+        <a class="header-app-link" href="https://apps.apple.com/app/nostroots/id6755037304" aria-label="iOS">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83ZM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11Z" fill="currentColor"/></svg>
+        </a>
+      </nav>
+      <section class="identity-status" aria-label="Connection status">
+        <button
+          id="nostr-key-status"
+          class="status-pill status-pill-button"
+          type="button"
+          data-state="missing"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+        ><strong>no nostr key detected</strong><span class="status-pill-info" aria-hidden="true">i</span></button>
+        <a id="trustroots-identity-status" class="status-pill identity-link" data-state="missing" hidden>Trustroots identity: <strong>not linked</strong></a>
+      </section>
+    </div>
+  </header>
+  <main class="shell">
+    <section class="hero" aria-label="Wikistr">
+      <div class="hero-content">
+        <div id="wiki-switcher" class="wiki-switcher" role="group" aria-label="Choose wiki"></div>
+      </div>
+    </section>
+
+    <div class="content-columns">
+      <section class="card">
+        <div class="card-title" hidden>
+          <h2 id="main-page-heading" hidden></h2>
+        </div>
+        <div id="main-page-content" class="main-page-content" aria-live="polite">
+          Discovering public wiki adverts...
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-title">
+          <h2>Recent changes</h2>
+        </div>
+        <p id="changes-status" class="muted">Waiting for a wiki advert.</p>
+        <ul id="recent-changes" class="recent-list"></ul>
+      </section>
+    </div>
+
+    <footer class="site-footer" role="contentinfo">
+      <div class="site-footer-content">
+        <ul class="site-footer-links">
+          <li><a href="https://www.trustroots.org/">Trustroots.org</a></li>
+          <li><a href="../../">Nostroots</a></li>
+          <li><a href="https://www.trustroots.org/support">Support</a></li>
+        </ul>
+        <div class="site-footer-meta">
+          <a
+            id="site-footer-build"
+            class="site-footer-build"
+            href="https://github.com/Trustroots/nostroots"
+            aria-label="Nostroots on GitHub"
+          >
+            <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+              <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.36c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+            </svg>
+            <span id="build-time" class="site-footer-build-commit">local</span>
+          </a>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <script src="./index.js"></script>
+  <script src="../../site-chrome-identity.js"></script>
+</body>
+</html>

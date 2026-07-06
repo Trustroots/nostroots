@@ -167,8 +167,13 @@ allowing them to share Vibe protocol conventions.
 - **WHEN** they browse stations, chat, or the listening-now panel
 - **THEN** the page MUST work read-only without a signer for listening and
   reading the `#radiostr` room
-- **AND** posting chat or now-playing notes MUST require NIP-07 or a generated
-  ephemeral key stored locally.
+- **AND** posting chat MUST require NIP-07 with a verified Trustroots NIP-05
+  (`*@trustroots.org`)
+- **AND** posting now-playing notes MUST require NIP-07
+- **AND** chat authors MUST be shown by Trustroots NIP-05 when known; messages
+  from authors without a Trustroots NIP-05 MUST NOT appear in the chat log
+- **AND** starred stations MUST sync via kind `1` favorite notes when NIP-07 is
+  available, with `localStorage` as cache when unsigned
 
 ### Requirement: Vibe Web testing guidance
 

@@ -135,7 +135,7 @@ test('parseNowPlayingEvent and aggregateListeners keep latest per pubkey', () =>
   assert.equal(parsed.title, 'Drone Zone');
   assert.equal(parsed.createdAt, 1000);
   assert.equal(parsed.eventId, 'a');
-  const listeners = Radiostr.aggregateListeners([older, newer, stale], 9000);
+  const listeners = Radiostr.aggregateListeners([older, newer, stale], 2500);
   assert.equal(listeners.length, 1);
   assert.equal(listeners[0].stationId, 'groovesalad');
 });
@@ -150,13 +150,166 @@ test('isChatEvent excludes now-playing notes', () => {
     kind: 1,
     tags: [['t', 'radiostr'], ['t', 'nowplaying'], ['radiostr_station', 'fip']]
   };
+  const favorite = {
+    kind: 1,
+    tags: [
+      ['t', 'radiostr'],
+      ['t', 'favorite'],
+      ['radiostr_station', 'groovesalad'],
+      ['radiostr_action', 'star']
+    ]
+  };
   assert.equal(Radiostr.isChatEvent(chat), true);
   assert.equal(Radiostr.isChatEvent(np), false);
+  assert.equal(Radiostr.isChatEvent(favorite), false);
 });
 
-test('index.html references channels.js and index.js', () => {
+test('buildFavoriteTags and parseFavoriteEvent encode station favorites', () => {
+  const Radiostr = loadRadiostr();
+  const station = { id: 'beatblender', title: 'Beat Blender' };
+  const tags = Radiostr.buildFavoriteTags(station, 'star', 1_700_000_000_000);
+  assert(Radiostr.hasTag(tags, 't', 'radiostr'));
+  assert(Radiostr.hasTag(tags, 't', 'favorite'));
+  assert.equal(Radiostr.tagValue(tags, 'radiostr_station'), 'beatblender');
+  assert.equal(Radiostr.tagValue(tags, 'radiostr_action'), 'star');
+  assert.equal(Radiostr.tagValue(tags, 'radiostr_title'), 'Beat Blender');
+  assert(Radiostr.tagValue(tags, 'expiration'));
+  const ev = {
+    kind: 1,
+    content: Radiostr.favoriteEventContent(station, true),
+    created_at: 2000,
+    tags
+  };
+  const parsed = Radiostr.parseFavoriteEvent(ev);
+  assert.equal(parsed.stationId, 'beatblender');
+  assert.equal(parsed.starred, true);
+  assert.equal(parsed.createdAt, 2000);
+});
+
+test('mergeFavoriteTimeline keeps latest action and star order', () => {
+  const Radiostr = loadRadiostr();
+  const starGroove = {
+    kind: 1,
+    created_at: 1000,
+    tags: [
+      ['t', 'radiostr'],
+      ['t', 'favorite'],
+      ['radiostr_station', 'groovesalad'],
+      ['radiostr_action', 'star']
+    ]
+  };
+  const starDefcon = {
+    kind: 1,
+    created_at: 2000,
+    tags: [
+      ['t', 'radiostr'],
+      ['t', 'favorite'],
+      ['radiostr_station', 'defcon'],
+      ['radiostr_action', 'star']
+    ]
+  };
+  const unstarGroove = {
+    kind: 1,
+    created_at: 3000,
+    tags: [
+      ['t', 'radiostr'],
+      ['t', 'favorite'],
+      ['radiostr_station', 'groovesalad'],
+      ['radiostr_action', 'unstar']
+    ]
+  };
+  assert.equal(Radiostr.mergeFavoriteTimeline([starGroove, starDefcon]).join(','), 'defcon,groovesalad');
+  assert.equal(Radiostr.mergeFavoriteTimeline([starGroove, starDefcon, unstarGroove]).join(','), 'defcon');
+});
+
+test('mergeStarredWithRemote preserves local-only stars', () => {
+  const Radiostr = loadRadiostr();
+  const remoteStar = {
+    kind: 1,
+    created_at: 1000,
+    tags: [
+      ['t', 'radiostr'],
+      ['t', 'favorite'],
+      ['radiostr_station', 'defcon'],
+      ['radiostr_action', 'star']
+    ]
+  };
+  const remoteUnstar = {
+    kind: 1,
+    created_at: 2000,
+    tags: [
+      ['t', 'radiostr'],
+      ['t', 'favorite'],
+      ['radiostr_station', 'groovesalad'],
+      ['radiostr_action', 'unstar']
+    ]
+  };
+  assert.equal(Radiostr.mergeStarredWithRemote(
+    ['groovesalad', 'fip'],
+    [remoteStar, remoteUnstar]
+  ).join(','), 'defcon,fip');
+});
+
+test('toggleStarredId stars and unstars station ids', () => {
+  const Radiostr = loadRadiostr();
+  assert.deepEqual(Radiostr.toggleStarredId([], 'groovesalad'), ['groovesalad']);
+  assert.deepEqual(Radiostr.toggleStarredId(['groovesalad'], 'groovesalad'), []);
+  assert.deepEqual(Radiostr.toggleStarredId(['groovesalad'], 'defcon'), ['groovesalad', 'defcon']);
+});
+
+test('canChatFromIdentity requires a Trustroots NIP-05', () => {
+  const Radiostr = loadRadiostr();
+  assert.equal(Radiostr.canChatFromIdentity({ ready: true, nip05: 'alice@trustroots.org' }), true);
+  assert.equal(Radiostr.canChatFromIdentity({ ready: true, nip05: '' }), false);
+  assert.equal(Radiostr.canChatFromIdentity({ ready: false, nip05: 'alice@trustroots.org' }), false);
+});
+
+test('isTrustrootsChatAuthorForProfile hides authors without Trustroots NIP-05', () => {
+  const Radiostr = loadRadiostr();
+  assert.equal(Radiostr.isTrustrootsChatAuthorForProfile({ pending: true }), true);
+  assert.equal(Radiostr.isTrustrootsChatAuthorForProfile({ nip05: 'alice@trustroots.org' }), true);
+  assert.equal(Radiostr.isTrustrootsChatAuthorForProfile({ nip05: '' }), false);
+  assert.equal(Radiostr.isTrustrootsChatAuthorForProfile({ noTrustroots: true }), false);
+});
+
+test('index.html references star controls', () => {
   const html = fs.readFileSync(htmlPath, 'utf8');
   assert.match(html, /channels\.js/);
   assert.match(html, /index\.js/);
+  assert.match(html, /id="star-btn"/);
+  assert.match(html, /site-footer-build/);
+  assert.match(html, /site-footer-build-commit/);
   assert.match(html, /Listening now/);
+});
+
+test('profilePageHref builds nr-web profile links', () => {
+  const Radiostr = loadRadiostr();
+  assert.equal(
+    Radiostr.profilePageHref('thefriendlyhost@trustroots.org'),
+    '../../web/#profile/thefriendlyhost%40trustroots.org'
+  );
+});
+
+test('profileIdForPubkey prefers Trustroots NIP-05', () => {
+  const Radiostr = loadRadiostr();
+  Radiostr.state.profiles.set('abc', {
+    nip05: 'thefriendlyhost@trustroots.org',
+    npub: 'npub1example'
+  });
+  assert.equal(Radiostr.profileIdForPubkey('abc'), 'thefriendlyhost@trustroots.org');
+});
+
+test('channel catalog assigns brand favicons before remote artwork hydration', () => {
+  const channelsSource = fs.readFileSync(channelsPath, 'utf8');
+  const sandbox = { window: {}, console };
+  vm.createContext(sandbox);
+  vm.runInContext(channelsSource, sandbox);
+  const catalog = sandbox.window.RADIOSTR_CHANNELS;
+  assert.match(catalog.paradise.img, /google\.com\/s2\/favicons.*radioparadise\.com/);
+  assert.match(catalog.fip.img, /google\.com\/s2\/favicons.*radiofrance\.fr/);
+  assert.match(catalog.antena3.img, /google\.com\/s2\/favicons.*rtp\.pt/);
+  assert.match(catalog.concertzender_jazz.img, /google\.com\/s2\/favicons.*concertzender\.nl/);
+  assert.match(catalog.traxx_fm_ambient.img, /google\.com\/s2\/favicons.*traxx\.fm/);
+  assert.match(catalog.flux_fm_lounge.img, /google\.com\/s2\/favicons.*fluxfm\.de/);
+  assert.equal(catalog.groovesalad.img, undefined);
 });

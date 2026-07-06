@@ -35,19 +35,22 @@ test.describe('Radiostr', () => {
     await page.goto('/examples/radiostr/');
 
     await expect(page.locator('#now-playing-title')).toHaveText('Pick a station');
-    await expect(page.locator('.station-btn')).toHaveCount(10);
-    await expect(page.getByText('Groove Salad')).toBeVisible();
-    await expect(page.locator('#chat-hint')).toContainText('Connect a Nostr key to chat');
+    const stationCount = await page.locator('.station-row').count();
+    expect(stationCount).toBeGreaterThan(130);
+    await expect(page.getByText('Groovesalad')).toBeVisible();
+    await expect(page.locator('#chat-hint')).toContainText('Trustroots NIP-05');
     await expect(page.locator('#chat-input')).toBeDisabled();
+    await expect(page.locator('.site-footer-build')).toBeVisible();
+    await expect(page.locator('#site-footer-build-commit')).toBeAttached();
   });
 
   test('tune-in updates hash when selecting a station', async ({ page }) => {
     await mockRadiostrRelay(page);
     await page.goto('/examples/radiostr/');
 
-    await page.getByRole('button', { name: 'Groove Salad' }).click();
+    await page.getByRole('button', { name: 'Groovesalad' }).click();
     await expect(page).toHaveURL(/#groovesalad$/);
-    await expect(page.locator('#now-playing-title')).toHaveText('Groove Salad');
-    await expect(page.locator('#play-btn')).toHaveText('Pause');
+    await expect(page.locator('#now-playing-title')).toHaveText('Groovesalad');
+    await expect(page.locator('#play-btn')).toHaveAttribute('aria-label', 'Pause');
   });
 });

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; connect-src 'self' https: wss://relay.guaka.org wss://relay.trustroots.org wss://nip42.trustroots.org; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' https:; connect-src 'self' https: wss://relay.trustroots.org wss://relay.nomadwiki.org wss://nip42.trustroots.org; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%23128a78%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%2214%22 fill=%22none%22 stroke=%22white%22 stroke-width=%224%22/%3E%3Ccircle cx=%2232%22 cy=%2232%22 r=%226%22 fill=%22white%22/%3E%3C/svg%3E">
   <link rel="stylesheet" href="../../site-chrome.css">
@@ -23,7 +23,9 @@
       --danger: #b42318;
       --white: #fff;
       --shadow-sm: 0 1px 2px rgba(20, 30, 43, 0.04);
-      --chrome-width: min(1320px, calc(100% - 32px));
+      --page-gutter: clamp(14px, 2vw, 24px);
+      --chrome-width: 100%;
+      --chrome-content-width: 100%;
     }
 
     * { box-sizing: border-box; }
@@ -40,8 +42,26 @@
 
     .shell {
       width: var(--chrome-width);
-      margin: 0 auto;
-      padding: 8px 0 28px;
+      max-width: none;
+      margin: 0;
+      padding: 10px var(--page-gutter) 28px;
+    }
+
+    .header .header-inner {
+      width: 100%;
+      max-width: none;
+      margin: 0;
+      padding: 9px var(--page-gutter);
+    }
+
+    .header .hub-nav {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .header .identity-status {
+      max-width: none;
+      flex: 0 1 auto;
     }
 
     .header-title {
@@ -60,20 +80,10 @@
       text-decoration: none;
     }
 
-    .hero {
-      margin: 0 0 10px;
-    }
-
-    .hero p {
-      margin: 0;
-      color: var(--text-muted);
-      max-width: 42rem;
-    }
-
     .layout {
       display: grid;
-      grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-      gap: 12px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: clamp(12px, 1.6vw, 18px);
       align-items: start;
     }
 
@@ -96,36 +106,143 @@
 
     .now-playing {
       display: grid;
-      grid-template-columns: 72px minmax(0, 1fr) auto;
-      gap: 12px;
+      grid-template-columns: 80px minmax(0, 1fr) auto;
+      gap: 14px;
       align-items: center;
-      margin-bottom: 12px;
+      margin: -2px -2px 14px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      background:
+        linear-gradient(135deg, rgba(18, 138, 120, 0.1), rgba(255, 253, 244, 0.95) 48%, rgba(243, 181, 42, 0.08)),
+        var(--card-bg);
+      border: 1px solid rgba(18, 138, 120, 0.18);
+      box-shadow: 0 8px 24px rgba(18, 75, 63, 0.07);
+      transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .now-playing.is-playing {
+      border-color: rgba(18, 138, 120, 0.35);
+      box-shadow:
+        0 8px 28px rgba(18, 138, 120, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+    }
+
+    .now-playing-art-wrap {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      flex-shrink: 0;
     }
 
     .now-playing img {
-      width: 72px;
-      height: 72px;
-      border-radius: 10px;
+      width: 80px;
+      height: 80px;
+      border-radius: 12px;
       object-fit: cover;
       background: #e8efe4;
+      box-shadow: 0 4px 14px rgba(8, 38, 31, 0.14);
+      display: block;
+    }
+
+    .now-playing img[hidden] {
+      display: none;
+    }
+
+    .now-playing-art-placeholder {
+      width: 80px;
+      height: 80px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.55), transparent 55%),
+        linear-gradient(145deg, #1a9a86, #0d5f52 58%, #084b3f);
+      box-shadow: 0 4px 14px rgba(8, 38, 31, 0.18);
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .now-playing-art-placeholder svg {
+      width: 34px;
+      height: 34px;
+      fill: currentColor;
+      opacity: 0.95;
+    }
+
+    .now-playing.has-art .now-playing-art-placeholder {
+      display: none;
+    }
+
+    .now-playing-meta {
+      min-width: 0;
+    }
+
+    .now-playing-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin: 0 0 5px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #c5cec8;
+      flex-shrink: 0;
+    }
+
+    .now-playing.is-playing .live-dot {
+      background: var(--brand-green);
+      box-shadow: 0 0 0 3px rgba(18, 181, 145, 0.22);
+      animation: radiostr-pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes radiostr-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.15); opacity: 0.75; }
     }
 
     .now-playing h2 {
       margin: 0;
-      font-size: 1.2rem;
+      font-size: clamp(1.05rem, 2.4vw, 1.35rem);
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      color: var(--accent-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .now-playing.is-idle h2 {
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+
+    .now-playing-subtitle {
+      margin: 4px 0 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .controls {
       display: flex;
-      flex-wrap: wrap;
+      flex-wrap: nowrap;
       gap: 8px;
       align-items: center;
     }
 
     .controls button,
     .tune-btn,
-    .station-btn,
-    #identity-actions button {
+    .station-play,
+    .station-star,
+    #star-btn {
       border: 1px solid #b7c2d1;
       background: #fff;
       color: #18212f;
@@ -138,67 +255,253 @@
 
     .controls button:hover,
     .tune-btn:hover,
-    .station-btn:hover,
-    #identity-actions button:hover {
+    .station-play:hover,
+    .station-star:hover,
+    #star-btn:hover {
       background: var(--accent-soft);
       border-color: var(--accent);
+    }
+
+    .station-row-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1 1 auto;
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .station-row-main:hover .station-name,
+    .station-row-main:focus-visible .station-name {
+      color: var(--accent);
+    }
+
+    .station-row-main:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+      border-radius: 8px;
     }
 
     #play-btn {
-      background: var(--accent);
-      border-color: var(--accent-dark);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 52px;
+      height: 52px;
+      padding: 0;
+      border: none;
+      border-radius: 50%;
+      background: linear-gradient(160deg, #18a892, #0d6b5c);
       color: #fff;
+      box-shadow:
+        0 4px 14px rgba(13, 107, 92, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
     }
 
-    .volume-wrap {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 10px;
-      color: var(--text-muted);
-      font-size: 0.9rem;
+    #play-btn:hover {
+      transform: scale(1.04);
+      box-shadow:
+        0 6px 18px rgba(13, 107, 92, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.28);
+      background: linear-gradient(160deg, #1cb39c, #0f7565);
+    }
+
+    #play-btn:active {
+      transform: scale(0.97);
+    }
+
+    #play-btn svg {
+      width: 24px;
+      height: 24px;
+      fill: currentColor;
+    }
+
+    #play-btn .play-icon {
+      margin-left: 3px;
+    }
+
+    #play-btn .pause-icon {
+      display: none;
+    }
+
+    #play-btn[aria-pressed="true"] .play-icon {
+      display: none;
+    }
+
+    #play-btn[aria-pressed="true"] .pause-icon {
+      display: block;
+    }
+
+    #star-btn {
+      min-width: 44px;
+      height: 44px;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      line-height: 1;
+      color: #c58a00;
+      background: rgba(255, 255, 255, 0.7);
+      border-color: rgba(18, 138, 120, 0.2);
+    }
+
+    #star-btn[aria-pressed="true"] {
+      color: #e6a100;
+      background: rgba(255, 236, 179, 0.55);
+      border-color: #e6a100;
     }
 
     .station-section + .station-section {
-      margin-top: 12px;
+      margin-top: 16px;
+    }
+
+    .station-section-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 8px;
     }
 
     .station-section h3 {
-      margin: 0 0 8px;
-      font-size: 0.92rem;
+      margin: 0;
+      font-size: 0.82rem;
       color: var(--accent-dark);
       text-transform: uppercase;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.06em;
+      font-weight: 800;
     }
 
-    .station-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
-      gap: 8px;
+    .station-section-count {
+      font-size: 0.76rem;
+      font-weight: 650;
+      white-space: nowrap;
     }
 
-    .station-btn {
+    .station-list {
       display: flex;
       flex-direction: column;
-      align-items: center;
       gap: 6px;
-      padding: 8px;
-      text-align: center;
-      font-size: 0.82rem;
-      line-height: 1.2;
     }
 
-    .station-btn img {
-      width: 52px;
-      height: 52px;
+    .station-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.72);
+      transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .station-row:hover {
+      border-color: rgba(18, 138, 120, 0.28);
+      background: #fff;
+    }
+
+    .station-row.is-active {
+      border-color: rgba(18, 138, 120, 0.45);
+      background: var(--accent-soft);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
+
+    .station-play {
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      width: 34px;
+      height: 34px;
+      min-height: 34px;
+      padding: 0;
+      border-radius: 50%;
+      color: var(--accent-dark);
+    }
+
+    .station-play svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+    }
+
+    .station-play .play-glyph {
+      margin-left: 2px;
+    }
+
+    .station-art {
+      width: 42px;
+      height: 42px;
       border-radius: 8px;
       object-fit: cover;
       background: #e8efe4;
+      flex: 0 0 auto;
     }
 
-    .station-btn.active {
-      border-color: var(--accent);
-      background: var(--accent-soft);
+    .station-info {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .station-name {
+      display: block;
+      font-size: 0.92rem;
+      font-weight: 750;
+      line-height: 1.25;
+      color: var(--accent-dark);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .station-tags {
+      display: block;
+      margin-top: 2px;
+      font-size: 0.76rem;
+      line-height: 1.25;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .station-star {
+      flex: 0 0 auto;
+      min-height: 34px;
+      width: 34px;
+      padding: 0;
+      border-radius: 50%;
+      font-size: 1rem;
+      line-height: 1;
+      color: #c58a00;
+      background: rgba(255, 255, 255, 0.85);
+    }
+
+    .station-star[aria-pressed="true"] {
+      color: #e6a100;
+      background: rgba(255, 236, 179, 0.55);
+      border-color: #e6a100;
+    }
+
+    .station-live {
+      flex: 0 0 auto;
+      font-size: 0.64rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: #c62828;
+      border: 1px solid rgba(198, 40, 40, 0.4);
+      border-radius: 999px;
+      padding: 3px 8px;
+      line-height: 1;
+    }
+
+    .station-live[hidden] {
+      display: none;
     }
 
     .listener-list,
@@ -211,36 +514,63 @@
     }
 
     .listener-item {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 4px 8px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
       padding: 8px 0;
       border-top: 1px solid #eef1f5;
-      align-items: center;
     }
 
     .listener-item:first-child { border-top: none; }
 
+    .listener-art-link,
+    .listener-art-wrap {
+      flex: 0 0 auto;
+      line-height: 0;
+    }
+
+    .listener-art-link {
+      text-decoration: none;
+    }
+
+    .listener-body {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
     .listener-name {
+      display: block;
       font-weight: 700;
     }
 
+    .listener-name a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .listener-name a:hover {
+      text-decoration: underline;
+    }
+
     .listener-station {
+      display: block;
+      margin-top: 2px;
+    }
+
+    .listener-station a {
       color: var(--accent-dark);
       font-weight: 650;
+      text-decoration: none;
+    }
+
+    .listener-station a:hover {
+      text-decoration: underline;
     }
 
     .listener-time {
-      grid-column: 1;
+      display: block;
+      margin-top: 2px;
       font-size: 0.82rem;
-    }
-
-    .tune-btn {
-      grid-column: 2;
-      grid-row: 1 / span 3;
-      align-self: center;
-      font-size: 0.82rem;
-      padding: 6px 10px;
     }
 
     .chat-log {
@@ -296,22 +626,27 @@
       font: inherit;
     }
 
-    .share-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin: 8px 0 0;
-      font-size: 0.9rem;
-      color: var(--text-muted);
-    }
-
     .social-stack > .card + .card {
       margin-top: 12px;
     }
 
     @media (max-width: 900px) {
-      .shell { width: 100%; padding: 12px; }
       .layout { grid-template-columns: 1fr; }
+      .now-playing {
+        grid-template-columns: 64px minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 12px;
+      }
+      .now-playing-art-wrap,
+      .now-playing img,
+      .now-playing-art-placeholder {
+        width: 64px;
+        height: 64px;
+      }
+      #play-btn {
+        width: 46px;
+        height: 46px;
+      }
     }
   </style>
 </head>
@@ -345,27 +680,30 @@
   </header>
 
   <main class="shell">
-    <section class="hero" aria-label="About Radiostr">
-      <p>Listen to internet radio together. Chat in the room, see what others are tuned to, and jump to their station.</p>
-    </section>
-
     <div class="layout">
       <section class="card" aria-label="Radio player">
-        <div class="now-playing">
-          <img id="now-playing-art" src="" alt="" hidden>
-          <div>
-            <p class="muted small" style="margin:0 0 4px;">Now playing</p>
+        <div class="now-playing is-idle" id="now-playing-bar">
+          <div class="now-playing-art-wrap">
+            <img id="now-playing-art" src="" alt="" hidden>
+            <div class="now-playing-art-placeholder" aria-hidden="true">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3C7.03 3 3 7.03 3 12s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 2c1.66 0 3.2.52 4.46 1.4L7.4 15.46A6.96 6.96 0 0 1 5 12c0-3.87 3.13-7 7-7zm0 14a6.96 6.96 0 0 1-4.46-1.6l9.06-9.06A6.96 6.96 0 0 1 19 12c0 3.87-3.13 7-7 7z"/></svg>
+            </div>
+          </div>
+          <div class="now-playing-meta">
+            <p class="now-playing-label">
+              <span class="live-dot" aria-hidden="true"></span>
+              <span id="now-playing-label-text">Ready to listen</span>
+            </p>
             <h2 id="now-playing-title">Pick a station</h2>
+            <p id="now-playing-subtitle" class="now-playing-subtitle muted small" hidden></p>
           </div>
           <div class="controls">
-            <button id="prev-btn" type="button" aria-label="Previous station">Prev</button>
-            <button id="play-btn" type="button" aria-pressed="false">Play</button>
-            <button id="next-btn" type="button" aria-label="Next station">Next</button>
+            <button id="star-btn" type="button" aria-pressed="false" aria-label="Star this station" hidden>☆</button>
+            <button id="play-btn" type="button" aria-pressed="false" aria-label="Play">
+              <svg class="play-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+              <svg class="pause-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+            </button>
           </div>
-        </div>
-        <div class="volume-wrap">
-          <label for="volume">Volume</label>
-          <input id="volume" type="range" min="0" max="100" value="85">
         </div>
         <div id="station-sections" style="margin-top:14px;"></div>
       </section>
@@ -373,22 +711,13 @@
       <div class="social-stack">
         <section class="card" aria-label="Listening now">
           <h2>Listening now</h2>
-          <p id="listeners-status" class="muted small">Loading listeners…</p>
           <ul id="listeners-list" class="listener-list"></ul>
         </section>
 
-        <section class="card" aria-label="Room chat">
-          <h2>Room chat</h2>
-          <p id="chat-status" class="muted small">Loading chat…</p>
+        <section class="card" aria-label="Chat">
+          <h2>Chat</h2>
           <div id="chat-messages" class="chat-log" aria-live="polite"></div>
-          <p id="chat-hint" class="muted small">Connect a Nostr key to chat. You can still listen and read the room.</p>
-          <div id="identity-actions">
-            <button type="button" data-action="generate-key">Generate a chat key</button>
-          </div>
-          <label class="share-row">
-            <input id="share-listening" type="checkbox" checked disabled>
-            Share what I am listening to
-          </label>
+          <p id="chat-hint" class="muted small">Connect a Nostr extension with a Trustroots NIP-05 to chat. You can still listen and read the room.</p>
           <form id="chat-form" class="chat-form">
             <input id="chat-input" type="text" maxlength="500" placeholder="Say something…" disabled>
             <button type="submit" disabled>Send</button>
@@ -404,13 +733,28 @@
           <li><a href="../../">Nostroots</a></li>
           <li><a href="https://www.trustroots.org/support">Support</a></li>
         </ul>
+        <div class="site-footer-meta">
+          <a
+            id="site-footer-build"
+            class="site-footer-build"
+            href="https://github.com/Trustroots/nostroots"
+            aria-label="Nostroots on GitHub"
+          >
+            <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+              <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.36c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+            </svg>
+            <span id="site-footer-build-commit" class="site-footer-build-commit"></span>
+          </a>
+        </div>
       </div>
     </footer>
   </main>
 
-  <audio id="audio" preload="none"></audio>
+  <audio id="audio" preload="none" playsinline></audio>
+  <script src="./radiostr-identity.js"></script>
   <script src="./channels.js"></script>
   <script src="./index.js"></script>
   <script src="../../site-chrome-identity.js"></script>
+  <script defer src="../../site-chrome.js" data-deploy-metadata="../../deploy-metadata.json"></script>
 </body>
 </html>

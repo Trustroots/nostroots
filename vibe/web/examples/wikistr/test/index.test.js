@@ -459,7 +459,7 @@ test('keeps unknown hash slugs out of active routing while preserving the decode
   );
 });
 
-test('builds proxied API, render, page, and resource URLs from the active advert config', () => {
+test('builds proxied API and render URLs from the active advert config', () => {
   const { app } = loadApp('http://localhost:8788/#nomadwiki/en/Lisbon');
   const [config] = app.buildWikiConfigs([wikiAdvert(), proxyAdvert()]);
   app.setActiveWikiForTest(config, 'en/Lisbon');
@@ -474,6 +474,13 @@ test('builds proxied API, render, page, and resource URLs from the active advert
   assert.equal(render.searchParams.get('title'), 'en/Lisbon');
 
   assert.equal(app.surfacePageHref('Another Page'), '#nomadwiki/Another%20Page');
+});
+
+test('keeps proxied resource URL helper for non-image callers', () => {
+  const { app } = loadApp('http://localhost:8788/#nomadwiki/en/Lisbon');
+  const [config] = app.buildWikiConfigs([wikiAdvert(), proxyAdvert()]);
+  app.setActiveWikiForTest(config, 'en/Lisbon');
+
   assert.equal(
     app.proxiedWikiResourceUrl('https://nomadwiki.org/images/a.png?width=320'),
     'https://relay.guaka.org/proxy/nomadwiki.org/images/a.png?width=320'
@@ -517,8 +524,8 @@ test('normalizes safe wiki resources and rejects script-like resource URLs', () 
   assert.equal(app.normalizeWikiResourceUrl('data:text/html,<h1>x</h1>'), '');
   assert.equal(app.normalizeWikiResourceUrl('file:///etc/passwd'), '');
   assert.equal(
-    app.normalizeWikiSrcset('/images/a-small.png 1x, javascript:alert(1) 2x, /images/a-large.png 2x', true),
-    'https://relay.guaka.org/proxy/nomadwiki.org/images/a-small.png 1x, https://relay.guaka.org/proxy/nomadwiki.org/images/a-large.png 2x'
+    app.normalizeWikiSrcset('/images/a-small.png 1x, javascript:alert(1) 2x, /images/a-large.png 2x'),
+    'https://nomadwiki.org/images/a-small.png 1x, https://nomadwiki.org/images/a-large.png 2x'
   );
 });
 
@@ -634,8 +641,30 @@ test('formats timestamps, comments, and redacts URL credentials in errors', () =
     },
     useProxy: true
   });
-  assert.match(message, /NIP-07 signer/);
+  assert.match(message, /Nostroots app/);
+  assert.match(message, /Nostroots Extension/);
   assert.doesNotMatch(message, /user:pass/);
+  assert.doesNotMatch(message, /Wrapster proxy/);
+
+  const missingSigner = app.formatWikiFetchError({
+    context: 'Page load',
+    requestURL: 'https://relay.guaka.org/proxy/hitchwiki.org/api.php?action=parse&page=Main_Page',
+    result: {
+      ok: false,
+      status: 0,
+      body: { error: 'No NIP-07 signer found for Wrapster auth.' },
+      rawBody: ''
+    },
+    useProxy: true
+  });
+  assert.equal(missingSigner, app.formatMissingSignerHelpText());
+  assert.match(app.formatMissingSignerHelpHTML(), /Nostroots Extension/);
+  assert.match(app.formatMissingSignerHelpHTML(), /Nostroots app/);
+  assert.equal(app.isMissingSignerWikiError({
+    ok: false,
+    status: 0,
+    body: { error: 'No NIP-07 signer found for Wrapster auth.' }
+  }), true);
 });
 
 test('renders recent changes grouped by title and clears loading status', () => {

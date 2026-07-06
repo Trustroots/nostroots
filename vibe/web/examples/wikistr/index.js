@@ -109,7 +109,11 @@
   };
 
   const authCache = new Map();
+  const imageBlobUrls = new Set();
   const WRAPSTER_AUTH_TTL_MS = 45 * 1000;
+  const NOSTROOTS_ANDROID_URL = 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots';
+  const NOSTROOTS_IOS_URL = 'https://apps.apple.com/app/nostroots/id6755037304';
+  const NOSTROOTS_EXTENSION_URL = 'https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf';
 
   function tagValue(event, name) {
     const tag = (event.tags || []).find((item) => Array.isArray(item) && item[0] === name && item[1]);
@@ -744,6 +748,88 @@
     }
   }
 
+  async function wikiFetchBlob(requestURL) {
+    const headers = new Headers();
+    try {
+      await addWrapsterAuth(headers, requestURL, 'GET');
+    } catch (err) {
+      return { ok: false, status: 0, error: err.message || 'Nostr auth unavailable.', url: requestURL };
+    }
+    try {
+      const res = await fetch(requestURL, { headers, mode: 'cors', credentials: 'omit' });
+      if (!res.ok) {
+        return { ok: false, status: res.status, error: `HTTP ${res.status}`, url: requestURL };
+      }
+      const blob = await res.blob();
+      return { ok: true, status: res.status, blob, url: requestURL };
+    } catch (err) {
+      return { ok: false, status: 0, error: err.message || 'Network error', url: requestURL };
+    }
+  }
+
+  function revokeImageBlobUrls() {
+    for (const blobUrl of imageBlobUrls) {
+      URL.revokeObjectURL(blobUrl);
+    }
+    imageBlobUrls.clear();
+  }
+
+  function wikiNeedsProxiedImages(config = activeConfig()) {
+    const origin = String(config?.wikiOrigin || '').replace(/\/+$/, '');
+    return origin === 'https://trashwiki.org';
+  }
+
+  function isSameWikiImageUrl(value) {
+    const config = activeConfig();
+    if (!config || !value) {
+      return false;
+    }
+    try {
+      return new URL(value).origin === config.wikiOrigin;
+    } catch {
+      return false;
+    }
+  }
+
+  async function replaceWikiImageFromProxy(img, proxyUrl) {
+    const result = await wikiFetchBlob(proxyUrl);
+    if (!result.ok || !result.blob) {
+      return false;
+    }
+    const blobUrl = URL.createObjectURL(result.blob);
+    imageBlobUrls.add(blobUrl);
+    img.src = blobUrl;
+    img.removeAttribute('srcset');
+    return true;
+  }
+
+  function prepareWikiImages(root) {
+    if (!root || !shouldProxyResources()) {
+      return;
+    }
+    for (const img of root.querySelectorAll('img[src]')) {
+      const normalized = normalizeWikiResourceUrl(img.getAttribute('src'));
+      if (!isSameWikiImageUrl(normalized)) {
+        continue;
+      }
+      const proxyUrl = proxiedWikiResourceUrl(normalized);
+      if (proxyUrl === normalized) {
+        continue;
+      }
+      const loadFromProxy = () => {
+        void replaceWikiImageFromProxy(img, proxyUrl);
+      };
+      img.addEventListener('error', loadFromProxy, { once: true });
+      if (wikiNeedsProxiedImages()) {
+        loadFromProxy();
+      }
+    }
+  }
+
+  async function hydrateWikiImages(root) {
+    prepareWikiImages(root);
+  }
+
   function relayEvents(relay, filter, subID = 'wikistr-discovery') {
     return new Promise((resolve, reject) => {
       const events = [];
@@ -1011,6 +1097,10 @@
     }
     const result = await wikiFetchJSON(url);
     if (!result.ok || result.body?.error) {
+      if (isMissingSignerWikiError(result)) {
+        setMainPageMessage(formatMissingSignerHelpHTML(), { html: true });
+        return;
+      }
       setMainPageMessage(formatWikiFetchError({
         result,
         context: 'Page load',
@@ -1024,7 +1114,9 @@
       setMainPageMessage('No page content returned.');
       return;
     }
+    revokeImageBlobUrls();
     els.mainPageContent.innerHTML = rewriteWikiHTML(html);
+    await hydrateWikiImages(els.mainPageContent);
   }
 
   async function loadRecentChanges() {
@@ -1035,12 +1127,14 @@
     const result = await wikiFetchJSON(url);
     if (!result.ok || result.body?.error) {
       if (els.changesStatus) {
-        els.changesStatus.textContent = formatWikiFetchError({
-          result,
-          context: 'Recent changes',
-          requestURL: url,
-          useProxy: true
-        });
+        els.changesStatus.textContent = isMissingSignerWikiError(result)
+          ? formatMissingSignerHelpText()
+          : formatWikiFetchError({
+            result,
+            context: 'Recent changes',
+            requestURL: url,
+            useProxy: true
+          });
       }
       if (els.recentChanges) {
         els.recentChanges.textContent = '';
@@ -1050,10 +1144,44 @@
     renderRecentChanges(result.body?.query?.recentchanges || []);
   }
 
-  function setMainPageMessage(message) {
-    if (els.mainPageContent) {
-      els.mainPageContent.textContent = message;
+  function setMainPageMessage(message, options = {}) {
+    if (!els.mainPageContent) {
+      return;
     }
+    revokeImageBlobUrls();
+    if (options.html) {
+      els.mainPageContent.innerHTML = message;
+      return;
+    }
+    els.mainPageContent.textContent = message;
+  }
+
+  function isMissingSignerWikiError(result) {
+    const error = String(result?.body?.error || '').toLowerCase();
+    if (!error) {
+      return false;
+    }
+    return error.includes('no nip-07 signer')
+      || error.includes('nostr auth unavailable')
+      || error.includes('missing nostr authorization');
+  }
+
+  function formatMissingSignerHelpText() {
+    return 'Connect a Nostr key to read this wiki. Use the Nostroots app on your phone, or install the Nostroots Extension on desktop, then reload.';
+  }
+
+  function formatMissingSignerHelpHTML() {
+    return [
+      '<div class="signer-help">',
+      '<p><strong>Connect a Nostr key to read this wiki.</strong></p>',
+      '<p>Wikistr loads pages through a signed proxy. You need a signer on this device.</p>',
+      '<ul>',
+      `<li><strong>On your phone:</strong> open the <a href="${escapeHTML(NOSTROOTS_ANDROID_URL)}" target="_blank" rel="noopener noreferrer">Nostroots app</a> (Android or iOS).</li>`,
+      `<li><strong>On desktop:</strong> install the <a href="${escapeHTML(NOSTROOTS_EXTENSION_URL)}" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> in Chrome, Brave, or Edge.</li>`,
+      '</ul>',
+      '<p class="muted small">Reload this page after your signer is ready.</p>',
+      '</div>'
+    ].join('');
   }
 
   function syncMainPageHeading(title) {
@@ -1084,10 +1212,10 @@
     for (const img of template.content.querySelectorAll('img[src]')) {
       const src = normalizeWikiResourceUrl(img.getAttribute('src'));
       if (src) {
-        img.setAttribute('src', proxiedWikiResourceUrl(src));
+        img.setAttribute('src', src);
       }
       if (img.hasAttribute('srcset')) {
-        img.setAttribute('srcset', normalizeWikiSrcset(img.getAttribute('srcset'), true));
+        img.setAttribute('srcset', normalizeWikiSrcset(img.getAttribute('srcset')));
       }
     }
     return template.innerHTML;
@@ -1327,6 +1455,9 @@
   }
 
   function formatWikiFetchError({ result, context, requestURL, useProxy }) {
+    if (isMissingSignerWikiError(result)) {
+      return formatMissingSignerHelpText();
+    }
     const lines = [];
     lines.push(`${context} via ${useProxy ? 'Wrapster proxy' : 'direct wiki'}.`);
     lines.push(result.status ? `HTTP ${result.status}.` : 'No HTTP status (browser network/CORS block).');
@@ -1339,7 +1470,7 @@
     }
     const errorText = typeof result.body?.error === 'string' ? result.body.error.toLowerCase() : '';
     if (errorText.includes('missing nostr authorization')) {
-      lines.push('Hint: enable a NIP-07 signer and reload.');
+      lines.push('Hint: connect the Nostroots app or Nostroots Extension, then reload.');
     } else if (errorText.includes('url does not match request')) {
       lines.push(`Hint: signed NIP-98 u tag must equal ${requestURL ? sanitizeUrlForDisplay(requestURL) : 'the exact request URL'}.`);
     } else if (errorText.includes('method')) {
@@ -1412,7 +1543,12 @@
     discoverAdverts,
     formatChangeComment,
     formatDateTime,
+    formatMissingSignerHelpHTML,
+    formatMissingSignerHelpText,
     formatWikiFetchError,
+    hydrateWikiImages,
+    isMissingSignerWikiError,
+    isSameWikiImageUrl,
     isServiceAdvert,
     loadCachedServiceAdverts,
     loadBuildInfo,
@@ -1440,6 +1576,9 @@
     extractTrustrootsNip05,
     toWikiAPITimestamp,
     truncateForDisplay,
+    wikiFetchBlob,
+    wikiFetchJSON,
+    wikiNeedsProxiedImages,
     wikiPageTitleFromUrl
   }, TEST_MODE ? {
     setActiveWikiForTest(config, page = '') {

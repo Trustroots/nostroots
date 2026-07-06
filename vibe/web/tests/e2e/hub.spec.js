@@ -116,7 +116,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Trustroots\.org/ })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
     await expect(page.locator('.trustroots .app-icon img')).toHaveAttribute('src', 'https://www.trustroots.org/img/logo/horizontal-white.svg');
     await expect(page.getByRole('link', { name: /Open Nostroots Web/ })).toHaveAttribute('href', 'web/');
-    await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toHaveAttribute('href', 'examples/squatbridge.html');
+    await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toHaveAttribute('href', 'examples/squatbridge/');
     await expect(page.locator('.squatbridge .app-icon')).toHaveText('｟(･)｠');
     await expect(page.locator('.squatbridge .card-action')).toHaveCSS('background-color', 'rgb(119, 119, 119)');
     await expect(page.getByRole('link', { name: /Open Treasures/ })).toHaveAttribute('href', 'https://treasures.to/');
@@ -153,8 +153,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('.location .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveAttribute('href', 'nostroots-map/');
     await expect(page.locator('.secondary .card-label')).toHaveText('More experimental');
-    await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveAttribute('href', 'https://wikistr.trustroots.org/');
-    await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveAttribute('target', '_blank');
+    await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveAttribute('href', 'examples/wikistr/');
     await expect(page.locator('.wikistr .card-label')).toHaveText('More experimental');
     await expect(page.locator('.wikistr .app-icon')).toHaveText('⭐');
     await expect(page.locator('.wikistr .app-icon')).toHaveCSS('background-color', 'rgb(79, 143, 102)');

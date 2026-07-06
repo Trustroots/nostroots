@@ -6,9 +6,9 @@ import { beforeAll, describe, expect, it } from 'vitest';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 beforeAll(() => {
-  const src = readFileSync(join(__dirname, '../../v0/index.js'), 'utf8');
+  const src = readFileSync(join(__dirname, '../../web/index.js'), 'utf8');
   const m = src.match(/\/\* NR_TITLE_ROUTER_BEGIN \*\/([\s\S]*?)\/\* NR_TITLE_ROUTER_END \*\//);
-  if (!m) throw new Error('NR_TITLE_ROUTER markers not found in v0/index.js');
+  if (!m) throw new Error('NR_TITLE_ROUTER markers not found in web/index.js');
   (0, eval)(m[1]);
 });
 

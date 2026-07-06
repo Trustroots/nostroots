@@ -24,7 +24,7 @@ async function openUserMenuIfNeeded(page) {
 
 test.describe('Settings Management', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     
     // Generate a key first so we can access settings
@@ -118,7 +118,7 @@ test.describe('Settings Management', () => {
   });
 
   test('keys page has username linking section', async ({ page }) => {
-    await page.goto('/v0/#keys');
+    await page.goto('/web/#keys');
     
     const keysPage = page.locator('#keys-modal');
     await expect(keysPage).toBeVisible();
@@ -255,14 +255,14 @@ test.describe('Settings Management', () => {
   });
 
   test('direct keys and settings routes render as full pages', async ({ page }) => {
-    await page.goto('/v0/#keys');
+    await page.goto('/web/#keys');
     const keysPage = page.locator('#keys-modal');
     await expect(keysPage).toBeVisible();
     await expect(page.locator('body.nr-surface-account')).toBeVisible();
     await expect(keysPage).toHaveCSS('position', 'static');
     await expect(keysPage.locator('.modal-close')).not.toBeVisible();
 
-    await page.goto('/v0/#settings');
+    await page.goto('/web/#settings');
     const settingsPage = page.locator('#settings-modal');
     await expect(settingsPage).toBeVisible();
     await expect(page.locator('body.nr-surface-account')).toBeVisible();
@@ -272,16 +272,16 @@ test.describe('Settings Management', () => {
 
   test('welcome is canonical and start redirects to welcome', async ({ page }) => {
     await page.evaluate(() => localStorage.clear());
-    await page.goto('/v0/#welcome');
+    await page.goto('/web/#welcome');
     await expect(page.locator('#keys-modal')).toBeVisible();
     await expect(page.locator('#keys-welcome-section')).toBeVisible();
     await expect(page).toHaveURL(/#welcome\b/);
 
-    await page.goto('/v0/#start');
+    await page.goto('/web/#start');
     await expect(page.locator('#keys-modal')).toBeVisible();
     await expect(page).toHaveURL(/#welcome\b/);
 
-    await page.goto('/v0/?start=1');
+    await page.goto('/web/?start=1');
     await expect(page.locator('#keys-modal')).toBeVisible();
     await expect(page).toHaveURL(/#welcome\b/);
   });

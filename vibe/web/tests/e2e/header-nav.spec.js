@@ -61,7 +61,7 @@ async function openSupportMenuIfNeeded(page) {
 
 test.describe('Header navigation', () => {
   test('index: main nav items are ordered Map, Host & Meet, Chat', async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     const header = page.locator('#app-header');
     await expectAnyVisible(header.locator('#nav-support-btn'), header.locator('#nav-more-btn'));
@@ -81,7 +81,7 @@ test.describe('Header navigation', () => {
   });
 
   test('index: relay status pill opens relay settings', async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     const relayStatus = page.locator('#app-header #header-relay-status');
     await expect(relayStatus).toBeVisible();
@@ -93,7 +93,7 @@ test.describe('Header navigation', () => {
   });
 
   test('index: stats route renders and is linked from the account menu', async ({ page }) => {
-    await page.goto('/v0/#stats');
+    await page.goto('/web/#stats');
     await expect(page.locator('body.nr-surface-stats')).toBeVisible({ timeout: 10000 });
     await expect(page.getByRole('heading', { name: 'Progress stats' })).toBeVisible();
     await expect(page.locator('#nav-map-btn')).not.toHaveAttribute('aria-current', 'page');
@@ -103,7 +103,7 @@ test.describe('Header navigation', () => {
     await expect(page.locator('#map-view')).toBeVisible();
     await expect(page).not.toHaveURL(/#stats\b/);
 
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await openUserMenuIfNeeded(page);
     const statsLink = page.getByRole('menuitem', { name: 'Progress stats' }).first();
     await expect(statsLink).toBeVisible();
@@ -113,7 +113,7 @@ test.describe('Header navigation', () => {
   });
 
   test('index: settings KPI chips render and wire map/settings actions', async ({ page }) => {
-    await page.goto('/v0/#settings');
+    await page.goto('/web/#settings');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('#settings-modal.active')).toBeVisible();
 
@@ -127,13 +127,13 @@ test.describe('Header navigation', () => {
     await page.waitForTimeout(200);
     await expect(page.locator('#nav-map-btn')).toHaveAttribute('aria-current', 'page');
 
-    await page.goto('/v0/#settings');
+    await page.goto('/web/#settings');
     await page.waitForLoadState('networkidle');
     await page.locator('#settings-kpis #kpi-subscribed-areas').click();
     await expect(page).toHaveURL(/#settings\b/);
     await expect(page.locator('#settings-notifications-section')).toBeVisible();
 
-    await page.goto('/v0/#settings');
+    await page.goto('/web/#settings');
     await page.waitForLoadState('networkidle');
     await page.locator('#settings-kpis #kpi-relays-online').click();
     await expect(page).toHaveURL(/#settings\/relays\b/);
@@ -142,7 +142,7 @@ test.describe('Header navigation', () => {
 
   test('index: compact mobile keeps all four KPI chips in settings', async ({ page }) => {
     await page.setViewportSize({ width: 420, height: 900 });
-    await page.goto('/v0/#settings');
+    await page.goto('/web/#settings');
     await page.waitForLoadState('networkidle');
 
     const settingsKpis = page.locator('#settings-kpis');
@@ -153,7 +153,7 @@ test.describe('Header navigation', () => {
   });
 
   test('index: Support dropdown opens and Support chat goes to #support', async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     const supportBtn = page.locator('#nav-support-btn');
     const moreBtn = page.locator('#nav-more-btn');
@@ -177,7 +177,7 @@ test.describe('Header navigation', () => {
   });
 
   test('index: Account menu opens and Settings control is reachable', async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     await openUserMenuIfNeeded(page);
     const settingsBtn = page.locator('#settings-icon-btn');
@@ -192,7 +192,7 @@ test.describe('Header navigation', () => {
   });
 
   test('index: Map focuses map without blocking dialog', async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     let dialogSeen = false;
     page.once('dialog', () => {
@@ -204,7 +204,7 @@ test.describe('Header navigation', () => {
   });
 
   test('index: Host & meet opens Host & Meet area page with hosting intent selected', async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('#map .maplibregl-canvas, #map canvas', { timeout: 30000 });
     await page.waitForTimeout(500);
@@ -239,7 +239,7 @@ test.describe('Header navigation', () => {
       } catch (_) {}
     });
 
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('#map .maplibregl-canvas, #map canvas', { timeout: 30000 });
 
@@ -251,7 +251,7 @@ test.describe('Header navigation', () => {
   });
 
   test('index: Host & meet does not flash back to map from Chats', async ({ page }) => {
-    await page.goto('/v0/#chat');
+    await page.goto('/web/#chat');
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('body.nr-surface-chat', { timeout: 20000 });
 
@@ -264,7 +264,7 @@ test.describe('Header navigation', () => {
   });
 
   test('index: Chat nav returns to the last concrete chat route from Host & Meet', async ({ page }) => {
-    await page.goto('/v0/#hackers');
+    await page.goto('/web/#hackers');
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('body.nr-surface-chat', { timeout: 20000 });
 
@@ -279,7 +279,7 @@ test.describe('Header navigation', () => {
   });
 
   test('index: Chat nav is active on #chat', async ({ page }) => {
-    await page.goto('/v0/#chat');
+    await page.goto('/web/#chat');
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('body.nr-surface-chat', { timeout: 20000 });
     const conv = page.locator('#app-header a[href="#chat"]');

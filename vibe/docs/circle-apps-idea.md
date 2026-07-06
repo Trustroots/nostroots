@@ -6,9 +6,9 @@
 
 ## Approach
 
-- **Single codebase**: Reuse `vibe/web/v0/index.html` for all circle apps. No copy of the large app per circle.
+- **Single codebase**: Reuse `vibe/web/web/index.html` for all circle apps. No copy of the large app per circle.
 - **Circle mode**: When the app is opened with `?circle=<slug>`, it behaves as a circle-specific app: subscription filtered to that circle, posting always tagged with that circle, circle picker hidden, title/header from config.
-- **Generator**: A small build-time script that writes one HTML file per circle under `vibe/web/circles/`. Each file is a minimal redirect to `../v0/?circle=<slug>`, giving stable URLs like `nos.trustroots.org/circles/hitch`.
+- **Generator**: A small build-time script that writes one HTML file per circle under `vibe/web/circles/`. Each file is a minimal redirect to `../web/?circle=<slug>`, giving stable URLs like `nos.trustroots.org/circles/hitch`.
 - **Config**: One source of truth for circle slug + display title (and optional note placeholder) used by both the app and the generator.
 
 ```mermaid
@@ -17,7 +17,7 @@ flowchart LR
     C[circles_config]
   end
   subgraph app [App]
-    I[v0/index.html]
+    I[web/index.html]
   end
   subgraph gen [Generator]
     S[build script]
@@ -38,12 +38,12 @@ flowchart LR
 
 ## 1. Circle config (single source of truth)
 
-- Add **vibe/web/circles-config.json** with array of `{ slug, title }` (match slugs from `getTrustrootsCircles()` in `v0/index.html`). In circle mode, `v0/index.html` fetches it (once) to get the title for the current slug and sets document title and header.
+- Add **vibe/web/circles-config.json** with array of `{ slug, title }` (match slugs from `getTrustrootsCircles()` in `web/index.html`). In circle mode, `web/index.html` fetches it (once) to get the title for the current slug and sets document title and header.
 - Generator reads the same JSON to know which pages to generate and what titles to use on the circles index page.
 
 ---
 
-## 2. Circle mode in v0/index.html
+## 2. Circle mode in web/index.html
 
 - **URL**: On load, parse `?circle=<slug>`. If present, set e.g. `window.circleModeSlug = slug` and `selectedCircle = slug`.
 - **UI**: When in circle mode: hide the circle selector button; set document title and header to the circle title (from fetched circles-config.json or fallback to slug).
@@ -57,7 +57,7 @@ flowchart LR
 
 - **Input**: `vibe/web/circles-config.json`.
 - **Output**:
-  - For each circle: `vibe/web/circles/<slug>.html` — minimal HTML that redirects to `../v0/?circle=<slug>` (meta refresh or JS). Include a visible link for accessibility.
+  - For each circle: `vibe/web/circles/<slug>.html` — minimal HTML that redirects to `../web/?circle=<slug>` (meta refresh or JS). Include a visible link for accessibility.
   - `vibe/web/circles/index.html` — landing page listing all circles with links to each circle app.
 - **Implementation**: Node script e.g. `vibe/web/scripts/generate-circle-pages.js`. Add npm script `"generate-circles": "node scripts/generate-circle-pages.js"`.
 
@@ -65,13 +65,13 @@ flowchart LR
 
 ## 4. Sync circle list and config
 
-- Create circles-config.json with the same slugs as `getTrustrootsCircles()` in `v0/index.html`, plus humanized titles. Document that new circles must be added to both getTrustrootsCircles() and circles-config.json (or add a sync script later).
+- Create circles-config.json with the same slugs as `getTrustrootsCircles()` in `web/index.html`, plus humanized titles. Document that new circles must be added to both getTrustrootsCircles() and circles-config.json (or add a sync script later).
 
 ---
 
 ## 5. Testing and docs
 
-- Optional: unit test for circle mode (selectedCircle, subscription filter); E2E for `v0/?circle=hitch`; test redirect from circles/hitch.html.
+- Optional: unit test for circle mode (selectedCircle, subscription filter); E2E for `web/?circle=hitch`; test redirect from circles/hitch.html.
 - README: add "Circle apps" section — what they are, how to regenerate (`pnpm run generate-circles`).
 
 ---
@@ -88,7 +88,7 @@ flowchart LR
 |----------|------|
 | Add      | `vibe/web/circles-config.json` — array of `{ slug, title }` for all circles |
 | Add      | `vibe/web/scripts/generate-circle-pages.js` — reads config, writes `circles/<slug>.html` and `circles/index.html` |
-| Modify   | `vibe/web/v0/index.html` — circle mode: URL parse, config fetch, UI hide picker, subscription filter for MAP_NOTE_KIND with #L/#l, title/header from config |
+| Modify   | `vibe/web/web/index.html` — circle mode: URL parse, config fetch, UI hide picker, subscription filter for MAP_NOTE_KIND with #L/#l, title/header from config |
 | Modify   | `vibe/web/package.json` — add script `generate-circles` |
 | Add      | `vibe/web/circles/` — directory (generated); commit or .gitignore |
 | Modify   | `vibe/web/README.md` — "Circle apps" and generator instructions |
@@ -98,7 +98,7 @@ flowchart LR
 ## Order of implementation
 
 1. Add circles-config.json with slugs and titles (match getTrustrootsCircles).
-2. Implement circle mode in `v0/index.html` (URL, fetch config, title/header, hide picker, subscription filters for both NDK and direct relay).
+2. Implement circle mode in `web/index.html` (URL, fetch config, title/header, hide picker, subscription filters for both NDK and direct relay).
 3. Add generator script and npm script; run it to create circles/*.html.
 4. Update README and optionally add tests.
 

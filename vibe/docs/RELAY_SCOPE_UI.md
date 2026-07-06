@@ -18,7 +18,7 @@ Allowed values used in UI today:
 
 Classification is implemented by `getRelayScopeFromRelayUrls(urls)` in:
 
-- `v0/index.html` (map / note compose)
+- `web/index.html` (map / note compose)
 - `chat-app.js` (chat publish and display helpers)
 
 It returns `'public'` if any URL matches `isKnownPublicRelayUrl`, else `'auth'` if the list is non-empty, else `''` (empty / unknown).
@@ -31,7 +31,7 @@ Content that only reached **auth-required** (NIP-42) relays was incorrectly show
 
 That is **correct for privacy** but means most **subscription-only** events never get a pill.
 
-## Map notes (`v0/index.html`)
+## Map notes (`web/index.html`)
 
 ### Where the pill is drawn
 
@@ -71,10 +71,10 @@ Any enhancement should avoid **false “public”** labels. Possible directions:
 
 | Area              | Location |
 |-------------------|----------|
-| Scope from URLs   | `getRelayScopeFromRelayUrls`, `isKnownPublicRelayUrl` in `v0/index.html` and `chat-app.js` |
-| Map ingest        | `processIncomingEvent` in `v0/index.html` |
-| Map note pill     | `createNoteItem` in `v0/index.html` |
-| Map publish scope | `publishNoteFromModal` / successful relay list in `v0/index.html` |
+| Scope from URLs   | `getRelayScopeFromRelayUrls`, `isKnownPublicRelayUrl` in `web/index.html` and `chat-app.js` |
+| Map ingest        | `processIncomingEvent` in `web/index.html` |
+| Map note pill     | `createNoteItem` in `web/index.html` |
+| Map publish scope | `publishNoteFromModal` / successful relay list in `web/index.html` |
 | Chat display gate | `getRelayScopeForDisplay`, thread render using `message-relay-pill` in `chat-app.js` |
 | Chat publish scope| Channel send path setting `relayScope` from `succeeded` URLs in `chat-app.js` |
 

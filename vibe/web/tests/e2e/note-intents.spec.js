@@ -22,7 +22,7 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('Map note intent chips', () => {
     test('chips render and select-by-click in the area page composer', async ({ page }) => {
-        await page.goto('/v0/');
+        await page.goto('/web/');
         await page.waitForLoadState('networkidle');
 
         await page.evaluate(() => window.showNotesForPlusCode('9F3HC2J7+'));
@@ -51,7 +51,7 @@ test.describe('Map note intent chips', () => {
     });
 
     test('Host & meet shortcut pre-selects #wanttomeet', async ({ page }) => {
-        await page.goto('/v0/');
+        await page.goto('/web/');
         await page.waitForLoadState('networkidle');
 
         await page.evaluate(() => window.openHostNoteFlow());
@@ -63,7 +63,7 @@ test.describe('Map note intent chips', () => {
     });
 
     test('a note carrying a t-tag intent renders an intent badge', async ({ page }) => {
-        await page.goto('/v0/');
+        await page.goto('/web/');
         await page.waitForLoadState('networkidle');
 
         // Use the exposed createNoteItem() to render a synthetic note and
@@ -107,7 +107,7 @@ test.describe('Map note intent chips', () => {
     });
 
     test('Host & Meet notes and composer use compact Chat primitives', async ({ page }) => {
-        await page.goto('/v0/');
+        await page.goto('/web/');
         await page.waitForLoadState('networkidle');
 
         await page.evaluate(() => {

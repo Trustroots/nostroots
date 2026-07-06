@@ -2,12 +2,12 @@
 
 ### Requirement: Circle-scoped web app mode
 
-Vibe Web MUST support a circle-scoped mode that reuses the current `/v0/` app
+Vibe Web MUST support a circle-scoped mode that reuses the current `/web/` app
 while filtering map-note behavior to one Trustroots circle.
 
 #### Scenario: Circle URL
 
-- **GIVEN** a user opens `/v0/?circle=<slug>`
+- **GIVEN** a user opens `/web/?circle=<slug>`
 - **WHEN** the slug is supported
 - **THEN** Vibe Web MUST select that circle, hide generic circle switching where
   appropriate, and update user-facing title/header text.
@@ -28,4 +28,4 @@ Vibe Web MUST provide a generation path for static circle URLs.
 - **GIVEN** a supported circle exists in the circle config
 - **WHEN** the generator runs
 - **THEN** it MUST create a static page that routes users to the corresponding
-  `/v0/?circle=<slug>` app view.
+  `/web/?circle=<slug>` app view.

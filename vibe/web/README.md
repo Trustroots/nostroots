@@ -10,7 +10,7 @@ The root page is a small hub. It links to classic Trustroots network settings, N
 
 - [`/background/`](background/) — background, vision, and FAQ for Nostroots and the Trustroots/Nostr direction.
 - [`https://www.trustroots.org/profile/edit/networks`](https://www.trustroots.org/profile/edit/networks) — classic Trustroots network editing.
-- [`/v0/`](v0/) — Nostroots Web, the current map/chat/profile app for Trustroots-style activity with light Nostr key support.
+- [`/web/`](web/) — Nostroots Web, the current map/chat/profile app for Trustroots-style activity with light Nostr key support.
 - [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots Browser.
 - [`/nostroots-map/`](nostroots-map/) — experimental browser-native map prototype inspired by the mobile `nr-app`, built without React or Expo Web.
 - [`/examples/squatbridge.html`](examples/squatbridge.html) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr; hidden on the hub until you enable experimental apps.
@@ -18,7 +18,7 @@ The root page is a small hub. It links to classic Trustroots network settings, N
 - [`https://treasures.to/`](https://treasures.to/) — external Treasures web app, hidden on the hub until you enable experimental apps.
 - [`/examples/`](examples/) — optional demos and fork patterns.
 
-Legacy root hash/query links still land in the current app. For example, `/#stats` redirects to `/v0/#stats`, and `/?welcome=1` redirects to `/v0/?welcome=1`.
+Legacy root hash/query links still land in the current app. For example, `/#stats` redirects to `/web/#stats`, and `/?welcome=1` redirects to `/web/?welcome=1`. The previous `/v0/` app path redirects to `/web/` for old shared links.
 
 ## Features
 
@@ -32,7 +32,7 @@ Legacy root hash/query links still land in the current app. For example, `/#stat
 
 ## URL routing (hash)
 
-Nostroots Web (`v0/index.html`) uses **`location.hash`** only (no path router; static hosting friendly). The parser lives inside `v0/index.html` (look for the `NR_HASH_ROUTER_BEGIN` / `NR_HASH_ROUTER_END` markers) and is exposed as `window.NrWebHashRouter`.
+Nostroots Web (`web/index.html`) uses **`location.hash`** only (no path router; static hosting friendly). The parser lives inside `web/index.html` (look for the `NR_HASH_ROUTER_BEGIN` / `NR_HASH_ROUTER_END` markers) and is exposed as `window.NrWebHashRouter`.
 
 | Fragment | Meaning |
 |----------|---------|
@@ -48,16 +48,16 @@ Nostroots Web (`v0/index.html`) uses **`location.hash`** only (no path router; s
 | Looks like NIP-05 (e.g. `alice%40trustroots.org`) | Chat — DM |
 | Otherwise | Chat — circle / channel slug |
 
-Circle slugs cannot match reserved words (`welcome`, `start`, etc.); see `NrWebHashRouter.EXTENDED_RESERVED` inside the `NR_HASH_ROUTER_BEGIN` block in `v0/index.html`.
+Circle slugs cannot match reserved words (`welcome`, `start`, etc.); see `NrWebHashRouter.EXTENDED_RESERVED` inside the `NR_HASH_ROUTER_BEGIN` block in `web/index.html`.
 
-Query shortcuts (stripped after load): `?action=map|host|search`, `?welcome=1`, `?start=1` (see `processNrWebUrlAction()` in `v0/index.html`).
+Query shortcuts (stripped after load): `?action=map|host|search`, `?welcome=1`, `?start=1` (see `processNrWebUrlAction()` in `web/index.html`).
 
 ## Getting Started
 
 Nostroots Web is shipped as **two source files**:
 
-- [`v0/index.html`](v0/index.html) — markup, all CSS in a single `<style>` block, the classic-script helpers (`NrWeb*` globals + `NrWebHashRouter`), the inlined Keys/Settings modals, and a `<script type="module" src="./index.js">` that loads the rest.
-- [`v0/index.js`](v0/index.js) — a single ES module containing every Nostroots-authored helper (key utils, claim/note-intents helpers, nsec-guard, KV-IndexedDB layer, NIP-05 resolver, circle metadata, embedded chat, profile page, and the main map glue), exported by name so unit tests can import directly.
+- [`web/index.html`](web/index.html) — markup, all CSS in a single `<style>` block, the classic-script helpers (`NrWeb*` globals + `NrWebHashRouter`), the inlined Keys/Settings modals, and a `<script type="module" src="./index.js">` that loads the rest.
+- [`web/index.js`](web/index.js) — a single ES module containing every Nostroots-authored helper (key utils, claim/note-intents helpers, nsec-guard, KV-IndexedDB layer, NIP-05 resolver, circle metadata, embedded chat, profile page, and the main map glue), exported by name so unit tests can import directly.
 
 The root [`index.js`](index.js) re-exports Nostroots Web helpers for test/backward compatibility.
 
@@ -110,7 +110,7 @@ When validating importer output and route rendering together:
    - `#hitchhikers`
    - confirm circle metadata image (from importer `30410` `content.picture`) is visible where circle image chrome is shown (chat/sidebar/thread header).
 
-If image tests pass in `test.html` but a route does not show the image, check importer event shape first (`30390`/`30410`) and then the client metadata wiring inside `v0/index.js` — the chat, profile, and circle-metadata code is all folded into that single module.
+If image tests pass in `test.html` but a route does not show the image, check importer event shape first (`30390`/`30410`) and then the client metadata wiring inside `web/index.js` — the chat, profile, and circle-metadata code is all folded into that single module.
 
 ### Real Apple iOS Simulator (Xcode) automation
 

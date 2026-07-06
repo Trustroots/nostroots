@@ -17,14 +17,14 @@ test.beforeEach(async ({ page }) => {
 test.describe('Public profile (#profile/)', () => {
   test('Account menu lists profile actions when a key is loaded', async ({ page }) => {
     await page.setViewportSize({ width: 1100, height: 720 });
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     await page.locator('#nav-user-btn').click();
     await expect(page.getByRole('menuitem', { name: 'My profile' })).toBeVisible();
   });
 
   test('profile/…/edit shows edit form for own npub', async ({ page }) => {
-    await page.goto(`/v0/#profile/${PROFILE_NPUB}/edit`);
+    await page.goto(`/web/#profile/${PROFILE_NPUB}/edit`);
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body.nr-surface-profile')).toBeVisible({ timeout: 25000 });
     await expect(page.locator('.nr-profile-section-title')).toHaveText('Nostr profile (kind 0)');
@@ -33,7 +33,7 @@ test.describe('Public profile (#profile/)', () => {
   });
 
   test('profile hash for own account redirects to own public profile; Map returns to map', async ({ page }) => {
-    await page.goto('/v0/#profile');
+    await page.goto('/web/#profile');
     await page.waitForLoadState('networkidle');
     await expect(page.locator('body.nr-surface-profile')).toBeVisible({ timeout: 25000 });
     await expect(page.locator('.nr-profile-tr')).toBeVisible({ timeout: 30000 });

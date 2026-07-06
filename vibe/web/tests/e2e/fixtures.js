@@ -18,8 +18,8 @@ function pathnameFromGotoUrl(url) {
 
 function isIndexMapPage(pathname) {
   return (
-    pathname === '/v0/' ||
-    pathname === '/v0/index.html'
+    pathname === '/web/' ||
+    pathname === '/web/index.html'
   );
 }
 

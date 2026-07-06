@@ -2,7 +2,7 @@ import { test, expect } from './fixtures.js';
 
 test.describe('Event Deletion E2E', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     
     // Generate a key if needed

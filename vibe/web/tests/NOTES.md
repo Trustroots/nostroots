@@ -4,10 +4,10 @@
 
 `nr-web` is a static workspace with a root hub and multiple experiences. Nostroots Web is still mostly a two-file bundle:
 
-- `v0/index.html` — markup, the entire CSS in one `<style>` block, the classic
+- `web/index.html` — markup, the entire CSS in one `<style>` block, the classic
   helpers (`NrWeb*` globals + `NrWebHashRouter`), and the Keys / Settings
   modals.
-- `v0/index.js` — one ES module containing every Nostroots-authored helper
+- `web/index.js` — one ES module containing every Nostroots-authored helper
   (key utils, claim helpers, note intents, nsec-guard, KV-IndexedDB layer,
   NIP-05 resolver, circle metadata, embedded chat, profile page, main map
   glue), exposed via named exports so tests can `import` from it directly.
@@ -19,7 +19,7 @@ Google Fonts) stay on their CDNs in production.
 
 ## CDN imports under jsdom (Vitest)
 
-`v0/index.js` imports from `https://cdn.jsdelivr.net/npm/...` URLs. jsdom can
+`web/index.js` imports from `https://cdn.jsdelivr.net/npm/...` URLs. jsdom can
 not fetch external resources, so `vitest.config.js` rewrites those URLs to
 locally installed npm packages via `resolve.alias`:
 
@@ -30,29 +30,29 @@ locally installed npm packages via `resolve.alias`:
 | `https://cdn.jsdelivr.net/npm/dompurify@3.2.2/+esm`                   | `dompurify`    |
 
 The matching versions are pinned in `package.json` `devDependencies`. Bump
-both the import URL inside `v0/index.js` and the alias + devDep together.
+both the import URL inside `web/index.js` and the alias + devDep together.
 
 ## Strategy
 
 - **Unit tests** import named exports directly from `../../index.js`. They
   exercise pure helpers (`parseKeyImportToHex`, `containsPrivateKeyNsec`,
   claim / circle / note-intent helpers, etc.) and live next to one another
-  in `tests/unit/`. The Vitest `setup.js` loads `v0/index.html` into jsdom so
+  in `tests/unit/`. The Vitest `setup.js` loads `web/index.html` into jsdom so
   the inlined classic helpers (`NrWeb*` globals) are available too.
 - **Tests that need code from `index.html`'s inline `<script>` blocks**
   (e.g. the `NrWebHashRouter` test, `NrWebTheme` test) extract source
   between marker comments — `NR_HASH_ROUTER_BEGIN/END`,
   `NR_COMMON_JS_BEGIN/END` — and `eval` it in an isolated jsdom window.
-  Keep these markers in `v0/index.html` if you reorganise the inlined scripts.
+  Keep these markers in `web/index.html` if you reorganise the inlined scripts.
 - **Integration tests** drive DOM interactions inside the same jsdom
   fixture.
-- **E2E tests** run the real pages in Playwright browsers; Nostroots Web coverage targets `/v0/`.
+- **E2E tests** run the real pages in Playwright browsers; Nostroots Web coverage targets `/web/`.
   the only place that exercises the full CDN module + map + chat boot.
 
 ## Adding a new pure helper
 
 1. Add `export function foo(...)` (or `export const FOO = ...`) somewhere in
-   `v0/index.js`.
+   `web/index.js`.
 2. Add `import { foo } from '../../index.js';` to a test file under
    `tests/unit/`.
 3. If the helper depends on a CDN package that we do not yet alias for

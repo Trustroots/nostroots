@@ -2180,7 +2180,7 @@ function setupRelayAuthHandler(relay, relayUrl, options = {}) {
         try {
             const resolvedChallenge = extractNip42Challenge(challenge);
             if (!resolvedChallenge) {
-                throw new Error('Missing NIP-42 challenge');
+                return undefined;
             }
             latestAuthPromise = buildSignedAuthEvent(relayUrl, resolvedChallenge);
             const signedAuth = await latestAuthPromise;

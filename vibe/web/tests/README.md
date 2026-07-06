@@ -97,7 +97,7 @@ docker run --rm nr-web-tests pnpm test:e2e
 
 ## Notes
 
-- Tests run against the actual static pages, with current app coverage under `/v0/`
+- Tests run against the actual static pages, with current app coverage under `/web/`
 - CDN imports are mocked in unit/integration tests
 - E2E tests use real browser (Playwright)
 - All browser APIs are mocked appropriately for test environment

@@ -33,7 +33,7 @@
       var isRoot = path === '/' || path === '';
       if (!isRoot) return;
       if (!window.location.hash && !window.location.search) return;
-      window.location.replace('/v0/' + window.location.search + window.location.hash);
+      window.location.replace('/web/' + window.location.search + window.location.hash);
     })();
   </script>
   <style>
@@ -732,7 +732,7 @@
         <span id="trustroots-card-action" class="card-action">Open Trustroots.org</span>
       </a>
 
-      <a class="card" href="v0/">
+      <a class="card" href="web/">
         <div class="card-main">
           <span class="app-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48">

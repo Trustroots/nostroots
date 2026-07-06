@@ -3,7 +3,7 @@
 ## Purpose
 
 Define current behavior for the standalone Vibe Web static workspace, including
-the root hub, `/v0/` Nostroots Web app, routing, relay/key behavior,
+the root hub, `/web/` Nostroots Web app, routing, relay/key behavior,
 experiments, examples, and testing expectations.
 
 ## Requirements
@@ -23,10 +23,17 @@ step for the main pages.
 
 #### Scenario: Current Nostroots Web app
 
-- **GIVEN** a user opens `/v0/`
+- **GIVEN** a user opens `/web/`
 - **WHEN** the browser loads the app
 - **THEN** the experience MUST provide the current map, chat, profile, keys,
   settings, stats, relay, and Trustroots-style activity flows.
+
+#### Scenario: Previous Nostroots Web app path
+
+- **GIVEN** a user opens an old `/v0/` Nostroots Web link
+- **WHEN** the compatibility page loads
+- **THEN** it MUST redirect to the matching `/web/` URL while preserving query
+  parameters and hash routes.
 
 ### Requirement: Hub visibility by client context
 
@@ -130,7 +137,7 @@ NIP-42 authenticated relay reads/writes, and leak guards for secret key text.
 
 ### Requirement: Web experiments and examples
 
-Vibe Web MUST keep experimental pages separate from the current `/v0/` app while
+Vibe Web MUST keep experimental pages separate from the current `/web/` app while
 allowing them to share Vibe protocol conventions.
 
 #### Scenario: Nostrail web experiment

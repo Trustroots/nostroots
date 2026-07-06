@@ -3,7 +3,7 @@
 ## Summary
 
 Add a circle mode to the existing Vibe Web app and generate stable static URLs
-for individual Trustroots circles, reusing the same `/v0/` codebase.
+for individual Trustroots circles, reusing the same `/web/` codebase.
 
 ## Motivation
 
@@ -13,6 +13,6 @@ copies of the large app for every circle.
 ## Impact
 
 - Adds a circle config source of truth for slugs and display titles.
-- Adds `?circle=<slug>` behavior to `/v0/`.
+- Adds `?circle=<slug>` behavior to `/web/`.
 - Adds generated static redirect/list pages under a circles directory.
 - Adds focused tests and README guidance for regeneration.

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const htmlPath = resolve(__dirname, '..', 'v0', 'index.html');
+const htmlPath = resolve(__dirname, '..', 'web', 'index.html');
 
 // Load HTML file
 const html = readFileSync(htmlPath, 'utf-8');
@@ -61,7 +61,7 @@ virtualConsole.on('jsdomError', (error) => {
 // Note: Module scripts with CDN imports will fail, but that's expected
 // Non-module scripts will execute and functions will be available on window
 const dom = new JSDOM(html, {
-  url: 'http://localhost/v0/',
+  url: 'http://localhost/web/',
   runScripts: 'dangerously',
   resources: 'usable',
   pretendToBeVisual: true,
@@ -78,7 +78,7 @@ const dom = new JSDOM(html, {
 // Restore console.error after DOM is created
 console.error = originalError;
 
-// Keys + Settings modals are inlined in v0/index.html
+// Keys + Settings modals are inlined in web/index.html
 
 // Make globals available to tests
 global.window = dom.window;

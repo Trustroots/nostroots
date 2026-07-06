@@ -115,7 +115,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('#trustroots-identity-status')).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Trustroots\.org/ })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
     await expect(page.locator('.trustroots .app-icon img')).toHaveAttribute('src', 'https://www.trustroots.org/img/logo/horizontal-white.svg');
-    await expect(page.getByRole('link', { name: /Open Nostroots Web/ })).toHaveAttribute('href', 'v0/');
+    await expect(page.getByRole('link', { name: /Open Nostroots Web/ })).toHaveAttribute('href', 'web/');
     await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toHaveAttribute('href', 'examples/squatbridge.html');
     await expect(page.locator('.squatbridge .app-icon')).toHaveText('｟(･)｠');
     await expect(page.locator('.squatbridge .card-action')).toHaveCSS('background-color', 'rgb(119, 119, 119)');
@@ -135,7 +135,7 @@ test.describe('Nostroots Web hub', () => {
 
     const footer = page.locator('footer.site-footer');
     await expect(footer.getByRole('link', { name: 'Trustroots.org' })).toHaveAttribute('href', 'https://www.trustroots.org/');
-    await expect(footer.getByRole('link', { name: 'Nostroots' })).toHaveAttribute('href', /\/$/);
+    await expect(footer.getByRole('link', { name: 'Nostroots', exact: true })).toHaveAttribute('href', /\/$/);
     await expect(footer.getByRole('link', { name: 'Support' })).toHaveAttribute('href', 'https://www.trustroots.org/support');
     await expect(footer.getByRole('link', { name: 'Edit this page' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots/edit/main/vibe/web/index.html');
     await expect(footer.locator('.site-footer-build')).toBeVisible();
@@ -346,7 +346,7 @@ test.describe('Nostroots Web hub', () => {
 
     const footer = page.locator('footer.site-footer');
     await expect(footer.getByRole('link', { name: 'Trustroots.org' })).toHaveAttribute('href', 'https://www.trustroots.org/');
-    await expect(footer.getByRole('link', { name: 'Nostroots' })).toHaveAttribute('href', '../');
+    await expect(footer.getByRole('link', { name: 'Nostroots', exact: true })).toHaveAttribute('href', '../');
     await expect(footer.getByRole('link', { name: 'Support' })).toHaveAttribute('href', 'https://www.trustroots.org/support');
     await expect(footer.getByRole('link', { name: 'Edit this page' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots/edit/main/vibe/web/background/index.html');
     await expect(footer.locator('.site-footer-build')).toBeVisible();
@@ -360,16 +360,22 @@ test.describe('Nostroots Web hub', () => {
     }
   });
 
-  test('redirects legacy hash routes to the v0 app', async ({ page }) => {
+  test('redirects legacy root hash routes to the web app', async ({ page }) => {
     await page.goto('/#stats');
 
-    await expect(page).toHaveURL(/\/v0\/#stats$/);
+    await expect(page).toHaveURL(/\/web\/#stats$/);
   });
 
-  test('redirects legacy query shortcuts to the v0 app', async ({ page }) => {
+  test('redirects legacy root query shortcuts to the web app', async ({ page }) => {
     await page.goto('/?welcome=1');
 
-    await expect(page).toHaveURL(/\/v0\/\?welcome=1/);
+    await expect(page).toHaveURL(/\/web\/\?welcome=1/);
+  });
+
+  test('redirects old v0 app links to the web app', async ({ page }) => {
+    await page.goto('/v0/#stats');
+
+    await expect(page).toHaveURL(/\/web\/#stats$/);
   });
 
   test('does not serve the old Trustroots map path', async ({ page }) => {

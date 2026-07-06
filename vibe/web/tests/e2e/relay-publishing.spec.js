@@ -42,7 +42,7 @@ const shouldSkip = !TEST_NSEC || !TEST_TRUSTROOTS_USERNAME;
 
 test.describe('Relay Publishing', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
   });
 

@@ -3,7 +3,7 @@ import { test, expect } from './fixtures.js';
 test.describe('Onboarding Flow', () => {
   test.beforeEach(async ({ page }) => {
     // Clear localStorage before each test
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.evaluate(() => {
       localStorage.clear();
     });
@@ -11,7 +11,7 @@ test.describe('Onboarding Flow', () => {
   });
 
   test('keys modal appears when no key exists', async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     
     const keysModal = page.locator('#keys-modal');
@@ -19,7 +19,7 @@ test.describe('Onboarding Flow', () => {
   });
 
   test('visiting a profile route without a key keeps the route and shows welcome Keys', async ({ page }) => {
-    await page.goto('/v0/#profile/alice');
+    await page.goto('/web/#profile/alice');
     await page.waitForLoadState('networkidle');
 
     await expect(page).toHaveURL(/#profile\//);
@@ -28,7 +28,7 @@ test.describe('Onboarding Flow', () => {
   });
 
   test('can generate new key from onboarding', async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     
     // Click generate button (use onboarding-specific button)
@@ -48,7 +48,7 @@ test.describe('Onboarding Flow', () => {
   });
 
   test('onboarding import button exists', async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     
     const importBtn = page.locator('button[onclick="onboardingImport()"]');
@@ -56,7 +56,7 @@ test.describe('Onboarding Flow', () => {
   });
 
   test('onboarding has import input field', async ({ page }) => {
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     
     const importInput = page.locator('#onboarding-import');
@@ -66,7 +66,7 @@ test.describe('Onboarding Flow', () => {
   test('keys modal cannot be closed with ESC when no key exists', async ({ page, browserName }) => {
     test.skip(browserName === 'webkit', 'ESC behavior is not reliable on iOS WebKit automation');
 
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
     
     const keysModal = page.locator('#keys-modal');
@@ -90,7 +90,7 @@ test.describe('Onboarding Flow', () => {
       };
     });
 
-    await page.goto('/v0/');
+    await page.goto('/web/');
     await page.waitForLoadState('networkidle');
 
     await expect(page.locator('#map[data-map-fallback="leaflet"]')).toBeVisible();

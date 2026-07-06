@@ -1,7 +1,7 @@
 ## Tasks
 
 - [ ] Add `vibe/web/circles-config.json` with supported circle slugs and titles.
-- [ ] Add `?circle=<slug>` parsing and title/header behavior in `/v0/`.
+- [ ] Add `?circle=<slug>` parsing and title/header behavior in `/web/`.
 - [ ] Filter map subscriptions by `trustroots-circle` tags in circle mode.
 - [ ] Ensure posts in circle mode are tagged with the selected circle.
 - [ ] Add a generator script and package command for static circle pages.

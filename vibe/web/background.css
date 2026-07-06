@@ -206,6 +206,11 @@ a.card:focus-visible {
   white-space: nowrap;
 }
 
+.download-note {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
 .app-qr {
   position: absolute;
   top: 22px;

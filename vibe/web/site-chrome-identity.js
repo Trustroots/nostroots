@@ -1,4 +1,10 @@
 var NR_WEB_NOSTROOTS_BROWSER_USER_AGENT_MARKER = 'NostrootsBrowser/';
+var NOSTROOTS_APP_DETECTION_TIMEOUT_MS = 12000;
+var NOSTROOTS_APP_DETECTION_INTERVAL_MS = 250;
+
+function shortenNpub(npub) {
+  return npub && npub.length > 22 ? npub.slice(0, 10) + '...' + npub.slice(-8) : npub;
+}
 
 function isInNostrootsApp() {
   var ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
@@ -35,6 +41,25 @@ function hideAppDownloadPrompts() {
       if (item.textContent.indexOf('On mobile, install') !== -1) item.hidden = true;
     });
   }
+}
+
+function watchForNostrootsApp() {
+  if (isInNostrootsApp()) {
+    hideAppDownloadPrompts();
+    return;
+  }
+
+  var startedAt = Date.now();
+  var timer = setInterval(function () {
+    if (isInNostrootsApp()) {
+      hideAppDownloadPrompts();
+      clearInterval(timer);
+      return;
+    }
+    if (Date.now() - startedAt >= NOSTROOTS_APP_DETECTION_TIMEOUT_MS) {
+      clearInterval(timer);
+    }
+  }, NOSTROOTS_APP_DETECTION_INTERVAL_MS);
 }
 
 function ensureNip7InfoModal() {
@@ -78,6 +103,7 @@ function ensureNip7InfoModal() {
     '<h3>Trustroots identity linked</h3>',
     '<p><strong data-nip7-linked-nip05></strong> is linked to the public key held by your signer. Nostroots asks that signer to approve actions, while the Trustroots link lets the service recognize your account.</p>',
     '<p>Your public key: <code data-nip7-linked-npub></code></p>',
+    '<p><a href="https://www.trustroots.org/profile/edit/networks" target="_blank" rel="noopener noreferrer">Change your Trustroots profile link</a></p>',
     '</section>',
     '</div>',
     '</section>'
@@ -96,7 +122,14 @@ function setNip7InfoModalState(state, nip05, npub) {
     element.textContent = nip05 || '';
   });
   modal.querySelectorAll('[data-nip7-linked-npub]').forEach(function (element) {
-    element.textContent = npub || '';
+    element.textContent = shortenNpub(npub) || '';
+    if (npub) {
+      element.title = npub;
+      element.setAttribute('aria-label', 'Full public key: ' + npub);
+    } else {
+      element.removeAttribute('title');
+      element.removeAttribute('aria-label');
+    }
   });
 }
 
@@ -162,6 +195,7 @@ function initNip7InfoModal() {
 async function initSiteChromeIdentity() {
   initNip7InfoModal();
   hideAppDownloadPrompts();
+  watchForNostrootsApp();
 
 var TRUSTROOTS_EDIT_NETWORKS_URL = 'https://www.trustroots.org/profile/edit/networks';
 var TRUSTROOTS_PROFILE_KIND = 10390;
@@ -265,10 +299,6 @@ function bech32Encode(hrp, data) {
 function npubEncodeFromHex(hex) {
   var bytes = hexToBytes(hex);
   return bytes.length ? bech32Encode('npub', convertBits(bytes, 8, 5, true)) : '';
-}
-
-function shortenNpub(npub) {
-  return npub && npub.length > 22 ? npub.slice(0, 10) + '...' + npub.slice(-8) : npub;
 }
 
 function writeStatus(pill, label, value, state, title) {

@@ -282,6 +282,15 @@ test('index.html references star controls', () => {
   assert.match(html, /Listening now/);
 });
 
+test('links away from Radiostr open in a separate tab', () => {
+  const html = fs.readFileSync(htmlPath, 'utf8');
+  const appSource = fs.readFileSync(appPath, 'utf8');
+  assert.match(html, /class="header-brand" href="\.\.\/\.\.\/" target="_blank" rel="noopener noreferrer"/);
+  assert.match(html, /href="https:\/\/www\.trustroots\.org\/" target="_blank" rel="noopener noreferrer"/);
+  assert.match(html, /id="site-footer-build"[\s\S]*target="_blank"[\s\S]*rel="noopener noreferrer"/);
+  assert.match(appSource, /profileLink\.target = '_blank';[\s\S]*profileLink\.rel = 'noopener noreferrer';/);
+});
+
 test('profilePageHref builds nr-web profile links', () => {
   const Radiostr = loadRadiostr();
   assert.equal(

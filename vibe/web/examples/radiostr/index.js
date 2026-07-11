@@ -670,6 +670,8 @@
       if (profileHref) {
         const profileLink = document.createElement('a');
         profileLink.href = profileHref;
+        profileLink.target = '_blank';
+        profileLink.rel = 'noopener noreferrer';
         profileLink.textContent = displayName;
         name.appendChild(profileLink);
       } else {

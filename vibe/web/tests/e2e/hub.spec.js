@@ -293,6 +293,18 @@ test.describe('Nostroots Web hub', () => {
     await context.close();
   });
 
+  test('hides app links when the Nostroots Browser bridge arrives after page startup', async ({ page }) => {
+    await page.addInitScript(() => {
+      setTimeout(() => {
+        window.nostr = { __nostrootsBrowser: true };
+      }, 100);
+    });
+    await page.goto('/');
+
+    await expect(page.locator('.hub-nav').getByRole('link', { name: 'Android' })).toBeHidden();
+    await expect(page.locator('.hub-nav').getByRole('link', { name: 'iOS' })).toBeHidden();
+  });
+
   test('keeps experimental apps visible after reload', async ({ page }) => {
     await page.goto('/');
 
@@ -330,7 +342,9 @@ test.describe('Nostroots Web hub', () => {
     const modal = page.getByRole('dialog', { name: 'Nostr connection' });
     await expect(modal.getByRole('heading', { name: 'Trustroots identity linked' })).toBeVisible();
     await expect(modal).toContainText('alice@trustroots.org is linked to the public key held by your signer.');
-    await expect(modal.locator('[data-nip7-linked-npub]')).toHaveText(/^npub1/);
+    await expect(modal.locator('[data-nip7-linked-npub]')).toHaveText(/^npub1.{5}\.\.\..{8}$/);
+    await expect(modal.locator('[data-nip7-linked-npub]')).toHaveAttribute('title', /^npub1/);
+    await expect(modal.getByRole('link', { name: 'Change your Trustroots profile link' })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
     expect(await page.evaluate(() => Boolean(
       document.getElementById('web-experiences-section').compareDocumentPosition(document.getElementById('download-section')) & Node.DOCUMENT_POSITION_FOLLOWING
     ))).toBe(true);

@@ -222,10 +222,10 @@ a.status-pill {
 .identity-link[data-state="connected"] {
   appearance: none;
   cursor: pointer;
-  border-color: rgba(18, 138, 120, 0.3);
-  background: rgba(18, 138, 120, 0.12);
+  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
   box-shadow: none;
-  color: var(--accent-dark);
+  color: rgba(255, 255, 255, 0.94);
   font-weight: 800;
   transition: background-color 160ms ease, border-color 160ms ease,
     box-shadow 160ms ease, color 160ms ease, transform 160ms ease;
@@ -233,8 +233,8 @@ a.status-pill {
 
 .identity-link[data-state="connected"]:hover,
 .identity-link[data-state="connected"]:focus-visible {
-  border-color: var(--accent-dark);
-  background: var(--accent-dark);
+  border-color: rgba(255, 255, 255, 0.9);
+  background: rgba(0, 75, 63, 0.82);
   box-shadow: 0 5px 14px rgba(0, 75, 63, 0.24);
   color: #ffffff;
   outline: none;
@@ -393,7 +393,8 @@ a.status-pill {
   overflow: auto;
   border: 1px solid rgba(219, 227, 210, 0.95);
   border-radius: 8px;
-  background: var(--panel);
+  /* Some standalone apps, including Radiostr, do not define the hub panel token. */
+  background: var(--panel, #fffdf4);
   box-shadow: 0 28px 70px rgba(0, 75, 63, 0.26);
 }
 

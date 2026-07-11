@@ -43,6 +43,7 @@
     playBtn: document.getElementById('play-btn'),
     starBtn: document.getElementById('star-btn'),
     stationSections: document.getElementById('station-sections'),
+    listeningNowSection: document.getElementById('listening-now-section'),
     listenersList: document.getElementById('listeners-list'),
     chatMessages: document.getElementById('chat-messages'),
     chatForm: document.getElementById('chat-form'),
@@ -649,6 +650,9 @@
     if (!els.stationSections) return;
     els.stationSections.replaceChildren();
     appendStationSection(els.stationSections, 'Starred', starredStationsInOrder());
+    if (els.listeningNowSection) {
+      els.stationSections.appendChild(els.listeningNowSection);
+    }
     state.sections.forEach((section) => {
       appendStationSection(els.stationSections, section.name, section.items);
     });

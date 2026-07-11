@@ -21,6 +21,13 @@ step for the main pages.
   classic Trustroots network settings, mobile app downloads, and optional
   experimental experiences.
 
+#### Scenario: Concise hub titles
+
+- **GIVEN** a user opens the root hub or background page
+- **WHEN** its main heading renders
+- **THEN** the root hub heading MUST be "Nostroots" and the background heading
+  MUST be "Background".
+
 #### Scenario: Current Nostroots Web app
 
 - **GIVEN** a user opens `/web/`
@@ -213,6 +220,8 @@ allowing them to share Vibe protocol conventions.
   from authors without a Trustroots NIP-05 MUST NOT appear in the chat log
 - **AND** starred stations MUST sync via kind `1` favorite notes when NIP-07 is
   available, with `localStorage` as cache when unsigned
+- **AND** the listening-now panel MUST appear below starred stations and above
+  the remaining channel groups
 
 ### Requirement: Vibe Web testing guidance
 

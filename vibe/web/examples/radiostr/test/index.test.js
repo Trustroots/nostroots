@@ -280,6 +280,7 @@ test('index.html references star controls', () => {
   assert.match(html, /site-footer-build/);
   assert.match(html, /site-footer-build-commit/);
   assert.match(html, /Listening now/);
+  assert.match(html, /id="listening-now-section"/);
 });
 
 test('links away from Radiostr open in a separate tab', () => {

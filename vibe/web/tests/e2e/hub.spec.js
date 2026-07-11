@@ -108,7 +108,7 @@ test.describe('Nostroots Web hub', () => {
   test('shows default options and reveals more experimental apps on request', async ({ page, isMobile }) => {
     await page.goto('/');
 
-    await expect(page.getByRole('heading', { name: 'Choose where to start with Nostroots.' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nostroots' })).toBeVisible();
     await expect(page.locator('.lead')).toContainText('Open your Trustroots profile, read traveler notes');
     await expect(page.getByRole('link', { name: 'learn why Nostroots is built on Nostr' })).toHaveAttribute('href', 'background/');
     await expect(page.getByRole('link', { name: 'Background' }).first()).toHaveAttribute('href', 'background/');
@@ -388,7 +388,7 @@ test.describe('Nostroots Web hub', () => {
     await page.goto('/background/');
 
     await expect(page).toHaveTitle('Nostroots — Background');
-    await expect(page.getByRole('heading', { name: 'Background on Nostroots' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Background' })).toBeVisible();
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://nos.trustroots.org/background/');
     await expect(page.locator('meta[property="og:url"]')).toHaveAttribute('content', 'https://nos.trustroots.org/background/');
     await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', 'https://nos.trustroots.org/og-image.png');

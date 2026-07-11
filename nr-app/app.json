@@ -4,12 +4,13 @@
     "slug": "nr-app",
     "version": "0.6.0",
     "orientation": "portrait",
-    "icon": "./assets/images/nostroots-300x300.png",
+    "icon": "./assets/images/nostroots-logo67-app-icon.png",
     "scheme": "nostroots",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.trustroots.nostroots",
+      "appleTeamId": "WR2T34P467",
       "config": {
         "googleMapsApiKey": "AIzaSyDw0KhR3qlPsireu68RvGXmh4nccIqnEQM",
         "usesNonExemptEncryption": false
@@ -21,8 +22,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/nostroots-300x300.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/nostroots-logo67-app-icon.png",
+        "backgroundColor": "#004c43"
       },
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -45,6 +46,7 @@
       "expo-router",
       "expo-font",
       "expo-secure-store",
+      "expo-notifications",
       [
         "@sentry/react-native/expo",
         {
@@ -63,9 +65,10 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/nostroots-300x300.png",
+          "image": "./assets/images/nostroots-logo67-app-icon.png",
+          "imageWidth": 180,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#004c43"
         }
       ],
       "expo-status-bar",

@@ -106,26 +106,18 @@ export function BrowserScreen({
     <View className="flex-1 bg-primary">
       <View
         testID="browser-header"
-        className="bg-primary flex-row items-start gap-3 px-6 pr-10"
+        className="bg-primary flex-row items-center gap-2 px-4"
         style={{
-          height: insets.top + 72,
-          paddingTop: insets.top + 14,
+          height: insets.top + 56,
+          paddingTop: insets.top + 6,
+          paddingBottom: 6,
         }}
       >
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Close NIP-07 Browser"
-          onPress={() => router.replace(ROUTES.HOME)}
-          className="h-[42px] w-[42px] items-center justify-center rounded-full bg-white/95"
-        >
-          <Ionicons name="close-outline" size={24} color="#0f172a" />
-        </Pressable>
-
-        <Pressable
-          accessibilityRole="button"
           accessibilityLabel="Open Nostroots"
           onPress={goHome}
-          className="min-h-11 flex-1 flex-row items-center gap-2"
+          className="min-h-10 flex-1 flex-row items-center gap-2"
         >
           <Ionicons name="home-outline" size={19} color="#ffffff" />
           <Text className="text-white text-lg font-extrabold">Nostroots</Text>
@@ -135,9 +127,18 @@ export function BrowserScreen({
           accessibilityRole="button"
           accessibilityLabel="Browser settings"
           onPress={() => router.push(ROUTES.SETTINGS)}
-          className="h-[42px] w-[42px] items-center justify-center rounded-full bg-white/95"
+          className="h-10 w-10 items-center justify-center rounded-full bg-white/95"
         >
           <Ionicons name="settings-outline" size={22} color="#0f172a" />
+        </Pressable>
+
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close NIP-07 Browser"
+          onPress={() => router.replace(ROUTES.HOME)}
+          className="h-10 w-10 items-center justify-center rounded-full bg-white/95"
+        >
+          <Ionicons name="close-outline" size={24} color="#0f172a" />
         </Pressable>
       </View>
 

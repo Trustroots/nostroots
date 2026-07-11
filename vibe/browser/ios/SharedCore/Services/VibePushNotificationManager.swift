@@ -92,7 +92,7 @@ final class VibePushNotificationManager: NSObject, ObservableObject {
 
     func sendTestNotification() async throws -> [String: Any] {
         let content = UNMutableNotificationContent()
-        content.title = "Nostroots Browser"
+        content.title = "Nostroots iOS"
         content.body = "Native notifications are connected."
         content.sound = .default
         content.userInfo = [

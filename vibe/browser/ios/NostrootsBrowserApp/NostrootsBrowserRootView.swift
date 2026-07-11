@@ -38,7 +38,6 @@ private struct BrowserView: View {
                 NativeBrowserWebView(
                     url: URL(string: model.currentURLString) ?? NRConstants.nostrootsURL,
                     reloadID: model.webViewReloadID,
-                    developerMode: model.developerMode,
                     keyStore: model.keyStore,
                     cryptoProvider: model.cryptoProvider,
                     permissionStore: model.nip07PermissionStore,
@@ -52,27 +51,19 @@ private struct BrowserView: View {
                 )
                 .ignoresSafeArea(edges: .bottom)
 
-                if model.developerMode {
-                    DeveloperAddressBar(model: model, isFocused: $addressBarFocused)
-                        .padding(.horizontal, 12)
-                        .padding(.bottom, 10)
-                        .offset(y: addressBarHidden ? 112 : 0)
-                        .opacity(addressBarHidden ? 0 : 1)
-                        .allowsHitTesting(!addressBarHidden)
-                        .animation(.easeInOut(duration: 0.24), value: addressBarHidden)
-                }
+                AddressBar(model: model, isFocused: $addressBarFocused)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 10)
+                    .offset(y: addressBarHidden ? 112 : 0)
+                    .opacity(addressBarHidden ? 0 : 1)
+                    .allowsHitTesting(!addressBarHidden)
+                    .animation(.easeInOut(duration: 0.24), value: addressBarHidden)
             }
         }
         .background(Color.white)
         .ignoresSafeArea(edges: .top)
-        .onChange(of: model.developerMode) { _, developerMode in
-            addressBarHidden = !developerMode
-            if developerMode {
-                scheduleAddressBarAutoHide()
-            } else {
-                cancelAddressBarAutoHide()
-                addressBarFocused = false
-            }
+        .onAppear {
+            scheduleAddressBarAutoHide()
         }
         .onChange(of: addressBarHidden) { _, hidden in
             if hidden {
@@ -110,12 +101,12 @@ private struct BrowserView: View {
     }
 
     private func scheduleAddressBarAutoHide() {
-        guard model.developerMode, !addressBarHidden, !addressBarFocused else { return }
+        guard !addressBarHidden, !addressBarFocused else { return }
         cancelAddressBarAutoHide()
         addressBarAutoHideTask = Task {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             await MainActor.run {
-                guard model.developerMode, !addressBarFocused else { return }
+                guard !addressBarFocused else { return }
                 addressBarHidden = true
             }
         }
@@ -137,7 +128,7 @@ private struct NIP07PermissionPromptSheet: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Allow NIP-07 key access?")
                     .font(.title3.bold())
-                Text("\(prompt.host) wants to use your Nostr key in Nostroots Browser. Allow this only for websites you trust.")
+                Text("\(prompt.host) wants to use your Nostr key in Nostroots iOS. Allow this only for websites you trust.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -202,11 +193,11 @@ private struct BrowserHeader: View {
             Button {
                 goHome()
             } label: {
-                Text("Nostroots")
-                    .font(.headline.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .frame(height: 48, alignment: .center)
+                Image("Logo67")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 40, height: 40)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .accessibilityLabel("Open Nostroots")
             Spacer()
@@ -215,21 +206,19 @@ private struct BrowserHeader: View {
             } label: {
                 Image(systemName: "gearshape")
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(Color(red: 0.04, green: 0.09, blue: 0.17))
-                    .frame(width: 42, height: 42)
-                    .background(.white.opacity(0.94), in: Circle())
+                    .foregroundStyle(.white)
+                    .frame(width: 40, height: 40)
             }
             .accessibilityLabel("Settings")
         }
-        .padding(.leading, 24)
-        .padding(.trailing, 40)
-        .padding(.top, 14)
-        .frame(height: 86, alignment: .top)
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .frame(height: 68, alignment: .top)
         .background(Color(red: 0.05, green: 0.68, blue: 0.55))
     }
 }
 
-private struct DeveloperAddressBar: View {
+private struct AddressBar: View {
     @ObservedObject var model: BrowserAppModel
     @FocusState.Binding var isFocused: Bool
 

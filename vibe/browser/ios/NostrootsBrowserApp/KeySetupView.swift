@@ -7,7 +7,7 @@ struct KeySetupView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Nostroots Browser")
+                    Text("Nostroots iOS")
                         .font(.largeTitle.bold())
                         .foregroundStyle(.primary)
 

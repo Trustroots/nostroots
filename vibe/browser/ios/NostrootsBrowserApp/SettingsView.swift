@@ -11,7 +11,7 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    Text("Nostroots Browser")
+                    Text("Nostroots iOS")
                         .font(.title2.bold())
                         .foregroundStyle(.primary)
 
@@ -46,16 +46,6 @@ struct SettingsView: View {
                     RemoveKeySection(confirmingRemoval: $confirmingRemoval)
 
                     VStack(alignment: .leading, spacing: 16) {
-                        Toggle(isOn: $model.developerMode) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Developer mode")
-                                    .font(.headline)
-                                Text("Shows an address bar and allows loading other websites.")
-                                    .font(.body)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-
                         HStack {
                             Text("Build time")
                                 .font(.headline)
@@ -176,7 +166,7 @@ private struct NIP07PermissionsSection: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("NIP-07 access")
                     .font(.headline)
-                Text("Websites that have used or can use your Nostroots Browser key.")
+                Text("Websites that have used or can use your Nostroots iOS key.")
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

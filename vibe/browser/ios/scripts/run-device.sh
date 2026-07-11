@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build Nostroots Browser (incrementally, when sources changed) and run on iPhone.
+# Build Nostroots iOS (incrementally, when sources changed) and run on iPhone.
 #
 # Optional env:
 #   DEVICE_NAME      default: ip2
@@ -16,8 +16,8 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ios_dir="$(cd "${script_dir}/.." && pwd)"
 
 scheme="NostrootsBrowser"
-app_bundle_name="Nostroots Browser.app"
-app_executable_name="Nostroots Browser"
+app_bundle_name="Nostroots iOS.app"
+app_executable_name="Nostroots iOS"
 bundle_id="org.trustroots.nostroots.browser"
 development_team="${DEVELOPMENT_TEAM:-SUJ594N47C}"
 derived_data="${DERIVED_DATA:-${ios_dir}/.build/device}"

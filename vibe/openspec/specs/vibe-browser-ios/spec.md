@@ -1,8 +1,8 @@
-# Vibe Browser iOS
+# Nostroots iOS
 
 ## Purpose
 
-Define current behavior for the native Nostroots Browser iOS shell, including
+Define current behavior for the native Nostroots iOS shell, including
 WKWebView loading, native-backed NIP-07, local key storage, permissions,
 settings, and native push bridging.
 
@@ -10,8 +10,14 @@ settings, and native push bridging.
 
 ### Requirement: Native browser shell
 
-Nostroots Browser iOS MUST be a native SwiftUI app using `WKWebView` to load the
+Nostroots iOS MUST be a native SwiftUI app using `WKWebView` to load the
 Nostroots web experience.
+
+#### Scenario: Native header branding
+
+- **GIVEN** the browser shell is visible
+- **THEN** its header MUST show logo 67 without a separate home icon
+- **AND** tapping logo 67 MUST load `https://nos.trustroots.org/`.
 
 #### Scenario: Default web origin
 
@@ -19,12 +25,19 @@ Nostroots web experience.
 - **WHEN** the web view is created
 - **THEN** it MUST load `https://nos.trustroots.org/` by default.
 
+#### Scenario: General web browsing
+
+- **GIVEN** the iOS browser app has launched
+- **WHEN** the user enters an HTTP(S) address or follows an HTTP(S) link
+- **THEN** the app MUST load that site in the WKWebView, with an address bar
+  available by default.
+
 #### Scenario: Hub in-app detection user agent
 
 - **GIVEN** the WebView loads `https://nos.trustroots.org/`
 - **WHEN** the web view is created
-- **THEN** it MUST append or set a User-Agent containing `NostrootsBrowser/` so
-  the hub can suppress redundant install prompts.
+- **THEN** it MUST set the User-Agent to `NostrootsBrowser/1.0 iOS-native` so
+  the hub can identify the native shell and suppress redundant install prompts.
 
 #### Scenario: Native-backed NIP-07 provider
 
@@ -41,7 +54,7 @@ private Keychain storage for v1.
 #### Scenario: Separate keychain item
 
 - **GIVEN** `nr-app` already has a key in its private keychain storage
-- **WHEN** Nostroots Browser iOS starts
+- **WHEN** Nostroots iOS starts
 - **THEN** it MUST NOT assume it can read that private `nr-app` key.
 
 #### Scenario: Future shared keychain

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build Nostroots Browser (incrementally) and run it in the iOS Simulator.
+# Build Nostroots iOS (incrementally) and run it in the iOS Simulator.
 #
 # Optional env:
 #   SIMULATOR_NAME   default: iPhone 17
@@ -15,7 +15,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ios_dir="$(cd "${script_dir}/.." && pwd)"
 
 scheme="NostrootsBrowser"
-app_bundle_name="Nostroots Browser.app"
+app_bundle_name="Nostroots iOS.app"
 bundle_id="org.trustroots.nostroots.browser"
 derived_data="${DERIVED_DATA:-${ios_dir}/.build/simulator}"
 simulator_name="${SIMULATOR_NAME:-iPhone 17}"

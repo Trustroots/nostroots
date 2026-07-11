@@ -15,8 +15,8 @@ enum NIP07BridgeError: Error, LocalizedError, Equatable {
         case .unknownMethod: return "Unknown NIP-07 method."
         case .invalidParams: return "Invalid NIP-07 parameters."
         case .invalidPeerPubkey: return "Invalid peer public key."
-        case .missingKey: return "No private key is stored in Nostroots Browser."
-        case .permissionDenied: return "This website is not allowed to use the Nostroots Browser NIP-07 key."
+        case .missingKey: return "No private key is stored in Nostroots iOS."
+        case .permissionDenied: return "This website is not allowed to use the Nostroots iOS NIP-07 key."
         case .operationFailed(let message): return message
         }
     }

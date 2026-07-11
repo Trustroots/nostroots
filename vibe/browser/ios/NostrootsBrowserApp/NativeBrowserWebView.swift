@@ -5,7 +5,6 @@ import UIKit
 struct NativeBrowserWebView: UIViewRepresentable {
     let url: URL
     let reloadID: UUID
-    let developerMode: Bool
     let keyStore: KeyStore
     let cryptoProvider: NostrCryptoProviding
     let permissionStore: NIP07PermissionStoring
@@ -24,8 +23,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
             requestNIP07Permission: requestNIP07Permission,
             currentURLString: $currentURLString,
             addressBarHidden: $addressBarHidden,
-            pendingNotificationPlusCode: $pendingNotificationPlusCode,
-            developerMode: developerMode
+            pendingNotificationPlusCode: $pendingNotificationPlusCode
         )
     }
 
@@ -46,11 +44,11 @@ struct NativeBrowserWebView: UIViewRepresentable {
 
         let configuration = WKWebViewConfiguration()
         configuration.userContentController = userContent
-        configuration.applicationNameForUserAgent = "NostrootsBrowser/1.0"
+        configuration.applicationNameForUserAgent = "NostrootsBrowser/1.0 iOS-native"
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
-        webView.customUserAgent = "NostrootsBrowser/1.0 Mobile WKWebView"
+        webView.customUserAgent = "NostrootsBrowser/1.0 iOS-native"
         webView.allowsBackForwardNavigationGestures = true
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.delegate = context.coordinator
@@ -62,11 +60,6 @@ struct NativeBrowserWebView: UIViewRepresentable {
     }
 
     func updateUIView(_ webView: WKWebView, context: Context) {
-        context.coordinator.developerMode = developerMode
-        if !developerMode {
-            context.coordinator.lastScrollY = webView.scrollView.contentOffset.y
-            addressBarHidden = false
-        }
         if context.coordinator.lastReloadID != reloadID {
             context.coordinator.lastReloadID = reloadID
             webView.load(URLRequest(url: url))
@@ -98,7 +91,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
         if (!callback) return;
         delete pending[response.id];
         if (response.ok) callback.resolve(response.result);
-        else callback.reject(new Error(response.error || 'Nostroots Browser signing failed.'));
+        else callback.reject(new Error(response.error || 'Nostroots iOS signing failed.'));
       };
 
       window.nostr = {
@@ -154,7 +147,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
         if (!callback) return;
         delete pending[response.id];
         if (response.ok) callback.resolve(response.result);
-        else callback.reject(new Error(response.error || 'Nostroots Browser notification action failed.'));
+        else callback.reject(new Error(response.error || 'Nostroots iOS notification action failed.'));
       };
 
       window.nostrootsBrowser.notifications = {
@@ -173,7 +166,6 @@ struct NativeBrowserWebView: UIViewRepresentable {
         weak var webView: WKWebView?
         var lastReloadID: UUID?
         var lastScrollY: CGFloat = 0
-        var developerMode: Bool
         private var accumulatedScrollDelta: CGFloat = 0
         private let policy = BrowserNavigationPolicy()
         private let permissionPolicy = NIP07PermissionPolicy()
@@ -194,8 +186,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
             requestNIP07Permission: @escaping @MainActor (NIP07PermissionPrompt) -> Void,
             currentURLString: Binding<String>,
             addressBarHidden: Binding<Bool>,
-            pendingNotificationPlusCode: Binding<String?>,
-            developerMode: Bool
+            pendingNotificationPlusCode: Binding<String?>
         ) {
             self.bridge = NIP07Bridge(keyStore: keyStore, cryptoProvider: cryptoProvider)
             self.notificationBridge = VibeNotificationBridge(manager: pushNotifications)
@@ -204,7 +195,6 @@ struct NativeBrowserWebView: UIViewRepresentable {
             self._currentURLString = currentURLString
             self._addressBarHidden = addressBarHidden
             self._pendingNotificationPlusCode = pendingNotificationPlusCode
-            self.developerMode = developerMode
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -245,9 +235,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             currentURLString = webView.url?.absoluteString ?? currentURLString
             lastScrollY = webView.scrollView.contentOffset.y
-            if developerMode {
-                addressBarHidden = false
-            }
+            addressBarHidden = false
         }
 
         func webView(
@@ -260,7 +248,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
                 return
             }
 
-            switch policy.decision(for: navigationAction.request.url, developerMode: developerMode) {
+            switch policy.decision(for: navigationAction.request.url) {
             case .allow:
                 decisionHandler(.allow)
             case .openExternally:
@@ -274,8 +262,6 @@ struct NativeBrowserWebView: UIViewRepresentable {
         }
 
         func scrollViewDidScroll(_ scrollView: UIScrollView) {
-            guard developerMode else { return }
-
             let y = scrollView.contentOffset.y
             let delta = y - lastScrollY
             defer { lastScrollY = y }

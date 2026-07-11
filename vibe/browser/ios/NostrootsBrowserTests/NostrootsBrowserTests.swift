@@ -93,38 +93,9 @@ final class NostrootsBrowserTests: XCTestCase {
     func testNavigationPolicy() {
         let policy = BrowserNavigationPolicy()
 
-        XCTAssertEqual(policy.decision(for: URL(string: "https://nos.trustroots.org/"), developerMode: false), .allow)
-        XCTAssertEqual(policy.decision(for: URL(string: "https://example.com/"), developerMode: false), .openExternally)
-        XCTAssertEqual(policy.decision(for: URL(string: "https://example.com/"), developerMode: true), .allow)
-    }
-
-    @MainActor
-    func testDeveloperModePersistsAcrossAppModelInstances() throws {
-        let suiteName = "NostrootsBrowserTests.DeveloperMode.\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
-        defer {
-            defaults.removePersistentDomain(forName: suiteName)
-        }
-
-        let firstModel = BrowserAppModel(
-            keyStore: InMemoryKeyStore(cryptoProvider: StubCryptoProvider()),
-            cryptoProvider: StubCryptoProvider(),
-            nip07PermissionStore: InMemoryNIP07PermissionStore(),
-            defaults: defaults
-        )
-
-        XCTAssertFalse(firstModel.developerMode)
-
-        firstModel.developerMode = true
-
-        let restoredModel = BrowserAppModel(
-            keyStore: InMemoryKeyStore(cryptoProvider: StubCryptoProvider()),
-            cryptoProvider: StubCryptoProvider(),
-            nip07PermissionStore: InMemoryNIP07PermissionStore(),
-            defaults: defaults
-        )
-
-        XCTAssertTrue(restoredModel.developerMode)
+        XCTAssertEqual(policy.decision(for: URL(string: "https://nos.trustroots.org/")), .allow)
+        XCTAssertEqual(policy.decision(for: URL(string: "https://example.com/")), .allow)
+        XCTAssertEqual(policy.decision(for: URL(string: "mailto:hello@example.com")), .openExternally)
     }
 
     func testNIP07PermissionPolicyAutoAllowsTrustrootsAndHitchwikiOnly() {

@@ -17,7 +17,7 @@ end
 def configure_app_target(target)
   target.build_configurations.each do |config|
     settings = config.build_settings
-    settings["PRODUCT_NAME"] = "Nostroots Browser"
+    settings["PRODUCT_NAME"] = "Nostroots iOS"
     settings["PRODUCT_MODULE_NAME"] = "NostrootsBrowser"
     settings["PRODUCT_BUNDLE_IDENTIFIER"] = "org.trustroots.nostroots.browser"
     settings["INFOPLIST_FILE"] = "NostrootsBrowserApp/Info.plist"

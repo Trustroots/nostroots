@@ -1,6 +1,6 @@
-# Nostroots Browser iOS
+# Nostroots iOS
 
-Native SwiftUI + `WKWebView` app for Nostroots Browser.
+Native SwiftUI + `WKWebView` app for Nostroots iOS.
 
 ```bash
 ruby scripts/generate_xcodeproj.rb

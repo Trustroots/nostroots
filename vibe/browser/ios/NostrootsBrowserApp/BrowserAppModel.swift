@@ -13,11 +13,6 @@ struct NIP07PermissionPrompt: Identifiable {
 @MainActor
 final class BrowserAppModel: ObservableObject {
     @Published private(set) var hasKey = false
-    @Published var developerMode = false {
-        didSet {
-            defaults.set(developerMode, forKey: developerModeKey)
-        }
-    }
     @Published var currentURLString = NRConstants.nostrootsURL.absoluteString
     @Published var keyImportText = ""
     @Published var errorMessage: String?
@@ -29,24 +24,17 @@ final class BrowserAppModel: ObservableObject {
     let cryptoProvider: NostrCryptoProviding
     let nip07PermissionStore: NIP07PermissionStoring
     let pushNotifications: VibePushNotificationManager
-    private let defaults: UserDefaults
-    private let developerModeKey: String
 
     init(
         keyStore: KeyStore = KeychainKeyStore(),
         cryptoProvider: NostrCryptoProviding = CryptoProviderFactory.makeDefaultProvider(),
         nip07PermissionStore: NIP07PermissionStoring = NIP07PermissionStore(),
-        pushNotifications: VibePushNotificationManager = .shared,
-        defaults: UserDefaults = .standard,
-        developerModeKey: String = "nostroots.browser.developerMode"
+        pushNotifications: VibePushNotificationManager = .shared
     ) {
         self.keyStore = keyStore
         self.cryptoProvider = cryptoProvider
         self.nip07PermissionStore = nip07PermissionStore
         self.pushNotifications = pushNotifications
-        self.defaults = defaults
-        self.developerModeKey = developerModeKey
-        self.developerMode = defaults.bool(forKey: developerModeKey)
         self.pushNotifications.configure(keyStore: keyStore, cryptoProvider: cryptoProvider)
         refreshKeyStatus()
     }

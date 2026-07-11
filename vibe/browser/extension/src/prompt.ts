@@ -1,6 +1,8 @@
 import { isKnownNip07Method, MESSAGE_SOURCE_PROMPT, nip07MethodLabel, type Nip07Method } from "./shared/constants";
 import { extensionApi } from "./shared/extension-api";
+import { npubFromPublicKey, publicKeyFromPrivateKey } from "./shared/keys";
 import { hostForOrigin } from "./shared/origins";
+import { readPrivateKeyHex } from "./shared/storage";
 
 type Decision = "allow_once" | "always_allow_method" | "always_allow_all" | "deny";
 
@@ -16,9 +18,9 @@ renderDetail(methods);
 
 const previewElement = mustElement("preview");
 if (preview) {
-  renderPreview(previewElement, method, preview);
+  void renderPreview(previewElement, method, preview);
 } else {
-  renderPreview(previewElement, method);
+  void renderPreview(previewElement, method);
 }
 
 bindDecision("allow-once", "allow_once");
@@ -83,8 +85,8 @@ function isPromptUpdate(message: unknown): message is {
   );
 }
 
-function renderPreview(container: HTMLElement, method: string, rawPreview = ""): void {
-  const summary = summarizeRequest(method, rawPreview);
+async function renderPreview(container: HTMLElement, method: string, rawPreview = ""): Promise<void> {
+  const summary = await summarizeRequest(method, rawPreview);
   container.textContent = "";
 
   const title = document.createElement("strong");
@@ -101,22 +103,30 @@ function renderPreview(container: HTMLElement, method: string, rawPreview = ""):
       const term = document.createElement("dt");
       term.textContent = label;
       const definition = document.createElement("dd");
-      definition.textContent = value;
+      if (label === "Public address") {
+        const address = document.createElement("code");
+        address.textContent = value;
+        definition.append(address);
+      } else {
+        definition.textContent = value;
+      }
       list.append(term, definition);
     }
     container.append(list);
   }
 }
 
-function summarizeRequest(
+async function summarizeRequest(
   method: string,
   rawPreview: string,
-): { title: string; description: string; details: Array<[string, string]> } {
+): Promise<{ title: string; description: string; details: Array<[string, string]> }> {
   if (method === "getPublicKey") {
+    const privateKeyHex = await readPrivateKeyHex();
+    const npub = privateKeyHex ? npubFromPublicKey(publicKeyFromPrivateKey(privateKeyHex)) : "";
     return {
       title: "Share your public address",
       description: "This lets the site know which Nostr profile you want to use.",
-      details: [],
+      details: npub ? [["Public address", npub]] : [],
     };
   }
 

@@ -96,14 +96,27 @@ test("NIP-07 provider signs on trusted origins and prompts unknown origins", asy
       page.url().startsWith(`chrome-extension://${extensionId}/prompt.html`),
     );
     await expect(prompt.getByText("Share public address")).toBeVisible();
+    await expect(prompt.getByText(/^npub1/)).toBeVisible();
     await expect(prompt.getByText("Sign events")).toBeVisible();
     await prompt.waitForTimeout(300);
     expect(
       context.pages().filter((page) => page.url().startsWith(`chrome-extension://${extensionId}/prompt.html`)),
     ).toHaveLength(1);
+    await expect(prompt.getByRole("button", { name: "Deny" })).toBeVisible();
     await expect(prompt.getByRole("button", { name: "Allow once" })).toBeVisible();
     await expect(prompt.getByRole("button", { name: "Always allow these actions" })).toBeVisible();
     await expect(prompt.getByRole("button", { name: "Always allow everything" })).toBeVisible();
+    await expect(prompt.locator(".actions button")).toHaveText([
+      "Deny",
+      "Allow once",
+      "Always allow these actions",
+      "Always allow everything",
+    ]);
+    expect(
+      await prompt.locator(".actions button").evaluateAll((buttons) =>
+        buttons.every((button) => button.getBoundingClientRect().bottom <= window.innerHeight),
+      ),
+    ).toBe(true);
     await prompt.getByRole("button", { name: "Always allow these actions" }).click();
     const [, signedUnknown] = (await requestingMultipleActions) as [string, { id: string }];
     expect(signedUnknown).toHaveProperty("id");

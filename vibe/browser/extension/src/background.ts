@@ -197,7 +197,7 @@ async function requestPermission(origin: string, method: Nip07Method, params: un
 }
 
 async function openPermissionPrompt(prompt: PendingPrompt, method: Nip07Method, preview: string): Promise<void> {
-  const position = await centeredPromptPosition(460, 460);
+  const position = await centeredPromptPosition(520, 580);
   const query = new URLSearchParams({
     promptId: prompt.promptId,
     origin: prompt.origin,
@@ -210,8 +210,8 @@ async function openPermissionPrompt(prompt: PendingPrompt, method: Nip07Method, 
     .create({
       url: extensionApi.runtime.getURL(`prompt.html?${query.toString()}`),
       type: "popup",
-      width: 460,
-      height: 460,
+      width: 520,
+      height: 580,
       left: position.left,
       top: position.top,
     })

@@ -249,7 +249,7 @@ allowing them to share Vibe protocol conventions.
 - **AND** selecting the active wiki switcher while on one of its subpages MUST
   return the user to that wiki's main page.
 
-#### Scenario: Wikistr Nomadwiki edit link
+#### Scenario: Wikistr edit links
 
 - **GIVEN** a user opens Wikistr on a Nomadwiki page with a linked Trustroots
   NIP-05 identity (`*@trustroots.org`)
@@ -259,8 +259,10 @@ allowing them to share Vibe protocol conventions.
   `Special:NostrLogin` with a `returnto` query for the current page and
   `returntoquery=action%3Dedit` (percent-encoded, not a raw `=`)
 - **AND** on the Nomadwiki main page the `returnto` value MUST be `Main Page`
-- **AND** the Edit control MUST stay hidden for other wikis or when no Trustroots
-  identity is linked.
+- **AND** the Edit control MUST stay hidden on Nomadwiki when no Trustroots
+  identity is linked
+- **AND** Trashwiki and Trustroots wiki MUST show an Edit control that opens
+  their canonical page `action=edit` URL in a new tab.
 
 #### Scenario: Wikistr redirects and missing pages
 
@@ -272,6 +274,14 @@ allowing them to share Vibe protocol conventions.
   URL instead of a relative `/index.php` URL on the Wikistr static site.
 - **AND** a linked Nomadwiki identity MUST use the existing `Special:NostrLogin`
   edit route for that missing page.
+
+#### Scenario: Wikistr protected images
+
+- **GIVEN** a rendered wiki page includes same-wiki image resources
+- **THEN** Wikistr MUST load publicly available images directly
+- **AND** if a direct image request fails, it MUST retry through the selected
+  proxy with NIP-98 authorization and render the returned image data locally,
+  so Cloudflare-protected sources such as Trashwiki can remain visible.
 
 #### Scenario: Radiostr social radio example
 

@@ -751,6 +751,17 @@
     }
   }
 
+  async function wikiFetchResource(requestURL) {
+    const headers = new Headers();
+    try {
+      await addWrapsterAuth(headers, requestURL);
+      const response = await fetch(requestURL, { headers, mode: 'cors', credentials: 'omit' });
+      return response.ok ? response : null;
+    } catch {
+      return null;
+    }
+  }
+
   function relayEvents(relay, filter, subID = 'wikistr-discovery') {
     return new Promise((resolve, reject) => {
       const events = [];
@@ -1046,6 +1057,7 @@
       return;
     }
     els.mainPageContent.innerHTML = rewriteWikiHTML(html);
+    hydrateWikiImages(els.mainPageContent);
   }
 
   async function loadRecentChanges() {
@@ -1152,6 +1164,23 @@
     return `${base}${separator}returntoquery=${NOMADWIKI_EDIT_RETURN_QUERY}`;
   }
 
+  function buildWikiEditHref(page = state.currentPage) {
+    const config = activeConfig();
+    if (!config) {
+      return '';
+    }
+    if (config.slug === 'nomadwiki') {
+      return hasLinkedTrustrootsIdentity() ? buildNomadwikiEditHref(page) : '';
+    }
+    if (!['trashwiki', 'trustroots-wiki'].includes(config.slug)) {
+      return '';
+    }
+    return buildWikiUrl(config.wikiLoadPath, {
+      title: page || config.wikiMainPageTitle,
+      action: 'edit'
+    }, false);
+  }
+
   function syncCardTitleRow() {
     const row = els.mainPageHeading?.closest('.card-title');
     if (!row) {
@@ -1162,18 +1191,11 @@
     row.hidden = !headingVisible && !editVisible;
   }
 
-  function syncNomadwikiEditButton() {
+  function syncWikiEditButton() {
     if (!els.nomadwikiEdit) {
       return;
     }
-    const config = activeConfig();
-    const show = config?.slug === 'nomadwiki' && hasLinkedTrustrootsIdentity();
-    if (!show) {
-      els.nomadwikiEdit.hidden = true;
-      syncCardTitleRow();
-      return;
-    }
-    const href = buildNomadwikiEditHref();
+    const href = buildWikiEditHref();
     els.nomadwikiEdit.href = href;
     els.nomadwikiEdit.hidden = !href;
     syncCardTitleRow();
@@ -1185,7 +1207,7 @@
       return;
     }
     const observer = new MutationObserver(() => {
-      syncNomadwikiEditButton();
+      syncWikiEditButton();
     });
     observer.observe(identityStatus, { attributes: true, attributeFilter: ['data-state', 'hidden'] });
   }
@@ -1197,7 +1219,7 @@
     const visible = Boolean(title);
     els.mainPageHeading.hidden = !visible;
     els.mainPageHeading.textContent = visible ? title.replaceAll('_', ' ') : '';
-    syncNomadwikiEditButton();
+    syncWikiEditButton();
     syncCardTitleRow();
   }
 
@@ -1229,13 +1251,62 @@
     for (const img of template.content.querySelectorAll('img[src]')) {
       const src = normalizeWikiResourceUrl(img.getAttribute('src'));
       if (src) {
-        img.setAttribute('src', proxiedWikiResourceUrl(src));
+        img.setAttribute('src', src);
+        img.dataset.wikistrProxySrc = proxiedWikiResourceUrl(src);
       }
       if (img.hasAttribute('srcset')) {
-        img.setAttribute('srcset', normalizeWikiSrcset(img.getAttribute('srcset'), true));
+        img.setAttribute('srcset', normalizeWikiSrcset(img.getAttribute('srcset')));
       }
     }
     return template.innerHTML;
+  }
+
+  function hydrateWikiImages(container) {
+    if (!container) {
+      return;
+    }
+    for (const image of container.querySelectorAll('img[data-wikistr-proxy-src]')) {
+      const loadFromProxy = () => {
+        if (image.dataset.wikistrProxyAttempted) {
+          return;
+        }
+        image.dataset.wikistrProxyAttempted = 'true';
+        void loadWikiImageFromProxy(container, image);
+      };
+      image.addEventListener('error', loadFromProxy, { once: true });
+      if (image.complete && !image.naturalWidth) {
+        loadFromProxy();
+      }
+    }
+  }
+
+  async function loadWikiImageFromProxy(container, image) {
+    if (typeof URL.createObjectURL !== 'function') {
+      return;
+    }
+    const response = await wikiFetchResource(image.dataset.wikistrProxySrc);
+    if (!response) {
+      return;
+    }
+    let objectUrl = '';
+    try {
+      objectUrl = URL.createObjectURL(await response.blob());
+      if (!container.contains(image)) {
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
+      const oldObjectUrl = image.dataset.wikistrObjectUrl;
+      image.removeAttribute('srcset');
+      image.src = objectUrl;
+      image.dataset.wikistrObjectUrl = objectUrl;
+      if (oldObjectUrl) {
+        URL.revokeObjectURL(oldObjectUrl);
+      }
+    } catch {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    }
   }
 
   function normalizeWikiResourceUrl(value) {
@@ -1595,6 +1666,7 @@
     buildMainPageRenderURL,
     buildMainPageTitleFromPath,
     buildNomadwikiEditHref,
+    buildWikiEditHref,
     buildWikiRedLinkHref,
     buildProxyIndex,
     buildWikiApiURLWithQuery,
@@ -1648,6 +1720,7 @@
     toWikiAPITimestamp,
     truncateForDisplay,
     wikiFetchJSON,
+    wikiFetchResource,
     wikiPageTitleFromUrl,
     wikiRedLinkTitleFromUrl
   }, TEST_MODE ? {

@@ -508,7 +508,7 @@ test('builds proxied API and render URLs from the active advert config', () => {
 });
 
 test('builds Nomadwiki edit links via Special:NostrLogin with edit returntoquery', () => {
-  const { app } = loadApp('http://localhost:8788/#nomadwiki');
+  const { app, elements } = loadApp('http://localhost:8788/#nomadwiki');
   const [config] = app.buildWikiConfigs([wikiAdvert(), proxyAdvert()]);
 
   app.setActiveWikiForTest(config, '');
@@ -536,6 +536,25 @@ test('builds Nomadwiki edit links via Special:NostrLogin with edit returntoquery
   const hitchConfig = app.buildWikiConfig('hitchwiki');
   app.setActiveWikiForTest(hitchConfig, 'Main_Page');
   assert.equal(app.buildNomadwikiEditHref('Main_Page'), '');
+
+  app.setActiveWikiForTest(config, 'Bargaining');
+  assert.equal(app.buildWikiEditHref('Bargaining'), '');
+  elements.get('trustroots-identity-status').dataset.state = 'connected';
+  assert.match(app.buildWikiEditHref('Bargaining'), /title=Special%3ANostrLogin/);
+
+  const [trashConfig] = app.buildWikiConfigs([
+    wikiAdvert({ d: 'wiki:trashwiki', title: 'Trashwiki', origin: 'https://trashwiki.org', proxy_route: 'trashwiki.org' }),
+    proxyAdvert({ proxy_route: 'trashwiki.org' })
+  ]);
+  app.setActiveWikiForTest(trashConfig, 'Reuse');
+  assert.equal(app.buildWikiEditHref(), 'https://trashwiki.org/index.php?title=Reuse&action=edit');
+
+  const [trustrootsConfig] = app.buildWikiConfigs([
+    wikiAdvert({ d: 'wiki:trustroots-wiki', title: 'Trustroots wiki', origin: 'https://wiki.trustroots.org', proxy_route: 'wiki.trustroots.org' }),
+    proxyAdvert({ proxy_route: 'wiki.trustroots.org' })
+  ]);
+  app.setActiveWikiForTest(trustrootsConfig, 'Hosting');
+  assert.equal(app.buildWikiEditHref(), 'https://wiki.trustroots.org/index.php?title=Hosting&action=edit');
 });
 
 test('keeps proxied resource URL helper for non-image callers', () => {
@@ -651,6 +670,27 @@ test('signs NIP-98 requests against the exact proxied URL', async () => {
   assert.deepEqual(event.tags, [['u', requestURL], ['method', 'POST']]);
   assert.equal(event.pubkey, 'pubkey');
   assert.equal(event.sig, 'signature');
+});
+
+test('fetches proxy-fallback images with NIP-98 authorization', async () => {
+  const requests = [];
+  const { app } = loadApp('http://localhost:8788/index.html', {
+    nostr: {
+      signEvent: async (event) => ({ ...event, id: 'event-id', pubkey: 'pubkey', sig: 'signature' })
+    },
+    fetch: async (url, init) => {
+      requests.push({ url, authorization: init.headers.get('Authorization') });
+      return { ok: true, blob: async () => ({}) };
+    }
+  });
+  const imageURL = 'https://relay.guaka.org/proxy/trashwiki.org/images/reuse.png';
+
+  const response = await app.wikiFetchResource(imageURL);
+
+  assert.ok(response);
+  assert.equal(requests.length, 1);
+  assert.equal(requests[0].url, imageURL);
+  assert.match(requests[0].authorization, /^Nostr /);
 });
 
 test('uses NIP-42 relay auth when a relay requests it', async () => {

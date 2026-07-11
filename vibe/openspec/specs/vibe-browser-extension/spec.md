@@ -43,7 +43,15 @@ access through per-origin approvals.
 
 - **GIVEN** an origin outside the trusted Trustroots set requests access
 - **WHEN** there is no remembered approval
-- **THEN** the extension MUST offer allow-once, always-allow, or deny choices.
+- **THEN** the extension MUST show every allow-once, always-allow, and deny
+  choice without clipping
+- **AND** it MUST place the Deny choice before the allow choices.
+
+#### Scenario: Public-address confirmation
+
+- **GIVEN** an origin requests the active key's public address
+- **WHEN** the origin prompt is shown
+- **THEN** it MUST show the exact active `npub` that will be shared.
 
 #### Scenario: Key replacement clears approvals
 

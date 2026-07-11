@@ -44,6 +44,8 @@ def configure_test_target(target)
     settings["CODE_SIGNING_REQUIRED"] = "NO"
     settings["CODE_SIGN_IDENTITY"] = ""
     settings["GENERATE_INFOPLIST_FILE"] = "YES"
+    settings["TEST_HOST"] = "$(BUILT_PRODUCTS_DIR)/Nostroots iOS.app/Nostroots iOS"
+    settings["BUNDLE_LOADER"] = "$(TEST_HOST)"
   end
 end
 

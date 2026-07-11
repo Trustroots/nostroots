@@ -98,6 +98,24 @@ final class NostrootsBrowserTests: XCTestCase {
         XCTAssertEqual(policy.decision(for: URL(string: "mailto:hello@example.com")), .openExternally)
     }
 
+    func testNostrootsWebRequestRevalidatesCachedContent() {
+        let request = NativeBrowserWebView.webRequest(
+            for: URL(string: "https://nos.trustroots.org/")!
+        )
+
+        XCTAssertEqual(request.cachePolicy, .reloadIgnoringLocalCacheData)
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Cache-Control"), "no-cache")
+    }
+
+    func testExternalWebRequestKeepsDefaultCaching() {
+        let request = NativeBrowserWebView.webRequest(
+            for: URL(string: "https://example.com/")!
+        )
+
+        XCTAssertEqual(request.cachePolicy, .useProtocolCachePolicy)
+        XCTAssertNil(request.value(forHTTPHeaderField: "Cache-Control"))
+    }
+
     func testNIP07PermissionPolicyAutoAllowsTrustrootsAndHitchwikiOnly() {
         let policy = NIP07PermissionPolicy()
 

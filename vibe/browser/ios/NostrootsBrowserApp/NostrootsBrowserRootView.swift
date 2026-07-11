@@ -13,7 +13,10 @@ struct NostrootsBrowserRootView: View {
             }
         }
         .sheet(isPresented: $showingSettings) {
-            SettingsView(model: model)
+            SettingsView(model: model) { url in
+                model.loadURL(url)
+                showingSettings = false
+            }
                 .presentationDragIndicator(.visible)
         }
     }
@@ -196,7 +199,7 @@ private struct BrowserHeader: View {
                 Image("Logo67")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 40, height: 40)
+                    .frame(width: 38, height: 38)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .accessibilityLabel("Open Nostroots")
@@ -207,13 +210,14 @@ private struct BrowserHeader: View {
                 Image(systemName: "gearshape")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.white)
-                    .frame(width: 40, height: 40)
+                    .frame(width: 38, height: 38)
             }
             .accessibilityLabel("Settings")
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 8)
-        .frame(height: 68, alignment: .top)
+        .padding(.leading, 28)
+        .padding(.trailing, 20)
+        .padding(.vertical, 9)
+        .frame(height: 56)
         .background(Color(red: 0.05, green: 0.68, blue: 0.55))
     }
 }

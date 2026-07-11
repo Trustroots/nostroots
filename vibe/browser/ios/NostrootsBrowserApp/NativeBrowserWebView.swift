@@ -48,11 +48,12 @@ struct NativeBrowserWebView: UIViewRepresentable {
 
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
         webView.customUserAgent = "NostrootsBrowser/1.0 iOS-native"
         webView.allowsBackForwardNavigationGestures = true
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.delegate = context.coordinator
-        webView.load(URLRequest(url: url))
+        webView.load(Self.webRequest(for: url))
         context.coordinator.webView = webView
         context.coordinator.lastReloadID = reloadID
         context.coordinator.lastScrollY = webView.scrollView.contentOffset.y
@@ -62,9 +63,19 @@ struct NativeBrowserWebView: UIViewRepresentable {
     func updateUIView(_ webView: WKWebView, context: Context) {
         if context.coordinator.lastReloadID != reloadID {
             context.coordinator.lastReloadID = reloadID
-            webView.load(URLRequest(url: url))
+            webView.load(Self.webRequest(for: url))
         }
         context.coordinator.openPendingNotificationPlusCodeIfNeeded()
+    }
+
+    static func webRequest(for url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
+        guard url.host?.lowercased() == "nos.trustroots.org" else {
+            return request
+        }
+        request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.setValue("no-cache", forHTTPHeaderField: "Cache-Control")
+        return request
     }
 
     static let injectedNostrScript = """
@@ -162,7 +173,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
     })();
     """
 
-    final class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler, UIScrollViewDelegate {
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, UIScrollViewDelegate {
         weak var webView: WKWebView?
         var lastReloadID: UUID?
         var lastScrollY: CGFloat = 0
@@ -259,6 +270,26 @@ struct NativeBrowserWebView: UIViewRepresentable {
             case .cancel:
                 decisionHandler(.cancel)
             }
+        }
+
+        func webView(
+            _ webView: WKWebView,
+            createWebViewWith configuration: WKWebViewConfiguration,
+            for navigationAction: WKNavigationAction,
+            windowFeatures: WKWindowFeatures
+        ) -> WKWebView? {
+            guard navigationAction.targetFrame == nil else { return nil }
+            guard let url = navigationAction.request.url else { return nil }
+
+            switch policy.decision(for: url) {
+            case .allow:
+                webView.load(NativeBrowserWebView.webRequest(for: url))
+            case .openExternally:
+                UIApplication.shared.open(url)
+            case .cancel:
+                break
+            }
+            return nil
         }
 
         func scrollViewDidScroll(_ scrollView: UIScrollView) {

@@ -103,6 +103,10 @@ final class BrowserAppModel: ObservableObject {
             errorMessage = "Enter a web address."
             return
         }
+        loadURL(url)
+    }
+
+    func loadURL(_ url: URL) {
         currentURLString = url.absoluteString
         reloadWebView()
     }

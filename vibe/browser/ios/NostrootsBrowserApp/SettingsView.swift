@@ -3,6 +3,7 @@ import UIKit
 
 struct SettingsView: View {
     @ObservedObject var model: BrowserAppModel
+    let openInBrowser: (URL) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var showingNsec = false
     @State private var confirmingRemoval = false
@@ -39,7 +40,7 @@ struct SettingsView: View {
                         )
                     }
 
-                    NIP07PermissionsSection(model: model)
+                    NIP07PermissionsSection(model: model, openInBrowser: openInBrowser)
 
                     PushNotificationsSection(manager: model.pushNotifications)
 
@@ -160,6 +161,7 @@ private struct PushNotificationsSection: View {
 
 private struct NIP07PermissionsSection: View {
     @ObservedObject var model: BrowserAppModel
+    let openInBrowser: (URL) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -179,9 +181,13 @@ private struct NIP07PermissionsSection: View {
             } else {
                 VStack(spacing: 0) {
                     ForEach(model.nip07PermissionEntries) { entry in
-                        NIP07PermissionRow(entry: entry) {
-                            model.revokeNIP07Permission(origin: entry.origin)
-                        }
+                        NIP07PermissionRow(
+                            entry: entry,
+                            openInBrowser: openInBrowser,
+                            revoke: {
+                                model.revokeNIP07Permission(origin: entry.origin)
+                            }
+                        )
                         if entry.id != model.nip07PermissionEntries.last?.id {
                             Divider()
                                 .padding(.leading, 44)
@@ -198,6 +204,7 @@ private struct NIP07PermissionsSection: View {
 
 private struct NIP07PermissionRow: View {
     let entry: NIP07PermissionEntry
+    let openInBrowser: (URL) -> Void
     let revoke: () -> Void
 
     var body: some View {
@@ -217,12 +224,15 @@ private struct NIP07PermissionRow: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 if let originURL = URL(string: entry.origin) {
-                    Link(destination: originURL) {
+                    Button {
+                        openInBrowser(originURL)
+                    } label: {
                         Text(entry.origin)
                             .font(.caption.monospaced())
                             .lineLimit(1)
                             .truncationMode(.middle)
                     }
+                    .buttonStyle(.plain)
                     .foregroundStyle(.tint)
                     .accessibilityLabel("Open \(entry.origin)")
                 } else {

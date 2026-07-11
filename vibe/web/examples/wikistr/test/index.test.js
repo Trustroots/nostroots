@@ -244,6 +244,7 @@ test('static shell is backend-free, Pages-safe, and public-source linked', () =>
   assert.match(html, /id="build-time"/);
   assert.match(html, /id="nostr-key-status"/);
   assert.match(html, /id="trustroots-identity-status"/);
+  assert.match(html, /id="nomadwiki-edit-link"/);
   assert.match(html, /wss:\/\/relay\.trustroots\.org/);
   assert.doesNotMatch(html, /id="status"/);
   assert.doesNotMatch(html, /id="reload-wikis"/);
@@ -476,6 +477,37 @@ test('builds proxied API and render URLs from the active advert config', () => {
   assert.equal(render.searchParams.get('title'), 'en/Lisbon');
 
   assert.equal(app.surfacePageHref('Another Page'), '#nomadwiki/Another%20Page');
+});
+
+test('builds Nomadwiki edit links via Special:NostrLogin with edit returntoquery', () => {
+  const { app } = loadApp('http://localhost:8788/#nomadwiki');
+  const [config] = app.buildWikiConfigs([wikiAdvert(), proxyAdvert()]);
+
+  app.setActiveWikiForTest(config, '');
+  assert.equal(app.isViewingMainPage(config, ''), true);
+  assert.equal(app.isViewingMainPage(config, 'Main_Page'), true);
+
+  const mainEdit = app.buildNomadwikiEditHref('');
+  assert.match(mainEdit, /^https:\/\/nomadwiki\.org\/index\.php\?/);
+  assert.match(mainEdit, /title=Special%3ANostrLogin/);
+  assert.match(mainEdit, /returnto=Main\+Page/);
+  assert.match(mainEdit, /returntoquery=action%3Dedit(?:&|$)/);
+  assert.doesNotMatch(mainEdit, /returntoquery=action=edit/);
+
+  app.setActiveWikiForTest(config, 'en/Lisbon Guide');
+  const pageEdit = app.buildNomadwikiEditHref('en/Lisbon Guide');
+  assert.match(pageEdit, /returnto=en%2FLisbon\+Guide/);
+  assert.match(pageEdit, /returntoquery=action%3Dedit(?:&|$)/);
+
+  app.setActiveWikiForTest(config, 'Bargaining');
+  const bargainEdit = app.buildNomadwikiEditHref('Bargaining');
+  assert.match(bargainEdit, /returnto=Bargaining(?:&|$)/);
+  assert.doesNotMatch(bargainEdit, /returnto=Main\+Page/);
+  assert.equal(app.NOMADWIKI_EDIT_RETURN_QUERY, 'action%3Dedit');
+
+  const hitchConfig = app.buildWikiConfig('hitchwiki');
+  app.setActiveWikiForTest(hitchConfig, 'Main_Page');
+  assert.equal(app.buildNomadwikiEditHref('Main_Page'), '');
 });
 
 test('keeps proxied resource URL helper for non-image callers', () => {

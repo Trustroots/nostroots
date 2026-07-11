@@ -189,6 +189,26 @@
       letter-spacing: 0;
     }
 
+    .page-edit-link {
+      flex: 0 0 auto;
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      background: var(--accent-soft);
+      color: var(--accent-dark);
+      font-size: 0.88rem;
+      font-weight: 700;
+      line-height: 1;
+      padding: 7px 11px;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .page-edit-link:hover,
+    .page-edit-link:focus-visible {
+      background: #dff3e8;
+      color: var(--accent-dark);
+    }
+
     a {
       color: var(--accent);
     }
@@ -378,6 +398,14 @@
       <section class="card">
         <div class="card-title" hidden>
           <h2 id="main-page-heading" hidden></h2>
+          <a
+            id="nomadwiki-edit-link"
+            class="page-edit-link"
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+            hidden
+          >Edit</a>
         </div>
         <div id="main-page-content" class="main-page-content" aria-live="polite">
           Discovering public wiki adverts...

@@ -94,6 +94,7 @@
     recentChanges: document.getElementById('recent-changes'),
     mainPageHeading: document.getElementById('main-page-heading'),
     mainPageContent: document.getElementById('main-page-content'),
+    nomadwikiEdit: document.getElementById('nomadwiki-edit-link'),
     buildTime: document.getElementById('build-time')
   };
 
@@ -113,6 +114,7 @@
   const NOSTROOTS_ANDROID_URL = 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots';
   const NOSTROOTS_IOS_URL = 'https://apps.apple.com/app/nostroots/id6755037304';
   const NOSTROOTS_EXTENSION_URL = 'https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf';
+  const NOMADWIKI_EDIT_RETURN_QUERY = 'action%3Dedit';
 
   function tagValue(event, name) {
     const tag = (event.tags || []).find((item) => Array.isArray(item) && item[0] === name && item[1]);
@@ -962,6 +964,7 @@
     state.activeWiki = nextWiki;
     state.currentPage = page || '';
     renderWikiSwitcher();
+    syncMainPageHeading(state.currentPage || nextWiki.wikiMainPageTitle);
     if (wikiChanged) {
       await loadSurfaceData();
     } else {
@@ -1098,6 +1101,84 @@
     ].join('');
   }
 
+  function hasLinkedTrustrootsIdentity() {
+    const identityStatus = document.getElementById('trustroots-identity-status');
+    return Boolean(identityStatus && identityStatus.dataset.state === 'connected');
+  }
+
+  function isViewingMainPage(config, page = state.currentPage) {
+    const current = String(page || '').trim();
+    if (!current) {
+      return true;
+    }
+    const mainTitle = String(config?.wikiMainPageTitle || 'Main_Page');
+    if (current === mainTitle) {
+      return true;
+    }
+    return current.replace(/\s+/g, '_') === mainTitle.replace(/\s+/g, '_');
+  }
+
+  function nomadwikiEditReturnTitle(config, page = state.currentPage) {
+    if (isViewingMainPage(config, page)) {
+      return 'Main Page';
+    }
+    return String(page).replace(/_/g, ' ');
+  }
+
+  function buildNomadwikiEditHref(page = state.currentPage) {
+    const config = activeConfig();
+    if (!config || config.slug !== 'nomadwiki') {
+      return '';
+    }
+    const base = buildWikiUrl(config.wikiLoadPath, {
+      title: 'Special:NostrLogin',
+      returnto: nomadwikiEditReturnTitle(config, page)
+    }, false);
+    if (!base) {
+      return '';
+    }
+    const separator = base.includes('?') ? '&' : '?';
+    return `${base}${separator}returntoquery=${NOMADWIKI_EDIT_RETURN_QUERY}`;
+  }
+
+  function syncCardTitleRow() {
+    const row = els.mainPageHeading?.closest('.card-title');
+    if (!row) {
+      return;
+    }
+    const headingVisible = Boolean(els.mainPageHeading && !els.mainPageHeading.hidden);
+    const editVisible = Boolean(els.nomadwikiEdit && !els.nomadwikiEdit.hidden);
+    row.hidden = !headingVisible && !editVisible;
+  }
+
+  function syncNomadwikiEditButton() {
+    if (!els.nomadwikiEdit) {
+      return;
+    }
+    const config = activeConfig();
+    const show = config?.slug === 'nomadwiki' && hasLinkedTrustrootsIdentity();
+    if (!show) {
+      els.nomadwikiEdit.hidden = true;
+      syncCardTitleRow();
+      return;
+    }
+    const href = buildNomadwikiEditHref();
+    els.nomadwikiEdit.href = href;
+    els.nomadwikiEdit.hidden = !href;
+    syncCardTitleRow();
+  }
+
+  function watchTrustrootsIdentityForEdit() {
+    const identityStatus = document.getElementById('trustroots-identity-status');
+    if (!identityStatus) {
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      syncNomadwikiEditButton();
+    });
+    observer.observe(identityStatus, { attributes: true, attributeFilter: ['data-state', 'hidden'] });
+  }
+
   function syncMainPageHeading(title) {
     if (!els.mainPageHeading) {
       return;
@@ -1105,10 +1186,8 @@
     const visible = Boolean(title);
     els.mainPageHeading.hidden = !visible;
     els.mainPageHeading.textContent = visible ? title.replaceAll('_', ' ') : '';
-    const row = els.mainPageHeading.closest('.card-title');
-    if (row) {
-      row.hidden = !visible;
-    }
+    syncNomadwikiEditButton();
+    syncCardTitleRow();
   }
 
   function rewriteWikiHTML(html) {
@@ -1400,6 +1479,7 @@
   }
 
   async function initialize() {
+    watchTrustrootsIdentityForEdit();
     loadBuildInfo();
     setStatus('Discovering public wiki adverts...');
     const configs = await discoverAdverts();
@@ -1437,11 +1517,13 @@
   window.Wikistr = Object.freeze(Object.assign({
     SERVICE_ADVERT_KIND,
     DEFAULT_RELAYS,
+    NOMADWIKI_EDIT_RETURN_QUERY,
     addWrapsterAuth,
     addressForAdvert,
     buildMainPageParseURL,
     buildMainPageRenderURL,
     buildMainPageTitleFromPath,
+    buildNomadwikiEditHref,
     buildProxyIndex,
     buildWikiApiURLWithQuery,
     buildWikiConfig,
@@ -1460,8 +1542,10 @@
     formatMissingSignerHelpHTML,
     formatMissingSignerHelpText,
     formatWikiFetchError,
+    hasLinkedTrustrootsIdentity,
     isMissingSignerWikiError,
     isServiceAdvert,
+    isViewingMainPage,
     loadCachedServiceAdverts,
     loadBuildInfo,
     makePageLink,

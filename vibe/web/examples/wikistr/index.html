@@ -5,6 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; connect-src 'self' https: wss://relay.guaka.org wss://relay.trustroots.org wss://nip42.trustroots.org; font-src 'self'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
+  <script>
+    if (
+      navigator.userAgent.indexOf("NostrootsBrowser/") !== -1 ||
+      (window.nostr && window.nostr.__nostrootsBrowser === true) ||
+      window.__nostrootsNip7Installed === true
+    ) {
+      document.documentElement.classList.add("is-in-nostroots-browser");
+    }
+  </script>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22%3E%3Crect width=%2264%22 height=%2264%22 rx=%2212%22 fill=%22%232f855a%22/%3E%3Cpath d=%22M15 18h6l5 24 6-24h5l6 24 5-24h6l-8 32h-6l-6-22-6 22h-6z%22 fill=%22white%22/%3E%3C/svg%3E">
   <link rel="stylesheet" href="../../site-chrome.css">
   <title>wikistr</title>
@@ -136,6 +145,10 @@
 
     .wiki-switcher:empty {
       min-height: 0;
+    }
+
+    html.is-in-nostroots-browser .header-brand {
+      display: none;
     }
 
     .wiki-switch-btn.active {
@@ -282,15 +295,40 @@
     @media (max-width: 900px) {
       .shell {
         width: 100%;
-        padding: 12px;
+        padding: 8px 0 28px;
       }
 
       .hero {
-        padding: 0;
+        padding: 0 8px;
       }
 
       .content-columns {
         grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .content-columns > .card {
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+      }
+
+      .wiki-switcher {
+        flex-wrap: nowrap;
+        gap: 4px;
+        width: 100%;
+      }
+
+      .wiki-switcher button {
+        flex: 1 1 0;
+        min-width: 0;
+        min-height: 38px;
+        padding: 7px 2px;
+        font-size: clamp(0.58rem, 2.45vw, 0.82rem);
+        letter-spacing: -0.025em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
     }
 

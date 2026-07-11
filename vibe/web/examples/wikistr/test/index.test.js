@@ -236,6 +236,8 @@ test('static shell is backend-free, Pages-safe, and public-source linked', () =>
   assert.match(html, /<script src="\.\.\/\.\.\/site-chrome-identity\.js"><\/script>/);
   assert.match(html, /href="\.\.\/\.\.\/"/);
   assert.match(html, /class="header-title"><a href="\/examples\/wikistr\/#trustroots-wiki\/Wikistr"><span>Wikistr<\/span><\/a><\/h1>/);
+  assert.match(html, /html\.is-in-nostroots-browser \.header-brand/);
+  assert.match(html, /\.wiki-switcher \{\s*flex-wrap: nowrap;/);
   assert.match(html, /content: "★"/);
   assert.match(html, /aria-label="Android"/);
   assert.match(html, /aria-label="iOS"/);

@@ -207,6 +207,15 @@ allowing them to share Vibe protocol conventions.
 - **THEN** each example MUST remain optional demo/fork material rather than a
   required current app surface.
 
+
+#### Scenario: Wikistr mobile layout
+
+- **GIVEN** a user opens Wikistr on a narrow/mobile viewport
+- **WHEN** its wiki switcher and content render
+- **THEN** the five wiki choices MUST remain on one horizontal row and the
+  content MUST use the available viewport width
+- **AND** when Wikistr runs inside Nostroots Browser, its in-page Logo 67
+  header link MUST be hidden.
 #### Scenario: Radiostr social radio example
 
 - **GIVEN** a user opens `/examples/radiostr/`

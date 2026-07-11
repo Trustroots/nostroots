@@ -367,6 +367,17 @@ a.status-pill {
     --hub-header-gap: 14px;
   }
 
+  .hub.hub {
+    min-height: calc(100dvh - var(--chrome-total-height));
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hub > .site-footer {
+    margin-top: auto;
+    padding-bottom: calc(15px + env(safe-area-inset-bottom));
+  }
+
   .header .identity-status {
     max-width: none;
     justify-content: flex-end;

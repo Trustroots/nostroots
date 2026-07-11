@@ -438,6 +438,31 @@ test('derives main page titles when adverts omit an explicit title tag', () => {
   assert.equal(config.wikiMainPageTitle, 'en/Welcome');
 });
 
+test('defaults to Nomadwiki when the hash route is empty', async () => {
+  const { app } = loadApp('http://localhost:8788/examples/wikistr/');
+  const configs = await app.discoverAdverts([]);
+
+  app.selectInitialWiki(configs);
+
+  assert.equal(app.state.activeWiki?.slug, 'nomadwiki');
+  assert.equal(app.DEFAULT_WIKI_SLUG, 'nomadwiki');
+});
+
+test('returns to the active wiki main page when its switcher is selected', async () => {
+  const { app } = loadApp('http://localhost:8788/#nomadwiki/Category%3AVisa', {
+    nostr: {
+      signEvent: async (event) => event
+    }
+  });
+  const [config] = app.buildWikiConfigs([wikiAdvert(), proxyAdvert()]);
+  app.setActiveWikiForTest(config, 'Category:Visa');
+
+  await app.switchWiki('nomadwiki');
+
+  assert.equal(app.state.activeWiki, config);
+  assert.equal(app.state.currentPage, '');
+});
+
 test('keeps route hashes stable from advert slugs', () => {
   const { app } = loadApp('http://localhost:8788/#nomadwiki/en/Lisbon%20Guide');
   const configs = app.buildWikiConfigs([wikiAdvert(), proxyAdvert()]);
@@ -471,6 +496,9 @@ test('builds proxied API and render URLs from the active advert config', () => {
   assert.equal(api.origin, 'https://relay.guaka.org');
   assert.equal(api.pathname, '/proxy/nomadwiki.org/api.php');
   assert.equal(api.searchParams.get('page'), 'en/Lisbon');
+
+  const parsed = new URL(app.buildMainPageParseURL(true));
+  assert.equal(parsed.searchParams.get('redirects'), '1');
 
   const render = new URL(app.buildMainPageRenderURL(true));
   assert.equal(render.pathname, '/proxy/nomadwiki.org/index.php');
@@ -563,8 +591,8 @@ test('normalizes safe wiki resources and rejects script-like resource URLs', () 
   );
 });
 
-test('extracts same-wiki article titles and rejects external or non-article links', () => {
-  const { app } = loadApp();
+test('extracts same-wiki article titles and routes missing-page links safely', () => {
+  const { app, elements } = loadApp();
   const [config] = app.buildWikiConfigs([wikiAdvert(), proxyAdvert()]);
   app.setActiveWikiForTest(config);
 
@@ -573,6 +601,28 @@ test('extracts same-wiki article titles and rejects external or non-article link
   assert.equal(app.wikiPageTitleFromUrl('https://nomadwiki.org/index.php?title=Foo_Bar&action=edit'), null);
   assert.equal(app.wikiPageTitleFromUrl('https://nomadwiki.org/wiki/Special:RecentChanges'), null);
   assert.equal(app.wikiPageTitleFromUrl('https://example.org/wiki/Foo_Bar'), null);
+
+  const redLink = '/index.php?title=Bangkok&action=edit&redlink=1';
+  assert.equal(app.wikiRedLinkTitleFromUrl(redLink), 'Bangkok');
+  assert.equal(app.buildWikiRedLinkHref(redLink), 'https://nomadwiki.org/index.php?title=Bangkok&action=edit&redlink=1');
+  assert.equal(app.wikiRedLinkTitleFromUrl('/index.php?title=Bangkok&action=edit'), null);
+
+  elements.get('trustroots-identity-status').dataset.state = 'connected';
+  const nostrLoginHref = app.buildWikiRedLinkHref(redLink);
+  assert.match(nostrLoginHref, /^https:\/\/nomadwiki\.org\/index\.php\?/);
+  assert.match(nostrLoginHref, /title=Special%3ANostrLogin/);
+  assert.match(nostrLoginHref, /returnto=Bangkok/);
+  assert.match(nostrLoginHref, /returntoquery=action%3Dedit(?:&|$)/);
+});
+
+test('uses the parsed redirect target as the Wikistr route', () => {
+  const { app } = loadApp('http://localhost:8788/#nomadwiki/Visa');
+  const [config] = app.buildWikiConfigs([wikiAdvert(), proxyAdvert()]);
+  app.setActiveWikiForTest(config, 'Visa');
+
+  assert.equal(app.redirectedPageTitle({ title: 'Category:Visa' }), 'Category:Visa');
+  assert.equal(app.redirectedPageTitle({ title: 'Visa' }), '');
+  assert.equal(app.redirectedPageTitle({ title: 'Visa_Page' }), 'Visa_Page');
 });
 
 test('signs NIP-98 requests against the exact proxied URL', async () => {

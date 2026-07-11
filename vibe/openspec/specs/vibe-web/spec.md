@@ -34,6 +34,8 @@ step for the main pages.
 - **THEN** the Trustroots link label MUST omit the `.org` suffix
 - **AND** deployment metadata MUST show only its UTC date and time, followed by
   the GitHub icon without a commit hash.
+- **AND** on narrow/mobile viewports, the footer MUST sit at the bottom of the
+  dynamic visible viewport, above any safe-area inset.
 
 #### Scenario: Current Nostroots Web app
 
@@ -104,8 +106,8 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
 
 #### Scenario: Native iOS header logo
 
-- **GIVEN** the hub or `/web/` loads with the native iOS user-agent
-  `NostrootsBrowser/1.0 iOS-native`
+- **GIVEN** the hub or `/web/` loads with a normal iOS Safari user-agent that
+  includes the native marker `NostrootsBrowser/1.0 iOS-native`
 - **THEN** it MUST hide logo 67 from the web header
 - **AND** it MUST keep that logo visible for other in-app shells.
 
@@ -238,6 +240,38 @@ allowing them to share Vibe protocol conventions.
   content MUST use the available viewport width
 - **AND** when Wikistr runs inside Nostroots Browser, its in-page Logo 67
   header link MUST be hidden.
+
+#### Scenario: Wikistr default wiki
+
+- **GIVEN** a user opens Wikistr without a wiki slug in the URL hash
+- **WHEN** the app selects its initial wiki
+- **THEN** Nomadwiki MUST be the active wiki by default
+- **AND** selecting the active wiki switcher while on one of its subpages MUST
+  return the user to that wiki's main page.
+
+#### Scenario: Wikistr Nomadwiki edit link
+
+- **GIVEN** a user opens Wikistr on a Nomadwiki page with a linked Trustroots
+  NIP-05 identity (`*@trustroots.org`)
+- **WHEN** the page heading renders
+- **THEN** an Edit control MUST appear beside the page title
+- **AND** it MUST open Nomadwiki in a new tab via
+  `Special:NostrLogin` with a `returnto` query for the current page and
+  `returntoquery=action%3Dedit` (percent-encoded, not a raw `=`)
+- **AND** on the Nomadwiki main page the `returnto` value MUST be `Main Page`
+- **AND** the Edit control MUST stay hidden for other wikis or when no Trustroots
+  identity is linked.
+
+#### Scenario: Wikistr redirects and missing pages
+
+- **GIVEN** a requested wiki page redirects to another page
+- **WHEN** Wikistr receives the parsed target
+- **THEN** it MUST update the hash route and page title to that target without
+  asking the user to activate the redirect link.
+- **AND** MediaWiki red links MUST remain visibly red and open a canonical edit
+  URL instead of a relative `/index.php` URL on the Wikistr static site.
+- **AND** a linked Nomadwiki identity MUST use the existing `Special:NostrLogin`
+  edit route for that missing page.
 
 #### Scenario: Radiostr social radio example
 

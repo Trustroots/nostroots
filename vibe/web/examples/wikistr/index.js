@@ -9,6 +9,7 @@
   const WRAPSTER_PROXY_ENDPOINT = 'https://relay.guaka.org/proxy';
   const SERVICE_ADVERT_CACHE_KEY = 'wikistr:service-adverts:v1';
   const SERVICE_ADVERT_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+  const DEFAULT_WIKI_SLUG = 'nomadwiki';
   const DEFAULT_HARDCODED_WIKIS = [
     {
       slug: 'nomadwiki',
@@ -536,6 +537,7 @@
     return buildWikiApiURLWithQuery({
       action: 'parse',
       page,
+      redirects: '1',
       prop: 'text',
       format: 'json',
       formatversion: '2'
@@ -928,7 +930,9 @@
 
   function selectInitialWiki(configs) {
     const route = parseHashRoute(configs);
-    const selected = route.slug ? buildWikiConfig(route.slug, configs) : configs[0] || null;
+    const selected = route.slug
+      ? buildWikiConfig(route.slug, configs)
+      : buildWikiConfig(DEFAULT_WIKI_SLUG, configs) || configs[0] || null;
     state.activeWiki = selected;
     state.currentPage = route.page || '';
     return selected;
@@ -944,7 +948,7 @@
 
   async function switchWiki(slug) {
     const config = buildWikiConfig(slug);
-    if (!config || config === state.activeWiki) {
+    if (!config || (config === state.activeWiki && !state.currentPage)) {
       return;
     }
     state.activeWiki = config;
@@ -1029,7 +1033,14 @@
       }));
       return;
     }
-    const html = result.body?.parse?.text || '';
+    const parsedPage = result.body?.parse || {};
+    const redirectTarget = redirectedPageTitle(parsedPage);
+    if (redirectTarget) {
+      state.currentPage = redirectTarget;
+      syncUrlToActiveWiki();
+      syncMainPageHeading(redirectTarget);
+    }
+    const html = parsedPage.text || '';
     if (!html) {
       setMainPageMessage('No page content returned.');
       return;
@@ -1194,7 +1205,20 @@
     const template = document.createElement('template');
     template.innerHTML = html;
     for (const anchor of template.content.querySelectorAll('a[href]')) {
-      const title = wikiPageTitleFromUrl(anchor.getAttribute('href'));
+      const href = anchor.getAttribute('href');
+      const redLinkTitle = wikiRedLinkTitleFromUrl(href);
+      if (redLinkTitle) {
+        const editHref = buildWikiRedLinkHref(href, redLinkTitle);
+        anchor.classList.add('wikistr-red-link');
+        if (editHref) {
+          anchor.setAttribute('href', editHref);
+        }
+        anchor.setAttribute('target', '_blank');
+        anchor.setAttribute('rel', 'noopener noreferrer');
+        continue;
+      }
+
+      const title = wikiPageTitleFromUrl(href);
       if (title) {
         anchor.setAttribute('href', surfacePageHref(title));
       } else {
@@ -1294,6 +1318,52 @@
     } catch {
       return null;
     }
+  }
+
+  function wikiRedLinkTitleFromUrl(value) {
+    const config = activeConfig();
+    if (!config) {
+      return null;
+    }
+    try {
+      const url = new URL(value, config.wikiOrigin);
+      if (
+        url.origin !== config.wikiOrigin ||
+        url.pathname !== config.wikiLoadPath ||
+        url.searchParams.get('action') !== 'edit' ||
+        !url.searchParams.has('redlink')
+      ) {
+        return null;
+      }
+      const title = url.searchParams.get('title');
+      return title && !title.startsWith('Special:') ? title : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function buildWikiRedLinkHref(value, title = wikiRedLinkTitleFromUrl(value)) {
+    const config = activeConfig();
+    if (!config || !title) {
+      return '';
+    }
+    if (config.slug === 'nomadwiki' && hasLinkedTrustrootsIdentity()) {
+      return buildNomadwikiEditHref(title);
+    }
+    return normalizeWikiResourceUrl(value);
+  }
+
+  function redirectedPageTitle(parsedPage) {
+    const title = String(parsedPage?.title || '').trim();
+    const current = String(state.currentPage || activeConfig()?.wikiMainPageTitle || '').trim();
+    if (!title || !current || normalizeComparablePageTitle(title) === normalizeComparablePageTitle(current)) {
+      return '';
+    }
+    return title;
+  }
+
+  function normalizeComparablePageTitle(title) {
+    return String(title || '').replaceAll('_', ' ').trim().toLowerCase();
   }
 
   function renderRecentChanges(changes) {
@@ -1517,6 +1587,7 @@
   window.Wikistr = Object.freeze(Object.assign({
     SERVICE_ADVERT_KIND,
     DEFAULT_RELAYS,
+    DEFAULT_WIKI_SLUG,
     NOMADWIKI_EDIT_RETURN_QUERY,
     addWrapsterAuth,
     addressForAdvert,
@@ -1524,6 +1595,7 @@
     buildMainPageRenderURL,
     buildMainPageTitleFromPath,
     buildNomadwikiEditHref,
+    buildWikiRedLinkHref,
     buildProxyIndex,
     buildWikiApiURLWithQuery,
     buildWikiConfig,
@@ -1561,19 +1633,23 @@
     relayEvents,
     renderRecentChanges,
     routeHashFor,
+    redirectedPageTitle,
     sanitizeUrlForDisplay,
+    selectInitialWiki,
     serviceFromTags,
     shouldProxyResources,
     slugFromAdvert,
     state,
     surfacePageHref,
+    switchWiki,
     syncMainPageHeading,
     tagValue,
     extractTrustrootsNip05,
     toWikiAPITimestamp,
     truncateForDisplay,
     wikiFetchJSON,
-    wikiPageTitleFromUrl
+    wikiPageTitleFromUrl,
+    wikiRedLinkTitleFromUrl
   }, TEST_MODE ? {
     setActiveWikiForTest(config, page = '') {
       state.activeWiki = config;

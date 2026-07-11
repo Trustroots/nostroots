@@ -21,7 +21,6 @@ The first-pass capability set covers:
 - `vibe-web`
 - `vibe-browser-ios`
 - `vibe-browser-extension`
-- `vibe-browser-expo-prototype`
 - `vibe-nip42-relay`
 - `trustroots-import-tool`
 - `vibe-push-notifications`

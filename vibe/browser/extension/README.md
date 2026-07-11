@@ -2,7 +2,7 @@
 
 MV3 NIP-07 signer for Nostroots and compatible Nostr web apps. Chrome, Brave, Edge, and Firefox desktop builds are generated from the same source.
 
-This package is intentionally standalone, like `vibe/browser/expo`, and is not part of the root pnpm workspace.
+This package is intentionally standalone and is not part of the root pnpm workspace.
 
 ```bash
 cd vibe/browser/extension

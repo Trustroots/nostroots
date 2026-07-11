@@ -60,8 +60,8 @@ The page MUST treat the client as in-app when any of these is true:
 - `window.nostr.__nostrootsBrowser === true` (injected NIP-07 bridge)
 - `window.__nostrootsNip7Installed === true` (injected before content load)
 
-Shells that set this marker include `nr-app` BrowserScreen,
-`vibe/browser/expo`, and native iOS `WKWebView`.
+Shells that set this marker include `nr-app` BrowserScreen and native iOS
+`WKWebView`.
 
 #### Scenario: Hub card tiers in a regular browser
 

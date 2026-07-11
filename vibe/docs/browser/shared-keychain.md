@@ -1,17 +1,16 @@
 # Shared iOS Keychain Storage
 
-`nr-browser` stores its own key for v1. The native iOS app stores it in this
-app's private iOS Keychain item; the Expo prototype uses Expo SecureStore. It
-does not read from `nr-app`, because the current `nr-app` key is stored in that
-app's private keychain group.
+`nr-browser` stores its own key for v1 in the native iOS app's private
+Keychain item. It does not read from `nr-app`, because the current `nr-app`
+key is stored in that app's private keychain group.
 
 To share one key between `nr-app` and `nr-browser` later:
 
 1. Build both apps with the same Apple Developer Team.
 2. Add the same Keychain Access Group entitlement to both apps.
 3. Configure both apps to read and write keychain values with the same access
-   group. In Expo SecureStore this is the iOS-only `accessGroup` option; in the
-   native app this means adding the access group attribute to Keychain queries.
+   group, including the access-group attribute in the native browser's
+   Keychain queries.
 4. Add an `nr-app` migration that reads the existing private keychain item and
    writes the same value into the shared access group.
 5. After migration, make both apps prefer the shared access group and keep the

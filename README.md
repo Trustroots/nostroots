@@ -46,7 +46,7 @@ There are several parts to this code.
 - `nr-server` - A deno application that is hosted by Trustroots
 - `nr-push` - A Go application that handles push notifications for the app, code currently at https://github.com/trustroots/notification-daemon
 - `vibe/web` - The Nostroots web app
-- `vibe/browser` - Nostroots Browser, with a native iOS app and preserved Expo prototype
+- `vibe/browser` - Nostroots Browser, with a native iOS app and desktop browser extension
 - `vibe/nip42relay` - The Vibe NIP-42 relay/import stack
 - `vibe/push-notification-daemon` - The isolated Vibe APNs notification daemon
 

@@ -19,7 +19,7 @@ This is a pnpm workspace monorepo with the core app stack and an isolated Vibe s
 - **nr-server** - Deno-based validation and reposting service
 - **nr-push** - Go-based push notification service
 - **vibe/web** - Standalone HTML/CSS/JS web application (informally **nr-web**)
-- **vibe/browser** - Nostroots Browser, with the native iOS app under `vibe/browser/ios` and the Expo prototype under `vibe/browser/expo`
+- **vibe/browser** - Nostroots Browser, with the native iOS app under `vibe/browser/ios` and the desktop extension under `vibe/browser/extension`
 - **vibe/nip42relay** - Vibe NIP-42 relay and Trustroots import tooling
 - **vibe/push-notification-daemon** - Vibe-only APNs push daemon for native browser notifications
 

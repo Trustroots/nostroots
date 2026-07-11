@@ -22,6 +22,19 @@ function isInNostrootsIOSApp() {
   return ua.indexOf(NR_WEB_NOSTROOTS_IOS_USER_AGENT_MARKER) !== -1;
 }
 
+function hideHubIntroduction() {
+  var lead = document.querySelector('.hub-header .lead');
+  if (lead) lead.hidden = true;
+
+  var webExperiencesSection = document.getElementById('web-experiences-section');
+  if (!webExperiencesSection) return;
+
+  var webExperiencesHeading = document.getElementById('web-experiences-heading');
+  var webExperiencesLead = webExperiencesSection.querySelector('.section-lead');
+  if (webExperiencesHeading) webExperiencesHeading.hidden = true;
+  if (webExperiencesLead) webExperiencesLead.hidden = true;
+}
+
 function hideAppDownloadPrompts() {
   if (!isInNostrootsApp()) return;
 
@@ -39,16 +52,7 @@ function hideAppDownloadPrompts() {
     link.hidden = true;
   });
 
-  var lead = document.querySelector('.lead');
-  if (lead) lead.hidden = true;
-
-  var webExperiencesSection = document.getElementById('web-experiences-section');
-  if (webExperiencesSection) {
-    var webExperiencesHeading = document.getElementById('web-experiences-heading');
-    var webExperiencesLead = webExperiencesSection.querySelector('.section-lead');
-    if (webExperiencesHeading) webExperiencesHeading.hidden = true;
-    if (webExperiencesLead) webExperiencesLead.hidden = true;
-  }
+  hideHubIntroduction();
 
   var nip7Modal = document.getElementById('nip7-info-modal');
   if (nip7Modal) {
@@ -720,6 +724,7 @@ function applyIdentityState(nip05) {
   icon.textContent = '@';
   identityStatus.append(label, icon);
   setNip7InfoModalState('linked', username + '@trustroots.org', npub || activePublicKeyHex);
+  hideHubIntroduction();
   fadeOutKeyStatus(revealIdentityStatusAfterSettled);
 }
 

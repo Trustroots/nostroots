@@ -340,6 +340,9 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('#trustroots-identity-status .identity-link-label')).toBeVisible();
     await expect(page.locator('#trustroots-identity-status .identity-link-icon')).toBeHidden();
     await expect(page.locator('#browser-extensions-section')).toBeHidden();
+    await expect(page.locator('.hub-header .lead')).toBeHidden();
+    await expect(page.locator('#web-experiences-heading')).toBeHidden();
+    await expect(page.locator('#web-experiences-section .section-lead')).toBeHidden();
     await page.locator('#trustroots-identity-status').click();
     const modal = page.getByRole('dialog', { name: 'Nostr connection' });
     await expect(modal.getByRole('heading', { name: 'Trustroots identity linked' })).toBeVisible();

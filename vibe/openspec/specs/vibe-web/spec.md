@@ -118,6 +118,9 @@ Shells that set this marker include `nr-app` BrowserScreen,
   Trustroots profile
 - **AND** its hover and keyboard-focus treatment MUST clearly communicate that
   the control opens an explanation
+- **AND** on the root hub, the landing lead and the Web experiences heading and
+  introductory copy MUST be hidden, while its available experience cards remain
+  visible.
 
 #### Scenario: Header identity explanation
 

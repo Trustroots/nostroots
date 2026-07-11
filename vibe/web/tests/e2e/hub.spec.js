@@ -144,7 +144,7 @@ test.describe('Nostroots Web hub', () => {
     }
 
     const footer = page.locator('footer.site-footer');
-    await expect(footer.getByRole('link', { name: 'Trustroots.org' })).toHaveAttribute('href', 'https://www.trustroots.org/');
+    await expect(footer.getByRole('link', { name: 'Trustroots', exact: true })).toHaveAttribute('href', 'https://www.trustroots.org/');
     await expect(footer.getByRole('link', { name: 'Nostroots', exact: true })).toHaveAttribute('href', /\/$/);
     await expect(footer.getByRole('link', { name: 'Support' })).toHaveAttribute('href', 'https://www.trustroots.org/support');
     await expect(footer.getByRole('link', { name: 'Edit this page' })).toHaveCount(0);
@@ -287,7 +287,9 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('html')).toHaveClass(/is-in-nostroots-browser/);
     await expect(page.locator('.hub-nav').getByRole('link', { name: 'Android' })).toBeHidden();
     await expect(page.locator('.hub-nav').getByRole('link', { name: 'iOS' })).toBeHidden();
-    await expect(page.locator('.lead')).not.toContainText('get the mobile app');
+    await expect(page.locator('.hub-header .lead')).toBeHidden();
+    await expect(page.locator('#web-experiences-heading')).toBeHidden();
+    await expect(page.locator('#web-experiences-section .section-lead')).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toBeVisible();
 
     await context.close();
@@ -401,7 +403,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('heading', { name: 'Technology & Protocol' })).toBeVisible();
 
     const footer = page.locator('footer.site-footer');
-    await expect(footer.getByRole('link', { name: 'Trustroots.org' })).toHaveAttribute('href', 'https://www.trustroots.org/');
+    await expect(footer.getByRole('link', { name: 'Trustroots', exact: true })).toHaveAttribute('href', 'https://www.trustroots.org/');
     await expect(footer.getByRole('link', { name: 'Nostroots', exact: true })).toHaveAttribute('href', '../');
     await expect(footer.getByRole('link', { name: 'Support' })).toHaveAttribute('href', 'https://www.trustroots.org/support');
     await expect(footer.getByRole('link', { name: 'Edit this page' })).toHaveAttribute('href', 'https://github.com/Trustroots/nostroots/edit/main/vibe/web/background/index.html');

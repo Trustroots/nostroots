@@ -31,6 +31,9 @@
     ) {
       document.documentElement.classList.add("is-in-nostroots-browser");
     }
+    if (navigator.userAgent.indexOf("NostrootsBrowser/1.0 iOS-native") !== -1) {
+      document.documentElement.classList.add("is-in-nostroots-ios");
+    }
   </script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="site-chrome.css">
@@ -98,24 +101,12 @@
       gap: 28px;
     }
 
-    .hub-header .brand {
-      display: flex;
-      align-items: center;
-      gap: 18px;
-      font-size: 30px;
-      font-weight: 800;
-      color: var(--accent-dark);
-    }
-
-    .hub-header .brand img {
-      width: 86px;
-      height: 86px;
-      border-radius: 10px;
-      box-shadow: 0 14px 34px rgba(0, 75, 63, 0.18);
+    .hub-header {
+      grid-template-columns: 1fr;
     }
 
     .lead {
-      grid-column: 2;
+      grid-column: auto;
       max-width: 680px;
       margin: 0;
       color: var(--muted);
@@ -548,19 +539,6 @@
         display: none;
       }
 
-      .hub-header .brand {
-        gap: 14px;
-        font-size: 24px;
-      }
-
-      .hub-header .brand img {
-        width: 72px;
-        height: 72px;
-      }
-
-      .lead {
-        grid-column: auto;
-      }
     }
   </style>
 </head>
@@ -609,9 +587,6 @@
   </header>
   <main class="hub" aria-labelledby="hub-title">
     <header class="hub-header">
-      <div class="brand">
-        <img src="nostroots-logo.png" alt="" width="86" height="86">
-      </div>
       <h1 id="hub-title">Nostroots</h1>
       <p class="lead">Open your Trustroots profile, read traveler notes, get the mobile app, or <a href="background/">learn why Nostroots is built on Nostr</a>.</p>
     </header>
@@ -876,7 +851,7 @@
     <footer class="site-footer" role="contentinfo">
       <div class="site-footer-content">
         <ul class="site-footer-links">
-          <li><a href="https://www.trustroots.org/">Trustroots.org</a></li>
+          <li><a href="https://www.trustroots.org/">Trustroots</a></li>
           <li><a href="./">Nostroots</a></li>
           <li><a href="https://www.trustroots.org/support">Support</a></li>
         </ul>
@@ -887,10 +862,10 @@
             href="https://github.com/Trustroots/nostroots"
             aria-label="Nostroots on GitHub"
           >
+            <span id="site-footer-build-date" class="site-footer-build-date"></span>
             <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
               <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.36c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
             </svg>
-            <span id="site-footer-build-commit" class="site-footer-build-commit"></span>
           </a>
         </div>
       </div>

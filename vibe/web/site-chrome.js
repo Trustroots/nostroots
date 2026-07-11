@@ -12,8 +12,8 @@
   }
 
   var buildLink = document.getElementById('site-footer-build');
-  var buildCommit = document.getElementById('site-footer-build-commit');
-  if (!buildLink || !buildCommit) return;
+  var buildDate = document.getElementById('site-footer-build-date');
+  if (!buildLink || !buildDate) return;
 
   var script = document.currentScript;
   var metadataUrl = (script && script.getAttribute('data-deploy-metadata')) || 'deploy-metadata.json';
@@ -23,10 +23,10 @@
     .then(function (meta) {
       if (!meta || !meta.commitSha) return;
       var stamp = meta.deployTimestamp || meta.commitTimestamp;
-      var label = formatUtcLabel(stamp) + ' UTC (' + meta.commitSha.slice(0, 7) + ')';
+      var label = formatUtcLabel(stamp) + ' UTC';
       buildLink.href = meta.commitUrl || ('https://github.com/Trustroots/nostroots/commit/' + meta.commitSha);
       buildLink.setAttribute('aria-label', 'Currently deployed code: ' + label);
-      buildCommit.textContent = label;
+      buildDate.textContent = label;
     })
     .catch(function () {});
 })();

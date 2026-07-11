@@ -41,34 +41,12 @@ body {
   gap: 28px;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  font-size: 30px;
-  font-weight: 800;
-  color: var(--accent-dark);
-}
-
-.brand a {
-  color: inherit;
-  text-decoration: none;
-}
-
-.brand a:hover,
-.brand a:focus-visible {
-  text-decoration: none;
-}
-
-.hub-header .brand img {
-  width: 86px;
-  height: 86px;
-  border-radius: 10px;
-  box-shadow: 0 14px 34px rgba(0, 75, 63, 0.18);
+.hub-header {
+  grid-template-columns: 1fr;
 }
 
 .lead {
-  grid-column: 2;
+  grid-column: auto;
   max-width: 680px;
   margin: 0;
   color: var(--muted);
@@ -586,17 +564,4 @@ blockquote {
     display: none;
   }
 
-  .hub-header .brand {
-    gap: 14px;
-    font-size: 24px;
-  }
-
-  .hub-header .brand img {
-    width: 72px;
-    height: 72px;
-  }
-
-  .lead {
-    grid-column: auto;
-  }
 }

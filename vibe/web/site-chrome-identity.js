@@ -1,4 +1,5 @@
 var NR_WEB_NOSTROOTS_BROWSER_USER_AGENT_MARKER = 'NostrootsBrowser/';
+var NR_WEB_NOSTROOTS_IOS_USER_AGENT_MARKER = 'NostrootsBrowser/1.0 iOS-native';
 var NOSTROOTS_APP_DETECTION_TIMEOUT_MS = 12000;
 var NOSTROOTS_APP_DETECTION_INTERVAL_MS = 250;
 
@@ -16,10 +17,18 @@ function isInNostrootsApp() {
   return false;
 }
 
+function isInNostrootsIOSApp() {
+  var ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+  return ua.indexOf(NR_WEB_NOSTROOTS_IOS_USER_AGENT_MARKER) !== -1;
+}
+
 function hideAppDownloadPrompts() {
   if (!isInNostrootsApp()) return;
 
   document.documentElement.classList.add('is-in-nostroots-browser');
+  if (isInNostrootsIOSApp()) {
+    document.documentElement.classList.add('is-in-nostroots-ios');
+  }
 
   var downloadSection = document.getElementById('download-section');
   if (downloadSection) downloadSection.hidden = true;
@@ -31,8 +40,14 @@ function hideAppDownloadPrompts() {
   });
 
   var lead = document.querySelector('.lead');
-  if (lead && lead.innerHTML) {
-    lead.innerHTML = lead.innerHTML.replace(/, get the mobile app/, '');
+  if (lead) lead.hidden = true;
+
+  var webExperiencesSection = document.getElementById('web-experiences-section');
+  if (webExperiencesSection) {
+    var webExperiencesHeading = document.getElementById('web-experiences-heading');
+    var webExperiencesLead = webExperiencesSection.querySelector('.section-lead');
+    if (webExperiencesHeading) webExperiencesHeading.hidden = true;
+    if (webExperiencesLead) webExperiencesLead.hidden = true;
   }
 
   var nip7Modal = document.getElementById('nip7-info-modal');

@@ -28,6 +28,13 @@ step for the main pages.
 - **THEN** the root hub heading MUST be "Nostroots" and the background heading
   MUST be "Background".
 
+#### Scenario: Concise shared footer
+
+- **GIVEN** a user views the hub or background-page footer
+- **THEN** the Trustroots link label MUST omit the `.org` suffix
+- **AND** deployment metadata MUST show only its UTC date and time, followed by
+  the GitHub icon without a commit hash.
+
 #### Scenario: Current Nostroots Web app
 
 - **GIVEN** a user opens `/web/`
@@ -83,13 +90,24 @@ Shells that set this marker include `nr-app` BrowserScreen,
   third-party links still follow the user's toggle
 - **AND** it MUST hide `#download-section` ("Get the app" cards), top-nav
   Android and iOS store links, background-page download cards that share
-  `#download-section`, hub lead copy about getting the mobile app, and the
-  NIP-7 info modal bullet recommending mobile app install
+  `#download-section`, the hub lead copy, the Web experiences heading and
+  introductory copy, and the NIP-7 info modal bullet recommending mobile app
+  install
 - **AND** it MUST hide the top-nav Android and iOS links before the header is
   painted, on both the hub and `/web/`, using the `NostrootsBrowser/`
   user-agent marker when available
+- **AND** it MUST recheck for an injected Nostroots Browser bridge during
+  startup, because some WebViews make that bridge available after page scripts
+  begin running
 - **AND** it MUST NOT hide Squatbridge or other default web-experience cards
   solely because the client is in-app
+
+#### Scenario: Native iOS header logo
+
+- **GIVEN** the hub or `/web/` loads with the native iOS user-agent
+  `NostrootsBrowser/1.0 iOS-native`
+- **THEN** it MUST hide logo 67 from the web header
+- **AND** it MUST keep that logo visible for other in-app shells.
 
 #### Scenario: Compact linked Trustroots identity
 
@@ -118,7 +136,9 @@ Shells that set this marker include `nr-app` BrowserScreen,
   the key to their Trustroots profile
 - **AND** when a Trustroots NIP-05 is linked, the modal MUST explain that the
   signer holds the key and that the Trustroots link lets Nostroots recognize
-  the account, and MUST show the signer's full `npub`
+  the account, show an abbreviated `npub` with the full value available to
+  assistive technology and hover, and link to Trustroots profile settings for
+  changing the association
 
 #### Scenario: Compact web settings modal
 
@@ -207,7 +227,6 @@ allowing them to share Vibe protocol conventions.
 - **THEN** each example MUST remain optional demo/fork material rather than a
   required current app surface.
 
-
 #### Scenario: Wikistr mobile layout
 
 - **GIVEN** a user opens Wikistr on a narrow/mobile viewport
@@ -216,6 +235,7 @@ allowing them to share Vibe protocol conventions.
   content MUST use the available viewport width
 - **AND** when Wikistr runs inside Nostroots Browser, its in-page Logo 67
   header link MUST be hidden.
+
 #### Scenario: Radiostr social radio example
 
 - **GIVEN** a user opens `/examples/radiostr/`
@@ -231,6 +251,8 @@ allowing them to share Vibe protocol conventions.
   available, with `localStorage` as cache when unsigned
 - **AND** the listening-now panel MUST appear below starred stations and above
   the remaining channel groups
+- **AND** links that leave Radiostr, including listening-now profile links,
+  MUST open in a separate tab so the player remains available
 
 ### Requirement: Vibe Web testing guidance
 

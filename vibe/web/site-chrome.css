@@ -96,6 +96,10 @@ html.is-in-nostroots-browser .header .hub-nav .header-app-link {
   display: none;
 }
 
+html.is-in-nostroots-ios .header .hub-nav .header-brand {
+  display: none;
+}
+
 .header .hub-nav .header-app-link svg {
   width: 27px;
   height: 27px;
@@ -349,11 +353,11 @@ a.status-pill {
   flex: 0 0 auto;
 }
 
-.site-footer-build-commit {
+.site-footer-build-date {
   white-space: nowrap;
 }
 
-.site-footer-build-commit:empty {
+.site-footer-build-date:empty {
   display: none;
 }
 

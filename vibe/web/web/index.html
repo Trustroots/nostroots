@@ -36,6 +36,9 @@
         ) {
             document.documentElement.classList.add("is-in-nostroots-browser");
         }
+        if (navigator.userAgent.indexOf("NostrootsBrowser/1.0 iOS-native") !== -1) {
+            document.documentElement.classList.add("is-in-nostroots-ios");
+        }
     </script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="../analytics.js"></script>
@@ -2340,6 +2343,10 @@ h1, h2, .modal-header h2 {
     flex-shrink: 0;
     text-decoration: none;
     border-radius: 0.5rem;
+}
+
+html.is-in-nostroots-ios .app-header-logo-link {
+    display: none;
 }
 
 .app-header-logo-link:hover {

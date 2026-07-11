@@ -13,6 +13,8 @@ function isInNostrootsApp() {
 function hideAppDownloadPrompts() {
   if (!isInNostrootsApp()) return;
 
+  document.documentElement.classList.add('is-in-nostroots-browser');
+
   var downloadSection = document.getElementById('download-section');
   if (downloadSection) downloadSection.hidden = true;
 
@@ -35,28 +37,117 @@ function hideAppDownloadPrompts() {
   }
 }
 
-function initNip7InfoModal() {
-var trigger = document.getElementById('nostr-key-status');
+function ensureNip7InfoModal() {
   var modal = document.getElementById('nip7-info-modal');
-  var panel = modal && modal.querySelector('.info-modal-panel');
-  var closeButtons = modal ? modal.querySelectorAll('[data-nip7-close]') : [];
-  var lastFocused = null;
-  if (!trigger || !modal || !panel) return;
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'nip7-info-modal';
+    modal.className = 'info-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'nip7-info-title');
+    modal.hidden = true;
+    document.body.appendChild(modal);
+  }
 
-  function openModal() {
+  modal.innerHTML = [
+    '<section class="info-modal-panel" tabindex="-1">',
+    '<div class="info-modal-header">',
+    '<h2 id="nip7-info-title">Nostr connection</h2>',
+    '<button class="info-modal-close" type="button" data-nip7-close aria-label="Close Nostr connection information">X</button>',
+    '</div>',
+    '<div class="info-modal-body">',
+    '<section data-nip7-info-state="no-signer">',
+    '<h3>Connect a Nostr key</h3>',
+    '<p>A Nostr key is your account for Nostr apps. It stays in a signer, so Nostroots never needs your private key.</p>',
+    '<ul>',
+    '<li>On mobile, install the Nostroots app for <a href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" target="_blank" rel="noopener noreferrer">Android</a> or <a href="https://apps.apple.com/app/nostroots/id6755037304" target="_blank" rel="noopener noreferrer">iOS</a>.</li>',
+    '<li>On desktop, install the <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> for Chrome, Brave, or Edge. Firefox support is still under review.</li>',
+    '</ul>',
+    '</section>',
+    '<section data-nip7-info-state="signer-no-key" hidden>',
+    '<h3>Set up your Nostr key</h3>',
+    '<p>Nostroots found a signer, but it has not provided a public key yet. Generate or import a key in your Nostroots app or browser extension, then return here.</p>',
+    '</section>',
+    '<section data-nip7-info-state="key-no-nip05" hidden>',
+    '<h3>Link your Trustroots identity</h3>',
+    '<p>Your signer has a Nostr key, but it is not linked to a Trustroots username yet. Add this public key to your Trustroots profile, then return here.</p>',
+    '<p><a href="https://www.trustroots.org/profile/edit/networks" target="_blank" rel="noopener noreferrer">Open Trustroots profile settings</a></p>',
+    '</section>',
+    '<section data-nip7-info-state="linked" hidden>',
+    '<h3>Trustroots identity linked</h3>',
+    '<p><strong data-nip7-linked-nip05></strong> is linked to the public key held by your signer. Nostroots asks that signer to approve actions, while the Trustroots link lets the service recognize your account.</p>',
+    '<p>Your public key: <code data-nip7-linked-npub></code></p>',
+    '</section>',
+    '</div>',
+    '</section>'
+  ].join('');
+  return modal;
+}
+
+function setNip7InfoModalState(state, nip05, npub) {
+  var modal = document.getElementById('nip7-info-modal');
+  if (!modal) return;
+  modal.dataset.nip7InfoState = state;
+  modal.querySelectorAll('[data-nip7-info-state]').forEach(function (section) {
+    section.hidden = section.getAttribute('data-nip7-info-state') !== state;
+  });
+  modal.querySelectorAll('[data-nip7-linked-nip05]').forEach(function (element) {
+    element.textContent = nip05 || '';
+  });
+  modal.querySelectorAll('[data-nip7-linked-npub]').forEach(function (element) {
+    element.textContent = npub || '';
+  });
+}
+
+function initNip7InfoModal() {
+  var keyStatus = document.getElementById('nostr-key-status');
+  var identityStatus = document.getElementById('trustroots-identity-status');
+  var modal = ensureNip7InfoModal();
+  var panel = modal.querySelector('.info-modal-panel');
+  var closeButtons = modal.querySelectorAll('[data-nip7-close]');
+  var triggers = [keyStatus, identityStatus].filter(Boolean);
+  var lastFocused = null;
+  if (!triggers.length || !panel) return;
+
+  setNip7InfoModalState('no-signer');
+
+  triggers.forEach(function (trigger) {
+    trigger.setAttribute('aria-haspopup', 'dialog');
+    trigger.setAttribute('aria-controls', 'nip7-info-modal');
+    trigger.setAttribute('aria-expanded', 'false');
+  });
+  if (identityStatus) {
+    identityStatus.setAttribute('role', 'button');
+    identityStatus.setAttribute('tabindex', '0');
+  }
+
+  function openModal(event) {
+    if (event) event.preventDefault();
     lastFocused = document.activeElement;
     modal.hidden = false;
-    trigger.setAttribute('aria-expanded', 'true');
+    triggers.forEach(function (trigger) {
+      trigger.setAttribute('aria-expanded', 'true');
+    });
     panel.focus();
   }
 
   function closeModal() {
     modal.hidden = true;
-    trigger.setAttribute('aria-expanded', 'false');
+    triggers.forEach(function (trigger) {
+      trigger.setAttribute('aria-expanded', 'false');
+    });
     if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus();
   }
 
-  trigger.addEventListener('click', openModal);
+  triggers.forEach(function (trigger) {
+    trigger.addEventListener('click', openModal);
+    trigger.addEventListener('keydown', function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      openModal();
+    });
+  });
   modal.addEventListener('click', function (event) {
     if (event.target === modal) closeModal();
   });
@@ -534,6 +625,7 @@ async function lookupTrustrootsNip05(publicKeyHex, signAuthEvent) {
 
 function applyKeyState(publicKeyHex) {
   var npub = npubEncodeFromHex(publicKeyHex);
+  setNip7InfoModalState('key-no-nip05');
   keyStatus.removeAttribute('aria-label');
   writeStatus(keyStatus, '', shortenNpub(npub) || publicKeyHex.slice(0, 10) + '...', 'connected', npub || publicKeyHex);
   revealKeyStatusAfterSettled();
@@ -541,12 +633,14 @@ function applyKeyState(publicKeyHex) {
 
 function applyMissingKeyState() {
   if (activePublicKeyHex) return;
+  setNip7InfoModalState('no-signer');
   keyStatus.setAttribute('aria-label', 'No Nostr key detected. About Nostr keys');
   setStatus(keyStatus, '', 'no nostr key detected', 'missing');
 }
 
 function applyProviderDetectedState() {
   if (activePublicKeyHex) return;
+  setNip7InfoModalState('signer-no-key');
   keyStatus.setAttribute('aria-label', 'NIP-07 extension detected. Waiting for key access.');
   setStatus(
     keyStatus,
@@ -568,9 +662,19 @@ function applyIdentityState(nip05) {
   if (!username) return;
   var npub = npubEncodeFromHex(activePublicKeyHex);
   identityStatus.dataset.state = 'connected';
-  identityStatus.href = 'https://www.trustroots.org/profile/' + encodeURIComponent(username);
-  identityStatus.title = npub || activePublicKeyHex;
-  identityStatus.textContent = username + '@trustroots.org';
+  identityStatus.removeAttribute('href');
+  identityStatus.title = 'About your linked Trustroots identity';
+  identityStatus.setAttribute('aria-label', 'About your linked Trustroots identity');
+  identityStatus.replaceChildren();
+  var label = document.createElement('span');
+  label.className = 'identity-link-label';
+  label.textContent = username + '@trustroots.org';
+  var icon = document.createElement('span');
+  icon.className = 'identity-link-icon';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = '@';
+  identityStatus.append(label, icon);
+  setNip7InfoModalState('linked', username + '@trustroots.org', npub || activePublicKeyHex);
   fadeOutKeyStatus(revealIdentityStatusAfterSettled);
 }
 

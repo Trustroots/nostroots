@@ -78,8 +78,47 @@ Shells that set this marker include `nr-app` BrowserScreen,
   Android and iOS store links, background-page download cards that share
   `#download-section`, hub lead copy about getting the mobile app, and the
   NIP-7 info modal bullet recommending mobile app install
+- **AND** it MUST hide the top-nav Android and iOS links before the header is
+  painted, on both the hub and `/web/`, using the `NostrootsBrowser/`
+  user-agent marker when available
 - **AND** it MUST NOT hide Squatbridge or other default web-experience cards
   solely because the client is in-app
+
+#### Scenario: Compact linked Trustroots identity
+
+- **GIVEN** the hub resolves the connected key to a Trustroots NIP-05 identity
+- **WHEN** it renders the connected identity in the header
+- **THEN** it MUST show the full NIP-05 username on desktop and a compact `@`
+  icon on narrow/mobile headers, while retaining an accessible link to that
+  Trustroots profile
+- **AND** its hover and keyboard-focus treatment MUST clearly communicate that
+  the control opens an explanation
+
+#### Scenario: Header identity explanation
+
+- **GIVEN** a user activates the Nostr-key or linked-identity control in a
+  shared Vibe Web header
+- **WHEN** the control is activated on the hub, background page, or an example
+  using the shared header
+- **THEN** it MUST open an explanatory modal instead of navigating away
+- **AND** when no NIP-07 signer is available, the modal MUST link to the
+  Nostroots Android and iOS apps and the Chrome Web Store extension, while
+  noting that Firefox support remains under review
+- **AND** when a signer is available but has no public key, the modal MUST ask
+  the user to generate or import a key in that signer
+- **AND** when a public key has no linked Trustroots NIP-05, the modal MUST
+  direct the user to `https://www.trustroots.org/profile/edit/networks` to add
+  the key to their Trustroots profile
+- **AND** when a Trustroots NIP-05 is linked, the modal MUST explain that the
+  signer holds the key and that the Trustroots link lets Nostroots recognize
+  the account, and MUST show the signer's full `npub`
+
+#### Scenario: Compact web settings modal
+
+- **GIVEN** a user opens Settings in `/web/`
+- **WHEN** the settings modal renders
+- **THEN** it MUST use reduced top padding and keep the close control in the
+  modal's top-right corner
 
 #### Scenario: NIP-07 reorder unchanged
 

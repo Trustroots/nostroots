@@ -243,8 +243,8 @@ test.describe('Squatbridge', () => {
     const modal = page.locator('#nip7-info-modal');
     const panel = modal.locator('.info-modal-panel');
     await expect(modal).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Nostr keys' })).toBeVisible();
-    await expect(panel.getByText('A Nostr key is your account for Nostr apps.')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nostr connection' })).toBeVisible();
+    await expect(panel.getByRole('heading', { name: 'Connect a Nostr key' })).toBeVisible();
     await expect(panel.getByRole('link', { name: 'Nostroots Extension' })).toBeVisible();
 
     const stacking = await page.evaluate(() => {
@@ -276,7 +276,7 @@ test.describe('Squatbridge', () => {
 
     const modal = page.locator('#nip7-info-modal');
     await expect(modal).toBeVisible();
-    await modal.getByRole('button', { name: 'Close Nostr keys information' }).click();
+    await modal.getByRole('button', { name: 'Close Nostr connection information' }).click();
     await expect(modal).toBeHidden();
   });
 });

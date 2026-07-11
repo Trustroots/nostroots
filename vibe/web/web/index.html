@@ -28,6 +28,15 @@
     <link rel="icon" type="image/png" sizes="48x48" href="../favicon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <script>
+        if (
+            navigator.userAgent.indexOf("NostrootsBrowser/") !== -1 ||
+            (window.nostr && window.nostr.__nostrootsBrowser === true) ||
+            window.__nostrootsNip7Installed === true
+        ) {
+            document.documentElement.classList.add("is-in-nostroots-browser");
+        }
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="../analytics.js"></script>
     
@@ -2351,6 +2360,10 @@ h1, h2, .modal-header h2 {
     flex-shrink: 0;
 }
 
+html.is-in-nostroots-browser .app-header-app-links {
+    display: none;
+}
+
 .app-header-app-link {
     width: 31px;
     height: 31px;
@@ -3983,6 +3996,10 @@ body:not(.nr-web-has-key) .nr-nav-menu-profile-only {
     position: relative;
 }
 
+#settings-modal .modal-content {
+    padding-top: 1.25rem;
+}
+
 #keys-modal .modal-content::after,
 #settings-modal .modal-content::after {
     content: "";
@@ -4360,6 +4377,12 @@ body.nr-surface-account #settings-modal .modal-close {
     justify-content: center;
     border-radius: calc(var(--radius) - 2px);
     transition: all 0.2s ease;
+}
+
+#settings-modal .modal-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
 }
 
 #keys-modal .modal-close:hover,

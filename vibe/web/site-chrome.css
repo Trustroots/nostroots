@@ -92,6 +92,10 @@
   text-shadow: none;
 }
 
+html.is-in-nostroots-browser .header .hub-nav .header-app-link {
+  display: none;
+}
+
 .header .hub-nav .header-app-link svg {
   width: 27px;
   height: 27px;
@@ -216,9 +220,49 @@ a.status-pill {
 }
 
 .identity-link[data-state="connected"] {
+  appearance: none;
+  cursor: pointer;
+  border-color: rgba(18, 138, 120, 0.3);
+  background: rgba(18, 138, 120, 0.12);
+  box-shadow: none;
   color: var(--accent-dark);
   font-weight: 800;
-  transition-duration: 1200ms;
+  transition: background-color 160ms ease, border-color 160ms ease,
+    box-shadow 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.identity-link[data-state="connected"]:hover,
+.identity-link[data-state="connected"]:focus-visible {
+  border-color: var(--accent-dark);
+  background: var(--accent-dark);
+  box-shadow: 0 5px 14px rgba(0, 75, 63, 0.24);
+  color: #ffffff;
+  outline: none;
+  transform: translateY(-1px);
+}
+
+.identity-link-icon {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .identity-link[data-state="connected"] {
+    width: 38px;
+    min-width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+
+  .identity-link-label {
+    display: none;
+  }
+
+  .identity-link-icon {
+    display: block;
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+  }
 }
 
 .status-pill[hidden] {

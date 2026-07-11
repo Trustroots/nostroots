@@ -28,6 +28,16 @@ async function mockNip7Provider(page, { delayMs = 0 } = {}) {
   }, { pubkey: publicKeyHex, delay: delayMs });
 }
 
+async function mockNip7ProviderWithoutKey(page) {
+  await page.addInitScript(() => {
+    window.nostr = {
+      async getPublicKey() {
+        return '';
+      },
+    };
+  });
+}
+
 async function mockTrustrootsRelayEvents(page, events) {
   await page.addInitScript(({ relayEvents }) => {
     function matchesFilter(event, filter) {
@@ -231,7 +241,7 @@ test.describe('Nostroots Web hub', () => {
     ]);
   });
 
-  test('opens NIP-07 information from the missing key status', async ({ page }) => {
+  test('explains how to install a signer when no NIP-07 key is available', async ({ page }) => {
     await page.goto('/');
 
     const keyStatusButton = page.getByRole('button', { name: 'No Nostr key detected. About Nostr keys' });
@@ -240,17 +250,30 @@ test.describe('Nostroots Web hub', () => {
 
     await keyStatusButton.click();
 
-    const modal = page.getByRole('dialog', { name: 'Nostr keys' });
+    const modal = page.getByRole('dialog', { name: 'Nostr connection' });
     await expect(modal).toBeVisible();
-    await expect(modal).toContainText('A Nostr key is your account for Nostr apps');
-    await expect(modal).toContainText('Keep the private key secret');
+    await expect(modal.getByRole('heading', { name: 'Connect a Nostr key' })).toBeVisible();
+    await expect(modal).toContainText('Firefox support is still under review.');
     await expect(modal.getByRole('link', { name: 'Nostroots Extension' })).toHaveAttribute('href', 'https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf');
     await expect(modal.getByRole('link', { name: 'Android' })).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots');
     await expect(modal.getByRole('link', { name: 'iOS' })).toHaveAttribute('href', 'https://apps.apple.com/app/nostroots/id6755037304');
 
-    await modal.getByRole('button', { name: 'Close Nostr keys information' }).click();
+    await modal.getByRole('button', { name: 'Close Nostr connection information' }).click();
 
     await expect(modal).toBeHidden();
+  });
+
+  test('explains how to generate a key when the signer has none', async ({ page }) => {
+    await mockNip7ProviderWithoutKey(page);
+    await page.goto('/');
+
+    const keyStatusButton = page.getByRole('button', { name: 'NIP-07 extension detected. Waiting for key access.' });
+    await expect(keyStatusButton).toBeVisible();
+    await keyStatusButton.click();
+
+    const modal = page.getByRole('dialog', { name: 'Nostr connection' });
+    await expect(modal.getByRole('heading', { name: 'Set up your Nostr key' })).toBeVisible();
+    await expect(modal).toContainText('Generate or import a key');
   });
 
   test('hides app download prompts in Nostroots Browser', async ({ browser }) => {
@@ -261,6 +284,7 @@ test.describe('Nostroots Web hub', () => {
     await page.goto('/');
 
     await expect(page.locator('#download-section')).toBeHidden();
+    await expect(page.locator('html')).toHaveClass(/is-in-nostroots-browser/);
     await expect(page.locator('.hub-nav').getByRole('link', { name: 'Android' })).toBeHidden();
     await expect(page.locator('.hub-nav').getByRole('link', { name: 'iOS' })).toBeHidden();
     await expect(page.locator('.lead')).not.toContainText('get the mobile app');
@@ -295,9 +319,18 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('#trustroots-card-action')).toHaveText('Open Trustroots.org');
     await expect(page.locator('#nostr-key-status')).toBeHidden();
     await expect(page.locator('#trustroots-identity-status')).toHaveText('alice@trustroots.org');
-    await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('href', 'https://www.trustroots.org/profile/alice');
-    await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('title', /^npub1/);
+    expect(await page.locator('#trustroots-identity-status').getAttribute('href')).toBeNull();
+    await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('role', 'button');
+    await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('title', 'About your linked Trustroots identity');
+    await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('aria-label', 'About your linked Trustroots identity');
+    await expect(page.locator('#trustroots-identity-status .identity-link-label')).toBeVisible();
+    await expect(page.locator('#trustroots-identity-status .identity-link-icon')).toBeHidden();
     await expect(page.locator('#browser-extensions-section')).toBeHidden();
+    await page.locator('#trustroots-identity-status').click();
+    const modal = page.getByRole('dialog', { name: 'Nostr connection' });
+    await expect(modal.getByRole('heading', { name: 'Trustroots identity linked' })).toBeVisible();
+    await expect(modal).toContainText('alice@trustroots.org is linked to the public key held by your signer.');
+    await expect(modal.locator('[data-nip7-linked-npub]')).toHaveText(/^npub1/);
     expect(await page.evaluate(() => Boolean(
       document.getElementById('web-experiences-section').compareDocumentPosition(document.getElementById('download-section')) & Node.DOCUMENT_POSITION_FOLLOWING
     ))).toBe(true);
@@ -319,6 +352,10 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('#nostr-key-status')).toContainText(/^npub1/);
     await expect(page.locator('#trustroots-identity-status')).toBeHidden();
     await expect(page.locator('#browser-extensions-section')).toBeHidden();
+    await page.locator('#nostr-key-status').click();
+    const modal = page.getByRole('dialog', { name: 'Nostr connection' });
+    await expect(modal.getByRole('heading', { name: 'Link your Trustroots identity' })).toBeVisible();
+    await expect(modal.getByRole('link', { name: 'Open Trustroots profile settings' })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
   });
 
   test('detects a NIP-07 key injected after the hub starts', async ({ page }) => {

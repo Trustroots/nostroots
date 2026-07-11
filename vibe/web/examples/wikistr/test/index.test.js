@@ -547,14 +547,20 @@ test('builds Nomadwiki edit links via Special:NostrLogin with edit returntoquery
     proxyAdvert({ proxy_route: 'trashwiki.org' })
   ]);
   app.setActiveWikiForTest(trashConfig, 'Reuse');
-  assert.equal(app.buildWikiEditHref(), 'https://trashwiki.org/index.php?title=Reuse&action=edit');
+  assert.match(app.buildWikiEditHref(), /^https:\/\/trashwiki\.org\/index\.php\?/);
+  assert.match(app.buildWikiEditHref(), /title=Special%3ANostrLogin/);
+  assert.match(app.buildWikiEditHref(), /returnto=Reuse/);
+  assert.match(app.buildWikiEditHref(), /returntoquery=action%3Dedit(?:&|$)/);
 
   const [trustrootsConfig] = app.buildWikiConfigs([
     wikiAdvert({ d: 'wiki:trustroots-wiki', title: 'Trustroots wiki', origin: 'https://wiki.trustroots.org', proxy_route: 'wiki.trustroots.org' }),
     proxyAdvert({ proxy_route: 'wiki.trustroots.org' })
   ]);
   app.setActiveWikiForTest(trustrootsConfig, 'Hosting');
-  assert.equal(app.buildWikiEditHref(), 'https://wiki.trustroots.org/index.php?title=Hosting&action=edit');
+  assert.match(app.buildWikiEditHref(), /^https:\/\/wiki\.trustroots\.org\/index\.php\?/);
+  assert.match(app.buildWikiEditHref(), /title=Special%3ANostrLogin/);
+  assert.match(app.buildWikiEditHref(), /returnto=Hosting/);
+  assert.match(app.buildWikiEditHref(), /returntoquery=action%3Dedit(?:&|$)/);
 });
 
 test('keeps proxied resource URL helper for non-image callers', () => {

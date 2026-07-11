@@ -1141,7 +1141,7 @@
     return current.replace(/\s+/g, '_') === mainTitle.replace(/\s+/g, '_');
   }
 
-  function nomadwikiEditReturnTitle(config, page = state.currentPage) {
+  function wikiEditReturnTitle(config, page = state.currentPage) {
     if (isViewingMainPage(config, page)) {
       return 'Main Page';
     }
@@ -1153,9 +1153,17 @@
     if (!config || config.slug !== 'nomadwiki') {
       return '';
     }
+    return buildNostrLoginEditHref(page);
+  }
+
+  function buildNostrLoginEditHref(page = state.currentPage) {
+    const config = activeConfig();
+    if (!config) {
+      return '';
+    }
     const base = buildWikiUrl(config.wikiLoadPath, {
       title: 'Special:NostrLogin',
-      returnto: nomadwikiEditReturnTitle(config, page)
+      returnto: wikiEditReturnTitle(config, page)
     }, false);
     if (!base) {
       return '';
@@ -1169,16 +1177,10 @@
     if (!config) {
       return '';
     }
-    if (config.slug === 'nomadwiki') {
-      return hasLinkedTrustrootsIdentity() ? buildNomadwikiEditHref(page) : '';
-    }
-    if (!['trashwiki', 'trustroots-wiki'].includes(config.slug)) {
+    if (!['nomadwiki', 'trashwiki', 'trustroots-wiki'].includes(config.slug) || !hasLinkedTrustrootsIdentity()) {
       return '';
     }
-    return buildWikiUrl(config.wikiLoadPath, {
-      title: page || config.wikiMainPageTitle,
-      action: 'edit'
-    }, false);
+    return buildNostrLoginEditHref(page);
   }
 
   function syncCardTitleRow() {

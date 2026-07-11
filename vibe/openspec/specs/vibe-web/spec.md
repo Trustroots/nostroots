@@ -261,8 +261,9 @@ allowing them to share Vibe protocol conventions.
 - **AND** on the Nomadwiki main page the `returnto` value MUST be `Main Page`
 - **AND** the Edit control MUST stay hidden on Nomadwiki when no Trustroots
   identity is linked
-- **AND** Trashwiki and Trustroots wiki MUST show an Edit control that opens
-  their canonical page `action=edit` URL in a new tab.
+- **AND** Trashwiki and Trustroots wiki MUST show that Edit control for linked
+  identities and open their own `Special:NostrLogin` route with the same
+  current-page `returnto` and `returntoquery=action%3Dedit` values.
 
 #### Scenario: Wikistr redirects and missing pages
 

@@ -25,6 +25,13 @@ Nostroots web experience.
 - **WHEN** the web view is created
 - **THEN** it MUST load `https://nos.trustroots.org/` by default.
 
+#### Scenario: Fresh Nostroots web deployment
+
+- **GIVEN** the app loads or reloads `https://nos.trustroots.org/`
+- **WHEN** a previous web deployment is present in the local WebView cache
+- **THEN** the request MUST revalidate cached content before using it
+- **AND** arbitrary developer-mode sites MUST retain their normal cache policy.
+
 #### Scenario: General web browsing
 
 - **GIVEN** the iOS browser app has launched
@@ -32,12 +39,26 @@ Nostroots web experience.
 - **THEN** the app MUST load that site in the WKWebView, with an address bar
   available by default.
 
+#### Scenario: Browser history
+
+- **GIVEN** the current page has a previous in-app page in its history
+- **THEN** the address bar MUST show an enabled Back button that returns to it
+- **AND** it MUST be disabled when no previous page is available.
+
+#### Scenario: New-window links
+
+- **GIVEN** a webpage opens an HTTP(S) link with `target="_blank"` or
+  `window.open`
+- **THEN** Nostroots iOS MUST load the permitted URL in its existing web view
+  rather than leaving the request without a visible destination.
+
 #### Scenario: Hub in-app detection user agent
 
 - **GIVEN** the WebView loads `https://nos.trustroots.org/`
 - **WHEN** the web view is created
-- **THEN** it MUST set the User-Agent to `NostrootsBrowser/1.0 iOS-native` so
-  the hub can identify the native shell and suppress redundant install prompts.
+- **THEN** it MUST append `NostrootsBrowser/1.0 iOS-native` to the normal iOS
+  Safari User-Agent so the hub can identify the native shell without changing
+  a website's mobile layout.
 
 #### Scenario: Native-backed NIP-07 provider
 
@@ -81,6 +102,12 @@ permissions, key status, and Vibe push notification state.
 - **WHEN** the user opens settings
 - **THEN** the app SHOULD let the user inspect and revoke remembered NIP-07
   permissions.
+
+#### Scenario: Open a permitted origin
+
+- **GIVEN** the user taps an origin in the NIP-07 access list
+- **THEN** the app MUST close Settings and load that origin in its native
+  browser view.
 
 ### Requirement: Native push bridge
 

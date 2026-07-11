@@ -41,6 +41,7 @@ private struct BrowserView: View {
                 NativeBrowserWebView(
                     url: URL(string: model.currentURLString) ?? NRConstants.nostrootsURL,
                     reloadID: model.webViewReloadID,
+                    backNavigationID: model.backNavigationID,
                     keyStore: model.keyStore,
                     cryptoProvider: model.cryptoProvider,
                     permissionStore: model.nip07PermissionStore,
@@ -50,12 +51,12 @@ private struct BrowserView: View {
                     },
                     currentURLString: $model.currentURLString,
                     addressBarHidden: $addressBarHidden,
+                    setCanGoBack: { model.setCanGoBack($0) },
                     pendingNotificationPlusCode: $model.pendingNotificationPlusCode
                 )
                 .ignoresSafeArea(edges: .bottom)
 
                 AddressBar(model: model, isFocused: $addressBarFocused)
-                    .padding(.horizontal, 12)
                     .padding(.bottom, 10)
                     .offset(y: addressBarHidden ? 112 : 0)
                     .opacity(addressBarHidden ? 0 : 1)
@@ -228,6 +229,19 @@ private struct AddressBar: View {
 
     var body: some View {
         HStack(spacing: 10) {
+            Button {
+                model.goBack()
+            } label: {
+                Image(systemName: "chevron.backward")
+                    .font(.body.weight(.semibold))
+                    .frame(width: 44, height: 44)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(model.canGoBack ? Color(red: 0.05, green: 0.68, blue: 0.55) : .secondary)
+            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+            .disabled(!model.canGoBack)
+            .accessibilityLabel("Go back")
+
             TextField("Web address", text: $model.currentURLString)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -241,17 +255,8 @@ private struct AddressBar: View {
                 .padding(.horizontal, 12)
                 .frame(height: 44)
                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
-
-            Button("Go") {
-                model.loadAddressBarURL()
-                isFocused = false
-            }
-            .font(.body.weight(.semibold))
-            .foregroundStyle(.white)
-            .frame(height: 44)
-            .padding(.horizontal, 18)
-            .background(Color(red: 0.05, green: 0.68, blue: 0.55), in: RoundedRectangle(cornerRadius: 8))
         }
+        .frame(maxWidth: .infinity)
         .padding(10)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
         .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color(.separator).opacity(0.22)))

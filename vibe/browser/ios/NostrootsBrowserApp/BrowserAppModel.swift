@@ -17,6 +17,8 @@ final class BrowserAppModel: ObservableObject {
     @Published var keyImportText = ""
     @Published var errorMessage: String?
     @Published var webViewReloadID = UUID()
+    @Published private(set) var canGoBack = false
+    @Published var backNavigationID = UUID()
     @Published var nip07PermissionPrompt: NIP07PermissionPrompt?
     @Published var pendingNotificationPlusCode: String?
 
@@ -118,6 +120,16 @@ final class BrowserAppModel: ObservableObject {
 
     func reloadWebView() {
         webViewReloadID = UUID()
+    }
+
+    func setCanGoBack(_ value: Bool) {
+        guard canGoBack != value else { return }
+        canGoBack = value
+    }
+
+    func goBack() {
+        guard canGoBack else { return }
+        backNavigationID = UUID()
     }
 
     func requestNIP07Permission(_ prompt: NIP07PermissionPrompt) {

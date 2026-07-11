@@ -5,6 +5,7 @@ import UIKit
 struct NativeBrowserWebView: UIViewRepresentable {
     let url: URL
     let reloadID: UUID
+    let backNavigationID: UUID
     let keyStore: KeyStore
     let cryptoProvider: NostrCryptoProviding
     let permissionStore: NIP07PermissionStoring
@@ -12,6 +13,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
     let requestNIP07Permission: @MainActor (NIP07PermissionPrompt) -> Void
     @Binding var currentURLString: String
     @Binding var addressBarHidden: Bool
+    let setCanGoBack: @MainActor (Bool) -> Void
     @Binding var pendingNotificationPlusCode: String?
 
     func makeCoordinator() -> Coordinator {
@@ -23,6 +25,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
             requestNIP07Permission: requestNIP07Permission,
             currentURLString: $currentURLString,
             addressBarHidden: $addressBarHidden,
+            setCanGoBack: setCanGoBack,
             pendingNotificationPlusCode: $pendingNotificationPlusCode
         )
     }
@@ -49,14 +52,15 @@ struct NativeBrowserWebView: UIViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.uiDelegate = context.coordinator
-        webView.customUserAgent = "NostrootsBrowser/1.0 iOS-native"
         webView.allowsBackForwardNavigationGestures = true
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.delegate = context.coordinator
         webView.load(Self.webRequest(for: url))
         context.coordinator.webView = webView
         context.coordinator.lastReloadID = reloadID
+        context.coordinator.lastBackNavigationID = backNavigationID
         context.coordinator.lastScrollY = webView.scrollView.contentOffset.y
+        setCanGoBack(false)
         return webView
     }
 
@@ -65,6 +69,13 @@ struct NativeBrowserWebView: UIViewRepresentable {
             context.coordinator.lastReloadID = reloadID
             webView.load(Self.webRequest(for: url))
         }
+        if context.coordinator.lastBackNavigationID != backNavigationID {
+            context.coordinator.lastBackNavigationID = backNavigationID
+            if webView.canGoBack {
+                webView.goBack()
+            }
+        }
+        setCanGoBack(webView.canGoBack)
         context.coordinator.openPendingNotificationPlusCodeIfNeeded()
     }
 
@@ -176,6 +187,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, UIScrollViewDelegate {
         weak var webView: WKWebView?
         var lastReloadID: UUID?
+        var lastBackNavigationID: UUID?
         var lastScrollY: CGFloat = 0
         private var accumulatedScrollDelta: CGFloat = 0
         private let policy = BrowserNavigationPolicy()
@@ -184,6 +196,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
         private let bridge: NIP07Bridge
         private let notificationBridge: VibeNotificationBridge
         private let requestPermission: @MainActor (NIP07PermissionPrompt) -> Void
+        private let setCanGoBack: @MainActor (Bool) -> Void
         private var pendingPermissionMessages: [String: [Any]] = [:]
         @Binding private var currentURLString: String
         @Binding private var addressBarHidden: Bool
@@ -197,6 +210,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
             requestNIP07Permission: @escaping @MainActor (NIP07PermissionPrompt) -> Void,
             currentURLString: Binding<String>,
             addressBarHidden: Binding<Bool>,
+            setCanGoBack: @escaping @MainActor (Bool) -> Void,
             pendingNotificationPlusCode: Binding<String?>
         ) {
             self.bridge = NIP07Bridge(keyStore: keyStore, cryptoProvider: cryptoProvider)
@@ -205,6 +219,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
             self.requestPermission = requestNIP07Permission
             self._currentURLString = currentURLString
             self._addressBarHidden = addressBarHidden
+            self.setCanGoBack = setCanGoBack
             self._pendingNotificationPlusCode = pendingNotificationPlusCode
         }
 
@@ -247,6 +262,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
             currentURLString = webView.url?.absoluteString ?? currentURLString
             lastScrollY = webView.scrollView.contentOffset.y
             addressBarHidden = false
+            setCanGoBack(webView.canGoBack)
         }
 
         func webView(

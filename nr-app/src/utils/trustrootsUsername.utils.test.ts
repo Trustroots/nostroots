@@ -39,11 +39,44 @@ describe("trustrootsUsername.utils", () => {
       });
     });
 
-    it("rejects email addresses", () => {
+    it("accepts an @-prefixed username", () => {
+      expect(validateTrustrootsUsername(" @Alice ")).toEqual({
+        success: true,
+        username: "alice",
+        error: null,
+      });
+    });
+
+    it("accepts a trustroots.org address and strips the domain", () => {
+      expect(validateTrustrootsUsername("Alice@Trustroots.org")).toEqual({
+        success: true,
+        username: "alice",
+        error: null,
+      });
+    });
+
+    it("rejects a non-Trustroots email address, which we cannot map to a username", () => {
       expect(validateTrustrootsUsername("alice@example.com")).toEqual({
         success: false,
         username: null,
-        error: "Enter your Trustroots username, not your email address.",
+        error:
+          "That looks like an email address. Enter your Trustroots username instead — you can find it on your Trustroots profile.",
+      });
+    });
+
+    it("rejects an address with more than one @", () => {
+      expect(validateTrustrootsUsername("a@b@trustroots.org")).toEqual({
+        success: false,
+        username: null,
+        error: "Enter only your Trustroots username.",
+      });
+    });
+
+    it("rejects a bare @ with no username", () => {
+      expect(validateTrustrootsUsername("@")).toEqual({
+        success: false,
+        username: null,
+        error: "Enter your Trustroots username.",
       });
     });
 

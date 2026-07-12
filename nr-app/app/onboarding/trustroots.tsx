@@ -172,7 +172,8 @@ export default function OnboardingTrustrootsScreen() {
 
   const handleAuthenticateCode = useCallback(async () => {
     const username =
-      pendingTrustrootsUsername ?? usernameInput.trim().toLowerCase();
+      pendingTrustrootsUsername ??
+      validateTrustrootsUsername(usernameInput).username;
 
     if (!username || code.length !== 6) {
       return;
@@ -290,6 +291,9 @@ export default function OnboardingTrustrootsScreen() {
               placeholderTextColor="#6b7280"
               className="w-full bg-muted text-foreground rounded-md p-3 text-sm text-left"
             />
+            <Text className="text-xs text-muted-foreground text-left">
+              You can also enter @your-username or your-username@trustroots.org.
+            </Text>
             {fieldError && (
               <Text className="text-xs text-red-500 text-left">
                 {fieldError}

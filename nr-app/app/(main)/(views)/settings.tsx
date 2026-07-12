@@ -206,7 +206,8 @@ export default function SettingsScreen() {
     }
   };
 
-  const inputClassName = "border border-border rounded px-3 py-2 bg-background";
+  const inputClassName =
+    "border border-border rounded px-3 py-2 bg-background text-foreground";
 
   const hasUsernameOrHasTestFeaturesEnabled =
     (typeof username === "string" && username.length > 0) ||

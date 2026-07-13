@@ -153,7 +153,7 @@ test.describe('Nostroots Web hub', () => {
     const experimentalToggle = page.getByRole('checkbox', { name: 'Show more experimental apps' });
     await expect(experimentalToggle).not.toBeChecked();
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toBeHidden();
-    await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Open wikistr/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Radiostr/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toBeHidden();
@@ -162,8 +162,7 @@ test.describe('Nostroots Web hub', () => {
 
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toHaveAttribute('href', 'nostrail/');
     await expect(page.locator('.location .card-label')).toHaveText('More experimental');
-    await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveAttribute('href', 'nostroots-map/');
-    await expect(page.locator('.secondary .card-label')).toHaveText('More experimental');
+    await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveAttribute('href', 'examples/wikistr/');
     await expect(page.getByRole('link', { name: /Open Radiostr/ })).toHaveAttribute('href', 'examples/radiostr/');
     await expect(page.locator('.wikistr .card-label')).toHaveText('More experimental');
@@ -179,11 +178,25 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('.miti .card-label')).toHaveText('More experimental / 3rd party');
     await expect(page.locator('.experimental-card h2')).toHaveText([
       'Nostrail',
-      'Nostroots Map',
       'wikistr ⭐',
       'Radiostr',
       "Let's Miti",
     ]);
+  });
+
+  test('keeps Nostroots Web as the only Nostroots browser map card', async ({ page }) => {
+    await page.goto('/');
+
+    const retiredMapCard = page.getByRole('link', { name: /Open Nostroots Map/ });
+    await expect(page.getByRole('link', { name: /Open Nostroots Web/ })).toHaveAttribute('href', 'web/');
+    await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toHaveAttribute('href', 'examples/squatbridge/');
+    await expect(retiredMapCard).toHaveCount(0);
+
+    await page.getByRole('checkbox', { name: 'Show more experimental apps' }).check();
+
+    await expect(retiredMapCard).toHaveCount(0);
+    await expect(page.getByRole('link', { name: /Open Nostrail/ })).toHaveAttribute('href', 'nostrail/');
+    await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveAttribute('href', 'examples/wikistr/');
   });
 
   test('shows app QR codes only on wider screens', async ({ page }) => {

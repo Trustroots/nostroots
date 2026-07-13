@@ -10,9 +10,9 @@ The root page is a small hub. It links to classic Trustroots network settings, N
 
 - [`/background/`](background/) — background, vision, and FAQ for Nostroots and the Trustroots/Nostr direction.
 - [`https://www.trustroots.org/profile/edit/networks`](https://www.trustroots.org/profile/edit/networks) — classic Trustroots network editing.
-- [`/web/`](web/) — Nostroots Web, the current map/chat/profile app for Trustroots-style activity with light Nostr key support.
+- [`/web/`](web/) — Nostroots Web, the canonical map/chat/profile app for Trustroots-style activity with light Nostr key support.
 - [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots Browser.
-- [`/nostroots-map/`](nostroots-map/) — experimental browser-native map prototype inspired by the mobile `nr-app`, built without React or Expo Web.
+- [`/nostroots-map/`](nostroots-map/) — compatibility route that preserves query parameters and redirects old links to `/web/#map`.
 - [`/examples/squatbridge/`](examples/squatbridge/) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr; hidden on the hub until you enable experimental apps.
 - [`/examples/wikistr/`](examples/wikistr/) — experimental Nostr-powered wiki reader, hidden on the hub until you enable experimental apps.
 - [`/examples/radiostr/`](examples/radiostr/) — experimental social internet radio with Nostr chat and listening-now discovery, hidden on the hub until you enable experimental apps.
@@ -26,7 +26,6 @@ Legacy root hash/query links still land in the current app. For example, `/#stat
 
 - **Nostroots Web**: View traveler notes, post by plus code with a Trustroots identity, manage keys, use NIP-07, chat, browse profiles, and configure relays.
 - **Nostrail**: Share a temporary approximate area with selected people using the browser-provided NIP-07 signer, NIP-44 encryption, NIP-42 relay auth, and foreground-only updates.
-- **Nostroots Map**: Map-first browser-native prototype with NIP-07 signer detection.
 - **Let's Miti**: External experimental web app linked from the hub.
 - **Treasures**: External web app linked from the experimental hub.
 - **Examples hub**: [examples/index.html](examples/index.html) — overview of demo pages and fork patterns.
@@ -40,7 +39,7 @@ Nostroots Web (`web/index.html`) uses **`location.hash`** only (no path router; 
 | *(empty)* | Map home |
 | `keys` / `settings` | Keys or Settings modal |
 | `stats` | Progress stats dashboard |
-| `map`, `chat`, `help`, `welcome`, `start` | Reserved actions (e.g. `#chat` opens chats with empty picker; `#map` clears hash and returns to map) |
+| `map`, `chat`, `help`, `welcome`, `start` | Reserved actions (e.g. `#chat` opens chats with empty picker; `#map` shows the canonical map view) |
 | Contains `+` as a full Open Location Code (prefix may end with `+` and no refinement, e.g. `9G000000+`) | Map — notes for that plus code |
 | `profile` | **My profile** — always opens your own profile in editable mode (prompts for key if not loaded) |
 | `profile/npub1…`, `profile/<64-char-hex>`, or `profile/<NIP-05>` (NIP-05 may be URL-encoded, e.g. `profile/alice%40trustroots.org`) | **Profile** — public Nostr-backed profile view (invalid remainder shows an error in the profile shell) |

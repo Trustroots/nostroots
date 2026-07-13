@@ -3354,11 +3354,6 @@ async function applyUnifiedHash() {
         if (c.token === 'map') {
             showMapShell();
             closePlusCodeNotesModal(true);
-            if (location.hash) {
-                try {
-                    history.replaceState({}, '', location.pathname + location.search);
-                } catch (_) {}
-            }
             maybeShowNoKeyWelcomeOverlay(c);
             return;
         }

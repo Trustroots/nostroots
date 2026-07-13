@@ -276,6 +276,15 @@ allowing them to share Vibe protocol conventions.
 - **AND** a linked Nomadwiki identity MUST use the existing `Special:NostrLogin`
   edit route for that missing page.
 
+#### Scenario: Wikistr internal article links
+
+- **GIVEN** a rendered MediaWiki page includes a same-wiki article link
+- **WHEN** the link uses either the advertised wiki path or another MediaWiki
+  article path with a canonical page title, such as Nomadwiki's `/en/Lisbon`
+- **THEN** Wikistr MUST rewrite it to the active wiki's hash route
+- **AND** activating it MUST load the target inside Wikistr rather than opening
+  the source wiki in a new tab.
+
 #### Scenario: Wikistr protected images
 
 - **GIVEN** a rendered wiki page includes same-wiki image resources

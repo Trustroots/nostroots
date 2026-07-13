@@ -627,6 +627,16 @@ test('extracts same-wiki article titles and routes missing-page links safely', (
   assert.equal(app.wikiPageTitleFromUrl('https://nomadwiki.org/wiki/Special:RecentChanges'), null);
   assert.equal(app.wikiPageTitleFromUrl('https://example.org/wiki/Foo_Bar'), null);
 
+  // Nomadwiki's parser emits /en/... article URLs even though its advertised
+  // wiki_path is /wiki. MediaWiki's title attribute is the canonical page
+  // title Wikistr should keep inside its own hash router.
+  assert.equal(app.wikiPageTitleFromLink('/en/Lisbon', 'Lisbon'), 'Lisbon');
+  assert.equal(app.wikiPageTitleFromLink('/en/Free_camping', 'Free camping'), 'Free camping');
+  assert.equal(app.wikiPageTitleFromLink('/en/Special:Statistics', 'Special:Statistics'), null);
+  assert.equal(app.wikiPageTitleFromLink('#Transport', ''), null);
+  assert.equal(app.wikiPageTitleFromLink('https://example.org/en/Lisbon', 'Lisbon'), null);
+  assert.equal(app.wikiPageTitleFromLink('/index.php?title=Lisbon&action=history', 'Lisbon'), null);
+
   const redLink = '/index.php?title=Bangkok&action=edit&redlink=1';
   assert.equal(app.wikiRedLinkTitleFromUrl(redLink), 'Bangkok');
   assert.equal(app.buildWikiRedLinkHref(redLink), 'https://nomadwiki.org/index.php?title=Bangkok&action=edit&redlink=1');

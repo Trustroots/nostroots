@@ -1242,9 +1242,11 @@
         continue;
       }
 
-      const title = wikiPageTitleFromUrl(href);
+      const title = wikiPageTitleFromLink(href, anchor.getAttribute('title'));
       if (title) {
         anchor.setAttribute('href', surfacePageHref(title));
+        anchor.removeAttribute('target');
+        anchor.removeAttribute('rel');
       } else {
         anchor.setAttribute('target', '_blank');
         anchor.setAttribute('rel', 'noopener noreferrer');
@@ -1388,6 +1390,31 @@
         return title && !title.startsWith('Special:') ? title : null;
       }
       return null;
+    } catch {
+      return null;
+    }
+  }
+
+  function wikiPageTitleFromLink(value, linkTitle = '') {
+    const titleFromURL = wikiPageTitleFromUrl(value);
+    if (titleFromURL) {
+      return titleFromURL;
+    }
+    const config = activeConfig();
+    const title = String(linkTitle || '').trim();
+    if (!config || !title || title.startsWith('Special:') || String(value || '').trim().startsWith('#')) {
+      return null;
+    }
+    try {
+      const url = new URL(value, config.wikiOrigin);
+      if (
+        url.origin !== config.wikiOrigin ||
+        url.pathname === config.wikiLoadPath ||
+        url.searchParams.has('action')
+      ) {
+        return null;
+      }
+      return title;
     } catch {
       return null;
     }
@@ -1723,6 +1750,7 @@
     truncateForDisplay,
     wikiFetchJSON,
     wikiFetchResource,
+    wikiPageTitleFromLink,
     wikiPageTitleFromUrl,
     wikiRedLinkTitleFromUrl
   }, TEST_MODE ? {

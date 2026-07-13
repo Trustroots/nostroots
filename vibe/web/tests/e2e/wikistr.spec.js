@@ -11,16 +11,18 @@ async function mockWikistrRelayDiscovery(page) {
         this.readyState = MockWebSocket.OPEN;
         setTimeout(() => {
           this.dispatchEvent(new Event('open'));
-          const subID = 'wikistr-0';
-          setTimeout(() => {
-            this.dispatchEvent(new MessageEvent('message', {
-              data: JSON.stringify(['EOSE', subID]),
-            }));
-          }, 0);
         }, 0);
       }
 
-      send() {}
+      send(message) {
+        const payload = JSON.parse(message);
+        if (payload[0] !== 'REQ') return;
+        setTimeout(() => {
+          this.dispatchEvent(new MessageEvent('message', {
+            data: JSON.stringify(['EOSE', payload[1]]),
+          }));
+        }, 0);
+      }
 
       close() {}
     }
@@ -29,7 +31,56 @@ async function mockWikistrRelayDiscovery(page) {
   });
 }
 
+async function mockWikistrSignerAndWikiPages(page) {
+  await page.addInitScript(() => {
+    window.nostr = {
+      async signEvent(event) {
+        return {
+          ...event,
+          id: '1'.repeat(64),
+          pubkey: '2'.repeat(64),
+          sig: '3'.repeat(128),
+        };
+      },
+    };
+  });
+
+  await page.route('https://relay.guaka.org/proxy/nomadwiki.org/api.php*', async (route) => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.get('action') === 'parse') {
+      const pageTitle = url.searchParams.get('page');
+      const text = pageTitle === 'Lisbon'
+        ? '<p id="lisbon-loaded">Lisbon target loaded.</p>'
+        : '<p><a href="/en/Lisbon" title="Lisbon">Lisbon</a></p>';
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({ parse: { title: pageTitle === 'Lisbon' ? 'Lisbon' : 'Main Page', text } }),
+      });
+      return;
+    }
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({ query: { recentchanges: [] } }),
+    });
+  });
+}
+
 test.describe('Wikistr', () => {
+  test('keeps MediaWiki article links inside Wikistr', async ({ page }) => {
+    await mockWikistrRelayDiscovery(page);
+    await mockWikistrSignerAndWikiPages(page);
+    await page.goto('/examples/wikistr/#nomadwiki');
+
+    const lisbon = page.locator('#main-page-content').getByRole('link', { name: 'Lisbon' });
+    await expect(lisbon).toHaveAttribute('href', '#nomadwiki/Lisbon');
+    await expect(lisbon).not.toHaveAttribute('target', '_blank');
+
+    await lisbon.click();
+
+    await expect(page).toHaveURL(/#nomadwiki\/Lisbon$/);
+    await expect(page.locator('#main-page-content')).toContainText('Lisbon target loaded.');
+  });
+
   test('shows signer help when no NIP-07 provider is available', async ({ page }) => {
     await mockWikistrRelayDiscovery(page);
     await page.goto('/examples/wikistr/#hitchwiki');

@@ -154,7 +154,12 @@ test.describe('Nostroots Web hub', () => {
     await expect(experimentalToggle).not.toBeChecked();
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: /Open wikistr/ })).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveCount(0);
+    await expect(page.getByRole('link', { name: /Open Trustroots Wiki/ })).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open Nomadwiki/ })).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open Trashwiki/ })).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open Hitchwiki$/ })).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open Hitchwiki Maps/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Radiostr/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toBeHidden();
 
@@ -163,23 +168,46 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toHaveAttribute('href', 'nostrail/');
     await expect(page.locator('.location .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveAttribute('href', 'examples/wikistr/');
+    await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Open Radiostr/ })).toHaveAttribute('href', 'examples/radiostr/');
-    await expect(page.locator('.wikistr .card-label')).toHaveText('More experimental');
-    await expect(page.locator('.wikistr .app-icon')).toHaveText('⭐');
-    await expect(page.locator('.wikistr .app-icon')).toHaveCSS('background-color', 'rgb(79, 143, 102)');
-    await expect(page.locator('.wikistr .card-action')).toHaveCSS('background-color', 'rgb(79, 143, 102)');
+    await expect(page.getByRole('link', { name: /Open Trustroots Wiki/ })).toHaveAttribute('href', 'https://wiki.trustroots.org/');
+    await expect(page.getByRole('link', { name: /Open Nomadwiki/ })).toHaveAttribute('href', 'https://nomadwiki.org/');
+    await expect(page.getByRole('link', { name: /Open Trashwiki/ })).toHaveAttribute('href', 'https://trashwiki.org/');
+    await expect(page.getByRole('link', { name: /Open Hitchwiki$/ })).toHaveAttribute('href', 'https://hitchwiki.org/');
+    await expect(page.getByRole('link', { name: /Open Hitchwiki Maps/ })).toHaveAttribute('href', 'https://maps.hitchwiki.org/');
+    await expect(page.locator('.wiki-site[target]')).toHaveCount(0);
+    await expect(page.locator('.wiki-site .app-icon img')).toHaveCount(5);
+    await expect(page.locator('.trustroots-wiki .app-icon img')).toHaveAttribute('src', 'wiki-logos/trustroots-wiki.png');
+    await expect(page.locator('.nomadwiki .app-icon img')).toHaveAttribute('src', 'wiki-logos/nomadwiki.png');
+    await expect(page.locator('.trashwiki .app-icon img')).toHaveAttribute('src', 'wiki-logos/trashwiki.png');
+    await expect(page.locator('.hitchwiki .app-icon img')).toHaveAttribute('src', 'wiki-logos/hitchwiki.png');
+    await expect(page.locator('.hitchwiki-maps .app-icon img')).toHaveAttribute('src', 'wiki-logos/hitchwiki-maps.png');
+    await expect(page.locator('.trustroots-wiki .card-action')).toHaveCSS('background-color', 'rgb(0, 131, 111)');
+    await expect(page.locator('.nomadwiki .card-action')).toHaveCSS('background-color', 'rgb(246, 214, 24)');
+    await expect(page.locator('.trashwiki .card-action')).toHaveCSS('background-color', 'rgb(220, 221, 203)');
+    await expect(page.locator('.hitchwiki .card-action')).toHaveCSS('background-color', 'rgb(238, 206, 86)');
+    await expect(page.locator('.hitchwiki-maps .card-action')).toHaveCSS('background-color', 'rgb(241, 207, 80)');
+    await expect(page.locator('.wiki-site .card-label')).toHaveText([
+      'More experimental',
+      'More experimental',
+      'More experimental',
+      'More experimental',
+      'More experimental',
+    ]);
     await expect(page.locator('.radiostr .card-label')).toHaveText('More experimental');
     await expect(page.locator('.radiostr .app-icon')).toHaveText('◎');
     await expect(page.locator('.radiostr .card-action')).toHaveCSS('background-color', 'rgb(18, 138, 120)');
-    await expect(page.locator('.wikistr')).toContainText('Nomadwiki, Trashwiki, Hitchwiki, and Trustroots wiki');
     await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toHaveAttribute('href', 'https://www.letsmiti.app/');
     await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toHaveAttribute('target', '_blank');
     await expect(page.locator('.miti .card-label')).toHaveText('More experimental / 3rd party');
     await expect(page.locator('.experimental-card h2')).toHaveText([
       'Nostrail',
-      'wikistr ⭐',
       'Radiostr',
+      'Trustroots Wiki',
+      'Nomadwiki',
+      'Trashwiki',
+      'Hitchwiki',
+      'Hitchwiki Maps',
       "Let's Miti",
     ]);
   });
@@ -196,7 +224,7 @@ test.describe('Nostroots Web hub', () => {
 
     await expect(retiredMapCard).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toHaveAttribute('href', 'nostrail/');
-    await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveAttribute('href', 'examples/wikistr/');
+    await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveCount(0);
   });
 
   test('shows app QR codes only on wider screens', async ({ page }) => {
@@ -353,9 +381,9 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('#trustroots-identity-status .identity-link-label')).toBeVisible();
     await expect(page.locator('#trustroots-identity-status .identity-link-icon')).toBeHidden();
     await expect(page.locator('#browser-extensions-section')).toBeHidden();
-    await expect(page.locator('.hub-header .lead')).toBeHidden();
-    await expect(page.locator('#web-experiences-heading')).toBeHidden();
-    await expect(page.locator('#web-experiences-section .section-lead')).toBeHidden();
+    await expect(page.locator('.hub-header .lead')).toBeVisible();
+    await expect(page.locator('#web-experiences-heading')).toBeVisible();
+    await expect(page.locator('#web-experiences-section .section-lead')).toBeVisible();
     await page.locator('#trustroots-identity-status').click();
     const modal = page.getByRole('dialog', { name: 'Nostr connection' });
     await expect(modal.getByRole('heading', { name: 'Trustroots identity linked' })).toBeVisible();

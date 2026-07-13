@@ -724,7 +724,6 @@ function applyIdentityState(nip05) {
   icon.textContent = '@';
   identityStatus.append(label, icon);
   setNip7InfoModalState('linked', username + '@trustroots.org', npub || activePublicKeyHex);
-  hideHubIntroduction();
   fadeOutKeyStatus(revealIdentityStatusAfterSettled);
 }
 

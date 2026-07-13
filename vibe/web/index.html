@@ -300,9 +300,47 @@
       box-shadow: inset 0 -16px 0 rgba(238, 134, 25, 0.28);
     }
 
-    .wikistr .app-icon {
-      background: #4f8f66;
-      box-shadow: inset 0 -16px 0 rgba(180, 218, 191, 0.34);
+    .wiki-site .app-icon {
+      background: #ffffff;
+      box-shadow: 0 0 0 1px rgba(0, 75, 63, 0.12);
+    }
+
+    .wiki-site .app-icon img {
+      border-radius: 0;
+      object-fit: contain;
+    }
+
+    .nomadwiki .card-action {
+      background: #f6d618;
+    }
+
+    .trashwiki .card-action {
+      background: #dcddcb;
+    }
+
+    .hitchwiki .card-action {
+      background: #eece56;
+    }
+
+    .hitchwiki-maps .card-action {
+      background: #f1cf50;
+    }
+
+    .trustroots-wiki .card-action {
+      background: #00836f;
+    }
+
+    .card.nomadwiki .card-action {
+      color: #2b2600;
+    }
+
+    .card.trashwiki .card-action {
+      color: #20201d;
+    }
+
+    .card.hitchwiki .card-action,
+    .card.hitchwiki-maps .card-action {
+      color: #5a2700;
     }
 
     .radiostr .app-icon {
@@ -450,10 +488,6 @@
 
     .miti .card-action {
       background: #395d7a;
-    }
-
-    .wikistr .card-action {
-      background: #4f8f66;
     }
 
     .radiostr .card-action {
@@ -763,19 +797,6 @@
       </a>
 
       <a
-        class="card wikistr experimental-card"
-        href="examples/wikistr/"
-      >
-        <div class="card-main">
-          <span class="card-label">More experimental</span>
-          <span class="app-icon app-icon-text" aria-hidden="true">⭐</span>
-          <h2>wikistr ⭐</h2>
-          <p>Explore experimental Nostr-powered updates for Nomadwiki, Trashwiki, Hitchwiki, and Trustroots wiki.</p>
-        </div>
-        <span class="card-action">Open wikistr ⭐</span>
-      </a>
-
-      <a
         class="card radiostr experimental-card"
         href="examples/radiostr/"
       >
@@ -786,6 +807,66 @@
           <p>Listen to internet radio together — chat and tune into what others are playing.</p>
         </div>
         <span class="card-action">Open Radiostr</span>
+      </a>
+
+      <a class="card wiki-site trustroots-wiki experimental-card" href="https://wiki.trustroots.org/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/trustroots-wiki.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Trustroots Wiki</h2>
+          <p>Read and improve community documentation about Trustroots, travel, and volunteering.</p>
+        </div>
+        <span class="card-action">Open Trustroots Wiki</span>
+      </a>
+
+      <a class="card wiki-site nomadwiki experimental-card" href="https://nomadwiki.org/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/nomadwiki.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Nomadwiki</h2>
+          <p>Browse practical travel knowledge written by nomads and independent travelers.</p>
+        </div>
+        <span class="card-action">Open Nomadwiki</span>
+      </a>
+
+      <a class="card wiki-site trashwiki experimental-card" href="https://trashwiki.org/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/trashwiki.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Trashwiki</h2>
+          <p>Find community guides to dumpster diving, reuse, free food, and reducing waste.</p>
+        </div>
+        <span class="card-action">Open Trashwiki</span>
+      </a>
+
+      <a class="card wiki-site hitchwiki experimental-card" href="https://hitchwiki.org/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/hitchwiki.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Hitchwiki</h2>
+          <p>Read practical hitchhiking guides, routes, and advice shared by travelers.</p>
+        </div>
+        <span class="card-action">Open Hitchwiki</span>
+      </a>
+
+      <a class="card wiki-site hitchwiki-maps experimental-card" href="https://maps.hitchwiki.org/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/hitchwiki-maps.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Hitchwiki Maps</h2>
+          <p>Find and share hitchhiking spots on a community-built global map.</p>
+        </div>
+        <span class="card-action">Open Hitchwiki Maps</span>
       </a>
 
       <a class="card treasures" href="https://treasures.to/" target="_blank" rel="noopener noreferrer">

@@ -102,9 +102,14 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
   with Android and iOS store links, top-nav Android and iOS store links, hub lead
   copy that mentions getting the mobile app, and the NIP-7 info modal bullet
   recommending mobile app install
-- **AND** additional experimental experiences (Nostrail, Wikistr, and external
-  third-party links such as Treasures and Miti) MUST remain hidden
+- **AND** additional experimental experiences (Nostrail, Radiostr, and the external
+  Trustroots Wiki, Nomadwiki, Trashwiki, Hitchwiki, and Hitchwiki Maps cards,
+  and third-party links such as Treasures and Miti) MUST remain hidden
   until the user enables "Show more experimental apps"
+- **AND** the five external wiki cards MUST use the logos supplied by their
+  corresponding sites and open those original sites in the current tab
+- **AND** Wikistr MUST NOT have a root-hub card, while its direct
+  `examples/wikistr/` route remains available
 - **AND** on desktop, the browser-extensions section MUST be visible until a
   NIP-07 signer is detected; on mobile viewports it MAY stay hidden by layout
   rules
@@ -148,8 +153,8 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
 - **AND** its hover and keyboard-focus treatment MUST clearly communicate that
   the control opens an explanation
 - **AND** on the root hub, the landing lead and the Web experiences heading and
-  introductory copy MUST be hidden, while its available experience cards remain
-  visible.
+  introductory copy MUST keep the same visible state before and after the linked
+  identity resolves, avoiding an identity-dependent layout shift.
 
 #### Scenario: Header identity explanation
 

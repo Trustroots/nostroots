@@ -152,8 +152,7 @@ export default function SettingsScreen() {
   ) as boolean;
 
   // Onboarding configuration flags.
-  const { useSkipOnboarding, forceOnboarding, forceWelcome } =
-    useAppSelector(selectFeatureFlags);
+  const { forceOnboarding, forceWelcome } = useAppSelector(selectFeatureFlags);
 
   const [nsec, setNsec] = useState("");
   const [mnemonic, setMnemonic] = useState("");
@@ -508,16 +507,6 @@ export default function SettingsScreen() {
       {areTestFeaturesEnabled && (
         <Section>
           <Text variant="h2">Onboarding / Welcome Flags</Text>
-
-          <ToggleSwitch
-            label="Allow skipping onboarding flow"
-            value={useSkipOnboarding}
-            onToggle={() => {
-              dispatch(
-                settingsActions.setUseSkipOnboarding(!useSkipOnboarding),
-              );
-            }}
-          />
 
           <ToggleSwitch
             label="Force onboarding on startup"

@@ -55,12 +55,12 @@ describe("trustrootsUsername.utils", () => {
       });
     });
 
-    it("rejects a non-Trustroots email address, which we cannot map to a username", () => {
+    it("rejects a non-Trustroots email address, which we decline to look up", () => {
       expect(validateTrustrootsUsername("alice@example.com")).toEqual({
         success: false,
         username: null,
         error:
-          "That looks like an email address. Enter your Trustroots username instead — you can find it on your Trustroots profile.",
+          "That looks like an email address. We avoid email lookups for security reasons — please use your Trustroots username.",
       });
     });
 

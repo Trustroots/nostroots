@@ -27,9 +27,13 @@ export function buildTrustrootsNip05Identifier(input: string): string {
 /**
  * Users reach for whatever identifier they have to hand, so accept the three
  * shapes that can be resolved to a username without a lookup: `alice`,
- * `@alice` and `alice@trustroots.org`. An arbitrary email cannot be mapped to
- * a username without an email->username endpoint Trustroots does not expose,
- * so it is reported rather than guessed at.
+ * `@alice` and `alice@trustroots.org`.
+ *
+ * An arbitrary email is rejected rather than looked up. nr-bridge could match
+ * one against the Trustroots `users` collection, but usernames are already
+ * public while emails are not, so an email-keyed lookup would turn
+ * `request_token` into an oracle for whether a given person has a Trustroots
+ * account at all.
  */
 function extractUsername(
   normalized: string,
@@ -56,7 +60,7 @@ function extractUsername(
         success: false,
         username: null,
         error:
-          "That looks like an email address. Enter your Trustroots username instead — you can find it on your Trustroots profile.",
+          "That looks like an email address. We avoid email lookups for security reasons — please use your Trustroots username.",
       };
     }
 

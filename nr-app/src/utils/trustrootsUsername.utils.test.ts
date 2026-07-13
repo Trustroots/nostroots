@@ -12,14 +12,16 @@ describe("trustrootsUsername.utils", () => {
   });
 
   describe("buildTrustrootsNip05Identifier()", () => {
-    it("builds a lowercased identifier regardless of input case", () => {
-      expect(buildTrustrootsNip05Identifier("Alice")).toBe(
-        "alice@trustroots.org",
-      );
-      expect(buildTrustrootsNip05Identifier("  MaRmAlAdEsKiEs ")).toBe(
-        "marmaladeskies@trustroots.org",
-      );
-    });
+    it.each([
+      ["lowercase", "sunhopper", "sunhopper@trustroots.org"],
+      ["uppercase", "MOONFERRY", "moonferry@trustroots.org"],
+      ["mixed case", "  RiVerKiTe ", "riverkite@trustroots.org"],
+    ])(
+      "builds a lowercased identifier from %s input",
+      (_case, input, expected) => {
+        expect(buildTrustrootsNip05Identifier(input)).toBe(expected);
+      },
+    );
   });
 
   describe("validateTrustrootsUsername()", () => {

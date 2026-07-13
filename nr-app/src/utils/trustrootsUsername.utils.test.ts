@@ -12,14 +12,16 @@ describe("trustrootsUsername.utils", () => {
   });
 
   describe("buildTrustrootsNip05Identifier()", () => {
-    it("builds a lowercased identifier regardless of input case", () => {
-      expect(buildTrustrootsNip05Identifier("Alice")).toBe(
-        "alice@trustroots.org",
-      );
-      expect(buildTrustrootsNip05Identifier("  MaRmAlAdEsKiEs ")).toBe(
-        "marmaladeskies@trustroots.org",
-      );
-    });
+    it.each([
+      ["lowercase", "sunhopper", "sunhopper@trustroots.org"],
+      ["uppercase", "MOONFERRY", "moonferry@trustroots.org"],
+      ["mixed case", "  RiVerKiTe ", "riverkite@trustroots.org"],
+    ])(
+      "builds a lowercased identifier from %s input",
+      (_case, input, expected) => {
+        expect(buildTrustrootsNip05Identifier(input)).toBe(expected);
+      },
+    );
   });
 
   describe("validateTrustrootsUsername()", () => {
@@ -39,11 +41,44 @@ describe("trustrootsUsername.utils", () => {
       });
     });
 
-    it("rejects email addresses", () => {
+    it("accepts an @-prefixed username", () => {
+      expect(validateTrustrootsUsername(" @Alice ")).toEqual({
+        success: true,
+        username: "alice",
+        error: null,
+      });
+    });
+
+    it("accepts a trustroots.org address and strips the domain", () => {
+      expect(validateTrustrootsUsername("Alice@Trustroots.org")).toEqual({
+        success: true,
+        username: "alice",
+        error: null,
+      });
+    });
+
+    it("rejects a non-Trustroots email address, which we decline to look up", () => {
       expect(validateTrustrootsUsername("alice@example.com")).toEqual({
         success: false,
         username: null,
-        error: "Enter your Trustroots username, not your email address.",
+        error:
+          "That looks like an email address. We avoid email lookups for security reasons — please use your Trustroots username.",
+      });
+    });
+
+    it("rejects an address with more than one @", () => {
+      expect(validateTrustrootsUsername("a@b@trustroots.org")).toEqual({
+        success: false,
+        username: null,
+        error: "Enter only your Trustroots username.",
+      });
+    });
+
+    it("rejects a bare @ with no username", () => {
+      expect(validateTrustrootsUsername("@")).toEqual({
+        success: false,
+        username: null,
+        error: "Enter your Trustroots username.",
       });
     });
 

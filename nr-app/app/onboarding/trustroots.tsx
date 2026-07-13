@@ -172,7 +172,8 @@ export default function OnboardingTrustrootsScreen() {
 
   const handleAuthenticateCode = useCallback(async () => {
     const username =
-      pendingTrustrootsUsername ?? usernameInput.trim().toLowerCase();
+      pendingTrustrootsUsername ??
+      validateTrustrootsUsername(usernameInput).username;
 
     if (!username || code.length !== 6) {
       return;

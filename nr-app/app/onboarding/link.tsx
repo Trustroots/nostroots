@@ -242,6 +242,7 @@ export default function OnboardingLinkScreen() {
               setLinkStatus("idle");
             }}
             placeholder="Enter your Trustroots username"
+            placeholderTextColor="#6b7280"
             className="w-full bg-muted text-foreground rounded-md p-3 text-sm mb-2 text-left"
           />
           <Button

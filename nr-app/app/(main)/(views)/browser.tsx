@@ -3,6 +3,7 @@ import { BrowserScreen } from "@/browser/BrowserScreen";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { useAppSelector } from "@/redux/hooks";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { settingsSelectors } from "@/redux/slices/settings.slice";
@@ -11,6 +12,7 @@ import { ActivityIndicator, View } from "react-native";
 
 export default function Nip7BrowserRoute() {
   const router = useRouter();
+  const colors = useThemeColors();
   const { url } = useLocalSearchParams<{ url?: string }>();
   const initialUrl = resolveNip7BrowserInitialUrl(url);
   const areTestFeaturesEnabled = useAppSelector(
@@ -31,7 +33,7 @@ export default function Nip7BrowserRoute() {
     return (
       <View className="flex-1 items-center justify-center bg-background">
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator color="#12a585" />
+        <ActivityIndicator color={colors.primary} />
       </View>
     );
   }

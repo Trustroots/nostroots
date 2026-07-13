@@ -1,3 +1,4 @@
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapSelectors } from "@/redux/slices/map.slice";
 import {
@@ -39,6 +40,7 @@ function PersonBubble({
 }) {
   const pubkey = getAuthorFromEvent(signal.event);
   const dispatch = useAppDispatch();
+  const colors = useThemeColors();
   const profile = useAppSelector((state) =>
     selectProfileByPubkey(state, pubkey),
   );
@@ -89,7 +91,7 @@ function PersonBubble({
               position: "absolute",
               bottom: -2,
               right: -2,
-              backgroundColor: "#fff",
+              backgroundColor: colors.card,
               borderRadius: 8,
               width: 16,
               height: 16,

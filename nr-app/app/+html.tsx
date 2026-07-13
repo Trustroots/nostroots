@@ -31,12 +31,21 @@ export default function Root({ children }: PropsWithChildren) {
   );
 }
 
+// The prefers-color-scheme rule only covers the pre-hydration paint. Once
+// NativeWind stamps the scheme onto <html>, the class rules take over so the
+// body follows the in-app Appearance setting rather than the OS.
 const responsiveBackground = `
 body {
   background-color: #fff;
 }
 @media (prefers-color-scheme: dark) {
   body {
-    background-color: #000;
+    background-color: #0a0a0a;
   }
+}
+html.dark body {
+  background-color: #0a0a0a;
+}
+html:not(.dark) body {
+  background-color: #fff;
 }`;

@@ -13,6 +13,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="../site-chrome.css" rel="stylesheet">
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
   <script defer src="../analytics.js"></script>
   <style>
     :root {
@@ -29,6 +31,10 @@
       --line-strong: rgba(16, 35, 31, 0.26);
       --danger: #b42318;
       --shadow: rgba(18, 44, 38, 0.18);
+      --brand-green: #0f8d75;
+      --accent-dark: #087260;
+      --foreground: #10231f;
+      --white: #ffffff;
     }
 
     * {
@@ -70,61 +76,29 @@
       background: var(--bg);
     }
 
-    .topbar {
-      min-height: 64px;
-      padding: max(12px, env(safe-area-inset-top)) 14px 10px;
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-      align-items: center;
-      color: #ffffff;
-      background: var(--accent);
-      box-shadow: 0 1px 0 rgba(16, 35, 31, 0.16);
+    .nostrail-shell > .header {
       z-index: 8;
     }
 
-    .brand {
-      min-width: 0;
-      display: grid;
-      gap: 1px;
-    }
-
-    .brand strong {
-      font-size: 24px;
-      font-weight: 900;
-      line-height: 1;
-      letter-spacing: 0;
-    }
-
-    .brand span {
+    .header .nostrail-nav-title {
       overflow: hidden;
-      color: rgba(255, 255, 255, 0.88);
-      font-size: 13px;
+      color: #ffffff;
+      font-weight: 900;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .header .identity-status {
+      color: #ffffff;
+    }
+
+    .header #relay-status {
+      max-width: 180px;
+      overflow: hidden;
+      font-size: 12px;
       font-weight: 800;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-
-    .topbar-status {
-      max-width: 48vw;
-      display: grid;
-      justify-items: end;
-      gap: 2px;
-      color: rgba(255, 255, 255, 0.9);
-      font-size: 12px;
-      font-weight: 900;
-      text-align: right;
-    }
-
-    .topbar-status span {
-      max-width: 100%;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .topbar-status .connected {
-      color: #eafff6;
     }
 
     .stage {
@@ -137,95 +111,70 @@
       position: absolute;
       inset: 0;
       overflow: hidden;
-      background:
-        linear-gradient(30deg, rgba(35, 87, 137, 0.12) 0 1px, transparent 1px 110px),
-        linear-gradient(120deg, rgba(15, 141, 117, 0.18) 0 1px, transparent 1px 96px),
-        radial-gradient(circle at 24% 28%, rgba(255, 255, 255, 0.92), transparent 0 38px, rgba(255, 255, 255, 0) 39px),
-        linear-gradient(135deg, #d8eee8 0%, #f6faf8 50%, #c8dfec 100%);
+      z-index: 0;
+      background: linear-gradient(135deg, #d8eee8 0%, #f6faf8 50%, #c8dfec 100%);
     }
 
-    .map::before,
-    .map::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-    }
-
-    .map::before {
+    .map.map-unavailable {
       background:
         linear-gradient(90deg, rgba(16, 35, 31, 0.06) 1px, transparent 1px),
-        linear-gradient(0deg, rgba(16, 35, 31, 0.06) 1px, transparent 1px);
-      background-size: 72px 72px;
-      mask-image: linear-gradient(to bottom, transparent, #000 10%, #000 76%, transparent);
+        linear-gradient(0deg, rgba(16, 35, 31, 0.06) 1px, transparent 1px),
+        linear-gradient(135deg, #d8eee8 0%, #f6faf8 50%, #c8dfec 100%);
+      background-size: 72px 72px, 72px 72px, auto;
     }
 
-    .map::after {
-      background:
-        linear-gradient(50deg, transparent 0 42%, rgba(15, 141, 117, 0.2) 42% 45%, transparent 45% 100%),
-        linear-gradient(145deg, transparent 0 48%, rgba(35, 87, 137, 0.14) 48% 51%, transparent 51% 100%);
-      opacity: 0.8;
+    .leaflet-container {
+      font-family: inherit;
     }
 
-    .map-label {
+    .map-recenter-control {
       position: absolute;
-      left: 14px;
-      top: 14px;
-      z-index: 2;
-      max-width: min(360px, calc(100vw - 28px));
-      padding: 9px 12px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.94);
-      color: #344054;
-      box-shadow: 0 12px 28px var(--shadow);
-      font-size: 13px;
-      font-weight: 900;
+      right: 10px;
+      bottom: 84px;
+      z-index: 500;
+      width: 34px;
+      height: 34px;
+      padding: 7px;
+      border: 1px solid rgba(0, 0, 0, 0.28);
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      background: #ffffff;
+      color: #10231f;
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.32);
     }
 
-    .marker {
-      position: absolute;
-      z-index: 3;
-      width: 28px;
-      height: 28px;
-      border: 3px solid #ffffff;
-      border-radius: 999px;
-      box-shadow: 0 8px 22px rgba(16, 35, 31, 0.28);
-      transform: translate(-50%, -50%);
+    .map-recenter-control svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 2;
     }
 
-    .marker.own {
-      left: 50%;
-      top: 46%;
-      background: var(--accent);
+    .map-recenter-control:hover:not(:disabled),
+    .map-recenter-control:focus-visible {
+      color: var(--accent-strong);
+      outline: 2px solid rgba(15, 141, 117, 0.35);
     }
 
-    .marker.peer {
-      background: var(--blue);
+    .nostrail-area-own {
+      fill: var(--accent);
+      stroke: var(--accent-strong);
     }
 
-    .marker.peer::after {
-      content: attr(data-label);
-      position: absolute;
-      left: 50%;
-      top: 30px;
-      min-width: 64px;
-      transform: translateX(-50%);
-      padding: 3px 6px;
-      border-radius: 999px;
-      background: rgba(16, 35, 31, 0.84);
-      color: #ffffff;
-      font-size: 11px;
-      font-weight: 900;
-      text-align: center;
-      white-space: nowrap;
+    .nostrail-area-peer {
+      fill: var(--blue);
+      stroke: #173f68;
     }
 
     .status-strip {
       position: absolute;
       left: 12px;
       right: 12px;
-      top: 72px;
+      top: 12px;
       z-index: 4;
       display: flex;
       flex-wrap: wrap;
@@ -245,6 +194,10 @@
       box-shadow: 0 10px 22px rgba(18, 44, 38, 0.12);
       font-size: 12px;
       font-weight: 900;
+    }
+
+    .pill[hidden] {
+      display: none;
     }
 
     .dot {
@@ -303,6 +256,26 @@
       font-weight: 800;
     }
 
+    .location-prompt {
+      padding: 10px;
+      border: 1px solid rgba(15, 141, 117, 0.26);
+      border-radius: 8px;
+      display: grid;
+      gap: 8px;
+      background: var(--accent-soft);
+    }
+
+    .location-prompt[hidden] {
+      display: none;
+    }
+
+    .location-prompt p {
+      margin: 0;
+      color: #344054;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
     .actions {
       display: flex;
       flex-wrap: wrap;
@@ -357,6 +330,42 @@
       display: block;
       color: var(--muted);
       font-weight: 700;
+    }
+
+    .recipient-profile-link {
+      color: var(--ink);
+      font-weight: 900;
+      text-decoration: underline;
+      text-decoration-color: rgba(15, 141, 117, 0.45);
+      text-underline-offset: 2px;
+    }
+
+    .recipient-profile-link:hover,
+    .recipient-profile-link:focus-visible {
+      color: var(--accent-strong);
+      text-decoration-color: currentColor;
+    }
+
+    .person-row[data-state="failed"] {
+      border-color: rgba(180, 35, 24, 0.32);
+      background: #fff7f6;
+    }
+
+    .person-row[data-state="pending"] {
+      border-color: rgba(183, 110, 0, 0.32);
+      background: #fffbf2;
+    }
+
+    .row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .row-actions .button {
+      min-height: 36px;
+      padding: 0 9px;
     }
 
     .sheet {
@@ -440,31 +449,90 @@
         border-radius: 8px;
       }
     }
+
+    @media (max-width: 600px) {
+      .header .nostrail-nav-title,
+      .header #relay-status {
+        display: none;
+      }
+
+      .header-inner {
+        width: calc(100% - 20px);
+      }
+
+      .header .hub-nav {
+        flex: 0 0 auto;
+        gap: 6px;
+      }
+
+      .header .hub-nav .header-app-link {
+        width: 30px;
+        height: 30px;
+      }
+
+      .header .hub-nav .header-app-link svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .header .identity-status {
+        min-width: 0;
+        flex: 1 1 0;
+        overflow: hidden;
+      }
+
+      .header #signer-status {
+        width: 100%;
+        min-width: 0;
+        padding: 0 8px;
+        font-size: 12px;
+      }
+
+      .status-strip {
+        right: auto;
+      }
+
+      .leaflet-bottom.leaflet-right {
+        bottom: calc(min(48dvh, 430px) + 14px);
+      }
+
+      .map-recenter-control {
+        bottom: calc(min(48dvh, 430px) + 116px);
+      }
+    }
   </style>
 </head>
 <body>
   <main id="nostrail-root" class="nostrail-shell">
-    <header class="topbar">
-      <div class="brand">
-        <strong>Nostrail</strong>
-        <span>Foreground location sharing for Trustroots people</span>
-      </div>
-      <div class="topbar-status" aria-live="polite">
-        <span id="signer-status">Checking signer...</span>
-        <span id="relay-status">Relays idle</span>
+    <header class="header" role="banner">
+      <div class="header-inner">
+        <nav class="hub-nav" aria-label="Nostroots links">
+          <a class="header-brand" href="../" aria-label="Nostroots home">
+            <img src="../nostroots-logo67.png" alt="" width="46" height="46">
+          </a>
+          <a class="header-app-link" href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" aria-label="Android"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.48 19.44 6.3c.16-.31-.04-.68-.38-.68-.15 0-.29.08-.37.21l-1.87 3.24c-1.28-.58-2.72-.9-4.22-.9s-2.94.32-4.22.9L6.46 5.83c-.08-.13-.22-.21-.37-.21-.34 0-.54.37-.38.68l1.84 3.18C4.54 11.09 3 13.64 3 16.62h18c0-2.98-1.54-5.53-3.4-7.14ZM8.5 15.12c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Zm7 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Z" fill="currentColor"/></svg></a>
+          <a class="header-app-link" href="https://apps.apple.com/app/nostroots/id6755037304" aria-label="iOS"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z" fill="currentColor"/></svg></a>
+          <span class="nostrail-nav-title">Nostrail</span>
+        </nav>
+        <section class="identity-status" aria-label="Connection status" aria-live="polite">
+          <span id="relay-status">Relays idle</span>
+          <a id="signer-status" class="status-pill identity-link" data-state="pending">Checking signer...</a>
+        </section>
       </div>
     </header>
 
     <section class="stage" aria-label="Nostrail map">
-      <div id="nostrail-map" class="map">
-        <div id="map-label" class="map-label">Choose people, then share your approximate area.</div>
-        <div id="own-marker" class="marker own" hidden></div>
-        <div id="peer-markers"></div>
-      </div>
+      <div id="nostrail-map" class="map" role="application" aria-label="Interactive approximate location map"></div>
+      <button id="recenter-map" class="map-recenter-control" type="button" aria-label="Recenter Map" title="Recenter map on my approximate area" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path>
+        </svg>
+      </button>
 
       <div class="status-strip">
-        <div class="pill"><span id="signer-dot" class="dot"></span><span id="signer-short">Signer unavailable</span></div>
         <div class="pill"><span id="session-dot" class="dot"></span><span id="session-status">Not sharing</span></div>
+        <div id="map-status" class="pill" hidden></div>
       </div>
 
       <section class="bottom-panel" aria-labelledby="nostrail-title">
@@ -474,6 +542,14 @@
             <p id="current-area" class="subcopy">No location fix yet.</p>
           </div>
           <button id="open-recipient-sheet" class="button" type="button">People</button>
+        </div>
+
+        <div id="location-prompt" class="location-prompt">
+          <p>Use your approximate location to center the map and share your current area. Nostrail only asks the browser after you choose to continue.</p>
+          <div class="actions">
+            <button id="use-my-location" class="button primary" type="button">Use My Location</button>
+            <button id="not-now-location" class="button" type="button">Not Now</button>
+          </div>
         </div>
 
         <p id="app-status" class="status-line">This web version shares while the page is open. It pauses if the browser closes or sleeps.</p>
@@ -525,6 +601,7 @@
     </section>
   </main>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module" src="./index.js"></script>
 </body>
 </html>

@@ -2255,7 +2255,7 @@ let relays = [];
 let relayConnectGeneration = 0;
 let relayKeepAliveIntervalIds = [];
 let wsMapSubscriptions = [];
-const RELAY_FAILURE_TOAST_GRACE_MS = 3500;
+const RELAY_FAILURE_TOAST_GRACE_MS = 10000;
 let relayFailureToastTimeoutId = null;
 
 function closeRelaysArray(list) {
@@ -3974,6 +3974,9 @@ function renderHeaderKpis() {
         }
         const ariaValue = row.value || SETTINGS_KPI_LOADING_VALUE;
         const ariaLabel = `${row.label}: ${ariaValue}`;
+        const visibleLabel = key === 'relaysOnline'
+            ? ''
+            : `<span class="kpi-chip-label" aria-hidden="true">${escapeHtml(row.label)}</span>`;
         return `
             <button
                 type="button"
@@ -3983,7 +3986,7 @@ function renderHeaderKpis() {
                 aria-label="${escapeHtml(ariaLabel)}"
                 title="${escapeHtml(ariaLabel)}"
             >
-                <span class="kpi-chip-label" aria-hidden="true">${escapeHtml(row.label)}</span>
+                ${visibleLabel}
                 <strong class="kpi-chip-value">${escapeHtml(String(row.value || SETTINGS_KPI_LOADING_VALUE))}</strong>
             </button>
         `;

@@ -102,7 +102,7 @@ function* mySaga() {
   // Get map boundaries
   const boundaries = yield call([mapRefService, "getMapBoundaries"]);
   if (boundaries) {
-    console.log("Map boundaries:", boundaries);
+    // Use boundaries to update state or fetch map data.
   }
 }
 ```

@@ -10,6 +10,8 @@ import {
   EventTemplate,
   finalizeEvent,
   getPublicKey,
+  nip04,
+  nip44,
   VerifiedEvent,
 } from "nostr-tools";
 
@@ -108,9 +110,14 @@ export async function getPublicKeyHexFromSecureStorage(): Promise<
         publicKeyHex,
       };
     }
-  } catch (error) {
+  } catch {
     // TODO: handle error
   }
+}
+
+export async function getPublicKeyHexStringFromSecureStorage(): Promise<string> {
+  const privateKeyHexBytes = await getPrivateKeyBytesFromSecureStorage();
+  return getPublicKey(privateKeyHexBytes);
 }
 
 export async function setPrivateKeyInSecureStorage(
@@ -133,11 +140,8 @@ export async function setPrivateKeyInSecureStorage(
   } else {
     const { privateKeyHex } = input;
     const privateKeyHexBytes = hexToBytes(privateKeyHex);
-    console.log("#Nr3YsH got bytes", privateKeyHex, privateKeyHexBytes);
     try {
-      // debugger;
       const publicKeyHex = getPublicKey(privateKeyHexBytes);
-      console.log("#EFGGEx got hex");
       await SecureStore.deleteItemAsync(SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC);
       await SecureStore.setItemAsync(
         SECURE_STORE_PRIVATE_KEY_HEX_KEY,
@@ -158,6 +162,62 @@ export async function signEventTemplate(
   const key = await getPrivateKeyBytesFromSecureStorage();
   const event = finalizeEvent(eventTemplate, key);
   return event;
+}
+
+export async function nip44Encrypt(
+  peerPubkeyHex: string,
+  plaintext: string,
+): Promise<string> {
+  if (!isHexKey(peerPubkeyHex)) {
+    throw new Error("Invalid peer public key.");
+  }
+  const conversationKey = nip44.getConversationKey(
+    await getPrivateKeyBytesFromSecureStorage(),
+    peerPubkeyHex.toLowerCase(),
+  );
+  return nip44.v2.encrypt(plaintext, conversationKey);
+}
+
+export async function nip44Decrypt(
+  peerPubkeyHex: string,
+  ciphertext: string,
+): Promise<string> {
+  if (!isHexKey(peerPubkeyHex)) {
+    throw new Error("Invalid peer public key.");
+  }
+  const conversationKey = nip44.getConversationKey(
+    await getPrivateKeyBytesFromSecureStorage(),
+    peerPubkeyHex.toLowerCase(),
+  );
+  return nip44.v2.decrypt(ciphertext, conversationKey);
+}
+
+export async function nip04Encrypt(
+  peerPubkeyHex: string,
+  plaintext: string,
+): Promise<string> {
+  if (!isHexKey(peerPubkeyHex)) {
+    throw new Error("Invalid peer public key.");
+  }
+  return nip04.encrypt(
+    await getPrivateKeyBytesFromSecureStorage(),
+    peerPubkeyHex.toLowerCase(),
+    plaintext,
+  );
+}
+
+export async function nip04Decrypt(
+  peerPubkeyHex: string,
+  ciphertext: string,
+): Promise<string> {
+  if (!isHexKey(peerPubkeyHex)) {
+    throw new Error("Invalid peer public key.");
+  }
+  return nip04.decrypt(
+    await getPrivateKeyBytesFromSecureStorage(),
+    peerPubkeyHex.toLowerCase(),
+    ciphertext,
+  );
 }
 
 export function derivePublicKeyHexFromMnemonic(mnemonic: string) {

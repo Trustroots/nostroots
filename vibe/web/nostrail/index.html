@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nostrail</title>
+  <meta name="description" content="Foreground-only encrypted approximate location sharing for Trustroots people on Nostr.">
+  <meta name="theme-color" content="#0f8d75">
+  <link rel="canonical" href="https://nos.trustroots.org/nostrail/">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="icon" type="image/x-icon" href="../favicon.ico">
+  <link rel="icon" type="image/png" sizes="48x48" href="../favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="../site-chrome.css" rel="stylesheet">
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+  <script defer src="../analytics.js"></script>
+  <style>
+    :root {
+      --accent: #0f8d75;
+      --accent-strong: #087260;
+      --accent-soft: #e4f7f2;
+      --amber: #b76e00;
+      --blue: #235789;
+      --bg: #eff7f5;
+      --ink: #10231f;
+      --muted: #63746f;
+      --panel: #ffffff;
+      --line: rgba(16, 35, 31, 0.14);
+      --line-strong: rgba(16, 35, 31, 0.26);
+      --danger: #b42318;
+      --shadow: rgba(18, 44, 38, 0.18);
+      --brand-green: #0f8d75;
+      --accent-dark: #087260;
+      --foreground: #10231f;
+      --white: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      height: 100%;
+    }
+
+    body {
+      overflow: hidden;
+      font-family: Nunito, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--bg);
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.58;
+    }
+
+    .nostrail-shell {
+      height: 100dvh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      background: var(--bg);
+    }
+
+    .nostrail-shell > .header {
+      z-index: 8;
+    }
+
+    .header .nostrail-nav-title {
+      overflow: hidden;
+      color: #ffffff;
+      font-weight: 900;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .header .identity-status {
+      color: #ffffff;
+    }
+
+    .header #relay-status {
+      max-width: 180px;
+      overflow: hidden;
+      font-size: 12px;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .stage {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .map {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      z-index: 0;
+      background: linear-gradient(135deg, #d8eee8 0%, #f6faf8 50%, #c8dfec 100%);
+    }
+
+    .map.map-unavailable {
+      background:
+        linear-gradient(90deg, rgba(16, 35, 31, 0.06) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(16, 35, 31, 0.06) 1px, transparent 1px),
+        linear-gradient(135deg, #d8eee8 0%, #f6faf8 50%, #c8dfec 100%);
+      background-size: 72px 72px, 72px 72px, auto;
+    }
+
+    .leaflet-container {
+      font-family: inherit;
+    }
+
+    .map-recenter-control {
+      position: absolute;
+      right: 10px;
+      bottom: 84px;
+      z-index: 500;
+      width: 34px;
+      height: 34px;
+      padding: 7px;
+      border: 1px solid rgba(0, 0, 0, 0.28);
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      background: #ffffff;
+      color: #10231f;
+      box-shadow: 0 1px 5px rgba(0, 0, 0, 0.32);
+    }
+
+    .map-recenter-control svg {
+      width: 18px;
+      height: 18px;
+      fill: none;
+      stroke: currentColor;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 2;
+    }
+
+    .map-recenter-control:hover:not(:disabled),
+    .map-recenter-control:focus-visible {
+      color: var(--accent-strong);
+      outline: 2px solid rgba(15, 141, 117, 0.35);
+    }
+
+    .nostrail-area-own {
+      fill: var(--accent);
+      stroke: var(--accent-strong);
+    }
+
+    .nostrail-area-peer {
+      fill: var(--blue);
+      stroke: #173f68;
+    }
+
+    .status-strip {
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      top: 12px;
+      z-index: 4;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .pill {
+      min-height: 34px;
+      padding: 7px 10px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      background: rgba(255, 255, 255, 0.94);
+      color: #344054;
+      box-shadow: 0 10px 22px rgba(18, 44, 38, 0.12);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .pill[hidden] {
+      display: none;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--amber);
+    }
+
+    .dot.good {
+      background: var(--accent);
+    }
+
+    .bottom-panel {
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      bottom: max(10px, env(safe-area-inset-bottom));
+      z-index: 5;
+      max-height: min(48dvh, 430px);
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      overflow: auto;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 22px 52px var(--shadow);
+    }
+
+    .panel-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: start;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    .subcopy,
+    .status-line {
+      margin: 2px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .status-line.error {
+      color: var(--danger);
+      font-weight: 800;
+    }
+
+    .location-prompt {
+      padding: 10px;
+      border: 1px solid rgba(15, 141, 117, 0.26);
+      border-radius: 8px;
+      display: grid;
+      gap: 8px;
+      background: var(--accent-soft);
+    }
+
+    .location-prompt[hidden] {
+      display: none;
+    }
+
+    .location-prompt p {
+      margin: 0;
+      color: #344054;
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .button {
+      min-height: 44px;
+      padding: 0 13px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      font-weight: 900;
+    }
+
+    .button.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #ffffff;
+    }
+
+    .button.danger {
+      border-color: rgba(180, 35, 24, 0.32);
+      color: var(--danger);
+    }
+
+    .people-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .person-row {
+      min-height: 44px;
+      padding: 8px 10px;
+      border: 1px solid rgba(16, 35, 31, 0.1);
+      border-radius: 8px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+      background: #f8fbfa;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .person-row small {
+      display: block;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .recipient-profile-link {
+      color: var(--ink);
+      font-weight: 900;
+      text-decoration: underline;
+      text-decoration-color: rgba(15, 141, 117, 0.45);
+      text-underline-offset: 2px;
+    }
+
+    .recipient-profile-link:hover,
+    .recipient-profile-link:focus-visible {
+      color: var(--accent-strong);
+      text-decoration-color: currentColor;
+    }
+
+    .person-row[data-state="failed"] {
+      border-color: rgba(180, 35, 24, 0.32);
+      background: #fff7f6;
+    }
+
+    .person-row[data-state="pending"] {
+      border-color: rgba(183, 110, 0, 0.32);
+      background: #fffbf2;
+    }
+
+    .row-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .row-actions .button {
+      min-height: 36px;
+      padding: 0 9px;
+    }
+
+    .sheet {
+      position: absolute;
+      inset: auto 0 0;
+      z-index: 10;
+      max-height: min(78dvh, 620px);
+      padding: 16px;
+      padding-bottom: max(16px, env(safe-area-inset-bottom));
+      border-top: 1px solid var(--line);
+      border-radius: 8px 8px 0 0;
+      display: grid;
+      gap: 12px;
+      overflow: auto;
+      background: var(--panel);
+      box-shadow: 0 -22px 52px var(--shadow);
+    }
+
+    .sheet[hidden] {
+      display: none;
+    }
+
+    .sheet-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .recipient-form {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+    }
+
+    .recipient-form input {
+      min-width: 0;
+      min-height: 44px;
+      padding: 0 12px;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: #ffffff;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .empty {
+      padding: 12px;
+      border: 1px dashed var(--line-strong);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (min-width: 780px) {
+      .bottom-panel {
+        left: 18px;
+        right: auto;
+        width: 430px;
+        max-height: calc(100dvh - 118px);
+      }
+
+      .sheet {
+        left: auto;
+        width: min(430px, calc(100vw - 28px));
+        right: 14px;
+        bottom: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .header .nostrail-nav-title,
+      .header #relay-status {
+        display: none;
+      }
+
+      .header-inner {
+        width: calc(100% - 20px);
+      }
+
+      .header .hub-nav {
+        flex: 0 0 auto;
+        gap: 6px;
+      }
+
+      .header .hub-nav .header-app-link {
+        width: 30px;
+        height: 30px;
+      }
+
+      .header .hub-nav .header-app-link svg {
+        width: 24px;
+        height: 24px;
+      }
+
+      .header .identity-status {
+        min-width: 0;
+        flex: 1 1 0;
+        overflow: hidden;
+      }
+
+      .header #signer-status {
+        width: 100%;
+        min-width: 0;
+        padding: 0 8px;
+        font-size: 12px;
+      }
+
+      .status-strip {
+        right: auto;
+      }
+
+      .leaflet-bottom.leaflet-right {
+        bottom: calc(min(48dvh, 430px) + 14px);
+      }
+
+      .map-recenter-control {
+        bottom: calc(min(48dvh, 430px) + 116px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main id="nostrail-root" class="nostrail-shell">
+    <header class="header" role="banner">
+      <div class="header-inner">
+        <nav class="hub-nav" aria-label="Nostroots links">
+          <a class="header-brand" href="../" aria-label="Nostroots home">
+            <img src="../nostroots-logo67.png" alt="" width="46" height="46">
+          </a>
+          <a class="header-app-link" href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" aria-label="Android"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.48 19.44 6.3c.16-.31-.04-.68-.38-.68-.15 0-.29.08-.37.21l-1.87 3.24c-1.28-.58-2.72-.9-4.22-.9s-2.94.32-4.22.9L6.46 5.83c-.08-.13-.22-.21-.37-.21-.34 0-.54.37-.38.68l1.84 3.18C4.54 11.09 3 13.64 3 16.62h18c0-2.98-1.54-5.53-3.4-7.14ZM8.5 15.12c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Zm7 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Z" fill="currentColor"/></svg></a>
+          <a class="header-app-link" href="https://apps.apple.com/app/nostroots/id6755037304" aria-label="iOS"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z" fill="currentColor"/></svg></a>
+          <span class="nostrail-nav-title">Nostrail</span>
+        </nav>
+        <section class="identity-status" aria-label="Connection status" aria-live="polite">
+          <span id="relay-status">Relays idle</span>
+          <a id="signer-status" class="status-pill identity-link" data-state="pending">Checking signer...</a>
+        </section>
+      </div>
+    </header>
+
+    <section class="stage" aria-label="Nostrail map">
+      <div id="nostrail-map" class="map" role="application" aria-label="Interactive approximate location map"></div>
+      <button id="recenter-map" class="map-recenter-control" type="button" aria-label="Recenter Map" title="Recenter map on my approximate area" disabled>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path>
+        </svg>
+      </button>
+
+      <div class="status-strip">
+        <div class="pill"><span id="session-dot" class="dot"></span><span id="session-status">Not sharing</span></div>
+        <div id="map-status" class="pill" hidden></div>
+      </div>
+
+      <section class="bottom-panel" aria-labelledby="nostrail-title">
+        <div class="panel-head">
+          <div>
+            <h1 id="nostrail-title">Share your current area</h1>
+            <p id="current-area" class="subcopy">No location fix yet.</p>
+          </div>
+          <button id="open-recipient-sheet" class="button" type="button">People</button>
+        </div>
+
+        <div id="location-prompt" class="location-prompt">
+          <p>Use your approximate location to center the map and share your current area. Nostrail only asks the browser after you choose to continue.</p>
+          <div class="actions">
+            <button id="use-my-location" class="button primary" type="button">Use My Location</button>
+            <button id="not-now-location" class="button" type="button">Not Now</button>
+          </div>
+        </div>
+
+        <p id="app-status" class="status-line">This web version shares while the page is open. It pauses if the browser closes or sleeps.</p>
+
+        <div class="actions">
+          <button id="share-action" class="button primary" type="button" disabled>Start Sharing</button>
+          <button id="share-current-area" class="button" type="button" disabled>Share Current Area</button>
+          <button id="stop-sharing" class="button danger" type="button" disabled>Stop Sharing</button>
+        </div>
+
+        <div>
+          <div class="subcopy">Selected people</div>
+          <div id="recipient-summary" class="people-list">
+            <div class="empty">Add Trustroots usernames, NIP-05 handles, npubs, or public keys.</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="subcopy">Received locations</div>
+          <div id="peer-list" class="people-list">
+            <div class="empty">No shared locations received yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="recipient-sheet" class="sheet" aria-labelledby="recipient-title" hidden>
+        <div class="sheet-head">
+          <div>
+            <h1 id="recipient-title">People</h1>
+            <p class="subcopy">Use Trustroots usernames, profile links, NIP-05 handles, npubs, or public keys.</p>
+          </div>
+          <button id="sheet-close" class="button" type="button">Close</button>
+        </div>
+
+        <form id="recipient-form" class="recipient-form">
+          <label class="sr-only" for="recipient-input">Recipient</label>
+          <input id="recipient-input" autocomplete="off" placeholder="alice, @bob, npub1..." spellcheck="false">
+          <button id="add-recipient" class="button primary" type="submit">Add</button>
+        </form>
+
+        <p id="recipient-feedback" class="status-line">Add at least one person before sharing.</p>
+        <div id="recipient-list" class="people-list"></div>
+
+        <div class="actions">
+          <button id="send-invite" class="button" type="button" disabled>Send Invite</button>
+          <button id="sheet-share" class="button primary" type="button" disabled>Start Sharing</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="./index.js"></script>
+</body>
+</html>

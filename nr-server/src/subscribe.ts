@@ -3,6 +3,7 @@ const { DEV_PUBKEY } = nrCommon;
 import { SUBSCRIPTIONS_MAX_AGE_IN_MINUTES } from "./common/constants.ts";
 const { MAP_NOTE_KIND } = nrCommon;
 import { log } from "./log.ts";
+import { startMessagesMetricsPublisher } from "./metrics/messages.ts";
 import { getRelayPool } from "./relays.ts";
 import { processEventFactoryFactory } from "./validation/repost.ts";
 
@@ -13,9 +14,8 @@ function createFilter(
   isDev: true | undefined,
   maxAgeMinutes: number | undefined,
 ): nostrify.NostrFilter[] {
-  const maxAgeSeconds = typeof maxAgeMinutes === "undefined"
-    ? 60 * 60
-    : maxAgeMinutes * 60;
+  const maxAgeSeconds =
+    typeof maxAgeMinutes === "undefined" ? 60 * 60 : maxAgeMinutes * 60;
 
   const baseFilter: nostrify.NostrFilter = {
     kinds: [MAP_NOTE_KIND],
@@ -37,6 +37,10 @@ export async function subscribeAndRepost(
   log.debug(`#BmseJH Startup`);
 
   const relayPool = await getRelayPool(isDev);
+  // Start metrics publisher in background without blocking server startup
+  startMessagesMetricsPublisher(relayPool, privateKey).catch((error) => {
+    log.error("#5Kz9Lm Failed to start metrics publisher", error);
+  });
 
   let lastReceivedMessageTimestamp = 0;
   let controller: AbortController;
@@ -44,9 +48,9 @@ export async function subscribeAndRepost(
 
   async function _subscribe() {
     log.info(
-      `#okwpth (Re)starting subscriptions, last message received at ${lastReceivedMessageTimestamp} (${
-        new Date(lastReceivedMessageTimestamp * 1000).toLocaleString()
-      })`,
+      `#okwpth (Re)starting subscriptions, last message received at ${lastReceivedMessageTimestamp} (${new Date(
+        lastReceivedMessageTimestamp * 1000,
+      ).toLocaleString()})`,
     );
     if (lastReceivedMessageTimestamp) {
       maxAgeMinutes =

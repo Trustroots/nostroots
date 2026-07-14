@@ -1,0 +1,52 @@
+{
+  "fetchedAt": "2026-07-06T12:00:00.000Z",
+  "filterType": "city",
+  "filterValue": "Berlin",
+  "data": {
+    "result": {
+      "100001": {
+        "title": "E2E Test Workshop",
+        "url": "https://radar.squat.net/en/node/100001",
+        "date_time": [
+          {
+            "time_start": "2026-12-01T14:00:00",
+            "time_end": "2026-12-01T16:00:00",
+            "value": 1796143200,
+            "value2": 1796150400
+          }
+        ],
+        "offline": [
+          {
+            "title": "Mitte Space",
+            "map": { "lat": "52.5200", "lon": "13.4050" },
+            "address": { "locality": "Berlin", "country": "DE", "name_line": "Mitte Space" }
+          }
+        ],
+        "category": [{ "name": "workshop" }],
+        "tag": []
+      },
+      "100002": {
+        "title": "E2E Discussion Night",
+        "url": "https://radar.squat.net/en/node/100002",
+        "date_time": [
+          {
+            "time_start": "2026-12-08T18:00:00",
+            "time_end": "2026-12-08T20:00:00",
+            "value": 1796758800,
+            "value2": 1796766000
+          }
+        ],
+        "offline": [
+          {
+            "title": "Kreuzberg Hall",
+            "map": { "lat": "52.4980", "lon": "13.4030" },
+            "address": { "locality": "Berlin", "country": "DE", "name_line": "Kreuzberg Hall" }
+          }
+        ],
+        "category": [{ "name": "discussion" }],
+        "tag": []
+      }
+    },
+    "count": 2
+  }
+}

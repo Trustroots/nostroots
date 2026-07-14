@@ -1,0 +1,7 @@
+{
+  "name": "wikistr",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}

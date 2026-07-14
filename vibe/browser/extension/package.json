@@ -1,0 +1,31 @@
+{
+  "name": "@trustroots/nostroots-extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs --target=all",
+    "build:chrome": "node scripts/build.mjs --target=chrome",
+    "build:firefox": "node scripts/build.mjs --target=firefox",
+    "dev": "node scripts/build.mjs --watch --target=chrome",
+    "dev:firefox": "node scripts/build.mjs --watch --target=firefox",
+    "lint": "tsc --noEmit",
+    "lint:firefox": "pnpm build:firefox && node scripts/validate-firefox.mjs",
+    "package:chrome": "node scripts/package.mjs chrome",
+    "package:firefox": "node scripts/package.mjs firefox",
+    "test": "vitest run tests/unit",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "nip06": "^1.2.0",
+    "nostr-tools": "2.23.5"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1",
+    "@types/node": "^24.10.1",
+    "esbuild": "^0.27.0",
+    "typescript": "~6.0.3",
+    "vitest": "^4.0.15"
+  },
+  "packageManager": "pnpm@10.33.2+sha512.a90faf6feeab71ad6c6e57f94e0fe1a12f5dcc22cd754db40ae9593eb6a3e0b6b12e3540218bb37ae083404b1f2ce6db2a4121e979829b4aff94b99f49da1cf8"
+}

@@ -34,6 +34,7 @@ export function publishNotePromiseAction(
   note: string,
   plusCode: string,
   expirationTimestampSeconds?: number,
+  intent?: string,
 ) {
   const plusCodeAndPlusCodePrefixTags =
     getPlusCodeAndPlusCodePrefixTags(plusCode);
@@ -47,10 +48,17 @@ export function publishNotePromiseAction(
             Math.round(expirationTimestampSeconds).toString(),
           ],
         ]);
+  const tagsWithIntent =
+    typeof intent === "string" && intent.length > 0
+      ? tagsWithExpiration.concat([
+          ["t", "signal"],
+          ["t", intent],
+        ])
+      : tagsWithExpiration;
   const eventTemplate = {
     kind: 30397,
     content: note,
-    tags: tagsWithExpiration,
+    tags: tagsWithIntent,
     created_at: getCurrentTimestamp(),
   };
 

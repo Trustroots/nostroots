@@ -39,12 +39,16 @@ The key features the app requires are:
 
 ## Getting started
 
-There are 4 parts to this code.
+There are several parts to this code.
 
 - `nr-common` - A module that is shared between the rest of the projects
 - `nr-app` - An expo app
 - `nr-server` - A deno application that is hosted by Trustroots
 - `nr-push` - A Go application that handles push notifications for the app, code currently at https://github.com/trustroots/notification-daemon
+- `vibe/web` - The Nostroots web app
+- `vibe/browser` - Nostroots Browser, with a native iOS app and desktop browser extension
+- `vibe/nip42relay` - The Vibe NIP-42 relay/import stack
+- `vibe/push-notification-daemon` - The isolated Vibe APNs notification daemon
 
 Please refer to the READMEs in the respective subfolders for working on them.
 
@@ -77,4 +81,4 @@ A lot of coordination around events and groups occurs on telegram, whatsapp and 
 See https://github.com/Trustroots/nostroots/issues/102 for ideas around partner orgs.
 
 
-https://team.trustroots.org/nostr.html is the project's home page.
+https://nos.trustroots.org/ is the project's home page.

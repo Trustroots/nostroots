@@ -103,16 +103,34 @@ export default function OnboardingLinkScreen() {
 
       try {
         // NIP-05 lookup: confirm Trustroots identifier maps to this pubkey.
+        console.log("[link] NIP-05 lookup for", identifier);
         const profile = await nip05.queryProfile(identifier);
+        console.log("[link] NIP-05 profile result:", JSON.stringify(profile));
 
         if (!profile?.pubkey) {
-          throw new Error("No pubkey in NIP-05 profile");
+          console.warn(
+            "[link] NIP-05 lookup returned no pubkey for",
+            identifier,
+          );
+          setLinkStatus("error");
+          setLinkError(
+            `Trustroots did not return a Nostr key for "${normalizedUsername}". ` +
+              "Make sure you have saved your npub in Trustroots → Edit profile → Networks, then try again.",
+          );
+          return;
         }
 
         const nip05Npub = nip19.npubEncode(profile.pubkey);
+        console.log("[link] NIP-05 npub:", nip05Npub, "local npub:", npub);
 
         if (nip05Npub !== npub) {
-          throw new Error("NIP-05 npub does not match local key");
+          console.warn("[link] NIP-05 pubkey mismatch", { nip05Npub, npub });
+          setLinkStatus("error");
+          setLinkError(
+            "The npub returned by Trustroots does not match your local key. " +
+              "Check that you copied the correct npub into Trustroots → Edit profile → Networks.",
+          );
+          return;
         }
 
         // Build Kind 10390 event using shared helper.
@@ -126,10 +144,11 @@ export default function OnboardingLinkScreen() {
         dispatch(settingsActions.setUsername(normalizedUsername));
         setLinkStatus("linked");
       } catch (error) {
+        console.error("[link] verifyAndLink error:", error);
         setLinkStatus("error");
         setLinkError(
-          "We could not confirm your Trustroots identity via NIP-05 for this key. " +
-            "Ensure your Trustroots profile is configured and try again.",
+          `Could not reach Trustroots (${error instanceof Error ? error.message : String(error)}). ` +
+            "Check your internet connection and try again.",
         );
       }
     },

@@ -1,5 +1,5 @@
 import {
-  filterForMapLayerConfig,
+  filterForMapLayerConfigForPlusCodePrefixes,
   trustrootsMapFilterForPlusCodePrefixes,
 } from "@/common/utils";
 import { createSelector } from "@reduxjs/toolkit";
@@ -38,7 +38,10 @@ function createMapFilters(
 
   const layerFilters = enabledLayerKeys.map((layer) => {
     const layerConfig = MAP_LAYERS[layer];
-    const filter = filterForMapLayerConfig(layerConfig);
+    const filter = filterForMapLayerConfigForPlusCodePrefixes(
+      layerConfig,
+      visiblePlusCodes,
+    );
     return filter;
   });
 

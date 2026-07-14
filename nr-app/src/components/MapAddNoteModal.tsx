@@ -65,16 +65,6 @@ export default function MapAddNoteModal() {
           getCurrentTimestamp() + parseInt(noteExpiry);
 
         const plusCode = coordinatesToPlusCode(selectedCoordinate);
-        __DEV__ &&
-          console.log(
-            "#a9vi49v handleNoteAdd()",
-            noteContent,
-            "at",
-            selectedCoordinate,
-            plusCode,
-            expirationTimestampSeconds,
-            noteExpiry,
-          );
 
         try {
           await dispatch(

@@ -1,0 +1,354 @@
+package main
+
+import (
+	"encoding/json"
+	"fmt"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/nbd-wtf/go-nostr"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+)
+
+func TestEventForProfileClaim(t *testing.T) {
+	user := User{
+		ID:          primitive.NewObjectID(),
+		Username:    "Alice",
+		DisplayName: " Alice ",
+		Description: " Hi ",
+		Avatar:      "https://example.com/a.jpg",
+		NostrNpub:   "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+	}
+	event, err := eventForProfileClaim(user, nil, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if event.Kind != profileClaimKind {
+		t.Fatalf("kind = %d", event.Kind)
+	}
+	if !strings.Contains(event.Content, "alice@trustroots.org") {
+		t.Fatalf("content should include nip05: %q", event.Content)
+	}
+	if event.Tags.GetD() != "trustroots:profile:alice" {
+		t.Fatalf("d tag = %q", event.Tags.GetD())
+	}
+	if tag := event.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
+		t.Fatalf("missing claimable tag: %#v", event.Tags)
+	}
+	var meta map[string]any
+	if err := json.Unmarshal([]byte(event.Content), &meta); err != nil {
+		t.Fatal(err)
+	}
+	if _, has := meta["picture"]; has {
+		t.Fatalf("expected external avatar URL to be omitted, got picture = %q", meta["picture"])
+	}
+}
+
+func TestEventForProfileClaim_includesNormalizedCircleTags(t *testing.T) {
+	user := User{
+		Username:  "nostroots",
+		NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+	}
+	event, err := eventForProfileClaim(user, []string{"hackers", "Hackers", "acme-campers"}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tag := event.Tags.GetFirst([]string{"l", "hackers", trustrootsCircleLabelNamespace}); tag == nil {
+		t.Fatalf("missing hackers circle l tag: %#v", event.Tags)
+	}
+	if tag := event.Tags.GetFirst([]string{"t", "hackers"}); tag == nil {
+		t.Fatalf("missing hackers t tag: %#v", event.Tags)
+	}
+	if tag := event.Tags.GetFirst([]string{"l", "acmecampers", trustrootsCircleLabelNamespace}); tag == nil {
+		t.Fatalf("missing acmecampers circle l tag: %#v", event.Tags)
+	}
+}
+
+func TestProfileClaimPictureURL_localUpload(t *testing.T) {
+	oid := primitive.NewObjectID()
+	updated := time.Date(2024, 3, 1, 12, 0, 0, 0, time.UTC)
+	u := User{
+		ID:             oid,
+		AvatarSource:   "local",
+		AvatarUploaded: true,
+		Updated:        updated,
+	}
+	got := profileClaimPictureURL(u)
+	want := fmt.Sprintf("https://www.trustroots.org/uploads-profile/%s/avatar/256.jpg?%d", oid.Hex(), updated.UnixMilli())
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
+func TestProfileClaimPictureURL_omitsGravatar(t *testing.T) {
+	u := User{
+		ID:           primitive.NewObjectID(),
+		AvatarSource: "gravatar",
+		EmailHash:    "abc",
+	}
+	got := profileClaimPictureURL(u)
+	if got != "" {
+		t.Fatalf("got %q want empty", got)
+	}
+}
+
+func TestProfileClaimPictureURL_omitsFacebook(t *testing.T) {
+	u := User{
+		ID:           primitive.NewObjectID(),
+		AvatarSource: "facebook",
+	}
+	got := profileClaimPictureURL(u)
+	if got != "" {
+		t.Fatalf("got %q want empty", got)
+	}
+}
+
+func TestEventForProfileClaim_usesTrustrootsLocalUploadPicture(t *testing.T) {
+	oid := primitive.NewObjectID()
+	updated := time.Date(2024, 3, 1, 12, 0, 0, 0, time.UTC)
+	user := User{
+		ID:             oid,
+		Username:       "Nostroots",
+		NostrNpub:      "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+		AvatarSource:   "local",
+		AvatarUploaded: true,
+		Updated:        updated,
+	}
+	event, err := eventForProfileClaim(user, nil, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var meta map[string]any
+	if err := json.Unmarshal([]byte(event.Content), &meta); err != nil {
+		t.Fatal(err)
+	}
+	wantPic := fmt.Sprintf("https://www.trustroots.org/uploads-profile/%s/avatar/256.jpg?%d", oid.Hex(), updated.UnixMilli())
+	if meta["picture"] != wantPic {
+		t.Fatalf("picture = %q want %q", meta["picture"], wantPic)
+	}
+	if tag := event.Tags.GetFirst([]string{"source", "trustroots-import"}); tag == nil {
+		t.Fatalf("missing source tag: %#v", event.Tags)
+	}
+	if tag := event.Tags.GetFirst([]string{"l", "nostroots", TrustrootsUsernameLabelNamespace}); tag == nil {
+		t.Fatalf("missing username label tag: %#v", event.Tags)
+	}
+}
+
+func TestEventForProfileClaim_includesStructuredProfileFields(t *testing.T) {
+	user := User{
+		ID:          primitive.NewObjectID(),
+		Username:    "nostroots",
+		DisplayName: "Nostroots",
+		Description: "Hi",
+		NostrNpub:   "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+		CreatedAt:   time.Date(2020, 5, 21, 10, 11, 12, 0, time.UTC),
+		Raw: map[string]any{
+			"sex":             "male",
+			"birthday":        "1974-03-11",
+			"locationCurrent": map[string]any{"city": "Pisa", "country": "Italy"},
+			"locationFrom":    "Pisa, Italy",
+			"spokenLanguages": []any{"English", "Esperanto", "Italian", "Spanish"},
+		},
+	}
+	event, err := eventForProfileClaim(user, nil, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var meta map[string]any
+	if err := json.Unmarshal([]byte(event.Content), &meta); err != nil {
+		t.Fatal(err)
+	}
+	if meta["gender"] != "male" {
+		t.Fatalf("gender = %#v", meta["gender"])
+	}
+	if _, ok := meta["birthDate"]; ok {
+		t.Fatalf("birthDate should be omitted, got %#v", meta["birthDate"])
+	}
+	if gotMemberSince, ok := meta["memberSince"].(float64); !ok || int64(gotMemberSince) != user.CreatedAt.Unix() {
+		t.Fatalf("memberSince = %#v want %d", meta["memberSince"], user.CreatedAt.Unix())
+	}
+	livesIn, ok := meta["livesIn"].(map[string]any)
+	if !ok {
+		t.Fatalf("livesIn missing or wrong type: %#v", meta["livesIn"])
+	}
+	if livesIn["display"] != "Pisa, Italy" || livesIn["city"] != "Pisa" || livesIn["country"] != "Italy" {
+		t.Fatalf("livesIn = %#v", livesIn)
+	}
+	from, ok := meta["from"].(map[string]any)
+	if !ok {
+		t.Fatalf("from missing or wrong type: %#v", meta["from"])
+	}
+	if from["display"] != "Pisa, Italy" {
+		t.Fatalf("from = %#v", from)
+	}
+	langs, ok := meta["languages"].([]any)
+	if !ok || len(langs) != 4 {
+		t.Fatalf("languages = %#v", meta["languages"])
+	}
+}
+
+func countPTags(tags nostr.Tags) int {
+	n := 0
+	for _, row := range tags {
+		if len(row) >= 2 && row[0] == "p" {
+			n++
+		}
+	}
+	return n
+}
+
+func hasUsernameLabelPair(tags nostr.Tags, usernameLower string) bool {
+	for i := 0; i+1 < len(tags); i++ {
+		if len(tags[i]) >= 2 && tags[i][0] == "L" && tags[i][1] == TrustrootsUsernameLabelNamespace {
+			if len(tags[i+1]) >= 3 && tags[i+1][0] == "l" && tags[i+1][1] == usernameLower {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func TestEventForRelationshipClaim_bothNpubs(t *testing.T) {
+	// Two valid npubs (here the same fixture npub twice) → two `p` tags, no username labels.
+	idA := primitive.NewObjectID()
+	idB := primitive.NewObjectID()
+	cid := primitive.NewObjectID()
+	np := "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj"
+	ev, err := eventForRelationshipClaim(ContactRecord{
+		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB, Confirmed: true},
+		User:    User{ID: idA, Username: "alice", NostrNpub: np, Public: true},
+		Other:   User{ID: idB, Username: "bob", NostrNpub: np, Public: true},
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ev.Kind != relationClaimKind {
+		t.Fatalf("kind = %d", ev.Kind)
+	}
+	if countPTags(ev.Tags) != 2 {
+		t.Fatalf("want 2 p tags, got %d tags=%v", countPTags(ev.Tags), ev.Tags)
+	}
+	if tag := ev.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
+		t.Fatalf("missing claimable tag: %#v", ev.Tags)
+	}
+	if tag := ev.Tags.GetFirst([]string{"confirmed", "true"}); tag == nil {
+		t.Fatalf("missing confirmed tag: %#v", ev.Tags)
+	}
+	if hasUsernameLabelPair(ev.Tags, "alice") || hasUsernameLabelPair(ev.Tags, "bob") {
+		t.Fatal("did not expect username label pairs when both have npubs")
+	}
+}
+
+func TestEventForRelationshipClaim_oneNpubUsernameLabels(t *testing.T) {
+	idA := primitive.NewObjectID()
+	idB := primitive.NewObjectID()
+	cid := primitive.NewObjectID()
+	ev, err := eventForRelationshipClaim(ContactRecord{
+		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB, Confirmed: true},
+		User:    User{ID: idA, Username: "alice", NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj", Public: true},
+		Other:   User{ID: idB, Username: "bobnopub", NostrNpub: "", Public: true},
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if countPTags(ev.Tags) != 1 {
+		t.Fatalf("want 1 p tag, got %d", countPTags(ev.Tags))
+	}
+	if tag := ev.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
+		t.Fatalf("missing claimable tag: %#v", ev.Tags)
+	}
+	if !hasUsernameLabelPair(ev.Tags, "bobnopub") {
+		t.Fatalf("expected username labels for bobnopub, tags=%v", ev.Tags)
+	}
+}
+
+func TestEventForRelationshipClaim_neitherNpub(t *testing.T) {
+	idA := primitive.NewObjectID()
+	idB := primitive.NewObjectID()
+	cid := primitive.NewObjectID()
+	_, err := eventForRelationshipClaim(ContactRecord{
+		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB, Confirmed: true},
+		User:    User{ID: idA, Username: "a", NostrNpub: "", Public: true},
+		Other:   User{ID: idB, Username: "b", NostrNpub: "", Public: true},
+	}, testPrivateKey)
+	if err == nil {
+		t.Fatal("expected error when neither side has npub")
+	}
+}
+
+func TestEventForRelationshipClaim_unconfirmed(t *testing.T) {
+	idA := primitive.NewObjectID()
+	idB := primitive.NewObjectID()
+	cid := primitive.NewObjectID()
+	np := "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj"
+	_, err := eventForRelationshipClaim(ContactRecord{
+		Contact: Contact{ID: cid, UserFrom: idA, UserTo: idB, Confirmed: false},
+		User:    User{ID: idA, Username: "alice", NostrNpub: np, Public: true},
+		Other:   User{ID: idB, Username: "bob", NostrNpub: np, Public: true},
+	}, testPrivateKey)
+	if err == nil {
+		t.Fatal("expected error for unconfirmed contact")
+	}
+}
+
+func TestEventForExperienceClaim_oneNpub(t *testing.T) {
+	eid := primitive.NewObjectID()
+	idA := primitive.NewObjectID()
+	idB := primitive.NewObjectID()
+	ev, err := eventForExperienceClaim(ExperienceRecord{
+		Experience: Experience{ID: eid, UserFrom: idA, UserTo: idB, Public: true, Recommend: true},
+		Author:     User{ID: idA, Username: "author", NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj", Public: true},
+		Target:     User{ID: idB, Username: "guest", NostrNpub: "", Public: true},
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ev.Kind != experienceClaimKind {
+		t.Fatalf("kind = %d", ev.Kind)
+	}
+	if tag := ev.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
+		t.Fatalf("missing claimable tag: %#v", ev.Tags)
+	}
+	if countPTags(ev.Tags) != 1 {
+		t.Fatalf("want 1 p tag, got %d", countPTags(ev.Tags))
+	}
+	if !hasUsernameLabelPair(ev.Tags, "guest") {
+		t.Fatalf("expected username labels for guest, tags=%v", ev.Tags)
+	}
+}
+
+func TestEventForReferenceTrustMetric(t *testing.T) {
+	user := User{
+		ID:        primitive.NewObjectID(),
+		Username:  "alice",
+		NostrNpub: "npub1lt6a968lk4h6yqduqnxcha628cudulgy8xk607c4xyxn6d6w6kcsmgp8hj",
+		Public:    true,
+	}
+	ev, err := eventForReferenceTrustMetric(ReferenceTrustMetricRecord{
+		User:                   user,
+		ThreadsUpvotedByOthers: 12,
+	}, testPrivateKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ev.Kind != referenceTrustMetricKind {
+		t.Fatalf("kind = %d", ev.Kind)
+	}
+	if tag := ev.Tags.GetFirst([]string{"l", "threads-upvoted-by-others", "org.trustroots:metric"}); tag == nil {
+		t.Fatalf("missing metric label tag: %#v", ev.Tags)
+	}
+	if tag := ev.Tags.GetFirst([]string{"claimable", "true"}); tag == nil {
+		t.Fatalf("missing claimable tag: %#v", ev.Tags)
+	}
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(ev.Content), &payload); err != nil {
+		t.Fatal(err)
+	}
+	if payload["metric"] != "threads_upvoted_by_others" {
+		t.Fatalf("metric = %#v", payload["metric"])
+	}
+	if int(payload["value"].(float64)) != 12 {
+		t.Fatalf("value = %#v", payload["value"])
+	}
+}

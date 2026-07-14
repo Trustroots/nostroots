@@ -1,6 +1,6 @@
 import { useRouter } from "expo-router";
 import React from "react";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -18,7 +18,7 @@ export default function OnboardingIdentityScreen() {
   };
 
   const goNext = () => {
-    router.push("/onboarding/key");
+    router.push("/onboarding/trustroots");
   };
 
   const goSkip = () => {

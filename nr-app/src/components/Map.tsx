@@ -9,7 +9,7 @@ import MapPlusCodes from "./MapPlusCodes";
 
 export default function Map() {
   return (
-    <>
+    <View style={{ flex: 1 }}>
       <View className="flex-1">
         <MapPlusCodes />
         <MapLayerSelector />
@@ -18,6 +18,6 @@ export default function Map() {
       <MapAddNoteModal />
       <MapModal />
       <HalfMapEventModal />
-    </>
+    </View>
   );
 }

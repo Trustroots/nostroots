@@ -90,6 +90,23 @@
       }
     },
     {
+      "path": "nr-bridge",
+      "settings": {
+        "deno.enable": true,
+        "editor.defaultFormatter": "denoland.vscode-deno",
+        "editor.formatOnSave": true,
+        "[typescript]": {
+          "editor.defaultFormatter": "denoland.vscode-deno"
+        },
+        "[json]": {
+          "editor.defaultFormatter": "denoland.vscode-deno"
+        },
+        "[jsonc]": {
+          "editor.defaultFormatter": "denoland.vscode-deno"
+        }
+      }
+    },
+    {
       "path": "nr-app",
       "settings": {
         "editor.defaultFormatter": "esbenp.prettier-vscode",

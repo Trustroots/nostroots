@@ -9,6 +9,8 @@ export const NOSTR_USER_METADATA_KIND = 0 as const;
 export const EVENT_DELETION_KIND = 5 as const;
 export const TRUSTROOTS_PROFILE_KIND = 10390 as const;
 export const NOTIFICATION_SUBSCRIPTION_KIND = 10395 as const;
+// Parameterized replaceable event kind for nostroots metrics snapshots.
+export const NOSTROOTS_METRICS_KIND = 30400 as const;
 export const SERVER_MESSAGE_KIND = 20398 as const;
 export const PING_ACK_KIND = 20400 as const;
 export const MAP_NOTE_KIND = 30397 as const;
@@ -22,12 +24,22 @@ export const ACCEPTED_KINDS = [
   EVENT_DELETION_KIND,
   TRUSTROOTS_PROFILE_KIND,
   NOTIFICATION_SUBSCRIPTION_KIND,
+  NOSTROOTS_METRICS_KIND,
   SERVER_MESSAGE_KIND,
   PING_ACK_KIND,
   MAP_NOTE_KIND,
   MAP_NOTE_REPOST_KIND,
   THIRD_PARTY_EVENT_KIND,
 ];
+
+export const NOSTROOTS_METRICS_TYPE_TAG_NAME = "t" as const;
+export const NOSTROOTS_METRICS_TYPE_PUSH_SUBSCRIPTIONS =
+  "push-subscriptions" as const;
+export const NOSTROOTS_METRICS_TYPE_MESSAGES = "messages" as const;
+export const NOSTROOTS_METRICS_SUPPORTED_TYPES = [
+  NOSTROOTS_METRICS_TYPE_PUSH_SUBSCRIPTIONS,
+  NOSTROOTS_METRICS_TYPE_MESSAGES,
+] as const;
 
 export const SERVER_MESSAGE_TYPE_TAG_NAME = "serverMessageType" as const;
 export const SERVER_MESSAGE_TYPES = ["error", "info"] as const;
@@ -164,7 +176,7 @@ const unverified: MapLayer = {
 
 export const MAP_LAYERS = {
   trustroots,
-  hitchmap,
+  // hitchmap disabled — layer is non-functional and causes performance issues (#190)
   hitchwiki,
   timesafari,
   triphopping,

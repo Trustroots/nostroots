@@ -1,0 +1,1011 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		05698FC6B838CF909816BCCD /* TrustrootsUsername.swift in Sources */ = {isa = PBXBuildFile; fileRef = 367417776F17251BE5F9EC92 /* TrustrootsUsername.swift */; };
+		079FF326077C365FDC0C07F2 /* NostrailActionErrorFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002660D407D22960081649B9 /* NostrailActionErrorFormatter.swift */; };
+		07D263CC0A8B7AD80C91636F /* NostrailRelayStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CC1726EBE3EB1C5C9C2236 /* NostrailRelayStatusFormatter.swift */; };
+		093BC801C00D5ED78D631889 /* NostrWireCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D711221847D3B2CB55B8745 /* NostrWireCodec.swift */; };
+		0ABF0066477C9651C17D67EC /* NativeOnboardingStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3199EA5C38F64E1CB06A925 /* NativeOnboardingStatusFormatter.swift */; };
+		0F9D87C09139478CF1E9BD66 /* NostrootsNativeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3784BCE4CF2D5816F66DF650 /* NostrootsNativeTests.swift */; };
+		0FBDE6C9011E43959D52EBA9 /* RelayReconnectCooldown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29533F3D58E1DC5E162CFA93 /* RelayReconnectCooldown.swift */; };
+		128E10689E74A21463AC210F /* NostrailKeyLifecycleGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE176EDD336B4E952DF0B03D /* NostrailKeyLifecycleGuard.swift */; };
+		16BAF1D42DE67773B1778046 /* AppStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4301A97B673DAA8A4DFE0542 /* AppStorage.swift */; };
+		16E5A8732EED6BACBA163251 /* RelayPreferencesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2CA44133FA99FF0C6B3457 /* RelayPreferencesStore.swift */; };
+		17B1A827F43CA6AB37898166 /* SwiftrootsOnboardingGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C88F33F1D6F86E4AC2B15EF /* SwiftrootsOnboardingGate.swift */; };
+		1A4208DDE5236202AECB4D4C /* LocationSharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9A8699A626E814CABE17B3 /* LocationSharingService.swift */; };
+		1B0AF80F98201B206F9E8AB0 /* LocationPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DF29DB4F5B9E7CEE81565D2 /* LocationPayloads.swift */; };
+		1E19B65BD9A5C4D01A72B072 /* RelayUserFacingMessageFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9593729736CB32DCC8D8D198 /* RelayUserFacingMessageFormatter.swift */; };
+		1F4C7C72067913B3C1C08DD4 /* TrustrootsUsername.swift in Sources */ = {isa = PBXBuildFile; fileRef = 367417776F17251BE5F9EC92 /* TrustrootsUsername.swift */; };
+		1FCF3C48EAAB42343B52F05C /* RelayPreferencesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2CA44133FA99FF0C6B3457 /* RelayPreferencesStore.swift */; };
+		1FDD11B265E4222640B11289 /* NostrSDKCryptoProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44D1C59B835EB1356822A33B /* NostrSDKCryptoProvider.swift */; };
+		2217D1F69009043EAAB0EC9C /* RecipientInputNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1884189E2600623044D8A45 /* RecipientInputNormalizer.swift */; };
+		221D47C09DB17FC8CF569C98 /* PlusCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58F1AECE011E831F8CCCB098 /* PlusCode.swift */; };
+		289FE3DBE4E361096B9F2423 /* SwiftrootsConnectionStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08BCD6597D9AA72EB1F3108D /* SwiftrootsConnectionStatusFormatter.swift */; };
+		2DB90BFE4142CCD4B9D7336A /* RelayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810BD66278B0E1A654852543 /* RelayClient.swift */; };
+		30062AE6655A3B2DBA77D7BF /* KeyImportParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0073C0FB03BE2DB394C0EC02 /* KeyImportParser.swift */; };
+		3287679F5B570BA27F64AF4C /* SwiftrootsRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4EA4E87925D865FFF5047A2 /* SwiftrootsRootView.swift */; };
+		32FCF78BDABFAE00A0E2C895 /* Nip05Resolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 277D4F4379059FD55D56766E /* Nip05Resolver.swift */; };
+		33DE5CBA17B0F59020E63B8F /* RelayPoolClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90EB85D36A53B4B928C28F2 /* RelayPoolClient.swift */; };
+		38CEE17BA374103DCA052C73 /* PlusCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58F1AECE011E831F8CCCB098 /* PlusCode.swift */; };
+		3BD1AACAF1A1C1D32BFF84F7 /* RecipientRowState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6087FBD2B1EA36742CCEFBCA /* RecipientRowState.swift */; };
+		3C4C4F33480C0DCD99755DDE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D5AF6C38A36138366088AC3E /* Foundation.framework */; };
+		3EDF68FCB4AFFE9050498333 /* NostrWireCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D711221847D3B2CB55B8745 /* NostrWireCodec.swift */; };
+		400A24F9610D8E137FA2E836 /* RelayPoolClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90EB85D36A53B4B928C28F2 /* RelayPoolClient.swift */; };
+		46F7B842C421C58200265DB0 /* RelaySettingsActionFailureFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D797E8311257259FE31F20 /* RelaySettingsActionFailureFormatter.swift */; };
+		47000B0DDF8F78D208C94723 /* NativeKeyOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43BABD29A20BC3763AF72A10 /* NativeKeyOnboardingView.swift */; };
+		48BD3A83ABF02F294FA46909 /* NostrailApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA83B1CF6993B39263F89668 /* NostrailApp.swift */; };
+		4B1A43BC4B5CDD66046E95B1 /* SwiftrootsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FFF4DD3A0764B23DE93FAC0 /* SwiftrootsApp.swift */; };
+		4D5CF013459FB82167097DC8 /* NostrailRecipientFeedbackFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED4515C258428130D2667D3 /* NostrailRecipientFeedbackFormatter.swift */; };
+		4DC3400CC8653790DF9F391D /* KeyImportParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0073C0FB03BE2DB394C0EC02 /* KeyImportParser.swift */; };
+		4E555F6DAF713AFA78D02E1A /* NostrailRelayStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CC1726EBE3EB1C5C9C2236 /* NostrailRelayStatusFormatter.swift */; };
+		50678CEC7BA856A9B7AD39FC /* NostrailRecipientActionFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C08D9155638B0B9455B6C9 /* NostrailRecipientActionFormatter.swift */; };
+		53C84E4C57FA37114D1DD875 /* InMemoryRelayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121D5220EBA96374112BF5A4 /* InMemoryRelayClient.swift */; };
+		55178434A8D797125B8D35C8 /* NostrailActionErrorFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002660D407D22960081649B9 /* NostrailActionErrorFormatter.swift */; };
+		55FD821F54C965594573C006 /* NativeOnboardingKeyLifecycleMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC50676A542B2A3447BA2F5E /* NativeOnboardingKeyLifecycleMessage.swift */; };
+		56692F74C1A44597B7F425E8 /* LocationSnapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84A95423D06B1E3AF316EB59 /* LocationSnapper.swift */; };
+		599134DB529EE321794D8D6D /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5BB957CA75D342178EE9FB1 /* Hex.swift */; };
+		5A086054671036CECF34864A /* NostrailRecipientSummaryFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5AE91898524F500ABACFC70 /* NostrailRecipientSummaryFormatter.swift */; };
+		5A8E4B31223D5195159E9E00 /* NIP42Auth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67655A0388FD2051577FB7E5 /* NIP42Auth.swift */; };
+		5B64F54E7D4757FB55A1A0A7 /* NativeOnboardingKeyLifecycleMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC50676A542B2A3447BA2F5E /* NativeOnboardingKeyLifecycleMessage.swift */; };
+		5B8C8C7C5F6ABE98EF4D902A /* SwiftrootsConnectionStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08BCD6597D9AA72EB1F3108D /* SwiftrootsConnectionStatusFormatter.swift */; };
+		5EF74D70F854843A65A164E1 /* DeviceLocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F65FA3B4F4BF919648B8D8F9 /* DeviceLocationProvider.swift */; };
+		5F667DF547920F6027F056A5 /* KeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF723185591789DF97164856 /* KeyStore.swift */; };
+		5FB7C8904F0DB94E7BB693B1 /* NostrSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 5C87CFA8B2349178826BCF31 /* NostrSDK */; };
+		60EB7BF3A72FDF16F4C6F430 /* InMemoryRelayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121D5220EBA96374112BF5A4 /* InMemoryRelayClient.swift */; };
+		61BB933AA317E793ABE9E06B /* DeviceLocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F65FA3B4F4BF919648B8D8F9 /* DeviceLocationProvider.swift */; };
+		630116E12305DB79A9DB00A9 /* RelayPoolClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90EB85D36A53B4B928C28F2 /* RelayPoolClient.swift */; };
+		63D80D8B11209CE735FBE741 /* RelaySettingsActionFailureFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D797E8311257259FE31F20 /* RelaySettingsActionFailureFormatter.swift */; };
+		6579EF47D2AF3B1BBC8788AE /* NostrailRecipientBatchStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 494054EC02F320DC52FF71A4 /* NostrailRecipientBatchStatusFormatter.swift */; };
+		660C5B6CF1E258A8C8E09D6E /* Nip05Resolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 277D4F4379059FD55D56766E /* Nip05Resolver.swift */; };
+		669D63184DCF1C0F9662C423 /* LocationSnapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84A95423D06B1E3AF316EB59 /* LocationSnapper.swift */; };
+		66C796BDD56145FFC8B3347D /* RelayStateChangeGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B71864B6B0A9F53692B0FF /* RelayStateChangeGuard.swift */; };
+		66DD19AEDEE00F10CA9CF05C /* NIP44Box.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5219F83F17F3A18BBE1D7F1 /* NIP44Box.swift */; };
+		67B5AED36C9294E9BC1D3D82 /* BIP39EnglishWordList.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFF499C8CD413E9E5DF15A36 /* BIP39EnglishWordList.swift */; };
+		6B27E418DE2B9A8065DAE2F4 /* NIP19.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C16148BD98DE83DBA8EF080 /* NIP19.swift */; };
+		6BB271F8EBB17076238FAC5D /* NostrailRecipientActionFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C08D9155638B0B9455B6C9 /* NostrailRecipientActionFormatter.swift */; };
+		6EC5158E69FFA12D917DBF9F /* WebSocketRelayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C47BF5B7331E0C08045D7CE7 /* WebSocketRelayClient.swift */; };
+		6FADA385CC5C59C3D8D84E2D /* RecipientRowState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6087FBD2B1EA36742CCEFBCA /* RecipientRowState.swift */; };
+		70990AB61AD9CD27D3819732 /* RelayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810BD66278B0E1A654852543 /* RelayClient.swift */; };
+		71122A3323C9AFF2F754F18C /* NostrailRelayStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8CC1726EBE3EB1C5C9C2236 /* NostrailRelayStatusFormatter.swift */; };
+		724940EA1B4A43869C1363BF /* SwiftrootsOnboardingGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C88F33F1D6F86E4AC2B15EF /* SwiftrootsOnboardingGate.swift */; };
+		7530E89A0A765132384A0460 /* RecipientInputNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1884189E2600623044D8A45 /* RecipientInputNormalizer.swift */; };
+		78ADD45AA16A956E0CB10696 /* RelaySettingsActionFailureFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57D797E8311257259FE31F20 /* RelaySettingsActionFailureFormatter.swift */; };
+		78DD6B81F2089402DADA2D3E /* NIP19.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C16148BD98DE83DBA8EF080 /* NIP19.swift */; };
+		7A60206B4B4AB8EE47F79802 /* NostrEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBEDEC46F8B22161B6FEDCA /* NostrEvent.swift */; };
+		8335B119AF75904DC848E072 /* RelayEndpointInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681AEA87CC27A4F7F615A45C /* RelayEndpointInput.swift */; };
+		83CECA30AC47A159EA231DB3 /* NostrailKeyLifecycleGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE176EDD336B4E952DF0B03D /* NostrailKeyLifecycleGuard.swift */; };
+		84665DD65EC5731BAA3C2F8D /* KeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF723185591789DF97164856 /* KeyStore.swift */; };
+		860BCEC2D02F8B0F741C5A76 /* SwiftrootsLinkingMessageFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB4BF5F494211EF1B36BD44 /* SwiftrootsLinkingMessageFormatter.swift */; };
+		8B3E680EA7E33024B761841A /* Nip05Resolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 277D4F4379059FD55D56766E /* Nip05Resolver.swift */; };
+		8DAAB0539E3F5200901A909D /* AppStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4301A97B673DAA8A4DFE0542 /* AppStorage.swift */; };
+		8E39BCEA7EF98036D0E6DA2E /* NostrailLocationStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E0CB4048639AA7BEDAB6BD3 /* NostrailLocationStatusFormatter.swift */; };
+		8FF0FA31CA73D2CE274F63F0 /* AppStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4301A97B673DAA8A4DFE0542 /* AppStorage.swift */; };
+		942855EB49858C7E60990E59 /* SwiftrootsLinkingMessageFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB4BF5F494211EF1B36BD44 /* SwiftrootsLinkingMessageFormatter.swift */; };
+		96E840B0EEDD0B8E3643710C /* NostrailRecipientBatchStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 494054EC02F320DC52FF71A4 /* NostrailRecipientBatchStatusFormatter.swift */; };
+		9729111F55D0E9BF3A628D05 /* RelayEndpointInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681AEA87CC27A4F7F615A45C /* RelayEndpointInput.swift */; };
+		988C9F5E942CB09C73DE08F7 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D5AF6C38A36138366088AC3E /* Foundation.framework */; };
+		998D45B744B07B15EF32CAE5 /* LocationSharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9A8699A626E814CABE17B3 /* LocationSharingService.swift */; };
+		99DE7DA0F1066E5AF333518F /* RecipientInputNormalizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1884189E2600623044D8A45 /* RecipientInputNormalizer.swift */; };
+		9AC3842080AE25BD11FED3A9 /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5BB957CA75D342178EE9FB1 /* Hex.swift */; };
+		9C60A53DF7C284F1E47BF321 /* NostrailLocationStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E0CB4048639AA7BEDAB6BD3 /* NostrailLocationStatusFormatter.swift */; };
+		9CA9974C8AD35A5F22D7813D /* NIP42Auth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67655A0388FD2051577FB7E5 /* NIP42Auth.swift */; };
+		9F29320EA736AC517B83435A /* NIP44Box.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5219F83F17F3A18BBE1D7F1 /* NIP44Box.swift */; };
+		A030831B7037B8EDAD3DE5E6 /* RelayEndpointInput.swift in Sources */ = {isa = PBXBuildFile; fileRef = 681AEA87CC27A4F7F615A45C /* RelayEndpointInput.swift */; };
+		A16DC023170091811F123634 /* NostrailRecipientSummaryFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5AE91898524F500ABACFC70 /* NostrailRecipientSummaryFormatter.swift */; };
+		A25FF3DE54ECBC3E205AEACA /* RelayUserFacingMessageFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9593729736CB32DCC8D8D198 /* RelayUserFacingMessageFormatter.swift */; };
+		A287F6417FD754549FC312F8 /* PlusCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58F1AECE011E831F8CCCB098 /* PlusCode.swift */; };
+		A439766BB506701012B01D55 /* NostrSDK in Frameworks */ = {isa = PBXBuildFile; productRef = BECD0D1745935C506B8C23CB /* NostrSDK */; };
+		A511DDF18E16D2DEBD29D52C /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2696965CE901BF0157CB9B2 /* Constants.swift */; };
+		A55529BF331AD2D0C5D4F7A6 /* RelayStateChangeGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B71864B6B0A9F53692B0FF /* RelayStateChangeGuard.swift */; };
+		A63AA594B6468EE9C45E87F1 /* RecipientRowState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6087FBD2B1EA36742CCEFBCA /* RecipientRowState.swift */; };
+		A8D26A94A97A8C2C7764AB9A /* RelayAvailabilitySummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = D658B01A770096EC386165CA /* RelayAvailabilitySummary.swift */; };
+		AA5646620BB223D71C43B418 /* DeviceLocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F65FA3B4F4BF919648B8D8F9 /* DeviceLocationProvider.swift */; };
+		AC7F2C22CE86289877EA0EB3 /* RelayUserFacingMessageFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9593729736CB32DCC8D8D198 /* RelayUserFacingMessageFormatter.swift */; };
+		AD21C5F8B51CB393B88ABFF2 /* NativeKeyBackupConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4360851EBBD6605B31DA3DBE /* NativeKeyBackupConfirmation.swift */; };
+		AFC659EA51D2FB9802D9DD22 /* NostrailRecipientActionFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1C08D9155638B0B9455B6C9 /* NostrailRecipientActionFormatter.swift */; };
+		B082B4280402AEBD876933A8 /* RelayReconnectCooldown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29533F3D58E1DC5E162CFA93 /* RelayReconnectCooldown.swift */; };
+		B15614D5C875E2B34AE26499 /* NostrailRecipientFeedbackFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED4515C258428130D2667D3 /* NostrailRecipientFeedbackFormatter.swift */; };
+		B3BB50291DDE0BE3376EF2D6 /* NativeKeyOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43BABD29A20BC3763AF72A10 /* NativeKeyOnboardingView.swift */; };
+		B5176374EECC5FD0E2B29D2E /* NIP42Auth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67655A0388FD2051577FB7E5 /* NIP42Auth.swift */; };
+		B51F3B83CFD53FBDD9432627 /* NostrSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 142BC32A1E90A0D3BA04BE0A /* NostrSDK */; };
+		B674B20A13CD68B4D0AA27E3 /* LocationPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DF29DB4F5B9E7CEE81565D2 /* LocationPayloads.swift */; };
+		B6B087DC7E1025BD1FE0285D /* NostrailKeyLifecycleGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE176EDD336B4E952DF0B03D /* NostrailKeyLifecycleGuard.swift */; };
+		B749A1A49E63F6FAB87F86BD /* WebSocketRelayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C47BF5B7331E0C08045D7CE7 /* WebSocketRelayClient.swift */; };
+		B79B51134E7E739281F15431 /* WebSocketRelayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C47BF5B7331E0C08045D7CE7 /* WebSocketRelayClient.swift */; };
+		B7D689256F37E8BD52FE56D4 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D5AF6C38A36138366088AC3E /* Foundation.framework */; };
+		B83829B24D9E229C12DA3515 /* NostrSDKCryptoProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44D1C59B835EB1356822A33B /* NostrSDKCryptoProvider.swift */; };
+		BAE5B7C54D669FC520B0EDBE /* NostrailLocationStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E0CB4048639AA7BEDAB6BD3 /* NostrailLocationStatusFormatter.swift */; };
+		BAF4E944AE017131EDA4DC2A /* LocationSnapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84A95423D06B1E3AF316EB59 /* LocationSnapper.swift */; };
+		BC94C6540778360DE79C205A /* TrustrootsUsername.swift in Sources */ = {isa = PBXBuildFile; fileRef = 367417776F17251BE5F9EC92 /* TrustrootsUsername.swift */; };
+		BFE6F543C6CFD16E4351B4FE /* NostrEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBEDEC46F8B22161B6FEDCA /* NostrEvent.swift */; };
+		C2DBB8B46031E91151F69C23 /* NostrailRecipientSummaryFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5AE91898524F500ABACFC70 /* NostrailRecipientSummaryFormatter.swift */; };
+		C529EDC5F5F33EF9D3B27E5A /* NostrailActionErrorFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 002660D407D22960081649B9 /* NostrailActionErrorFormatter.swift */; };
+		C5FF32C37E8ACBCEA0503BAF /* NativeOnboardingStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3199EA5C38F64E1CB06A925 /* NativeOnboardingStatusFormatter.swift */; };
+		C69F42BCE7E7E51A4E331D3C /* SwiftrootsOnboardingGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C88F33F1D6F86E4AC2B15EF /* SwiftrootsOnboardingGate.swift */; };
+		C85A31DA7FD72BC401FFBB93 /* NostrailRecipientFeedbackFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2ED4515C258428130D2667D3 /* NostrailRecipientFeedbackFormatter.swift */; };
+		C8FF182E7CB920B9446E8C1A /* RelayAvailabilitySummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = D658B01A770096EC386165CA /* RelayAvailabilitySummary.swift */; };
+		C9213994FDDC429D1A49791E /* NIP19.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C16148BD98DE83DBA8EF080 /* NIP19.swift */; };
+		C945BC0EA818F0A50EAC5283 /* SwiftrootsLinkingMessageFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1EB4BF5F494211EF1B36BD44 /* SwiftrootsLinkingMessageFormatter.swift */; };
+		C9B47DE58469CBC180B43ECF /* RelayStateChangeGuard.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2B71864B6B0A9F53692B0FF /* RelayStateChangeGuard.swift */; };
+		CCBF757D5C71E125888C7451 /* KeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF723185591789DF97164856 /* KeyStore.swift */; };
+		CEBE43989E609F3234996800 /* NIP44Box.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5219F83F17F3A18BBE1D7F1 /* NIP44Box.swift */; };
+		CF5D28DF96800689EDBA1699 /* NativeKeyBackupConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4360851EBBD6605B31DA3DBE /* NativeKeyBackupConfirmation.swift */; };
+		D135799C1C27443F84409970 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2696965CE901BF0157CB9B2 /* Constants.swift */; };
+		D14A8BC44F09BAEF5DCEC68A /* NostrailRecipientBatchStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 494054EC02F320DC52FF71A4 /* NostrailRecipientBatchStatusFormatter.swift */; };
+		D1F50C0DD166D95C754C1650 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2696965CE901BF0157CB9B2 /* Constants.swift */; };
+		DB96ACAD665CFB21F5074CED /* SwiftrootsConnectionStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08BCD6597D9AA72EB1F3108D /* SwiftrootsConnectionStatusFormatter.swift */; };
+		DD6E0CE88C5875243926AF4B /* BIP39EnglishWordList.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFF499C8CD413E9E5DF15A36 /* BIP39EnglishWordList.swift */; };
+		DD8A173C9BADEC3FC2C9031C /* RelayPreferencesStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2CA44133FA99FF0C6B3457 /* RelayPreferencesStore.swift */; };
+		DEC0B892E0583C87F8F1542A /* NostrailRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F425641B708094BB83CDDB /* NostrailRootView.swift */; };
+		E13BD249FA3D64CA51BDCE13 /* InMemoryRelayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121D5220EBA96374112BF5A4 /* InMemoryRelayClient.swift */; };
+		E20CCE9ED21D679C3DAFE210 /* RelayReconnectCooldown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29533F3D58E1DC5E162CFA93 /* RelayReconnectCooldown.swift */; };
+		E3B63FBFB8101BC976F55677 /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5BB957CA75D342178EE9FB1 /* Hex.swift */; };
+		E51945E4186C5E6483191CC7 /* RelayAvailabilitySummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = D658B01A770096EC386165CA /* RelayAvailabilitySummary.swift */; };
+		E550CF675276433BF504FD02 /* NostrEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EBEDEC46F8B22161B6FEDCA /* NostrEvent.swift */; };
+		E6B11B77CD976005A8862774 /* BIP39EnglishWordList.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFF499C8CD413E9E5DF15A36 /* BIP39EnglishWordList.swift */; };
+		E83AA6F48B48C13D04ECE8BA /* LocationPayloads.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DF29DB4F5B9E7CEE81565D2 /* LocationPayloads.swift */; };
+		F02BF721B6CC8D5DBE22B16D /* LocationSharingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F9A8699A626E814CABE17B3 /* LocationSharingService.swift */; };
+		F0D338A0F1AE7438F7E3586D /* NativeKeyBackupConfirmation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4360851EBBD6605B31DA3DBE /* NativeKeyBackupConfirmation.swift */; };
+		F1A0C8C661752CEBD3D701BC /* RelayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810BD66278B0E1A654852543 /* RelayClient.swift */; };
+		F2217E012BE2752F7C78523B /* KeyImportParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0073C0FB03BE2DB394C0EC02 /* KeyImportParser.swift */; };
+		F3669B29AC3976AFC82B1588 /* NativeKeyOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 43BABD29A20BC3763AF72A10 /* NativeKeyOnboardingView.swift */; };
+		F43D7C31FFB81D66DB7D6C60 /* NostrSDKCryptoProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44D1C59B835EB1356822A33B /* NostrSDKCryptoProvider.swift */; };
+		F5663E6DA18028AC50A6D4A6 /* NativeOnboardingStatusFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = E3199EA5C38F64E1CB06A925 /* NativeOnboardingStatusFormatter.swift */; };
+		F9C160F60C9B01E3EF0F2902 /* NostrWireCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D711221847D3B2CB55B8745 /* NostrWireCodec.swift */; };
+		FE248ABE32EC78B013C70384 /* NativeOnboardingKeyLifecycleMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC50676A542B2A3447BA2F5E /* NativeOnboardingKeyLifecycleMessage.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		3C081BE83D0CBDB03DE89813 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EB378D782ACD54B0565D643E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5B8F8DEBA358C4E449665C07;
+			remoteInfo = Nostrail;
+		};
+		ABC4548F395231E1771831A1 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EB378D782ACD54B0565D643E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E5505E3CAE5DD04EE0DA5ED0;
+			remoteInfo = Swiftroots;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		002660D407D22960081649B9 /* NostrailActionErrorFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrailActionErrorFormatter.swift; path = Services/NostrailActionErrorFormatter.swift; sourceTree = "<group>"; };
+		0073C0FB03BE2DB394C0EC02 /* KeyImportParser.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KeyImportParser.swift; path = Crypto/KeyImportParser.swift; sourceTree = "<group>"; };
+		08BCD6597D9AA72EB1F3108D /* SwiftrootsConnectionStatusFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SwiftrootsConnectionStatusFormatter.swift; path = Services/SwiftrootsConnectionStatusFormatter.swift; sourceTree = "<group>"; };
+		121D5220EBA96374112BF5A4 /* InMemoryRelayClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = InMemoryRelayClient.swift; path = Relay/InMemoryRelayClient.swift; sourceTree = "<group>"; };
+		1EB4BF5F494211EF1B36BD44 /* SwiftrootsLinkingMessageFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SwiftrootsLinkingMessageFormatter.swift; path = Services/SwiftrootsLinkingMessageFormatter.swift; sourceTree = "<group>"; };
+		277D4F4379059FD55D56766E /* Nip05Resolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Nip05Resolver.swift; path = Services/Nip05Resolver.swift; sourceTree = "<group>"; };
+		29533F3D58E1DC5E162CFA93 /* RelayReconnectCooldown.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RelayReconnectCooldown.swift; path = Services/RelayReconnectCooldown.swift; sourceTree = "<group>"; };
+		2ED4515C258428130D2667D3 /* NostrailRecipientFeedbackFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrailRecipientFeedbackFormatter.swift; path = Services/NostrailRecipientFeedbackFormatter.swift; sourceTree = "<group>"; };
+		2FFF4DD3A0764B23DE93FAC0 /* SwiftrootsApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SwiftrootsApp.swift; sourceTree = "<group>"; };
+		367417776F17251BE5F9EC92 /* TrustrootsUsername.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = TrustrootsUsername.swift; path = Services/TrustrootsUsername.swift; sourceTree = "<group>"; };
+		3784BCE4CF2D5816F66DF650 /* NostrootsNativeTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NostrootsNativeTests.swift; sourceTree = "<group>"; };
+		3C16148BD98DE83DBA8EF080 /* NIP19.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NIP19.swift; path = Crypto/NIP19.swift; sourceTree = "<group>"; };
+		3E0CB4048639AA7BEDAB6BD3 /* NostrailLocationStatusFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrailLocationStatusFormatter.swift; path = Services/NostrailLocationStatusFormatter.swift; sourceTree = "<group>"; };
+		4301A97B673DAA8A4DFE0542 /* AppStorage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = AppStorage.swift; path = Storage/AppStorage.swift; sourceTree = "<group>"; };
+		4360851EBBD6605B31DA3DBE /* NativeKeyBackupConfirmation.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NativeKeyBackupConfirmation.swift; path = Services/NativeKeyBackupConfirmation.swift; sourceTree = "<group>"; };
+		43BABD29A20BC3763AF72A10 /* NativeKeyOnboardingView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NativeKeyOnboardingView.swift; path = Views/NativeKeyOnboardingView.swift; sourceTree = "<group>"; };
+		44D1C59B835EB1356822A33B /* NostrSDKCryptoProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrSDKCryptoProvider.swift; path = Crypto/NostrSDKCryptoProvider.swift; sourceTree = "<group>"; };
+		494054EC02F320DC52FF71A4 /* NostrailRecipientBatchStatusFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrailRecipientBatchStatusFormatter.swift; path = Services/NostrailRecipientBatchStatusFormatter.swift; sourceTree = "<group>"; };
+		4D711221847D3B2CB55B8745 /* NostrWireCodec.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrWireCodec.swift; path = Relay/NostrWireCodec.swift; sourceTree = "<group>"; };
+		57D797E8311257259FE31F20 /* RelaySettingsActionFailureFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RelaySettingsActionFailureFormatter.swift; path = Services/RelaySettingsActionFailureFormatter.swift; sourceTree = "<group>"; };
+		58F1AECE011E831F8CCCB098 /* PlusCode.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = PlusCode.swift; path = Services/PlusCode.swift; sourceTree = "<group>"; };
+		5DF29DB4F5B9E7CEE81565D2 /* LocationPayloads.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LocationPayloads.swift; path = Models/LocationPayloads.swift; sourceTree = "<group>"; };
+		5EBEDEC46F8B22161B6FEDCA /* NostrEvent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrEvent.swift; path = Models/NostrEvent.swift; sourceTree = "<group>"; };
+		6087FBD2B1EA36742CCEFBCA /* RecipientRowState.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RecipientRowState.swift; path = Services/RecipientRowState.swift; sourceTree = "<group>"; };
+		67655A0388FD2051577FB7E5 /* NIP42Auth.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NIP42Auth.swift; path = Crypto/NIP42Auth.swift; sourceTree = "<group>"; };
+		681AEA87CC27A4F7F615A45C /* RelayEndpointInput.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RelayEndpointInput.swift; path = Relay/RelayEndpointInput.swift; sourceTree = "<group>"; };
+		6F9A8699A626E814CABE17B3 /* LocationSharingService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LocationSharingService.swift; path = Services/LocationSharingService.swift; sourceTree = "<group>"; };
+		7F2CA44133FA99FF0C6B3457 /* RelayPreferencesStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RelayPreferencesStore.swift; path = Relay/RelayPreferencesStore.swift; sourceTree = "<group>"; };
+		810BD66278B0E1A654852543 /* RelayClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RelayClient.swift; path = Relay/RelayClient.swift; sourceTree = "<group>"; };
+		84A95423D06B1E3AF316EB59 /* LocationSnapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = LocationSnapper.swift; path = Services/LocationSnapper.swift; sourceTree = "<group>"; };
+		8A07541BA38C2CD9876D2E9B /* NostrootsNativeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NostrootsNativeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8C88F33F1D6F86E4AC2B15EF /* SwiftrootsOnboardingGate.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SwiftrootsOnboardingGate.swift; path = Services/SwiftrootsOnboardingGate.swift; sourceTree = "<group>"; };
+		9593729736CB32DCC8D8D198 /* RelayUserFacingMessageFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RelayUserFacingMessageFormatter.swift; path = Relay/RelayUserFacingMessageFormatter.swift; sourceTree = "<group>"; };
+		A1884189E2600623044D8A45 /* RecipientInputNormalizer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RecipientInputNormalizer.swift; path = Services/RecipientInputNormalizer.swift; sourceTree = "<group>"; };
+		A8335403E547F7D8908BB51A /* Nostrail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Nostrail.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A90EB85D36A53B4B928C28F2 /* RelayPoolClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RelayPoolClient.swift; path = Relay/RelayPoolClient.swift; sourceTree = "<group>"; };
+		AF723185591789DF97164856 /* KeyStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = KeyStore.swift; path = Crypto/KeyStore.swift; sourceTree = "<group>"; };
+		B2F425641B708094BB83CDDB /* NostrailRootView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NostrailRootView.swift; sourceTree = "<group>"; };
+		C1C08D9155638B0B9455B6C9 /* NostrailRecipientActionFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrailRecipientActionFormatter.swift; path = Services/NostrailRecipientActionFormatter.swift; sourceTree = "<group>"; };
+		C2696965CE901BF0157CB9B2 /* Constants.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		C2B71864B6B0A9F53692B0FF /* RelayStateChangeGuard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RelayStateChangeGuard.swift; path = Relay/RelayStateChangeGuard.swift; sourceTree = "<group>"; };
+		C47BF5B7331E0C08045D7CE7 /* WebSocketRelayClient.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = WebSocketRelayClient.swift; path = Relay/WebSocketRelayClient.swift; sourceTree = "<group>"; };
+		C4EA4E87925D865FFF5047A2 /* SwiftrootsRootView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SwiftrootsRootView.swift; sourceTree = "<group>"; };
+		C5AE91898524F500ABACFC70 /* NostrailRecipientSummaryFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrailRecipientSummaryFormatter.swift; path = Services/NostrailRecipientSummaryFormatter.swift; sourceTree = "<group>"; };
+		CC46DE8F13AB575C29FD8238 /* Swiftroots.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Swiftroots.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D5219F83F17F3A18BBE1D7F1 /* NIP44Box.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NIP44Box.swift; path = Crypto/NIP44Box.swift; sourceTree = "<group>"; };
+		D5AF6C38A36138366088AC3E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
+		D5BB957CA75D342178EE9FB1 /* Hex.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = Hex.swift; path = Crypto/Hex.swift; sourceTree = "<group>"; };
+		D658B01A770096EC386165CA /* RelayAvailabilitySummary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = RelayAvailabilitySummary.swift; path = Relay/RelayAvailabilitySummary.swift; sourceTree = "<group>"; };
+		DC50676A542B2A3447BA2F5E /* NativeOnboardingKeyLifecycleMessage.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NativeOnboardingKeyLifecycleMessage.swift; path = Services/NativeOnboardingKeyLifecycleMessage.swift; sourceTree = "<group>"; };
+		DFF499C8CD413E9E5DF15A36 /* BIP39EnglishWordList.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = BIP39EnglishWordList.swift; path = Crypto/BIP39EnglishWordList.swift; sourceTree = "<group>"; };
+		E3199EA5C38F64E1CB06A925 /* NativeOnboardingStatusFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NativeOnboardingStatusFormatter.swift; path = Services/NativeOnboardingStatusFormatter.swift; sourceTree = "<group>"; };
+		E8CC1726EBE3EB1C5C9C2236 /* NostrailRelayStatusFormatter.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrailRelayStatusFormatter.swift; path = Services/NostrailRelayStatusFormatter.swift; sourceTree = "<group>"; };
+		EA83B1CF6993B39263F89668 /* NostrailApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NostrailApp.swift; sourceTree = "<group>"; };
+		F65FA3B4F4BF919648B8D8F9 /* DeviceLocationProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = DeviceLocationProvider.swift; path = Services/DeviceLocationProvider.swift; sourceTree = "<group>"; };
+		FE176EDD336B4E952DF0B03D /* NostrailKeyLifecycleGuard.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NostrailKeyLifecycleGuard.swift; path = Services/NostrailKeyLifecycleGuard.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		022F425825439D4CA3C6B344 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				988C9F5E942CB09C73DE08F7 /* Foundation.framework in Frameworks */,
+				A439766BB506701012B01D55 /* NostrSDK in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		73B46733778F271FDD48724C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B7D689256F37E8BD52FE56D4 /* Foundation.framework in Frameworks */,
+				B51F3B83CFD53FBDD9432627 /* NostrSDK in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C9D7F9851A9AAE1FE5B19907 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C4C4F33480C0DCD99755DDE /* Foundation.framework in Frameworks */,
+				5FB7C8904F0DB94E7BB693B1 /* NostrSDK in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		068A27BB1F59381E30A66984 /* SharedCore */ = {
+			isa = PBXGroup;
+			children = (
+				C2696965CE901BF0157CB9B2 /* Constants.swift */,
+				DFF499C8CD413E9E5DF15A36 /* BIP39EnglishWordList.swift */,
+				D5BB957CA75D342178EE9FB1 /* Hex.swift */,
+				0073C0FB03BE2DB394C0EC02 /* KeyImportParser.swift */,
+				AF723185591789DF97164856 /* KeyStore.swift */,
+				3C16148BD98DE83DBA8EF080 /* NIP19.swift */,
+				67655A0388FD2051577FB7E5 /* NIP42Auth.swift */,
+				D5219F83F17F3A18BBE1D7F1 /* NIP44Box.swift */,
+				44D1C59B835EB1356822A33B /* NostrSDKCryptoProvider.swift */,
+				5DF29DB4F5B9E7CEE81565D2 /* LocationPayloads.swift */,
+				5EBEDEC46F8B22161B6FEDCA /* NostrEvent.swift */,
+				121D5220EBA96374112BF5A4 /* InMemoryRelayClient.swift */,
+				4D711221847D3B2CB55B8745 /* NostrWireCodec.swift */,
+				D658B01A770096EC386165CA /* RelayAvailabilitySummary.swift */,
+				810BD66278B0E1A654852543 /* RelayClient.swift */,
+				681AEA87CC27A4F7F615A45C /* RelayEndpointInput.swift */,
+				A90EB85D36A53B4B928C28F2 /* RelayPoolClient.swift */,
+				7F2CA44133FA99FF0C6B3457 /* RelayPreferencesStore.swift */,
+				C2B71864B6B0A9F53692B0FF /* RelayStateChangeGuard.swift */,
+				9593729736CB32DCC8D8D198 /* RelayUserFacingMessageFormatter.swift */,
+				C47BF5B7331E0C08045D7CE7 /* WebSocketRelayClient.swift */,
+				F65FA3B4F4BF919648B8D8F9 /* DeviceLocationProvider.swift */,
+				6F9A8699A626E814CABE17B3 /* LocationSharingService.swift */,
+				84A95423D06B1E3AF316EB59 /* LocationSnapper.swift */,
+				4360851EBBD6605B31DA3DBE /* NativeKeyBackupConfirmation.swift */,
+				DC50676A542B2A3447BA2F5E /* NativeOnboardingKeyLifecycleMessage.swift */,
+				E3199EA5C38F64E1CB06A925 /* NativeOnboardingStatusFormatter.swift */,
+				277D4F4379059FD55D56766E /* Nip05Resolver.swift */,
+				002660D407D22960081649B9 /* NostrailActionErrorFormatter.swift */,
+				FE176EDD336B4E952DF0B03D /* NostrailKeyLifecycleGuard.swift */,
+				3E0CB4048639AA7BEDAB6BD3 /* NostrailLocationStatusFormatter.swift */,
+				C1C08D9155638B0B9455B6C9 /* NostrailRecipientActionFormatter.swift */,
+				494054EC02F320DC52FF71A4 /* NostrailRecipientBatchStatusFormatter.swift */,
+				2ED4515C258428130D2667D3 /* NostrailRecipientFeedbackFormatter.swift */,
+				C5AE91898524F500ABACFC70 /* NostrailRecipientSummaryFormatter.swift */,
+				E8CC1726EBE3EB1C5C9C2236 /* NostrailRelayStatusFormatter.swift */,
+				58F1AECE011E831F8CCCB098 /* PlusCode.swift */,
+				A1884189E2600623044D8A45 /* RecipientInputNormalizer.swift */,
+				6087FBD2B1EA36742CCEFBCA /* RecipientRowState.swift */,
+				29533F3D58E1DC5E162CFA93 /* RelayReconnectCooldown.swift */,
+				57D797E8311257259FE31F20 /* RelaySettingsActionFailureFormatter.swift */,
+				08BCD6597D9AA72EB1F3108D /* SwiftrootsConnectionStatusFormatter.swift */,
+				1EB4BF5F494211EF1B36BD44 /* SwiftrootsLinkingMessageFormatter.swift */,
+				8C88F33F1D6F86E4AC2B15EF /* SwiftrootsOnboardingGate.swift */,
+				367417776F17251BE5F9EC92 /* TrustrootsUsername.swift */,
+				4301A97B673DAA8A4DFE0542 /* AppStorage.swift */,
+				43BABD29A20BC3763AF72A10 /* NativeKeyOnboardingView.swift */,
+			);
+			name = SharedCore;
+			path = SharedCore;
+			sourceTree = "<group>";
+		};
+		09F7C7FEF1A529155C3B8F80 /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				D5AF6C38A36138366088AC3E /* Foundation.framework */,
+			);
+			name = iOS;
+			sourceTree = "<group>";
+		};
+		37989121648290769BD523A3 /* SwiftrootsApp */ = {
+			isa = PBXGroup;
+			children = (
+				2FFF4DD3A0764B23DE93FAC0 /* SwiftrootsApp.swift */,
+				C4EA4E87925D865FFF5047A2 /* SwiftrootsRootView.swift */,
+			);
+			name = SwiftrootsApp;
+			path = SwiftrootsApp;
+			sourceTree = "<group>";
+		};
+		5DCC8481E64A6E099F4ECCDF /* NostrailApp */ = {
+			isa = PBXGroup;
+			children = (
+				EA83B1CF6993B39263F89668 /* NostrailApp.swift */,
+				B2F425641B708094BB83CDDB /* NostrailRootView.swift */,
+			);
+			name = NostrailApp;
+			path = NostrailApp;
+			sourceTree = "<group>";
+		};
+		7679FA905F9A8C68D0248441 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A8335403E547F7D8908BB51A /* Nostrail.app */,
+				CC46DE8F13AB575C29FD8238 /* Swiftroots.app */,
+				8A07541BA38C2CD9876D2E9B /* NostrootsNativeTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A3A558CB1B696574836BA0DE = {
+			isa = PBXGroup;
+			children = (
+				7679FA905F9A8C68D0248441 /* Products */,
+				B4F969C5AD91F04E8A399FE3 /* Frameworks */,
+				068A27BB1F59381E30A66984 /* SharedCore */,
+				5DCC8481E64A6E099F4ECCDF /* NostrailApp */,
+				37989121648290769BD523A3 /* SwiftrootsApp */,
+				E0B3DB34D0C0DAA168FF4707 /* NostrootsNativeTests */,
+			);
+			sourceTree = "<group>";
+		};
+		B4F969C5AD91F04E8A399FE3 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				09F7C7FEF1A529155C3B8F80 /* iOS */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		E0B3DB34D0C0DAA168FF4707 /* NostrootsNativeTests */ = {
+			isa = PBXGroup;
+			children = (
+				3784BCE4CF2D5816F66DF650 /* NostrootsNativeTests.swift */,
+			);
+			name = NostrootsNativeTests;
+			path = NostrootsNativeTests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		5B8F8DEBA358C4E449665C07 /* Nostrail */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D0D35C6D806D562AF506436C /* Build configuration list for PBXNativeTarget "Nostrail" */;
+			buildPhases = (
+				06B564DE80CAF212753E5528 /* Sources */,
+				022F425825439D4CA3C6B344 /* Frameworks */,
+				4B572284A69200F1D70F9C29 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Nostrail;
+			packageProductDependencies = (
+				BECD0D1745935C506B8C23CB /* NostrSDK */,
+			);
+			productName = Nostrail;
+			productReference = A8335403E547F7D8908BB51A /* Nostrail.app */;
+			productType = "com.apple.product-type.application";
+		};
+		6B27AAD53A13F2C49F129DAD /* NostrootsNativeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = EE14B2A51887CF7128D7018C /* Build configuration list for PBXNativeTarget "NostrootsNativeTests" */;
+			buildPhases = (
+				AEF4FF04CA84368C17A5FF65 /* Sources */,
+				73B46733778F271FDD48724C /* Frameworks */,
+				9943D779D63088438A0C4D78 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7F1B92F7127241E89999C49F /* PBXTargetDependency */,
+				27AC1BFEE93BDCDD1D0FF40B /* PBXTargetDependency */,
+			);
+			name = NostrootsNativeTests;
+			packageProductDependencies = (
+				142BC32A1E90A0D3BA04BE0A /* NostrSDK */,
+			);
+			productName = NostrootsNativeTests;
+			productReference = 8A07541BA38C2CD9876D2E9B /* NostrootsNativeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		E5505E3CAE5DD04EE0DA5ED0 /* Swiftroots */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7E17421BC95945316C37453A /* Build configuration list for PBXNativeTarget "Swiftroots" */;
+			buildPhases = (
+				C65D240FD716176B216CA1E1 /* Sources */,
+				C9D7F9851A9AAE1FE5B19907 /* Frameworks */,
+				A650721B6B20556168F16C9F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Swiftroots;
+			packageProductDependencies = (
+				5C87CFA8B2349178826BCF31 /* NostrSDK */,
+			);
+			productName = Swiftroots;
+			productReference = CC46DE8F13AB575C29FD8238 /* Swiftroots.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		EB378D782ACD54B0565D643E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+			};
+			buildConfigurationList = F8D756FBDC17CCC44F577B63 /* Build configuration list for PBXProject "NostrootsNative" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A3A558CB1B696574836BA0DE;
+			minimizedProjectReferenceProxies = 0;
+			packageReferences = (
+				D70F1B1949DB3923979B639C /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 7679FA905F9A8C68D0248441 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				5B8F8DEBA358C4E449665C07 /* Nostrail */,
+				E5505E3CAE5DD04EE0DA5ED0 /* Swiftroots */,
+				6B27AAD53A13F2C49F129DAD /* NostrootsNativeTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		4B572284A69200F1D70F9C29 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9943D779D63088438A0C4D78 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A650721B6B20556168F16C9F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		06B564DE80CAF212753E5528 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D135799C1C27443F84409970 /* Constants.swift in Sources */,
+				67B5AED36C9294E9BC1D3D82 /* BIP39EnglishWordList.swift in Sources */,
+				E3B63FBFB8101BC976F55677 /* Hex.swift in Sources */,
+				4DC3400CC8653790DF9F391D /* KeyImportParser.swift in Sources */,
+				5F667DF547920F6027F056A5 /* KeyStore.swift in Sources */,
+				6B27E418DE2B9A8065DAE2F4 /* NIP19.swift in Sources */,
+				B5176374EECC5FD0E2B29D2E /* NIP42Auth.swift in Sources */,
+				CEBE43989E609F3234996800 /* NIP44Box.swift in Sources */,
+				B83829B24D9E229C12DA3515 /* NostrSDKCryptoProvider.swift in Sources */,
+				B674B20A13CD68B4D0AA27E3 /* LocationPayloads.swift in Sources */,
+				7A60206B4B4AB8EE47F79802 /* NostrEvent.swift in Sources */,
+				60EB7BF3A72FDF16F4C6F430 /* InMemoryRelayClient.swift in Sources */,
+				F9C160F60C9B01E3EF0F2902 /* NostrWireCodec.swift in Sources */,
+				E51945E4186C5E6483191CC7 /* RelayAvailabilitySummary.swift in Sources */,
+				2DB90BFE4142CCD4B9D7336A /* RelayClient.swift in Sources */,
+				8335B119AF75904DC848E072 /* RelayEndpointInput.swift in Sources */,
+				400A24F9610D8E137FA2E836 /* RelayPoolClient.swift in Sources */,
+				DD8A173C9BADEC3FC2C9031C /* RelayPreferencesStore.swift in Sources */,
+				66C796BDD56145FFC8B3347D /* RelayStateChangeGuard.swift in Sources */,
+				A25FF3DE54ECBC3E205AEACA /* RelayUserFacingMessageFormatter.swift in Sources */,
+				B749A1A49E63F6FAB87F86BD /* WebSocketRelayClient.swift in Sources */,
+				5EF74D70F854843A65A164E1 /* DeviceLocationProvider.swift in Sources */,
+				998D45B744B07B15EF32CAE5 /* LocationSharingService.swift in Sources */,
+				56692F74C1A44597B7F425E8 /* LocationSnapper.swift in Sources */,
+				CF5D28DF96800689EDBA1699 /* NativeKeyBackupConfirmation.swift in Sources */,
+				FE248ABE32EC78B013C70384 /* NativeOnboardingKeyLifecycleMessage.swift in Sources */,
+				0ABF0066477C9651C17D67EC /* NativeOnboardingStatusFormatter.swift in Sources */,
+				8B3E680EA7E33024B761841A /* Nip05Resolver.swift in Sources */,
+				55178434A8D797125B8D35C8 /* NostrailActionErrorFormatter.swift in Sources */,
+				83CECA30AC47A159EA231DB3 /* NostrailKeyLifecycleGuard.swift in Sources */,
+				9C60A53DF7C284F1E47BF321 /* NostrailLocationStatusFormatter.swift in Sources */,
+				50678CEC7BA856A9B7AD39FC /* NostrailRecipientActionFormatter.swift in Sources */,
+				6579EF47D2AF3B1BBC8788AE /* NostrailRecipientBatchStatusFormatter.swift in Sources */,
+				C85A31DA7FD72BC401FFBB93 /* NostrailRecipientFeedbackFormatter.swift in Sources */,
+				5A086054671036CECF34864A /* NostrailRecipientSummaryFormatter.swift in Sources */,
+				71122A3323C9AFF2F754F18C /* NostrailRelayStatusFormatter.swift in Sources */,
+				221D47C09DB17FC8CF569C98 /* PlusCode.swift in Sources */,
+				2217D1F69009043EAAB0EC9C /* RecipientInputNormalizer.swift in Sources */,
+				A63AA594B6468EE9C45E87F1 /* RecipientRowState.swift in Sources */,
+				E20CCE9ED21D679C3DAFE210 /* RelayReconnectCooldown.swift in Sources */,
+				78ADD45AA16A956E0CB10696 /* RelaySettingsActionFailureFormatter.swift in Sources */,
+				289FE3DBE4E361096B9F2423 /* SwiftrootsConnectionStatusFormatter.swift in Sources */,
+				860BCEC2D02F8B0F741C5A76 /* SwiftrootsLinkingMessageFormatter.swift in Sources */,
+				17B1A827F43CA6AB37898166 /* SwiftrootsOnboardingGate.swift in Sources */,
+				BC94C6540778360DE79C205A /* TrustrootsUsername.swift in Sources */,
+				8DAAB0539E3F5200901A909D /* AppStorage.swift in Sources */,
+				F3669B29AC3976AFC82B1588 /* NativeKeyOnboardingView.swift in Sources */,
+				48BD3A83ABF02F294FA46909 /* NostrailApp.swift in Sources */,
+				DEC0B892E0583C87F8F1542A /* NostrailRootView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AEF4FF04CA84368C17A5FF65 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D1F50C0DD166D95C754C1650 /* Constants.swift in Sources */,
+				DD6E0CE88C5875243926AF4B /* BIP39EnglishWordList.swift in Sources */,
+				599134DB529EE321794D8D6D /* Hex.swift in Sources */,
+				30062AE6655A3B2DBA77D7BF /* KeyImportParser.swift in Sources */,
+				CCBF757D5C71E125888C7451 /* KeyStore.swift in Sources */,
+				78DD6B81F2089402DADA2D3E /* NIP19.swift in Sources */,
+				5A8E4B31223D5195159E9E00 /* NIP42Auth.swift in Sources */,
+				66DD19AEDEE00F10CA9CF05C /* NIP44Box.swift in Sources */,
+				1FDD11B265E4222640B11289 /* NostrSDKCryptoProvider.swift in Sources */,
+				1B0AF80F98201B206F9E8AB0 /* LocationPayloads.swift in Sources */,
+				BFE6F543C6CFD16E4351B4FE /* NostrEvent.swift in Sources */,
+				E13BD249FA3D64CA51BDCE13 /* InMemoryRelayClient.swift in Sources */,
+				093BC801C00D5ED78D631889 /* NostrWireCodec.swift in Sources */,
+				C8FF182E7CB920B9446E8C1A /* RelayAvailabilitySummary.swift in Sources */,
+				F1A0C8C661752CEBD3D701BC /* RelayClient.swift in Sources */,
+				9729111F55D0E9BF3A628D05 /* RelayEndpointInput.swift in Sources */,
+				630116E12305DB79A9DB00A9 /* RelayPoolClient.swift in Sources */,
+				1FCF3C48EAAB42343B52F05C /* RelayPreferencesStore.swift in Sources */,
+				A55529BF331AD2D0C5D4F7A6 /* RelayStateChangeGuard.swift in Sources */,
+				1E19B65BD9A5C4D01A72B072 /* RelayUserFacingMessageFormatter.swift in Sources */,
+				6EC5158E69FFA12D917DBF9F /* WebSocketRelayClient.swift in Sources */,
+				61BB933AA317E793ABE9E06B /* DeviceLocationProvider.swift in Sources */,
+				F02BF721B6CC8D5DBE22B16D /* LocationSharingService.swift in Sources */,
+				BAF4E944AE017131EDA4DC2A /* LocationSnapper.swift in Sources */,
+				F0D338A0F1AE7438F7E3586D /* NativeKeyBackupConfirmation.swift in Sources */,
+				5B64F54E7D4757FB55A1A0A7 /* NativeOnboardingKeyLifecycleMessage.swift in Sources */,
+				F5663E6DA18028AC50A6D4A6 /* NativeOnboardingStatusFormatter.swift in Sources */,
+				660C5B6CF1E258A8C8E09D6E /* Nip05Resolver.swift in Sources */,
+				C529EDC5F5F33EF9D3B27E5A /* NostrailActionErrorFormatter.swift in Sources */,
+				128E10689E74A21463AC210F /* NostrailKeyLifecycleGuard.swift in Sources */,
+				8E39BCEA7EF98036D0E6DA2E /* NostrailLocationStatusFormatter.swift in Sources */,
+				AFC659EA51D2FB9802D9DD22 /* NostrailRecipientActionFormatter.swift in Sources */,
+				D14A8BC44F09BAEF5DCEC68A /* NostrailRecipientBatchStatusFormatter.swift in Sources */,
+				B15614D5C875E2B34AE26499 /* NostrailRecipientFeedbackFormatter.swift in Sources */,
+				A16DC023170091811F123634 /* NostrailRecipientSummaryFormatter.swift in Sources */,
+				07D263CC0A8B7AD80C91636F /* NostrailRelayStatusFormatter.swift in Sources */,
+				A287F6417FD754549FC312F8 /* PlusCode.swift in Sources */,
+				99DE7DA0F1066E5AF333518F /* RecipientInputNormalizer.swift in Sources */,
+				3BD1AACAF1A1C1D32BFF84F7 /* RecipientRowState.swift in Sources */,
+				0FBDE6C9011E43959D52EBA9 /* RelayReconnectCooldown.swift in Sources */,
+				46F7B842C421C58200265DB0 /* RelaySettingsActionFailureFormatter.swift in Sources */,
+				DB96ACAD665CFB21F5074CED /* SwiftrootsConnectionStatusFormatter.swift in Sources */,
+				C945BC0EA818F0A50EAC5283 /* SwiftrootsLinkingMessageFormatter.swift in Sources */,
+				724940EA1B4A43869C1363BF /* SwiftrootsOnboardingGate.swift in Sources */,
+				05698FC6B838CF909816BCCD /* TrustrootsUsername.swift in Sources */,
+				16BAF1D42DE67773B1778046 /* AppStorage.swift in Sources */,
+				B3BB50291DDE0BE3376EF2D6 /* NativeKeyOnboardingView.swift in Sources */,
+				0F9D87C09139478CF1E9BD66 /* NostrootsNativeTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C65D240FD716176B216CA1E1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A511DDF18E16D2DEBD29D52C /* Constants.swift in Sources */,
+				E6B11B77CD976005A8862774 /* BIP39EnglishWordList.swift in Sources */,
+				9AC3842080AE25BD11FED3A9 /* Hex.swift in Sources */,
+				F2217E012BE2752F7C78523B /* KeyImportParser.swift in Sources */,
+				84665DD65EC5731BAA3C2F8D /* KeyStore.swift in Sources */,
+				C9213994FDDC429D1A49791E /* NIP19.swift in Sources */,
+				9CA9974C8AD35A5F22D7813D /* NIP42Auth.swift in Sources */,
+				9F29320EA736AC517B83435A /* NIP44Box.swift in Sources */,
+				F43D7C31FFB81D66DB7D6C60 /* NostrSDKCryptoProvider.swift in Sources */,
+				E83AA6F48B48C13D04ECE8BA /* LocationPayloads.swift in Sources */,
+				E550CF675276433BF504FD02 /* NostrEvent.swift in Sources */,
+				53C84E4C57FA37114D1DD875 /* InMemoryRelayClient.swift in Sources */,
+				3EDF68FCB4AFFE9050498333 /* NostrWireCodec.swift in Sources */,
+				A8D26A94A97A8C2C7764AB9A /* RelayAvailabilitySummary.swift in Sources */,
+				70990AB61AD9CD27D3819732 /* RelayClient.swift in Sources */,
+				A030831B7037B8EDAD3DE5E6 /* RelayEndpointInput.swift in Sources */,
+				33DE5CBA17B0F59020E63B8F /* RelayPoolClient.swift in Sources */,
+				16E5A8732EED6BACBA163251 /* RelayPreferencesStore.swift in Sources */,
+				C9B47DE58469CBC180B43ECF /* RelayStateChangeGuard.swift in Sources */,
+				AC7F2C22CE86289877EA0EB3 /* RelayUserFacingMessageFormatter.swift in Sources */,
+				B79B51134E7E739281F15431 /* WebSocketRelayClient.swift in Sources */,
+				AA5646620BB223D71C43B418 /* DeviceLocationProvider.swift in Sources */,
+				1A4208DDE5236202AECB4D4C /* LocationSharingService.swift in Sources */,
+				669D63184DCF1C0F9662C423 /* LocationSnapper.swift in Sources */,
+				AD21C5F8B51CB393B88ABFF2 /* NativeKeyBackupConfirmation.swift in Sources */,
+				55FD821F54C965594573C006 /* NativeOnboardingKeyLifecycleMessage.swift in Sources */,
+				C5FF32C37E8ACBCEA0503BAF /* NativeOnboardingStatusFormatter.swift in Sources */,
+				32FCF78BDABFAE00A0E2C895 /* Nip05Resolver.swift in Sources */,
+				079FF326077C365FDC0C07F2 /* NostrailActionErrorFormatter.swift in Sources */,
+				B6B087DC7E1025BD1FE0285D /* NostrailKeyLifecycleGuard.swift in Sources */,
+				BAE5B7C54D669FC520B0EDBE /* NostrailLocationStatusFormatter.swift in Sources */,
+				6BB271F8EBB17076238FAC5D /* NostrailRecipientActionFormatter.swift in Sources */,
+				96E840B0EEDD0B8E3643710C /* NostrailRecipientBatchStatusFormatter.swift in Sources */,
+				4D5CF013459FB82167097DC8 /* NostrailRecipientFeedbackFormatter.swift in Sources */,
+				C2DBB8B46031E91151F69C23 /* NostrailRecipientSummaryFormatter.swift in Sources */,
+				4E555F6DAF713AFA78D02E1A /* NostrailRelayStatusFormatter.swift in Sources */,
+				38CEE17BA374103DCA052C73 /* PlusCode.swift in Sources */,
+				7530E89A0A765132384A0460 /* RecipientInputNormalizer.swift in Sources */,
+				6FADA385CC5C59C3D8D84E2D /* RecipientRowState.swift in Sources */,
+				B082B4280402AEBD876933A8 /* RelayReconnectCooldown.swift in Sources */,
+				63D80D8B11209CE735FBE741 /* RelaySettingsActionFailureFormatter.swift in Sources */,
+				5B8C8C7C5F6ABE98EF4D902A /* SwiftrootsConnectionStatusFormatter.swift in Sources */,
+				942855EB49858C7E60990E59 /* SwiftrootsLinkingMessageFormatter.swift in Sources */,
+				C69F42BCE7E7E51A4E331D3C /* SwiftrootsOnboardingGate.swift in Sources */,
+				1F4C7C72067913B3C1C08DD4 /* TrustrootsUsername.swift in Sources */,
+				8FF0FA31CA73D2CE274F63F0 /* AppStorage.swift in Sources */,
+				47000B0DDF8F78D208C94723 /* NativeKeyOnboardingView.swift in Sources */,
+				4B1A43BC4B5CDD66046E95B1 /* SwiftrootsApp.swift in Sources */,
+				3287679F5B570BA27F64AF4C /* SwiftrootsRootView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		27AC1BFEE93BDCDD1D0FF40B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Swiftroots;
+			target = E5505E3CAE5DD04EE0DA5ED0 /* Swiftroots */;
+			targetProxy = ABC4548F395231E1771831A1 /* PBXContainerItemProxy */;
+		};
+		7F1B92F7127241E89999C49F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = Nostrail;
+			target = 5B8F8DEBA358C4E449665C07 /* Nostrail */;
+			targetProxy = 3C081BE83D0CBDB03DE89813 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1EEAE9F56BA056D13BD50A74 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NostrailApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = org.trustroots.nostrail;
+				PRODUCT_NAME = Nostrail;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		24E433FCE842F8BC1295963E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SwiftrootsApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = org.trustroots.swiftroots;
+				PRODUCT_NAME = Swiftroots;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		AA2F3D902AD4E8F5BBFD81BC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		BECE1783777668B20D1FF38A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NostrailApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = org.trustroots.nostrail;
+				PRODUCT_NAME = Nostrail;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		C95265EABB1370593F33E847 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SwiftrootsApp/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = org.trustroots.swiftroots;
+				PRODUCT_NAME = Swiftroots;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F0A6A03D196C58DA27C81545 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F1E4A2EB98512FFE6B7D1E9F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		F47CBAE3A51A10C104EC42D9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7E17421BC95945316C37453A /* Build configuration list for PBXNativeTarget "Swiftroots" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				24E433FCE842F8BC1295963E /* Release */,
+				C95265EABB1370593F33E847 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D0D35C6D806D562AF506436C /* Build configuration list for PBXNativeTarget "Nostrail" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BECE1783777668B20D1FF38A /* Release */,
+				1EEAE9F56BA056D13BD50A74 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		EE14B2A51887CF7128D7018C /* Build configuration list for PBXNativeTarget "NostrootsNativeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F47CBAE3A51A10C104EC42D9 /* Release */,
+				F0A6A03D196C58DA27C81545 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F8D756FBDC17CCC44F577B63 /* Build configuration list for PBXProject "NostrootsNative" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F1E4A2EB98512FFE6B7D1E9F /* Debug */,
+				AA2F3D902AD4E8F5BBFD81BC /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D70F1B1949DB3923979B639C /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/nostr-sdk/nostr-sdk-ios.git";
+			requirement = {
+				kind = revision;
+				revision = e5855cbd3bdabf44075fd2abdf76f63bac4cbd5f;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		142BC32A1E90A0D3BA04BE0A /* NostrSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D70F1B1949DB3923979B639C /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */;
+			productName = NostrSDK;
+		};
+		5C87CFA8B2349178826BCF31 /* NostrSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D70F1B1949DB3923979B639C /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */;
+			productName = NostrSDK;
+		};
+		BECD0D1745935C506B8C23CB /* NostrSDK */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D70F1B1949DB3923979B639C /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */;
+			productName = NostrSDK;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = EB378D782ACD54B0565D643E /* Project object */;
+}

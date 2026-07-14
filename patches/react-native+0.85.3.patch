@@ -1,0 +1,45 @@
+diff --git a/node_modules/react-native/Libraries/TypeSafety/RCTTypedModuleConstants.h b/node_modules/react-native/Libraries/TypeSafety/RCTTypedModuleConstants.h
+index 1234567..abcdefg 100644
+--- a/node_modules/react-native/Libraries/TypeSafety/RCTTypedModuleConstants.h
++++ b/node_modules/react-native/Libraries/TypeSafety/RCTTypedModuleConstants.h
+@@ -44,12 +44,17 @@
+ struct IsBuilder<T, std::void_t<typename T::Input, decltype(std::declval<T>().buildUnsafeRawValue())>>
+     : std::true_type {};
+
++// Helper to detect if T has a ResultT type alias.
++template <typename T, typename = void>
++struct HasResultT : std::false_type {};
++
++template <typename T>
++struct HasResultT<T, std::void_t<typename T::ResultT>> : std::true_type {};
++
+ // Resolve Builder to its parent Constants type.
+ // For backwards compatibility: if T is a Builder type (e.g., JS::X::Constants::Builder),
+ // we resolve to the parent Constants type (JS::X::Constants).
+-//
+-// This requires Builder to have a type alias `using ResultT = Constants;` defined by codegen.
+-template <typename T, bool = IsBuilder<T>::value>
++template <typename T, bool = IsBuilder<T>::value, bool = HasResultT<T>::value>
+ struct ResolveConstantsType {
+   // Not a Builder, use T as-is
+   using type = T;
+@@ -57,11 +62,18 @@
+
+ // Specialization for Builder types that have ResultT defined
+ template <typename T>
+-struct ResolveConstantsType<T, true> {
++struct ResolveConstantsType<T, true, true> {
+   // Use T::ResultT which points to the parent Constants type (added by codegen)
+   using type = typename T::ResultT;
+ };
+
++// Specialization for Builder types without ResultT (older codegen output)
++template <typename T>
++struct ResolveConstantsType<T, true, false> {
++  // Fall back to using Builder directly
++  using type = T;
++};
++
+ } // namespace detail
+
+ // Objective-C doesn't allow arbitrary types in its lightweight generics, only object and block types. We can work

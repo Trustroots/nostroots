@@ -2,19 +2,15 @@
   "expo": {
     "name": "Nostroots",
     "slug": "nr-app",
-    "version": "0.0.4",
+    "version": "0.6.0",
     "orientation": "portrait",
-    "icon": "./assets/images/nostroots-300x300.png",
-    "scheme": "myapp",
+    "icon": "./assets/images/nostroots-logo67-app-icon.png",
+    "scheme": "nostroots",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/images/nostroots-300x300.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "org.trustroots.nostroots",
+      "appleTeamId": "WR2T34P467",
       "config": {
         "googleMapsApiKey": "AIzaSyDw0KhR3qlPsireu68RvGXmh4nccIqnEQM",
         "usesNonExemptEncryption": false
@@ -26,8 +22,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/nostroots-300x300.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/nostroots-logo67-app-icon.png",
+        "backgroundColor": "#004c43"
       },
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
@@ -50,6 +46,7 @@
       "expo-router",
       "expo-font",
       "expo-secure-store",
+      "expo-notifications",
       [
         "@sentry/react-native/expo",
         {
@@ -63,6 +60,23 @@
         "expo-location",
         {
           "locationWhenInUsePermission": "Allow Nostroots to use your location to show you nearby notes."
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/nostroots-logo67-app-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#004c43"
+        }
+      ],
+      "expo-status-bar",
+      "@sentry/react-native",
+      [
+        "react-native-maps",
+        {
+          "androidGoogleMapsApiKey": "AIzaSyCr1ZxZlVQNI_u7FYfPkjgvZv79UeaPFYQ"
         }
       ]
     ],
@@ -81,7 +95,6 @@
     "runtimeVersion": {
       "policy": "sdkVersion"
     },
-    "newArchEnabled": true,
     "updates": {
       "url": "https://u.expo.dev/a6c7b2e0-f036-44a3-b57c-d05b9d383c30",
       "checkAutomatically": "ON_LOAD"

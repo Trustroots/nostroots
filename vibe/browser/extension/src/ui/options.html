@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nostroots Extension Settings</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="page">
+    <main class="shell">
+      <div class="identity-status" aria-label="Trustroots identity">
+        <a id="trustroots-identity-status" class="status-pill identity-link" data-state="connected" hidden></a>
+      </div>
+
+      <header class="brand-header">
+        <img src="nostroots-logo.png" alt="" />
+        <div>
+          <h1>Nostroots Extension</h1>
+          <p id="status" class="muted">Getting things ready...</p>
+        </div>
+      </header>
+
+      <section>
+        <h2 id="key-actions-title">Your Nostroots Signing Key</h2>
+        <p id="key-actions-help" class="muted">This is the private signing key this extension uses to prove you are you on Nostroots.</p>
+        <div id="key-details" class="key-details">
+          <div class="field">
+            <label>Public address (npub)</label>
+            <div class="copy-row">
+              <code id="npub" class="copyable-code" data-copyable="false">Loading...</code>
+              <span class="key-action-spacer" aria-hidden="true"></span>
+            </div>
+          </div>
+          <div class="field">
+            <label>Private key (keep secret)</label>
+            <div class="copy-row">
+              <code id="nsec" class="copyable-code" data-copyable="false">Loading...</code>
+              <button id="reveal-key" class="icon-button" type="button" aria-label="Reveal private key" title="Reveal private key"></button>
+            </div>
+          </div>
+          <div id="generated-mnemonic-panel" class="recovery-panel" hidden>
+            <div class="recovery-heading">
+              <span>Recovery phrase</span>
+              <button id="copy-mnemonic" type="button">Copy</button>
+            </div>
+            <code id="generated-mnemonic"></code>
+            <p class="muted">Save this in a password manager or somewhere equally safe. Trustroots cannot recover it for you.</p>
+          </div>
+          <div id="key-remove-controls" class="key-action-row" hidden>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <button id="remove-key" class="icon-button danger-icon-button" type="button" aria-label="Forget this key" title="Forget this key"></button>
+          </div>
+        </div>
+        <div id="key-import-controls" class="key-import-controls">
+          <textarea id="key-input" rows="4" spellcheck="false" placeholder="Paste your nsec, private-key hex, or recovery phrase"></textarea>
+          <div class="actions">
+            <button id="import-key" type="button">Import key</button>
+            <button id="generate-key" type="button">Generate new key</button>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Site Access</h2>
+        <p id="trusted-origins" class="muted">Sites on *.trustroots.org can use this key automatically.</p>
+        <ul id="permissions" class="permissions"></ul>
+      </section>
+
+      <footer class="page-footer">
+        <a
+          class="footer-link"
+          href="https://nos.trustroots.org/privacy/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >Privacy</a>
+        <a
+          class="icon-link"
+          href="https://github.com/Trustroots/nostroots/"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open Trustroots/nostroots on GitHub"
+          title="Trustroots/nostroots on GitHub"
+        >
+          <svg aria-hidden="true" viewBox="0 0 16 16" focusable="false">
+            <path
+              d="M8 0C3.58 0 0 3.67 0 8.2c0 3.62 2.29 6.69 5.47 7.78.4.08.55-.18.55-.4 0-.2-.01-.85-.01-1.55-2.01.38-2.53-.5-2.69-.96-.09-.24-.48-.96-.82-1.15-.28-.16-.68-.55-.01-.56.63-.01 1.08.59 1.23.84.72 1.24 1.87.89 2.33.68.07-.53.28-.89.51-1.09-1.78-.21-3.64-.91-3.64-4.04 0-.89.31-1.62.82-2.19-.08-.21-.36-1.04.08-2.16 0 0 .67-.22 2.2.84A7.42 7.42 0 0 1 8 3.96c.68 0 1.36.09 2 .28 1.53-1.06 2.2-.84 2.2-.84.44 1.12.16 1.95.08 2.16.51.57.82 1.3.82 2.19 0 3.14-1.87 3.83-3.65 4.04.29.25.54.75.54 1.53 0 1.1-.01 1.98-.01 2.26 0 .22.15.48.55.4A8.08 8.08 0 0 0 16 8.2C16 3.67 12.42 0 8 0Z"
+            />
+          </svg>
+        </a>
+        <p id="settings-build-time" class="build-time">Built --</p>
+      </footer>
+    </main>
+    <script src="options.js"></script>
+  </body>
+</html>

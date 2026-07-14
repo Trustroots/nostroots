@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nostroots Web</title>
+  <meta name="description" content="Open Trustroots.org, Nostroots Web, mobile app downloads, and background information from one place.">
+  <meta name="theme-color" content="#12b591">
+  <link rel="canonical" href="https://nos.trustroots.org/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Nostroots">
+  <meta property="og:title" content="Nostroots Web">
+  <meta property="og:description" content="Open Trustroots.org, Nostroots Web, mobile app downloads, and background information from one place.">
+  <meta property="og:url" content="https://nos.trustroots.org/">
+  <meta property="og:image" content="https://nos.trustroots.org/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Nostroots Web">
+  <meta name="twitter:description" content="Open Trustroots.org, Nostroots Web, mobile app downloads, and background information from one place.">
+  <meta name="twitter:image" content="https://nos.trustroots.org/og-image.png">
+  <link rel="icon" type="image/png" href="nostroots-logo.png">
+  <link rel="apple-touch-icon" href="nostroots-logo.png">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <script>
+    if (
+      navigator.userAgent.indexOf("NostrootsBrowser/") !== -1 ||
+      (window.nostr && window.nostr.__nostrootsBrowser === true) ||
+      window.__nostrootsNip7Installed === true
+    ) {
+      document.documentElement.classList.add("is-in-nostroots-browser");
+    }
+    if (navigator.userAgent.indexOf("NostrootsBrowser/1.0 iOS-native") !== -1) {
+      document.documentElement.classList.add("is-in-nostroots-ios");
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="site-chrome.css">
+  <link rel="stylesheet" href="site-typography.css">
+  <script defer src="analytics.js"></script>
+  <script>
+    (function () {
+      var path = window.location.pathname.replace(/\/index\.html$/, '/');
+      var isRoot = path === '/' || path === '';
+      if (!isRoot) return;
+      if (!window.location.hash && !window.location.search) return;
+      window.location.replace('/web/' + window.location.search + window.location.hash);
+    })();
+  </script>
+  <style>
+    :root {
+      --background: #f7f8ef;
+      --foreground: #08261f;
+      --muted: #5f7169;
+      --line: #dbe3d2;
+      --panel: #fffdf4;
+      --accent: #128a78;
+      --accent-dark: #004b3f;
+      --olive: #98ad46;
+      --gold: #d0a337;
+      --orange: #ee8619;
+      --shadow: rgba(0, 75, 63, 0.14);
+      --blue: #2f9f91;
+      --brand-green: #12b591;
+      --white: #fff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(180deg, rgba(152, 173, 70, 0.18), transparent 360px),
+        linear-gradient(90deg, rgba(49, 189, 166, 0.08), rgba(243, 181, 42, 0.08)),
+        var(--background);
+    }
+
+    .hub a {
+      color: inherit;
+      text-decoration: none;
+      font-weight: inherit;
+    }
+
+    .hub a:hover,
+    .hub a:focus-visible {
+      text-decoration: none;
+    }
+
+    .hub {
+      position: relative;
+      width: var(--chrome-content-width);
+      min-height: calc(100vh - var(--chrome-total-height));
+      margin: 0 auto;
+      padding: 26px 0 42px;
+      display: grid;
+      align-content: center;
+      gap: 28px;
+    }
+
+    .hub-header {
+      grid-template-columns: 1fr;
+    }
+
+    .lead {
+      grid-column: auto;
+      max-width: 680px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 19px;
+      line-height: 1.55;
+    }
+
+    .lead a {
+      color: var(--accent-dark);
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .lead a:hover,
+    .lead a:focus-visible {
+      color: var(--accent);
+      outline: none;
+      text-decoration: underline;
+    }
+
+    .section-title {
+      margin: 0 0 4px;
+      font-size: 28px;
+      color: var(--accent-dark);
+      letter-spacing: 0;
+    }
+
+    .section-lead {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .hub-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .toggle input {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .cards.show-experimental {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .card {
+      position: relative;
+      min-height: 260px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 18px 42px var(--shadow);
+      display: grid;
+      align-content: space-between;
+      gap: 22px;
+      text-decoration: none;
+      transition: transform 0.18s ease, border-color 0.18s ease;
+    }
+
+    .card:hover,
+    .card:focus-visible {
+      border-color: rgba(152, 173, 70, 0.7);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .card-main {
+      display: grid;
+      gap: 14px;
+    }
+
+    .app-icon {
+      width: 54px;
+      height: 54px;
+      display: inline-grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #004b3f;
+      color: #ffffff;
+      box-shadow: inset 0 -16px 0 rgba(49, 189, 166, 0.28);
+      overflow: hidden;
+    }
+
+    .app-icon svg {
+      width: 40px;
+      height: 40px;
+      overflow: visible;
+    }
+
+    .app-icon img {
+      width: 100%;
+      height: 100%;
+      border-radius: 8px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .app-icon text {
+      font-family: Nunito, system-ui, sans-serif;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .app-icon-text {
+      font-size: 20px;
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .squatbridge .app-icon {
+      background: #ffffff;
+      color: #777777;
+      border: 1px solid #bdbdbd;
+      box-shadow: inset 0 -4px 0 #777777;
+      font-family: "Courier New", Courier, monospace;
+      font-size: 19px;
+      letter-spacing: 0;
+    }
+
+    .squatbridge h2 {
+      color: #777777;
+      font-family: "Courier New", Courier, monospace;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .squatbridge .card-action {
+      background: #777777;
+    }
+
+    .location .app-icon {
+      background: #128a78;
+      box-shadow: inset 0 -16px 0 rgba(49, 189, 166, 0.28);
+    }
+
+    .trustroots .app-icon img {
+      width: 46px;
+      max-width: none;
+      height: 46px;
+      border-radius: 0;
+      object-fit: contain;
+    }
+
+    .browser-extension .app-icon,
+    .firefox-extension .app-icon {
+      background: #ffffff;
+      color: var(--foreground);
+      box-shadow: 0 0 0 1px rgba(0, 75, 63, 0.12);
+    }
+
+    .browser-extension .app-icon img,
+    .firefox-extension .app-icon img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      border-radius: 0;
+    }
+
+    .treasures .app-icon {
+      background: #ffffff;
+      box-shadow: 0 0 0 1px rgba(0, 75, 63, 0.1);
+    }
+
+    .miti .app-icon {
+      background: #395d7a;
+      box-shadow: inset 0 -16px 0 rgba(238, 134, 25, 0.28);
+    }
+
+    .wiki-site .app-icon {
+      background: #ffffff;
+      box-shadow: 0 0 0 1px rgba(0, 75, 63, 0.12);
+    }
+
+    .wiki-site .app-icon img {
+      border-radius: 0;
+      object-fit: contain;
+    }
+
+    .nomadwiki .card-action {
+      background: #f6d618;
+    }
+
+    .trashwiki .card-action {
+      background: #dcddcb;
+    }
+
+    .hitchwiki .card-action {
+      background: #eece56;
+    }
+
+    .hitchwiki-maps .card-action {
+      background: #f1cf50;
+    }
+
+    .trustroots-wiki .card-action {
+      background: #00836f;
+    }
+
+    .card.nomadwiki .card-action {
+      color: #2b2600;
+    }
+
+    .card.trashwiki .card-action {
+      color: #20201d;
+    }
+
+    .card.hitchwiki .card-action,
+    .card.hitchwiki-maps .card-action {
+      color: #5a2700;
+    }
+
+    .radiostr .app-icon {
+      background: #128a78;
+      box-shadow: inset 0 -16px 0 rgba(152, 220, 205, 0.34);
+    }
+
+    .card-kicker {
+      color: var(--accent-dark);
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .card h2 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      letter-spacing: 0;
+    }
+
+    .card-label {
+      position: absolute;
+      top: 22px;
+      right: 22px;
+      width: fit-content;
+      padding: 3px 8px;
+      border: 1px solid rgba(152, 173, 70, 0.35);
+      border-radius: 8px;
+      background: rgba(152, 173, 70, 0.12);
+      color: var(--accent-dark);
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.3;
+      text-transform: uppercase;
+    }
+
+    .treasures .card-label,
+    .miti .card-label {
+      border-color: rgba(208, 163, 55, 0.38);
+      background: rgba(243, 181, 42, 0.16);
+      color: #7c5206;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    .card a {
+      color: var(--accent-dark);
+      font-weight: 800;
+    }
+
+    .card a.app-icon,
+    .card a.card-action {
+      color: #ffffff;
+      text-decoration: none;
+    }
+
+    .download-card {
+      min-height: 230px;
+    }
+
+    .download-card .card-main {
+      padding-right: 156px;
+    }
+
+    .download-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 18px;
+    }
+
+    .download-actions .card-action {
+      flex: 0 0 auto;
+    }
+
+    .apk-link {
+      color: var(--accent-dark);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .download-note {
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .app-qr {
+      position: absolute;
+      top: 22px;
+      right: 22px;
+      display: block;
+      width: 128px;
+      height: 128px;
+      padding: 8px;
+      border: 1px solid rgba(0, 75, 63, 0.14);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 12px 28px rgba(0, 75, 63, 0.1);
+    }
+
+    .app-qr img {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .download-card.android .app-icon,
+    .download-card.android .card-action {
+      background: #128a78;
+    }
+
+    .download-card.ios .app-icon,
+    .download-card.ios .card-action {
+      background: #004b3f;
+    }
+
+    .card-action {
+      display: inline-flex;
+      width: fit-content;
+      align-items: center;
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #ffffff;
+      font-weight: 800;
+    }
+
+    .browser-extension .card-action {
+      background: var(--accent);
+    }
+
+    .location .card-action {
+      background: var(--blue);
+    }
+
+    .treasures .card-action {
+      background: #1d7721;
+    }
+
+    .miti .card-action {
+      background: #395d7a;
+    }
+
+    .radiostr .card-action {
+      background: #128a78;
+    }
+
+    .experimental-card {
+      display: none;
+    }
+
+    .coming-soon .card-action {
+      background: #9fb3ab;
+      cursor: default;
+    }
+
+    .firefox-extension.coming-soon .card-action {
+      background: #8aa89f;
+    }
+
+    .coming-soon .card-action:hover,
+    .coming-soon .card-action:focus-visible {
+      box-shadow: none;
+      transform: none;
+    }
+
+    .cards.show-experimental .experimental-card {
+      display: grid;
+    }
+
+    @media (max-width: 1180px) {
+      .cards.show-experimental {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 980px) {
+      .cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .hub {
+        align-content: start;
+        padding-top: 28px;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+
+      .cards.show-experimental {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        min-height: 220px;
+      }
+
+      .download-card {
+        grid-template-columns: 1fr;
+      }
+
+      .download-card .card-main {
+        padding-right: 0;
+      }
+
+      .app-qr {
+        display: none;
+      }
+
+      #browser-extensions-section {
+        display: none;
+      }
+
+    }
+  </style>
+</head>
+<body>
+  <header class="header" role="banner">
+    <div class="header-inner">
+      <nav class="hub-nav" aria-label="Nostroots links">
+        <a class="header-brand" href="./" aria-label="Nostroots home">
+          <img src="nostroots-logo67.png" alt="" width="46" height="46">
+        </a>
+        <a
+          class="header-app-link"
+          href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+          aria-label="Android"
+          data-umami-event="Click Android app"
+          data-umami-event-placement="top-nav"
+          data-umami-event-target="android-app"
+          data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+        ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.48 19.44 6.3c.16-.31-.04-.68-.38-.68-.15 0-.29.08-.37.21l-1.87 3.24c-1.28-.58-2.72-.9-4.22-.9s-2.94.32-4.22.9L6.46 5.83c-.08-.13-.22-.21-.37-.21-.34 0-.54.37-.38.68l1.84 3.18C4.54 11.09 3 13.64 3 16.62h18c0-2.98-1.54-5.53-3.4-7.14ZM8.5 15.12c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Zm7 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Z" fill="currentColor"/></svg></a>
+        <a
+          class="header-app-link"
+          href="https://apps.apple.com/app/nostroots/id6755037304"
+          aria-label="iOS"
+          data-umami-event="Click iOS app"
+          data-umami-event-placement="top-nav"
+          data-umami-event-target="ios-app"
+          data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304"
+        ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z" fill="currentColor"/></svg></a>
+        <a href="background/">Background</a>
+      </nav>
+      <section class="identity-status" aria-label="Connection status">
+        <button
+          id="nostr-key-status"
+          class="status-pill status-pill-button"
+          data-state="missing"
+          type="button"
+          aria-haspopup="dialog"
+          aria-controls="nip7-info-modal"
+          aria-expanded="false"
+          aria-label="No Nostr key detected. About Nostr keys"
+          hidden
+        ><strong>no nostr key detected</strong><span class="status-pill-info" aria-hidden="true">i</span></button>
+        <a id="trustroots-identity-status" class="status-pill identity-link" data-state="missing" hidden>Trustroots identity: <strong>not linked</strong></a>
+      </section>
+    </div>
+  </header>
+  <main class="hub" aria-labelledby="hub-title">
+    <header class="hub-header">
+      <h1 id="hub-title">Nostroots</h1>
+      <p class="lead">Open your Trustroots profile, read traveler notes, get the mobile app, or <a href="background/">learn why Nostroots is built on Nostr</a>.</p>
+    </header>
+
+    <section id="download-section" aria-labelledby="download-heading">
+      <h2 class="section-title" id="download-heading">Get the mobile app</h2>
+      <div class="cards" aria-label="Mobile app downloads">
+        <article class="card download-card android" id="android">
+          <div class="card-main">
+            <a
+              class="app-icon"
+              href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+              aria-label="Get Nostroots on Google Play"
+              data-umami-event="Click Android app"
+              data-umami-event-placement="card-icon"
+              data-umami-event-target="android-app"
+              data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.48 19.44 6.3c.16-.31-.04-.68-.38-.68-.15 0-.29.08-.37.21l-1.87 3.24c-1.28-.58-2.72-.9-4.22-.9s-2.94.32-4.22.9L6.46 5.83c-.08-.13-.22-.21-.37-.21-.34 0-.54.37-.38.68l1.84 3.18C4.54 11.09 3 13.64 3 16.62h18c0-2.98-1.54-5.53-3.4-7.14ZM8.5 15.12c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Zm7 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Z" fill="currentColor"/></svg>
+            </a>
+            <h2>Android</h2>
+          </div>
+          <a
+            class="app-qr"
+            href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+            aria-label="Open Nostroots on Google Play"
+            data-umami-event="Click Android app"
+            data-umami-event-placement="card-qr"
+            data-umami-event-target="android-app"
+            data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+          >
+            <img src="app-qr-android.svg" alt="" width="128" height="128" loading="lazy">
+          </a>
+          <div class="download-actions">
+            <a
+              class="card-action"
+              href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+              data-umami-event="Click Android app"
+              data-umami-event-placement="card"
+              data-umami-event-target="android-app"
+              data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+            >Get on Google Play</a>
+            <a
+              class="apk-link"
+              href="https://github.com/Trustroots/nostroots/releases"
+              data-umami-event="Click Android APK"
+              data-umami-event-placement="card-secondary"
+              data-umami-event-target="android-apk"
+              data-umami-event-url="https://github.com/Trustroots/nostroots/releases"
+            >latest APK</a>
+          </div>
+        </article>
+        <article class="card download-card ios" id="ios">
+          <div class="card-main">
+            <a
+              class="app-icon"
+              href="https://apps.apple.com/app/nostroots/id6755037304"
+              aria-label="Get Nostroots on the App Store"
+              data-umami-event="Click iOS app"
+              data-umami-event-placement="card-icon"
+              data-umami-event-target="ios-app"
+              data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83ZM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11Z" fill="currentColor"/></svg>
+            </a>
+            <h2>iOS</h2>
+          </div>
+          <a
+            class="app-qr"
+            href="https://apps.apple.com/app/nostroots/id6755037304"
+            aria-label="Open Nostroots on the App Store"
+            data-umami-event="Click iOS app"
+            data-umami-event-placement="card-qr"
+            data-umami-event-target="ios-app"
+            data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304"
+          >
+            <img src="app-qr-ios.svg" alt="" width="128" height="128" loading="lazy">
+          </a>
+          <div class="download-actions">
+            <a
+              class="card-action"
+              href="https://apps.apple.com/app/nostroots/id6755037304"
+              data-umami-event="Click iOS app"
+              data-umami-event-placement="card"
+              data-umami-event-target="ios-app"
+              data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304"
+            >Get on the App Store</a>
+            <span class="download-note">for iPhone and iPad</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="browser-extensions-section" aria-labelledby="browser-extensions-heading">
+      <h2 class="section-title" id="browser-extensions-heading">Browser extensions</h2>
+      <p class="section-lead">Use a desktop browser extension for secure in-browser signing.</p>
+      <div class="cards" aria-label="Browser extensions">
+        <a
+          class="card browser-extension"
+          href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <div class="card-main">
+            <span class="app-icon" aria-hidden="true">
+              <img src="browser-icon-chrome.svg" alt="" width="54" height="54" loading="lazy">
+            </span>
+            <h2>Nostroots Extension for Chrome</h2>
+            <p>Recommended NIP-07 signer for desktop. Your key stays on your device. Works in Chrome, Brave, and Edge.</p>
+          </div>
+          <span class="card-action">Get on Chrome Web Store</span>
+        </a>
+
+        <article class="card firefox-extension coming-soon" aria-label="Nostroots Extension for Firefox review pending">
+          <div class="card-main">
+            <span class="card-label">Coming soon</span>
+            <span class="app-icon" aria-hidden="true">
+              <img src="browser-icon-firefox.svg" alt="" width="54" height="54" loading="lazy">
+            </span>
+            <h2>Nostroots Extension for Firefox</h2>
+            <p>Same Nostroots Extension signer for Firefox. Review is pending and will be available once approved.</p>
+          </div>
+          <span class="card-action">Firefox — review in progress</span>
+        </article>
+      </div>
+    </section>
+
+    <section id="web-experiences-section" aria-labelledby="web-experiences-heading">
+      <h2 class="section-title" id="web-experiences-heading">Web experiences</h2>
+      <p class="section-lead">Open your Trustroots profile, read traveler notes, or try map and sharing tools.</p>
+      <div id="hub-cards" class="cards" aria-label="Web experiences">
+      <a
+        id="trustroots-card"
+        class="card trustroots"
+        href="https://www.trustroots.org/profile/edit/networks"
+        data-default-href="https://www.trustroots.org/profile/edit/networks"
+      >
+        <div class="card-main">
+          <span class="app-icon" aria-hidden="true">
+            <img src="trustroots-tree-white.svg" alt="" width="46" height="46" loading="lazy">
+          </span>
+          <h2 id="trustroots-card-title">Trustroots.org</h2>
+          <p id="trustroots-card-description">Manage your classic Trustroots profile, networks, and account settings.</p>
+        </div>
+        <span id="trustroots-card-action" class="card-action">Open Trustroots.org</span>
+      </a>
+
+      <a class="card" href="web/">
+        <div class="card-main">
+          <span class="app-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <text x="24" y="25" text-anchor="middle" dominant-baseline="middle" fill="currentColor">N</text>
+              <path d="M24 31v9m0-4.5c-5.5 0-8.5 2.3-11 5M24 35.5c5.5 0 8.5 2.3 11 5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+            </svg>
+          </span>
+          <h2>Nostroots Web</h2>
+          <p>Read traveler notes by area. Connect a key when you want to post with your Trustroots identity.</p>
+        </div>
+        <span class="card-action">Open Nostroots Web</span>
+      </a>
+
+      <a class="card squatbridge" href="examples/squatbridge/">
+        <div class="card-main">
+          <span class="app-icon app-icon-text" aria-hidden="true">｟(･)｠</span>
+          <h2>Squatbridge</h2>
+          <p>Browse radar.squat.net events on a map and manually share them to Nostr.</p>
+        </div>
+        <span class="card-action">Open Squatbridge</span>
+      </a>
+
+      <a class="card location experimental-card" href="nostrail/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <path d="M24 7c-6.2 0-11.2 4.9-11.2 11 0 8 11.2 18 11.2 18s11.2-10 11.2-18c0-6.1-5-11-11.2-11Zm0 15.5a4.4 4.4 0 1 1 0-8.8 4.4 4.4 0 0 1 0 8.8Z" fill="currentColor"/>
+              <path d="M24 34v6m0-3c-5.5 0-8.5 1.5-11 4M24 37c5.5 0 8.5 1.5 11 4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+            </svg>
+          </span>
+          <h2>Nostrail</h2>
+          <p>Share your approximate area with selected Trustroots people through the Nostroots app signer.</p>
+        </div>
+        <span class="card-action">Open Nostrail</span>
+      </a>
+
+      <a
+        class="card radiostr experimental-card"
+        href="examples/radiostr/"
+      >
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon app-icon-text" aria-hidden="true">◎</span>
+          <h2>Radiostr</h2>
+          <p>Listen to internet radio together — chat and tune into what others are playing.</p>
+        </div>
+        <span class="card-action">Open Radiostr</span>
+      </a>
+
+      <a class="card wiki-site trustroots-wiki experimental-card" href="https://wiki.trustroots.org/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/trustroots-wiki.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Trustroots Wiki</h2>
+          <p>Read and improve community documentation about Trustroots, travel, and volunteering.</p>
+        </div>
+        <span class="card-action">Open Trustroots Wiki</span>
+      </a>
+
+      <a class="card wiki-site nomadwiki experimental-card" href="https://nomadwiki.org/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/nomadwiki.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Nomadwiki</h2>
+          <p>Browse practical travel knowledge written by nomads and independent travelers.</p>
+        </div>
+        <span class="card-action">Open Nomadwiki</span>
+      </a>
+
+      <a class="card wiki-site trashwiki experimental-card" href="https://trashwiki.org/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/trashwiki.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Trashwiki</h2>
+          <p>Find community guides to dumpster diving, reuse, free food, and reducing waste.</p>
+        </div>
+        <span class="card-action">Open Trashwiki</span>
+      </a>
+
+      <a class="card wiki-site hitchwiki experimental-card" href="https://hitchwiki.org/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/hitchwiki.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Hitchwiki</h2>
+          <p>Read practical hitchhiking guides, routes, and advice shared by travelers.</p>
+        </div>
+        <span class="card-action">Open Hitchwiki</span>
+      </a>
+
+      <a class="card wiki-site hitchwiki-maps experimental-card" href="https://maps.hitchwiki.org/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/hitchwiki-maps.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Hitchwiki Maps</h2>
+          <p>Find and share hitchhiking spots on a community-built global map.</p>
+        </div>
+        <span class="card-action">Open Hitchwiki Maps</span>
+      </a>
+
+      <a class="card treasures" href="https://treasures.to/" target="_blank" rel="noopener noreferrer">
+        <div class="card-main">
+          <span class="card-label">3rd party</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="https://treasures.to/icon.svg" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Treasures</h2>
+          <p>Join a Nostr-powered treasure hunt. Hide treasures, find them, and meet explorers worldwide.</p>
+        </div>
+        <span class="card-action">Open Treasures</span>
+      </a>
+
+      <a class="card miti experimental-card" href="https://www.letsmiti.app/" target="_blank" rel="noopener noreferrer">
+        <div class="card-main">
+          <span class="card-label">More experimental / 3rd party</span>
+          <span class="app-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48">
+              <text x="24" y="24" text-anchor="middle" dominant-baseline="middle" fill="currentColor">M</text>
+              <path d="M24 31v9m0-4.5c-5.5 0-8.5 2.3-11 5M24 35.5c5.5 0 8.5 2.3 11 5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
+            </svg>
+          </span>
+          <h2>Let's Miti</h2>
+          <p>Try the third-party experimental Miti app from the traveler web app list.</p>
+        </div>
+        <span class="card-action">Open Let's Miti</span>
+      </a>
+      </div>
+    </section>
+
+    <div class="hub-controls">
+      <label class="toggle" for="show-experimental">
+        <input id="show-experimental" type="checkbox" aria-controls="hub-cards">
+        <span>Show more experimental apps</span>
+      </label>
+    </div>
+    <footer class="site-footer" role="contentinfo">
+      <div class="site-footer-content">
+        <ul class="site-footer-links">
+          <li><a href="https://www.trustroots.org/">Trustroots</a></li>
+          <li><a href="./">Nostroots</a></li>
+          <li><a href="https://www.trustroots.org/support">Support</a></li>
+        </ul>
+        <div class="site-footer-meta">
+          <a
+            id="site-footer-build"
+            class="site-footer-build"
+            href="https://github.com/Trustroots/nostroots"
+            aria-label="Nostroots on GitHub"
+          >
+            <span id="site-footer-build-date" class="site-footer-build-date"></span>
+            <svg class="github-icon" viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" focusable="false">
+              <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.65 7.65 0 0 1 8 3.36c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+            </svg>
+          </a>
+        </div>
+      </div>
+    </footer>
+  </main>
+
+  <div id="nip7-info-modal" class="info-modal" role="dialog" aria-modal="true" aria-labelledby="nip7-info-title" hidden>
+    <section class="info-modal-panel" tabindex="-1">
+      <div class="info-modal-header">
+        <h2 id="nip7-info-title">Nostr keys</h2>
+        <button class="info-modal-close" type="button" data-nip7-close aria-label="Close Nostr keys information">X</button>
+      </div>
+      <div class="info-modal-body">
+        <p><strong>A Nostr key is your account for Nostr apps.</strong> It lets apps recognize you without a password or central account.</p>
+        <p>You have a public key, which is safe to share, and a private key, which proves you are you. Keep the private key secret.</p>
+        <p>A signer is an app or browser extension that holds your private key and approves actions for you. Nostroots can ask it for your public key, but your private key stays with the signer.</p>
+        <ul>
+          <li>On desktop, install the <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> from the Chrome Web Store. Works in Chrome, Brave, and Edge. Firefox is in review and coming soon.</li>
+          <li>On mobile, install the Nostroots app for <a href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" target="_blank" rel="noopener noreferrer" data-umami-event="Click Android app" data-umami-event-placement="key-modal" data-umami-event-target="android-app" data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots">Android</a> or <a href="https://apps.apple.com/app/nostroots/id6755037304" target="_blank" rel="noopener noreferrer" data-umami-event="Click iOS app" data-umami-event-placement="key-modal" data-umami-event-target="ios-app" data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304">iOS</a>.</li>
+          <li>Reload this page after the signer is available.</li>
+          <li>Connect your Trustroots identity so Nostroots can link your profile and Nostr key.</li>
+        </ul>
+      </div>
+    </section>
+  </div>
+
+  <script defer src="site-chrome.js" data-deploy-metadata="deploy-metadata.json"></script>
+  <script>
+    (function () {
+      var SHOW_EXPERIMENTAL_STORAGE_KEY = 'nrweb_show_experimental_apps';
+      var toggle = document.getElementById('show-experimental');
+      var cards = document.getElementById('hub-cards');
+      if (!toggle || !cards) return;
+
+      function readStoredPreference() {
+        try {
+          return window.localStorage && window.localStorage.getItem(SHOW_EXPERIMENTAL_STORAGE_KEY) === 'true';
+        } catch (_) {
+          return false;
+        }
+      }
+
+      function writeStoredPreference(value) {
+        try {
+          if (window.localStorage) window.localStorage.setItem(SHOW_EXPERIMENTAL_STORAGE_KEY, value ? 'true' : 'false');
+        } catch (_) {}
+      }
+
+      function syncExperimentalCards() {
+        cards.classList.toggle('show-experimental', toggle.checked);
+      }
+
+      function trackExperimentalToggle() {
+        try {
+          window.NrVibeAnalytics && window.NrVibeAnalytics.track('nr_vibe_experimental_toggle', {
+            enabled: toggle.checked,
+            source: 'show_experimental_toggle',
+            surface: 'hub',
+          });
+        } catch (_) {}
+      }
+
+      toggle.checked = readStoredPreference();
+      syncExperimentalCards();
+      toggle.addEventListener('change', function () {
+        writeStoredPreference(toggle.checked);
+        syncExperimentalCards();
+        trackExperimentalToggle();
+      });
+    })();
+  </script>
+  <script src="site-chrome-identity.js"></script>
+</body>
+</html>

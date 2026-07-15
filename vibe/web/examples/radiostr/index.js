@@ -84,7 +84,7 @@
       .join('') || 'RS';
     function svgBadge(opts) {
       const svg =
-        '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 240 240">' +
         '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
         '<stop offset="0%" stop-color="' + opts.top + '"/>' +
         '<stop offset="100%" stop-color="' + opts.bottom + '"/>' +
@@ -601,6 +601,59 @@
     return '';
   }
 
+  function mediaSessionMetadata(station, sectionName) {
+    if (!station) return null;
+    const artwork = station.img || station.fallbackImg;
+    const metadata = {
+      title: station.title,
+      artist: 'Radiostr',
+      album: sectionName || 'Internet radio'
+    };
+    if (artwork) {
+      const artworkEntry = { src: artwork };
+      if (typeof artwork === 'string' && artwork.startsWith('data:image/svg+xml,')) {
+        artworkEntry.sizes = '512x512';
+        artworkEntry.type = 'image/svg+xml';
+      }
+      metadata.artwork = [artworkEntry];
+    }
+    return metadata;
+  }
+
+  function updateMediaSession() {
+    if (typeof navigator === 'undefined' || !navigator.mediaSession) return;
+    const station = getStationById(state.currentStationId);
+    const metadata = mediaSessionMetadata(station, station ? sectionNameForStation(station.id) : '');
+    try {
+      navigator.mediaSession.metadata = metadata && typeof window.MediaMetadata === 'function'
+        ? new window.MediaMetadata(metadata)
+        : null;
+      navigator.mediaSession.playbackState = state.playing ? 'playing' : 'paused';
+    } catch (_) {
+      // Media Session support differs between Apple browser versions; playback still works normally.
+    }
+  }
+
+  function setMediaSessionAction(action, handler) {
+    if (typeof navigator === 'undefined' || !navigator.mediaSession) return;
+    try {
+      navigator.mediaSession.setActionHandler(action, handler);
+    } catch (_) {
+      // Some browser versions expose Media Session without every action type.
+    }
+  }
+
+  function bindMediaSession() {
+    setMediaSessionAction('play', () => {
+      if (!state.playing) togglePlay();
+    });
+    setMediaSessionAction('pause', () => {
+      if (state.playing) togglePlay();
+    });
+    setMediaSessionAction('previoustrack', () => stepStation(-1));
+    setMediaSessionAction('nexttrack', () => stepStation(1));
+  }
+
   function updateNowPlayingUi() {
     const station = getStationById(state.currentStationId);
     const bar = els.nowPlayingBar;
@@ -644,6 +697,7 @@
     }
     updateStarButton(state.currentStationId);
     updateStationListState();
+    updateMediaSession();
   }
 
   function renderStationSections() {
@@ -1335,6 +1389,7 @@
 
   function bindUi() {
     if (els.playBtn) els.playBtn.addEventListener('click', togglePlay);
+    bindMediaSession();
     if (els.starBtn) {
       els.starBtn.addEventListener('click', () => {
         if (state.currentStationId) toggleStar(state.currentStationId);
@@ -1462,6 +1517,7 @@
     titleFromStationId,
     somaStreamUrl,
     buildRadioData,
+    mediaSessionMetadata,
     parseHashRoute,
     buildExpirationTag,
     buildChatTags,

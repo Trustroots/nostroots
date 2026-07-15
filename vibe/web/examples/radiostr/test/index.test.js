@@ -69,6 +69,25 @@ test('buildRadioData derives SomaFM stream URLs and sections', () => {
   assert.equal(built.sections[0].items[0].id, 'groovesalad');
 });
 
+test('media session metadata names the station and supplies its artwork', () => {
+  const Radiostr = loadRadiostr();
+  const metadata = Radiostr.mediaSessionMetadata({
+    title: 'Groovesalad',
+    img: 'https://example.test/groovesalad.png'
+  }, 'SomaFM');
+  assert.equal(metadata.title, 'Groovesalad');
+  assert.equal(metadata.artist, 'Radiostr');
+  assert.equal(metadata.album, 'SomaFM');
+  assert.equal(metadata.artwork[0].src, 'https://example.test/groovesalad.png');
+  const fallbackMetadata = Radiostr.mediaSessionMetadata({
+    title: 'Fallback Radio',
+    fallbackImg: 'data:image/svg+xml,%3Csvg%3E%3C/svg%3E'
+  }, 'Internet radio');
+  assert.equal(fallbackMetadata.artwork[0].sizes, '512x512');
+  assert.equal(fallbackMetadata.artwork[0].type, 'image/svg+xml');
+  assert.equal(Radiostr.mediaSessionMetadata(null, ''), null);
+});
+
 test('parseHashRoute reads station id from hash', () => {
   const Radiostr = loadRadiostr();
   assert.equal(Radiostr.parseHashRoute('#groovesalad').stationId, 'groovesalad');

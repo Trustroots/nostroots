@@ -10,8 +10,18 @@ export type TrustrootsUsernameValidationResult =
       error: string;
     };
 
+export const TRUSTROOTS_NIP05_DOMAIN = "trustroots.org";
+
 export function normalizeTrustrootsUsername(input: string): string {
   return input.trim().toLowerCase();
+}
+
+/**
+ * NIP-05 identifiers are matched case-insensitively, but Trustroots serves its
+ * nostr.json keyed on the lowercase username, so the lookup must be lowercased.
+ */
+export function buildTrustrootsNip05Identifier(input: string): string {
+  return `${normalizeTrustrootsUsername(input)}@${TRUSTROOTS_NIP05_DOMAIN}`;
 }
 
 export function validateTrustrootsUsername(

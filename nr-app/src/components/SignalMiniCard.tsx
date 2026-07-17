@@ -130,9 +130,7 @@ export default function SignalMiniCard({
           {typeof username !== "undefined" && (
             <Pressable
               onPress={() =>
-                Linking.openURL(
-                  `https://trustroots.org/messages/${username}`,
-                )
+                Linking.openURL(`https://trustroots.org/messages/${username}`)
               }
               className="mt-3 rounded-lg bg-primary/10 py-2 px-3"
             >

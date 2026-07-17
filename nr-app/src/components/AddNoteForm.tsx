@@ -14,6 +14,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useCallback, useState } from "react";
 import { Platform, Pressable, TextInput, View } from "react-native";
 import Toast from "react-native-root-toast";
+import { TEST_IDS } from "@/constants/testIds";
 import { Button } from "./ui/button";
 import { Icon } from "./ui/icon";
 import { Text } from "./ui/text";
@@ -44,6 +45,13 @@ function getIntentPlaceholder(intent: SignalIntent | null): string {
   return INTENT_PLACEHOLDERS[intent] ?? "What are you up to?";
 }
 
+function createDatePickerDates() {
+  return {
+    defaultDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    minimumDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+  };
+}
+
 export default function AddNoteForm({
   onSent,
   signalMode = false,
@@ -59,6 +67,7 @@ export default function AddNoteForm({
   const [selectedDuration, setSelectedDuration] =
     useState<SignalDuration>("1-week");
   const [customDate, setCustomDate] = useState<Date | null>(null);
+  const [datePickerDates, setDatePickerDates] = useState(createDatePickerDates);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [optimisticNotes, setOptimisticNotes] = useState<OptimisticNote[]>([]);
 
@@ -253,6 +262,7 @@ export default function AddNoteForm({
       <View className="flex-row items-end gap-2">
         <View className="flex-1">
           <TextInput
+            testID={TEST_IDS.map.addNoteContentInput}
             className="w-full px-4 py-3 bg-muted/20 rounded-2xl text-foreground text-[15px]"
             placeholder={
               signalMode
@@ -268,6 +278,7 @@ export default function AddNoteForm({
           />
         </View>
         <Button
+          testID={TEST_IDS.map.addNoteSubmitButton}
           onPress={handleSend}
           size="icon"
           className="h-11 w-11 rounded-full"
@@ -309,7 +320,10 @@ export default function AddNoteForm({
           );
         })}
         <Pressable
-          onPress={() => setShowDatePicker(!showDatePicker)}
+          onPress={() => {
+            setDatePickerDates(createDatePickerDates());
+            setShowDatePicker(!showDatePicker);
+          }}
           className={`rounded-full px-1.5 py-1 border ${
             customDate
               ? "border-primary bg-primary/10"
@@ -336,10 +350,10 @@ export default function AddNoteForm({
       {/* Date picker for custom expiry */}
       {showDatePicker && (
         <DateTimePicker
-          value={customDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)}
+          value={customDate ?? datePickerDates.defaultDate}
           mode="date"
           display={Platform.OS === "ios" ? "inline" : "default"}
-          minimumDate={new Date(Date.now() + 24 * 60 * 60 * 1000)}
+          minimumDate={datePickerDates.minimumDate}
           onChange={(_event, date) => {
             if (Platform.OS === "android") {
               setShowDatePicker(false);

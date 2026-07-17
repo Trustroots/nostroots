@@ -75,5 +75,72 @@ describe("map.slice", () => {
 
       expect(newState.selectedLayer).toBe("hitchwiki");
     });
+
+    it("toggles a non-selected layer on", () => {
+      const newState = mapSlice.reducer(
+        initialState,
+        mapActions.toggleLayer("hitchwiki"),
+      );
+
+      expect(newState.selectedLayer).toBe("hitchwiki");
+    });
+
+    it("toggles the selected layer back to trustroots", () => {
+      const state = {
+        ...initialState,
+        selectedLayer: "hitchwiki" as const,
+      };
+
+      const newState = mapSlice.reducer(
+        state,
+        mapActions.toggleLayer("hitchwiki"),
+      );
+
+      expect(newState.selectedLayer).toBe("trustroots");
+    });
+  });
+
+  describe("modal state", () => {
+    const initialState = mapSlice.getInitialState();
+
+    it("opens the map modal when selecting a plus code", () => {
+      const newState = mapSlice.reducer(
+        initialState,
+        mapActions.setSelectedPlusCode("9F4G0000+"),
+      );
+
+      expect(newState.selectedPlusCode).toBe("9F4G0000+");
+      expect(newState.isMapModalOpen).toBe(true);
+    });
+
+    it("opens and closes the add note modal", () => {
+      const openState = mapSlice.reducer(
+        initialState,
+        mapActions.openAddNoteModal(),
+      );
+
+      expect(openState.isAddNoteModalOpen).toBe(true);
+
+      const closedState = mapSlice.reducer(
+        openState,
+        mapActions.closeAddNoteModal(),
+      );
+
+      expect(closedState.isAddNoteModalOpen).toBe(false);
+    });
+
+    it("stores current map location", () => {
+      const location = {
+        latitude: 52.52,
+        longitude: 13.405,
+      };
+
+      const newState = mapSlice.reducer(
+        initialState,
+        mapActions.setCurrentMapLocation(location),
+      );
+
+      expect(newState.currentMapLocation).toEqual(location);
+    });
   });
 });

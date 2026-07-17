@@ -6,6 +6,7 @@
   },
   "workspaceFolder": "/app",
   "workspaceMount": "source=${localWorkspaceFolder},target=/app,type=bind,consistency=cached",
+  "runArgs": ["--add-host=host.docker.internal:host-gateway"],
   "forwardPorts": [8081],
   "portsAttributes": {
     "8081": {
@@ -14,6 +15,8 @@
     }
   },
   "containerEnv": {
+    "ADB_SERVER_SOCKET": "tcp:host.docker.internal:5037",
+    "MAESTRO_HOST": "host.docker.internal",
     "EXPO_USE_METRO_WORKSPACE_ROOT": "1",
     "EXPO_NO_DOTENV": "1"
   },

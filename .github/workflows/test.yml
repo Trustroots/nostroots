@@ -45,4 +45,11 @@ jobs:
         run: pnpm install
 
       - name: Run tests
-        run: pnpm test
+        run: pnpm test:app:ci && pnpm test:common
+
+      - name: Upload nr-app coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nr-app-coverage
+          path: nr-app/coverage

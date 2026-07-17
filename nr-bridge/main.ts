@@ -9,6 +9,7 @@ import { createApp } from "./src/server.ts";
 import { PORT } from "./src/config.ts";
 
 const app = createApp();
+const HOST = Deno.env.get("HOST") ?? "127.0.0.1";
 
-console.log(`#AMogo8 nr-bridge listening on port ${PORT}`);
-Deno.serve({ port: PORT }, app.fetch);
+console.log(`#AMogo8 nr-bridge listening on ${HOST}:${PORT}`);
+Deno.serve({ hostname: HOST, port: PORT }, app.fetch);

@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
+import { TEST_IDS } from "@/constants/testIds";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAppSelector } from "@/redux/hooks";
 import { settingsSelectors } from "@/redux/slices/settings.slice";
@@ -59,6 +60,7 @@ export default function MapLayout() {
               />
             </Pressable>
             <Pressable
+              testID={TEST_IDS.map.navConnect}
               accessibilityRole="button"
               accessibilityLabel="Open NIP-46 Connect"
               onPress={() => router.push(ROUTES.CONNECT)}
@@ -70,6 +72,7 @@ export default function MapLayout() {
           </>
         )}
         <Pressable
+          testID={TEST_IDS.map.navSettings}
           onPress={() => router.push(ROUTES.SETTINGS)}
           className="w-11 h-11 rounded-full items-center justify-center"
           style={{ backgroundColor: overlayBgColor }}
@@ -88,6 +91,7 @@ export default function MapLayout() {
         style={{ bottom: insets.bottom + 20 }}
       >
         <Pressable
+          testID={TEST_IDS.map.navMap}
           className="flex-row items-center gap-2 px-4 py-3 rounded-full"
           style={isMapActive ? { backgroundColor: activeBgColor } : undefined}
           onPress={() => router.replace(ROUTES.HOME)}
@@ -105,6 +109,7 @@ export default function MapLayout() {
           </Text>
         </Pressable>
         <Pressable
+          testID={TEST_IDS.map.navList}
           className="flex-row items-center gap-2 px-4 py-3 rounded-full"
           style={isListActive ? { backgroundColor: activeBgColor } : undefined}
           onPress={() => router.replace(ROUTES.LIST)}

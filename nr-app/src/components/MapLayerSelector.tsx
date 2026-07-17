@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Text } from "@/components/ui/text";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { TEST_IDS } from "@/constants/testIds";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import {
   settingsActions,
@@ -115,6 +116,7 @@ export default function MapLayerSelector() {
         pointerEvents="box-none"
       >
         <Pressable
+          testID={TEST_IDS.map.layerTrigger}
           className="flex-row items-center gap-2 self-start rounded-full px-3 py-2"
           style={{ backgroundColor: overlayBgColor }}
           onPress={() => setIsOpen(!isOpen)}

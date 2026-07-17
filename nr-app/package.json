@@ -6,32 +6,38 @@
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
+    "android:e2e:metro": "EXPO_PUBLIC_E2E=1 EXPO_PUBLIC_NR_BRIDGE_BASE_URL=http://10.0.2.2:8000 EXPO_PUBLIC_NOSTR_RELAYS=ws://10.0.2.2:7777 EXPO_DEBUG=1 expo start --dev-client --clear",
+    "android:e2e:prebuild": "EXPO_PUBLIC_E2E=1 EXPO_PUBLIC_NR_BRIDGE_BASE_URL=http://10.0.2.2:8000 EXPO_PUBLIC_NOSTR_RELAYS=ws://10.0.2.2:7777 expo prebuild --platform android --clean --no-install",
+    "android:e2e:install": "bash ./scripts/android-e2e-install.sh",
+    "android:e2e:emulator:reset": "sh ./scripts/android-e2e-emulator-reset.sh",
+    "android:e2e:adb:host": "sh ./scripts/android-e2e-host-adb.sh",
+    "android:e2e:adb:check": "adb devices -l && adb shell pm path org.trustroots.nostroots",
     "ios": "expo run:ios",
+    "ios:e2e:simulator:reset": "bash ./scripts/ios-e2e-simulator-reset.sh",
     "web": "expo start --web",
-    "test": "jest",
+    "test": "pnpm run test:unit && pnpm run test:rntl",
+    "test:unit": "jest --testMatch \"**/?(*.)+(test|spec).ts\"",
+    "test:rntl": "jest --testMatch \"**/?(*.)+(test|spec).tsx\"",
+    "test:maestro": "maestro ${MAESTRO_HOST:+--host $MAESTRO_HOST} test .maestro",
+    "test:maestro:local": "sh ./scripts/android-e2e-maestro-local.sh",
+    "test:maestro:ios:local": "bash ./scripts/ios-e2e-maestro-local.sh",
+    "test:ci": "jest --ci --coverage --runInBand",
+    "test:coverage": "jest --watchman=false --coverage",
     "test:watch": "jest --watchAll",
     "lint": "eslint .",
     "prepare": "cd .. && husky nr-app/.husky",
+    "build:android-e2e-local": "bash ./scripts/android-e2e-build.sh",
+    "build:ios-e2e-local": "bash ./scripts/ios-e2e-build.sh",
     "build:android-development": "eas build --platform android --profile development --non-interactive",
     "build:ios-development": "eas build --platform ios --profile development --non-interactive",
     "build:ios-simulator": "eas build --platform ios --profile simulator --non-interactive",
     "build:android-preview": "eas build --platform android --profile preview --non-interactive",
     "build:android-production": "eas build --platform android --profile production --non-interactive --auto-submit",
+    "build:android-e2e": "eas build --platform android --profile e2e-android --non-interactive",
+    "build:ios-e2e-simulator": "eas build --platform ios --profile e2e-ios-simulator --non-interactive",
     "build:ios-production": "eas build --platform ios --profile production --non-interactive --auto-submit"
   },
   "pkgx": "facebook.com/watchman",
-  "jest": {
-    "preset": "jest-expo",
-    "setupFilesAfterEnv": [
-      "./jest.setup.ts"
-    ],
-    "moduleNameMapper": {
-      "^@noble/hashes/utils$": "<rootDir>/../node_modules/@noble/hashes/utils.js"
-    },
-    "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|nativewind|@trustroots/nr-common|@reduxjs/toolkit|immer|redux-persist|redux-devtools-expo-dev-plugin|nostr-tools|@noble/.*|@scure/.*)"
-    ]
-  },
   "dependencies": {
     "@expo/dom-webview": "^56.0.5",
     "@expo/vector-icons": "^15.1.1",

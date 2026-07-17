@@ -1,0 +1,29 @@
+name: nr-app CI
+
+on:
+  pull_request:
+    paths:
+      - "nr-app/**"
+      - "nr-common/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/ci-nr-app.yml"
+      - ".github/workflows/nr-app-unit.yml"
+      - ".github/workflows/nr-app-e2e-maestro.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "nr-app/**"
+      - "nr-common/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/ci-nr-app.yml"
+      - ".github/workflows/nr-app-unit.yml"
+      - ".github/workflows/nr-app-e2e-maestro.yml"
+
+jobs:
+  unit:
+    uses: ./.github/workflows/nr-app-unit.yml

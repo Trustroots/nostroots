@@ -1,0 +1,322 @@
+name: nr-app Maestro E2E
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+    paths:
+      - "nr-app/**"
+      - "nr-bridge/**"
+      - "development-utils/local-relay/**"
+      - ".github/workflows/nr-app-e2e-maestro.yml"
+      - ".devcontainer/**"
+
+concurrency:
+  group: nr-app-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-maestro:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "cmake;3.22.1" \
+            "ndk;27.0.12077973" \
+            "ndk;27.1.12297006"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Free Android E2E disk space
+        run: |
+          df -h
+          docker system prune -af || true
+          docker builder prune -af || true
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/share/boost /opt/hostedtoolcache/CodeQL || true
+          df -h
+
+      - name: Restore Android native build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            nr-app/android
+            nr-app/android/.gradle
+            nr-app/android/build
+            nr-app/android/app/build
+          key: ${{ runner.os }}-android-native-${{ hashFiles('pnpm-lock.yaml', 'nr-app/package.json', 'nr-app/app.config.js', 'nr-app/app.json', 'nr-app/metro.config.js', 'nr-app/babel.config.js', 'nr-app/scripts/android-e2e-build.sh', 'nr-app/scripts/android-e2e-maestro-local.sh', '.github/workflows/nr-app-e2e-maestro.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-android-native-
+
+      - name: Build Android E2E APK locally
+        working-directory: nr-app
+        env:
+          E2E_REUSE_PREBUILD: "1"
+        run: pnpm run build:android-e2e-local
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start deterministic E2E network
+        run: docker compose -f nr-app/e2e/docker-compose.yml -f nr-app/e2e/docker-compose.ci.yml up -d --build --wait
+
+      - name: Wait for E2E network
+        run: |
+          curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:7777 >/dev/null
+          curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:8025 >/dev/null
+          curl --retry 30 --retry-delay 2 --retry-all-errors -sS http://127.0.0.1:8000 >/dev/null
+
+      - name: Enable KVM group permissions
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Run Maestro flows
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          cores: 2
+          ram-size: 4096M
+          emulator-boot-timeout: 900
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none -camera-front none
+          disable-linux-hw-accel: false
+          pre-emulator-launch-script: |
+            adb kill-server || true
+            adb start-server
+          script: |
+            adb devices -l
+            adb install -r nr-app/builds/app-e2e-debug.apk
+            export E2E_PREWARM_ENABLED=0
+            export E2E_PREWARM_REQUIRED=0
+            pnpm --dir nr-app run test:maestro:local -- .maestro/main-map-smoke.yaml
+
+      - name: Collect Android Maestro artifacts
+        if: always()
+        run: |
+          mkdir -p nr-app/.e2e-artifacts/android/maestro-tests nr-app/.e2e-artifacts/android/logs nr-app/.e2e-artifacts/android/builds
+          if [ -d "$HOME/.maestro/tests" ]; then
+            rsync -a \
+              --include="*.json" \
+              --include="*.log" \
+              --include="*.yaml" \
+              --include="*/" \
+              --exclude="*" \
+              "$HOME/.maestro/tests/" \
+              nr-app/.e2e-artifacts/android/maestro-tests/
+          fi
+          if [ -f nr-app/builds/app-e2e-debug.apk ]; then
+            cp nr-app/builds/app-e2e-debug.apk nr-app/.e2e-artifacts/android/builds/
+          fi
+          if [ -d nr-app/.e2e-logs/android ]; then
+            rsync -a nr-app/.e2e-logs/android/ nr-app/.e2e-artifacts/android/logs/
+          fi
+
+      - name: Upload Maestro artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-maestro-artifacts
+          path: |
+            nr-app/.e2e-artifacts/android/maestro-tests
+            nr-app/.e2e-artifacts/android/logs
+            nr-app/.e2e-artifacts/android/builds
+
+      - name: Dump E2E network logs
+        if: failure()
+        run: docker compose -f nr-app/e2e/docker-compose.yml -f nr-app/e2e/docker-compose.ci.yml logs --no-color
+
+      - name: Stop E2E network
+        if: always()
+        run: docker compose -f nr-app/e2e/docker-compose.yml -f nr-app/e2e/docker-compose.ci.yml down -v
+
+  ios-maestro:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'ios-e2e')
+    runs-on: macos-26
+    timeout-minutes: 120
+    env:
+      MONGODB_URI: mongodb://127.0.0.1:27017/trustroots-dev
+      SMTP_HOST: 127.0.0.1
+      SMTP_PORT: "1025"
+      SMTP_FROM: noreply@nostroots.local
+      DENO_KV_PATH: ":memory:"
+      DEEP_LINK_BASE: "nostroots://verify"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Select Xcode 26
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.4.1.app/Contents/Developer
+          xcodebuild -version
+          swift --version
+
+      - name: Install macOS E2E dependencies
+        run: |
+          brew tap mongodb/brew
+          brew install mongodb-community@7.0 mongosh mailpit
+          echo "$(brew --prefix mongodb-community@7.0)/bin" >> "$GITHUB_PATH"
+          echo "$(brew --prefix mongosh)/bin" >> "$GITHUB_PATH"
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Build and install iOS E2E app locally
+        working-directory: nr-app
+        run: pnpm run build:ios-e2e-local
+
+      - name: Start deterministic E2E network
+        run: |
+          mkdir -p nr-app/.e2e-logs/ios "$RUNNER_TEMP/mongodb"
+
+          mongod \
+            --dbpath "$RUNNER_TEMP/mongodb" \
+            --bind_ip 127.0.0.1 \
+            --port 27017 \
+            --logpath "$PWD/nr-app/.e2e-logs/ios/mongodb.log" \
+            --fork
+
+          for attempt in {1..30}; do
+            if mongosh --host 127.0.0.1 --port 27017 --eval 'db.adminCommand("ping")' --quiet >/dev/null; then
+              break
+            fi
+            if [ "$attempt" -eq 30 ]; then
+              echo "MongoDB did not become ready" >&2
+              exit 1
+            fi
+            sleep 2
+          done
+
+          MONGO_INITDB_DATABASE=trustroots-dev bash ./.devcontainer/nr-bridge/init-mongo.sh
+
+          mailpit \
+            --listen 127.0.0.1:8025 \
+            --smtp 127.0.0.1:1025 \
+            >nr-app/.e2e-logs/ios/mailpit.log 2>&1 &
+          echo "$!" >nr-app/.e2e-logs/ios/mailpit.pid
+
+          DENO_DIR="$RUNNER_TEMP/deno-cache" deno run --no-lock --allow-net --allow-env development-utils/local-relay/tiny-relay.ts \
+            >nr-app/.e2e-logs/ios/tiny-relay.log 2>&1 &
+          echo "$!" >nr-app/.e2e-logs/ios/tiny-relay.pid
+
+          (
+            cd nr-bridge
+            deno task run
+          ) >nr-app/.e2e-logs/ios/nr-bridge.log 2>&1 &
+          echo "$!" >nr-app/.e2e-logs/ios/nr-bridge.pid
+
+      - name: Wait for E2E network
+        run: |
+          curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:7777 >/dev/null
+          curl --retry 30 --retry-delay 2 --retry-all-errors -fsS http://127.0.0.1:8025 >/dev/null
+          curl --retry 30 --retry-delay 2 --retry-all-errors -sS http://127.0.0.1:8000 >/dev/null
+
+      - name: Run iPhone Maestro flows
+        working-directory: nr-app
+        env:
+          E2E_PREWARM_ENABLED: "0"
+          E2E_PREWARM_REQUIRED: "0"
+        run: pnpm run test:maestro:ios:local -- .maestro/main-map-smoke.yaml
+
+      - name: Collect iOS Maestro artifacts
+        if: always()
+        run: |
+          mkdir -p nr-app/.e2e-artifacts/ios/maestro-tests nr-app/.e2e-artifacts/ios/logs
+          if [ -d "$HOME/.maestro/tests" ]; then
+            rsync -a \
+              --include="*.json" \
+              --include="*.log" \
+              --include="*.yaml" \
+              --include="*/" \
+              --exclude="*" \
+              "$HOME/.maestro/tests/" \
+              nr-app/.e2e-artifacts/ios/maestro-tests/
+          fi
+          find nr-app/.e2e-logs/ios -maxdepth 1 -type f \( -name "*.log" -o -name "*.json" \) \
+            -exec cp {} nr-app/.e2e-artifacts/ios/logs/ \;
+
+      - name: Upload iOS Maestro artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-maestro-artifacts
+          path: |
+            nr-app/.e2e-artifacts/ios/maestro-tests
+            nr-app/.e2e-artifacts/ios/logs
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Dump iOS E2E network logs
+        if: failure()
+        run: |
+          for log_file in nr-app/.e2e-logs/ios/*.log; do
+            if [ -f "$log_file" ]; then
+              echo "===== ${log_file} ====="
+              tail -n 200 "$log_file"
+            fi
+          done
+
+      - name: Stop iOS E2E network
+        if: always()
+        run: |
+          for pid_file in nr-app/.e2e-logs/ios/*.pid; do
+            if [ -f "$pid_file" ]; then
+              kill "$(cat "$pid_file")" 2>/dev/null || true
+            fi
+          done
+          mongod --dbpath "$RUNNER_TEMP/mongodb" --shutdown >/dev/null 2>&1 || true

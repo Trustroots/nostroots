@@ -7,10 +7,14 @@ services:
       - ../..:/app:cached
     working_dir: /app
     command: sleep infinity
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       mongodb:
         condition: service_healthy
     environment:
+      ADB_SERVER_SOCKET: tcp:host.docker.internal:5037
+      MAESTRO_HOST: host.docker.internal
       MONGODB_URI: mongodb://mongodb:27017/trustroots-dev
       SMTP_HOST: 127.0.0.1
       SMTP_PORT: "1025"

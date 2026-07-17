@@ -19,6 +19,20 @@ describe("trustrootsUsername.utils", () => {
       });
     });
 
+    it.each([
+      ["ALICE", "alice"],
+      ["alice-bob", "alice-bob"],
+      ["alice_bob", "alice_bob"],
+      ["a", "a"],
+      ["very-long-trustroots-username", "very-long-trustroots-username"],
+    ])("accepts and normalizes %s", (input, username) => {
+      expect(validateTrustrootsUsername(input)).toEqual({
+        success: true,
+        username,
+        error: null,
+      });
+    });
+
     it("rejects empty input", () => {
       expect(validateTrustrootsUsername(" ")).toEqual({
         success: false,

@@ -1,0 +1,80 @@
+name: nr-app-e2e
+
+x-app-build: &app-build
+  context: ../..
+  dockerfile: .devcontainer/Dockerfile.app
+
+services:
+  mongodb:
+    image: mongo:7
+    command:
+      - mongod
+      - --setParameter
+      - diagnosticDataCollectionEnabled=false
+    environment:
+      MONGO_INITDB_DATABASE: trustroots-dev
+    ports:
+      - "27017:27017"
+    volumes:
+      - ../../.devcontainer/nr-bridge/init-mongo.sh:/docker-entrypoint-initdb.d/init-mongo.sh:ro
+    healthcheck:
+      test: mongosh --eval "db.adminCommand('ping')" --quiet
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:v1.29.6
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  tiny-relay:
+    build: *app-build
+    working_dir: /app
+    command: deno run --no-lock --allow-net --allow-env development-utils/local-relay/tiny-relay.ts
+    environment:
+      DENO_DIR: /tmp/deno-cache
+      HOST: 0.0.0.0
+      PORT: "7777"
+    volumes:
+      - ../..:/app:ro
+    ports:
+      - "7777:7777"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:7777"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  nr-bridge:
+    build: *app-build
+    working_dir: /app/nr-bridge
+    command: deno task run
+    volumes:
+      - ../..:/app:ro
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    environment:
+      DEEP_LINK_BASE: nostroots://verify
+      DENO_KV_PATH: ":memory:"
+      HOST: 0.0.0.0
+      MONGODB_URI: mongodb://mongodb:27017/trustroots-dev
+      SMTP_HOST: mailpit
+      SMTP_PORT: "1025"
+      SMTP_FROM: noreply@nostroots.local
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sS http://127.0.0.1:8000 >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

@@ -7,6 +7,7 @@ import { ScrollView, Switch, TextInput, View } from "react-native";
 
 import { BrowserSettingsSection } from "@/browser/BrowserSettingsSection";
 import BuildData from "@/components/BuildData";
+import { SendDebugInfoButton } from "@/components/SendDebugInfoButton";
 import { KeyInput } from "@/components/KeyInput";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
@@ -354,6 +355,15 @@ export default function SettingsScreen() {
             disabled={isImporting || importStatus === "saved"}
           />
         </View>
+      </Section>
+
+      <Section>
+        <Text className="font-bold">Support</Text>
+        <Text className="text-sm text-muted-foreground">
+          Having trouble? Copy your app&apos;s debug info and paste it into the
+          support form so we can help.
+        </Text>
+        <SendDebugInfoButton />
       </Section>
 
       {areTestFeaturesEnabled ? (

@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { AlertTriangleIcon, MailCheckIcon } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,16 @@ type TrustrootsScreenState =
   | "profile-publishing";
 
 const AUTHENTICATION_FAILURE_MESSAGE = "failed to authenticate you. try again";
+
+const ERROR_PARAM_MESSAGES: Record<string, string> = {
+  auth: AUTHENTICATION_FAILURE_MESSAGE,
+  "missing-token": "Verification link is missing a token. Try again.",
+  "start-in-app":
+    "Start verification in the app before opening the email link.",
+};
+
+/** Distinguishes "not synced yet" from a genuinely absent value. */
+const UNSYNCED = Symbol("unsynced");
 
 function getRequestErrorMessage(error: unknown): string {
   if (error instanceof NrBridgeError) {
@@ -61,38 +71,41 @@ export default function OnboardingTrustrootsScreen() {
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (errorParam === "auth") {
-      setStatusMessage(AUTHENTICATION_FAILURE_MESSAGE);
-    } else if (errorParam === "missing-token") {
-      setStatusMessage("Verification link is missing a token. Try again.");
-    } else if (errorParam === "start-in-app") {
-      setStatusMessage(
-        "Start verification in the app before opening the email link.",
-      );
-    }
-  }, [errorParam]);
+  const [syncedErrorParam, setSyncedErrorParam] = useState<
+    string | undefined | typeof UNSYNCED
+  >(UNSYNCED);
+  const [syncedProfileUsername, setSyncedProfileUsername] = useState<
+    string | null | typeof UNSYNCED
+  >(UNSYNCED);
+  const [syncedPendingUsername, setSyncedPendingUsername] = useState<
+    string | null | typeof UNSYNCED
+  >(UNSYNCED);
 
-  useEffect(() => {
+  if (syncedErrorParam !== errorParam) {
+    setSyncedErrorParam(errorParam);
+    const message = errorParam ? ERROR_PARAM_MESSAGES[errorParam] : undefined;
+    if (message) {
+      setStatusMessage(message);
+    }
+  }
+
+  if (syncedProfileUsername !== pendingTrustrootsProfileUsername) {
+    setSyncedProfileUsername(pendingTrustrootsProfileUsername);
     if (pendingTrustrootsProfileUsername) {
       setUsernameInput(pendingTrustrootsProfileUsername);
       setScreenState("profile-retry");
       setStatusMessage(
         "Your Trustroots account was authenticated. Retry the profile publish to finish setup.",
       );
-      return;
     }
-
+  } else if (syncedPendingUsername !== pendingTrustrootsUsername) {
+    setSyncedPendingUsername(pendingTrustrootsUsername);
     if (pendingTrustrootsUsername && screenState === "idle") {
       setUsernameInput(pendingTrustrootsUsername);
       setScreenState("code-entry");
       setStatusMessage("Enter the six-digit code from your email.");
     }
-  }, [
-    pendingTrustrootsProfileUsername,
-    pendingTrustrootsUsername,
-    screenState,
-  ]);
+  }
 
   const resetToUsernameEntry = useCallback(
     (message?: string) => {

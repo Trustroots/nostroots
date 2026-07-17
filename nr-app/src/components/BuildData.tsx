@@ -1,7 +1,8 @@
+import { Text } from "@/components/ui/text";
 import Constants from "expo-constants";
 import * as Updates from "expo-updates";
 import React from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
+import { Platform, View } from "react-native";
 
 // Or using specific imports:
 // import { updateId, createdAt, channel, isEmbeddedLaunch } from 'expo-updates';
@@ -18,8 +19,8 @@ export default function BuildData() {
     : "N/A";
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>App Version Info:</Text>
+    <View className="p-4 my-2 bg-muted border-t border-border">
+      <Text className="text-base font-bold mb-2">App Version Info:</Text>
       <View>
         <Text>App Version: {Constants.expoConfig?.version}</Text>
         {Platform.OS === "ios" && (
@@ -46,18 +47,3 @@ export default function BuildData() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    padding: 15,
-    backgroundColor: "#f0f0f0",
-    borderTopWidth: 1,
-    borderTopColor: "#ccc",
-    marginVertical: 10,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-});

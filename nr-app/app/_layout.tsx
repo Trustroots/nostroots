@@ -1,8 +1,4 @@
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
+import { ThemeProvider } from "@react-navigation/native";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import * as Sentry from "@sentry/react-native";
@@ -40,6 +36,7 @@ import "@/global.css";
 import { useUpdateOnForeground } from "@/hooks/useUpdateOnForeground";
 import { StatusBar } from "react-native";
 import { configureNavigationDispatch } from "@/utils/navigation.utils";
+import { NAV_THEME, THEME } from "@/utils/theme.utils";
 
 // Construct a new integration instance. This is needed to communicate between the integration and React
 const navigationIntegration = Sentry.reactNavigationIntegration({
@@ -91,7 +88,15 @@ function AppContent() {
         <StatusBar
           barStyle={colorScheme === "dark" ? "light-content" : "dark-content"}
         />
-        <Stack screenOptions={{ headerShown: false }} />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: {
+              backgroundColor:
+                THEME[colorScheme === "dark" ? "dark" : "light"].background,
+            },
+          }}
+        />
       </GestureHandlerRootView>
     </RootSiblingParent>
   );
@@ -136,7 +141,7 @@ function RootLayout() {
           }}
         >
           <ThemeProvider
-            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+            value={NAV_THEME[colorScheme === "dark" ? "dark" : "light"]}
           >
             <KeyboardProvider>
               <AppContent />

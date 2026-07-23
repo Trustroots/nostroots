@@ -3,40 +3,149 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="3;url=../#download-section">
-  <title>Get Nostroots</title>
+  <meta name="theme-color" content="#08261f">
+  <title>Get the Nostroots app</title>
   <style>
-    :root { color-scheme: light; font: 16px/1.5 system-ui, sans-serif; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #fffdf4; color: #08261f; }
-    main { max-width: 32rem; padding: 2rem; text-align: center; }
-    a { color: #007f6e; }
+    :root {
+      color-scheme: light;
+      font: 16px/1.5 system-ui, sans-serif;
+      --ink: #08261f;
+      --muted: #52635e;
+      --panel: #fffdf4;
+      --accent: #007f6e;
+      --border: rgba(0, 75, 63, 0.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #f5f1e3;
+      color: var(--ink);
+    }
+
+    main {
+      width: min(58rem, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 64px 0;
+      text-align: center;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--ink);
+      font-size: 1.1rem;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .brand img { border-radius: 12px; }
+    h1 { margin: 28px 0 8px; font-size: clamp(2rem, 6vw, 3.4rem); line-height: 1.08; }
+    .lead { margin: 0 auto 32px; color: var(--muted); font-size: 1.1rem; }
+
+    .stores {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+      text-align: left;
+    }
+
+    .store {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 24px;
+      align-items: center;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow: 0 16px 38px rgba(0, 75, 63, 0.09);
+    }
+
+    .store h2 { margin: 0 0 14px; font-size: 1.5rem; }
+
+    .store-link {
+      display: inline-flex;
+      min-height: 44px;
+      align-items: center;
+      padding: 0 16px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: white;
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    .qr {
+      display: block;
+      width: 144px;
+      height: 144px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+
+    .qr img { display: block; width: 100%; height: 100%; }
+    .home { display: inline-block; margin-top: 28px; color: var(--accent); font-weight: 700; }
+
+    @media (max-width: 720px) {
+      main { padding: 36px 0; }
+      .stores { grid-template-columns: 1fr; }
+      .store { grid-template-columns: 1fr; text-align: center; }
+      .qr { margin: 0 auto; }
+    }
   </style>
 </head>
 <body>
   <main>
-    <h1>Opening Nostroots…</h1>
-    <p id="message">We’re taking you to the right app store.</p>
-    <p><a href="../#download-section">Choose a download manually</a></p>
+    <a class="brand" href="../">
+      <img src="../nostroots-logo67.png" alt="" width="48" height="48">
+      Nostroots
+    </a>
+    <h1>Get the Nostroots app</h1>
+    <p class="lead">Choose the app store for your phone, or scan its QR code.</p>
+
+    <div class="stores">
+      <section class="store" aria-labelledby="android-heading">
+        <div>
+          <h2 id="android-heading">Android</h2>
+          <a class="store-link" href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots">Get on Google Play</a>
+        </div>
+        <a class="qr" href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" aria-label="Open Nostroots on Google Play">
+          <img src="../app-qr-android.svg" alt="Google Play QR code" width="128" height="128">
+        </a>
+      </section>
+
+      <section class="store" aria-labelledby="ios-heading">
+        <div>
+          <h2 id="ios-heading">iPhone and iPad</h2>
+          <a class="store-link" href="https://apps.apple.com/app/nostroots/id6755037304">Get on the App Store</a>
+        </div>
+        <a class="qr" href="https://apps.apple.com/app/nostroots/id6755037304" aria-label="Open Nostroots on the App Store">
+          <img src="../app-qr-ios.svg" alt="App Store QR code" width="128" height="128">
+        </a>
+      </section>
+    </div>
+
+    <a class="home" href="../">Explore Nostroots on the web</a>
   </main>
+
   <script>
     const IOS_URL = 'https://apps.apple.com/app/nostroots/id6755037304';
     const ANDROID_URL = 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots';
-    const FALLBACK_URL = '../#download-section';
     const userAgent = navigator.userAgent || '';
     const isIOS = /iPad|iPhone|iPod/.test(userAgent) ||
       (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     const isAndroid = /Android/i.test(userAgent);
-    const destination = isIOS ? IOS_URL : isAndroid ? ANDROID_URL : FALLBACK_URL;
 
-    document.getElementById('message').textContent =
-      destination === FALLBACK_URL
-        ? 'Choose the Nostroots app for your device.'
-        : 'If you are not redirected automatically, use the link below.';
-    if (destination !== FALLBACK_URL) {
-      const link = document.querySelector('main a');
-      link.href = destination;
-      link.textContent = isIOS ? 'Open the App Store' : 'Open Google Play';
-      window.location.replace(destination);
+    if (isIOS) {
+      window.location.replace(IOS_URL);
+    } else if (isAndroid) {
+      window.location.replace(ANDROID_URL);
     }
   </script>
 </body>

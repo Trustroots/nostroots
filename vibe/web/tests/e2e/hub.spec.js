@@ -240,6 +240,19 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('.app-qr-shared .app-qr')).toBeHidden();
   });
 
+  test('shows separate store QR codes at /app/ on desktop', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Mobile devices are redirected directly to their app store');
+
+    await page.goto('/app/');
+
+    await expect(page).toHaveURL(/\/app\/$/);
+    await expect(page.getByRole('heading', { name: 'Get the Nostroots app' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open Nostroots on Google Play' })).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots');
+    await expect(page.getByRole('img', { name: 'Google Play QR code' })).toHaveAttribute('src', '../app-qr-android.svg');
+    await expect(page.getByRole('link', { name: 'Open Nostroots on the App Store' })).toHaveAttribute('href', 'https://apps.apple.com/app/nostroots/id6755037304');
+    await expect(page.getByRole('img', { name: 'App Store QR code' })).toHaveAttribute('src', '../app-qr-ios.svg');
+  });
+
   test('tracks experimental app visibility changes', async ({ page }) => {
     await page.addInitScript(() => {
       window.__umamiEvents = [];

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="3;url=../#download-section">
+  <title>Get Nostroots</title>
+  <style>
+    :root { color-scheme: light; font: 16px/1.5 system-ui, sans-serif; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #fffdf4; color: #08261f; }
+    main { max-width: 32rem; padding: 2rem; text-align: center; }
+    a { color: #007f6e; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Opening Nostroots…</h1>
+    <p id="message">We’re taking you to the right app store.</p>
+    <p><a href="../#download-section">Choose a download manually</a></p>
+  </main>
+  <script>
+    const IOS_URL = 'https://apps.apple.com/app/nostroots/id6755037304';
+    const ANDROID_URL = 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots';
+    const FALLBACK_URL = '../#download-section';
+    const userAgent = navigator.userAgent || '';
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(userAgent);
+    const destination = isIOS ? IOS_URL : isAndroid ? ANDROID_URL : FALLBACK_URL;
+
+    document.getElementById('message').textContent =
+      destination === FALLBACK_URL
+        ? 'Choose the Nostroots app for your device.'
+        : 'If you are not redirected automatically, use the link below.';
+    if (destination !== FALLBACK_URL) {
+      const link = document.querySelector('main a');
+      link.href = destination;
+      link.textContent = isIOS ? 'Open the App Store' : 'Open Google Play';
+      window.location.replace(destination);
+    }
+  </script>
+</body>
+</html>

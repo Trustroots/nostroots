@@ -227,21 +227,17 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveCount(0);
   });
 
-  test('shows app QR codes only on wider screens', async ({ page }) => {
+  test('shows one shared app QR code only on wider screens', async ({ page }) => {
     await page.setViewportSize({ width: 1200, height: 800 });
     await page.goto('/');
 
-    await expect(page.locator('#android .app-qr')).toBeVisible();
-    await expect(page.locator('#android .app-qr')).toHaveAttribute('href', 'https://play.google.com/store/apps/details?id=org.trustroots.nostroots');
-    await expect(page.locator('#android .app-qr img')).toHaveAttribute('src', 'app-qr-android.svg');
-    await expect(page.locator('#ios .app-qr')).toBeVisible();
-    await expect(page.locator('#ios .app-qr')).toHaveAttribute('href', 'https://apps.apple.com/app/nostroots/id6755037304');
-    await expect(page.locator('#ios .app-qr img')).toHaveAttribute('src', 'app-qr-ios.svg');
+    await expect(page.locator('.app-qr-shared')).toBeVisible();
+    await expect(page.locator('.app-qr-shared .app-qr')).toHaveAttribute('href', 'app/');
+    await expect(page.locator('.app-qr-shared img')).toHaveAttribute('alt', 'Nostroots app download QR code');
+    await expect(page.locator('.app-qr')).toHaveCount(1);
 
     await page.setViewportSize({ width: 390, height: 844 });
-
-    await expect(page.locator('#android .app-qr')).toBeHidden();
-    await expect(page.locator('#ios .app-qr')).toBeHidden();
+    await expect(page.locator('.app-qr-shared .app-qr')).toBeHidden();
   });
 
   test('tracks experimental app visibility changes', async ({ page }) => {

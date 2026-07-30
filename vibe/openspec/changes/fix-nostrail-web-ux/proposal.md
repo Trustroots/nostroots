@@ -9,6 +9,7 @@ The Nostrail web experiment does not yet behave like the other Nostroots web app
 - Add an initial soft location prompt that explains why location is useful, invokes browser geolocation only after explicit user action, and keeps invite/sharing actions disabled until a location fix succeeds.
 - Remove the map overlay text “Choose people, then share your approximate area.” and keep operational feedback in the control panel.
 - Make the existing recipient input reliably resolve Trustroots usernames, profile URLs, NIP-05 handles, npubs, and hexadecimal public-key input, while showing progress, actionable failures, deduplication, friendly non-hex labels, and Trustroots profile links.
+- Let Nostrail's explicit “Use My Location” action reach the standard foreground geolocation permission flow when the page runs inside Nostroots iOS.
 - Add focused automated coverage and desktop/mobile smoke checks for the revised behavior.
 
 ## Capabilities
@@ -20,12 +21,14 @@ None.
 ### Modified Capabilities
 
 - `vibe-web`: Strengthen the Nostrail web experiment requirements for shared header chrome, key-safe identity presentation, interactive mapping, consent-based location access, and reliable recipient selection.
+- `vibe-browser-ios`: Declare foreground location use so WKWebView pages can use standard `navigator.geolocation` after an explicit user action.
 
 ## Impact
 
 - **Owning sibling repository:** `/Users/k/code/trustroots/nostroots`
 - **Planning destination:** `vibe/openspec/changes/fix-nostrail-web-ux/`
 - **Primary implementation:** `vibe/web/nostrail/index.html` and `vibe/web/nostrail/index.js`
+- **Native browser implementation:** `vibe/browser/ios/NostrootsBrowserApp/Info.plist`
 - **Shared UI/map references:** `vibe/web/site-chrome.css`, `vibe/web/site-chrome-identity.js`, and `vibe/web/nostroots-map/`
 - **Tests:** `vibe/web/tests/unit/nostrail.test.js` and `vibe/web/tests/e2e/nostrail.spec.js`
 - **Dependencies:** reuse the map libraries and assets already shipped by Vibe Web; avoid adding a new map stack solely for Nostrail

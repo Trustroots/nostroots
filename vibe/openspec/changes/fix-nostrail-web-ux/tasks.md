@@ -53,3 +53,9 @@
 - [ ] 7.3 Smoke-test a real Trustroots username against the live NIP-05 endpoint and verify success, duplicate, unknown-user, and retry behavior without relying on live services in CI.
 - [ ] 7.4 Re-run `openspec validate fix-nostrail-web-ux --strict` from `nostroots/vibe/` and confirm every task is complete before requesting archive.
 - [x] 7.5 Document deployment verification as read-only checks and rollback as reverting the static Nostrail/spec commits; do not add control-plane environment or infrastructure changes.
+
+## 8. Native iOS Browser Location Support
+
+- [x] 8.1 Add a clear foreground-only location usage declaration to the Nostroots iOS app so WKWebView's standard `navigator.geolocation` flow can serve Nostrail after “Use My Location.”
+- [x] 8.2 Add an iOS regression check that the built app declares when-in-use location access without declaring always/background access.
+- [ ] 8.3 Smoke-test the Nostrail soft prompt and subsequent iOS location prompt in the native browser on a simulator or device.

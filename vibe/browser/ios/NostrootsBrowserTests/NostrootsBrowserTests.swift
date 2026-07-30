@@ -122,6 +122,18 @@ final class NostrootsBrowserTests: XCTestCase {
         XCTAssertTrue(backgroundModes.contains("audio"))
     }
 
+    func testAppDeclaresForegroundLocationUsage() throws {
+        let usageDescription = try XCTUnwrap(
+            Bundle.main.object(forInfoDictionaryKey: "NSLocationWhenInUseUsageDescription") as? String
+        )
+
+        XCTAssertFalse(usageDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        XCTAssertNil(Bundle.main.object(forInfoDictionaryKey: "NSLocationAlwaysUsageDescription"))
+        XCTAssertNil(Bundle.main.object(forInfoDictionaryKey: "NSLocationAlwaysAndWhenInUseUsageDescription"))
+        let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String] ?? []
+        XCTAssertFalse(backgroundModes.contains("location"))
+    }
+
     func testRadiostrNowPlayingPayloadParsesTrustedWebMessage() throws {
         let payload = try XCTUnwrap(RadiostrNowPlayingPayload(messageBody: [
             "source": "radiostr-now-playing",

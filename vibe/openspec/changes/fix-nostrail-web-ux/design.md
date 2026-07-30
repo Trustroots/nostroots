@@ -2,7 +2,7 @@
 
 Nostrail is a static Vibe Web experiment at `vibe/web/nostrail/` in the sibling Nostroots repository. Its current header is bespoke, its signer pill renders a shortened hexadecimal key, and its “map” is a CSS background with markers positioned by a pubkey hash rather than geographic coordinates. Recipient parsing and mocked browser coverage exist, but the asynchronous add flow clears input immediately, provides no pending state, collapses lookup failures into generic copy, and proves success only against mocked NIP-05 responses.
 
-The implementation must remain a foreground-only encrypted location-sharing experiment. It must preserve the current NIP-07/NIP-44 event and relay behavior, avoid new control-plane configuration, and follow the Vibe Web preference for small static modules and focused regression coverage.
+The implementation must remain a foreground-only encrypted location-sharing experiment. It must preserve the current NIP-07/NIP-44 event and relay behavior, allow the existing WKWebView geolocation flow in Nostroots iOS, avoid new control-plane configuration, and follow the Vibe Web preference for small static modules and focused regression coverage.
 
 ## Goals / Non-Goals
 
@@ -12,11 +12,12 @@ The implementation must remain a foreground-only encrypted location-sharing expe
 - Keep hexadecimal public keys internal while retaining all currently accepted recipient input formats.
 - Provide a genuinely interactive, coordinate-aware approximate-location map.
 - Ask for location in context, after an explanatory user action, without blocking browsing or recipient selection.
+- Support that foreground location request when Nostrail runs inside the native iOS browser shell.
 - Make recipient resolution progress, success, duplicate handling, and failure correction obvious and testable.
 
 **Non-Goals:**
 
-- Native iOS Nostrail changes, background location updates, or changes to the event format.
+- A custom native location bridge, background location updates, or changes to the event format.
 - A searchable Trustroots contact directory or social-graph picker.
 - New relays, server APIs, environment variables, Caddy routes, Compose services, or MediaWiki settings.
 - Exact-location sharing or increased location precision.
@@ -47,6 +48,12 @@ On first load, the page displays a compact explanation with “Use My Location�
 
 This is preferred over permission on page load because browser prompts without context are easy to reject and make the map appear blocked.
 
+### Use WKWebView's standard foreground geolocation flow on iOS
+
+Nostroots iOS will declare a clear `NSLocationWhenInUseUsageDescription` so WebKit can service `navigator.geolocation` for loaded HTTPS pages. Nostrail remains responsible for its explanatory soft prompt and calls geolocation only after “Use My Location”; WebKit and iOS remain responsible for the site/system permission decision.
+
+This avoids a custom JavaScript-to-Core Location bridge, keeps permission behavior consistent with other websites loaded by the browser shell, and does not add background or always-on location access.
+
 ### Make recipient addition an explicit asynchronous state machine
 
 Submitting recipient input creates pending rows or a pending form state, disables duplicate submission, and awaits resolution before reporting success. Successful recipients are canonicalized by resolved pubkey, labeled without hex, and added once. Invalid input, HTTP failure, timeout, malformed NIP-05 data, and missing Trustroots key produce distinct actionable feedback while keeping the failed value available for editing or retry.
@@ -65,6 +72,7 @@ The “Choose people, then share your approximate area.” overlay and its rende
 - **[Map updates unexpectedly recenter while the user browses]** → Track whether the user has moved the viewport and recenter only on explicit actions or the first accepted location.
 - **[Raw hex input has no friendly profile]** → Encode and display a shortened `npub`; retain the hex value only internally.
 - **[Map libraries complicate DOM unit tests]** → Keep map initialization behind a small adapter and cover map interaction in Playwright; stub the adapter in helper tests.
+- **[The native usage declaration is removed later]** → Cover the built app bundle's foreground-only location keys in the iOS test target.
 
 ## Migration Plan
 
@@ -74,8 +82,9 @@ The “Choose people, then share your approximate area.” overlay and its rende
 4. Add the soft location prompt and explicit viewport/recenter behavior.
 5. Harden recipient addition and remove all hexadecimal presentation paths.
 6. Run focused unit and Chromium E2E tests, then the Vibe Web fast test target if appropriate.
-7. Smoke-test narrow and desktop viewports with location accepted, declined, and unavailable.
-8. Deploy the static web change and verify read-only behavior on `/nostrail/`.
+7. Add the native iOS foreground location usage declaration and its regression check.
+8. Smoke-test narrow and desktop viewports with location accepted, declined, and unavailable, including the native iOS browser flow.
+9. Deploy the static web change and verify read-only behavior on `/nostrail/`.
 
 Rollback is a revert of the Nostrail web, tests, and Vibe OpenSpec commits. No data or infrastructure migration is involved.
 

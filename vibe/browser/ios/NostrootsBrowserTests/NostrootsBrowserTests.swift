@@ -116,6 +116,57 @@ final class NostrootsBrowserTests: XCTestCase {
         XCTAssertNil(request.value(forHTTPHeaderField: "Cache-Control"))
     }
 
+    func testAppDeclaresBackgroundAudioForRadiostrPlayback() {
+        let backgroundModes = Bundle.main.object(forInfoDictionaryKey: "UIBackgroundModes") as? [String] ?? []
+
+        XCTAssertTrue(backgroundModes.contains("audio"))
+    }
+
+    func testRadiostrNowPlayingPayloadParsesTrustedWebMessage() throws {
+        let payload = try XCTUnwrap(RadiostrNowPlayingPayload(messageBody: [
+            "source": "radiostr-now-playing",
+            "method": "update",
+            "payload": [
+                "stationId": "fip_jazz",
+                "title": "FIP Jazz",
+                "artist": "FIP",
+                "album": "Radiostr · #fip_jazz",
+                "artwork": ["https://example.test/fip.png", "../../nostroots-logo.png"],
+                "playing": true,
+                "liveStream": true
+            ]
+        ]))
+
+        XCTAssertEqual(payload.stationID, "fip_jazz")
+        XCTAssertEqual(payload.title, "FIP Jazz")
+        XCTAssertEqual(payload.artist, "FIP")
+        XCTAssertEqual(payload.album, "Radiostr · #fip_jazz")
+        XCTAssertEqual(payload.artworkSources.count, 2)
+        XCTAssertTrue(payload.isPlaying)
+        XCTAssertTrue(payload.isLiveStream)
+    }
+
+    func testRadiostrNowPlayingBridgeOnlyAcceptsProductionRadiostrPage() {
+        XCTAssertTrue(RadiostrNowPlayingPayload.isAllowedPageURL(
+            URL(string: "https://nos.trustroots.org/examples/radiostr/#fip")
+        ))
+        XCTAssertFalse(RadiostrNowPlayingPayload.isAllowedPageURL(
+            URL(string: "https://nos.trustroots.org/web/#radiostr")
+        ))
+        XCTAssertFalse(RadiostrNowPlayingPayload.isAllowedPageURL(
+            URL(string: "https://example.com/examples/radiostr/")
+        ))
+        XCTAssertFalse(RadiostrNowPlayingPayload.isAllowedPageURL(
+            URL(string: "http://nos.trustroots.org/examples/radiostr/")
+        ))
+    }
+
+    func testRadiostrNowPlayingScriptExposesNativeCommands() {
+        XCTAssertTrue(NativeBrowserWebView.injectedNowPlayingScript.contains("nostrootsNowPlaying"))
+        XCTAssertTrue(NativeBrowserWebView.injectedNowPlayingScript.contains("nostroots-now-playing-command"))
+        XCTAssertTrue(NativeBrowserWebView.injectedNowPlayingScript.contains("syncMediaSessionFallback"))
+    }
+
     func testNIP07PermissionPolicyAutoAllowsTrustrootsAndHitchwikiOnly() {
         let policy = NIP07PermissionPolicy()
 

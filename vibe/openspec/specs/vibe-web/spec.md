@@ -345,9 +345,16 @@ paths MAY remain as compatibility redirects to a canonical application.
 - **AND** links that leave Radiostr, including listening-now profile links,
   MUST open in a separate tab so the player remains available
 - **AND** browsers with Media Session support MUST expose the selected station
-  name, Radiostr attribution, and station artwork to system Now Playing
-  controls—including Apple system controls and Chrome for Android media
-  notifications—with play, pause, previous-station, and next-station actions.
+  name, catalog group, Radiostr hash route, and station artwork to system Now
+  Playing controls—including Apple system controls and Chrome for Android media
+  notifications—with play, pause, previous-station, and next-station actions
+- **AND** system artwork MUST include a PNG fallback for clients that cannot
+  render a station's preferred image format
+- **AND** the document and audio titles MUST track the selected station as
+  fallback metadata for clients with partial Media Session support
+- **AND** inside Nostroots iOS, Radiostr MUST mirror that metadata and playback
+  state through the native Now Playing bridge and accept native play, pause,
+  stop, previous-station, and next-station commands.
 
 ### Requirement: Vibe Web testing guidance
 

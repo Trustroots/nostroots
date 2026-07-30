@@ -10,6 +10,10 @@ Station deep links use the station id in the URL hash:
 - `#fip`
 - `#paradise`
 
+The same stable hash is included in system Now Playing metadata, alongside the
+station name and catalog group, so compact car and lock-screen displays can
+identify both the station and its Radiostr deep link.
+
 ## Nostr room
 
 Radiostr uses an isolated `#radiostr` room on:

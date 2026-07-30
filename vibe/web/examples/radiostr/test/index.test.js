@@ -72,20 +72,45 @@ test('buildRadioData derives SomaFM stream URLs and sections', () => {
 test('media session metadata names the station and supplies its artwork', () => {
   const Radiostr = loadRadiostr();
   const metadata = Radiostr.mediaSessionMetadata({
+    id: 'groovesalad',
     title: 'Groovesalad',
     img: 'https://example.test/groovesalad.png'
   }, 'SomaFM');
   assert.equal(metadata.title, 'Groovesalad');
-  assert.equal(metadata.artist, 'Radiostr');
-  assert.equal(metadata.album, 'SomaFM');
+  assert.equal(metadata.artist, 'SomaFM');
+  assert.equal(metadata.album, 'Radiostr · #groovesalad');
   assert.equal(metadata.artwork[0].src, 'https://example.test/groovesalad.png');
+  assert.equal(metadata.artwork[1].src, '../../nostroots-logo.png');
+  assert.equal(metadata.artwork[1].type, 'image/png');
   const fallbackMetadata = Radiostr.mediaSessionMetadata({
+    id: 'fallback_radio',
     title: 'Fallback Radio',
     fallbackImg: 'data:image/svg+xml,%3Csvg%3E%3C/svg%3E'
   }, 'Internet radio');
   assert.equal(fallbackMetadata.artwork[0].sizes, '512x512');
   assert.equal(fallbackMetadata.artwork[0].type, 'image/svg+xml');
   assert.equal(Radiostr.mediaSessionMetadata(null, ''), null);
+});
+
+test('native now-playing payload identifies a live Radiostr station', () => {
+  const Radiostr = loadRadiostr();
+  const payload = Radiostr.nativeNowPlayingPayload({
+    id: 'fip_jazz',
+    title: 'FIP Jazz',
+    img: 'https://example.test/fip-jazz.png'
+  }, 'FIP', true);
+
+  assert.equal(payload.stationId, 'fip_jazz');
+  assert.equal(payload.title, 'FIP Jazz');
+  assert.equal(payload.artist, 'FIP');
+  assert.equal(payload.album, 'Radiostr · #fip_jazz');
+  assert.deepEqual(Array.from(payload.artwork), [
+    'https://example.test/fip-jazz.png',
+    '../../nostroots-logo.png'
+  ]);
+  assert.equal(payload.playing, true);
+  assert.equal(payload.liveStream, true);
+  assert.equal(Radiostr.nativeNowPlayingPayload(null, '', false), null);
 });
 
 test('parseHashRoute reads station id from hash', () => {

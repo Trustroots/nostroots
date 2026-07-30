@@ -9,6 +9,7 @@
   const LISTENING_STALE_SECONDS = 12 * 60;
   const EXPIRATION_DAYS = 30;
   const CHAT_LIMIT = 200;
+  const MEDIA_ARTWORK_FALLBACK = '../../nostroots-logo.png';
   const TEST_MODE = Boolean(window.__RADIOSTR_TEST__);
 
   const state = {
@@ -604,10 +605,11 @@
   function mediaSessionMetadata(station, sectionName) {
     if (!station) return null;
     const artwork = station.img || station.fallbackImg;
+    const stationHash = station.id ? '#' + station.id : '';
     const metadata = {
       title: station.title,
-      artist: 'Radiostr',
-      album: sectionName || 'Internet radio'
+      artist: sectionName || 'Internet radio',
+      album: stationHash ? 'Radiostr · ' + stationHash : 'Radiostr'
     };
     if (artwork) {
       const artworkEntry = { src: artwork };
@@ -617,7 +619,35 @@
       }
       metadata.artwork = [artworkEntry];
     }
+    if (!metadata.artwork) metadata.artwork = [];
+    metadata.artwork.push({
+      src: MEDIA_ARTWORK_FALLBACK,
+      sizes: '1254x1254',
+      type: 'image/png'
+    });
     return metadata;
+  }
+
+  function nativeNowPlayingPayload(station, sectionName, playing) {
+    const metadata = mediaSessionMetadata(station, sectionName);
+    if (!station || !metadata) return null;
+    return {
+      stationId: station.id,
+      title: metadata.title,
+      artist: metadata.artist,
+      album: metadata.album,
+      artwork: (metadata.artwork || []).map((entry) => entry && entry.src).filter(Boolean),
+      playing: Boolean(playing),
+      liveStream: true
+    };
+  }
+
+  function updateNativeNowPlaying(station, sectionName) {
+    const bridge = window.nostrootsBrowser && window.nostrootsBrowser.nowPlaying;
+    if (!bridge || !bridge.__native) return;
+    const payload = nativeNowPlayingPayload(station, sectionName, state.playing);
+    if (payload) bridge.update(payload);
+    else bridge.clear();
   }
 
   function updateMediaSession() {
@@ -632,6 +662,13 @@
     } catch (_) {
       // Media Session support differs between Apple browser versions; playback still works normally.
     }
+  }
+
+  function updateSystemNowPlaying() {
+    const station = getStationById(state.currentStationId);
+    const sectionName = station ? sectionNameForStation(station.id) : '';
+    updateMediaSession();
+    updateNativeNowPlaying(station, sectionName);
   }
 
   function setMediaSessionAction(action, handler) {
@@ -652,6 +689,14 @@
     });
     setMediaSessionAction('previoustrack', () => stepStation(-1));
     setMediaSessionAction('nexttrack', () => stepStation(1));
+    window.addEventListener('nostroots-now-playing-command', (event) => {
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
+      const command = event && event.detail && event.detail.command;
+      if (command === 'play' && !state.playing) togglePlay();
+      else if ((command === 'pause' || command === 'stop') && state.playing) togglePlay();
+      else if (command === 'previous') stepStation(-1);
+      else if (command === 'next') stepStation(1);
+    });
   }
 
   function updateNowPlayingUi() {
@@ -674,6 +719,7 @@
     if (els.nowPlayingTitle) {
       els.nowPlayingTitle.textContent = station ? station.title : 'Pick a station';
     }
+    document.title = station ? station.title + ' · Radiostr' : 'Radiostr';
     if (els.nowPlayingSubtitle) {
       const sectionName = station ? sectionNameForStation(station.id) : '';
       if (sectionName) {
@@ -695,9 +741,12 @@
       els.playBtn.setAttribute('aria-pressed', state.playing ? 'true' : 'false');
       els.playBtn.setAttribute('aria-label', state.playing ? 'Pause' : 'Play');
     }
+    if (els.audio) {
+      els.audio.title = station ? station.title : '';
+    }
     updateStarButton(state.currentStationId);
     updateStationListState();
-    updateMediaSession();
+    updateSystemNowPlaying();
   }
 
   function renderStationSections() {
@@ -1518,6 +1567,7 @@
     somaStreamUrl,
     buildRadioData,
     mediaSessionMetadata,
+    nativeNowPlayingPayload,
     parseHashRoute,
     buildExpirationTag,
     buildChatTags,

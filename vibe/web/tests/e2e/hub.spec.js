@@ -108,7 +108,7 @@ test.describe('Nostroots Web hub', () => {
   test('shows default options and reveals more experimental apps on request', async ({ page, isMobile }) => {
     await page.goto('/');
 
-    await expect(page.getByRole('heading', { name: 'Nostroots' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nostroots', exact: true })).toBeVisible();
     await expect(page.locator('.lead')).toContainText('Open your Trustroots profile, read traveler notes');
     await expect(page.getByRole('link', { name: 'learn why Nostroots is built on Nostr' })).toHaveAttribute('href', 'background/');
     await expect(page.getByRole('link', { name: 'Background' }).first()).toHaveAttribute('href', 'background/');
@@ -124,7 +124,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('#nostr-key-status')).toContainText('no nostr key detected');
     await expect(page.locator('#trustroots-identity-status')).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Trustroots\.org/ })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
-    await expect(page.locator('.trustroots .app-icon img')).toHaveAttribute('src', 'https://www.trustroots.org/img/logo/horizontal-white.svg');
+    await expect(page.locator('.trustroots .app-icon img')).toHaveAttribute('src', 'trustroots-tree-white.svg');
     await expect(page.getByRole('link', { name: /Open Nostroots Web/ })).toHaveAttribute('href', 'web/');
     await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toHaveAttribute('href', 'examples/squatbridge/');
     await expect(page.locator('.squatbridge .app-icon')).toHaveText('｟(･)｠');
@@ -382,7 +382,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('#trustroots-card-description')).toContainText('Manage your classic Trustroots profile, networks, and account settings.');
     await expect(page.locator('#trustroots-card-action')).toHaveText('Open Trustroots.org');
     await expect(page.locator('#nostr-key-status')).toBeHidden();
-    await expect(page.locator('#trustroots-identity-status')).toHaveText('alice@trustroots.org');
+    await expect(page.locator('#trustroots-identity-status .identity-link-label')).toHaveText('alice@trustroots.org');
     expect(await page.locator('#trustroots-identity-status').getAttribute('href')).toBeNull();
     await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('role', 'button');
     await expect(page.locator('#trustroots-identity-status')).toHaveAttribute('title', 'About your linked Trustroots identity');

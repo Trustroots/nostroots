@@ -37,6 +37,13 @@ step for the main pages.
 - **AND** on narrow/mobile viewports, the footer MUST sit at the bottom of the
   dynamic visible viewport, above any safe-area inset.
 
+#### Scenario: Shared menu background link
+
+- **GIVEN** a user opens the shared Nostroots Web menu
+- **WHEN** the supporting links render below Settings
+- **THEN** the first link MUST be labeled "Background"
+- **AND** it MUST open `https://nos.trustroots.org/background/`.
+
 #### Scenario: Current Nostroots Web app
 
 - **GIVEN** a user opens `/web/`

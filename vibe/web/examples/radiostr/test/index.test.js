@@ -92,6 +92,38 @@ test('media session metadata names the station and supplies its artwork', () => 
   assert.equal(Radiostr.mediaSessionMetadata(null, ''), null);
 });
 
+test('location hashtags are promoted ahead of descriptive station tags', () => {
+  const Radiostr = loadRadiostr();
+  const fluxStation = {
+    id: 'flux_fm_sound_of_berlin',
+    title: 'Flux FM Sound Of Berlin',
+    tags: ['flux', 'electronic', 'techno', 'berlin', 'de']
+  };
+  const fipStation = {
+    id: 'fip',
+    title: 'FIP',
+    tags: ['fr', 'fip', 'eclectic']
+  };
+
+  assert.equal(Radiostr.stationLocationHash(fluxStation), '#berlin');
+  assert.equal(Radiostr.stationTagsLabel(fluxStation), '#berlin · flux · electronic · techno');
+  assert.equal(Radiostr.stationLocationHash(fipStation), '#france');
+  assert.equal(Radiostr.stationTagsLabel(fipStation), '#france · fip · eclectic');
+  assert.equal(Radiostr.stationLocationHash({ tags: ['soma', 'ambient'] }), '');
+});
+
+test('media session metadata includes the station location hashtag', () => {
+  const Radiostr = loadRadiostr();
+  const metadata = Radiostr.mediaSessionMetadata({
+    id: 'flux_fm_sound_of_berlin',
+    title: 'Flux FM Sound Of Berlin',
+    tags: ['flux', 'electronic', 'berlin', 'de']
+  }, 'Flux FM');
+
+  assert.equal(metadata.artist, 'Flux FM · #berlin');
+  assert.equal(metadata.album, 'Radiostr · #flux_fm_sound_of_berlin');
+});
+
 test('native now-playing payload identifies a live Radiostr station', () => {
   const Radiostr = loadRadiostr();
   const payload = Radiostr.nativeNowPlayingPayload({
@@ -117,6 +149,8 @@ test('parseHashRoute reads station id from hash', () => {
   const Radiostr = loadRadiostr();
   assert.equal(Radiostr.parseHashRoute('#groovesalad').stationId, 'groovesalad');
   assert.equal(Radiostr.parseHashRoute('').stationId, null);
+  assert.equal(Radiostr.shouldTuneHashStation('groovesalad', null), true);
+  assert.equal(Radiostr.shouldTuneHashStation('groovesalad', 'groovesalad'), false);
 });
 
 test('buildNowPlayingTags include radiostr room and station', () => {

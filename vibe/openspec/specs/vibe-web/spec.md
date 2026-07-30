@@ -352,9 +352,14 @@ paths MAY remain as compatibility redirects to a canonical application.
 - **AND** links that leave Radiostr, including listening-now profile links,
   MUST open in a separate tab so the player remains available
 - **AND** browsers with Media Session support MUST expose the selected station
-  name, catalog group, Radiostr hash route, and station artwork to system Now
-  Playing controls—including Apple system controls and Chrome for Android media
-  notifications—with play, pause, previous-station, and next-station actions
+  name, catalog group, location hashtag when known, Radiostr hash route, and
+  station artwork to system Now Playing controls—including Apple system
+  controls and Chrome for Android media notifications—with play, pause,
+  previous-station, and next-station actions
+- **AND** a known location MUST render first in the station's descriptive
+  metadata as a hashtag, such as `#berlin · flux · electronic`
+- **AND** applying the station hash route MUST NOT reload a station that is
+  already selected
 - **AND** system artwork MUST include a PNG fallback for clients that cannot
   render a station's preferred image format
 - **AND** the document and audio titles MUST track the selected station as

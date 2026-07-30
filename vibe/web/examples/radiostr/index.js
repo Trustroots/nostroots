@@ -10,6 +10,27 @@
   const EXPIRATION_DAYS = 30;
   const CHAT_LIMIT = 200;
   const MEDIA_ARTWORK_FALLBACK = '../../nostroots-logo.png';
+  const LOCATION_TAG_PRIORITY = [
+    'berlin', 'paris', 'nashville',
+    'portugal', 'switzerland', 'mali', 'cuba',
+    'mx', 'ua', 'fr', 'de', 'ch', 'nl', 'US'
+  ];
+  const LOCATION_TAG_NAMES = Object.freeze({
+    berlin: 'berlin',
+    paris: 'paris',
+    nashville: 'nashville',
+    portugal: 'portugal',
+    switzerland: 'switzerland',
+    mali: 'mali',
+    cuba: 'cuba',
+    mx: 'mexico',
+    ua: 'ukraine',
+    fr: 'france',
+    de: 'germany',
+    ch: 'switzerland',
+    nl: 'netherlands',
+    US: 'usa'
+  });
   const TEST_MODE = Boolean(window.__RADIOSTR_TEST__);
 
   const state = {
@@ -151,6 +172,10 @@
     if (!raw) return { stationId: null };
     const stationId = raw.split(/[/?#]/)[0].trim();
     return { stationId: stationId || null };
+  }
+
+  function shouldTuneHashStation(stationId, currentStationId) {
+    return Boolean(stationId && stationId !== currentStationId);
   }
 
   function expirationTimestamp(nowMs) {
@@ -462,10 +487,20 @@
   const STATION_PAUSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
 
   function stationTagsLabel(station) {
-    return (station.tags || [])
+    const tags = (station.tags || [])
       .map((tag) => String(tag || '').trim())
-      .filter(Boolean)
+      .filter(Boolean);
+    const locationHash = stationLocationHash(station);
+    const descriptiveTags = tags.filter((tag) => !LOCATION_TAG_NAMES[tag]);
+    return (locationHash ? [locationHash] : [])
+      .concat(descriptiveTags)
       .join(' · ');
+  }
+
+  function stationLocationHash(station) {
+    const tags = Array.isArray(station && station.tags) ? station.tags.map(String) : [];
+    const locationTag = LOCATION_TAG_PRIORITY.find((tag) => tags.includes(tag));
+    return locationTag ? '#' + LOCATION_TAG_NAMES[locationTag] : '';
   }
 
   function createStationItem(station) {
@@ -606,9 +641,10 @@
     if (!station) return null;
     const artwork = station.img || station.fallbackImg;
     const stationHash = station.id ? '#' + station.id : '';
+    const locationHash = stationLocationHash(station);
     const metadata = {
       title: station.title,
-      artist: sectionName || 'Internet radio',
+      artist: [sectionName || 'Internet radio', locationHash].filter(Boolean).join(' · '),
       album: stationHash ? 'Radiostr · ' + stationHash : 'Radiostr'
     };
     if (artwork) {
@@ -1380,7 +1416,7 @@
     }
     renderStationSections();
     clearNowPlayingSchedule();
-    if (els.audio) {
+    if (els.audio && !autoplay) {
       els.audio.src = station.url;
     }
     if (autoplay && els.audio) {
@@ -1425,7 +1461,7 @@
 
   function applyHashRoute() {
     const { stationId } = parseHashRoute(location.hash);
-    if (stationId && getStationById(stationId)) {
+    if (shouldTuneHashStation(stationId, state.currentStationId) && getStationById(stationId)) {
       tuneIn(stationId, { updateHash: false, autoplay: true });
     }
   }
@@ -1568,6 +1604,9 @@
     buildRadioData,
     mediaSessionMetadata,
     nativeNowPlayingPayload,
+    stationLocationHash,
+    stationTagsLabel,
+    shouldTuneHashStation,
     parseHashRoute,
     buildExpirationTag,
     buildChatTags,

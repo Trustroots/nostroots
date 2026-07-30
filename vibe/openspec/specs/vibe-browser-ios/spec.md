@@ -135,11 +135,13 @@ web page into the native iOS Now Playing system.
   Now Playing
 - **AND** it MUST declare background audio playback
 - **AND** the CarPlay and system play, pause, stop, previous, and next commands
-  MUST control the Radiostr web player.
+  MUST control the Radiostr web player
+- **AND** the metadata bridge MUST leave WebKit's active audio session in place
+  so publishing Now Playing state does not interrupt the stream.
 
 #### Scenario: Untrusted or unrelated page
 
 - **GIVEN** the WebView is not on the trusted production Radiostr page
 - **WHEN** a page sends a native Now Playing message or navigation completes
 - **THEN** Nostroots iOS MUST reject or clear the Radiostr Now Playing session
-- **AND** it MUST return audio-session ownership to other apps.
+- **AND** it MUST disable its Radiostr remote-command handlers.

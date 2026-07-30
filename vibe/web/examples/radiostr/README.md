@@ -14,6 +14,11 @@ The same stable hash is included in system Now Playing metadata, alongside the
 station name and catalog group, so compact car and lock-screen displays can
 identify both the station and its Radiostr deep link.
 
+When catalog tags identify a station location, Radiostr promotes it to a
+visible location hashtag before the descriptive tags (for example,
+`#berlin · flux · electronic`). The location hashtag is also included in
+system Now Playing metadata.
+
 ## Nostr room
 
 Radiostr uses an isolated `#radiostr` room on:

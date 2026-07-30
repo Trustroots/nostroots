@@ -13,7 +13,8 @@ The app loads `https://nos.trustroots.org/` by default, injects a native-backed 
 When the trusted Radiostr page is active, the app also bridges station metadata
 and playback controls into native iOS Now Playing. This supports the universal
 CarPlay player and remote play, pause, previous-station, and next-station
-controls.
+controls. WebKit remains the owner of the app audio session; the metadata bridge
+does not reactivate or reconfigure that session after a stream starts.
 
 A dedicated app icon and browsable station list on the CarPlay Home screen are
 a separate integration. Apple must first grant the app's CarPlay audio

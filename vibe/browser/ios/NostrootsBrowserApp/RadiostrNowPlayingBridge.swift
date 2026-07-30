@@ -1,4 +1,3 @@
-import AVFoundation
 import MediaPlayer
 import UIKit
 import WebKit
@@ -117,18 +116,11 @@ final class RadiostrNowPlayingBridge {
         artworkTask = nil
         infoCenter.nowPlayingInfo = nil
         setRemoteCommandsEnabled(false)
-        try? AVAudioSession.sharedInstance().setActive(
-            false,
-            options: [.notifyOthersOnDeactivation]
-        )
     }
 
     private func publish(_ payload: RadiostrNowPlayingPayload, pageURL: URL?) {
         isActive = true
         setRemoteCommandsEnabled(true)
-        if payload.isPlaying {
-            activatePlaybackAudioSession()
-        }
 
         var info: [String: Any] = [
             MPMediaItemPropertyTitle: payload.title,
@@ -153,16 +145,6 @@ final class RadiostrNowPlayingBridge {
             resolvedArtworkURL(source, relativeTo: pageURL)
         }
         loadFirstArtwork(from: urls, revision: revision)
-    }
-
-    private func activatePlaybackAudioSession() {
-        let session = AVAudioSession.sharedInstance()
-        do {
-            try session.setCategory(.playback, mode: .default)
-            try session.setActive(true)
-        } catch {
-            // WebKit playback remains usable even if the native audio session cannot be promoted.
-        }
     }
 
     private func registerRemoteCommands() {

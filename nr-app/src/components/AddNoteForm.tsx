@@ -1,8 +1,5 @@
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useThemeColors } from "@/hooks/useThemeColors";
-import { publishNotePromiseAction } from "@/redux/actions/publish.actions";
-import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { mapSelectors } from "@/redux/slices/map.slice";
 import {
   SIGNAL_DURATIONS,
   SIGNAL_INTENTS,
@@ -13,9 +10,12 @@ import {
   CONTENT_MAXIMUM_LENGTH,
   getCurrentTimestamp,
 } from "@trustroots/nr-common";
+import { publishNotePromiseAction } from "@/redux/actions/publish.actions";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { mapSelectors } from "@/redux/slices/map.slice";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { nanoid } from "@reduxjs/toolkit";
 import { CalendarDays, Send } from "lucide-react-native";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { useCallback, useState } from "react";
 import { Platform, Pressable, TextInput, View } from "react-native";
 import Toast from "react-native-root-toast";
@@ -70,9 +70,9 @@ export default function AddNoteForm({
     useState<SignalDuration>("1-week");
   const [customDate, setCustomDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [pickerDates, setPickerDates] = useState<{
-    initial: Date;
-    minimum: Date;
+  const [datePickerDates, setDatePickerDates] = useState<{
+    defaultDate: Date;
+    minimumDate: Date;
   } | null>(null);
   const [optimisticNotes, setOptimisticNotes] = useState<OptimisticNote[]>([]);
 
@@ -282,7 +282,7 @@ export default function AddNoteForm({
       <View className="flex-row items-end gap-2">
         <View className="flex-1">
           <TextInput
-            className="w-full px-4 py-3 bg-muted/20 rounded-2xl text-foreground text-[15px]"
+            className="w-full px-4 py-3 bg-white dark:bg-neutral-800 rounded-2xl text-foreground text-[15px]"
             placeholder={
               signalMode
                 ? getIntentPlaceholder(selectedIntent)
@@ -345,15 +345,15 @@ export default function AddNoteForm({
         })}
         <Pressable
           onPress={() => {
-            const willShow = !showDatePicker;
-            if (willShow) {
+            const nextShowDatePicker = !showDatePicker;
+            if (nextShowDatePicker) {
               const now = Date.now();
-              setPickerDates({
-                initial: new Date(now + 7 * DAY_IN_MS),
-                minimum: new Date(now + DAY_IN_MS),
+              setDatePickerDates({
+                defaultDate: new Date(now + 7 * DAY_IN_MS),
+                minimumDate: new Date(now + DAY_IN_MS),
               });
             }
-            setShowDatePicker(willShow);
+            setShowDatePicker(nextShowDatePicker);
           }}
           className={`rounded-full px-1.5 py-1 border ${
             customDate
@@ -379,13 +379,13 @@ export default function AddNoteForm({
       </View>
 
       {/* Date picker for custom expiry */}
-      {showDatePicker && pickerDates && (
+      {showDatePicker && datePickerDates && (
         <DateTimePicker
-          value={customDate ?? pickerDates.initial}
+          value={customDate ?? datePickerDates.defaultDate}
           mode="date"
           themeVariant={isDark ? "dark" : "light"}
           display={Platform.OS === "ios" ? "inline" : "default"}
-          minimumDate={pickerDates.minimum}
+          minimumDate={datePickerDates.minimumDate}
           onChange={(_event, date) => {
             if (Platform.OS === "android") {
               setShowDatePicker(false);

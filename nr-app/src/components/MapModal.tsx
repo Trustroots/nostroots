@@ -2,14 +2,15 @@ import {
   BottomSheetModal,
   BottomSheetModalProvider,
   BottomSheetScrollView,
+  BottomSheetView,
 } from "@expo/ui/community/bottom-sheet";
 import { useRouter } from "expo-router";
+import { X } from "lucide-react-native";
 import { useColorScheme } from "nativewind";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
-import { X } from "lucide-react-native";
 
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { EventWithMetadata } from "@/redux/slices/events.slice";
@@ -30,7 +31,7 @@ export default function MapModal() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const { height } = useWindowDimensions();
-  const { top } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const showModal = useAppSelector(mapSelectors.selectIsMapModalOpen);
   const selectedPlusCode = useAppSelector(
     mapSelectors.selectSelectedPlusCode,
@@ -49,7 +50,7 @@ export default function MapModal() {
   const isDark = colorScheme === "dark";
 
   const bottomSheetRef = useRef<BottomSheetModal>(null);
-  const fullHeight = Math.max(height - top, 0);
+  const fullHeight = Math.max(height - top - bottom, 0);
   const snapPoints = useMemo(
     () => [fullHeight || height],
     [fullHeight, height],
@@ -97,80 +98,87 @@ export default function MapModal() {
           backgroundColor: isDark ? "#525252" : "#d1d5db",
         }}
       >
-        {/* Header: plus code + bell + close */}
-        <View className="px-5 pb-2 pt-1 flex-row items-center justify-between">
-          <View className="flex-1 flex-row items-center gap-2">
-            <Text className="text-lg font-bold text-foreground">
-              {selectedPlusCode}
-            </Text>
-            {selectedLayer === "trustroots" && hasPrivateKeyInSecureStorage && (
-              <SubscribeBellIcon />
-            )}
-          </View>
-          <Pressable
-            onPress={handleClose}
-            className="w-8 h-8 rounded-full bg-muted/50 items-center justify-center"
-            accessibilityLabel="Close"
-            accessibilityRole="button"
-          >
-            <Icon as={X} size={16} className="text-foreground" />
-          </Pressable>
-        </View>
-
-        {/* People strip */}
-        <PeopleStrip
-          plusCode={selectedPlusCode}
-          signalMode={signalMode}
-          onToggleSignalMode={() => setSignalMode(!signalMode)}
-          canPost={canPost}
-        />
-
-        {/* Summary — fixed above scroll area */}
-        {summaryText && (
-          <View className="px-5 py-1.5 border-b border-border/10">
-            <Text className="text-[11px] text-muted-foreground">
-              {summaryText}
-            </Text>
-          </View>
-        )}
-
-        {/* Chat */}
-        <BottomSheetScrollView
-          contentContainerStyle={{ paddingVertical: 4, flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <NotesList
-            plusCode={selectedPlusCode}
-            selectedEventId={selectedEvent?.event.id}
-          />
-        </BottomSheetScrollView>
-
-        {/* Compose bar — pinned to bottom */}
-        <View className="border-t border-border/15 bg-muted/10">
-          {!hasPrivateKeyInSecureStorage ? (
-            <View className="px-5 py-3 gap-2">
-              <Text className="text-sm text-muted-foreground">
-                Set up your Trustroots account to post here.
+        <BottomSheetView style={{ flexGrow: 1, height: 0 }}>
+          {/* Header: plus code + bell + close */}
+          <View className="px-5 pb-2 pt-1 flex-row items-center justify-between">
+            <View className="flex-1 flex-row items-center gap-2">
+              <Text className="text-lg font-bold text-foreground">
+                {selectedPlusCode}
               </Text>
-              <Button
-                variant="secondary"
-                onPress={handleSetUpAccount}
-                title="Set up account"
-              />
+              {selectedLayer === "trustroots" &&
+                hasPrivateKeyInSecureStorage && <SubscribeBellIcon />}
             </View>
-          ) : selectedLayer === "trustroots" ? (
-            <AddNoteForm
-              signalMode={signalMode}
-              onSignalSent={() => setSignalMode(false)}
-            />
-          ) : (
-            <View className="px-5 py-3">
-              <Text className="text-sm text-muted-foreground">
-                Choose the trustroots layer to add content.
+            <Pressable
+              onPress={handleClose}
+              className="w-8 h-8 rounded-full bg-muted/50 items-center justify-center"
+              accessibilityLabel="Close"
+              accessibilityRole="button"
+            >
+              <Icon as={X} size={16} className="text-foreground" />
+            </Pressable>
+          </View>
+
+          {/* People strip */}
+          <PeopleStrip
+            plusCode={selectedPlusCode}
+            signalMode={signalMode}
+            onToggleSignalMode={() => setSignalMode(!signalMode)}
+            canPost={canPost}
+          />
+
+          {/* Summary — fixed above scroll area */}
+          {summaryText && (
+            <View className="px-5 py-1.5 border-b border-border/10">
+              <Text className="text-[11px] text-muted-foreground">
+                {summaryText}
               </Text>
             </View>
           )}
-        </View>
+
+          {/* Chat */}
+          <BottomSheetScrollView
+            style={{ flex: 1 }}
+            contentContainerStyle={{ paddingVertical: 4, flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <NotesList
+              plusCode={selectedPlusCode}
+              selectedEventId={selectedEvent?.event.id}
+            />
+          </BottomSheetScrollView>
+
+          {/* Compose bar — pinned to bottom */}
+          <View
+            className="border-t border-border/15 bg-muted/10"
+            style={{
+              paddingBottom: bottom,
+            }}
+          >
+            {!hasPrivateKeyInSecureStorage ? (
+              <View className="px-5 py-3 gap-2">
+                <Text className="text-sm text-muted-foreground">
+                  Set up your Trustroots account to post here.
+                </Text>
+                <Button
+                  variant="secondary"
+                  onPress={handleSetUpAccount}
+                  title="Set up account"
+                />
+              </View>
+            ) : selectedLayer === "trustroots" ? (
+              <AddNoteForm
+                signalMode={signalMode}
+                onSignalSent={() => setSignalMode(false)}
+              />
+            ) : (
+              <View className="px-5 py-3">
+                <Text className="text-sm text-muted-foreground">
+                  Choose the trustroots layer to add content.
+                </Text>
+              </View>
+            )}
+          </View>
+        </BottomSheetView>
       </BottomSheetModal>
     </BottomSheetModalProvider>
   );

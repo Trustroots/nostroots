@@ -1,6 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Slot, useRouter, usePathname } from "expo-router";
-import React from "react";
+import { Slot, usePathname, useRouter } from "expo-router";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -43,31 +42,25 @@ export default function MapLayout() {
         className="absolute right-2.5 flex-row gap-2 z-10"
         style={{ top: insets.top + 10 }}
       >
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Open NIP-07 Browser"
+          onPress={() => router.push(ROUTES.NIP7_BROWSER)}
+          className="w-11 h-11 rounded-full items-center justify-center"
+          style={{ backgroundColor: overlayBgColor }}
+        >
+          <Ionicons name="globe-outline" size={22} color={overlayIconColor} />
+        </Pressable>
         {areTestFeaturesEnabled && (
-          <>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open NIP-07 Browser"
-              onPress={() => router.push(ROUTES.NIP7_BROWSER)}
-              className="w-11 h-11 rounded-full items-center justify-center"
-              style={{ backgroundColor: overlayBgColor }}
-            >
-              <Ionicons
-                name="globe-outline"
-                size={22}
-                color={overlayIconColor}
-              />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open NIP-46 Connect"
-              onPress={() => router.push(ROUTES.CONNECT)}
-              className="w-11 h-11 rounded-full items-center justify-center"
-              style={{ backgroundColor: overlayBgColor }}
-            >
-              <Ionicons name="key-outline" size={22} color={overlayIconColor} />
-            </Pressable>
-          </>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Open NIP-46 Connect"
+            onPress={() => router.push(ROUTES.CONNECT)}
+            className="w-11 h-11 rounded-full items-center justify-center"
+            style={{ backgroundColor: overlayBgColor }}
+          >
+            <Ionicons name="key-outline" size={22} color={overlayIconColor} />
+          </Pressable>
         )}
         <Pressable
           onPress={() => router.push(ROUTES.SETTINGS)}

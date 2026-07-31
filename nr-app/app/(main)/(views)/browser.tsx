@@ -6,7 +6,7 @@ import { ROUTES } from "@/constants/routes";
 import { useAppSelector } from "@/redux/hooks";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { settingsSelectors } from "@/redux/slices/settings.slice";
-import { Redirect, Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ActivityIndicator, View } from "react-native";
 
 export default function Nip7BrowserRoute() {
@@ -23,9 +23,9 @@ export default function Nip7BrowserRoute() {
     keystoreSelectors.selectHasPrivateKeyInSecureStorage,
   );
 
-  if (!areTestFeaturesEnabled) {
-    return <Redirect href={ROUTES.HOME} />;
-  }
+  // if (!areTestFeaturesEnabled) {
+  //   return <Redirect href={ROUTES.HOME} />;
+  // }
 
   if (!isKeystoreLoaded) {
     return (

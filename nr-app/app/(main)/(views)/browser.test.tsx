@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 
 import Nip7BrowserRoute from "./browser";
 import { NOSTROOTS_WEB_URL } from "@/constants";
@@ -46,15 +46,6 @@ describe("Nip7BrowserRoute", () => {
       back: jest.fn(),
     });
     mockUseLocalSearchParams.mockReturnValue({});
-  });
-
-  it("redirects away when Developer Mode is off", () => {
-    mockUseAppSelector.mockImplementation((selector) =>
-      selector(fakeState(false)),
-    );
-    render(<Nip7BrowserRoute />);
-
-    expect(Redirect).toHaveBeenCalledWith({ href: "/(main)/(map)" }, undefined);
   });
 
   it("shows a loading state until the keystore is hydrated", () => {

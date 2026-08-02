@@ -109,12 +109,12 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
   with Android and iOS store links, top-nav Android and iOS store links, hub lead
   copy that mentions getting the mobile app, and the NIP-7 info modal bullet
   recommending mobile app install
-- **AND** additional experimental experiences (Nostrail, Radiostr, and the external
-  Trustroots Wiki, Nomadwiki, Trashwiki, Hitchwiki, and Hitchwiki Maps cards,
-  and third-party links such as Treasures and Miti) MUST remain hidden
+- **AND** additional experimental experiences (Nostrail, Radiostr, Hitchwiki,
+  Hitchwiki Maps, and third-party links such as Treasures and Miti) MUST remain hidden
   until the user enables "Show more experimental apps"
-- **AND** the five external wiki cards MUST use the logos supplied by their
-  corresponding sites and open those original sites in the current tab
+- **AND** the Trustroots Wiki, Nomadwiki, and Trashwiki cards MUST be visible
+  by default, use the logos supplied by their corresponding sites, and open
+  those original sites in the current tab
 - **AND** Wikistr MUST NOT have a root-hub card, while its direct
   `examples/wikistr/` route remains available
 - **AND** on desktop, the browser-extensions section MUST be visible until a
@@ -126,8 +126,8 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
 - **GIVEN** a user opens the hub inside a Nostroots app WebView that identifies
   itself as in-app
 - **WHEN** the page renders
-- **THEN** the hub MUST still show Trustroots.org, Nostroots Web, Squatbridge,
-  and other default web experiences; additional experimental cards and external
+- **THEN** the hub MUST still show Squatbridge and other default web experiences;
+  Trustroots.org and Nostroots Web cards MUST be hidden, and additional experimental cards and external
   third-party links still follow the user's toggle
 - **AND** it MUST hide `#download-section` ("Get the app" cards), top-nav
   Android and iOS store links, background-page download cards that share

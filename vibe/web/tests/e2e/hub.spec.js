@@ -155,9 +155,9 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Open wikistr/ })).toHaveCount(0);
-    await expect(page.getByRole('link', { name: /Open Trustroots Wiki/ })).toBeHidden();
-    await expect(page.getByRole('link', { name: /Open Nomadwiki/ })).toBeHidden();
-    await expect(page.getByRole('link', { name: /Open Trashwiki/ })).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open Trustroots Wiki/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Open Nomadwiki/ })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Open Trashwiki/ })).toBeVisible();
     await expect(page.getByRole('link', { name: /Open Hitchwiki$/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Hitchwiki Maps/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Radiostr/ })).toBeHidden();
@@ -190,9 +190,6 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('.wiki-site .card-label')).toHaveText([
       'More experimental',
       'More experimental',
-      'More experimental',
-      'More experimental',
-      'More experimental',
     ]);
     await expect(page.locator('.radiostr .card-label')).toHaveText('More experimental');
     await expect(page.locator('.radiostr .app-icon')).toHaveText('◎');
@@ -203,9 +200,6 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('.experimental-card h2')).toHaveText([
       'Nostrail',
       'Radiostr',
-      'Trustroots Wiki',
-      'Nomadwiki',
-      'Trashwiki',
       'Hitchwiki',
       'Hitchwiki Maps',
       "Let's Miti",
@@ -340,6 +334,8 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('.hub-header .lead')).toBeHidden();
     await expect(page.locator('#web-experiences-heading')).toBeHidden();
     await expect(page.locator('#web-experiences-section .section-lead')).toBeHidden();
+    await expect(page.locator('#trustroots-card')).toBeHidden();
+    await expect(page.locator('#nostroots-web-card')).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toBeVisible();
 
     await context.close();

@@ -16,9 +16,9 @@ The root page is a small hub. It links to classic Trustroots network settings, N
 - [`/examples/squatbridge/`](examples/squatbridge/) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr; hidden on the hub until you enable experimental apps.
 - [`/examples/wikistr/`](examples/wikistr/) — experimental Nostr-powered wiki reader available by direct URL; it is not listed on the root hub.
 - [`/examples/radiostr/`](examples/radiostr/) — experimental social internet radio with Nostr chat and listening-now discovery, hidden on the hub until you enable experimental apps.
-- [`https://wiki.trustroots.org/`](https://wiki.trustroots.org/) — external Trustroots Wiki site, hidden on the hub until you enable experimental apps.
-- [`https://nomadwiki.org/`](https://nomadwiki.org/) — external Nomadwiki site, hidden on the hub until you enable experimental apps.
-- [`https://trashwiki.org/`](https://trashwiki.org/) — external Trashwiki site, hidden on the hub until you enable experimental apps.
+- [`https://wiki.trustroots.org/`](https://wiki.trustroots.org/) — external Trustroots Wiki site, listed on the hub.
+- [`https://nomadwiki.org/`](https://nomadwiki.org/) — external Nomadwiki site, listed on the hub.
+- [`https://trashwiki.org/`](https://trashwiki.org/) — external Trashwiki site, listed on the hub.
 - [`https://hitchwiki.org/`](https://hitchwiki.org/) — external Hitchwiki site, hidden on the hub until you enable experimental apps.
 - [`https://maps.hitchwiki.org/`](https://maps.hitchwiki.org/) — external Hitchwiki Maps app, hidden on the hub until you enable experimental apps.
 - [`https://www.letsmiti.app/`](https://www.letsmiti.app/) — external Let's Miti app, hidden on the hub until you enable experimental apps.

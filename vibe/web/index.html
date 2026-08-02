@@ -535,6 +535,11 @@
       display: grid;
     }
 
+    html.is-in-nostroots-browser #trustroots-card,
+    html.is-in-nostroots-browser #nostroots-web-card {
+      display: none;
+    }
+
     @media (max-width: 1180px) {
       .cards.show-experimental {
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -760,7 +765,7 @@
         <span id="trustroots-card-action" class="card-action">Open Trustroots.org</span>
       </a>
 
-      <a class="card" href="web/">
+      <a id="nostroots-web-card" class="card" href="web/">
         <div class="card-main">
           <span class="app-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48">
@@ -811,9 +816,8 @@
         <span class="card-action">Open Radiostr</span>
       </a>
 
-      <a class="card wiki-site trustroots-wiki experimental-card" href="https://wiki.trustroots.org/">
+      <a class="card wiki-site trustroots-wiki" href="https://wiki.trustroots.org/">
         <div class="card-main">
-          <span class="card-label">More experimental</span>
           <span class="app-icon" aria-hidden="true">
             <img src="wiki-logos/trustroots-wiki.png" alt="" width="54" height="54" loading="lazy">
           </span>
@@ -823,9 +827,8 @@
         <span class="card-action">Open Trustroots Wiki</span>
       </a>
 
-      <a class="card wiki-site nomadwiki experimental-card" href="https://nomadwiki.org/">
+      <a class="card wiki-site nomadwiki" href="https://nomadwiki.org/">
         <div class="card-main">
-          <span class="card-label">More experimental</span>
           <span class="app-icon" aria-hidden="true">
             <img src="wiki-logos/nomadwiki.png" alt="" width="54" height="54" loading="lazy">
           </span>
@@ -835,9 +838,8 @@
         <span class="card-action">Open Nomadwiki</span>
       </a>
 
-      <a class="card wiki-site trashwiki experimental-card" href="https://trashwiki.org/">
+      <a class="card wiki-site trashwiki" href="https://trashwiki.org/">
         <div class="card-main">
-          <span class="card-label">More experimental</span>
           <span class="app-icon" aria-hidden="true">
             <img src="wiki-logos/trashwiki.png" alt="" width="54" height="54" loading="lazy">
           </span>

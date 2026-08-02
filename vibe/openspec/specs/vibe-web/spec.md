@@ -109,14 +109,12 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
   with Android and iOS store links, top-nav Android and iOS store links, hub lead
   copy that mentions getting the mobile app, and the NIP-7 info modal bullet
   recommending mobile app install
-- **AND** additional experimental experiences (Nostrail, Radiostr, and the external
-  Trustroots Wiki, Nomadwiki, Trashwiki, Hitchwiki, and Hitchwiki Maps cards,
-  and third-party links such as Treasures and Miti) MUST remain hidden
+- **AND** additional experimental experiences (Nostrail, Radiostr, Hitchwiki,
+  Hitchwiki Maps, and third-party links such as Treasures and Miti) MUST remain hidden
   until the user enables "Show more experimental apps"
-- **AND** the five external wiki cards MUST use the logos supplied by their
-  corresponding sites and open those original sites in the current tab
-- **AND** Wikistr MUST NOT have a root-hub card, while its direct
-  `examples/wikistr/` route remains available
+- **AND** the Trustroots Wiki, Nomadwiki, and Trashwiki cards MUST be visible
+  by default, use the logos supplied by their corresponding sites, and open
+  those original sites in the current tab
 - **AND** on desktop, the browser-extensions section MUST be visible until a
   NIP-07 signer is detected; on mobile viewports it MAY stay hidden by layout
   rules
@@ -126,8 +124,8 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
 - **GIVEN** a user opens the hub inside a Nostroots app WebView that identifies
   itself as in-app
 - **WHEN** the page renders
-- **THEN** the hub MUST still show Trustroots.org, Nostroots Web, Squatbridge,
-  and other default web experiences; additional experimental cards and external
+- **THEN** the hub MUST still show Squatbridge and other default web experiences;
+  Trustroots.org and Nostroots Web cards MUST be hidden, and additional experimental cards and external
   third-party links still follow the user's toggle
 - **AND** it MUST hide `#download-section` ("Get the app" cards), top-nav
   Android and iOS store links, background-page download cards that share
@@ -272,67 +270,6 @@ paths MAY remain as compatibility redirects to a canonical application.
 - **WHEN** examples are listed or launched
 - **THEN** each example MUST remain optional demo/fork material rather than a
   required current app surface.
-
-#### Scenario: Wikistr mobile layout
-
-- **GIVEN** a user opens Wikistr on a narrow/mobile viewport
-- **WHEN** its wiki switcher and content render
-- **THEN** the five wiki choices MUST remain on one horizontal row and the
-  content MUST use the available viewport width
-- **AND** when Wikistr runs inside Nostroots Browser, its in-page Logo 67
-  header link MUST be hidden.
-
-#### Scenario: Wikistr default wiki
-
-- **GIVEN** a user opens Wikistr without a wiki slug in the URL hash
-- **WHEN** the app selects its initial wiki
-- **THEN** Nomadwiki MUST be the active wiki by default
-- **AND** selecting the active wiki switcher while on one of its subpages MUST
-  return the user to that wiki's main page.
-
-#### Scenario: Wikistr edit links
-
-- **GIVEN** a user opens Wikistr on a Nomadwiki page with a linked Trustroots
-  NIP-05 identity (`*@trustroots.org`)
-- **WHEN** the page heading renders
-- **THEN** an Edit control MUST appear beside the page title
-- **AND** it MUST open Nomadwiki in a new tab via
-  `Special:NostrLogin` with a `returnto` query for the current page and
-  `returntoquery=action%3Dedit` (percent-encoded, not a raw `=`)
-- **AND** on the Nomadwiki main page the `returnto` value MUST be `Main Page`
-- **AND** the Edit control MUST stay hidden on Nomadwiki when no Trustroots
-  identity is linked
-- **AND** Trashwiki and Trustroots wiki MUST show that Edit control for linked
-  identities and open their own `Special:NostrLogin` route with the same
-  current-page `returnto` and `returntoquery=action%3Dedit` values.
-
-#### Scenario: Wikistr redirects and missing pages
-
-- **GIVEN** a requested wiki page redirects to another page
-- **WHEN** Wikistr receives the parsed target
-- **THEN** it MUST update the hash route and page title to that target without
-  asking the user to activate the redirect link.
-- **AND** MediaWiki red links MUST remain visibly red and open a canonical edit
-  URL instead of a relative `/index.php` URL on the Wikistr static site.
-- **AND** a linked Nomadwiki identity MUST use the existing `Special:NostrLogin`
-  edit route for that missing page.
-
-#### Scenario: Wikistr internal article links
-
-- **GIVEN** a rendered MediaWiki page includes a same-wiki article link
-- **WHEN** the link uses either the advertised wiki path or another MediaWiki
-  article path with a canonical page title, such as Nomadwiki's `/en/Lisbon`
-- **THEN** Wikistr MUST rewrite it to the active wiki's hash route
-- **AND** activating it MUST load the target inside Wikistr rather than opening
-  the source wiki in a new tab.
-
-#### Scenario: Wikistr protected images
-
-- **GIVEN** a rendered wiki page includes same-wiki image resources
-- **THEN** Wikistr MUST load publicly available images directly
-- **AND** if a direct image request fails, it MUST retry through the selected
-  proxy with NIP-98 authorization and render the returned image data locally,
-  so Cloudflare-protected sources such as Trashwiki can remain visible.
 
 #### Scenario: Radiostr social radio example
 

@@ -17,7 +17,7 @@ services:
     # Expose ports for E2E test server and Vitest UI
     ports:
       - "8080:8080"   # E2E test server
-      - "51204:51204" # Vitest UI (if needed)
+      - "127.0.0.1:51204:51204" # Vitest UI (if needed)
     # Use bridge network (default) - works better than host mode in most environments
 
 volumes:

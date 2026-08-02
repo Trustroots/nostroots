@@ -11,7 +11,7 @@ import {
     Relay,
     SimplePool,
 } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.23.0/+esm?nrv=20260508a';
-import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.2/+esm?nrv=20260508a';
+import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.4.12/+esm?nrv=20260802a';
 
 // Import BIP39 for mnemonic support
 import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm?nrv=20260508a';

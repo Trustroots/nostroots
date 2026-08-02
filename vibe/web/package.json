@@ -8,7 +8,7 @@
     "test": "echo '⚠️  Tests must be run in Docker for consistency.' && echo 'Use: make test' && echo 'Or: docker-compose run --rm tests' && exit 1",
     "test:docker": "docker-compose run --rm tests",
     "test:docker:watch": "docker-compose run --rm tests pnpm test:local:watch",
-    "test:docker:ui": "docker-compose run --rm -p 51204:51204 tests pnpm test:local:ui",
+    "test:docker:ui": "docker-compose run --rm -p 127.0.0.1:51204:51204 tests pnpm test:local:ui",
     "test:docker:e2e": "docker-compose run --rm tests pnpm test:local:e2e",
     "test:docker:all": "docker-compose run --rm tests pnpm test:local:all",
     "test:docker:fast": "docker-compose run --rm tests pnpm test:local:fast",
@@ -26,11 +26,11 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
-    "@vitest/ui": "^1.0.0",
+    "@vitest/ui": "^3.2.6",
     "bip39": "^3.1.0",
-    "dompurify": "^3.2.2",
+    "dompurify": "^3.4.12",
     "jsdom": "^23.0.0",
     "nostr-tools": "^2.23.0",
-    "vitest": "^1.0.0"
+    "vitest": "^3.2.6"
   }
 }

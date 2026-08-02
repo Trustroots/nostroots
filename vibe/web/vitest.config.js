@@ -16,7 +16,7 @@ export default defineConfig({
         replacement: 'bip39',
       },
       {
-        find: /^https:\/\/cdn\.jsdelivr\.net\/npm\/dompurify@3\.2\.2\/\+esm(?:\?.*)?$/,
+        find: /^https:\/\/cdn\.jsdelivr\.net\/npm\/dompurify@3\.4\.12\/\+esm(?:\?.*)?$/,
         replacement: 'dompurify',
       },
     ],

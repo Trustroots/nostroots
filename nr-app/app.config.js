@@ -1,6 +1,6 @@
 module.exports = ({ config }) => {
   const commitId = process.env.EAS_BUILD_GIT_COMMIT_HASH;
-  const nrBridgeBaseUrl = process.env.EXPO_PUBLIC_NR_BRIDGE_BASE_URL;
+  const nrBridgeBaseUrl = "https://auth.trustroots.org";
 
   return {
     ...config,

@@ -17,14 +17,8 @@ function mockJsonResponse({
 type NrBridgeService = typeof import("./nrBridge.service");
 
 describe("nrBridge.service", () => {
-  const originalEnv = process.env;
-
-  async function loadService(baseUrl = "https://bridge.example/base") {
+  async function loadService() {
     jest.resetModules();
-    process.env = {
-      ...originalEnv,
-      EXPO_PUBLIC_NR_BRIDGE_BASE_URL: baseUrl,
-    };
 
     return jest.requireActual("./nrBridge.service") as NrBridgeService;
   }
@@ -33,17 +27,13 @@ describe("nrBridge.service", () => {
     global.fetch = jest.fn().mockResolvedValue(mockJsonResponse());
   });
 
-  afterAll(() => {
-    process.env = originalEnv;
-  });
-
   it("requests a verification token with JSON headers and username body", async () => {
     const { requestVerificationToken } = await loadService();
 
     await requestVerificationToken("alice");
 
     expect(global.fetch).toHaveBeenCalledWith(
-      "https://bridge.example/base/verify_token",
+      "https://auth.trustroots.org/verify_token",
       {
         method: "POST",
         headers: {
@@ -65,7 +55,7 @@ describe("nrBridge.service", () => {
     });
 
     expect(global.fetch).toHaveBeenCalledWith(
-      "https://bridge.example/base/authenticate",
+      "https://auth.trustroots.org/authenticate",
       expect.objectContaining({
         body: JSON.stringify({
           username: "alice",
@@ -86,7 +76,7 @@ describe("nrBridge.service", () => {
     });
 
     expect(global.fetch).toHaveBeenCalledWith(
-      "https://bridge.example/base/authenticate",
+      "https://auth.trustroots.org/authenticate",
       expect.objectContaining({
         body: JSON.stringify({
           username: "alice",
@@ -129,14 +119,4 @@ describe("nrBridge.service", () => {
     });
   });
 
-  it("throws a config error when the bridge URL is missing", async () => {
-    const { NrBridgeError, requestVerificationToken } = await loadService("");
-
-    await expect(requestVerificationToken("alice")).rejects.toBeInstanceOf(
-      NrBridgeError,
-    );
-    await expect(requestVerificationToken("alice")).rejects.toMatchObject({
-      code: "config",
-    });
-  });
 });

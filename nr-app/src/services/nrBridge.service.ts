@@ -47,25 +47,10 @@ export type AuthenticateWithTokenInput = {
   token: string;
 };
 
+export const NR_BRIDGE_BASE_URL = "https://auth.trustroots.org";
+
 function getBridgeBaseUrl(): string {
-  const baseUrl = process.env.EXPO_PUBLIC_NR_BRIDGE_BASE_URL;
-
-  if (typeof baseUrl !== "string" || !baseUrl.trim()) {
-    throw new NrBridgeError({
-      code: "config",
-      message: "nr-bridge base URL is not configured.",
-    });
-  }
-
-  try {
-    const normalizedBaseUrl = new URL(baseUrl.trim()).toString();
-    return normalizedBaseUrl;
-  } catch {
-    throw new NrBridgeError({
-      code: "config",
-      message: "nr-bridge base URL is invalid.",
-    });
-  }
+  return NR_BRIDGE_BASE_URL;
 }
 
 function errorCodeForStatus(status: number): NrBridgeErrorCode {

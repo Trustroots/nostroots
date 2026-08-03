@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Food Circle — Nostroots</title>
+  <meta name="description" content="Find free food, share surplus, and discover community fridges, food pop-ups, restaurants, and dumpster-diving spots nearby.">
+  <meta name="theme-color" content="#0b765f">
+  <link rel="canonical" href="https://nos.trustroots.org/food/">
+  <link rel="icon" type="image/svg+xml" href="../favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="../site-chrome.css" rel="stylesheet">
+  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
+  <link href="./style.css" rel="stylesheet">
+  <script defer src="../analytics.js"></script>
+</head>
+<body class="food-page">
+  <div class="app-shell">
+    <header class="header" role="banner">
+      <div class="header-inner">
+        <nav class="hub-nav" aria-label="Nostroots links">
+          <a class="header-brand" href="../" aria-label="Nostroots home">
+            <img src="../nostroots-logo67.png" alt="" width="46" height="46">
+          </a>
+          <a
+            class="header-app-link"
+            href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+            aria-label="Android"
+            data-umami-event="Click Android app"
+            data-umami-event-placement="top-nav"
+            data-umami-event-target="android-app"
+            data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+          ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.48 19.44 6.3c.16-.31-.04-.68-.38-.68-.15 0-.29.08-.37.21l-1.87 3.24c-1.28-.58-2.72-.9-4.22-.9s-2.94.32-4.22.9L6.46 5.83c-.08-.13-.22-.21-.37-.21-.34 0-.54.37-.38.68l1.84 3.18C4.54 11.09 3 13.64 3 16.62h18c0-2.98-1.54-5.53-3.4-7.14ZM8.5 15.12c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Zm7 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Z" fill="currentColor"/></svg></a>
+          <a
+            class="header-app-link"
+            href="https://apps.apple.com/app/nostroots/id6755037304"
+            aria-label="iOS"
+            data-umami-event="Click iOS app"
+            data-umami-event-placement="top-nav"
+            data-umami-event-target="ios-app"
+            data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304"
+          ><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z" fill="currentColor"/></svg></a>
+          <a href="../background/">Background</a>
+        </nav>
+        <section class="identity-status" aria-label="Connection status">
+          <button
+            id="nostr-key-status"
+            class="status-pill status-pill-button"
+            data-state="missing"
+            type="button"
+            aria-haspopup="dialog"
+            aria-controls="nip7-info-modal"
+            aria-expanded="false"
+            aria-label="No Nostr key detected. About Nostr keys"
+            hidden
+          ><strong>no nostr key detected</strong><span class="status-pill-info" aria-hidden="true">i</span></button>
+          <a id="trustroots-identity-status" class="status-pill identity-link" data-state="missing" hidden>Trustroots identity: <strong>not linked</strong></a>
+        </section>
+      </div>
+    </header>
+
+    <div id="nip7-info-modal" class="info-modal" role="dialog" aria-modal="true" aria-labelledby="nip7-info-title" hidden>
+      <section class="info-modal-panel" tabindex="-1">
+        <div class="info-modal-header">
+          <h2 id="nip7-info-title">Nostr keys</h2>
+          <button class="info-modal-close" type="button" data-nip7-close aria-label="Close Nostr keys information">X</button>
+        </div>
+        <div class="info-modal-body">
+          <p><strong>A Nostr key is your account for Nostr apps.</strong> It lets apps recognize you without a password or central account.</p>
+          <p>You have a public key, which is safe to share, and a private key, which proves you are you. Keep the private key secret.</p>
+          <p>A signer is an app or browser extension that holds your private key and approves actions for you. Nostroots can ask it for your public key, but your private key stays with the signer.</p>
+          <ul>
+            <li>On desktop, install the <a href="https://chromewebstore.google.com/detail/nostroots-extension/kmgfnmgidnajdpjnpfekmcbbdpgdimhf" target="_blank" rel="noopener noreferrer">Nostroots Extension</a> from the Chrome Web Store. Works in Chrome, Brave, and Edge. Firefox is in review and coming soon.</li>
+            <li>On mobile, install the Nostroots app for <a href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" target="_blank" rel="noopener noreferrer">Android</a> or <a href="https://apps.apple.com/app/nostroots/id6755037304" target="_blank" rel="noopener noreferrer">iOS</a>.</li>
+            <li>Reload this page after the signer is available.</li>
+            <li>Connect your Trustroots identity so relays can verify your posts.</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+
+    <main class="workspace">
+      <aside class="sidebar" aria-label="Food listings">
+        <section class="intro">
+          <p class="eyebrow">Food belongs on plates</p>
+          <h1>Find food. Share what’s left.</h1>
+          <p>See free food, community fridges, friendly restaurants, and dumpster-diving spots around you.</p>
+          <div class="primary-actions">
+            <button id="find-food" class="action-card find" type="button">
+              <span aria-hidden="true">◎</span>
+              <strong>Looking for free food</strong>
+              <small>Show what is available now</small>
+            </button>
+            <button id="share-food" class="action-card share" type="button">
+              <span aria-hidden="true">＋</span>
+              <strong>Know or have free food</strong>
+              <small>Add a place or pop-up</small>
+            </button>
+          </div>
+        </section>
+
+        <section class="filters" aria-label="Filter food map">
+          <div class="filter-row">
+            <button class="filter-chip active" type="button" data-filter="all">All</button>
+            <button class="filter-chip" type="button" data-filter="popup">Pop-ups</button>
+            <button class="filter-chip" type="button" data-filter="fridge">Fridges</button>
+            <button class="filter-chip" type="button" data-filter="dumpster">Dumpster spots</button>
+            <button class="filter-chip" type="button" data-filter="restaurant">Restaurants</button>
+            <button class="filter-chip" type="button" data-filter="request">Requests</button>
+          </div>
+          <label class="free-toggle"><input id="free-only" type="checkbox" checked> Free only</label>
+        </section>
+
+        <section class="results" aria-labelledby="results-title">
+          <div class="results-heading">
+            <h2 id="results-title">Nearby now</h2>
+            <span id="result-count"></span>
+          </div>
+          <div id="entry-list" class="entry-list"></div>
+        </section>
+      </aside>
+
+      <section class="map-wrap" aria-label="Food Circle map">
+        <div id="map" class="map"></div>
+        <div class="map-tools">
+          <button id="locate-me" type="button">⌖ <span>Use my location</span></button>
+          <button id="open-list" type="button">☰ <span>Show list</span></button>
+        </div>
+        <div class="map-legend" aria-label="Map legend">
+          <span><i class="legend-dot available"></i> Food available</span>
+          <span><i class="legend-dot place"></i> Regular place</span>
+          <span><i class="legend-dot wanted"></i> Food wanted</span>
+        </div>
+        <button id="chat-toggle" class="chat-toggle" type="button" aria-controls="food-chat" aria-expanded="false">
+          <span aria-hidden="true">💬</span>
+          <span>#foodsharing</span>
+          <strong id="chat-unread" hidden></strong>
+        </button>
+        <section id="food-chat" class="chat-panel" aria-labelledby="chat-title" hidden>
+          <header class="chat-head">
+            <div>
+              <strong id="chat-title">#foodsharing</strong>
+              <small>Shared Nostroots circle chat</small>
+            </div>
+            <button id="chat-close" class="icon-button" type="button" aria-label="Close chat">×</button>
+          </header>
+          <div id="chat-messages" class="chat-messages" aria-live="polite">
+            <p class="chat-empty">Loading the circle…</p>
+          </div>
+          <form id="chat-form" class="chat-form">
+            <label class="sr-only" for="chat-input">Message #foodsharing</label>
+            <textarea id="chat-input" rows="1" maxlength="1000" placeholder="Message #foodsharing" disabled></textarea>
+            <button type="submit" aria-label="Send message" disabled>Send</button>
+          </form>
+          <p id="chat-status" class="chat-status">Connect a Nostr signer to join. You can still read.</p>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="compose-dialog" class="sheet-dialog">
+    <form id="entry-form" method="dialog" novalidate>
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow">Add to the circle</p>
+          <h2 id="compose-title">Share food</h2>
+        </div>
+        <button class="icon-button" type="button" data-close-compose aria-label="Close">×</button>
+      </div>
+
+      <div class="form-grid">
+        <fieldset class="segmented-field full">
+          <legend>What do you want to do?</legend>
+          <div class="segmented">
+            <label><input type="radio" name="intent" value="offer" checked><span>I know or have food</span></label>
+            <label><input type="radio" name="intent" value="request"><span>I’m looking for food</span></label>
+          </div>
+        </fieldset>
+
+        <label>Type
+          <select id="entry-type" name="type">
+            <option value="popup">Food available now</option>
+            <option value="fridge">Community fridge or pantry</option>
+            <option value="restaurant">Restaurant or café</option>
+            <option value="dumpster">Dumpster-diving spot</option>
+          </select>
+        </label>
+        <label>Cost
+          <select id="entry-cost" name="cost">
+            <option value="free">Free</option>
+            <option value="donation">Donation / pay what you can</option>
+            <option value="discounted">Discounted</option>
+          </select>
+        </label>
+        <label class="full">Short title
+          <input id="entry-title" name="title" maxlength="72" placeholder="Fresh sandwiches after an event" required>
+        </label>
+        <label class="full">Details
+          <textarea id="entry-details" name="details" rows="3" maxlength="400" placeholder="What is available, how much, and any pickup instructions?"></textarea>
+        </label>
+        <label>Available for
+          <select id="entry-expiry" name="expiry">
+            <option value="1">1 hour</option>
+            <option value="4" selected>4 hours</option>
+            <option value="24">Today</option>
+            <option value="72">3 days</option>
+            <option value="168">1 week</option>
+            <option value="permanent">Ongoing place</option>
+          </select>
+        </label>
+        <label>Dietary note
+          <select id="entry-diet" name="diet">
+            <option value="">Not specified</option>
+            <option value="vegetarian">Vegetarian</option>
+            <option value="vegan">Vegan</option>
+            <option value="mixed">Mixed</option>
+          </select>
+        </label>
+
+        <fieldset class="location-field full">
+          <legend>Location</legend>
+          <p class="helper">Use your location or the current map center. To choose another area, close this form, move the map, and reopen it.</p>
+          <div class="location-actions">
+            <button id="use-current-location" class="secondary-button" type="button">⌖ Use my location</button>
+            <button id="use-map-center" class="secondary-button" type="button">＋ Use map center</button>
+          </div>
+          <div class="location-preview">
+            <span><small>Public Plus Code</small><strong id="plus-code-preview">Choose a location</strong></span>
+            <span><small>Visible as</small><strong id="precision-preview">Neighborhood</strong></span>
+          </div>
+          <label>Location detail
+            <select id="entry-precision" name="precision">
+              <option value="6">Broad area</option>
+              <option value="8" selected>Neighborhood</option>
+              <option value="10">Precise area</option>
+            </select>
+          </label>
+          <label class="pin-toggle"><input id="show-pin" type="checkbox"> Also publish the exact pin</label>
+          <p id="pin-note" class="helper">Only the neighborhood area will be stored and shown.</p>
+        </fieldset>
+      </div>
+
+      <p id="form-error" class="form-error" role="alert"></p>
+      <div class="dialog-actions">
+        <button class="secondary-button" type="button" data-close-compose>Cancel</button>
+        <button class="primary-button" type="submit">Add to Food Circle</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="detail-dialog" class="detail-dialog">
+    <article id="detail-content"></article>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="module" src="./app.js"></script>
+  <script src="../site-chrome-identity.js"></script>
+</body>
+</html>

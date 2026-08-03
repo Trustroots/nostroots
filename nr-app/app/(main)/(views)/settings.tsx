@@ -43,6 +43,7 @@ import {
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
 import { navigateToEvent } from "@/utils/navigation.utils";
+import { trackEvent } from "@/services/analytics.service";
 import {
   EventJSONNotificationDataSchema,
   getFirstLabelValueFromEvent,
@@ -153,6 +154,13 @@ export default function SettingsScreen() {
   const areTestFeaturesEnabled = useAppSelector(
     settingsSelectors.selectAreTestFeaturesEnabled,
   ) as boolean;
+  const analyticsEnabled = useAppSelector(
+    settingsSelectors.selectAnalyticsEnabled,
+  );
+
+  const useMapLibre = useAppSelector(
+    settingsSelectors.selectUseMapLibre,
+  ) as boolean;
 
   // Onboarding configuration flags.
   const { forceOnboarding, forceWelcome } = useAppSelector(selectFeatureFlags);
@@ -221,7 +229,15 @@ export default function SettingsScreen() {
       Toast.show("Notifications enabled", {
         duration: Toast.durations.SHORT,
       });
+      trackEvent("notifications_changed", {
+        action: "enable",
+        outcome: "success",
+      });
     } catch (error) {
+      trackEvent("notifications_changed", {
+        action: "enable",
+        outcome: "failure",
+      });
       Toast.show(`#eN1vKp Error: ${error}`, {
         duration: Toast.durations.LONG,
       });
@@ -234,7 +250,15 @@ export default function SettingsScreen() {
       Toast.show("Notifications disabled", {
         duration: Toast.durations.SHORT,
       });
+      trackEvent("notifications_changed", {
+        action: "disable",
+        outcome: "success",
+      });
     } catch (error) {
+      trackEvent("notifications_changed", {
+        action: "disable",
+        outcome: "failure",
+      });
       Toast.show(`#dN1vKp Error: ${error}`, {
         duration: Toast.durations.LONG,
       });
@@ -261,6 +285,11 @@ export default function SettingsScreen() {
 
     if (result.success) {
       setImportStatus("saved");
+      trackEvent("key_imported", {
+        method: result.type === "mnemonic" ? "mnemonic" : "nsec",
+        outcome: "success",
+        source: "settings",
+      });
       const message =
         result.type === "mnemonic"
           ? "Mnemonic imported successfully"
@@ -271,6 +300,10 @@ export default function SettingsScreen() {
       });
     } else {
       setImportStatus("failed");
+      trackEvent("key_imported", {
+        outcome: "failure",
+        source: "settings",
+      });
       Toast.show(
         "Failed to import key. Please check your input and try again.",
         {
@@ -497,6 +530,21 @@ export default function SettingsScreen() {
       <AppearanceSection />
 
       <Section>
+        <Text variant="h2">Privacy</Text>
+        <Text variant="p">
+          Share anonymous app usage to help improve Nostroots. We never include
+          your identity, keys, messages, or location in analytics.
+        </Text>
+        <ToggleSwitch
+          label="Anonymous usage analytics"
+          value={analyticsEnabled}
+          onToggle={() => {
+            dispatch(settingsActions.setAnalyticsEnabled(!analyticsEnabled));
+          }}
+        />
+      </Section>
+
+      <Section>
         <ToggleSwitch
           label="Developer Mode"
           value={areTestFeaturesEnabled}
@@ -507,6 +555,20 @@ export default function SettingsScreen() {
       </Section>
 
       {areTestFeaturesEnabled ? <BrowserSettingsSection /> : null}
+
+      {areTestFeaturesEnabled && (
+        <Section>
+          <Text variant="h2">Map</Text>
+
+          <ToggleSwitch
+            label="Use MapLibre map (experimental)"
+            value={useMapLibre}
+            onToggle={() => {
+              dispatch(settingsActions.toggleUseMapLibre());
+            }}
+          />
+        </Section>
+      )}
 
       {areTestFeaturesEnabled && (
         <Section>

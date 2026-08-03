@@ -8,6 +8,7 @@ import { ROUTES } from "@/constants/routes";
 import { IdCardLanyardIcon } from "lucide-react-native";
 import { settingsActions } from "@/redux/slices/settings.slice";
 import { useAppDispatch } from "@/redux/hooks";
+import { trackEvent } from "@/services/analytics.service";
 
 export default function OnboardingIdentityScreen() {
   const router = useRouter();
@@ -18,10 +19,12 @@ export default function OnboardingIdentityScreen() {
   };
 
   const goNext = () => {
+    trackEvent("onboarding_identity", { action: "continue" });
     router.push("/onboarding/trustroots");
   };
 
   const goBrowse = () => {
+    trackEvent("onboarding_identity", { action: "browse" });
     dispatch(settingsActions.setIsBrowsingAsGuest(true));
     router.replace(ROUTES.HOME);
   };

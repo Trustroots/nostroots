@@ -24,6 +24,7 @@ The first-pass capability set covers:
 - `vibe-nip42-relay`
 - `trustroots-import-tool`
 - `vibe-push-notifications`
+- `food-circle`
 
 ## Source Inventory Rules
 

@@ -62,6 +62,8 @@ export default function OnboardingTrustrootsScreen() {
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
+  // Syncing a one-time status message from the router's error query param.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (errorParam === "auth") {
       setStatusMessage(AUTHENTICATION_FAILURE_MESSAGE);
@@ -74,6 +76,7 @@ export default function OnboardingTrustrootsScreen() {
     }
   }, [errorParam]);
 
+  // Syncing local UI state from pending Trustroots verification in redux.
   useEffect(() => {
     if (pendingTrustrootsProfileUsername) {
       setUsernameInput(pendingTrustrootsProfileUsername);
@@ -94,6 +97,7 @@ export default function OnboardingTrustrootsScreen() {
     pendingTrustrootsUsername,
     screenState,
   ]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const resetToUsernameEntry = useCallback(
     (message?: string) => {
@@ -317,6 +321,7 @@ export default function OnboardingTrustrootsScreen() {
               Trustroots username
             </Text>
             <TextInput
+              testID="onboarding-trustroots-username-input"
               autoCapitalize="none"
               autoCorrect={false}
               value={usernameInput}
@@ -342,6 +347,7 @@ export default function OnboardingTrustrootsScreen() {
                   Six-digit code
                 </Text>
                 <TextInput
+                  testID="onboarding-trustroots-code-input"
                   value={code}
                   onChangeText={handleCodeChange}
                   keyboardType="number-pad"
@@ -353,6 +359,7 @@ export default function OnboardingTrustrootsScreen() {
                   className="w-full bg-muted text-foreground rounded-md p-3 text-lg tracking-widest text-center"
                 />
                 <Button
+                  testID="onboarding-trustroots-verify-code"
                   title={
                     screenState === "authenticating"
                       ? "Authenticating..."
@@ -371,6 +378,7 @@ export default function OnboardingTrustrootsScreen() {
               </>
             ) : (
               <Button
+                testID="onboarding-trustroots-request-code"
                 title={
                   screenState === "requesting"
                     ? "Sending..."

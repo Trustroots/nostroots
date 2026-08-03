@@ -1,3 +1,5 @@
+import { TRUSTROOTS_NIP05_DOMAIN } from "@/config/env";
+
 export type TrustrootsUsernameValidationResult =
   | {
       success: true;
@@ -9,8 +11,6 @@ export type TrustrootsUsernameValidationResult =
       username: null;
       error: string;
     };
-
-export const TRUSTROOTS_NIP05_DOMAIN = "trustroots.org";
 
 export function normalizeTrustrootsUsername(input: string): string {
   return input.trim().toLowerCase();

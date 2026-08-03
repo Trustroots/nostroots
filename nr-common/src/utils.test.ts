@@ -1,5 +1,6 @@
 import { expect } from "jsr:@std/expect";
 import {
+  getNip5PubKey,
   isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue,
   isValidTagsArrayWithTrustrootsUsername,
 } from "./utils.ts";
@@ -52,5 +53,55 @@ Deno.test(
       ["L", "org.trustroots:username"],
     ];
     expect(isValidTagsArrayWhereAllLabelsHaveAtLeastOneValue(tags)).toBe(false);
+  },
+);
+
+Deno.test("getNip5PubKey queries trustroots.org by default", async () => {
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+
+  globalThis.fetch = ((input: string | URL | Request) => {
+    requestedUrls.push(String(input));
+    return Promise.resolve(
+      new Response(JSON.stringify({ names: { alice: "abc123" } }), {
+        status: 200,
+      }),
+    );
+  }) as typeof fetch;
+
+  try {
+    const result = await getNip5PubKey("alice");
+    expect(result).toBe("abc123");
+    expect(requestedUrls[0]).toBe(
+      "https://trustroots.org/.well-known/nostr.json?name=alice",
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+Deno.test(
+  "getNip5PubKey queries an overridden domain over http for localhost",
+  async () => {
+    const originalFetch = globalThis.fetch;
+    const requestedUrls: string[] = [];
+
+    globalThis.fetch = ((input: string | URL | Request) => {
+      requestedUrls.push(String(input));
+      return Promise.resolve(
+        new Response(JSON.stringify({ names: { alice: "abc123" } }), {
+          status: 200,
+        }),
+      );
+    }) as typeof fetch;
+
+    try {
+      await getNip5PubKey("alice", "localhost:8787");
+      expect(requestedUrls[0]).toBe(
+        "http://localhost:8787/.well-known/nostr.json?name=alice",
+      );
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   },
 );

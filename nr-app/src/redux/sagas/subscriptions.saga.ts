@@ -1,10 +1,10 @@
+import { RELAY_URL } from "@/config/env";
 import {
   getSubscription,
   subscribeToFilter,
 } from "@/nostr/subscriptions.nostr";
 import { nanoid } from "@reduxjs/toolkit";
 import {
-  DEFAULT_RELAY_URL,
   getAuthorFromEvent,
   TRUSTROOTS_PROFILE_KIND,
 } from "@trustroots/nr-common";
@@ -32,7 +32,7 @@ const AUTHOR_SUBSCRIPTION_ID = "authorSubscription";
 function getRelayUrlsOrDefaults(relayUrls?: string[]) {
   if (typeof relayUrls === "undefined" || relayUrls.length === 0) {
     // TODO: Get defaults from redux
-    const defaultRelayUrls = [DEFAULT_RELAY_URL];
+    const defaultRelayUrls = [RELAY_URL];
     return defaultRelayUrls;
   }
 

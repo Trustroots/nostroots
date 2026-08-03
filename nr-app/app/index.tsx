@@ -14,6 +14,7 @@ import {
   selectFeatureFlags,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
+import { TRUSTROOTS_NIP05_DOMAIN } from "@/config/env";
 import { resolveStartupRoute } from "@/utils/startupRoute.utils";
 import { getNip5PubKey } from "@trustroots/nr-common";
 
@@ -66,7 +67,7 @@ export default function IndexRoute() {
         }
       }
 
-      const nip5Result = await getNip5PubKey(username);
+      const nip5Result = await getNip5PubKey(username, TRUSTROOTS_NIP05_DOMAIN);
 
       let npubResponse;
       if (nip5Result) {

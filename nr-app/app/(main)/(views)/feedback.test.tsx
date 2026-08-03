@@ -2,6 +2,7 @@ import { fireEvent, render, waitFor } from "@testing-library/react-native";
 
 import FeedbackScreen from "./feedback";
 import { sendSupportMessage } from "@/services/nrBridge.service";
+import { formatSupportMessage } from "@/utils/debugInfo.utils";
 
 jest.mock("@/services/nrBridge.service", () => ({
   sendSupportMessage: jest.fn(),
@@ -52,8 +53,11 @@ describe("FeedbackScreen", () => {
     await waitFor(() => expect(mockSend).toHaveBeenCalledTimes(1));
 
     const { message } = mockSend.mock.calls[0][0];
-    expect(message.indexOf(LONG_ENOUGH)).toBeLessThan(
-      message.indexOf("Nostroots debug info"),
+    expect(message).toBe(
+      formatSupportMessage({
+        userMessage: LONG_ENOUGH,
+        debugInfo: "Nostroots debug info\nnpub: npub1abc",
+      }),
     );
   });
 

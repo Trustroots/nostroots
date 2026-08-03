@@ -13,7 +13,7 @@ describe("SendDebugInfoButton", () => {
   it("navigates to the feedback screen", () => {
     const { getByText } = render(<SendDebugInfoButton />);
 
-    fireEvent.press(getByText("Contact support"));
+    fireEvent.press(getByText("Send feedback"));
 
     expect(mockPush).toHaveBeenCalledWith(ROUTES.FEEDBACK);
   });

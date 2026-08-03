@@ -16,7 +16,7 @@ export function SendDebugInfoButton() {
       className="w-full"
     >
       <Icon as={LifeBuoy} size={16} className="text-foreground" />
-      <Text>Contact support</Text>
+      <Text>Send feedback</Text>
     </Button>
   );
 }

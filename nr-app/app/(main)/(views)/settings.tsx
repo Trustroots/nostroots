@@ -389,14 +389,16 @@ export default function SettingsScreen() {
         </View>
       </Section>
 
-      <Section>
-        <Text className="font-bold">Support</Text>
-        <Text className="text-sm text-muted-foreground">
-          Having trouble, or want to share feedback? Send us a message and we
-          will attach your app&apos;s debug info.
-        </Text>
-        <SendDebugInfoButton />
-      </Section>
+      {npub ? (
+        <Section>
+          <Text className="font-bold">Support</Text>
+          <Text className="text-sm text-muted-foreground">
+            Having trouble, or want to share feedback? Send us a message and we
+            will attach your app&apos;s debug info.
+          </Text>
+          <SendDebugInfoButton />
+        </Section>
+      ) : null}
 
       {areTestFeaturesEnabled ? (
         <Section>

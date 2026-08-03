@@ -131,4 +131,8 @@ describe("getUserMessageBudget()", () => {
   it("exposes the minimum message length", () => {
     expect(MIN_USER_MESSAGE_LENGTH).toBe(20);
   });
+
+  it("exposes the support message max length mirrored from nr-bridge", () => {
+    expect(SUPPORT_MESSAGE_MAX_LENGTH).toBe(2000);
+  });
 });

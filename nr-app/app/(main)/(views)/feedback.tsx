@@ -46,6 +46,7 @@ export default function FeedbackScreen() {
         "We sent your feedback to Trustroots support. If you are waiting on a reply, check the email address on your Trustroots account.",
         [{ text: "OK", onPress: () => router.back() }],
       );
+      setUserMessage("");
     } catch {
       await Clipboard.setStringAsync(message);
       Alert.alert(
@@ -104,6 +105,7 @@ export default function FeedbackScreen() {
           variant="ghost"
           onPress={() => setIsDisclosureOpen(!isDisclosureOpen)}
           className="justify-start px-0"
+          accessibilityState={{ expanded: isDisclosureOpen }}
         >
           <Text>What we send with this</Text>
         </Button>

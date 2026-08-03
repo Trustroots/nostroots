@@ -5,6 +5,7 @@ import {
   eventsToGeoJSON,
   getIntentFromEvent,
   truncatePlusCode,
+  plusCodeGridToGeoJSON,
   zoomToPlusCodeLength,
 } from "./maplibre.utils";
 
@@ -90,9 +91,90 @@ describe("zoomToPlusCodeLength", () => {
     expect(zoomToPlusCodeLength(12)).toBe(8);
   });
 
-  it("returns 10 for zoom 13+", () => {
-    expect(zoomToPlusCodeLength(13)).toBe(10);
-    expect(zoomToPlusCodeLength(18)).toBe(10);
+  it("caps at 8 for zoom 13+", () => {
+    expect(zoomToPlusCodeLength(13)).toBe(8);
+    expect(zoomToPlusCodeLength(18)).toBe(8);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: plusCodeGridToGeoJSON
+// ---------------------------------------------------------------------------
+
+describe("plusCodeGridToGeoJSON", () => {
+  it("returns an empty FeatureCollection for no cells", () => {
+    expect(plusCodeGridToGeoJSON([], undefined)).toEqual({
+      type: "FeatureCollection",
+      features: [],
+    });
+  });
+
+  it("emits one closed polygon ring per cell", () => {
+    const { features } = plusCodeGridToGeoJSON(
+      [{ plusCode: "8FVC2222+", heatCount: 0 }],
+      undefined,
+    );
+
+    expect(features).toHaveLength(1);
+    const ring = features[0].geometry.coordinates[0];
+    // 4 corners plus a repeated first corner to close the ring
+    expect(ring).toHaveLength(5);
+    expect(ring[0]).toEqual(ring[4]);
+    // GeoJSON is [longitude, latitude]
+    expect(ring[0][0]).toBeGreaterThan(0);
+  });
+
+  it("carries plusCode and heatCount through as properties", () => {
+    const { features } = plusCodeGridToGeoJSON(
+      [{ plusCode: "8FVC2222+", heatCount: 3 }],
+      undefined,
+    );
+
+    expect(features[0].properties).toMatchObject({
+      plusCode: "8FVC2222+",
+      heatCount: 3,
+      selected: false,
+    });
+  });
+
+  it("marks a cell selected when the selected plus code is inside it", () => {
+    const { features } = plusCodeGridToGeoJSON(
+      [{ plusCode: "8FVC2200+", heatCount: 0 }],
+      "8FVC2222+",
+    );
+
+    expect(features[0].properties.selected).toBe(true);
+  });
+
+  it("marks a cell selected when it sits inside the selected plus code", () => {
+    const { features } = plusCodeGridToGeoJSON(
+      [{ plusCode: "8FVC2222+", heatCount: 0 }],
+      "8FVC2200+",
+    );
+
+    expect(features[0].properties.selected).toBe(true);
+  });
+
+  it("leaves unrelated cells unselected", () => {
+    const { features } = plusCodeGridToGeoJSON(
+      [{ plusCode: "8FVC2222+", heatCount: 0 }],
+      "9GXX3333+",
+    );
+
+    expect(features[0].properties.selected).toBe(false);
+  });
+
+  it("skips cells whose plus code cannot be decoded", () => {
+    const { features } = plusCodeGridToGeoJSON(
+      [
+        { plusCode: "not-a-plus-code", heatCount: 1 },
+        { plusCode: "8FVC2222+", heatCount: 1 },
+      ],
+      undefined,
+    );
+
+    expect(features).toHaveLength(1);
+    expect(features[0].properties.plusCode).toBe("8FVC2222+");
   });
 });
 

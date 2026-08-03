@@ -44,12 +44,6 @@ jest.mock("expo-router", () => ({
   })),
 }));
 
-// Mock react-native-maps
-jest.mock("react-native-maps", () => ({
-  __esModule: true,
-  default: "MapView",
-}));
-
 jest.mock("@expo/vector-icons/Ionicons", () => ({
   __esModule: true,
   default: "Ionicons",

@@ -1,5 +1,5 @@
 import { mapSlice, mapActions, mapSelectors } from "./map.slice";
-import { Region } from "react-native-maps";
+import { Region } from "@/types/map.types";
 
 describe("map.slice", () => {
   describe("savedRegion", () => {

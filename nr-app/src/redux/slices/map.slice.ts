@@ -3,7 +3,7 @@ import { mapRefService } from "@/utils/mapRef";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { matchFilter } from "nostr-tools";
-import { BoundingBox, LatLng, Region } from "react-native-maps";
+import { BoundingBox, LatLng, Region } from "@/types/map.types";
 import { persistReducer } from "redux-persist";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import type { AppDispatch, RootState } from "../store";

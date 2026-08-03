@@ -73,13 +73,7 @@
         }
       ],
       "expo-status-bar",
-      "@sentry/react-native",
-      [
-        "react-native-maps",
-        {
-          "androidGoogleMapsApiKey": "AIzaSyCr1ZxZlVQNI_u7FYfPkjgvZv79UeaPFYQ"
-        }
-      ]
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true,

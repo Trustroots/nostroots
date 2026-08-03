@@ -1,16 +1,33 @@
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
+import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
+import { metricsSelectors } from "@/redux/slices/metrics.slice";
+import { RootState } from "@/redux/store";
+import { rootLogger } from "@/utils/logger.utils";
 import {
-  eventsToGeoJSON,
-  MapGeoJSON,
-  PlusCodeMarkerProperties,
+  allPlusCodesForRegion,
+  boundariesToRegion,
+  coordinatesToPlusCode,
+  getAllPlusCodesBetweenTwoPlusCodes,
+  regionToBoundingBox,
+} from "@/utils/map.utils";
+import {
+  GridGeoJSON,
+  latitudeDeltaToZoom,
+  PlusCodeGridCell,
+  PlusCodeGridProperties,
+  plusCodeGridToGeoJSON,
   zoomToPlusCodeLength,
 } from "@/utils/maplibre.utils";
+import { mapRefService } from "@/utils/mapRef";
 import {
   Camera,
   GeoJSONSource,
   Layer,
   Map,
+  UserLocation,
 } from "@maplibre/maplibre-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -21,88 +38,120 @@ import {
 } from "react-native";
 // @ts-ignore
 import { getCurrentLocation } from "@/utils/location";
-import { Colors } from "@/constants/Colors";
 import { FontAwesome } from "@expo/vector-icons";
-import { RootState } from "@/redux/store";
+import { createSelector } from "reselect";
 
 import type {
   CameraRef,
-  CircleLayerSpecification,
-  SymbolLayerSpecification,
+  FillLayerSpecification,
+  LineLayerSpecification,
+  MapRef,
 } from "@maplibre/maplibre-react-native";
 
-const OPENFREEMAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
-const GEOJSON_UPDATE_DEBOUNCE_MS = 500;
+const LIGHT_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
+const DARK_STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
+const GRID_UPDATE_DEBOUNCE_MS = 300;
+
+const log = rootLogger.extend("MapLibreMapView");
 
 // ── Selectors ──────────────────────────────────────────────────────────────
 
-const selectEventsForMapLibre = (state: RootState) =>
-  mapSelectors.selectEventsForSelectedMapLayer(state);
+const selectRootState = (state: RootState) => state;
 
-const selectAllProfiles = (state: RootState) => state.profiles.byPubkey;
+/**
+ * The plus code cells covering the visible bounding box, at the precision the
+ * current zoom calls for, each with its message count for the heat colour.
+ */
+const selectVisibleGridCells = createSelector(
+  [mapSelectors.selectBoundingBox, selectRootState],
+  (boundingBox, rootState): PlusCodeGridCell[] => {
+    if (typeof boundingBox === "undefined") {
+      return [];
+    }
+
+    const region = boundariesToRegion(boundingBox);
+    const length = zoomToPlusCodeLength(
+      latitudeDeltaToZoom(region.latitudeDelta),
+    );
+
+    const southWest = coordinatesToPlusCode({
+      ...boundingBox.southWest,
+      length,
+    });
+    const northEast = coordinatesToPlusCode({
+      ...boundingBox.northEast,
+      length,
+    });
+
+    return getAllPlusCodesBetweenTwoPlusCodes(southWest, northEast, length).map(
+      (plusCode) => ({
+        plusCode,
+        heatCount: metricsSelectors.selectMessagesMetricByPlusCode(
+          rootState,
+          plusCode,
+        ),
+      }),
+    );
+  },
+);
 
 // ── Layer styles ──────────────────────────────────────────────────────────
 
-const markerCirclePaint: CircleLayerSpecification["paint"] = {
-  "circle-radius": [
-    "interpolate",
-    ["linear"],
-    ["get", "count"],
-    1,
-    12,
-    5,
-    18,
-    20,
-    26,
+/**
+ * Red heat ramp by message count, teal for the selected cell — matching the
+ * polygon colours the plus code grid has always used.
+ */
+const gridFillPaint: FillLayerSpecification["paint"] = {
+  "fill-color": [
+    "case",
+    ["get", "selected"],
+    "rgba(0, 90, 120, 0.6)",
+    [
+      "interpolate",
+      ["linear"],
+      ["get", "heatCount"],
+      0,
+      "rgba(0, 0, 0, 0)",
+      1,
+      "rgba(60, 0, 0, 0.6)",
+      4,
+      "rgba(255, 0, 0, 0.6)",
+    ],
   ],
-  "circle-color": "#0d9488",
-  "circle-stroke-width": 3,
-  "circle-stroke-color": "#ffffff",
-  "circle-opacity": 0.9,
 };
 
-const markerCountLayout: SymbolLayerSpecification["layout"] = {
-  "text-field": "{count}",
-  "text-size": 12,
-  "text-font": ["Noto Sans Bold"],
-  "text-allow-overlap": true,
-};
-
-const markerCountPaint: SymbolLayerSpecification["paint"] = {
-  "text-color": "#ffffff",
-};
-
-const markerLabelLayout: SymbolLayerSpecification["layout"] = {
-  "text-field": "{intentLabel}",
-  "text-size": 10,
-  "text-font": ["Noto Sans Regular"],
-  "text-allow-overlap": true,
-  "text-ignore-placement": true,
-  "text-offset": [0, 2.5],
-};
-
-const markerLabelPaint: SymbolLayerSpecification["paint"] = {
-  "text-color": "#0d9488",
-  "text-halo-color": "#ffffff",
-  "text-halo-width": 1,
+const gridLinePaint: LineLayerSpecification["paint"] = {
+  "line-color": "rgba(0, 0, 0, 0.5)",
+  "line-width": 2,
 };
 
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function MapLibreMapView() {
   const dispatch = useAppDispatch();
-  const events = useAppSelector(selectEventsForMapLibre);
-  const profilesByPubkey = useAppSelector(selectAllProfiles);
-  const savedRegion = useAppSelector(mapSelectors.selectSavedRegion);
-  const cameraRef = useRef<CameraRef>(null);
-  const [currentZoom, setCurrentZoom] = useState(5);
-
-  const plusCodeLength = useMemo(
-    () => zoomToPlusCodeLength(currentZoom),
-    [currentZoom],
+  const gridCells = useAppSelector(selectVisibleGridCells);
+  const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
+  const isMapModalOpen = useAppSelector(mapSelectors.selectIsMapModalOpen);
+  const centerMapOnCurrentLocation = useAppSelector(
+    mapSelectors.selectCenterMapOnCurrentLocation,
   );
+  const centerMapOnHalfModal = useAppSelector(
+    mapSelectors.selectCenterMapOnHalfModal,
+  );
+  const currentMapLocation = useAppSelector(
+    mapSelectors.selectCurrentMapLocation,
+  );
+  const savedRegion = useAppSelector(mapSelectors.selectSavedRegion);
 
-  const [geoJSON, setGeoJSON] = useState<MapGeoJSON>({
+  const colors = useThemeColors();
+  const isDark = useColorScheme() === "dark";
+
+  const mapRef = useRef<MapRef>(null);
+  const cameraRef = useRef<CameraRef>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
+  const [showUserLocation, setShowUserLocation] = useState(false);
+
+  const [geoJSON, setGeoJSON] = useState<GridGeoJSON>({
     type: "FeatureCollection",
     features: [],
   });
@@ -112,39 +161,84 @@ export default function MapLibreMapView() {
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
-      setGeoJSON(eventsToGeoJSON(events, profilesByPubkey, plusCodeLength));
-    }, GEOJSON_UPDATE_DEBOUNCE_MS);
+      setGeoJSON(
+        plusCodeGridToGeoJSON(
+          gridCells,
+          isMapModalOpen ? selectedPlusCode : undefined,
+        ),
+      );
+    }, GRID_UPDATE_DEBOUNCE_MS);
 
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [events, profilesByPubkey, plusCodeLength]);
+  }, [gridCells, selectedPlusCode, isMapModalOpen]);
 
-  const defaultCenter = useMemo(() => {
-    if (savedRegion) {
-      return [savedRegion.longitude, savedRegion.latitude] as [number, number];
-    }
-    return [10.0, 48.0] as [number, number];
-  }, [savedRegion]);
+  // Release the map ref on unmount so sagas don't animate a dead map
+  useEffect(() => {
+    return () => {
+      mapRefService.setMapRef(null, null);
+    };
+  }, []);
 
-  const defaultZoom = useMemo(() => {
-    if (savedRegion) {
-      const delta = savedRegion.latitudeDelta;
-      if (delta > 40) return 2;
-      if (delta > 20) return 4;
-      if (delta > 5) return 6;
-      if (delta > 1) return 8;
-      if (delta > 0.1) return 11;
-      return 13;
+  useEffect(() => {
+    if (isMapReady && centerMapOnCurrentLocation && currentMapLocation) {
+      mapRefService.animateToCoordinate(
+        currentMapLocation.latitude,
+        currentMapLocation.longitude,
+        0.1844,
+        0.0842,
+        1000,
+      );
+      dispatch(mapActions.centerMapOnCurrentLocationComplete());
     }
-    return 5;
-  }, [savedRegion]);
+  }, [isMapReady, centerMapOnCurrentLocation, currentMapLocation, dispatch]);
+
+  useEffect(() => {
+    if (isMapReady && centerMapOnHalfModal && currentMapLocation) {
+      // Shift the centre up so the half modal doesn't cover the target
+      mapRefService.animateToCoordinate(
+        currentMapLocation.latitude - 0.02,
+        currentMapLocation.longitude,
+        0.1844,
+        0.0842,
+        1000,
+      );
+      dispatch(mapActions.centerMapOnHalfModalComplete());
+    }
+  }, [isMapReady, centerMapOnHalfModal, currentMapLocation, dispatch]);
+
+  const defaultCenter = useMemo(
+    () =>
+      savedRegion
+        ? ([savedRegion.longitude, savedRegion.latitude] as [number, number])
+        : ([10.0, 48.0] as [number, number]),
+    [savedRegion],
+  );
+
+  const defaultZoom = useMemo(
+    () => (savedRegion ? latitudeDeltaToZoom(savedRegion.latitudeDelta) : 5),
+    [savedRegion],
+  );
+
+  /**
+   * Publish the visible area to Redux. Everything downstream — the grid
+   * precision, the metrics, the modal, and session restore — reads from here.
+   */
+  const publishVisibleRegion = useCallback(async () => {
+    const boundaries = await mapRefService.getMapBoundaries();
+    if (!boundaries) return;
+
+    const region = boundariesToRegion(boundaries);
+    dispatch(mapActions.setBoundingBox(regionToBoundingBox(region)));
+    dispatch(setVisiblePlusCodes(allPlusCodesForRegion(region)));
+    dispatch(mapActions.setSavedRegion(region));
+  }, [dispatch]);
 
   const handlePress = useCallback(
     (e: NativeSyntheticEvent<{ features: GeoJSON.Feature[] }>) => {
       const feature = e?.nativeEvent?.features?.[0];
-      if (!feature) return;
-      const plusCode = (feature.properties as PlusCodeMarkerProperties)
+      const plusCode = (feature?.properties as PlusCodeGridProperties)
         ?.plusCode;
       if (plusCode) {
         dispatch(mapActions.setSelectedPlusCode(plusCode));
@@ -153,84 +247,67 @@ export default function MapLibreMapView() {
     [dispatch],
   );
 
-  const handleRegionDidChange = useCallback(
-    (e: NativeSyntheticEvent<{ zoom: number }>) => {
-      const zoom = e?.nativeEvent?.zoom;
-      if (zoom != null) {
-        setCurrentZoom(zoom);
-      }
-    },
-    [],
-  );
-
   const handleLocationPress = useCallback(async () => {
     const location = await getCurrentLocation();
-    if (location) {
-      dispatch(
-        mapActions.setCurrentMapLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        }),
-      );
-      cameraRef.current?.flyTo({
-        center: [location.coords.longitude, location.coords.latitude],
-        zoom: 12,
-        duration: 1000,
-      });
+    if (!location) {
+      setShowUserLocation(false);
+      return;
     }
+
+    setShowUserLocation(true);
+    dispatch(
+      mapActions.setCurrentMapLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      }),
+    );
+    mapRefService.animateToCoordinate(
+      location.coords.latitude,
+      location.coords.longitude,
+      0.1844,
+      0.0842,
+      1000,
+    );
+    dispatch(mapActions.centerMapOnCurrentLocationComplete());
   }, [dispatch]);
 
   return (
     <View style={styles.container}>
       <Map
+        ref={mapRef}
         style={styles.map}
-        mapStyle={OPENFREEMAP_STYLE_URL}
+        mapStyle={isDark ? DARK_STYLE_URL : LIGHT_STYLE_URL}
         logo={false}
         attribution={false}
         compass={true}
         touchRotate={false}
         touchPitch={false}
-        onRegionDidChange={handleRegionDidChange}
+        onRegionDidChange={publishVisibleRegion}
+        onDidFinishLoadingMap={() => {
+          mapRefService.setMapRef(mapRef.current, cameraRef.current);
+          setIsMapReady(true);
+          log.debug("#iztRxR map ready");
+          publishVisibleRegion();
+        }}
       >
         <Camera
           ref={cameraRef}
-          initialViewState={{
-            center: defaultCenter,
-            zoom: defaultZoom,
-          }}
+          initialViewState={{ center: defaultCenter, zoom: defaultZoom }}
         />
 
-        <GeoJSONSource id="events-source" data={geoJSON} onPress={handlePress}>
-          {/* Marker circles — size scales with event count */}
-          <Layer id="marker-circles" type="circle" paint={markerCirclePaint} />
-
-          {/* Event count inside the circle */}
-          <Layer
-            id="marker-count"
-            type="symbol"
-            layout={markerCountLayout}
-            paint={markerCountPaint}
-          />
-
-          {/* Intent label below the circle */}
-          <Layer
-            id="marker-label"
-            type="symbol"
-            layout={markerLabelLayout}
-            paint={markerLabelPaint}
-          />
+        <GeoJSONSource id="grid-source" data={geoJSON} onPress={handlePress}>
+          <Layer id="grid-fill" type="fill" paint={gridFillPaint} />
+          <Layer id="grid-outline" type="line" paint={gridLinePaint} />
         </GeoJSONSource>
+
+        {showUserLocation && <UserLocation />}
       </Map>
 
       <TouchableOpacity
-        style={styles.locationButton}
+        style={[styles.locationButton, { backgroundColor: colors.card }]}
         onPress={handleLocationPress}
       >
-        <FontAwesome
-          name="location-arrow"
-          size={22}
-          color={Colors.light.tint}
-        />
+        <FontAwesome name="location-arrow" size={22} color={colors.primary} />
       </TouchableOpacity>
     </View>
   );
@@ -247,7 +324,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 30,
     right: 30,
-    backgroundColor: "white",
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 5,

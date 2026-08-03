@@ -8,14 +8,14 @@ import {
 } from "@trustroots/nr-common";
 import { matchFilter, NostrEvent } from "nostr-tools";
 import OpenLocationCode from "open-location-code-typescript";
-import { BoundingBox, Region } from "react-native-maps";
+import { BoundingBox, Region } from "@/types/map.types";
 import { urlJoin } from "url-join-ts";
 import {
   isEventForPlusCodeExactly,
   isEventWithinThisPlusCode,
 } from "./event.utils";
 
-type PlusCodeShortLength = 2 | 4 | 6 | 8;
+export type PlusCodeShortLength = 2 | 4 | 6 | 8;
 
 const PLUS_CODE_CHARACTERS = "23456789CFGHJMPQRVWX" as const;
 

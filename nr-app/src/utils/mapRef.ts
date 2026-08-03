@@ -1,4 +1,6 @@
-import MapView, { Region } from "react-native-maps";
+import type { CameraRef, MapRef } from "@maplibre/maplibre-react-native";
+import { Region } from "@/types/map.types";
+import { latitudeDeltaToZoom } from "./maplibre.utils";
 import { rootLogger } from "./logger.utils";
 
 const log = rootLogger.extend("mapRef");
@@ -12,15 +14,6 @@ const log = rootLogger.extend("mapRef");
  * import { mapRefService } from '@/utils/mapRef';
  *
  * function* mySaga() {
- *   // Animate to a specific region
- *   mapRefService.animateToRegion({
- *     latitude: 37.78825,
- *     longitude: -122.4324,
- *     latitudeDelta: 0.0922,
- *     longitudeDelta: 0.0421,
- *   });
- *
- *   // Or animate to coordinates with default zoom
  *   mapRefService.animateToCoordinate(37.78825, -122.4324);
  * }
  *
@@ -28,7 +21,6 @@ const log = rootLogger.extend("mapRef");
  * // Using Redux actions (preferred):
  * import { mapActions } from '@/redux/slices/map.slice';
  *
- * // Dispatch from anywhere in the app
  * dispatch(mapActions.animateToCoordinate({
  *   latitude: 37.78825,
  *   longitude: -122.4324,
@@ -36,24 +28,24 @@ const log = rootLogger.extend("mapRef");
  * }));
  */
 class MapRefService {
-  private mapRef: MapView | null = null;
+  private cameraRef: CameraRef | null = null;
+  private mapRef: MapRef | null = null;
 
   /**
-   * Set the map ref - should be called from the MapMarkers component
+   * Register the map and camera refs - called from MapLibreMapView once the
+   * map is ready, and with nulls on unmount.
    */
-  setMapRef(ref: MapView | null) {
-    this.mapRef = ref;
-    if (ref) {
+  setMapRef(map: MapRef | null, camera: CameraRef | null = null) {
+    this.mapRef = map;
+    this.cameraRef = camera;
+    if (map) {
       log.debug("#mapRefSet Map ref registered");
     } else {
       log.debug("#mapRefUnset Map ref unregistered");
     }
   }
 
-  /**
-   * Get the map ref - for direct access if needed
-   */
-  getMapRef(): MapView | null {
+  getMapRef(): MapRef | null {
     return this.mapRef;
   }
 
@@ -61,12 +53,16 @@ class MapRefService {
    * Animate the map to a specific region
    */
   animateToRegion(region: Region, duration?: number) {
-    if (!this.mapRef) {
-      log.warn("#noMapRef Cannot animate to region - map ref not set");
+    if (!this.cameraRef) {
+      log.warn("#noMapRef Cannot animate to region - camera ref not set");
       return;
     }
     log.debug("#animateToRegion", region);
-    this.mapRef.animateToRegion(region, duration);
+    this.cameraRef.flyTo({
+      center: [region.longitude, region.latitude],
+      zoom: latitudeDeltaToZoom(region.latitudeDelta),
+      duration,
+    });
   }
 
   /**
@@ -80,58 +76,69 @@ class MapRefService {
     duration?: number,
   ) {
     this.animateToRegion(
-      {
-        latitude,
-        longitude,
-        latitudeDelta,
-        longitudeDelta,
-      },
+      { latitude, longitude, latitudeDelta, longitudeDelta },
       duration,
     );
   }
 
   /**
-   * Animate the camera (allows more control)
+   * Move the camera directly, in MapLibre terms
    */
   animateCamera(
-    camera: {
-      center?: { latitude: number; longitude: number };
-      pitch?: number;
-      heading?: number;
-      altitude?: number;
-      zoom?: number;
-    },
+    camera: { center: { latitude: number; longitude: number }; zoom?: number },
     duration?: number,
   ) {
-    if (!this.mapRef) {
-      log.warn("#noMapRef Cannot animate camera - map ref not set");
+    if (!this.cameraRef) {
+      log.warn("#noMapRef Cannot animate camera - camera ref not set");
       return;
     }
     log.debug("#animateCamera", camera);
-    this.mapRef.animateCamera(camera, { duration });
+    this.cameraRef.flyTo({
+      center: [camera.center.longitude, camera.center.latitude],
+      zoom: camera.zoom,
+      duration,
+    });
   }
 
   /**
-   * Fit to supplied coordinates with optional padding
+   * Fit the camera to the bounding box of the supplied coordinates
    */
   fitToCoordinates(
     coordinates: { latitude: number; longitude: number }[],
-    options?: {
-      edgePadding?: {
-        top: number;
-        right: number;
-        bottom: number;
-        left: number;
-      };
-      animated?: boolean;
-    },
+    options?: { padding?: number; duration?: number },
   ) {
-    if (!this.mapRef) {
-      log.warn("#noMapRef Cannot fit to coordinates - map ref not set");
+    if (!this.cameraRef) {
+      log.warn("#noMapRef Cannot fit to coordinates - camera ref not set");
+      return;
+    }
+    if (coordinates.length === 0) {
       return;
     }
     log.debug("#fitToCoordinates", coordinates, options);
-    this.mapRef.fitToCoordinates(coordinates, options);
+
+    const latitudes = coordinates.map((c) => c.latitude);
+    const longitudes = coordinates.map((c) => c.longitude);
+
+    this.cameraRef.fitBounds(
+      [
+        Math.min(...longitudes),
+        Math.min(...latitudes),
+        Math.max(...longitudes),
+        Math.max(...latitudes),
+      ],
+      {
+        padding:
+          options?.padding === undefined
+            ? undefined
+            : {
+                top: options.padding,
+                right: options.padding,
+                bottom: options.padding,
+                left: options.padding,
+              },
+        duration: options?.duration,
+      },
+    );
   }
 
   /**
@@ -142,7 +149,11 @@ class MapRefService {
       log.warn("#noMapRef Cannot get boundaries - map ref not set");
       return null;
     }
-    return await this.mapRef.getMapBoundaries();
+    const [west, south, east, north] = await this.mapRef.getBounds();
+    return {
+      northEast: { latitude: north, longitude: east },
+      southWest: { latitude: south, longitude: west },
+    };
   }
 }
 

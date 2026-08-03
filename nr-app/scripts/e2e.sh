@@ -20,14 +20,16 @@ trap cleanup EXIT
 MOCK_STACK_PORT="$PORT" deno run -A "$APP_DIR/.maestro/mock-stack/server.ts" &
 MOCK_PID=$!
 
+MOCK_READY=""
 for _ in $(seq 1 30); do
   if curl -sf "http://localhost:$PORT/.well-known/nostr.json?name=e2etester" >/dev/null; then
+    MOCK_READY=1
     break
   fi
   sleep 0.2
 done
 
-if ! curl -sf "http://localhost:$PORT/.well-known/nostr.json?name=e2etester" >/dev/null; then
+if [ -z "$MOCK_READY" ]; then
   echo "mock stack did not come up on port $PORT" >&2
   exit 1
 fi

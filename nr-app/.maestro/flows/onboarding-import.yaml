@@ -1,0 +1,36 @@
+appId: org.trustroots.nostroots
+name: Onboarding - import an existing key
+env:
+  # Private key 0x00...01. Synthetic, test-only, never use it for anything real.
+  TEST_NSEC: "nsec1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsmhltgl"
+  TEST_NPUB: "npub10xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqpkge6d"
+---
+- runFlow: ../subflows/open-key-screen.yaml
+
+- tapOn:
+    id: "onboarding-key-tab-import"
+
+- tapOn:
+    id: "onboarding-key-import-input"
+- inputText: ${TEST_NSEC}
+# hideKeyboard does not work against this input; tap inert copy to dismiss.
+- tapOn: "Import Your Trustroots Key"
+
+- tapOn:
+    id: "onboarding-key-import-save"
+- extendedWaitUntil:
+    visible: "Saved"
+    timeout: 15000
+
+- tapOn:
+    id: "onboarding-key-continue"
+
+# The npub shown here is derived from the stored key, so it proves the whole
+# path: SecureStore write, keystore read, bech32 derivation, Redux, render.
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-link-npub"
+    timeout: 20000
+- assertVisible:
+    id: "onboarding-link-npub"
+    text: ${TEST_NPUB}

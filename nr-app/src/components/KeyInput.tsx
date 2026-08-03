@@ -23,6 +23,7 @@ interface KeyInputProps {
   onRegenerate?: (newValue: string) => void;
   showCopyButton?: boolean;
   showPasteButton?: boolean;
+  testID?: string;
 }
 
 export function KeyInput({
@@ -35,6 +36,7 @@ export function KeyInput({
   onRegenerate,
   showCopyButton = false,
   showPasteButton = false,
+  testID,
 }: KeyInputProps) {
   const [showKey, setShowKey] = useState(false);
   const colors = useThemeColors();
@@ -86,6 +88,7 @@ export function KeyInput({
     <View className="flex gap-2">
       <View className="relative">
         <TextInput
+          testID={testID}
           secureTextEntry={!showKey}
           autoCapitalize="none"
           autoCorrect={false}
@@ -97,6 +100,7 @@ export function KeyInput({
           editable={!disabled}
         />
         <Pressable
+          testID={testID ? `${testID}-visibility-toggle` : undefined}
           onPress={() => setShowKey(!showKey)}
           disabled={disabled}
           className="absolute right-3 top-3"

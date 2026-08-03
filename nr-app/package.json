@@ -10,6 +10,7 @@
     "web": "expo start --web",
     "test": "jest",
     "test:watch": "jest --watchAll",
+    "test:e2e": "maestro test .maestro/flows",
     "lint": "eslint .",
     "prepare": "cd .. && husky nr-app/.husky",
     "build:android-development": "eas build --platform android --profile development --non-interactive",

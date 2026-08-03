@@ -125,10 +125,10 @@ export default function OnboardingKeyScreen() {
           }
         >
           <TabsList>
-            <TabsTrigger value="generate">
+            <TabsTrigger testID="onboarding-key-tab-generate" value="generate">
               <Text>Generate</Text>
             </TabsTrigger>
-            <TabsTrigger value="existing">
+            <TabsTrigger testID="onboarding-key-tab-import" value="existing">
               <Text>Import</Text>
             </TabsTrigger>
           </TabsList>
@@ -142,6 +142,7 @@ export default function OnboardingKeyScreen() {
                 <Text className="text-xs text-red-500">{importError}</Text>
               )}
               <KeyInput
+                testID="onboarding-key-import-input"
                 value={existingKeyInput}
                 onChangeText={setExistingKeyInput}
                 placeholder="Paste your nsec or mnemonic"
@@ -149,6 +150,7 @@ export default function OnboardingKeyScreen() {
                 showPasteButton={true}
               />
               <Button
+                testID="onboarding-key-import-save"
                 size="lg"
                 title={keySaved ? "Saved" : isImporting ? "Saving..." : "Save"}
                 disabled={isImporting || keySaved}
@@ -163,6 +165,7 @@ export default function OnboardingKeyScreen() {
                 <Text className="text-xs text-red-500">{mnemonicError}</Text>
               )}
               <KeyInput
+                testID="onboarding-key-mnemonic-input"
                 value={mnemonic}
                 onChangeText={setMnemonic}
                 placeholder=""
@@ -173,6 +176,7 @@ export default function OnboardingKeyScreen() {
                 showCopyButton={true}
               />
               <Button
+                testID="onboarding-key-mnemonic-confirm"
                 size="lg"
                 title={
                   mnemonicConfirmed
@@ -196,6 +200,7 @@ export default function OnboardingKeyScreen() {
           title="Back"
         />
         <Button
+          testID="onboarding-key-continue"
           variant="secondary"
           onPress={goNext}
           size="lg"

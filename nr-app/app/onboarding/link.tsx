@@ -217,6 +217,7 @@ export default function OnboardingLinkScreen() {
             Tap on it to copy it to clipboard.
           </Text>
           <Text
+            testID="onboarding-link-npub"
             className="text-sm bg-muted text-foreground rounded-md p-3 w-full text-left"
             numberOfLines={1}
             onPress={handleCopy}

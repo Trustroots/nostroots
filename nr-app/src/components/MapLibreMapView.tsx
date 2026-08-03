@@ -54,7 +54,6 @@ import type { PlusCodeShortLength } from "@/utils/map.utils";
 
 const LIGHT_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const DARK_STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
-const GRID_UPDATE_DEBOUNCE_MS = 300;
 
 const log = rootLogger.extend("MapLibreMapView");
 
@@ -175,32 +174,18 @@ export default function MapLibreMapView() {
   const [isMapReady, setIsMapReady] = useState(false);
   const [showUserLocation, setShowUserLocation] = useState(false);
 
-  const [heatGeoJSON, setHeatGeoJSON] = useState<GridGeoJSON>({
-    type: "FeatureCollection",
-    features: [],
-  });
+  const heatGeoJSON = useMemo<GridGeoJSON>(
+    () =>
+      plusCodeGridToGeoJSON(
+        gridHeatCells,
+        isMapModalOpen ? selectedPlusCode : undefined,
+      ),
+    [gridHeatCells, selectedPlusCode, isMapModalOpen],
+  );
   const gridLineGeoJSON = useMemo<GridLineGeoJSON>(
     () => plusCodeGridLinesToGeoJSON(boundingBox, gridPlusCodeLength),
     [boundingBox, gridPlusCodeLength],
   );
-
-  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    debounceTimer.current = setTimeout(() => {
-      setHeatGeoJSON(
-        plusCodeGridToGeoJSON(
-          gridHeatCells,
-          isMapModalOpen ? selectedPlusCode : undefined,
-        ),
-      );
-    }, GRID_UPDATE_DEBOUNCE_MS);
-
-    return () => {
-      if (debounceTimer.current) clearTimeout(debounceTimer.current);
-    };
-  }, [gridHeatCells, selectedPlusCode, isMapModalOpen]);
 
   // Release the map ref on unmount so sagas don't animate a dead map
   useEffect(() => {

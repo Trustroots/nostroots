@@ -187,15 +187,16 @@ describe("plusCodeGridToGeoJSON", () => {
 // ---------------------------------------------------------------------------
 
 describe("plusCodeGridLinesToGeoJSON", () => {
-  it("returns an empty FeatureCollection for no cells", () => {
-    expect(plusCodeGridLinesToGeoJSON([])).toEqual({
+  it("returns an empty FeatureCollection when inputs are missing", () => {
+    expect(plusCodeGridLinesToGeoJSON(undefined, undefined)).toEqual({
       type: "FeatureCollection",
       features: [],
     });
   });
 
-  it("generates four boundary lines for a single cell", () => {
-    const result = plusCodeGridLinesToGeoJSON(["8FVC2222+"]);
+  it("generates four boundary lines for a single-cell viewport", () => {
+    const [southWest, , northEast] = plusCodeToRectangle("8FVC2222+");
+    const result = plusCodeGridLinesToGeoJSON({ southWest, northEast }, 8);
 
     expect(result.features).toHaveLength(4);
     expect(
@@ -215,15 +216,38 @@ describe("plusCodeGridLinesToGeoJSON", () => {
     expect(verticalCount).toBe(2);
   });
 
-  it("deduplicates lines when duplicate cells are provided", () => {
-    const once = plusCodeGridLinesToGeoJSON(["8FVC2222+"]);
-    const duplicate = plusCodeGridLinesToGeoJSON(["8FVC2222+", "8FVC2222+"]);
+  it("returns empty when precision length is missing", () => {
+    const [southWest, , northEast] = plusCodeToRectangle("8FVC2222+");
+    const result = plusCodeGridLinesToGeoJSON(
+      { southWest, northEast },
+      undefined,
+    );
 
-    expect(duplicate.features).toHaveLength(once.features.length);
+    expect(result).toEqual({
+      type: "FeatureCollection",
+      features: [],
+    });
   });
 
-  it("skips invalid plus codes", () => {
-    const result = plusCodeGridLinesToGeoJSON(["not-a-plus-code", "8FVC2222+"]);
+  it("covers a viewport fully inside one cell with boundary lines", () => {
+    const [southWest, , northEast] = plusCodeToRectangle("8FVC2222+");
+    const inset = {
+      southWest: {
+        latitude:
+          southWest.latitude + (northEast.latitude - southWest.latitude) * 0.25,
+        longitude:
+          southWest.longitude +
+          (northEast.longitude - southWest.longitude) * 0.25,
+      },
+      northEast: {
+        latitude:
+          southWest.latitude + (northEast.latitude - southWest.latitude) * 0.75,
+        longitude:
+          southWest.longitude +
+          (northEast.longitude - southWest.longitude) * 0.75,
+      },
+    };
+    const result = plusCodeGridLinesToGeoJSON(inset, 8);
 
     expect(result.features).toHaveLength(4);
   });

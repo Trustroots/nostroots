@@ -1,4 +1,5 @@
 import {
+  buildTrustrootsNip05Identifier,
   normalizeTrustrootsUsername,
   validateTrustrootsUsername,
 } from "./trustrootsUsername.utils";
@@ -7,6 +8,17 @@ describe("trustrootsUsername.utils", () => {
   describe("normalizeTrustrootsUsername()", () => {
     it("trims and lowercases username input", () => {
       expect(normalizeTrustrootsUsername("  Alice  ")).toBe("alice");
+    });
+  });
+
+  describe("buildTrustrootsNip05Identifier()", () => {
+    it("builds a lowercased identifier regardless of input case", () => {
+      expect(buildTrustrootsNip05Identifier("Alice")).toBe(
+        "alice@trustroots.org",
+      );
+      expect(buildTrustrootsNip05Identifier("  MaRmAlAdEsKiEs ")).toBe(
+        "marmaladeskies@trustroots.org",
+      );
     });
   });
 

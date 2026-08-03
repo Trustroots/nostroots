@@ -13,6 +13,10 @@ import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
+import {
+  buildTrustrootsNip05Identifier,
+  validateTrustrootsUsername,
+} from "@/utils/trustrootsUsername.utils";
 import { createKind10390EventTemplate } from "@trustroots/nr-common";
 import * as Clipboard from "expo-clipboard";
 import {
@@ -87,16 +91,17 @@ export default function OnboardingLinkScreen() {
         return;
       }
 
-      const normalizedUsername = (
-        usernameOverride !== undefined ? usernameOverride : trustrootsUsername
-      ).trim();
+      const validation = validateTrustrootsUsername(
+        usernameOverride !== undefined ? usernameOverride : trustrootsUsername,
+      );
 
-      if (!normalizedUsername) {
-        setLinkError("Enter your Trustroots username to continue.");
+      if (!validation.success) {
+        setLinkError(validation.error);
         return;
       }
 
-      const identifier = `${normalizedUsername}@trustroots.org`;
+      const normalizedUsername = validation.username;
+      const identifier = buildTrustrootsNip05Identifier(normalizedUsername);
 
       setLinkStatus("verifying");
       setLinkError(null);

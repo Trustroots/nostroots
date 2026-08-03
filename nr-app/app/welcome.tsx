@@ -4,11 +4,15 @@ import { View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { useAppDispatch } from "@/redux/hooks";
+import { settingsActions } from "@/redux/slices/settings.slice";
 
 export default function WelcomeScreen() {
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
   const handleGetStarted = () => {
+    dispatch(settingsActions.setHasBeenOpenedBefore(true));
     router.replace("/onboarding");
   };
 

@@ -248,6 +248,7 @@ export default function OnboardingLinkScreen() {
             }}
             placeholder="Enter your Trustroots username"
             placeholderTextColor="#6b7280"
+            autoComplete="username"
             className="w-full bg-muted text-foreground rounded-md p-3 text-sm mb-2 text-left"
           />
           <Button

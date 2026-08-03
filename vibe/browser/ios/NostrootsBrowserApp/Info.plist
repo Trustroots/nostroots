@@ -20,11 +20,17 @@
 	<true/>
 	<key>NRBuildTime</key>
 	<string>Unknown</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Nostroots uses your approximate location to center maps and let you share nearby areas when you choose.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIStatusBarHidden</key>

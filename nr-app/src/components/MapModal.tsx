@@ -3,6 +3,7 @@ import {
   BottomSheetModalProvider,
   BottomSheetScrollView,
 } from "@expo/ui/community/bottom-sheet";
+import { useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View, useWindowDimensions } from "react-native";
@@ -15,7 +16,9 @@ import { EventWithMetadata } from "@/redux/slices/events.slice";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { RootState } from "@/redux/store";
+import { ROUTES } from "@/constants/routes";
 import AddNoteForm from "./AddNoteForm";
+import { Button } from "./ui/button";
 import NotesList, { getNotesSummaryText, useNotesListData } from "./NotesList";
 import PeopleStrip from "./PeopleStrip";
 import SubscribeBellIcon from "./SubscribeBellIcon";
@@ -24,6 +27,7 @@ import { Text } from "./ui/text";
 
 export default function MapModal() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const { colorScheme } = useColorScheme();
   const { height } = useWindowDimensions();
   const { top } = useSafeAreaInsets();
@@ -72,6 +76,11 @@ export default function MapModal() {
   const handleClose = useCallback(() => {
     bottomSheetRef.current?.dismiss();
   }, []);
+
+  const handleSetUpAccount = useCallback(() => {
+    bottomSheetRef.current?.dismiss();
+    router.push(ROUTES.ONBOARDING);
+  }, [router]);
 
   const canPost =
     hasPrivateKeyInSecureStorage && selectedLayer === "trustroots";
@@ -139,10 +148,15 @@ export default function MapModal() {
         {/* Compose bar — pinned to bottom */}
         <View className="border-t border-border/15 bg-muted/10">
           {!hasPrivateKeyInSecureStorage ? (
-            <View className="px-5 py-3">
+            <View className="px-5 py-3 gap-2">
               <Text className="text-sm text-muted-foreground">
-                Set up your private key in settings to post.
+                Set up your Trustroots account to post here.
               </Text>
+              <Button
+                variant="secondary"
+                onPress={handleSetUpAccount}
+                title="Set up account"
+              />
             </View>
           ) : selectedLayer === "trustroots" ? (
             <AddNoteForm

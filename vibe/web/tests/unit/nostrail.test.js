@@ -2,14 +2,21 @@ import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_APPROXIMATE_ACCURACY_M,
   NOSTRAIL_LOCATION_EVENT_KIND,
+  createNostrailMapAdapter,
   decodeNostrailPayload,
   dedupeRecipientInputs,
+  formatPublicKey,
   getExpirationUnix,
+  hexToNpub,
   inspectNostrailNip7,
   isNostrailEventExpired,
   makeLocationPayload,
   normalizeRecipientInput,
+  npubToHex,
+  recipientErrorMessage,
+  resolveNip05,
   snapApproximateArea,
+  summarizeRecipientResults,
   trustrootsProfileUrlToUsername,
 } from '../../nostrail/index.js';
 
@@ -64,6 +71,13 @@ describe('Nostrail web helpers', () => {
     expect(normalized.value).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  it('formats hexadecimal keys only as shortened npubs', () => {
+    expect(npubToHex(hexToNpub(HEX))).toBe(HEX);
+    expect(formatPublicKey(HEX)).toMatch(/^npub1.*\.\.\./);
+    expect(formatPublicKey(HEX)).not.toContain('aaaaaaaa');
+    expect(normalizeRecipientInput(HEX).display).toBe(formatPublicKey(HEX));
+  });
+
   it('dedupes canonical recipient inputs', () => {
     const result = dedupeRecipientInputs(['alice', '@alice', 'alice@trustroots.org', HEX, HEX.toUpperCase(), 'bad value']);
     expect(result.accepted.map((item) => item.duplicateKey)).toEqual([
@@ -71,6 +85,81 @@ describe('Nostrail web helpers', () => {
       `pubkey:${HEX}`,
     ]);
     expect(result.rejected).toHaveLength(1);
+  });
+
+  it('classifies lookup failures and enforces a timeout', async () => {
+    await expect(resolveNip05('alice@trustroots.org', {
+      fetchImpl: async () => ({ ok: false }),
+    })).rejects.toMatchObject({ kind: 'http' });
+
+    await expect(resolveNip05('alice@trustroots.org', {
+      fetchImpl: async () => ({ ok: true, json: async () => ({ nope: true }) }),
+    })).rejects.toMatchObject({ kind: 'malformed' });
+
+    await expect(resolveNip05('alice@trustroots.org', {
+      fetchImpl: async () => ({ ok: true, json: async () => ({ names: {} }) }),
+    })).rejects.toMatchObject({ kind: 'missing-key' });
+
+    await expect(resolveNip05('alice@trustroots.org', {
+      fetchImpl: () => new Promise(() => {}),
+      timeoutMs: 5,
+    })).rejects.toMatchObject({ kind: 'timeout' });
+    expect(recipientErrorMessage('timeout')).toContain('too long');
+  });
+
+  it('summarizes mixed recipient state transitions', () => {
+    expect(summarizeRecipientResults([
+      { state: 'resolved' },
+      { state: 'duplicate' },
+      { state: 'failed' },
+      { state: 'resolved' },
+    ])).toEqual({ added: 2, duplicate: 1, failed: 1 });
+  });
+
+  it('keeps map viewport movement separate from area rendering', () => {
+    const handlers = new Map();
+    const layers = [];
+    let center = { lat: 20, lng: 0 };
+    let zoom = 2;
+    const map = {
+      on: (name, handler) => handlers.set(name, handler),
+      setView: ([lat, lng], nextZoom) => { center = { lat, lng }; zoom = nextZoom; },
+      getCenter: () => center,
+      getZoom: () => zoom,
+      removeLayer: (layer) => { layer.removed = true; },
+    };
+    const leaflet = {
+      map: () => map,
+      tileLayer: () => ({ addTo: () => {} }),
+      control: { zoom: () => ({ addTo: () => {} }) },
+      circle: (latLng, options) => {
+        const layer = {
+          latLng,
+          radius: options.radius,
+          addTo: () => layer,
+          setLatLng: (value) => { layer.latLng = value; },
+          setRadius: (value) => { layer.radius = value; },
+          getLatLng: () => ({ lat: layer.latLng[0], lng: layer.latLng[1] }),
+          getRadius: () => layer.radius,
+        };
+        layers.push(layer);
+        return layer;
+      },
+    };
+    const adapter = createNostrailMapAdapter({ leaflet, container: {} });
+    expect(adapter.initialize()).toBe(true);
+    adapter.setOwnArea({ centerLat: 52.5, centerLon: 13.4, accuracyM: 500 });
+    adapter.syncPeerAreas([{ pubkey: HEX, centerLat: 51, centerLon: 7, accuracyM: 800 }]);
+    expect(adapter.getAreaSnapshot()).toMatchObject({
+      own: { lat: 52.5, lon: 13.4, radius: 500 },
+      peers: [{ pubkey: HEX, lat: 51, lon: 7, radius: 800 }],
+    });
+    handlers.get('movestart')();
+    center = { lat: 40, lng: -8 };
+    adapter.setOwnArea({ centerLat: 53, centerLon: 14, accuracyM: 600 });
+    expect(adapter.getViewport()).toMatchObject({ lat: 40, lon: -8, userMoved: true });
+    adapter.syncPeerAreas([]);
+    expect(layers[1].removed).toBe(true);
   });
 
   it('snaps coordinates into an approximate Plus Code area', () => {

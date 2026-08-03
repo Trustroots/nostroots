@@ -23,9 +23,9 @@
     .then(function (meta) {
       if (!meta || !meta.commitSha) return;
       var stamp = meta.deployTimestamp || meta.commitTimestamp;
-      var label = formatUtcLabel(stamp) + ' UTC';
+      var label = formatUtcLabel(stamp);
       buildLink.href = meta.commitUrl || ('https://github.com/Trustroots/nostroots/commit/' + meta.commitSha);
-      buildLink.setAttribute('aria-label', 'Currently deployed code: ' + label);
+      buildLink.setAttribute('aria-label', 'Page build time: ' + label);
       buildDate.textContent = label;
     })
     .catch(function () {});

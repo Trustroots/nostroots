@@ -9,6 +9,28 @@
   const LISTENING_STALE_SECONDS = 12 * 60;
   const EXPIRATION_DAYS = 30;
   const CHAT_LIMIT = 200;
+  const MEDIA_ARTWORK_FALLBACK = '../../nostroots-logo.png';
+  const LOCATION_TAG_PRIORITY = [
+    'berlin', 'paris', 'nashville',
+    'portugal', 'switzerland', 'mali', 'cuba',
+    'mx', 'ua', 'fr', 'de', 'ch', 'nl', 'US'
+  ];
+  const LOCATION_TAG_NAMES = Object.freeze({
+    berlin: 'berlin',
+    paris: 'paris',
+    nashville: 'nashville',
+    portugal: 'portugal',
+    switzerland: 'switzerland',
+    mali: 'mali',
+    cuba: 'cuba',
+    mx: 'mexico',
+    ua: 'ukraine',
+    fr: 'france',
+    de: 'germany',
+    ch: 'switzerland',
+    nl: 'netherlands',
+    US: 'usa'
+  });
   const TEST_MODE = Boolean(window.__RADIOSTR_TEST__);
 
   const state = {
@@ -84,7 +106,7 @@
       .join('') || 'RS';
     function svgBadge(opts) {
       const svg =
-        '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">' +
+        '<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 240 240">' +
         '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
         '<stop offset="0%" stop-color="' + opts.top + '"/>' +
         '<stop offset="100%" stop-color="' + opts.bottom + '"/>' +
@@ -150,6 +172,10 @@
     if (!raw) return { stationId: null };
     const stationId = raw.split(/[/?#]/)[0].trim();
     return { stationId: stationId || null };
+  }
+
+  function shouldTuneHashStation(stationId, currentStationId) {
+    return Boolean(stationId && stationId !== currentStationId);
   }
 
   function expirationTimestamp(nowMs) {
@@ -461,10 +487,20 @@
   const STATION_PAUSE_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
 
   function stationTagsLabel(station) {
-    return (station.tags || [])
+    const tags = (station.tags || [])
       .map((tag) => String(tag || '').trim())
-      .filter(Boolean)
+      .filter(Boolean);
+    const locationHash = stationLocationHash(station);
+    const descriptiveTags = tags.filter((tag) => !LOCATION_TAG_NAMES[tag]);
+    return (locationHash ? [locationHash] : [])
+      .concat(descriptiveTags)
       .join(' · ');
+  }
+
+  function stationLocationHash(station) {
+    const tags = Array.isArray(station && station.tags) ? station.tags.map(String) : [];
+    const locationTag = LOCATION_TAG_PRIORITY.find((tag) => tags.includes(tag));
+    return locationTag ? '#' + LOCATION_TAG_NAMES[locationTag] : '';
   }
 
   function createStationItem(station) {
@@ -601,6 +637,104 @@
     return '';
   }
 
+  function mediaSessionMetadata(station, sectionName) {
+    if (!station) return null;
+    const artwork = station.img || station.fallbackImg;
+    const stationHash = station.id ? '#' + station.id : '';
+    const locationHash = stationLocationHash(station);
+    const metadata = {
+      title: station.title,
+      artist: [sectionName || 'Internet radio', locationHash].filter(Boolean).join(' · '),
+      album: stationHash ? 'Radiostr · ' + stationHash : 'Radiostr'
+    };
+    if (artwork) {
+      const artworkEntry = { src: artwork };
+      if (typeof artwork === 'string' && artwork.startsWith('data:image/svg+xml,')) {
+        artworkEntry.sizes = '512x512';
+        artworkEntry.type = 'image/svg+xml';
+      }
+      metadata.artwork = [artworkEntry];
+    }
+    if (!metadata.artwork) metadata.artwork = [];
+    metadata.artwork.push({
+      src: MEDIA_ARTWORK_FALLBACK,
+      sizes: '1254x1254',
+      type: 'image/png'
+    });
+    return metadata;
+  }
+
+  function nativeNowPlayingPayload(station, sectionName, playing) {
+    const metadata = mediaSessionMetadata(station, sectionName);
+    if (!station || !metadata) return null;
+    return {
+      stationId: station.id,
+      title: metadata.title,
+      artist: metadata.artist,
+      album: metadata.album,
+      artwork: (metadata.artwork || []).map((entry) => entry && entry.src).filter(Boolean),
+      playing: Boolean(playing),
+      liveStream: true
+    };
+  }
+
+  function updateNativeNowPlaying(station, sectionName) {
+    const bridge = window.nostrootsBrowser && window.nostrootsBrowser.nowPlaying;
+    if (!bridge || !bridge.__native) return;
+    const payload = nativeNowPlayingPayload(station, sectionName, state.playing);
+    if (payload) bridge.update(payload);
+    else bridge.clear();
+  }
+
+  function updateMediaSession() {
+    if (typeof navigator === 'undefined' || !navigator.mediaSession) return;
+    const station = getStationById(state.currentStationId);
+    const metadata = mediaSessionMetadata(station, station ? sectionNameForStation(station.id) : '');
+    try {
+      navigator.mediaSession.metadata = metadata && typeof window.MediaMetadata === 'function'
+        ? new window.MediaMetadata(metadata)
+        : null;
+      navigator.mediaSession.playbackState = state.playing ? 'playing' : 'paused';
+    } catch (_) {
+      // Media Session support differs between Apple browser versions; playback still works normally.
+    }
+  }
+
+  function updateSystemNowPlaying() {
+    const station = getStationById(state.currentStationId);
+    const sectionName = station ? sectionNameForStation(station.id) : '';
+    updateMediaSession();
+    updateNativeNowPlaying(station, sectionName);
+  }
+
+  function setMediaSessionAction(action, handler) {
+    if (typeof navigator === 'undefined' || !navigator.mediaSession) return;
+    try {
+      navigator.mediaSession.setActionHandler(action, handler);
+    } catch (_) {
+      // Some browser versions expose Media Session without every action type.
+    }
+  }
+
+  function bindMediaSession() {
+    setMediaSessionAction('play', () => {
+      if (!state.playing) togglePlay();
+    });
+    setMediaSessionAction('pause', () => {
+      if (state.playing) togglePlay();
+    });
+    setMediaSessionAction('previoustrack', () => stepStation(-1));
+    setMediaSessionAction('nexttrack', () => stepStation(1));
+    window.addEventListener('nostroots-now-playing-command', (event) => {
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
+      const command = event && event.detail && event.detail.command;
+      if (command === 'play' && !state.playing) togglePlay();
+      else if ((command === 'pause' || command === 'stop') && state.playing) togglePlay();
+      else if (command === 'previous') stepStation(-1);
+      else if (command === 'next') stepStation(1);
+    });
+  }
+
   function updateNowPlayingUi() {
     const station = getStationById(state.currentStationId);
     const bar = els.nowPlayingBar;
@@ -621,6 +755,7 @@
     if (els.nowPlayingTitle) {
       els.nowPlayingTitle.textContent = station ? station.title : 'Pick a station';
     }
+    document.title = station ? station.title + ' · Radiostr' : 'Radiostr';
     if (els.nowPlayingSubtitle) {
       const sectionName = station ? sectionNameForStation(station.id) : '';
       if (sectionName) {
@@ -642,8 +777,12 @@
       els.playBtn.setAttribute('aria-pressed', state.playing ? 'true' : 'false');
       els.playBtn.setAttribute('aria-label', state.playing ? 'Pause' : 'Play');
     }
+    if (els.audio) {
+      els.audio.title = station ? station.title : '';
+    }
     updateStarButton(state.currentStationId);
     updateStationListState();
+    updateSystemNowPlaying();
   }
 
   function renderStationSections() {
@@ -1277,7 +1416,7 @@
     }
     renderStationSections();
     clearNowPlayingSchedule();
-    if (els.audio) {
+    if (els.audio && !autoplay) {
       els.audio.src = station.url;
     }
     if (autoplay && els.audio) {
@@ -1322,7 +1461,7 @@
 
   function applyHashRoute() {
     const { stationId } = parseHashRoute(location.hash);
-    if (stationId && getStationById(stationId)) {
+    if (shouldTuneHashStation(stationId, state.currentStationId) && getStationById(stationId)) {
       tuneIn(stationId, { updateHash: false, autoplay: true });
     }
   }
@@ -1335,6 +1474,7 @@
 
   function bindUi() {
     if (els.playBtn) els.playBtn.addEventListener('click', togglePlay);
+    bindMediaSession();
     if (els.starBtn) {
       els.starBtn.addEventListener('click', () => {
         if (state.currentStationId) toggleStar(state.currentStationId);
@@ -1462,6 +1602,11 @@
     titleFromStationId,
     somaStreamUrl,
     buildRadioData,
+    mediaSessionMetadata,
+    nativeNowPlayingPayload,
+    stationLocationHash,
+    stationTagsLabel,
+    shouldTuneHashStation,
     parseHashRoute,
     buildExpirationTag,
     buildChatTags,

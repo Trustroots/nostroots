@@ -28,6 +28,7 @@
 		56174F2085E084DD20D3C188 /* NIP19.swift in Sources */ = {isa = PBXBuildFile; fileRef = A600E46B741DB25022B5CE44 /* NIP19.swift */; };
 		56D4D79720148F69E3A209BF /* KeyImportParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 02A15F2DB8B7231F30782CF5 /* KeyImportParser.swift */; };
 		59B76D5A5E8F92363A04DD12 /* NostrootsBrowserTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA9102AC19F25FD653FBB7C /* NostrootsBrowserTests.swift */; };
+		6A4D494F5354524E4F57504C /* RadiostrNowPlayingBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B4D494F5354524E4F57504C /* RadiostrNowPlayingBridge.swift */; };
 		7121EBE8F6034228FE3C0E94 /* VibePushPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C108C0C5039EC8F83C2F711 /* VibePushPublisher.swift */; };
 		75565E2CF46EB4F77A775FDB /* VibePushModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09B2316F1382AD316E2B7B52 /* VibePushModels.swift */; };
 		77FAFB8ADE7A5A93261ABCC3 /* Hex.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9CAE796FEBF58CA3C0F6660 /* Hex.swift */; };
@@ -84,6 +85,7 @@
 		4CAEE6762C53D952A6F72247 /* VibePushStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VibePushStore.swift; path = Services/VibePushStore.swift; sourceTree = "<group>"; };
 		569818970615240D486E9C2C /* NIP07PermissionStore.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NIP07PermissionStore.swift; path = Services/NIP07PermissionStore.swift; sourceTree = "<group>"; };
 		61C77DADC83CB8690781F222 /* NativeBrowserWebView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NativeBrowserWebView.swift; sourceTree = "<group>"; };
+		6B4D494F5354524E4F57504C /* RadiostrNowPlayingBridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RadiostrNowPlayingBridge.swift; sourceTree = "<group>"; };
 		717820D8C4AB3381958E9971 /* NIP07Bridge.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = NIP07Bridge.swift; path = Bridge/NIP07Bridge.swift; sourceTree = "<group>"; };
 		717B729486E7C004F4976C70 /* SettingsCopy.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = SettingsCopy.swift; path = Services/SettingsCopy.swift; sourceTree = "<group>"; };
 		72144E17D6C749ECB59B64B1 /* SettingsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -166,6 +168,7 @@
 				0958617F13CF156E8834A38D /* BrowserAppModel.swift */,
 				30BE0D374212DDB072D3AA87 /* KeySetupView.swift */,
 				61C77DADC83CB8690781F222 /* NativeBrowserWebView.swift */,
+				6B4D494F5354524E4F57504C /* RadiostrNowPlayingBridge.swift */,
 				DA8B18E0EDD2BCA0474D131F /* NostrootsBrowserApp.swift */,
 				EBCDBBABDC11CE5EC190FBFD /* NostrootsBrowserRootView.swift */,
 				72144E17D6C749ECB59B64B1 /* SettingsView.swift */,
@@ -381,6 +384,7 @@
 				7EB28405742485A40194B68F /* BrowserAppModel.swift in Sources */,
 				3D6EBB1D5C31E9A2A6A1F607 /* KeySetupView.swift in Sources */,
 				988900A139EE4CD840685E3A /* NativeBrowserWebView.swift in Sources */,
+				6A4D494F5354524E4F57504C /* RadiostrNowPlayingBridge.swift in Sources */,
 				1321C04E8C51D1897A714F3B /* NostrootsBrowserApp.swift in Sources */,
 				9F1C4878DBCD5EE6255CC5BE /* NostrootsBrowserRootView.swift in Sources */,
 				4E3824D83BA84AD349FC4303 /* SettingsView.swift in Sources */,

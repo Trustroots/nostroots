@@ -6,12 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
 import { IdCardLanyardIcon } from "lucide-react-native";
-import { selectFeatureFlags } from "@/redux/slices/settings.slice";
-import { useAppSelector } from "@/redux/hooks";
+import { settingsActions } from "@/redux/slices/settings.slice";
+import { useAppDispatch } from "@/redux/hooks";
 
 export default function OnboardingIdentityScreen() {
   const router = useRouter();
-  const { useSkipOnboarding } = useAppSelector(selectFeatureFlags);
+  const dispatch = useAppDispatch();
 
   const goBack = () => {
     router.back();
@@ -21,8 +21,9 @@ export default function OnboardingIdentityScreen() {
     router.push("/onboarding/trustroots");
   };
 
-  const goSkip = () => {
-    router.push(ROUTES.HOME);
+  const goBrowse = () => {
+    dispatch(settingsActions.setIsBrowsingAsGuest(true));
+    router.replace(ROUTES.HOME);
   };
 
   return (
@@ -58,15 +59,13 @@ export default function OnboardingIdentityScreen() {
           size="lg"
           title="Continue"
         />
-        {useSkipOnboarding && (
-          <Button
-            variant="outline"
-            onPress={goSkip}
-            size="lg"
-            title="Skip"
-            textClassName="text-white"
-          />
-        )}
+        <Button
+          variant="outline"
+          onPress={goBrowse}
+          size="lg"
+          title="Browse first"
+          textClassName="text-white"
+        />
       </View>
 
       <View className="p-4 opacity-75">

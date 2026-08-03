@@ -81,6 +81,13 @@ export default function OnboardingTrustrootsScreen() {
 
   // Sync local UI state from pending Trustroots verification in redux, again
   // by adjusting state during render rather than in an effect.
+  //
+  // This re-derives only when the redux values change, deliberately not when
+  // screenState alone returns to "idle" — the effect this replaced also
+  // re-ran on that. Every reset path here clears the pending username in redux
+  // as it sets screenState back to "idle", so the two always move together. A
+  // future reset that changes only screenState would silently stop re-deriving
+  // "code-entry", so keep them in step.
   const [syncedPendingProfileUsername, setSyncedPendingProfileUsername] =
     useState<string | null>(null);
   const [syncedPendingUsername, setSyncedPendingUsername] = useState<
@@ -257,7 +264,11 @@ export default function OnboardingTrustrootsScreen() {
     <>
       <View className="flex items-center gap-6">
         <MailCheckIcon size={128} color="#fff" strokeWidth={0.5} />
-        <Text variant="h1" className="my-0">
+        <Text
+          testID="onboarding-trustroots-heading"
+          variant="h1"
+          className="my-0"
+        >
           Verify your Trustroots email
         </Text>
       </View>

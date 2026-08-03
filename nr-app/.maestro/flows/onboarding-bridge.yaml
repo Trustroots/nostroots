@@ -32,7 +32,9 @@ env:
 - tapOn:
     id: "onboarding-trustroots-username-input"
 - inputText: ${TEST_USERNAME}
-- hideKeyboard
+# hideKeyboard does not work against these inputs; tap the inert heading instead.
+- tapOn:
+    id: "onboarding-trustroots-heading"
 
 - tapOn:
     id: "onboarding-trustroots-request-code"
@@ -45,7 +47,8 @@ env:
 - tapOn:
     id: "onboarding-trustroots-code-input"
 - inputText: ${TEST_CODE}
-- hideKeyboard
+- tapOn:
+    id: "onboarding-trustroots-heading"
 
 - tapOn:
     id: "onboarding-trustroots-verify-code"
@@ -57,13 +60,23 @@ env:
       id: "onboarding-backup-copy-secret"
     timeout: 30000
 
-# The generated mnemonic is not known to this flow, so copy it off the screen.
+# The keyboard from the code input survives the navigation and covers the lower
+# half of this screen, so dismiss it before touching anything down there.
 - tapOn:
-    id: "onboarding-backup-copy-secret"
+    id: "onboarding-backup-heading"
+
+# The generated mnemonic is not known to this flow, so read it off the screen.
+# Deliberately not the app's own Copy secret button: its Clipboard write is
+# async, and pasting immediately after tapping it pastes nothing.
+- copyTextFrom:
+    id: "onboarding-backup-secret"
 - tapOn:
     id: "onboarding-backup-input"
 - pasteText
-- hideKeyboard
+# Focusing the input scrolls the heading off screen, so dismiss the keyboard by
+# tapping the secret instead — it stays in view just above the input.
+- tapOn:
+    id: "onboarding-backup-secret"
 
 - tapOn:
     id: "onboarding-backup-confirm"

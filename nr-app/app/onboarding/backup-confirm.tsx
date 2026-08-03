@@ -204,7 +204,7 @@ export default function OnboardingBackupConfirmScreen() {
     <>
       <View className="flex items-center gap-6">
         <ShieldCheckIcon size={128} color="#fff" strokeWidth={0.5} />
-        <Text variant="h1" className="my-0">
+        <Text testID="onboarding-backup-heading" variant="h1" className="my-0">
           Confirm Your Backup
         </Text>
       </View>
@@ -226,6 +226,7 @@ export default function OnboardingBackupConfirmScreen() {
             Save this secret before continuing
           </Text>
           <Text
+            testID="onboarding-backup-secret"
             className="text-sm bg-muted text-foreground rounded-md p-3 text-left"
             selectable
           >

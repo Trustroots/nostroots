@@ -1,5 +1,5 @@
 import { useRouter } from "expo-router";
-import { nip05, nip19 } from "nostr-tools";
+import { nip19 } from "nostr-tools";
 import React, { useCallback, useEffect, useState } from "react";
 import { Linking, TextInput, View } from "react-native";
 
@@ -17,7 +17,12 @@ import {
   buildTrustrootsNip05Identifier,
   validateTrustrootsUsername,
 } from "@/utils/trustrootsUsername.utils";
-import { createKind10390EventTemplate } from "@trustroots/nr-common";
+import {
+  createKind10390EventTemplate,
+  getNip5PubKey,
+} from "@trustroots/nr-common";
+
+import { TRUSTROOTS_NIP05_DOMAIN } from "@/config/env";
 import * as Clipboard from "expo-clipboard";
 import {
   AlertTriangleIcon,
@@ -118,11 +123,17 @@ export default function OnboardingLinkScreen() {
 
       try {
         // NIP-05 lookup: confirm Trustroots identifier maps to this pubkey.
+        // Uses nr-common rather than nostr-tools' queryProfile so this shares
+        // one implementation with app/index.tsx and honours the configured
+        // domain, including the plaintext localhost the e2e mock stack serves.
         console.log("[link] NIP-05 lookup for", identifier);
-        const profile = await nip05.queryProfile(identifier);
-        console.log("[link] NIP-05 profile result:", JSON.stringify(profile));
+        const pubkey = await getNip5PubKey(
+          normalizedUsername,
+          TRUSTROOTS_NIP05_DOMAIN,
+        );
+        console.log("[link] NIP-05 pubkey result:", pubkey);
 
-        if (!profile?.pubkey) {
+        if (!pubkey) {
           trackEvent("onboarding_link", {
             outcome: "not_found",
             method: "nip05",
@@ -139,7 +150,7 @@ export default function OnboardingLinkScreen() {
           return;
         }
 
-        const nip05Npub = nip19.npubEncode(profile.pubkey);
+        const nip05Npub = nip19.npubEncode(pubkey);
         console.log("[link] NIP-05 npub:", nip05Npub, "local npub:", npub);
 
         if (nip05Npub !== npub) {
@@ -232,7 +243,7 @@ export default function OnboardingLinkScreen() {
       <View className="flex items-center gap-6">
         <LinkIcon size={128} color="#fff" strokeWidth={0.5} />
 
-        <Text variant="h1" className="my-0">
+        <Text testID="onboarding-link-heading" variant="h1" className="my-0">
           Connect to Trustroots
         </Text>
       </View>
@@ -267,6 +278,7 @@ export default function OnboardingLinkScreen() {
 
         <StepCard stepNumber={3} title="Verify Connection">
           <TextInput
+            testID="onboarding-link-username-input"
             autoCapitalize="none"
             autoCorrect={false}
             value={trustrootsUsername}
@@ -281,6 +293,7 @@ export default function OnboardingLinkScreen() {
             className="w-full bg-muted text-foreground rounded-md p-3 text-sm mb-2 text-left"
           />
           <Button
+            testID="onboarding-link-verify"
             title={
               linkStatus === "error"
                 ? "Try Again"
@@ -313,6 +326,7 @@ export default function OnboardingLinkScreen() {
           title="Back"
         />
         <Button
+          testID="onboarding-link-finish"
           variant="secondary"
           onPress={goNext}
           size="lg"

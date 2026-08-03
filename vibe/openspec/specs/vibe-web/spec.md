@@ -109,7 +109,7 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
   with Android and iOS store links, top-nav Android and iOS store links, hub lead
   copy that mentions getting the mobile app, and the NIP-7 info modal bullet
   recommending mobile app install
-- **AND** additional experimental experiences (Nostrail, Radiostr, Hitchwiki,
+- **AND** additional experimental experiences (Food Circle, Nostrail, Radiostr, Hitchwiki,
   Hitchwiki Maps, and third-party links such as Treasures and Miti) MUST remain hidden
   until the user enables "Show more experimental apps"
 - **AND** the Trustroots Wiki, Nomadwiki, and Trashwiki cards MUST be visible

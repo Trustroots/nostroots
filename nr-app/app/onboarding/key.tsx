@@ -16,6 +16,7 @@ import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
 import { settingsActions } from "@/redux/slices/settings.slice";
 import { KeyIcon } from "lucide-react-native";
 import { getBech32PrivateKey } from "nip06";
+import { trackEvent } from "@/services/analytics.service";
 
 export default function OnboardingKeyScreen() {
   const router = useRouter();
@@ -61,10 +62,19 @@ export default function OnboardingKeyScreen() {
     if (result.success) {
       setKeySaved(true);
       dispatch(settingsActions.setKeyWasImported(true));
+      trackEvent("onboarding_key_saved", {
+        method: result.type === "mnemonic" ? "mnemonic" : "nsec",
+        outcome: "success",
+      });
+    } else {
+      trackEvent("onboarding_key_saved", {
+        method: "import",
+        outcome: "failure",
+      });
     }
   };
 
-  const saveGeneratedMnemonic = async () => {
+  const saveGeneratedMnemonic = useCallback(async () => {
     if (!mnemonic || !mnemonicConfirmed) {
       setMnemonicError("Please save and confirm your words before continuing.");
       return;
@@ -73,11 +83,19 @@ export default function OnboardingKeyScreen() {
     try {
       dispatch(setPrivateKeyPromiseAction.request({ mnemonic }));
       dispatch(settingsActions.setKeyWasImported(false));
+      trackEvent("onboarding_key_saved", {
+        method: "generated",
+        outcome: "success",
+      });
     } catch (error) {
+      trackEvent("onboarding_key_saved", {
+        method: "generated",
+        outcome: "failure",
+      });
       console.error("Failed to save mnemonic", error);
       setMnemonicError("We could not set up this key. Please try again.");
     }
-  };
+  }, [dispatch, mnemonic, mnemonicConfirmed]);
 
   const goBack = () => {
     if (router.canGoBack()) {
@@ -88,14 +106,13 @@ export default function OnboardingKeyScreen() {
   };
 
   const goNext = useCallback(async () => {
-    if (currentTab === "existing") {
-      await saveExistingKey();
-    } else {
+    if (currentTab === "generate") {
       await saveGeneratedMnemonic();
     }
 
+    trackEvent("onboarding_key_completed", { method: currentTab });
     router.push("/onboarding/link");
-  }, [currentTab, saveExistingKey, saveGeneratedMnemonic, router]);
+  }, [currentTab, saveGeneratedMnemonic, router]);
 
   const canContinue =
     currentTab === "existing"
@@ -120,9 +137,11 @@ export default function OnboardingKeyScreen() {
       <View className="flex w-full flex-col gap-6">
         <Tabs
           value={currentTab}
-          onValueChange={(value) =>
-            setCurrentTab(value as "existing" | "generate")
-          }
+          onValueChange={(value) => {
+            const method = value as "existing" | "generate";
+            setCurrentTab(method);
+            trackEvent("onboarding_key_method_selected", { method });
+          }}
         >
           <TabsList>
             <TabsTrigger value="generate">

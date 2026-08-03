@@ -4,11 +4,13 @@ import { View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { trackEvent } from "@/services/analytics.service";
 
 export default function WelcomeScreen() {
   const router = useRouter();
 
   const handleGetStarted = () => {
+    trackEvent("onboarding_started");
     router.replace("/onboarding");
   };
 

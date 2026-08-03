@@ -37,6 +37,10 @@ import { useUpdateOnForeground } from "@/hooks/useUpdateOnForeground";
 import { StatusBar } from "react-native";
 import { configureNavigationDispatch } from "@/utils/navigation.utils";
 import { NAV_THEME, THEME } from "@/utils/theme.utils";
+import {
+  setAnalyticsEnabled,
+  trackScreenView,
+} from "@/services/analytics.service";
 
 // Construct a new integration instance. This is needed to communicate between the integration and React
 const navigationIntegration = Sentry.reactNavigationIntegration({
@@ -67,6 +71,17 @@ function AppContent() {
   const colorSchemePreference = useAppSelector(
     settingsSelectors.selectColorScheme,
   );
+  const analyticsEnabled = useAppSelector(
+    settingsSelectors.selectAnalyticsEnabled,
+  );
+
+  useEffect(() => {
+    setAnalyticsEnabled(analyticsEnabled);
+  }, [analyticsEnabled]);
+
+  useEffect(() => {
+    if (pathname) trackScreenView(pathname);
+  }, [pathname]);
 
   useEffect(() => {
     const forceLightMode = FORCE_LIGHT_MODE_ROUTES.some((route) =>

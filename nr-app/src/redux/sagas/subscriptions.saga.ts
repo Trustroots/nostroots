@@ -29,7 +29,7 @@ import { RootState } from "../store";
 
 const AUTHOR_SUBSCRIPTION_ID = "authorSubscription";
 
-function getRelayUrlsOrDefaults(relayUrls?: string[]) {
+export function getRelayUrlsOrDefaults(relayUrls?: string[]) {
   if (typeof relayUrls === "undefined" || relayUrls.length === 0) {
     // TODO: Get defaults from redux
     const defaultRelayUrls = [DEFAULT_RELAY_URL];
@@ -40,7 +40,7 @@ function getRelayUrlsOrDefaults(relayUrls?: string[]) {
 }
 
 // TODO: Handle network failures here, they will throw
-function* startSubscriptionSagaEffect(
+export function* startSubscriptionSagaEffect(
   action: ReturnType<typeof startSubscription>,
 ) {
   const { filters, id, relayUrls } = action.payload;
@@ -85,7 +85,7 @@ export function* startSubscriptionSaga() {
   yield takeEvery(startSubscription, startSubscriptionSagaEffect);
 }
 
-function* stopSubscriptionSagaEffect(
+export function* stopSubscriptionSagaEffect(
   action: ReturnType<typeof stopSubscription>,
 ): Generator<StrictEffect, void, Subscription> {
   const subscription = yield call(getSubscription, action.payload);
@@ -105,8 +105,8 @@ function selectEventsAndSubscription(state: RootState) {
   return { eventsWithMetadata, existingSubscription };
 }
 
-function* subscribeToUserProfilesSagaEffect(
-  action: ReturnType<typeof addEvent>,
+export function* subscribeToUserProfilesSagaEffect(
+  _action: ReturnType<typeof addEvent>,
 ): Generator<
   StrictEffect,
   void,

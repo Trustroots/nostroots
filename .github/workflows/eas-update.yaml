@@ -2,6 +2,11 @@ name: Send an OTA update
 
 on:
   workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to build and send OTA update from
+        required: true
+        default: main
 
 jobs:
   test:
@@ -13,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
 
       - uses: ./.github/actions/repo-setup
         with:

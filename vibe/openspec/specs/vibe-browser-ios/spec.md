@@ -120,3 +120,28 @@ to the web/product context used by Vibe push notifications.
 - **WHEN** the user taps the notification
 - **THEN** the app SHOULD route the web/product context toward that plus-code
   area.
+
+### Requirement: Native Radiostr Now Playing bridge
+
+Nostroots iOS MUST promote active Radiostr playback from the trusted production
+web page into the native iOS Now Playing system.
+
+#### Scenario: Radiostr claims system Now Playing
+
+- **GIVEN** the WebView is on `https://nos.trustroots.org/examples/radiostr/`
+- **WHEN** Radiostr selects or plays a station
+- **THEN** the native app MUST publish its station name, catalog group,
+  Radiostr hash route, live-stream status, playback state, and artwork to iOS
+  Now Playing
+- **AND** it MUST declare background audio playback
+- **AND** the CarPlay and system play, pause, stop, previous, and next commands
+  MUST control the Radiostr web player
+- **AND** the metadata bridge MUST leave WebKit's active audio session in place
+  so publishing Now Playing state does not interrupt the stream.
+
+#### Scenario: Untrusted or unrelated page
+
+- **GIVEN** the WebView is not on the trusted production Radiostr page
+- **WHEN** a page sends a native Now Playing message or navigation completes
+- **THEN** Nostroots iOS MUST reject or clear the Radiostr Now Playing session
+- **AND** it MUST disable its Radiostr remote-command handlers.

@@ -16,7 +16,7 @@ export default defineConfig({
         replacement: 'bip39',
       },
       {
-        find: /^https:\/\/cdn\.jsdelivr\.net\/npm\/dompurify@3\.2\.2\/\+esm(?:\?.*)?$/,
+        find: /^https:\/\/cdn\.jsdelivr\.net\/npm\/dompurify@3\.4\.12\/\+esm(?:\?.*)?$/,
         replacement: 'dompurify',
       },
     ],
@@ -33,7 +33,6 @@ export default defineConfig({
       '**/cypress/**',
       '**/.{idea,git,cache,output,temp}/**',
       '**/tests/e2e/**',
-      '**/examples/wikistr/test/**',
       '**/examples/radiostr/test/**',
       '**/*.e2e.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
     ],

@@ -268,17 +268,11 @@
     }
 
     .trustroots .app-icon img {
-      width: auto;
+      width: 46px;
       max-width: none;
-      height: 100%;
+      height: 46px;
       border-radius: 0;
       object-fit: contain;
-      justify-self: start;
-    }
-
-    .secondary .app-icon {
-      background: #004b3f;
-      box-shadow: inset 0 -16px 0 rgba(152, 173, 70, 0.24);
     }
 
     .browser-extension .app-icon,
@@ -306,9 +300,47 @@
       box-shadow: inset 0 -16px 0 rgba(238, 134, 25, 0.28);
     }
 
-    .wikistr .app-icon {
-      background: #4f8f66;
-      box-shadow: inset 0 -16px 0 rgba(180, 218, 191, 0.34);
+    .wiki-site .app-icon {
+      background: #ffffff;
+      box-shadow: 0 0 0 1px rgba(0, 75, 63, 0.12);
+    }
+
+    .wiki-site .app-icon img {
+      border-radius: 0;
+      object-fit: contain;
+    }
+
+    .nomadwiki .card-action {
+      background: #f6d618;
+    }
+
+    .trashwiki .card-action {
+      background: #dcddcb;
+    }
+
+    .hitchwiki .card-action {
+      background: #eece56;
+    }
+
+    .hitchwiki-maps .card-action {
+      background: #f1cf50;
+    }
+
+    .trustroots-wiki .card-action {
+      background: #00836f;
+    }
+
+    .card.nomadwiki .card-action {
+      color: #2b2600;
+    }
+
+    .card.trashwiki .card-action {
+      color: #20201d;
+    }
+
+    .card.hitchwiki .card-action,
+    .card.hitchwiki-maps .card-action {
+      color: #5a2700;
     }
 
     .radiostr .app-icon {
@@ -420,6 +452,24 @@
       height: 100%;
     }
 
+    .app-qr-shared {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 0 0 18px;
+    }
+
+    .app-qr-shared .app-qr {
+      position: static;
+      flex: 0 0 auto;
+    }
+
+    .app-qr-shared p {
+      max-width: 18rem;
+      margin: 0;
+      color: var(--muted);
+    }
+
     .download-card.android .app-icon,
     .download-card.android .card-action {
       background: #128a78;
@@ -442,10 +492,6 @@
       font-weight: 800;
     }
 
-    .secondary .card-action {
-      background: #004b3f;
-    }
-
     .browser-extension .card-action {
       background: var(--accent);
     }
@@ -460,10 +506,6 @@
 
     .miti .card-action {
       background: #395d7a;
-    }
-
-    .wikistr .card-action {
-      background: #4f8f66;
     }
 
     .radiostr .card-action {
@@ -491,6 +533,11 @@
 
     .cards.show-experimental .experimental-card {
       display: grid;
+    }
+
+    html.is-in-nostroots-browser #trustroots-card,
+    html.is-in-nostroots-browser #nostroots-web-card {
+      display: none;
     }
 
     @media (max-width: 1180px) {
@@ -593,6 +640,12 @@
 
     <section id="download-section" aria-labelledby="download-heading">
       <h2 class="section-title" id="download-heading">Get the mobile app</h2>
+      <div class="app-qr-shared">
+        <a class="app-qr" href="app/" aria-label="Choose a Nostroots app download">
+          <img src="app-qr.svg" alt="Nostroots app download QR code" width="128" height="128" loading="lazy">
+        </a>
+        <p>Scan this code on your phone and you’ll be sent to the right app store.</p>
+      </div>
       <div class="cards" aria-label="Mobile app downloads">
         <article class="card download-card android" id="android">
           <div class="card-main">
@@ -609,17 +662,6 @@
             </a>
             <h2>Android</h2>
           </div>
-          <a
-            class="app-qr"
-            href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
-            aria-label="Open Nostroots on Google Play"
-            data-umami-event="Click Android app"
-            data-umami-event-placement="card-qr"
-            data-umami-event-target="android-app"
-            data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
-          >
-            <img src="app-qr-android.svg" alt="" width="128" height="128" loading="lazy">
-          </a>
           <div class="download-actions">
             <a
               class="card-action"
@@ -654,17 +696,6 @@
             </a>
             <h2>iOS</h2>
           </div>
-          <a
-            class="app-qr"
-            href="https://apps.apple.com/app/nostroots/id6755037304"
-            aria-label="Open Nostroots on the App Store"
-            data-umami-event="Click iOS app"
-            data-umami-event-placement="card-qr"
-            data-umami-event-target="ios-app"
-            data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304"
-          >
-            <img src="app-qr-ios.svg" alt="" width="128" height="128" loading="lazy">
-          </a>
           <div class="download-actions">
             <a
               class="card-action"
@@ -726,7 +757,7 @@
       >
         <div class="card-main">
           <span class="app-icon" aria-hidden="true">
-            <img src="https://www.trustroots.org/img/logo/horizontal-white.svg" alt="" width="296" height="54" loading="lazy">
+            <img src="trustroots-tree-white.svg" alt="" width="46" height="46" loading="lazy">
           </span>
           <h2 id="trustroots-card-title">Trustroots.org</h2>
           <p id="trustroots-card-description">Manage your classic Trustroots profile, networks, and account settings.</p>
@@ -734,7 +765,7 @@
         <span id="trustroots-card-action" class="card-action">Open Trustroots.org</span>
       </a>
 
-      <a class="card" href="web/">
+      <a id="nostroots-web-card" class="card" href="web/">
         <div class="card-main">
           <span class="app-icon" aria-hidden="true">
             <svg viewBox="0 0 48 48">
@@ -772,34 +803,6 @@
         <span class="card-action">Open Nostrail</span>
       </a>
 
-      <a class="card secondary experimental-card" href="nostroots-map/">
-        <div class="card-main">
-          <span class="card-label">More experimental</span>
-          <span class="app-icon" aria-hidden="true">
-            <svg viewBox="0 0 48 48">
-              <path d="M11 12l8-3 10 3 8-3v25l-8 3-10-3-8 3V12Zm8-3v25m10-22v25" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-              <path d="M24 33v7m0-3.5c-5.5 0-8.5 2-11 4.5M24 36.5c5.5 0 8.5 2 11 4.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-            </svg>
-          </span>
-          <h2>Nostroots Map</h2>
-          <p>Try a browser-native map surface inspired by the mobile app, built without React or Expo Web.</p>
-        </div>
-        <span class="card-action">Open Nostroots Map</span>
-      </a>
-
-      <a
-        class="card wikistr experimental-card"
-        href="examples/wikistr/"
-      >
-        <div class="card-main">
-          <span class="card-label">More experimental</span>
-          <span class="app-icon app-icon-text" aria-hidden="true">⭐</span>
-          <h2>wikistr ⭐</h2>
-          <p>Explore experimental Nostr-powered updates for Nomadwiki, Trashwiki, Hitchwiki, and Trustroots wiki.</p>
-        </div>
-        <span class="card-action">Open wikistr ⭐</span>
-      </a>
-
       <a
         class="card radiostr experimental-card"
         href="examples/radiostr/"
@@ -811,6 +814,63 @@
           <p>Listen to internet radio together — chat and tune into what others are playing.</p>
         </div>
         <span class="card-action">Open Radiostr</span>
+      </a>
+
+      <a class="card wiki-site trustroots-wiki" href="https://wiki.trustroots.org/">
+        <div class="card-main">
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/trustroots-wiki.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Trustroots Wiki</h2>
+          <p>Read and improve community documentation about Trustroots, travel, and volunteering.</p>
+        </div>
+        <span class="card-action">Open Trustroots Wiki</span>
+      </a>
+
+      <a class="card wiki-site nomadwiki" href="https://nomadwiki.org/">
+        <div class="card-main">
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/nomadwiki.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Nomadwiki</h2>
+          <p>Browse practical travel knowledge written by nomads and independent travelers.</p>
+        </div>
+        <span class="card-action">Open Nomadwiki</span>
+      </a>
+
+      <a class="card wiki-site trashwiki" href="https://trashwiki.org/">
+        <div class="card-main">
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/trashwiki.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Trashwiki</h2>
+          <p>Find community guides to dumpster diving, reuse, free food, and reducing waste.</p>
+        </div>
+        <span class="card-action">Open Trashwiki</span>
+      </a>
+
+      <a class="card wiki-site hitchwiki experimental-card" href="https://hitchwiki.org/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/hitchwiki.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Hitchwiki</h2>
+          <p>Read practical hitchhiking guides, routes, and advice shared by travelers.</p>
+        </div>
+        <span class="card-action">Open Hitchwiki</span>
+      </a>
+
+      <a class="card wiki-site hitchwiki-maps experimental-card" href="https://maps.hitchwiki.org/">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon" aria-hidden="true">
+            <img src="wiki-logos/hitchwiki-maps.png" alt="" width="54" height="54" loading="lazy">
+          </span>
+          <h2>Hitchwiki Maps</h2>
+          <p>Find and share hitchhiking spots on a community-built global map.</p>
+        </div>
+        <span class="card-action">Open Hitchwiki Maps</span>
       </a>
 
       <a class="card treasures" href="https://treasures.to/" target="_blank" rel="noopener noreferrer">

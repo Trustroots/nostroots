@@ -46,6 +46,11 @@ function hideAppDownloadPrompts() {
   var downloadSection = document.getElementById('download-section');
   if (downloadSection) downloadSection.hidden = true;
 
+  var trustrootsCard = document.getElementById('trustroots-card');
+  if (trustrootsCard) trustrootsCard.hidden = true;
+  var nostrootsWebCard = document.getElementById('nostroots-web-card');
+  if (nostrootsWebCard) nostrootsWebCard.hidden = true;
+
   document.querySelectorAll(
     '.hub-nav a[data-umami-event-target="android-app"], .hub-nav a[data-umami-event-target="ios-app"]'
   ).forEach(function (link) {
@@ -724,7 +729,6 @@ function applyIdentityState(nip05) {
   icon.textContent = '@';
   identityStatus.append(label, icon);
   setNip7InfoModalState('linked', username + '@trustroots.org', npub || activePublicKeyHex);
-  hideHubIntroduction();
   fadeOutKeyStatus(revealIdentityStatusAfterSettled);
 }
 

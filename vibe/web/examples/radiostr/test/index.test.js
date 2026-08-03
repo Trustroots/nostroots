@@ -69,10 +69,88 @@ test('buildRadioData derives SomaFM stream URLs and sections', () => {
   assert.equal(built.sections[0].items[0].id, 'groovesalad');
 });
 
+test('media session metadata names the station and supplies its artwork', () => {
+  const Radiostr = loadRadiostr();
+  const metadata = Radiostr.mediaSessionMetadata({
+    id: 'groovesalad',
+    title: 'Groovesalad',
+    img: 'https://example.test/groovesalad.png'
+  }, 'SomaFM');
+  assert.equal(metadata.title, 'Groovesalad');
+  assert.equal(metadata.artist, 'SomaFM');
+  assert.equal(metadata.album, 'Radiostr · #groovesalad');
+  assert.equal(metadata.artwork[0].src, 'https://example.test/groovesalad.png');
+  assert.equal(metadata.artwork[1].src, '../../nostroots-logo.png');
+  assert.equal(metadata.artwork[1].type, 'image/png');
+  const fallbackMetadata = Radiostr.mediaSessionMetadata({
+    id: 'fallback_radio',
+    title: 'Fallback Radio',
+    fallbackImg: 'data:image/svg+xml,%3Csvg%3E%3C/svg%3E'
+  }, 'Internet radio');
+  assert.equal(fallbackMetadata.artwork[0].sizes, '512x512');
+  assert.equal(fallbackMetadata.artwork[0].type, 'image/svg+xml');
+  assert.equal(Radiostr.mediaSessionMetadata(null, ''), null);
+});
+
+test('location hashtags are promoted ahead of descriptive station tags', () => {
+  const Radiostr = loadRadiostr();
+  const fluxStation = {
+    id: 'flux_fm_sound_of_berlin',
+    title: 'Flux FM Sound Of Berlin',
+    tags: ['flux', 'electronic', 'techno', 'berlin', 'de']
+  };
+  const fipStation = {
+    id: 'fip',
+    title: 'FIP',
+    tags: ['fr', 'fip', 'eclectic']
+  };
+
+  assert.equal(Radiostr.stationLocationHash(fluxStation), '#berlin');
+  assert.equal(Radiostr.stationTagsLabel(fluxStation), '#berlin · flux · electronic · techno');
+  assert.equal(Radiostr.stationLocationHash(fipStation), '#france');
+  assert.equal(Radiostr.stationTagsLabel(fipStation), '#france · fip · eclectic');
+  assert.equal(Radiostr.stationLocationHash({ tags: ['soma', 'ambient'] }), '');
+});
+
+test('media session metadata includes the station location hashtag', () => {
+  const Radiostr = loadRadiostr();
+  const metadata = Radiostr.mediaSessionMetadata({
+    id: 'flux_fm_sound_of_berlin',
+    title: 'Flux FM Sound Of Berlin',
+    tags: ['flux', 'electronic', 'berlin', 'de']
+  }, 'Flux FM');
+
+  assert.equal(metadata.artist, 'Flux FM · #berlin');
+  assert.equal(metadata.album, 'Radiostr · #flux_fm_sound_of_berlin');
+});
+
+test('native now-playing payload identifies a live Radiostr station', () => {
+  const Radiostr = loadRadiostr();
+  const payload = Radiostr.nativeNowPlayingPayload({
+    id: 'fip_jazz',
+    title: 'FIP Jazz',
+    img: 'https://example.test/fip-jazz.png'
+  }, 'FIP', true);
+
+  assert.equal(payload.stationId, 'fip_jazz');
+  assert.equal(payload.title, 'FIP Jazz');
+  assert.equal(payload.artist, 'FIP');
+  assert.equal(payload.album, 'Radiostr · #fip_jazz');
+  assert.deepEqual(Array.from(payload.artwork), [
+    'https://example.test/fip-jazz.png',
+    '../../nostroots-logo.png'
+  ]);
+  assert.equal(payload.playing, true);
+  assert.equal(payload.liveStream, true);
+  assert.equal(Radiostr.nativeNowPlayingPayload(null, '', false), null);
+});
+
 test('parseHashRoute reads station id from hash', () => {
   const Radiostr = loadRadiostr();
   assert.equal(Radiostr.parseHashRoute('#groovesalad').stationId, 'groovesalad');
   assert.equal(Radiostr.parseHashRoute('').stationId, null);
+  assert.equal(Radiostr.shouldTuneHashStation('groovesalad', null), true);
+  assert.equal(Radiostr.shouldTuneHashStation('groovesalad', 'groovesalad'), false);
 });
 
 test('buildNowPlayingTags include radiostr room and station', () => {

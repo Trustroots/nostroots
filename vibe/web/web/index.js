@@ -11,7 +11,7 @@ import {
     Relay,
     SimplePool,
 } from 'https://cdn.jsdelivr.net/npm/nostr-tools@2.23.0/+esm?nrv=20260508a';
-import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.2.2/+esm?nrv=20260508a';
+import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.4.12/+esm?nrv=20260802a';
 
 // Import BIP39 for mnemonic support
 import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm?nrv=20260508a';
@@ -3354,11 +3354,6 @@ async function applyUnifiedHash() {
         if (c.token === 'map') {
             showMapShell();
             closePlusCodeNotesModal(true);
-            if (location.hash) {
-                try {
-                    history.replaceState({}, '', location.pathname + location.search);
-                } catch (_) {}
-            }
             maybeShowNoKeyWelcomeOverlay(c);
             return;
         }
@@ -4596,6 +4591,9 @@ function renderHeaderKpis() {
         }
         const ariaValue = row.value || SETTINGS_KPI_LOADING_VALUE;
         const ariaLabel = `${row.label}: ${ariaValue}`;
+        const visibleLabel = key === 'relaysOnline'
+            ? ''
+            : `<span class="kpi-chip-label" aria-hidden="true">${escapeHtml(row.label)}</span>`;
         return `
             <button
                 type="button"
@@ -4605,7 +4603,7 @@ function renderHeaderKpis() {
                 aria-label="${escapeHtml(ariaLabel)}"
                 title="${escapeHtml(ariaLabel)}"
             >
-                <span class="kpi-chip-label" aria-hidden="true">${escapeHtml(row.label)}</span>
+                ${visibleLabel}
                 <strong class="kpi-chip-value">${escapeHtml(String(row.value || SETTINGS_KPI_LOADING_VALUE))}</strong>
             </button>
         `;

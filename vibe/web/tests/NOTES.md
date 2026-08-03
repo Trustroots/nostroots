@@ -27,7 +27,7 @@ locally installed npm packages via `resolve.alias`:
 | --------------------------------------------------------------------- | -------------- |
 | `https://cdn.jsdelivr.net/npm/nostr-tools@2.23.0/+esm`                | `nostr-tools`  |
 | `https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm`                       | `bip39`        |
-| `https://cdn.jsdelivr.net/npm/dompurify@3.2.2/+esm`                   | `dompurify`    |
+| `https://cdn.jsdelivr.net/npm/dompurify@3.4.12/+esm`                  | `dompurify`    |
 
 The matching versions are pinned in `package.json` `devDependencies`. Bump
 both the import URL inside `web/index.js` and the alias + devDep together.

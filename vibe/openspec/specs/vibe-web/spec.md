@@ -37,6 +37,13 @@ step for the main pages.
 - **AND** on narrow/mobile viewports, the footer MUST sit at the bottom of the
   dynamic visible viewport, above any safe-area inset.
 
+#### Scenario: Shared menu background link
+
+- **GIVEN** a user opens the shared Nostroots Web menu
+- **WHEN** the supporting links render below Settings
+- **THEN** the first link MUST be labeled "Background"
+- **AND** it MUST open `https://nos.trustroots.org/background/`.
+
 #### Scenario: Current Nostroots Web app
 
 - **GIVEN** a user opens `/web/`
@@ -50,6 +57,33 @@ step for the main pages.
 - **WHEN** the compatibility page loads
 - **THEN** it MUST redirect to the matching `/web/` URL while preserving query
   parameters and hash routes.
+
+### Requirement: Single canonical browser map surface
+
+Vibe Web MUST provide `/web/` as the only maintained Nostroots browser
+application for map-note behavior.
+
+#### Scenario: Canonical browser map
+
+- **GIVEN** a user wants to browse or publish Nostroots map notes in a browser
+- **WHEN** they choose Nostroots Web from the root hub
+- **THEN** the hub MUST open `/web/`
+- **AND** Map MUST remain the primary/default view within that application.
+
+#### Scenario: Retired map URL compatibility
+
+- **GIVEN** a user follows an existing `/nostroots-map/` URL
+- **WHEN** the compatibility page loads
+- **THEN** it MUST replace the current browser history entry with `/web/#map`
+- **AND** it MUST preserve existing query parameters
+- **AND** it MUST provide a no-JavaScript redirect or link fallback.
+
+#### Scenario: One hub product entry
+
+- **GIVEN** a user views the root hub with experimental applications revealed
+- **WHEN** the experience cards render
+- **THEN** Nostroots Web MUST be the only Nostroots browser map product shown
+- **AND** a separate Nostroots Map card MUST NOT be shown.
 
 ### Requirement: Hub visibility by client context
 
@@ -75,9 +109,12 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
   with Android and iOS store links, top-nav Android and iOS store links, hub lead
   copy that mentions getting the mobile app, and the NIP-7 info modal bullet
   recommending mobile app install
-- **AND** additional experimental experiences (Nostrail, Nostroots Map, Wikistr,
-  and external third-party links such as Treasures and Miti) MUST remain hidden
+- **AND** additional experimental experiences (Nostrail, Radiostr, Hitchwiki,
+  Hitchwiki Maps, and third-party links such as Treasures and Miti) MUST remain hidden
   until the user enables "Show more experimental apps"
+- **AND** the Trustroots Wiki, Nomadwiki, and Trashwiki cards MUST be visible
+  by default, use the logos supplied by their corresponding sites, and open
+  those original sites in the current tab
 - **AND** on desktop, the browser-extensions section MUST be visible until a
   NIP-07 signer is detected; on mobile viewports it MAY stay hidden by layout
   rules
@@ -87,8 +124,8 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
 - **GIVEN** a user opens the hub inside a Nostroots app WebView that identifies
   itself as in-app
 - **WHEN** the page renders
-- **THEN** the hub MUST still show Trustroots.org, Nostroots Web, Squatbridge,
-  and other default web experiences; additional experimental cards and external
+- **THEN** the hub MUST still show Squatbridge and other default web experiences;
+  Trustroots.org and Nostroots Web cards MUST be hidden, and additional experimental cards and external
   third-party links still follow the user's toggle
 - **AND** it MUST hide `#download-section` ("Get the app" cards), top-nav
   Android and iOS store links, background-page download cards that share
@@ -121,8 +158,8 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
 - **AND** its hover and keyboard-focus treatment MUST clearly communicate that
   the control opens an explanation
 - **AND** on the root hub, the landing lead and the Web experiences heading and
-  introductory copy MUST be hidden, while its available experience cards remain
-  visible.
+  introductory copy MUST keep the same visible state before and after the linked
+  identity resolves, avoiding an identity-dependent layout shift.
 
 #### Scenario: Header identity explanation
 
@@ -208,8 +245,9 @@ NIP-42 authenticated relay reads/writes, and leak guards for secret key text.
 
 ### Requirement: Web experiments and examples
 
-Vibe Web MUST keep experimental pages separate from the current `/web/` app while
-allowing them to share Vibe protocol conventions.
+Vibe Web MUST keep active experimental pages separate from the current `/web/`
+app while allowing them to share Vibe protocol conventions. Retired experiment
+paths MAY remain as compatibility redirects to a canonical application.
 
 #### Scenario: Nostrail web experiment
 
@@ -218,12 +256,13 @@ allowing them to share Vibe protocol conventions.
 - **THEN** it MUST rely on browser-provided signing/encryption and must not
   claim native background behavior.
 
-#### Scenario: Nostroots Map prototype
+#### Scenario: Retired Nostroots Map path
 
 - **GIVEN** a user opens `/nostroots-map/`
-- **WHEN** the prototype initializes
-- **THEN** it SHOULD present a map-first browser-native prototype with NIP-07
-  signer detection.
+- **WHEN** the compatibility page initializes
+- **THEN** it MUST redirect to the canonical Map view in `/web/`
+- **AND** it MUST NOT initialize a separate map, relay subscription, signer,
+  settings, or note-publishing runtime.
 
 #### Scenario: Examples
 
@@ -231,58 +270,6 @@ allowing them to share Vibe protocol conventions.
 - **WHEN** examples are listed or launched
 - **THEN** each example MUST remain optional demo/fork material rather than a
   required current app surface.
-
-#### Scenario: Wikistr mobile layout
-
-- **GIVEN** a user opens Wikistr on a narrow/mobile viewport
-- **WHEN** its wiki switcher and content render
-- **THEN** the five wiki choices MUST remain on one horizontal row and the
-  content MUST use the available viewport width
-- **AND** when Wikistr runs inside Nostroots Browser, its in-page Logo 67
-  header link MUST be hidden.
-
-#### Scenario: Wikistr default wiki
-
-- **GIVEN** a user opens Wikistr without a wiki slug in the URL hash
-- **WHEN** the app selects its initial wiki
-- **THEN** Nomadwiki MUST be the active wiki by default
-- **AND** selecting the active wiki switcher while on one of its subpages MUST
-  return the user to that wiki's main page.
-
-#### Scenario: Wikistr edit links
-
-- **GIVEN** a user opens Wikistr on a Nomadwiki page with a linked Trustroots
-  NIP-05 identity (`*@trustroots.org`)
-- **WHEN** the page heading renders
-- **THEN** an Edit control MUST appear beside the page title
-- **AND** it MUST open Nomadwiki in a new tab via
-  `Special:NostrLogin` with a `returnto` query for the current page and
-  `returntoquery=action%3Dedit` (percent-encoded, not a raw `=`)
-- **AND** on the Nomadwiki main page the `returnto` value MUST be `Main Page`
-- **AND** the Edit control MUST stay hidden on Nomadwiki when no Trustroots
-  identity is linked
-- **AND** Trashwiki and Trustroots wiki MUST show that Edit control for linked
-  identities and open their own `Special:NostrLogin` route with the same
-  current-page `returnto` and `returntoquery=action%3Dedit` values.
-
-#### Scenario: Wikistr redirects and missing pages
-
-- **GIVEN** a requested wiki page redirects to another page
-- **WHEN** Wikistr receives the parsed target
-- **THEN** it MUST update the hash route and page title to that target without
-  asking the user to activate the redirect link.
-- **AND** MediaWiki red links MUST remain visibly red and open a canonical edit
-  URL instead of a relative `/index.php` URL on the Wikistr static site.
-- **AND** a linked Nomadwiki identity MUST use the existing `Special:NostrLogin`
-  edit route for that missing page.
-
-#### Scenario: Wikistr protected images
-
-- **GIVEN** a rendered wiki page includes same-wiki image resources
-- **THEN** Wikistr MUST load publicly available images directly
-- **AND** if a direct image request fails, it MUST retry through the selected
-  proxy with NIP-98 authorization and render the returned image data locally,
-  so Cloudflare-protected sources such as Trashwiki can remain visible.
 
 #### Scenario: Radiostr social radio example
 
@@ -301,6 +288,22 @@ allowing them to share Vibe protocol conventions.
   the remaining channel groups
 - **AND** links that leave Radiostr, including listening-now profile links,
   MUST open in a separate tab so the player remains available
+- **AND** browsers with Media Session support MUST expose the selected station
+  name, catalog group, location hashtag when known, Radiostr hash route, and
+  station artwork to system Now Playing controls—including Apple system
+  controls and Chrome for Android media notifications—with play, pause,
+  previous-station, and next-station actions
+- **AND** a known location MUST render first in the station's descriptive
+  metadata as a hashtag, such as `#berlin · flux · electronic`
+- **AND** applying the station hash route MUST NOT reload a station that is
+  already selected
+- **AND** system artwork MUST include a PNG fallback for clients that cannot
+  render a station's preferred image format
+- **AND** the document and audio titles MUST track the selected station as
+  fallback metadata for clients with partial Media Session support
+- **AND** inside Nostroots iOS, Radiostr MUST mirror that metadata and playback
+  state through the native Now Playing bridge and accept native play, pause,
+  stop, previous-station, and next-station commands.
 
 ### Requirement: Vibe Web testing guidance
 

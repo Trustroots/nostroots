@@ -209,6 +209,25 @@ a.card:focus-visible {
   height: 100%;
 }
 
+.app-qr-shared {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 18px;
+}
+
+.app-qr-shared .app-qr {
+  position: static;
+  flex: 0 0 auto;
+}
+
+.app-qr-shared p {
+  max-width: 18rem;
+  margin: 0;
+  color: var(--muted);
+}
+
 .card-main {
   display: grid;
   gap: 14px;

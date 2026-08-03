@@ -44,6 +44,12 @@ struct NativeBrowserWebView: UIViewRepresentable {
             forMainFrameOnly: true
         ))
         userContent.add(context.coordinator, name: "nostrootsNotifications")
+        userContent.addUserScript(WKUserScript(
+            source: Self.injectedNowPlayingScript,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        ))
+        userContent.add(context.coordinator, name: "nostrootsNowPlaying")
 
         let configuration = WKWebViewConfiguration()
         configuration.userContentController = userContent
@@ -57,6 +63,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
         webView.scrollView.delegate = context.coordinator
         webView.load(Self.webRequest(for: url))
         context.coordinator.webView = webView
+        context.coordinator.attachNowPlaying(to: webView)
         context.coordinator.lastReloadID = reloadID
         context.coordinator.lastBackNavigationID = backNavigationID
         context.coordinator.lastScrollY = webView.scrollView.contentOffset.y
@@ -184,6 +191,93 @@ struct NativeBrowserWebView: UIViewRepresentable {
     })();
     """
 
+    static let injectedNowPlayingScript = """
+    (function() {
+      window.nostrootsBrowser = window.nostrootsBrowser || {};
+      if (window.nostrootsBrowser.nowPlaying && window.nostrootsBrowser.nowPlaying.__native) return;
+      var explicitUpdateSeen = false;
+
+      function post(method, payload) {
+        window.webkit.messageHandlers.nostrootsNowPlaying.postMessage({
+          source: 'radiostr-now-playing',
+          method: method,
+          payload: payload || {}
+        });
+      }
+
+      window.nostrootsBrowser.nowPlaying = {
+        __native: true,
+        update: function(payload) {
+          explicitUpdateSeen = true;
+          post('update', payload);
+        },
+        clear: function() { post('clear', {}); }
+      };
+
+      window.__nostrootsNowPlayingCommand = function(command) {
+        var event = new CustomEvent('nostroots-now-playing-command', {
+          detail: { command: command },
+          cancelable: true
+        });
+        window.dispatchEvent(event);
+        if (event.defaultPrevented) return;
+
+        var playButton = document.getElementById('play-btn');
+        if ((command === 'play' || command === 'pause' || command === 'stop') && playButton) {
+          playButton.click();
+          return;
+        }
+        if (command !== 'previous' && command !== 'next') return;
+        var stationIds = [];
+        document.querySelectorAll('[data-station-id]').forEach(function(element) {
+          var id = element.getAttribute('data-station-id');
+          if (id && stationIds.indexOf(id) === -1) stationIds.push(id);
+        });
+        if (!stationIds.length) return;
+        var currentId = String(window.location.hash || '').replace(/^#/, '');
+        var currentIndex = stationIds.indexOf(currentId);
+        if (currentIndex < 0) currentIndex = 0;
+        var delta = command === 'previous' ? -1 : 1;
+        var nextIndex = (currentIndex + delta + stationIds.length) % stationIds.length;
+        window.location.hash = stationIds[nextIndex];
+      };
+
+      function syncMediaSessionFallback() {
+        if (explicitUpdateSeen) return;
+        if (!/\\/examples\\/radiostr\\/?$/i.test(window.location.pathname)) return;
+        var session = navigator.mediaSession;
+        var metadata = session && session.metadata;
+        if (!metadata || !metadata.title) return;
+        var audio = document.getElementById('audio');
+        post('update', {
+          stationId: String(window.location.hash || '').replace(/^#/, '') || 'radiostr',
+          title: metadata.title,
+          artist: metadata.artist || 'Internet radio',
+          album: metadata.album || 'Radiostr',
+          artwork: Array.prototype.map.call(metadata.artwork || [], function(item) {
+            return item && item.src;
+          }).filter(Boolean),
+          playing: Boolean(audio && !audio.paused),
+          liveStream: true
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        var audio = document.getElementById('audio');
+        if (audio) {
+          ['play', 'pause', 'loadedmetadata', 'emptied'].forEach(function(name) {
+            audio.addEventListener(name, syncMediaSessionFallback);
+          });
+        }
+        window.addEventListener('hashchange', function() {
+          window.setTimeout(syncMediaSessionFallback, 0);
+        });
+        window.setTimeout(syncMediaSessionFallback, 0);
+        window.setTimeout(syncMediaSessionFallback, 1500);
+      });
+    })();
+    """
+
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler, UIScrollViewDelegate {
         weak var webView: WKWebView?
         var lastReloadID: UUID?
@@ -195,6 +289,7 @@ struct NativeBrowserWebView: UIViewRepresentable {
         private let permissionStore: NIP07PermissionStoring
         private let bridge: NIP07Bridge
         private let notificationBridge: VibeNotificationBridge
+        private let nowPlayingBridge = RadiostrNowPlayingBridge()
         private let requestPermission: @MainActor (NIP07PermissionPrompt) -> Void
         private let setCanGoBack: @MainActor (Bool) -> Void
         private var pendingPermissionMessages: [String: [Any]] = [:]
@@ -224,6 +319,10 @@ struct NativeBrowserWebView: UIViewRepresentable {
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            if message.name == "nostrootsNowPlaying" {
+                nowPlayingBridge.handle(messageBody: message.body, pageURL: webView?.url)
+                return
+            }
             if message.name == "nostrootsNotifications" {
                 Task { @MainActor in
                     let response = await notificationBridge.handle(message.body)
@@ -263,6 +362,11 @@ struct NativeBrowserWebView: UIViewRepresentable {
             lastScrollY = webView.scrollView.contentOffset.y
             addressBarHidden = false
             setCanGoBack(webView.canGoBack)
+            nowPlayingBridge.clearIfOutsideRadiostr(webView.url)
+        }
+
+        func attachNowPlaying(to webView: WKWebView) {
+            nowPlayingBridge.attach(webView: webView)
         }
 
         func webView(

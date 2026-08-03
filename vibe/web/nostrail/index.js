@@ -2,6 +2,7 @@ export const NOSTRAIL_LOCATION_EVENT_KIND = 24111;
 export const DEFAULT_SESSION_SECONDS = 7200;
 export const DEFAULT_UPDATE_INTERVAL_MS = 300000;
 export const DEFAULT_APPROXIMATE_ACCURACY_M = 500;
+export const DEFAULT_RECIPIENT_LOOKUP_TIMEOUT_MS = 6000;
 
 export const NIP42_AUTH_KIND = 22242;
 export const DEFAULT_RELAYS = [
@@ -29,6 +30,7 @@ const state = {
   signer: {
     status: "none",
     pubkey: "",
+    identity: "",
     text: "Checking signer...",
   },
   recipients: new Map(),
@@ -37,8 +39,15 @@ const state = {
   session: null,
   publishTimer: 0,
   relaySockets: [],
+  peerExpiryTimer: 0,
   busy: false,
+  recipientRequestCounter: 0,
+  recipientInFlight: new Set(),
+  locationPromptVisible: true,
+  locationRequestStatus: "idle",
 };
+
+let mapAdapter = null;
 
 function byId(id) {
   return document.getElementById(id);
@@ -61,6 +70,14 @@ function shortValue(value, head = 9, tail = 6) {
   const text = String(value || "");
   if (text.length <= head + tail + 3) return text;
   return `${text.slice(0, head)}...${text.slice(-tail)}`;
+}
+
+function hexToBytes(hex) {
+  const clean = String(hex || "").trim().toLowerCase();
+  if (!HEX_64_RE.test(clean)) return [];
+  const bytes = [];
+  for (let i = 0; i < clean.length; i += 2) bytes.push(parseInt(clean.slice(i, i + 2), 16));
+  return bytes;
 }
 
 function setText(id, value) {
@@ -191,6 +208,27 @@ function convertBits(data, fromBits, toBits, pad) {
   return result;
 }
 
+function bech32CreateChecksum(hrp, data) {
+  const values = [...bech32HrpExpand(hrp), ...data, 0, 0, 0, 0, 0, 0];
+  const polymod = bech32Polymod(values) ^ 1;
+  const checksum = [];
+  for (let i = 0; i < 6; i += 1) checksum.push((polymod >> (5 * (5 - i))) & 31);
+  return checksum;
+}
+
+export function hexToNpub(input) {
+  const bytes = hexToBytes(input);
+  if (!bytes.length) return "";
+  const data = convertBits(bytes, 8, 5, true);
+  if (!data) return "";
+  return `npub1${[...data, ...bech32CreateChecksum("npub", data)].map((value) => BECH32_CHARSET[value]).join("")}`;
+}
+
+export function formatPublicKey(input, head = 12, tail = 6) {
+  const npub = hexToNpub(input);
+  return npub ? shortValue(npub, head, tail) : "Nostr user";
+}
+
 export function npubToHex(input) {
   const decoded = bech32Decode(String(input || "").trim().toLowerCase());
   if (!decoded || decoded.hrp !== "npub") return "";
@@ -222,7 +260,7 @@ export function normalizeRecipientInput(input) {
       ok: true,
       type: "hex",
       value: lower,
-      display: shortValue(lower),
+      display: formatPublicKey(lower),
       duplicateKey: `pubkey:${lower}`,
       input: raw,
     };
@@ -415,19 +453,211 @@ export function makeLocationPayload({ sessionId, area, centerLat, centerLon, acc
   };
 }
 
-export function markerPositionForPubkey(pubkey) {
-  const text = String(pubkey || "");
-  let a = 0;
-  let b = 0;
-  for (let i = 0; i < text.length; i += 1) {
-    const code = text.charCodeAt(i);
-    if (i % 2) b += code;
-    else a += code;
+function validMapArea(area) {
+  return Boolean(
+    area &&
+    Number.isFinite(Number(area.centerLat)) &&
+    Number.isFinite(Number(area.centerLon)) &&
+    Number.isFinite(Number(area.accuracyM)),
+  );
+}
+
+export function createNostrailMapAdapter({ leaflet = globalThis.window?.L, container = byId("nostrail-map") } = {}) {
+  let map = null;
+  let ownLayer = null;
+  const peerLayers = new Map();
+  let programmaticMove = false;
+  let userMoved = false;
+
+  function markProgrammaticMove(callback) {
+    programmaticMove = true;
+    callback();
+    setTimeout(() => { programmaticMove = false; }, 0);
   }
+
+  function makeCircle(area, own) {
+    return leaflet.circle([Number(area.centerLat), Number(area.centerLon)], {
+      radius: Math.max(100, Number(area.accuracyM) || DEFAULT_APPROXIMATE_ACCURACY_M),
+      color: own ? "#087260" : "#173f68",
+      fillColor: own ? "#0f8d75" : "#235789",
+      fillOpacity: own ? 0.22 : 0.18,
+      opacity: 0.9,
+      weight: 2,
+      className: own ? "nostrail-area-own" : "nostrail-area-peer",
+      interactive: false,
+    }).addTo(map);
+  }
+
   return {
-    left: 18 + (a % 64),
-    top: 18 + (b % 54),
+    initialize() {
+      if (!container || !leaflet?.map || !leaflet?.tileLayer || !leaflet?.circle) return false;
+      try {
+        map = leaflet.map(container, {
+          center: [20, 0],
+          zoom: 2,
+          zoomControl: false,
+          worldCopyJump: true,
+          keyboard: true,
+          dragging: true,
+          scrollWheelZoom: true,
+          touchZoom: true,
+        });
+        leaflet.tileLayer("https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", {
+          attribution: "OpenStreetMap contributors · Humanitarian map style",
+          maxZoom: 19,
+        }).addTo(map);
+        leaflet.control?.zoom?.({ position: "bottomright" })?.addTo(map);
+        map.on?.("movestart", () => { if (!programmaticMove) userMoved = true; });
+        map.on?.("zoomstart", () => { if (!programmaticMove) userMoved = true; });
+        return true;
+      } catch (_) {
+        map = null;
+        return false;
+      }
+    },
+    setOwnArea(area) {
+      if (!map) return false;
+      if (!validMapArea(area)) {
+        if (ownLayer) map.removeLayer(ownLayer);
+        ownLayer = null;
+        return true;
+      }
+      const latLng = [Number(area.centerLat), Number(area.centerLon)];
+      if (!ownLayer) ownLayer = makeCircle(area, true);
+      else {
+        ownLayer.setLatLng?.(latLng);
+        ownLayer.setRadius?.(Math.max(100, Number(area.accuracyM) || DEFAULT_APPROXIMATE_ACCURACY_M));
+      }
+      return true;
+    },
+    syncPeerAreas(peers) {
+      if (!map) return false;
+      const activeKeys = new Set();
+      for (const peer of peers || []) {
+        if (!validMapArea(peer)) continue;
+        activeKeys.add(peer.pubkey);
+        const latLng = [Number(peer.centerLat), Number(peer.centerLon)];
+        let layer = peerLayers.get(peer.pubkey);
+        if (!layer) {
+          layer = makeCircle(peer, false);
+          peerLayers.set(peer.pubkey, layer);
+        } else {
+          layer.setLatLng?.(latLng);
+          layer.setRadius?.(Math.max(100, Number(peer.accuracyM) || DEFAULT_APPROXIMATE_ACCURACY_M));
+        }
+      }
+      for (const [pubkey, layer] of peerLayers.entries()) {
+        if (activeKeys.has(pubkey)) continue;
+        map.removeLayer(layer);
+        peerLayers.delete(pubkey);
+      }
+      return true;
+    },
+    recenter(area) {
+      if (!map || !validMapArea(area)) return false;
+      const zoom = Math.max(Number(map.getZoom?.()) || 2, 11);
+      markProgrammaticMove(() => map.setView([Number(area.centerLat), Number(area.centerLon)], zoom));
+      userMoved = false;
+      return true;
+    },
+    getViewport() {
+      const center = map?.getCenter?.();
+      return center ? { lat: center.lat, lon: center.lng, zoom: map.getZoom?.(), userMoved } : null;
+    },
+    getAreaSnapshot() {
+      const toArea = (layer) => {
+        const center = layer?.getLatLng?.();
+        return center ? { lat: center.lat, lon: center.lng, radius: layer.getRadius?.() } : null;
+      };
+      return {
+        own: toArea(ownLayer),
+        peers: [...peerLayers.entries()].map(([pubkey, layer]) => ({ pubkey, ...toArea(layer) })),
+      };
+    },
+    isAvailable() {
+      return Boolean(map);
+    },
   };
+}
+
+function initMap() {
+  mapAdapter = createNostrailMapAdapter();
+  const available = mapAdapter.initialize();
+  byId("nostrail-map")?.classList.toggle("map-unavailable", !available);
+  const mapStatus = byId("map-status");
+  if (mapStatus) {
+    mapStatus.hidden = available;
+    mapStatus.textContent = available ? "" : "Map unavailable — sharing still works";
+  }
+  if (!available) setStatus("The map could not load. You can still add people and share your approximate area.", "error");
+}
+
+function extractTrustrootsIdentity(event, pubkey) {
+  if (!event || String(event.pubkey || "").toLowerCase() !== pubkey) return "";
+  if (event.kind === 0) {
+    try {
+      const nip05 = String(JSON.parse(event.content || "{}").nip05 || "").toLowerCase();
+      return NIP05_RE.test(nip05) && nip05.endsWith("@trustroots.org") ? nip05 : "";
+    } catch (_) {
+      return "";
+    }
+  }
+  if (event.kind === 10390) {
+    const username = (event.tags || []).find((tag) => tag?.[0] === "trustroots" || (tag?.[0] === "l" && tag?.[2] === "org.trustroots:username"))?.[1];
+    return USERNAME_RE.test(username || "") ? `${String(username).toLowerCase()}@trustroots.org` : "";
+  }
+  return "";
+}
+
+function lookupSignerIdentity(pubkey) {
+  if (!HEX_64_RE.test(pubkey)) return;
+  for (const url of DEFAULT_RELAYS.slice(0, 2)) {
+    let ws;
+    let settled = false;
+    const subscriptionId = `nostrail-identity-${Math.random().toString(36).slice(2)}`;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      try { ws?.close(); } catch (_) {}
+    };
+    const timeout = setTimeout(finish, 2400);
+    try {
+      ws = new WebSocket(url);
+      ws.addEventListener("open", () => ws.send(JSON.stringify(["REQ", subscriptionId, { kinds: [0, 10390], authors: [pubkey], limit: 10 }])));
+      ws.addEventListener("message", (message) => {
+        let payload;
+        try { payload = JSON.parse(message.data); } catch (_) { return; }
+        if (payload?.[0] === "EVENT" && payload[1] === subscriptionId) {
+          const identity = extractTrustrootsIdentity(payload[2], pubkey);
+          if (identity && state.signer.pubkey === pubkey) {
+            state.signer.identity = identity;
+            render();
+            clearTimeout(timeout);
+            finish();
+          }
+        }
+        if (payload?.[0] === "AUTH" && payload[1]) {
+          void signEventTemplate({
+            kind: NIP42_AUTH_KIND,
+            content: "",
+            tags: [["relay", url], ["challenge", String(payload[1])]],
+          }).then((authEvent) => {
+            ws.send(JSON.stringify(["AUTH", authEvent]));
+            ws.send(JSON.stringify(["REQ", subscriptionId, { kinds: [0, 10390], authors: [pubkey], limit: 10 }]));
+          }).catch(() => {});
+        }
+        if (payload?.[0] === "EOSE" && payload[1] === subscriptionId) {
+          clearTimeout(timeout);
+          finish();
+        }
+      });
+      ws.addEventListener("error", finish);
+      ws.addEventListener("close", finish);
+    } catch (_) {
+      clearTimeout(timeout);
+      finish();
+    }
+  }
 }
 
 async function refreshSigner() {
@@ -438,14 +668,18 @@ async function refreshSigner() {
       const value = String(await window.nostr.getPublicKey()).trim().toLowerCase();
       if (HEX_64_RE.test(value)) pubkey = value;
     } catch (_) {
-      state.signer = { status: "partial", pubkey: "", text: "Signer did not return a public key." };
+      state.signer = { status: "partial", pubkey: "", identity: "", text: "Signer did not return a public key." };
       render();
       return false;
     }
   }
-  state.signer = { ...caps, pubkey };
+  const isSameSigner = pubkey && pubkey === state.signer.pubkey;
+  state.signer = { ...caps, pubkey, identity: isSameSigner ? state.signer.identity : "" };
   render();
-  if (pubkey) subscribeToRelays();
+  if (pubkey) {
+    subscribeToRelays();
+    if (!isSameSigner) lookupSignerIdentity(pubkey);
+  }
   return caps.status === "full" && Boolean(pubkey);
 }
 
@@ -459,71 +693,246 @@ function watchForSigner() {
   window.addEventListener("focus", () => void refreshSigner());
 }
 
-async function resolveNip05(handle) {
+function recipientLookupError(kind, message) {
+  const error = new Error(message);
+  error.kind = kind;
+  return error;
+}
+
+export function recipientErrorMessage(kind) {
+  const messages = {
+    invalid: "Check the format and try again.",
+    http: "The profile service could not complete this lookup. Try again.",
+    timeout: "The lookup took too long. Try again.",
+    malformed: "The profile service returned an unreadable response. Try again later.",
+    "missing-key": "This profile does not expose a valid Nostr key yet.",
+    network: "The profile service could not be reached. Check your connection and retry.",
+  };
+  return messages[kind] || "This person could not be added. Check the value and retry.";
+}
+
+export async function resolveNip05(handle, {
+  fetchImpl = globalThis.fetch,
+  timeoutMs = DEFAULT_RECIPIENT_LOOKUP_TIMEOUT_MS,
+} = {}) {
   const [name, domain] = String(handle || "").toLowerCase().split("@");
-  if (!name || !domain) throw new Error("Check this recipient.");
-  const response = await fetch(`https://${domain}/.well-known/nostr.json?name=${encodeURIComponent(name)}`);
-  if (!response.ok) throw new Error("Could not look up this recipient.");
-  const data = await response.json();
+  if (!name || !domain || typeof fetchImpl !== "function") throw recipientLookupError("invalid", recipientErrorMessage("invalid"));
+  const controller = typeof AbortController === "function" ? new AbortController() : null;
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      controller?.abort();
+      reject(recipientLookupError("timeout", recipientErrorMessage("timeout")));
+    }, Math.max(1, timeoutMs));
+  });
+  let response;
+  try {
+    response = await Promise.race([
+      fetchImpl(`https://${domain}/.well-known/nostr.json?name=${encodeURIComponent(name)}`, controller ? { signal: controller.signal } : undefined),
+      timeout,
+    ]);
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error?.kind === "timeout" || error?.name === "AbortError") throw recipientLookupError("timeout", recipientErrorMessage("timeout"));
+    throw recipientLookupError("network", recipientErrorMessage("network"));
+  }
+  clearTimeout(timeoutId);
+  if (!response?.ok) throw recipientLookupError("http", recipientErrorMessage("http"));
+  let data;
+  try {
+    data = await response.json();
+  } catch (_) {
+    throw recipientLookupError("malformed", recipientErrorMessage("malformed"));
+  }
+  if (!data || typeof data !== "object" || !data.names || typeof data.names !== "object") {
+    throw recipientLookupError("malformed", recipientErrorMessage("malformed"));
+  }
   const pubkey = String(data?.names?.[name] || "").toLowerCase();
-  if (!HEX_64_RE.test(pubkey)) throw new Error("Trustroots profile does not expose a valid Nostr key.");
+  if (!HEX_64_RE.test(pubkey)) throw recipientLookupError("missing-key", recipientErrorMessage("missing-key"));
   return pubkey;
 }
 
-async function addRecipientInputs(inputs) {
-  const { accepted, rejected } = dedupeRecipientInputs(inputs);
-  let added = 0;
-  let failed = rejected.length;
+export function summarizeRecipientResults(results) {
+  return (results || []).reduce((summary, result) => {
+    const key = result?.state === "resolved" ? "added" : result?.state === "duplicate" ? "duplicate" : "failed";
+    summary[key] += 1;
+    return summary;
+  }, { added: 0, duplicate: 0, failed: 0 });
+}
 
-  for (const item of accepted) {
-    let pubkey = item.type === "hex" ? item.value : "";
-    try {
-      if (!pubkey) pubkey = await resolveNip05(item.value);
-    } catch (_) {
-      failed += 1;
-      state.recipients.set(`failed:${item.duplicateKey}`, {
-        input: item.input,
-        display: item.display,
-        status: "Check",
-        pubkey: "",
-      });
-      continue;
-    }
-    if (state.recipients.has(pubkey)) continue;
-    state.recipients.set(pubkey, {
+function safeRecipientDisplay(item, pubkey = "") {
+  if (item?.type === "hex") return formatPublicKey(pubkey || item.value);
+  return item?.display || formatPublicKey(pubkey);
+}
+
+function trustrootsProfileUrlForRecipient(item) {
+  if (item?.type !== "nip05") return "";
+  const [username, domain] = String(item.value || "").split("@");
+  return USERNAME_RE.test(username || "") && domain === "trustroots.org"
+    ? `https://trustroots.org/profile/${encodeURIComponent(username)}`
+    : "";
+}
+
+function addRecipientRow(row) {
+  const id = `recipient-${++state.recipientRequestCounter}`;
+  state.recipients.set(id, { id, ...row });
+  return id;
+}
+
+function findResolvedRecipient(pubkey, exceptId = "") {
+  return [...state.recipients.values()].find((row) => row.id !== exceptId && row.state === "resolved" && row.pubkey === pubkey);
+}
+
+async function resolveRecipientInput(input) {
+  const item = normalizeRecipientInput(input);
+  if (!item.ok) {
+    const id = addRecipientRow({
       input: item.input,
-      display: item.display || shortValue(pubkey),
-      status: "Ready",
-      pubkey,
+      display: item.input || "Empty value",
+      status: recipientErrorMessage("invalid"),
+      errorKind: "invalid",
+      state: "failed",
+      pubkey: "",
     });
-    added += 1;
+    render();
+    return { id, state: "failed", errorKind: "invalid" };
   }
 
-  if (added && failed) setRecipientFeedback(`Added ${added}. Check ${failed}.`, "error");
-  else if (added) setRecipientFeedback(`Added ${added} ${added === 1 ? "person" : "people"}.`);
-  else if (failed) setRecipientFeedback("Check the highlighted recipient.", "error");
-  else setRecipientFeedback("That person is already selected.");
+  if (state.recipientInFlight.has(item.duplicateKey)) {
+    const id = addRecipientRow({
+      input: item.input,
+      display: safeRecipientDisplay(item),
+      status: "Already being added.",
+      state: "duplicate",
+      pubkey: "",
+    });
+    render();
+    return { id, state: "duplicate" };
+  }
+
+  const existingInput = [...state.recipients.values()].find((row) => row.state === "resolved" && row.duplicateKey === item.duplicateKey);
+  if (existingInput) {
+    const id = addRecipientRow({
+      input: item.input,
+      display: safeRecipientDisplay(item, existingInput.pubkey),
+      status: "Already selected.",
+      state: "duplicate",
+      pubkey: "",
+    });
+    render();
+    return { id, state: "duplicate" };
+  }
+
+  const id = addRecipientRow({
+    input: item.input,
+    display: safeRecipientDisplay(item),
+    status: item.type === "nip05" ? "Looking up profile..." : "Checking key...",
+    state: "pending",
+    duplicateKey: item.duplicateKey,
+    pubkey: "",
+  });
+  state.recipientInFlight.add(item.duplicateKey);
   render();
+
+  try {
+    const pubkey = item.type === "hex" ? item.value : await resolveNip05(item.value, {
+      timeoutMs: Number(globalThis.window?.__nostrailRecipientLookupTimeoutMs) || DEFAULT_RECIPIENT_LOOKUP_TIMEOUT_MS,
+    });
+    const row = state.recipients.get(id);
+    if (!row) return { id, state: "removed" };
+    const existing = findResolvedRecipient(pubkey, id);
+    if (existing) {
+      Object.assign(row, {
+        display: safeRecipientDisplay(item, pubkey),
+        status: `${existing.display} is already selected.`,
+        state: "duplicate",
+        pubkey: "",
+      });
+      return { id, state: "duplicate" };
+    }
+    Object.assign(row, {
+      display: safeRecipientDisplay(item, pubkey),
+      profileUrl: trustrootsProfileUrlForRecipient(item),
+      status: "Ready",
+      state: "resolved",
+      pubkey,
+    });
+    return { id, state: "resolved", pubkey };
+  } catch (error) {
+    const row = state.recipients.get(id);
+    if (row) Object.assign(row, {
+      status: recipientErrorMessage(error?.kind),
+      errorKind: error?.kind || "network",
+      state: "failed",
+      pubkey: "",
+    });
+    return { id, state: "failed", errorKind: error?.kind || "network" };
+  } finally {
+    state.recipientInFlight.delete(item.duplicateKey);
+    render();
+  }
+}
+
+async function addRecipientInputs(inputs) {
+  const results = await Promise.all((inputs || []).map((input) => resolveRecipientInput(input)));
+  const summary = summarizeRecipientResults(results);
+  const parts = [];
+  if (summary.added) parts.push(`Added ${summary.added} ${summary.added === 1 ? "person" : "people"}.`);
+  if (summary.duplicate) parts.push(`${summary.duplicate} already selected.`);
+  if (summary.failed) parts.push(`${summary.failed} ${summary.failed === 1 ? "needs" : "need"} attention.`);
+  setRecipientFeedback(parts.join(" ") || "No people were added.", summary.failed ? "error" : "");
+  render();
+  return summary;
 }
 
 function selectedRecipientPubkeys() {
-  return [...state.recipients.values()].map((row) => row.pubkey).filter(Boolean);
+  return [...new Set([...state.recipients.values()].filter((row) => row.state === "resolved").map((row) => row.pubkey).filter(Boolean))];
 }
 
-function requestCurrentArea() {
+function updateResolvedRecipientStatus(pubkey, status) {
+  for (const row of state.recipients.values()) {
+    if (row.state === "resolved" && row.pubkey === pubkey) row.status = status;
+  }
+}
+
+function locationErrorMessage(error) {
+  if (!navigator.geolocation) return "Location is unavailable in this browser. You can still use the map and add people.";
+  if (error?.code === 1) return "Location permission was denied. You can keep using the map and try again later.";
+  if (error?.code === 2) return "Your location is unavailable right now. Check location services and try again.";
+  if (error?.code === 3) return "Finding your location took too long. Try again when your signal improves.";
+  return "Location could not be found. You can keep using the map and try again.";
+}
+
+function requestCurrentArea({ recenter = false } = {}) {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
-      reject(new Error("Location is unavailable in this browser."));
+      state.locationRequestStatus = "failed";
+      state.locationPromptVisible = true;
+      render();
+      reject(new Error(locationErrorMessage()));
       return;
     }
+    state.locationRequestStatus = "pending";
     setStatus("Finding your approximate area...");
+    render();
     navigator.geolocation.getCurrentPosition(
       (position) => {
         state.currentArea = snapApproximateArea(position.coords.latitude, position.coords.longitude);
+        state.locationRequestStatus = "ready";
+        state.locationPromptVisible = false;
+        if (recenter) mapAdapter?.recenter(state.currentArea);
+        setStatus("Approximate area ready. Move the map freely or add people to share.");
         render();
         resolve(state.currentArea);
       },
-      () => reject(new Error("Location permission was not available.")),
+      (error) => {
+        state.locationRequestStatus = "failed";
+        state.locationPromptVisible = true;
+        const message = locationErrorMessage(error);
+        setStatus(message, "error");
+        render();
+        reject(new Error(message));
+      },
       { enableHighAccuracy: false, timeout: 9000, maximumAge: 60000 },
     );
   });
@@ -641,6 +1050,10 @@ async function publishInvite() {
     setStatus("Add at least one person before sharing.", "error");
     return false;
   }
+  if (!state.currentArea) {
+    setStatus("Use My Location before inviting people or sharing.", "error");
+    return false;
+  }
   const createdAt = nowSeconds();
   const result = await publishPayloadToRecipients(
     { type: "trustroots.location.invite.v1", message: "", createdAt },
@@ -648,8 +1061,7 @@ async function publishInvite() {
     createdAt + 86400,
   );
   for (const pubkey of recipients) {
-    const row = state.recipients.get(pubkey);
-    if (row) row.status = result.okCount ? "Invited" : "Retry";
+    updateResolvedRecipientStatus(pubkey, result.okCount ? "Invited" : "Retry");
   }
   setStatus(result.okCount ? "Invite sent." : "Signed invite, but no relay accepted it.", result.okCount ? "" : "error");
   render();
@@ -671,8 +1083,7 @@ async function publishCurrentLocation() {
   });
   const result = await publishPayloadToRecipients(payload, state.session.recipients, state.session.expiresAt);
   for (const pubkey of state.session.recipients) {
-    const row = state.recipients.get(pubkey);
-    if (row) row.status = result.okCount ? "Updated" : "Retry";
+    updateResolvedRecipientStatus(pubkey, result.okCount ? "Updated" : "Retry");
   }
   render();
   return result;
@@ -686,7 +1097,7 @@ async function startSharing() {
     if (state.signer.status !== "full" || !state.signer.pubkey) throw new Error("Connect a full NIP-07 signer before sharing.");
     const recipients = selectedRecipientPubkeys();
     if (!recipients.length) throw new Error("Add at least one person before sharing.");
-    await requestCurrentArea();
+    if (!state.currentArea) throw new Error("Use My Location before inviting people or sharing.");
     await publishInvite();
     state.session = {
       id: makeSessionId(),
@@ -747,8 +1158,7 @@ async function stopSharing() {
     state.publishTimer = 0;
     state.session = null;
     for (const pubkey of session.recipients) {
-      const row = state.recipients.get(pubkey);
-      if (row) row.status = "Ready";
+      updateResolvedRecipientStatus(pubkey, "Ready");
     }
     setStatus(result.okCount ? "Sharing stopped." : "Stopped locally. No relay confirmed the stop notice.", result.okCount ? "" : "error");
   } catch (error) {
@@ -836,6 +1246,7 @@ async function consumeIncomingEvent(event) {
       area: payload.area,
       centerLat: payload.centerLat,
       centerLon: payload.centerLon,
+      accuracyM: payload.accuracyM,
       receivedAt: nowSeconds(),
       sessionId: payload.sessionId,
       expiresAt: payload.expiresAt,
@@ -854,10 +1265,21 @@ async function consumeIncomingEvent(event) {
 }
 
 function renderSigner() {
-  setText("signer-status", state.signer.text);
-  setText("signer-short", state.signer.status === "full" ? shortValue(state.signer.pubkey) : "Signer unavailable");
-  byId("signer-status")?.classList.toggle("connected", state.signer.status === "full");
-  byId("signer-dot")?.classList.toggle("good", state.signer.status === "full");
+  const connected = state.signer.status === "full";
+  const visibleIdentity = state.signer.identity || (connected ? "Signer connected" : state.signer.text);
+  setText("signer-status", visibleIdentity);
+  const status = byId("signer-status");
+  status?.setAttribute("data-state", connected ? "connected" : state.signer.status === "partial" ? "pending" : "missing");
+  if (status && state.signer.identity) {
+    const username = state.signer.identity.split("@")[0];
+    status.href = `https://trustroots.org/profile/${encodeURIComponent(username)}`;
+    status.title = "Open Trustroots profile";
+    status.setAttribute("aria-label", `Open ${state.signer.identity} on Trustroots`);
+  } else if (status) {
+    status.removeAttribute("href");
+    status.removeAttribute("title");
+    status.removeAttribute("aria-label");
+  }
 }
 
 function renderSession() {
@@ -867,23 +1289,31 @@ function renderSession() {
     : "Not sharing";
   setText("session-status", sessionText);
   byId("session-dot")?.classList.toggle("good", active);
-  byId("own-marker").hidden = !state.currentArea;
   setText("current-area", state.currentArea ? `${state.currentArea.area} approximate area` : "No location fix yet.");
-  setText("map-label", state.currentArea ? `Current approximate area: ${state.currentArea.area}` : "Choose people, then share your approximate area.");
+  mapAdapter?.setOwnArea(state.currentArea);
 }
 
 function renderRecipients() {
   const rows = [...state.recipients.values()];
   const html = rows.length
-    ? rows.map((row) => `
-      <div class="person-row">
-        <span>${escapeHtml(row.display || row.input)}<small>${escapeHtml(row.status)}${row.pubkey ? ` - ${escapeHtml(shortValue(row.pubkey))}` : ""}</small></span>
-        <button class="button" type="button" data-remove-recipient="${escapeHtml(row.pubkey || `failed:${row.input}`)}">Remove</button>
+    ? rows.map((row) => {
+      const label = row.profileUrl
+        ? `<a class="recipient-profile-link" href="${escapeHtml(row.profileUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(row.display || "Person")}</a>`
+        : escapeHtml(row.display || "Person");
+      return `
+      <div class="person-row" data-state="${escapeHtml(row.state || "resolved")}" data-recipient-row="${escapeHtml(row.id)}">
+        <span>${label}<small>${escapeHtml(row.status)}</small></span>
+        <span class="row-actions">
+          ${row.state === "failed" ? `<button class="button" type="button" data-edit-recipient="${escapeHtml(row.id)}">Edit</button><button class="button" type="button" data-retry-recipient="${escapeHtml(row.id)}">Retry</button>` : ""}
+          <button class="button" type="button" data-remove-recipient="${escapeHtml(row.id)}" ${row.state === "pending" ? "disabled" : ""}>Remove</button>
+        </span>
       </div>
-    `).join("")
+    `;
+    }).join("")
     : '<div class="empty">Add Trustroots usernames, NIP-05 handles, npubs, or public keys.</div>';
-  const summary = rows.filter((row) => row.pubkey).length
-    ? rows.filter((row) => row.pubkey).slice(0, 3).map((row) => row.display).join(", ") + (rows.filter((row) => row.pubkey).length > 3 ? ` +${rows.filter((row) => row.pubkey).length - 3} more` : "")
+  const resolvedRows = rows.filter((row) => row.state === "resolved" && row.pubkey);
+  const summary = resolvedRows.length
+    ? resolvedRows.slice(0, 3).map((row) => row.display).join(", ") + (resolvedRows.length > 3 ? ` +${resolvedRows.length - 3} more` : "")
     : "";
 
   byId("recipient-list").innerHTML = html;
@@ -893,48 +1323,87 @@ function renderRecipients() {
 
   for (const button of byId("recipient-list").querySelectorAll("[data-remove-recipient]")) {
     button.addEventListener("click", () => {
-      const key = button.getAttribute("data-remove-recipient");
-      if (state.recipients.has(key)) state.recipients.delete(key);
-      else {
-        for (const [entryKey, row] of state.recipients.entries()) {
-          if (`failed:${row.input}` === key) state.recipients.delete(entryKey);
-        }
-      }
+      state.recipients.delete(button.getAttribute("data-remove-recipient"));
       render();
     });
   }
+  for (const button of byId("recipient-list").querySelectorAll("[data-edit-recipient]")) {
+    button.addEventListener("click", () => {
+      const id = button.getAttribute("data-edit-recipient");
+      const row = state.recipients.get(id);
+      if (!row) return;
+      const input = byId("recipient-input");
+      if (input) input.value = row.input;
+      state.recipients.delete(id);
+      input?.focus();
+      setRecipientFeedback("Edit the value, then add it again.");
+      render();
+    });
+  }
+  for (const button of byId("recipient-list").querySelectorAll("[data-retry-recipient]")) {
+    button.addEventListener("click", () => {
+      const id = button.getAttribute("data-retry-recipient");
+      const row = state.recipients.get(id);
+      if (!row) return;
+      state.recipients.delete(id);
+      void addRecipientInputs([row.input]);
+    });
+  }
+}
+
+function friendlyLabelForPubkey(pubkey) {
+  const recipient = [...state.recipients.values()].find((row) => row.state === "resolved" && row.pubkey === pubkey);
+  return recipient?.display || formatPublicKey(pubkey);
 }
 
 function renderPeers() {
   const peers = [...state.peers.values()].filter((peer) => Number(peer.expiresAt) > nowSeconds());
   state.peers = new Map(peers.map((peer) => [peer.pubkey, peer]));
+  clearTimeout(state.peerExpiryTimer);
+  state.peerExpiryTimer = 0;
+  if (peers.length) {
+    const nextExpiry = Math.min(...peers.map((peer) => Number(peer.expiresAt)));
+    state.peerExpiryTimer = setTimeout(() => render(), Math.max(0, (nextExpiry - nowSeconds()) * 1000 + 25));
+  }
   byId("peer-list").innerHTML = peers.length
     ? peers.map((peer) => `
       <div class="person-row">
-        <span>${escapeHtml(shortValue(peer.pubkey))}<small>${escapeHtml(peer.area)} received now</small></span>
+        <span>${escapeHtml(friendlyLabelForPubkey(peer.pubkey))}<small>${escapeHtml(peer.area)} received now</small></span>
       </div>
     `).join("")
     : '<div class="empty">No shared locations received yet.</div>';
+  mapAdapter?.syncPeerAreas(peers);
+}
 
-  byId("peer-markers").innerHTML = peers.map((peer) => {
-    const pos = markerPositionForPubkey(peer.pubkey);
-    return `<div class="marker peer" data-label="${escapeHtml(shortValue(peer.pubkey, 4, 4))}" style="left:${pos.left}%;top:${pos.top}%"></div>`;
-  }).join("");
+function renderLocationPrompt() {
+  const prompt = byId("location-prompt");
+  if (!prompt) return;
+  prompt.hidden = !state.locationPromptVisible;
+  const pending = state.locationRequestStatus === "pending";
+  const useButton = byId("use-my-location");
+  if (useButton) {
+    useButton.disabled = pending;
+    useButton.textContent = pending ? "Finding Location..." : state.locationRequestStatus === "failed" ? "Try My Location Again" : "Use My Location";
+  }
+  if (byId("not-now-location")) byId("not-now-location").disabled = pending;
 }
 
 function renderActions() {
   const hasSigner = state.signer.status === "full" && Boolean(state.signer.pubkey);
   const hasRecipients = selectedRecipientPubkeys().length > 0;
+  const hasLocation = Boolean(state.currentArea);
   const active = Boolean(state.session);
-  const canStart = hasSigner && hasRecipients && !active && !state.busy;
+  const canStart = hasSigner && hasRecipients && hasLocation && !active && !state.busy;
   const canUpdate = hasSigner && hasRecipients && active && !state.busy;
 
   byId("share-action").disabled = !canStart;
   byId("sheet-share").disabled = !canStart && !canUpdate;
   byId("share-current-area").disabled = !canUpdate;
   byId("stop-sharing").disabled = !active || state.busy;
-  byId("send-invite").disabled = !hasSigner || !hasRecipients || state.busy;
+  byId("send-invite").disabled = !hasSigner || !hasRecipients || !hasLocation || state.busy;
   byId("sheet-share").textContent = active ? "Share Current Area" : "Start Sharing";
+  byId("add-recipient").disabled = state.recipientInFlight.size > 0;
+  byId("recenter-map").disabled = !state.currentArea || !mapAdapter?.isAvailable();
 }
 
 function render() {
@@ -943,6 +1412,7 @@ function render() {
   renderSession();
   renderRecipients();
   renderPeers();
+  renderLocationPrompt();
   renderActions();
 }
 
@@ -965,6 +1435,20 @@ function bindUi() {
     void addRecipientInputs(values);
     if (input) input.value = "";
   });
+  byId("use-my-location")?.addEventListener("click", () => {
+    void requestCurrentArea({ recenter: true }).catch(() => {});
+  });
+  byId("not-now-location")?.addEventListener("click", () => {
+    state.locationPromptVisible = false;
+    state.locationRequestStatus = "declined";
+    setStatus("Location not requested. You can still move the map and add people.");
+    render();
+  });
+  byId("recenter-map")?.addEventListener("click", () => {
+    if (state.currentArea && mapAdapter?.recenter(state.currentArea)) {
+      setStatus("Map centered on your approximate area.");
+    }
+  });
   byId("send-invite")?.addEventListener("click", () => void publishInvite());
   byId("share-action")?.addEventListener("click", () => void startSharing());
   byId("sheet-share")?.addEventListener("click", () => {
@@ -980,8 +1464,18 @@ function bindUi() {
   });
 }
 
+function syncSharedChromeForApp() {
+  const userAgent = navigator.userAgent || "";
+  const inApp = userAgent.includes("NostrootsBrowser/") || window.nostr?.__nostrootsBrowser === true;
+  if (!inApp) return;
+  document.documentElement.classList.add("is-in-nostroots-browser");
+  if (userAgent.includes("NostrootsBrowser/1.0 iOS-native")) document.documentElement.classList.add("is-in-nostroots-ios");
+}
+
 export function initNostrailApp() {
   if (!byId("nostrail-root")) return;
+  syncSharedChromeForApp();
+  initMap();
   bindUi();
   render();
   watchForSigner();
@@ -989,7 +1483,9 @@ export function initNostrailApp() {
     state,
     addRecipientInputs,
     consumeIncomingEvent,
+    mapAdapter,
     refreshSigner,
+    requestCurrentArea,
     startSharing,
     stopSharing,
   };

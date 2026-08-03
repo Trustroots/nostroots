@@ -36,7 +36,7 @@ test-watch: build
 # Run tests with UI
 test-ui: build
 	@echo "Running tests with UI (accessible on http://localhost:51204)..."
-	docker-compose run --rm -p 51204:51204 tests pnpm test:local:ui
+	docker-compose run --rm -p 127.0.0.1:51204:51204 tests pnpm test:local:ui
 
 # Run E2E tests only (all Playwright projects)
 test-e2e: build

@@ -12,7 +12,11 @@
           "package_name": "org.trustroots.nostroots"
         }
       },
-      "api_key": [{ "current_key": "" }],
+      "api_key": [
+        {
+          "current_key": ""
+        }
+      ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": []

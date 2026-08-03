@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { AlertTriangleIcon, MailCheckIcon } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
@@ -61,9 +61,13 @@ export default function OnboardingTrustrootsScreen() {
   const [fieldError, setFieldError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
-  // Syncing a one-time status message from the router's error query param.
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
+  // Derive the one-time status message from the router's error query param
+  // by adjusting state during render (React's "adjusting state when a prop
+  // changes" pattern) instead of an effect, so it only fires when the param
+  // actually changes rather than on every render.
+  const [syncedErrorParam, setSyncedErrorParam] = useState<string | null>(null);
+  if ((errorParam ?? null) !== syncedErrorParam) {
+    setSyncedErrorParam(errorParam ?? null);
     if (errorParam === "auth") {
       setStatusMessage(AUTHENTICATION_FAILURE_MESSAGE);
     } else if (errorParam === "missing-token") {
@@ -73,30 +77,35 @@ export default function OnboardingTrustrootsScreen() {
         "Start verification in the app before opening the email link.",
       );
     }
-  }, [errorParam]);
+  }
 
-  // Syncing local UI state from pending Trustroots verification in redux.
-  useEffect(() => {
+  // Sync local UI state from pending Trustroots verification in redux, again
+  // by adjusting state during render rather than in an effect.
+  const [syncedPendingProfileUsername, setSyncedPendingProfileUsername] =
+    useState<string | null>(null);
+  const [syncedPendingUsername, setSyncedPendingUsername] = useState<
+    string | null
+  >(null);
+  if (
+    (pendingTrustrootsProfileUsername ?? null) !==
+      syncedPendingProfileUsername ||
+    (pendingTrustrootsUsername ?? null) !== syncedPendingUsername
+  ) {
+    setSyncedPendingProfileUsername(pendingTrustrootsProfileUsername ?? null);
+    setSyncedPendingUsername(pendingTrustrootsUsername ?? null);
+
     if (pendingTrustrootsProfileUsername) {
       setUsernameInput(pendingTrustrootsProfileUsername);
       setScreenState("profile-retry");
       setStatusMessage(
         "Your Trustroots account was authenticated. Retry the profile publish to finish setup.",
       );
-      return;
-    }
-
-    if (pendingTrustrootsUsername && screenState === "idle") {
+    } else if (pendingTrustrootsUsername && screenState === "idle") {
       setUsernameInput(pendingTrustrootsUsername);
       setScreenState("code-entry");
       setStatusMessage("Enter the six-digit code from your email.");
     }
-  }, [
-    pendingTrustrootsProfileUsername,
-    pendingTrustrootsUsername,
-    screenState,
-  ]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+  }
 
   const resetToUsernameEntry = useCallback(
     (message?: string) => {

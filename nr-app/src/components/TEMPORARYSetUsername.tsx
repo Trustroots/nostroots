@@ -8,18 +8,25 @@ import {
 } from "@trustroots/nr-common";
 import { EventTemplate } from "nostr-tools";
 import { Fragment, useState } from "react";
-import { Button, StyleSheet, Text, TextInput } from "react-native";
+import { Button, TextInput } from "react-native";
 import Toast from "react-native-root-toast";
+
+import { Text } from "@/components/ui/text";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 export default function TEMPORARYSetUsername() {
   const dispatch = useAppDispatch();
   const [username, setUsername] = useState("");
+  const colors = useThemeColors();
 
   return (
     <Fragment>
-      <Text style={styles.inputLabel}>Trustroots username:</Text>
+      <Text className="text-[15px] font-bold mx-2.5 my-2.5">
+        Trustroots username:
+      </Text>
       <TextInput
-        style={styles.input}
+        className="h-10 mb-5 px-2.5 border border-border rounded bg-background text-foreground"
+        placeholderTextColor={colors.mutedForeground}
         value={username}
         onChangeText={setUsername}
         autoCapitalize="none"
@@ -54,21 +61,3 @@ export default function TEMPORARYSetUsername() {
     </Fragment>
   );
 }
-
-const styles = StyleSheet.create({
-  inputLabel: {
-    fontSize: 15,
-    fontWeight: "bold",
-    marginTop: 10,
-    marginBottom: 10,
-    marginLeft: 10,
-  },
-  input: {
-    height: 40,
-    borderColor: "gray",
-    borderWidth: 1,
-    marginBottom: 20,
-    paddingHorizontal: 10,
-    backgroundColor: "#ffffff",
-  },
-});

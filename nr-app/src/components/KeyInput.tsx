@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import * as Clipboard from "expo-clipboard";
 import {
   ClipboardPasteIcon,
@@ -36,6 +37,7 @@ export function KeyInput({
   showPasteButton = false,
 }: KeyInputProps) {
   const [showKey, setShowKey] = useState(false);
+  const colors = useThemeColors();
 
   // Generate initial mnemonic if in generate mode
   useEffect(() => {
@@ -90,7 +92,7 @@ export function KeyInput({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#6b7280"
+          placeholderTextColor={colors.mutedForeground}
           className="border border-border rounded-lg p-3 pr-12 text-sm bg-background text-foreground"
           editable={!disabled}
         />
@@ -100,9 +102,9 @@ export function KeyInput({
           className="absolute right-3 top-3"
         >
           {showKey ? (
-            <EyeOffIcon size={20} color="#666" />
+            <EyeOffIcon size={20} color={colors.mutedForeground} />
           ) : (
-            <EyeIcon size={20} color="#666" />
+            <EyeIcon size={20} color={colors.mutedForeground} />
           )}
         </Pressable>
       </View>
@@ -119,7 +121,7 @@ export function KeyInput({
               onPress={handleCopy}
               disabled={disabled}
             >
-              <CopyIcon size={16} color="#000" />
+              <CopyIcon size={16} color={colors.foreground} />
               <Text className="text-sm">Copy</Text>
             </Button>
           )}
@@ -131,7 +133,7 @@ export function KeyInput({
               onPress={handlePaste}
               disabled={disabled}
             >
-              <ClipboardPasteIcon size={16} color="#000" />
+              <ClipboardPasteIcon size={16} color={colors.foreground} />
               <Text className="text-sm">Paste</Text>
             </Button>
           )}

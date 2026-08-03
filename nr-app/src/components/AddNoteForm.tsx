@@ -1,3 +1,5 @@
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { publishNotePromiseAction } from "@/redux/actions/publish.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapSelectors } from "@/redux/slices/map.slice";
@@ -34,6 +36,8 @@ interface AddNoteFormProps {
   onSignalSent?: () => void;
 }
 
+const DAY_IN_MS = 24 * 60 * 60 * 1000;
+
 const INTENT_PLACEHOLDERS: Record<string, string> = {
   coffee: "Anyone down for coffee?",
   drinks: "Wanna get drinks with me?",
@@ -53,6 +57,8 @@ export default function AddNoteForm({
   onSignalSent,
 }: AddNoteFormProps) {
   const dispatch = useAppDispatch();
+  const colors = useThemeColors();
+  const isDark = useColorScheme() === "dark";
   const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
 
   const [noteContent, setNoteContent] = useState("");
@@ -63,6 +69,10 @@ export default function AddNoteForm({
     useState<SignalDuration>("1-week");
   const [customDate, setCustomDate] = useState<Date | null>(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerDates, setPickerDates] = useState<{
+    initial: Date;
+    minimum: Date;
+  } | null>(null);
   const [optimisticNotes, setOptimisticNotes] = useState<OptimisticNote[]>([]);
 
   // When not in signal mode, intent is always null
@@ -262,7 +272,7 @@ export default function AddNoteForm({
                 ? getIntentPlaceholder(selectedIntent)
                 : "Share a tip or say hi..."
             }
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor={colors.mutedForeground}
             value={noteContent}
             onChangeText={setNoteContent}
             onSubmitEditing={handleSend}
@@ -318,7 +328,17 @@ export default function AddNoteForm({
           );
         })}
         <Pressable
-          onPress={() => setShowDatePicker(!showDatePicker)}
+          onPress={() => {
+            const willShow = !showDatePicker;
+            if (willShow) {
+              const now = Date.now();
+              setPickerDates({
+                initial: new Date(now + 7 * DAY_IN_MS),
+                minimum: new Date(now + DAY_IN_MS),
+              });
+            }
+            setShowDatePicker(willShow);
+          }}
           className={`rounded-full px-1.5 py-1 border ${
             customDate
               ? "border-primary bg-primary/10"
@@ -343,12 +363,13 @@ export default function AddNoteForm({
       </View>
 
       {/* Date picker for custom expiry */}
-      {showDatePicker && (
+      {showDatePicker && pickerDates && (
         <DateTimePicker
-          value={customDate ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)}
+          value={customDate ?? pickerDates.initial}
           mode="date"
+          themeVariant={isDark ? "dark" : "light"}
           display={Platform.OS === "ios" ? "inline" : "default"}
-          minimumDate={new Date(Date.now() + 24 * 60 * 60 * 1000)}
+          minimumDate={pickerDates.minimum}
           onChange={(_event, date) => {
             if (Platform.OS === "android") {
               setShowDatePicker(false);

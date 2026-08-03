@@ -26,7 +26,9 @@ import { getCurrentLocation } from "@/utils/location";
 import { FontAwesome } from "@expo/vector-icons";
 import { createSelector } from "reselect";
 
-import { Colors } from "@/constants/Colors";
+import { DARK_MAP_STYLE } from "@/constants/mapStyle";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
 
 // TODO - Only show if a plus code has direct notes, child notes, or no notes
 
@@ -103,6 +105,9 @@ export default function MapPlusCodes() {
     mapSelectors.selectCurrentMapLocation,
   );
   const savedRegion = useAppSelector(mapSelectors.selectSavedRegion);
+
+  const colors = useThemeColors();
+  const isDark = useColorScheme() === "dark";
 
   const mapViewRef = useRef<MapView>(null);
 
@@ -195,6 +200,8 @@ export default function MapPlusCodes() {
         style={styles.map}
         rotateEnabled={false}
         pitchEnabled={false}
+        userInterfaceStyle={isDark ? "dark" : "light"}
+        customMapStyle={isDark ? DARK_MAP_STYLE : []}
         showsUserLocation={locationPermissionGranted}
         onRegionChangeComplete={handleMapRegionChange}
         initialRegion={savedRegion}
@@ -243,14 +250,10 @@ export default function MapPlusCodes() {
         )}
       </MapView>
       <TouchableOpacity
-        style={styles.locationButton}
+        style={[styles.locationButton, { backgroundColor: colors.card }]}
         onPress={handleLocationPress}
       >
-        <FontAwesome
-          name="location-arrow"
-          size={22}
-          color={Colors.light.tint}
-        />
+        <FontAwesome name="location-arrow" size={22} color={colors.primary} />
       </TouchableOpacity>
     </View>
   );
@@ -290,7 +293,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 30,
     right: 30,
-    backgroundColor: "white",
     paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 5,

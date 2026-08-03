@@ -16,6 +16,7 @@ import {
   SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
 } from "@/constants";
 import { useKeyImport } from "@/hooks/useKeyImport";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import {
   getPrivateKeyHexFromSecureStorage,
   getPrivateKeyMnemonicFromSecureStorage,
@@ -61,12 +62,14 @@ const ToggleSwitch = ({
   onToggle: () => void;
   label: string;
 }) => {
+  const colors = useThemeColors();
+
   return (
     <View className="flex flex-row gap-2 items-center">
       <Switch
         value={value}
         onChange={onToggle}
-        trackColor={{ false: "#767577", true: "#0d9488" }}
+        trackColor={{ false: colors.muted, true: colors.primary }}
       />
       <Text variant="small">{label}</Text>
     </View>

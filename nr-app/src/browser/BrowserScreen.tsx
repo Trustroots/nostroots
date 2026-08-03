@@ -10,6 +10,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import WebView, { WebViewNavigation } from "react-native-webview";
 
 import { Text } from "@/components/ui/text";
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { NOSTROOTS_BROWSER_USER_AGENT, NOSTROOTS_WEB_URL } from "@/constants";
 import { ROUTES } from "@/constants/routes";
 import { createNip7InjectionScript } from "@/browser/nip7-bridge";
@@ -23,6 +25,23 @@ import {
   useNip7BridgeMessages,
 } from "@/browser/useNip7BridgeMessages";
 
+/**
+ * Tells the loaded page which scheme to render, so sites that honour
+ * `prefers-color-scheme` follow the app's Appearance setting rather than the OS.
+ */
+function createColorSchemeInjectionScript(colorScheme: "light" | "dark") {
+  return `
+    (function () {
+      document.documentElement.style.colorScheme = ${JSON.stringify(colorScheme)};
+      var meta = document.querySelector('meta[name="color-scheme"]') || document.createElement("meta");
+      meta.setAttribute("name", "color-scheme");
+      meta.setAttribute("content", ${JSON.stringify(colorScheme)});
+      if (!meta.parentNode && document.head) document.head.appendChild(meta);
+    })();
+    true;
+  `;
+}
+
 export function BrowserScreen({
   initialUrl = NOSTROOTS_WEB_URL,
 }: {
@@ -30,6 +49,8 @@ export function BrowserScreen({
 }) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const colors = useThemeColors();
+  const colorScheme = useColorScheme();
   const webViewRef = useRef<WebView>(null);
   const currentUrlRef = useRef<string>(initialUrl);
   const addressBarAutoHideRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -147,7 +168,7 @@ export function BrowserScreen({
         testID="nostroots-webview"
         source={{ uri: currentUrl }}
         applicationNameForUserAgent={NOSTROOTS_BROWSER_USER_AGENT}
-        injectedJavaScriptBeforeContentLoaded={`${createNip7InjectionScript()}\n${createNotificationBridgeInjectionScript()}`}
+        injectedJavaScriptBeforeContentLoaded={`${createNip7InjectionScript()}\n${createNotificationBridgeInjectionScript()}\n${createColorSchemeInjectionScript(colorScheme)}`}
         onMessage={handleMessage}
         onNavigationStateChange={handleNavigationStateChange}
         onShouldStartLoadWithRequest={handleShouldStartLoadWithRequest}
@@ -155,7 +176,7 @@ export function BrowserScreen({
         allowsBackForwardNavigationGestures
         pullToRefreshEnabled
         setSupportMultipleWindows={false}
-        style={{ flex: 1, backgroundColor: "#ffffff" }}
+        style={{ flex: 1, backgroundColor: colors.background }}
       />
 
       {isDeveloperAddressBarVisible ? (
@@ -197,7 +218,7 @@ export function BrowserScreen({
           className="absolute right-4 h-[46px] w-[46px] items-center justify-center rounded-full border border-border bg-background/95"
           style={{ bottom: insets.bottom + 12 }}
         >
-          <Ionicons name="link-outline" size={21} color="#0f172a" />
+          <Ionicons name="link-outline" size={21} color={colors.foreground} />
         </Pressable>
       ) : null}
 
@@ -220,6 +241,7 @@ function Nip7PermissionModal({
   onDeny: () => void;
 }) {
   const [remember, setRemember] = useState(false);
+  const colors = useThemeColors();
 
   return (
     <Modal
@@ -245,8 +267,7 @@ function Nip7PermissionModal({
               accessibilityLabel="Remember this website"
               value={remember}
               onValueChange={setRemember}
-              trackColor={{ false: "#cbd5e1", true: "#99f6e4" }}
-              thumbColor={remember ? "#0f766e" : "#ffffff"}
+              trackColor={{ false: colors.muted, true: colors.primary }}
             />
             <Text className="text-foreground flex-1 font-bold">
               Remember this website

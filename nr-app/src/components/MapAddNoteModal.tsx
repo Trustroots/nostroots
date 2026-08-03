@@ -1,3 +1,5 @@
+import { Text } from "@/components/ui/text";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { publishNotePromiseAction } from "@/redux/actions/publish.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
@@ -11,7 +13,6 @@ import {
   Modal,
   Platform,
   StyleSheet,
-  Text,
   TextInput,
   View,
 } from "react-native";
@@ -26,6 +27,7 @@ const YEAR_IN_SECONDS = 365 * DAY_IN_SECONDS;
 
 export default function MapAddNoteModal() {
   const dispatch = useAppDispatch();
+  const colors = useThemeColors();
   const selectedCoordinate = useAppSelector(mapSelectors.selectSelectedLatLng);
   const isAddNoteModalOpen = useAppSelector(
     mapSelectors.selectIsAddNoteModalOpen,
@@ -107,16 +109,17 @@ export default function MapAddNoteModal() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.modalContainer}
       >
-        <View style={styles.contentContainer}>
-          <Text style={styles.inputLabel}>Add Note to Map</Text>
+        <View className="w-4/5 p-5 rounded-lg items-center bg-card">
+          <Text className="text-base font-bold mb-2.5">Add Note to Map</Text>
           <TextInput
             ref={(input) => {
               if (input) {
                 input.focus();
               }
             }}
-            style={styles.input}
+            className="w-full h-20 p-2.5 mb-2.5 border border-border rounded bg-background text-foreground"
             placeholder="Enter your note"
+            placeholderTextColor={colors.mutedForeground}
             value={noteContent}
             onChangeText={setNoteContent}
             onSubmitEditing={handleAddNote}
@@ -127,8 +130,14 @@ export default function MapAddNoteModal() {
             onValueChange={(v) => {
               setNoteExpiry(v);
             }}
-            style={styles.picker}
-            itemStyle={styles.pickerItem}
+            dropdownIconColor={colors.foreground}
+            style={{
+              width: "100%",
+              marginBottom: 10,
+              backgroundColor: colors.background,
+              color: colors.foreground,
+            }}
+            itemStyle={{ color: colors.foreground }}
           >
             <Picker.Item label="1 year" value={YEAR_IN_SECONDS.toString()} />
             <Picker.Item label="1 month" value={MONTH_IN_SECONDS.toString()} />
@@ -139,8 +148,16 @@ export default function MapAddNoteModal() {
               value={MINUTE_IN_SECONDS.toString()}
             />
           </Picker>
-          <Button title="Add Note" onPress={handleAddNote} />
-          <Button title="Cancel" onPress={closeModal} />
+          <Button
+            title="Add Note"
+            color={colors.primary}
+            onPress={handleAddNote}
+          />
+          <Button
+            title="Cancel"
+            color={colors.mutedForeground}
+            onPress={closeModal}
+          />
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -153,45 +170,5 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "rgba(0, 0, 0, 0.7)",
-  },
-  contentContainer: {
-    width: "80%",
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  layerToggle: {
-    color: "rgba(255,255,255,1)",
-    backgroundColor: "rgba(10, 10, 0, 0.2)",
-  },
-  inputLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  input: {
-    width: "100%",
-    height: 80,
-    padding: 10,
-    backgroundColor: "white",
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-  },
-  marker: {
-    width: 200,
-  },
-  picker: {
-    width: "100%",
-    backgroundColor: "white",
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  pickerItem: {
-    color: "black",
   },
 });

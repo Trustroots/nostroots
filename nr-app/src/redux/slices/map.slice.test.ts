@@ -1,5 +1,5 @@
 import { mapSlice, mapActions, mapSelectors } from "./map.slice";
-import { Region } from "@/types/map.types";
+import { Region } from "@/utils/map.utils";
 
 describe("map.slice", () => {
   describe("savedRegion", () => {

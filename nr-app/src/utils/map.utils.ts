@@ -8,7 +8,6 @@ import {
 } from "@trustroots/nr-common";
 import { matchFilter, NostrEvent } from "nostr-tools";
 import OpenLocationCode from "open-location-code-typescript";
-import { BoundingBox, Region } from "@/types/map.types";
 import { urlJoin } from "url-join-ts";
 import {
   isEventForPlusCodeExactly,
@@ -16,6 +15,27 @@ import {
 } from "./event.utils";
 
 export type PlusCodeShortLength = 2 | 4 | 6 | 8;
+
+/**
+ * Geometry the app shares between the map view, the map slice and the plus
+ * code utilities. These used to come from react-native-maps; they are
+ * declared here so nothing outside the map view depends on a map library.
+ */
+
+export interface LatLng {
+  latitude: number;
+  longitude: number;
+}
+
+export interface Region extends LatLng {
+  latitudeDelta: number;
+  longitudeDelta: number;
+}
+
+export interface BoundingBox {
+  northEast: LatLng;
+  southWest: LatLng;
+}
 
 const PLUS_CODE_CHARACTERS = "23456789CFGHJMPQRVWX" as const;
 

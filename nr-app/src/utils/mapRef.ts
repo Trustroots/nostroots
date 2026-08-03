@@ -1,5 +1,5 @@
 import type { CameraRef, MapRef } from "@maplibre/maplibre-react-native";
-import { Region } from "@/types/map.types";
+import { Region } from "@/utils/map.utils";
 import { latitudeDeltaToZoom } from "./maplibre.utils";
 import { rootLogger } from "./logger.utils";
 

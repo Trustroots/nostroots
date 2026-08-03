@@ -7,7 +7,10 @@ import {
   SignalDuration,
   SignalIntent,
 } from "@/constants/signals";
-import { getCurrentTimestamp } from "@trustroots/nr-common";
+import {
+  CONTENT_MAXIMUM_LENGTH,
+  getCurrentTimestamp,
+} from "@trustroots/nr-common";
 import { nanoid } from "@reduxjs/toolkit";
 import { CalendarDays, Send } from "lucide-react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -264,8 +267,14 @@ export default function AddNoteForm({
             onChangeText={setNoteContent}
             onSubmitEditing={handleSend}
             multiline={true}
+            maxLength={CONTENT_MAXIMUM_LENGTH}
             style={{ maxHeight: 100 }}
           />
+          {noteContent.length > CONTENT_MAXIMUM_LENGTH - 200 && (
+            <Text className="text-[11px] text-muted-foreground text-right mt-1">
+              {CONTENT_MAXIMUM_LENGTH - noteContent.length} characters left
+            </Text>
+          )}
         </View>
         <Button
           onPress={handleSend}

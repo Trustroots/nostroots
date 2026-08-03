@@ -58,7 +58,14 @@ export const TRUSTROOTS_PICTURE_LABEL_NAMESPACE = "org.trustroots:picture";
 export const TRUSTROOTS_USERNAME_MIN_LENGTH = 3;
 
 export const CONTENT_MINIMUM_LENGTH = 3;
-export const CONTENT_MAXIMUM_LENGTH = 300;
+/**
+ * Neither NIP-01 nor the relay's NIP-11 document defines a content limit
+ * (relay.trustroots.org advertises no max_content_length; its only ceiling is
+ * max_message_length, 131072 bytes for the whole JSON message). The old 300
+ * was ours alone and truncated legitimate notes. This bound exists purely to
+ * keep an upper limit on what nr-server will accept and repost.
+ */
+export const CONTENT_MAXIMUM_LENGTH = 4000;
 
 export const AMQP_EXCHANGE_NAME = "nostrEvents" as const;
 export const AMQP_EXCHANGE_TYPE = "fanout" as const;

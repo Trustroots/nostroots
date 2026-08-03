@@ -10,10 +10,16 @@ jest.mock("@/redux/hooks", () => ({
 
 const mockUseAppSelector = useAppSelector as jest.Mock;
 
-function fakeState(areTestFeaturesEnabled: boolean) {
+function fakeState(
+  areTestFeaturesEnabled: boolean,
+  publicKeyNpub: string | null = "npub1aabbcc",
+) {
   return {
     settings: {
       areTestFeaturesEnabled,
+    },
+    keystore: {
+      publicKeyNpub: publicKeyNpub ?? undefined,
     },
   };
 }
@@ -59,5 +65,30 @@ describe("MapLayout", () => {
     );
 
     expect(queryByLabelText("Open NIP-07 Browser")).toBeTruthy();
+  });
+
+  it("shows the feedback button only once a key exists", () => {
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(false, null)),
+    );
+    const { queryByLabelText, rerender } = renderMapLayout();
+
+    expect(queryByLabelText("Send feedback")).toBeNull();
+
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(false, "npub1aabbcc")),
+    );
+    rerender(
+      <SafeAreaProvider
+        initialMetrics={{
+          frame: { x: 0, y: 0, width: 390, height: 844 },
+          insets: { top: 47, right: 0, bottom: 34, left: 0 },
+        }}
+      >
+        <MapLayout />
+      </SafeAreaProvider>,
+    );
+
+    expect(queryByLabelText("Send feedback")).toBeTruthy();
   });
 });

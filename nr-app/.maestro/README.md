@@ -16,13 +16,28 @@ It appends itself to your shell profile. Open a new shell, or:
 export PATH="$PATH:$HOME/.maestro/bin"
 ```
 
+The flows also need [Deno](https://deno.com) on `PATH`, to run the mock stack.
+
+## Mock stack
+
+The flows need an nr-bridge, a Trustroots NIP-05 endpoint and a relay.
+`.maestro/mock-stack/server.ts` is all three, on port 8787: it accepts any
+username, always issues the code `123456`, serves one fixed test identity at
+`/.well-known/nostr.json`, and acknowledges any event published to it.
+
+`.maestro/.env.e2e` points the app at it. Expo does not load that file
+automatically, so `pnpm test:e2e:build` and `scripts/e2e.sh` source it. The
+resulting build talks to localhost and must never be distributed.
+
+Its own tests: `cd .maestro/mock-stack && deno task test`.
+
 ## Running
 
 Build and install a **Release** build on the simulator:
 
 ```bash
 cd nr-app
-SENTRY_DISABLE_AUTO_UPLOAD=true pnpm exec expo run:ios --configuration Release
+pnpm test:e2e:build
 ```
 
 Then, with the simulator running:
@@ -32,13 +47,32 @@ cd nr-app
 pnpm test:e2e
 ```
 
+This starts the mock stack, runs the flows, and stops the mock stack again.
+
 Run one flow:
 
 ```bash
-maestro test .maestro/flows/onboarding-import.yaml
+./scripts/e2e.sh .maestro/flows/onboarding-import.yaml
 ```
 
-To watch a flow while iterating on it, `maestro test --continuous <file>`.
+To iterate on a flow, run the mock stack and Maestro separately:
+
+```bash
+cd .maestro/mock-stack && deno task start
+```
+
+```bash
+maestro test --continuous .maestro/flows/onboarding-import.yaml
+```
+
+If more than one simulator is booted, `scripts/e2e.sh` does not pass a
+`--device` flag, so Maestro's choice of device is ambiguous. Run Maestro
+directly against a specific device instead — note the flag goes before
+`test`:
+
+```bash
+maestro --device <udid> test .maestro/flows
+```
 
 ### Why Release and not a dev build
 
@@ -50,39 +84,59 @@ cannot be reliably dismissed. A Release build embeds the JS bundle, needs no
 Metro, and gives a genuine cold start.
 
 `SENTRY_DISABLE_AUTO_UPLOAD=true` is needed because the Release build otherwise
-runs sentry-cli source map upload, which fails without an auth token.
+runs sentry-cli source map upload, which fails without an auth token; it is set
+by `pnpm test:e2e:build` already, not something you need to pass yourself.
 
 ## Flows
 
-| Flow | What it covers |
-| --- | --- |
-| `flows/onboarding-generate.yaml` | Fresh install through to a newly generated mnemonic, ending on the link screen |
-| `flows/onboarding-import.yaml` | Fresh install importing a fixed test nsec, asserting the derived npub on the link screen |
+| Flow                             | What it covers                                                                                                          |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `flows/onboarding-bridge.yaml`   | The primary branch: welcome, identity, Trustroots email verification through the mock bridge, backup confirmation, home |
+| `flows/onboarding-generate.yaml` | Fresh install through to a newly generated mnemonic, ending on the link screen                                          |
+| `flows/onboarding-import.yaml`   | Fresh install importing a fixed test nsec, through NIP-05 linking to home, then a relaunch that must land on home       |
 
-Both share `subflows/open-key-screen.yaml`, which wipes state and walks to the
-key step.
+`onboarding-generate.yaml` and `onboarding-import.yaml` share
+`subflows/open-key-screen.yaml`, which wipes state and walks to the key step via
+the legacy key path. `onboarding-bridge.yaml` takes the Trustroots email path
+instead, so it does not use that subflow.
 
 ## What is not covered, and why
 
-`app/onboarding/trustroots.tsx` is the primary onboarding branch. It requests a
-six-digit code through `nr-bridge` and delivers it by email, so it cannot be
-driven end to end without a mock bridge. The flows take the legacy key path
-instead (`I've already set my key on Trustroots`).
+`flows/onboarding-generate.yaml` stops at the link screen. That flow generates a
+random key, so the NIP-05 lookup in `link.tsx` cannot be made to match it
+deterministically; the mock stack serves one fixed test identity. The import
+flow covers the link screen and everything past it.
 
-Both flows stop at the link screen. `link.tsx` gates its Finish button on a live
-NIP-05 lookup against trustroots.org that must match the local npub, so reaching
-the home screen needs a real linked Trustroots account.
+The bridge error branches (`not-found`, `already-pending`, a rejected code, a
+failed profile publish) are covered by `app/onboarding/trustroots.test.tsx`
+rather than by flows, because driving them through the UI is slower and no more
+convincing.
 
-## Known deviation: the welcome screen
+## Known issue: `pnpm test:e2e:build` in a git worktree
 
-A fresh install lands on `onboarding/identity`, not `welcome`. `app/index.tsx`
-renders `Redirect -> WELCOME`, but its own effect sets `hasBeenOpenedBefore` in
-the same commit, and the re-render swaps in `Redirect -> ONBOARDING` before the
-first redirect navigates.
+In a git worktree, `pnpm test:e2e:build` currently fails: `expo prebuild` dies
+with `ENOENT ... assets/images/nostroots-logo67-app-icon.png` from inside
+`@expo/image-utils`. This is unrelated to onboarding or the mock stack — it is
+an `expo prebuild` / worktree interaction.
 
-The subflow encodes this current behaviour so the flows pass. It is a deviation
-from what the code intends, not a decision. If the redirect race is fixed, add
-the `welcome-get-started` tap back to the top of the subflow.
+The workaround that worked: copy an already-generated `nr-app/ios` directory
+from a normal checkout that has one, run `pod install` inside it, then build
+directly with `xcodebuild`:
+
+```bash
+xcodebuild -workspace Nostroots.xcworkspace -scheme Nostroots \
+  -configuration Release -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,id=<udid>' \
+  -derivedDataPath ./build-e2e
+```
+
+A full Release build needs roughly 7 GB of derived data. To iterate on
+JS-only changes without a full rebuild, regenerate the bundle with
+`expo export:embed` and the Pods `hermesc`, then swap the resulting
+`main.jsbundle` into the already-installed `.app` instead of rebuilding.
+
+This is a workaround, not the intended path — fix `expo prebuild` in worktrees
+if you hit this outside of e2e work.
 
 ## Selectors
 

@@ -25,7 +25,11 @@ import { Colors } from "@/constants/Colors";
 import { FontAwesome } from "@expo/vector-icons";
 import { RootState } from "@/redux/store";
 
-import type { CameraRef } from "@maplibre/maplibre-react-native";
+import type {
+  CameraRef,
+  CircleLayerSpecification,
+  SymbolLayerSpecification,
+} from "@maplibre/maplibre-react-native";
 
 const OPENFREEMAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const GEOJSON_UPDATE_DEBOUNCE_MS = 500;
@@ -39,45 +43,48 @@ const selectAllProfiles = (state: RootState) => state.profiles.byPubkey;
 
 // ── Layer styles ──────────────────────────────────────────────────────────
 
-const markerCirclePaint = {
-  circleRadius: [
+const markerCirclePaint: CircleLayerSpecification["paint"] = {
+  "circle-radius": [
     "interpolate",
     ["linear"],
     ["get", "count"],
-    1, 12,
-    5, 18,
-    20, 26,
+    1,
+    12,
+    5,
+    18,
+    20,
+    26,
   ],
-  circleColor: "#0d9488",
-  circleStrokeWidth: 3,
-  circleStrokeColor: "#ffffff",
-  circleOpacity: 0.9,
+  "circle-color": "#0d9488",
+  "circle-stroke-width": 3,
+  "circle-stroke-color": "#ffffff",
+  "circle-opacity": 0.9,
 };
 
-const markerCountLayout = {
-  textField: "{count}",
-  textSize: 12,
-  textFont: ["Noto Sans Bold"],
-  textAllowOverlap: true,
+const markerCountLayout: SymbolLayerSpecification["layout"] = {
+  "text-field": "{count}",
+  "text-size": 12,
+  "text-font": ["Noto Sans Bold"],
+  "text-allow-overlap": true,
 };
 
-const markerCountPaint = {
-  textColor: "#ffffff",
+const markerCountPaint: SymbolLayerSpecification["paint"] = {
+  "text-color": "#ffffff",
 };
 
-const markerLabelLayout = {
-  textField: "{intentLabel}",
-  textSize: 10,
-  textFont: ["Noto Sans Regular"],
-  textAllowOverlap: true,
-  textIgnorePlacement: true,
-  textOffset: [0, 2.5],
+const markerLabelLayout: SymbolLayerSpecification["layout"] = {
+  "text-field": "{intentLabel}",
+  "text-size": 10,
+  "text-font": ["Noto Sans Regular"],
+  "text-allow-overlap": true,
+  "text-ignore-placement": true,
+  "text-offset": [0, 2.5],
 };
 
-const markerLabelPaint = {
-  textColor: "#0d9488",
-  textHaloColor: "#ffffff",
-  textHaloWidth: 1,
+const markerLabelPaint: SymbolLayerSpecification["paint"] = {
+  "text-color": "#0d9488",
+  "text-halo-color": "#ffffff",
+  "text-halo-width": 1,
 };
 
 // ── Component ──────────────────────────────────────────────────────────────
@@ -178,28 +185,24 @@ export default function MapLibreMapView() {
       <Map
         style={styles.map}
         mapStyle={OPENFREEMAP_STYLE_URL}
-        logoEnabled={false}
-        attributionEnabled={false}
-        compassEnabled={true}
-        rotateEnabled={false}
-        pitchEnabled={false}
+        logo={false}
+        attribution={false}
+        compass={true}
+        touchRotate={false}
+        touchPitch={false}
         onRegionDidChange={handleRegionDidChange}
       >
         <Camera
           ref={cameraRef}
-          defaultSettings={{
-            centerCoordinate: defaultCenter,
-            zoomLevel: defaultZoom,
+          initialViewState={{
+            center: defaultCenter,
+            zoom: defaultZoom,
           }}
         />
 
         <GeoJSONSource id="events-source" data={geoJSON} onPress={handlePress}>
           {/* Marker circles — size scales with event count */}
-          <Layer
-            id="marker-circles"
-            type="circle"
-            paint={markerCirclePaint}
-          />
+          <Layer id="marker-circles" type="circle" paint={markerCirclePaint} />
 
           {/* Event count inside the circle */}
           <Layer

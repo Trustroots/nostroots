@@ -205,11 +205,25 @@ describe("eventsToGeoJSON", () => {
 
   it("uses most recent event for metadata", () => {
     const events = [
-      makeEvent({ id: "e1", pubkey: "p1", created_at: 1700000001, intentKey: "coffee" }),
-      makeEvent({ id: "e2", pubkey: "p2", created_at: 1700000002, intentKey: "hosting" }),
+      makeEvent({
+        id: "e1",
+        pubkey: "p1",
+        created_at: 1700000001,
+        intentKey: "coffee",
+      }),
+      makeEvent({
+        id: "e2",
+        pubkey: "p2",
+        created_at: 1700000002,
+        intentKey: "hosting",
+      }),
     ];
     const profiles = {
-      p2: makeProfile({ pubkey: "p2", name: "Bob", picture: "https://bob.jpg" }),
+      p2: makeProfile({
+        pubkey: "p2",
+        name: "Bob",
+        picture: "https://bob.jpg",
+      }),
     };
     const result = eventsToGeoJSON(events, profiles, 8);
 

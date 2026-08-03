@@ -88,10 +88,7 @@ export function eventsToGeoJSON(
   profilesByPubkey: Record<string, NostrProfile>,
   plusCodeLength: number = 8,
 ): MapGeoJSON {
-  const byPlusCode = new Map<
-    string,
-    { events: EventWithMetadata[] }
-  >();
+  const byPlusCode = new Map<string, { events: EventWithMetadata[] }>();
 
   for (const ewm of events) {
     const fullPlusCode = getFirstLabelValueFromEvent(
@@ -110,7 +107,8 @@ export function eventsToGeoJSON(
     }
   }
 
-  const features: GeoJSON.Feature<GeoJSON.Point, PlusCodeMarkerProperties>[] = [];
+  const features: GeoJSON.Feature<GeoJSON.Point, PlusCodeMarkerProperties>[] =
+    [];
 
   for (const [groupCode, { events: cellEvents }] of byPlusCode) {
     let coords: { latitude: number; longitude: number };

@@ -84,11 +84,11 @@ Deno.test("#sup6 support email names the verified username in the subject", () =
   const { subject, html } = buildSupportEmail({
     message: "the map does not load",
     npub: "npub1abc",
-    username: "marmaladeskies",
+    username: "wanderingpine",
   });
 
-  expect(subject).toBe("Nostroots support request from marmaladeskies");
-  expect(html).toContain("marmaladeskies (verified)");
+  expect(subject).toBe("Nostroots support request from wanderingpine");
+  expect(html).toContain("wanderingpine (verified)");
   expect(html).toContain("the map does not load");
   expect(html).toContain("Nostroots");
 });

@@ -53,10 +53,10 @@ describe("formatDebugInfo()", () => {
     const output = formatDebugInfo({
       ...baseInfo,
       npub: "npub1abc",
-      trustrootsUsername: "marmaladeskies",
+      trustrootsUsername: "wanderingpine",
     });
 
     expect(output).toContain("npub: npub1abc");
-    expect(output).toContain("Trustroots username: marmaladeskies");
+    expect(output).toContain("Trustroots username: wanderingpine");
   });
 });

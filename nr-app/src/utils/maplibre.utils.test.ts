@@ -1,9 +1,12 @@
 import { EventWithMetadata } from "@/redux/slices/events.slice";
 import { NostrProfile } from "@/redux/slices/profiles.slice";
+import { plusCodeToRectangle } from "@/utils/map.utils";
 import {
   debounce,
   eventsToGeoJSON,
   getIntentFromEvent,
+  gridPlusCodeForLngLat,
+  gridPlusCodeLengthForRegion,
   truncatePlusCode,
   plusCodeGridToGeoJSON,
   zoomToPlusCodeLength,
@@ -387,5 +390,40 @@ describe("debounce", () => {
     jest.advanceTimersByTime(500);
 
     expect(fn).toHaveBeenCalledWith("second");
+  });
+});
+
+describe("gridPlusCodeLengthForRegion", () => {
+  it("matches the precision the grid is drawn at", () => {
+    expect(gridPlusCodeLengthForRegion({ latitudeDelta: 180 })).toBe(2);
+    expect(gridPlusCodeLengthForRegion({ latitudeDelta: 5 })).toBe(4);
+    expect(gridPlusCodeLengthForRegion({ latitudeDelta: 0.5 })).toBe(6);
+    expect(gridPlusCodeLengthForRegion({ latitudeDelta: 0.02 })).toBe(8);
+  });
+});
+
+describe("gridPlusCodeForLngLat", () => {
+  it("returns a code in the same form as the drawn grid cells", () => {
+    expect(gridPlusCodeForLngLat([8.5, 47.3], 6)).toBe("8FVC8G00+");
+    expect(gridPlusCodeForLngLat([8.5, 47.3], 8)).toBe("8FVC8G22+");
+  });
+
+  it("resolves a tap near a cell edge to the cell that contains it", () => {
+    const cell = "8FVC8G00+";
+    const [sw, , ne] = plusCodeToRectangle(cell);
+    const epsilon = 0.000001;
+
+    // Just inside each corner — the case the 44px press hitbox got wrong.
+    expect(
+      gridPlusCodeForLngLat([sw.longitude + epsilon, sw.latitude + epsilon], 6),
+    ).toBe(cell);
+    expect(
+      gridPlusCodeForLngLat([ne.longitude - epsilon, ne.latitude - epsilon], 6),
+    ).toBe(cell);
+
+    // Just outside lands in a neighbouring cell, so the boundary is not fudged.
+    expect(
+      gridPlusCodeForLngLat([sw.longitude - epsilon, sw.latitude - epsilon], 6),
+    ).not.toBe(cell);
   });
 });

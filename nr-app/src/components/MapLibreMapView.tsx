@@ -15,11 +15,11 @@ import {
 } from "@/utils/map.utils";
 import {
   GridGeoJSON,
+  gridPlusCodeForLngLat,
+  gridPlusCodeLengthForRegion,
   latitudeDeltaToZoom,
   PlusCodeGridCell,
-  PlusCodeGridProperties,
   plusCodeGridToGeoJSON,
-  zoomToPlusCodeLength,
 } from "@/utils/maplibre.utils";
 import { mapRefService } from "@/utils/mapRef";
 import {
@@ -46,7 +46,9 @@ import type {
   FillLayerSpecification,
   LineLayerSpecification,
   MapRef,
+  PressEventWithFeatures,
 } from "@maplibre/maplibre-react-native";
+import type { PlusCodeShortLength } from "@/utils/map.utils";
 
 const LIGHT_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const DARK_STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
@@ -59,6 +61,18 @@ const log = rootLogger.extend("MapLibreMapView");
 const selectRootState = (state: RootState) => state;
 
 /**
+ * The precision the grid is currently drawn at. Tap handling reads the same
+ * value so a press always resolves to a cell the user can actually see.
+ */
+const selectGridPlusCodeLength = createSelector(
+  [mapSelectors.selectBoundingBox],
+  (boundingBox): PlusCodeShortLength | undefined =>
+    typeof boundingBox === "undefined"
+      ? undefined
+      : gridPlusCodeLengthForRegion(boundariesToRegion(boundingBox)),
+);
+
+/**
  * The plus code cells covering the visible bounding box, at the precision the
  * current zoom calls for, each with its message count for the heat colour.
  */
@@ -69,10 +83,7 @@ const selectVisibleGridCells = createSelector(
       return [];
     }
 
-    const region = boundariesToRegion(boundingBox);
-    const length = zoomToPlusCodeLength(
-      latitudeDeltaToZoom(region.latitudeDelta),
-    );
+    const length = gridPlusCodeLengthForRegion(boundariesToRegion(boundingBox));
 
     const southWest = coordinatesToPlusCode({
       ...boundingBox.southWest,
@@ -130,6 +141,7 @@ const gridLinePaint: LineLayerSpecification["paint"] = {
 export default function MapLibreMapView() {
   const dispatch = useAppDispatch();
   const gridCells = useAppSelector(selectVisibleGridCells);
+  const gridPlusCodeLength = useAppSelector(selectGridPlusCodeLength);
   const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
   const isMapModalOpen = useAppSelector(mapSelectors.selectIsMapModalOpen);
   const centerMapOnCurrentLocation = useAppSelector(
@@ -236,15 +248,17 @@ export default function MapLibreMapView() {
   }, [dispatch]);
 
   const handlePress = useCallback(
-    (e: NativeSyntheticEvent<{ features: GeoJSON.Feature[] }>) => {
-      const feature = e?.nativeEvent?.features?.[0];
-      const plusCode = (feature?.properties as PlusCodeGridProperties)
-        ?.plusCode;
-      if (plusCode) {
-        dispatch(mapActions.setSelectedPlusCode(plusCode));
-      }
+    (e: NativeSyntheticEvent<PressEventWithFeatures>) => {
+      const lngLat = e?.nativeEvent?.lngLat;
+      if (!lngLat || !gridPlusCodeLength) return;
+
+      dispatch(
+        mapActions.setSelectedPlusCode(
+          gridPlusCodeForLngLat(lngLat, gridPlusCodeLength),
+        ),
+      );
     },
-    [dispatch],
+    [dispatch, gridPlusCodeLength],
   );
 
   const handleLocationPress = useCallback(async () => {

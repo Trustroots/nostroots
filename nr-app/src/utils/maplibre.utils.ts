@@ -7,6 +7,7 @@ import { SIGNAL_INTENTS } from "@/constants/signals";
 import { EventWithMetadata } from "@/redux/slices/events.slice";
 import { NostrProfile } from "@/redux/slices/profiles.slice";
 import {
+  coordinatesToPlusCode,
   plusCodeToCoordinates,
   plusCodeToRectangle,
   type PlusCodeShortLength,
@@ -73,6 +74,35 @@ export function zoomToPlusCodeLength(zoom: number): PlusCodeShortLength {
   if (zoom <= 6) return 4;
   if (zoom <= 9) return 6;
   return 8;
+}
+
+/**
+ * The plus code precision the grid is drawn at for a given region. Tap
+ * handling and grid rendering must both go through this, or a tap can resolve
+ * to a cell of a different size than the one drawn under the finger.
+ */
+export function gridPlusCodeLengthForRegion({
+  latitudeDelta,
+}: {
+  latitudeDelta: number;
+}): PlusCodeShortLength {
+  return zoomToPlusCodeLength(latitudeDeltaToZoom(latitudeDelta));
+}
+
+/**
+ * The grid cell containing a pressed point.
+ *
+ * MapLibre's press hitbox is 44x44 pixels, so the `features` reported for a
+ * press include every cell intersecting that box — near a boundary the first
+ * of them is often the neighbour rather than the cell actually pressed. The
+ * grid tiles the plane exactly, so deriving the cell from the press
+ * coordinates is both simpler and always right.
+ */
+export function gridPlusCodeForLngLat(
+  [longitude, latitude]: [longitude: number, latitude: number],
+  length: PlusCodeShortLength,
+): string {
+  return coordinatesToPlusCode({ latitude, longitude, length });
 }
 
 /**

@@ -232,6 +232,7 @@ export default function OnboardingBackupConfirmScreen() {
             {storedSecret}
           </Text>
           <Button
+            testID="onboarding-backup-copy-secret"
             variant="outline"
             size="sm"
             title="Copy secret"
@@ -242,6 +243,7 @@ export default function OnboardingBackupConfirmScreen() {
 
       <View className="w-full gap-2">
         <TextInput
+          testID="onboarding-backup-input"
           value={input}
           onChangeText={(value) => {
             setInput(value);
@@ -272,6 +274,7 @@ export default function OnboardingBackupConfirmScreen() {
       </View>
 
       <Button
+        testID="onboarding-backup-confirm"
         variant="secondary"
         size="lg"
         title={
@@ -294,6 +297,7 @@ export default function OnboardingBackupConfirmScreen() {
         />
 
         <Button
+          testID="onboarding-backup-finish"
           variant="secondary"
           size="lg"
           title="Finish"

@@ -1,0 +1,80 @@
+appId: org.trustroots.nostroots
+name: Onboarding - verify a Trustroots email via nr-bridge
+env:
+  # Served by .maestro/mock-stack. Test-only values.
+  TEST_USERNAME: "e2etester"
+  TEST_CODE: "123456"
+---
+# clearState alone is not enough: expo-secure-store keeps the private key in the
+# iOS keychain, which survives an app data wipe.
+- clearKeychain
+- launchApp:
+    clearState: true
+
+- extendedWaitUntil:
+    visible:
+      id: "welcome-get-started"
+    timeout: 30000
+- tapOn:
+    id: "welcome-get-started"
+
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-identity-continue"
+    timeout: 15000
+- tapOn:
+    id: "onboarding-identity-continue"
+
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-trustroots-username-input"
+    timeout: 15000
+- tapOn:
+    id: "onboarding-trustroots-username-input"
+- inputText: ${TEST_USERNAME}
+- hideKeyboard
+
+- tapOn:
+    id: "onboarding-trustroots-request-code"
+
+# The mock bridge accepts any username and always issues a code.
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-trustroots-code-input"
+    timeout: 15000
+- tapOn:
+    id: "onboarding-trustroots-code-input"
+- inputText: ${TEST_CODE}
+- hideKeyboard
+
+- tapOn:
+    id: "onboarding-trustroots-verify-code"
+
+# Authenticating generates a key, then publishes the kind 10390 profile to the
+# mock relay. Reaching backup-confirm proves both worked.
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-backup-copy-secret"
+    timeout: 30000
+
+# The generated mnemonic is not known to this flow, so copy it off the screen.
+- tapOn:
+    id: "onboarding-backup-copy-secret"
+- tapOn:
+    id: "onboarding-backup-input"
+- pasteText
+- hideKeyboard
+
+- tapOn:
+    id: "onboarding-backup-confirm"
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-backup-finish"
+    timeout: 15000
+- tapOn:
+    id: "onboarding-backup-finish"
+
+- extendedWaitUntil:
+    visible:
+      id: "map-screen"
+    timeout: 30000

@@ -1,4 +1,11 @@
-import { DebugInfo, formatDebugInfo } from "./debugInfo.utils";
+import {
+  DebugInfo,
+  formatDebugInfo,
+  formatSupportMessage,
+  getUserMessageBudget,
+  MIN_USER_MESSAGE_LENGTH,
+  SUPPORT_MESSAGE_MAX_LENGTH,
+} from "./debugInfo.utils";
 
 const baseInfo: DebugInfo = {
   appVersion: "0.0.4",
@@ -58,5 +65,70 @@ describe("formatDebugInfo()", () => {
 
     expect(output).toContain("npub: npub1abc");
     expect(output).toContain("Trustroots username: wanderingpine");
+  });
+});
+
+describe("formatSupportMessage()", () => {
+  it("puts the user's message before the debug block", () => {
+    const output = formatSupportMessage({
+      userMessage: "The map is blank after I log in.",
+      debugInfo: "Nostroots debug info\nApp version: 0.0.4",
+    });
+
+    expect(output.indexOf("The map is blank")).toBeLessThan(
+      output.indexOf("Nostroots debug info"),
+    );
+  });
+
+  it("separates the two sections", () => {
+    const output = formatSupportMessage({
+      userMessage: "Something broke",
+      debugInfo: "Nostroots debug info",
+    });
+
+    expect(output).toContain("---");
+  });
+
+  it("trims surrounding whitespace from the user's message", () => {
+    const output = formatSupportMessage({
+      userMessage: "   padded   ",
+      debugInfo: "debug",
+    });
+
+    expect(output.startsWith("padded")).toBe(true);
+  });
+});
+
+describe("getUserMessageBudget()", () => {
+  it("leaves room for the debug block and separator", () => {
+    const debugInfo = "x".repeat(500);
+    const budget = getUserMessageBudget(debugInfo);
+
+    const composed = formatSupportMessage({
+      userMessage: "y".repeat(budget),
+      debugInfo,
+    });
+
+    expect(composed.length).toBeLessThanOrEqual(SUPPORT_MESSAGE_MAX_LENGTH);
+  });
+
+  it("uses every character it can within the cap", () => {
+    const debugInfo = "x".repeat(500);
+    const budget = getUserMessageBudget(debugInfo);
+
+    const oversized = formatSupportMessage({
+      userMessage: "y".repeat(budget + 1),
+      debugInfo,
+    });
+
+    expect(oversized.length).toBeGreaterThan(SUPPORT_MESSAGE_MAX_LENGTH);
+  });
+
+  it("never returns a negative budget when debug info is huge", () => {
+    expect(getUserMessageBudget("x".repeat(5000))).toBe(0);
+  });
+
+  it("exposes the minimum message length", () => {
+    expect(MIN_USER_MESSAGE_LENGTH).toBe(20);
   });
 });

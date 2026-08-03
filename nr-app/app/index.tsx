@@ -1,10 +1,9 @@
-import { Redirect } from "expo-router";
+import { Href, Redirect } from "expo-router";
 import { useEffect, useState } from "react";
 
 import { nip19 } from "nostr-tools";
 
 import LoadingScreen from "@/components/LoadingModal";
-import { ROUTES } from "@/constants/routes";
 import { getPublicKeyHexFromSecureStorage } from "@/nostr/keystore.nostr";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import {
@@ -16,6 +15,7 @@ import {
   settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
+import { resolveStartupRoute } from "@/utils/startupRoute.utils";
 import { getNip5PubKey } from "@trustroots/nr-common";
 
 export default function IndexRoute() {
@@ -29,6 +29,9 @@ export default function IndexRoute() {
   const username = useAppSelector(settingsSelectors.selectUsername);
   const hasBeenOpenedBefore = useAppSelector(
     settingsSelectors.selectHasBeenOpenedBefore,
+  );
+  const isBrowsingAsGuest = useAppSelector(
+    settingsSelectors.selectIsBrowsingAsGuest,
   );
   const { forceOnboarding, forceWelcome } = useAppSelector(selectFeatureFlags);
 
@@ -102,21 +105,19 @@ export default function IndexRoute() {
     return <LoadingScreen loading={true} />;
   }
 
-  // Determine destination
-  const showWelcome = !hasBeenOpenedBefore || forceWelcome;
-  const showOnboarding = !username || !npub || nip5Error || forceOnboarding;
-
-  if (showWelcome) {
-    return <Redirect href={ROUTES.WELCOME} />;
-  }
-
-  if (showOnboarding) {
-    return (
-      <Redirect
-        href={nip5Error ? ROUTES.ONBOARDING_ERROR : ROUTES.ONBOARDING}
-      />
-    );
-  }
-
-  return <Redirect href={ROUTES.HOME} />;
+  return (
+    <Redirect
+      href={
+        resolveStartupRoute({
+          hasBeenOpenedBefore,
+          username,
+          npub,
+          nip5Error,
+          isBrowsingAsGuest,
+          forceOnboarding,
+          forceWelcome,
+        }) as Href
+      }
+    />
+  );
 }

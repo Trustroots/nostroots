@@ -8,7 +8,7 @@ type SettingsState = {
   hasBeenOpenedBefore: boolean;
   isDataLoaded: boolean;
   areTestFeaturesEnabled: boolean;
-  useSkipOnboarding: boolean;
+  isBrowsingAsGuest: boolean;
   forceOnboarding: boolean;
   forceWelcome: boolean;
   colorScheme: ColorSchemePreference;
@@ -23,7 +23,7 @@ const initialState: SettingsState = {
   hasBeenOpenedBefore: false,
   isDataLoaded: false,
   areTestFeaturesEnabled: false,
-  useSkipOnboarding: true,
+  isBrowsingAsGuest: false,
   forceOnboarding: false,
   forceWelcome: false,
   colorScheme: "system",
@@ -42,6 +42,7 @@ export const settingsSlice = createSlice({
     },
     setUsername: (state, action: PayloadAction<string>) => {
       state.username = action.payload;
+      state.isBrowsingAsGuest = false;
     },
     setHasBeenOpenedBefore: (state, action: PayloadAction<boolean>) => {
       state.hasBeenOpenedBefore = action.payload;
@@ -49,8 +50,8 @@ export const settingsSlice = createSlice({
     setDataLoaded: (state, action: PayloadAction<boolean>) => {
       state.isDataLoaded = action.payload;
     },
-    setUseSkipOnboarding: (state, action: PayloadAction<boolean>) => {
-      state.useSkipOnboarding = action.payload;
+    setIsBrowsingAsGuest: (state, action: PayloadAction<boolean>) => {
+      state.isBrowsingAsGuest = action.payload;
     },
     setForceOnboarding: (state, action: PayloadAction<boolean>) => {
       state.forceOnboarding = action.payload;
@@ -94,6 +95,7 @@ export const settingsSlice = createSlice({
     selectUsername: (state) => state.username,
     selectHasBeenOpenedBefore: (state) => state.hasBeenOpenedBefore,
     selectIsDataLoaded: (state) => state.isDataLoaded,
+    selectIsBrowsingAsGuest: (state) => state.isBrowsingAsGuest,
     selectColorScheme: (state) => state.colorScheme,
     selectKeyWasImported: (state) => state.keyWasImported,
     selectHasAcknowledgedExperimentalLayers: (state) =>
@@ -111,7 +113,6 @@ export const settingsSelectors = settingsSlice.selectors;
 export const selectFeatureFlags = createSelector(
   (state: RootState) => state.settings,
   (settings: SettingsState) => ({
-    useSkipOnboarding: settings.useSkipOnboarding,
     forceOnboarding: settings.forceOnboarding,
     forceWelcome: settings.forceWelcome,
   }),

@@ -68,6 +68,28 @@ export async function findUserByUsername(
 }
 
 /**
+ * Look up a Trustroots user by the Nostr npub they verified with.
+ *
+ * @param npub - The Nostr public key (`npub1...`) to search for.
+ * @returns The user's `email` and `username`, or `null` if no user has claimed
+ *          this npub.
+ */
+export async function findUserByNpub(
+  npub: string,
+): Promise<{ email: string; username: string } | null> {
+  const users = await getUsersCollection();
+  const user = await users.findOne(
+    { nostrNpub: npub },
+    { projection: { email: 1, username: 1 } },
+  );
+  if (!user) return null;
+  return {
+    email: user.email as string,
+    username: user.username as string,
+  };
+}
+
+/**
  * Set the `nostrNpub` field on a user document and update the `updated`
  * timestamp.
  *

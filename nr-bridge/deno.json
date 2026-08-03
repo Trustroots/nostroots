@@ -11,6 +11,7 @@
     "@upyo/core": "jsr:@upyo/core@^0.4.0",
     "@upyo/smtp": "jsr:@upyo/smtp@^0.4.0",
     "hono": "jsr:@hono/hono",
+    "nostr-tools": "npm:nostr-tools@^2.23.5",
     "zod": "npm:zod@^3.25.76",
     "mongodb": "npm:mongodb@^6"
   }

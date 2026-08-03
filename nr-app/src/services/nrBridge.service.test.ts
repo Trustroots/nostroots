@@ -129,6 +129,50 @@ describe("nrBridge.service", () => {
     });
   });
 
+  it("sends a support message with a NIP-98 token scoped to the request", async () => {
+    const { sendSupportMessage } = await loadService();
+    const { finalizeEvent, generateSecretKey } =
+      jest.requireActual("nostr-tools/pure");
+    const secretKey = generateSecretKey();
+
+    await sendSupportMessage({
+      message: "the map does not load",
+      sign: async (template) => finalizeEvent(template, secretKey),
+    });
+
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(url).toBe("https://bridge.example/base/support");
+    expect(init.body).toBe(
+      JSON.stringify({ message: "the map does not load" }),
+    );
+
+    const authorization: string = init.headers.Authorization;
+    expect(authorization.startsWith("Nostr ")).toBe(true);
+
+    const event = JSON.parse(
+      Buffer.from(authorization.slice("Nostr ".length), "base64").toString(),
+    );
+    expect(event.kind).toBe(27235);
+    expect(event.tags).toContainEqual([
+      "u",
+      "https://bridge.example/base/support",
+    ]);
+    expect(event.tags).toContainEqual(["method", "POST"]);
+  });
+
+  it("surfaces a signing failure rather than sending unsigned", async () => {
+    const { sendSupportMessage } = await loadService();
+
+    await expect(
+      sendSupportMessage({
+        message: "help",
+        sign: () => Promise.reject(new Error("no key")),
+      }),
+    ).rejects.toThrow("no key");
+
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it("throws a config error when the bridge URL is missing", async () => {
     const { NrBridgeError, requestVerificationToken } = await loadService("");
 

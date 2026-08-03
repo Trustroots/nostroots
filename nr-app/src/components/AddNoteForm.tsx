@@ -125,15 +125,15 @@ export default function AddNoteForm({
     setOptimisticNotes((prev) => [...prev, optimisticNote]);
     onSent?.();
 
-    try {
-      const timeout = setTimeout(() => {
-        setOptimisticNotes((prev) =>
-          prev.map((n) =>
-            n.id === optimisticId ? { ...n, status: "failed" as const } : n,
-          ),
-        );
-      }, 10000);
+    const timeout = setTimeout(() => {
+      setOptimisticNotes((prev) =>
+        prev.map((n) =>
+          n.id === optimisticId ? { ...n, status: "failed" as const } : n,
+        ),
+      );
+    }, 10000);
 
+    try {
       await dispatch(
         publishNotePromiseAction(
           trimmedContent,
@@ -161,6 +161,7 @@ export default function AddNoteForm({
         intent: effectiveIntent ?? "none",
         outcome: "failure",
       });
+      clearTimeout(timeout);
       // Mark as failed
       setOptimisticNotes((prev) =>
         prev.map((n) =>
@@ -236,7 +237,11 @@ export default function AddNoteForm({
                 sending...
               </Text>
             ) : (
-              <Pressable onPress={() => handleRetry(note)}>
+              <Pressable
+                accessibilityLabel="Retry publishing note"
+                accessibilityRole="button"
+                onPress={() => handleRetry(note)}
+              >
                 <Text className="text-[11px] text-destructive font-semibold">
                   tap to retry
                 </Text>

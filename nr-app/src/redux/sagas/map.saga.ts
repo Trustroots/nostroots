@@ -30,7 +30,7 @@ const mapSagaSelector = createSelector(
   }),
 );
 
-function createMapFilters(
+export function createMapFilters(
   visiblePlusCodes: string[],
   enabledLayerKeys: MAP_LAYER_KEY[],
 ): Filter[] {
@@ -50,8 +50,8 @@ function createMapFilters(
   return filters;
 }
 
-function* updateDataForMapSagaEffect(
-  action: AnyAction,
+export function* updateDataForMapSagaEffect(
+  _action: AnyAction,
 ): Generator<Effect, void, ReturnType<typeof mapSagaSelector>> {
   try {
     // TODO Debounce map updates

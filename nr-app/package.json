@@ -8,9 +8,12 @@
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "test": "jest",
-    "test:watch": "jest --watchAll",
     "test:e2e": "maestro test .maestro/flows",
+    "test": "jest --watchman=false",
+    "test:ci": "jest --ci --coverage --runInBand --watchman=false --json --outputFile=coverage/test-results.json",
+    "test:coverage": "jest --coverage --watchman=false",
+    "test:watch": "jest --watch --watchman=false",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "prepare": "cd .. && husky nr-app/.husky",
     "build:android-development": "eas build --platform android --profile development --non-interactive",
@@ -21,18 +24,6 @@
     "build:ios-production": "eas build --platform ios --profile production --non-interactive --auto-submit"
   },
   "pkgx": "facebook.com/watchman",
-  "jest": {
-    "preset": "jest-expo",
-    "setupFilesAfterEnv": [
-      "./jest.setup.ts"
-    ],
-    "moduleNameMapper": {
-      "^@noble/hashes/utils$": "<rootDir>/../node_modules/@noble/hashes/utils.js"
-    },
-    "transformIgnorePatterns": [
-      "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg|nativewind|@trustroots/nr-common|@reduxjs/toolkit|immer|redux-persist|redux-devtools-expo-dev-plugin|nostr-tools|@noble/.*|@scure/.*)"
-    ]
-  },
   "dependencies": {
     "@expo/dom-webview": "^56.0.5",
     "@expo/vector-icons": "^15.1.1",

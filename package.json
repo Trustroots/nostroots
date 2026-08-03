@@ -8,8 +8,11 @@
     "app:start": "pnpm --filter nr-app start",
     "postinstall": "patch-package",
     "test": "pnpm test:app && pnpm test:common",
-    "test:watch": "pnpm --filter nr-app test",
+    "test:watch": "pnpm --filter nr-app test:watch",
     "test:app": "pnpm --filter nr-app test",
+    "test:app:ci": "pnpm --filter nr-app test:ci",
+    "test:app:coverage": "pnpm --filter nr-app test:coverage",
+    "typecheck:app": "pnpm --filter nr-app typecheck",
     "test:common": "cd nr-common && deno task test"
   }
 }

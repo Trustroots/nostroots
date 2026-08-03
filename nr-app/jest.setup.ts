@@ -1,16 +1,21 @@
 // Jest setup - mocks for native modules
 
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 // Mock expo-notifications
 jest.mock("expo-notifications", () => ({
+  AndroidImportance: { MAX: "max" },
   setNotificationHandler: jest.fn(),
   addNotificationReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   addNotificationResponseReceivedListener: jest.fn(() => ({
     remove: jest.fn(),
   })),
   getExpoPushTokenAsync: jest.fn(),
+  getLastNotificationResponse: jest.fn(() => null),
   getPermissionsAsync: jest.fn(),
   requestPermissionsAsync: jest.fn(),
   scheduleNotificationAsync: jest.fn(),
+  setNotificationChannelAsync: jest.fn(),
   addPushTokenListener: jest.fn(() => ({ remove: jest.fn() })),
 }));
 
@@ -19,35 +24,19 @@ jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock"),
 );
 
-// Mock expo-router
-jest.mock("expo-router", () => ({
-  Redirect: jest.fn(() => null),
-  Slot: ({ children }: { children?: unknown }) => children,
-  Stack: {
-    Screen: () => null,
-  },
-  router: {
-    push: jest.fn(),
-    replace: jest.fn(),
-    back: jest.fn(),
-  },
-  usePathname: jest.fn(() => "/"),
-  useLocalSearchParams: jest.fn(() => ({})),
-  useFocusEffect: (callback: () => void | (() => void)) => {
-    const React = require("react");
-    React.useEffect(callback, [callback]);
-  },
-  useRouter: jest.fn(() => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    back: jest.fn(),
-  })),
-}));
+jest.mock("expo-router", () =>
+  require("./src/test/router").createExpoRouterMock(),
+);
 
 // Mock react-native-maps
 jest.mock("react-native-maps", () => ({
   __esModule: true,
   default: "MapView",
+  Callout: "Callout",
+  Circle: "Circle",
+  Marker: "Marker",
+  Polygon: "Polygon",
+  Polyline: "Polyline",
 }));
 
 jest.mock("@expo/vector-icons/Ionicons", () => ({
@@ -64,22 +53,33 @@ jest.mock("@rn-primitives/slot", () => ({
   Text: "Text",
 }));
 
-jest.mock("expo-secure-store", () => {
-  const store = new Map<string, string>();
+jest.mock("expo-secure-store", () =>
+  require("./src/test/secureStoreMock").createSecureStoreMock(),
+);
 
-  return {
-    AFTER_FIRST_UNLOCK: 1,
-    __reset: () => store.clear(),
-    __store: store,
-    getItemAsync: jest.fn(async (key: string) => store.get(key) ?? null),
-    setItemAsync: jest.fn(async (key: string, value: string) => {
-      store.set(key, value);
-    }),
-    deleteItemAsync: jest.fn(async (key: string) => {
-      store.delete(key);
-    }),
-  };
-});
+jest.mock("expo-device", () =>
+  require("./src/test/expoDeviceMock").createExpoDeviceMock(),
+);
+
+jest.mock("expo-constants", () => ({
+  __esModule: true,
+  default: {
+    easConfig: { projectId: "test-project-id" },
+    expoConfig: { extra: { eas: { projectId: "test-project-id" } } },
+  },
+}));
+
+jest.mock("expo-location", () => ({
+  Accuracy: { Balanced: 3, High: 4 },
+  getCurrentPositionAsync: jest.fn(async () => ({
+    coords: { latitude: 52.52, longitude: 13.405 },
+    timestamp: 0,
+  })),
+  getForegroundPermissionsAsync: jest.fn(async () => ({ status: "granted" })),
+  requestForegroundPermissionsAsync: jest.fn(async () => ({
+    status: "granted",
+  })),
+}));
 
 jest.mock("expo-web-browser", () => ({
   openBrowserAsync: jest.fn(async () => ({ type: "opened" })),
@@ -120,8 +120,29 @@ jest.mock("@maplibre/maplibre-react-native", () => ({
   UserLocation: "UserLocation",
 }));
 
+jest.mock("react-native-reanimated", () => {
+  const { View } = require("react-native");
+  return {
+    __esModule: true,
+    default: { View },
+    FadeIn: { delay: jest.fn(() => ({})), duration: jest.fn(() => ({})) },
+    FadeOut: { duration: jest.fn(() => ({})) },
+    useAnimatedStyle: jest.fn(() => ({})),
+    useSharedValue: jest.fn((value) => ({ value })),
+  };
+});
+
+jest.mock("react-native-worklets", () => ({}));
+
 // Mock redux-devtools-expo-dev-plugin
 jest.mock("redux-devtools-expo-dev-plugin", () => ({
   __esModule: true,
   default: () => (next: unknown) => next,
 }));
+
+beforeEach(async () => {
+  require("./src/test/router").resetRouterMock();
+  require("./src/test/secureStoreMock").resetSecureStoreMock();
+  require("./src/test/expoDeviceMock").resetExpoDeviceMock();
+  await AsyncStorage.clear();
+});

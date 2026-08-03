@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { AlertTriangleIcon, MailCheckIcon } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,29 @@ type TrustrootsScreenState =
 
 const AUTHENTICATION_FAILURE_MESSAGE = "failed to authenticate you. try again";
 
+function getInitialStatusMessage({
+  errorParam,
+  pendingProfileUsername,
+  pendingUsername,
+}: {
+  errorParam?: string;
+  pendingProfileUsername: string | null;
+  pendingUsername: string | null;
+}) {
+  if (errorParam === "auth") return AUTHENTICATION_FAILURE_MESSAGE;
+  if (errorParam === "missing-token") {
+    return "Verification link is missing a token. Try again.";
+  }
+  if (errorParam === "start-in-app") {
+    return "Start verification in the app before opening the email link.";
+  }
+  if (pendingProfileUsername) {
+    return "Your Trustroots account was authenticated. Retry the profile publish to finish setup.";
+  }
+  if (pendingUsername) return "Enter the six-digit code from your email.";
+  return null;
+}
+
 function getRequestErrorMessage(error: unknown): string {
   if (error instanceof NrBridgeError) {
     if (error.code === "config") {
@@ -56,44 +79,25 @@ export default function OnboardingTrustrootsScreen() {
     settingsSelectors.selectPendingTrustrootsProfileUsername,
   );
 
-  const [screenState, setScreenState] = useState<TrustrootsScreenState>("idle");
-  const [usernameInput, setUsernameInput] = useState("");
+  const [screenState, setScreenState] = useState<TrustrootsScreenState>(
+    pendingTrustrootsProfileUsername
+      ? "profile-retry"
+      : pendingTrustrootsUsername
+        ? "code-entry"
+        : "idle",
+  );
+  const [usernameInput, setUsernameInput] = useState(
+    pendingTrustrootsProfileUsername ?? pendingTrustrootsUsername ?? "",
+  );
   const [code, setCode] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (errorParam === "auth") {
-      setStatusMessage(AUTHENTICATION_FAILURE_MESSAGE);
-    } else if (errorParam === "missing-token") {
-      setStatusMessage("Verification link is missing a token. Try again.");
-    } else if (errorParam === "start-in-app") {
-      setStatusMessage(
-        "Start verification in the app before opening the email link.",
-      );
-    }
-  }, [errorParam]);
-
-  useEffect(() => {
-    if (pendingTrustrootsProfileUsername) {
-      setUsernameInput(pendingTrustrootsProfileUsername);
-      setScreenState("profile-retry");
-      setStatusMessage(
-        "Your Trustroots account was authenticated. Retry the profile publish to finish setup.",
-      );
-      return;
-    }
-
-    if (pendingTrustrootsUsername && screenState === "idle") {
-      setUsernameInput(pendingTrustrootsUsername);
-      setScreenState("code-entry");
-      setStatusMessage("Enter the six-digit code from your email.");
-    }
-  }, [
-    pendingTrustrootsProfileUsername,
-    pendingTrustrootsUsername,
-    screenState,
-  ]);
+  const [statusMessage, setStatusMessage] = useState<string | null>(() =>
+    getInitialStatusMessage({
+      errorParam,
+      pendingProfileUsername: pendingTrustrootsProfileUsername,
+      pendingUsername: pendingTrustrootsUsername,
+    }),
+  );
 
   const resetToUsernameEntry = useCallback(
     (message?: string) => {

@@ -204,6 +204,18 @@ Keep tests for **high-value** areas (e.g. key handling, protocol or routing edge
 
 **nr-app:** Tests use jest-expo preset; follow normal app testing discipline there.
 
+### Writing on GitHub (issues, PRs, comments)
+
+Match @chmac's house style when drafting anything posted to GitHub in this project.
+
+**Overall:** short, plain, conversational. Write like a message to a colleague, not a report. No headings, bold-label summaries, or "Summary / Changes / Impact" scaffolding on a three-line issue. Never add AI attribution trailers.
+
+**Issues:** plain statement as the title (`Make the web browser icon always visible`), `Bug:` prefix for bugs. Body is 1-3 sentences or a bare bullet list — one line is fine. Repro steps are numbered literal clicks plus a sentence on what you see. Paste the concrete artifact (markdown, screenshot) instead of describing it. Pose open questions as questions with a proposed answer. Assign work by inline @-mention: "@leon-wbr you wanna take a look at this?"
+
+**PRs:** lead with what it does and the linked issue (`Fixes #2735`). Then be honest about confidence — the most characteristic trait: say what was tested, what wasn't, whether Claude wrote it, and invite the reviewer to close it. "It works for me locally, but I don't know your codebase well enough to make any statements about its quality." Flag known weirdness rather than hiding it. Fill in the repo's PR template when there is one.
+
+**Comments:** blunt and brief. Direct pushback ("Deletes what? I don't think we should let the user easily delete their key."), flat reversals, "Done." Mild profanity is normal; corporate softeners ("Great question!") are not.
+
 ### Nostr Standards
 
 When implementing Nostr features, refer to the official NIPs (Nostr Implementation Possibilities) repository:

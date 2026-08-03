@@ -4,6 +4,8 @@ env:
   # Private key 0x00...01. Synthetic, test-only, never use it for anything real.
   TEST_NSEC: "nsec1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqsmhltgl"
   TEST_NPUB: "npub10xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqpkge6d"
+  # The mock NIP-05 endpoint serves TEST_NPUB for exactly this username.
+  TEST_USERNAME: "e2etester"
 ---
 - runFlow: ../subflows/open-key-screen.yaml
 
@@ -34,3 +36,40 @@ env:
 - assertVisible:
     id: "onboarding-link-npub"
     text: ${TEST_NPUB}
+
+# The mock NIP-05 endpoint serves exactly this npub for this username, so the
+# comparison in link.tsx succeeds and Finish becomes tappable.
+- tapOn:
+    id: "onboarding-link-username-input"
+- inputText: ${TEST_USERNAME}
+
+# No keyboard dismissal here: focusing the input scrolls the heading out of the
+# hierarchy, and the layout's KeyboardAwareScrollView keeps the input and the
+# Verify button directly below it above the keyboard.
+- tapOn:
+    id: "onboarding-link-verify"
+
+# Verifying also publishes the kind 10390 to the mock relay, so a tappable
+# Finish proves the NIP-05 match and the publish both succeeded.
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-link-finish"
+      enabled: true
+    timeout: 30000
+- tapOn:
+    id: "onboarding-link-finish"
+
+# The key was imported, so link.tsx goes straight home rather than via
+# backup-confirm.
+- extendedWaitUntil:
+    visible:
+      id: "map-screen"
+    timeout: 30000
+
+# Relaunching without clearing state exercises the re-open path in
+# app/index.tsx, which re-runs the NIP-05 check before landing on home.
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: "map-screen"
+    timeout: 30000

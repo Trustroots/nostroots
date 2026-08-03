@@ -360,6 +360,7 @@ export default function OnboardingTrustrootsScreen() {
           disabled={isBusy}
         />
         <Button
+          testID="onboarding-trustroots-legacy-key"
           variant="outline"
           textClassName="text-white"
           onPress={goLegacyKeyFlow}

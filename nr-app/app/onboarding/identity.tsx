@@ -53,6 +53,7 @@ export default function OnboardingIdentityScreen() {
           <Button variant="secondary" onPress={goBack} size="lg" title="Back" />
         )}
         <Button
+          testID="onboarding-identity-continue"
           variant="secondary"
           onPress={goNext}
           size="lg"

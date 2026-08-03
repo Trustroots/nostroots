@@ -37,6 +37,7 @@ export default function WelcomeScreen() {
 
       <View className="w-full max-w-xs">
         <Button
+          testID="welcome-get-started"
           onPress={handleGetStarted}
           title="Get Started"
           size="lg"

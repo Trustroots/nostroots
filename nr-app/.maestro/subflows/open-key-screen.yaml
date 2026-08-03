@@ -1,0 +1,33 @@
+appId: org.trustroots.nostroots
+name: Open the key step from a clean install
+---
+# clearState alone is not enough: expo-secure-store keeps the private key in the
+# iOS keychain, which survives an app data wipe.
+- clearKeychain
+- launchApp:
+    clearState: true
+
+# NOTE: a fresh install lands on identity, not welcome. app/index.tsx renders
+# Redirect->WELCOME, then its own effect sets hasBeenOpenedBefore, and the
+# re-render swaps in Redirect->ONBOARDING before the first redirect navigates.
+# This encodes today's behaviour, not the intended behaviour. If the welcome
+# screen is fixed, add the welcome-get-started tap back here.
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-identity-continue"
+    timeout: 30000
+- tapOn:
+    id: "onboarding-identity-continue"
+
+# The email path needs nr-bridge and a real inbox, so take the legacy key path.
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-trustroots-legacy-key"
+    timeout: 15000
+- tapOn:
+    id: "onboarding-trustroots-legacy-key"
+
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-key-tab-generate"
+    timeout: 15000

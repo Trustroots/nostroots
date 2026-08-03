@@ -1,0 +1,29 @@
+appId: org.trustroots.nostroots
+name: Onboarding - generate a new key
+---
+- runFlow: ../subflows/open-key-screen.yaml
+
+- tapOn:
+    id: "onboarding-key-tab-generate"
+
+# The mnemonic is generated on mount and rendered masked.
+- tapOn:
+    id: "onboarding-key-mnemonic-input-visibility-toggle"
+- assertVisible:
+    id: "onboarding-key-mnemonic-input"
+    text: "(\\w+ ){11}\\w+"
+
+- tapOn:
+    id: "onboarding-key-mnemonic-confirm"
+- assertVisible: "Saved"
+
+- tapOn:
+    id: "onboarding-key-continue"
+
+- extendedWaitUntil:
+    visible:
+      id: "onboarding-link-npub"
+    timeout: 20000
+- assertVisible:
+    id: "onboarding-link-npub"
+    text: "npub1.*"

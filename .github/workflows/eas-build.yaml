@@ -11,6 +11,7 @@ on:
         options:
           - android-development
           - android-preview
+          - android-no-google
           - android-production
           - ios-development
           - ios-simulator

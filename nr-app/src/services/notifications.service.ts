@@ -30,6 +30,10 @@ async function ensureNotificationPermission() {
 }
 
 export async function registerForPushNotificationsAsync() {
+  if (process.env.EXPO_PUBLIC_NO_GOOGLE_SERVICES === "true") {
+    return;
+  }
+
   match(Platform.OS).with("android", () => {
     Notifications.setNotificationChannelAsync("default", {
       name: "default",

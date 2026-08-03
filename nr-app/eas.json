@@ -25,6 +25,13 @@
     "production": {
       "autoIncrement": true,
       "channel": "preview"
+    },
+    "no-google": {
+      "distribution": "internal",
+      "channel": "no-google",
+      "env": {
+        "EXPO_PUBLIC_NO_GOOGLE_SERVICES": "true"
+      }
     }
   },
   "submit": {

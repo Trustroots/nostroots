@@ -10,6 +10,7 @@ on:
         type: choice
         options:
           - android-preview
+          - android-no-google
   workflow_run:
     workflows: ['Create build in EAS Cloud']
     types: [completed]
@@ -69,8 +70,8 @@ jobs:
           
           # Build profile filter
           FILTER_PROFILE="preview"
-          if [ "${{ steps.profile.outputs.profile }}" == "android-preview" ]; then
-            FILTER_PROFILE="preview"
+          if [ "${{ steps.profile.outputs.profile }}" == "android-no-google" ]; then
+            FILTER_PROFILE="no-google"
           fi
           
           # Get the latest successful build for android
@@ -115,22 +116,23 @@ jobs:
           cd nr-app
           mkdir -p ./builds
 
-          curl -fsSL --retry 3 -o "./builds/app-preview.apk" "${{ steps.artifact.outputs.build_url }}"
+          APK_FILENAME="app-${{ steps.profile.outputs.profile }}.apk"
+          curl -fsSL --retry 3 -o "./builds/$APK_FILENAME" "${{ steps.artifact.outputs.build_url }}"
 
           # Expired artifact links can return HTML/error payloads with .apk extension.
-          if ! unzip -t "./builds/app-preview.apk" >/dev/null 2>&1; then
+          if ! unzip -t "./builds/$APK_FILENAME" >/dev/null 2>&1; then
             echo "❌ No recent build is available: downloaded file is not a valid APK (artifact likely expired)"
             exit 1
           fi
 
-          APK_BYTES=$(wc -c < "./builds/app-preview.apk")
+          APK_BYTES=$(wc -c < "./builds/$APK_FILENAME")
           if [ "$APK_BYTES" -lt 1000000 ]; then
             echo "❌ No recent build is available: APK is unexpectedly small (${APK_BYTES} bytes, artifact likely expired)"
             exit 1
           fi
           
-          APK_SIZE=$(ls -lh "./builds/app-preview.apk" | awk '{print $5}')
-          echo "apk_path=./nr-app/builds/app-preview.apk" >> $GITHUB_OUTPUT
+          APK_SIZE=$(ls -lh "./builds/$APK_FILENAME" | awk '{print $5}')
+          echo "apk_path=./nr-app/builds/$APK_FILENAME" >> $GITHUB_OUTPUT
           echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
           echo "✅ Downloaded APK ($APK_SIZE)"
 
@@ -139,8 +141,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ steps.download.outputs.apk_path }}
-          tag_name: preview-${{ steps.version.outputs.version }}-${{ github.run_number }}
-          release_name: Nostroots Preview v${{ steps.version.outputs.version }} Build #${{ github.run_number }}
+          tag_name: ${{ steps.profile.outputs.profile }}-${{ steps.version.outputs.version }}-${{ github.run_number }}
+          release_name: Nostroots ${{ steps.profile.outputs.profile }} v${{ steps.version.outputs.version }} Build #${{ github.run_number }}
           body: |
             🚀 **Nostroots Preview Release**
             

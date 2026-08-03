@@ -7,6 +7,7 @@ import { SIGNAL_INTENTS } from "@/constants/signals";
 import { EventWithMetadata } from "@/redux/slices/events.slice";
 import { NostrProfile } from "@/redux/slices/profiles.slice";
 import {
+  BoundingBox,
   coordinatesToPlusCode,
   plusCodeToCoordinates,
   plusCodeToRectangle,
@@ -46,6 +47,11 @@ export interface PlusCodeGridProperties extends PlusCodeGridCell {
 export type GridGeoJSON = GeoJSON.FeatureCollection<
   GeoJSON.Polygon,
   PlusCodeGridProperties
+>;
+
+export type GridLineGeoJSON = GeoJSON.FeatureCollection<
+  GeoJSON.LineString,
+  { axis: "horizontal" | "vertical" }
 >;
 
 /**
@@ -259,6 +265,96 @@ export function plusCodeGridToGeoJSON(
   }
 
   return { type: "FeatureCollection", features };
+}
+
+const GRID_COORD_PRECISION = 12;
+
+function normalizeGridCoord(value: number): number {
+  return Number(value.toFixed(GRID_COORD_PRECISION));
+}
+
+/**
+ * Build horizontal and vertical grid lines directly from viewport bounds.
+ *
+ * This avoids iterating every visible plus code cell just to recover the same
+ * regular line spacing.
+ */
+export function plusCodeGridLinesToGeoJSON(
+  boundingBox: BoundingBox | undefined,
+  length: PlusCodeShortLength | undefined,
+): GridLineGeoJSON {
+  if (!boundingBox || !length) {
+    return { type: "FeatureCollection", features: [] };
+  }
+
+  const minLat = normalizeGridCoord(boundingBox.southWest.latitude);
+  const maxLat = normalizeGridCoord(boundingBox.northEast.latitude);
+  const minLng = normalizeGridCoord(boundingBox.southWest.longitude);
+  const maxLng = normalizeGridCoord(boundingBox.northEast.longitude);
+
+  const anchorPlusCode = coordinatesToPlusCode({
+    latitude: minLat,
+    longitude: minLng,
+    length,
+  });
+
+  let anchorRect;
+  try {
+    anchorRect = plusCodeToRectangle(anchorPlusCode);
+  } catch {
+    return { type: "FeatureCollection", features: [] };
+  }
+
+  const anchorSouth = normalizeGridCoord(anchorRect[0].latitude);
+  const anchorWest = normalizeGridCoord(anchorRect[0].longitude);
+  const stepLat = normalizeGridCoord(anchorRect[1].latitude - anchorSouth);
+  const stepLng = normalizeGridCoord(anchorRect[2].longitude - anchorWest);
+
+  if (!(stepLat > 0) || !(stepLng > 0)) {
+    return { type: "FeatureCollection", features: [] };
+  }
+
+  const startLatIndex = Math.floor((minLat - anchorSouth) / stepLat);
+  const endLatIndex = Math.ceil((maxLat - anchorSouth) / stepLat);
+  const startLngIndex = Math.floor((minLng - anchorWest) / stepLng);
+  const endLngIndex = Math.ceil((maxLng - anchorWest) / stepLng);
+
+  const features: GridLineGeoJSON["features"] = [];
+
+  for (let i = startLatIndex; i <= endLatIndex; i += 1) {
+    const latitude = normalizeGridCoord(anchorSouth + i * stepLat);
+    features.push({
+      type: "Feature",
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [minLng, latitude],
+          [maxLng, latitude],
+        ],
+      },
+      properties: { axis: "horizontal" },
+    });
+  }
+
+  for (let i = startLngIndex; i <= endLngIndex; i += 1) {
+    const longitude = normalizeGridCoord(anchorWest + i * stepLng);
+    features.push({
+      type: "Feature",
+      geometry: {
+        type: "LineString",
+        coordinates: [
+          [longitude, minLat],
+          [longitude, maxLat],
+        ],
+      },
+      properties: { axis: "vertical" },
+    });
+  }
+
+  return {
+    type: "FeatureCollection",
+    features,
+  };
 }
 
 /**

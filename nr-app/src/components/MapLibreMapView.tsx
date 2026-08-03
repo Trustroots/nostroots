@@ -15,10 +15,12 @@ import {
 } from "@/utils/map.utils";
 import {
   GridGeoJSON,
+  GridLineGeoJSON,
   gridPlusCodeForLngLat,
   gridPlusCodeLengthForRegion,
   latitudeDeltaToZoom,
   PlusCodeGridCell,
+  plusCodeGridLinesToGeoJSON,
   plusCodeGridToGeoJSON,
 } from "@/utils/maplibre.utils";
 import { mapRefService } from "@/utils/mapRef";
@@ -73,12 +75,12 @@ const selectGridPlusCodeLength = createSelector(
 );
 
 /**
- * The plus code cells covering the visible bounding box, at the precision the
- * current zoom calls for, each with its message count for the heat colour.
+ * The plus code cells covering the visible bounding box at the precision the
+ * current zoom calls for.
  */
-const selectVisibleGridCells = createSelector(
-  [mapSelectors.selectBoundingBox, selectRootState],
-  (boundingBox, rootState): PlusCodeGridCell[] => {
+const selectVisibleGridPlusCodes = createSelector(
+  [mapSelectors.selectBoundingBox],
+  (boundingBox): string[] => {
     if (typeof boundingBox === "undefined") {
       return [];
     }
@@ -94,15 +96,24 @@ const selectVisibleGridCells = createSelector(
       length,
     });
 
-    return getAllPlusCodesBetweenTwoPlusCodes(southWest, northEast, length).map(
-      (plusCode) => ({
+    return getAllPlusCodesBetweenTwoPlusCodes(southWest, northEast, length);
+  },
+);
+
+/**
+ * Heat cells for the visible grid. This runs after visible cells are known so
+ * we can draw grid lines independent of note/metric availability.
+ */
+const selectVisibleGridHeatCells = createSelector(
+  [selectVisibleGridPlusCodes, selectRootState],
+  (visiblePlusCodes, rootState): PlusCodeGridCell[] => {
+    return visiblePlusCodes.map((plusCode) => ({
+      plusCode,
+      heatCount: metricsSelectors.selectMessagesMetricByPlusCode(
+        rootState,
         plusCode,
-        heatCount: metricsSelectors.selectMessagesMetricByPlusCode(
-          rootState,
-          plusCode,
-        ),
-      }),
-    );
+      ),
+    }));
   },
 );
 
@@ -140,7 +151,8 @@ const gridLinePaint: LineLayerSpecification["paint"] = {
 
 export default function MapLibreMapView() {
   const dispatch = useAppDispatch();
-  const gridCells = useAppSelector(selectVisibleGridCells);
+  const boundingBox = useAppSelector(mapSelectors.selectBoundingBox);
+  const gridHeatCells = useAppSelector(selectVisibleGridHeatCells);
   const gridPlusCodeLength = useAppSelector(selectGridPlusCodeLength);
   const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
   const isMapModalOpen = useAppSelector(mapSelectors.selectIsMapModalOpen);
@@ -163,19 +175,23 @@ export default function MapLibreMapView() {
   const [isMapReady, setIsMapReady] = useState(false);
   const [showUserLocation, setShowUserLocation] = useState(false);
 
-  const [geoJSON, setGeoJSON] = useState<GridGeoJSON>({
+  const [heatGeoJSON, setHeatGeoJSON] = useState<GridGeoJSON>({
     type: "FeatureCollection",
     features: [],
   });
+  const gridLineGeoJSON = useMemo<GridLineGeoJSON>(
+    () => plusCodeGridLinesToGeoJSON(boundingBox, gridPlusCodeLength),
+    [boundingBox, gridPlusCodeLength],
+  );
 
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(() => {
-      setGeoJSON(
+      setHeatGeoJSON(
         plusCodeGridToGeoJSON(
-          gridCells,
+          gridHeatCells,
           isMapModalOpen ? selectedPlusCode : undefined,
         ),
       );
@@ -184,7 +200,7 @@ export default function MapLibreMapView() {
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [gridCells, selectedPlusCode, isMapModalOpen]);
+  }, [gridHeatCells, selectedPlusCode, isMapModalOpen]);
 
   // Release the map ref on unmount so sagas don't animate a dead map
   useEffect(() => {
@@ -309,8 +325,15 @@ export default function MapLibreMapView() {
           initialViewState={{ center: defaultCenter, zoom: defaultZoom }}
         />
 
-        <GeoJSONSource id="grid-source" data={geoJSON} onPress={handlePress}>
+        <GeoJSONSource
+          id="grid-heat-source"
+          data={heatGeoJSON}
+          onPress={handlePress}
+        >
           <Layer id="grid-fill" type="fill" paint={gridFillPaint} />
+        </GeoJSONSource>
+
+        <GeoJSONSource id="grid-outline-source" data={gridLineGeoJSON}>
           <Layer id="grid-outline" type="line" paint={gridLinePaint} />
         </GeoJSONSource>
 

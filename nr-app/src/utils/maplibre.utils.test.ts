@@ -7,6 +7,7 @@ import {
   getIntentFromEvent,
   gridPlusCodeForLngLat,
   gridPlusCodeLengthForRegion,
+  plusCodeGridLinesToGeoJSON,
   truncatePlusCode,
   plusCodeGridToGeoJSON,
   zoomToPlusCodeLength,
@@ -178,6 +179,53 @@ describe("plusCodeGridToGeoJSON", () => {
 
     expect(features).toHaveLength(1);
     expect(features[0].properties.plusCode).toBe("8FVC2222+");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tests: plusCodeGridLinesToGeoJSON
+// ---------------------------------------------------------------------------
+
+describe("plusCodeGridLinesToGeoJSON", () => {
+  it("returns an empty FeatureCollection for no cells", () => {
+    expect(plusCodeGridLinesToGeoJSON([])).toEqual({
+      type: "FeatureCollection",
+      features: [],
+    });
+  });
+
+  it("generates four boundary lines for a single cell", () => {
+    const result = plusCodeGridLinesToGeoJSON(["8FVC2222+"]);
+
+    expect(result.features).toHaveLength(4);
+    expect(
+      result.features.every(
+        (feature) => feature.geometry.type === "LineString",
+      ),
+    ).toBe(true);
+
+    const horizontalCount = result.features.filter(
+      (feature) => feature.properties.axis === "horizontal",
+    ).length;
+    const verticalCount = result.features.filter(
+      (feature) => feature.properties.axis === "vertical",
+    ).length;
+
+    expect(horizontalCount).toBe(2);
+    expect(verticalCount).toBe(2);
+  });
+
+  it("deduplicates lines when duplicate cells are provided", () => {
+    const once = plusCodeGridLinesToGeoJSON(["8FVC2222+"]);
+    const duplicate = plusCodeGridLinesToGeoJSON(["8FVC2222+", "8FVC2222+"]);
+
+    expect(duplicate.features).toHaveLength(once.features.length);
+  });
+
+  it("skips invalid plus codes", () => {
+    const result = plusCodeGridLinesToGeoJSON(["not-a-plus-code", "8FVC2222+"]);
+
+    expect(result.features).toHaveLength(4);
   });
 });
 

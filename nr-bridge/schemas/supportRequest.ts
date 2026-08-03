@@ -6,11 +6,10 @@
 import { z } from "zod";
 
 /**
- * Upper bound on the message body. Generous enough for a pasted debug block
- * plus a description of the problem, small enough that the endpoint cannot be
- * used to push large payloads through our SMTP relay.
+ * Upper bound on the message body. Accommodates a typical debug block (~400 chars)
+ * plus user-typed context, small enough to prevent abuse of the SMTP relay.
  */
-export const SUPPORT_MESSAGE_MAX_LENGTH = 8000;
+export const SUPPORT_MESSAGE_MAX_LENGTH = 2000;
 
 /** Body accepted by `POST /support`. */
 export const SupportRequestSchema = z.object({

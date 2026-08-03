@@ -120,7 +120,7 @@ our SMTP relay, so no rate limiting is layered on top.
 | Status | Body                                               | Meaning                                                  |
 | ------ | -------------------------------------------------- | -------------------------------------------------------- |
 | `200`  | `{ "success": true }`                              | Message emailed to support                               |
-| `400`  | `{ "error": "Invalid request", "details": {...} }` | Empty message, or longer than 8000 characters            |
+| `400`  | `{ "error": "Invalid request", "details": {...} }` | Empty message, or longer than 2000 characters            |
 | `401`  | `{ "error": "<reason>" }`                          | Missing, malformed, stale, or mismatched NIP-98 signature |
 
 The npub in the email comes from the verified signature, and the Trustroots

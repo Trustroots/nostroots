@@ -1,4 +1,4 @@
-import { DEFAULT_RELAY_URL } from "@trustroots/nr-common";
+import { RELAY_URL } from "@/config/env";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { Filter } from "nostr-tools";
 
@@ -39,8 +39,8 @@ export interface RelaysState {
 
 const initialState: RelaysState = {
   relays: {
-    [DEFAULT_RELAY_URL]: {
-      url: DEFAULT_RELAY_URL,
+    [RELAY_URL]: {
+      url: RELAY_URL,
       isActive: true,
       isConnected: false,
       notices: [],

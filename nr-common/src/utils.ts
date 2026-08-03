@@ -281,11 +281,21 @@ export function hasVersion(tags: string[][]): boolean {
   return true;
 }
 
+const DEFAULT_NIP05_DOMAIN = "trustroots.org";
+
+function nip05SchemeForDomain(domain: string): "http" | "https" {
+  const host = domain.split(":")[0];
+  return host === "localhost" || host === "127.0.0.1" ? "http" : "https";
+}
+
 export async function getNip5PubKey(
   trustrootsUsername: string,
+  domain: string = DEFAULT_NIP05_DOMAIN,
 ): Promise<string | undefined> {
   try {
-    const url = `https://trustroots.org/.well-known/nostr.json?name=${trustrootsUsername}`;
+    const scheme = nip05SchemeForDomain(domain);
+    const url =
+      `${scheme}://${domain}/.well-known/nostr.json?name=${trustrootsUsername}`;
     const nip5Response = await fetch(url);
 
     const { names, error } = (await nip5Response.json()) as {

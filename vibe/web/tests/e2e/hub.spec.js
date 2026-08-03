@@ -161,6 +161,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Hitchwiki$/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Hitchwiki Maps/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Radiostr/ })).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open Rideshares/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toBeHidden();
 
     await experimentalToggle.check();
@@ -171,6 +172,8 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('.location .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Open Radiostr/ })).toHaveAttribute('href', 'examples/radiostr/');
+    await expect(page.getByRole('link', { name: /Open Rideshares/ })).toHaveAttribute('href', 'examples/rideshares/');
+    await expect(page.locator('.rideshares .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open Trustroots Wiki/ })).toHaveAttribute('href', 'https://wiki.trustroots.org/');
     await expect(page.getByRole('link', { name: /Open Nomadwiki/ })).toHaveAttribute('href', 'https://nomadwiki.org/');
     await expect(page.getByRole('link', { name: /Open Trashwiki/ })).toHaveAttribute('href', 'https://trashwiki.org/');
@@ -202,6 +205,7 @@ test.describe('Nostroots Web hub', () => {
       'Food Circle',
       'Nostrail',
       'Radiostr',
+      'Rideshares',
       'Hitchwiki',
       'Hitchwiki Maps',
       "Let's Miti",

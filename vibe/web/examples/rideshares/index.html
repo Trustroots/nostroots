@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f4efe4" />
+    <meta name="description" content="Share your hitchhiking journey and find people going your way. Built for the Trustroots community on Nostr." />
+    <meta property="og:title" content="Rideshares — find people going your way" />
+    <meta property="og:description" content="A simple, decentralized hitchhiking board for the Trustroots community." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://nos.trustroots.org/examples/rideshares/" />
+    <meta property="og:image" content="https://nos.trustroots.org/examples/rideshares/og.png" />
+    <meta property="og:image:width" content="1732" />
+    <meta property="og:image:height" content="909" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://nos.trustroots.org/examples/rideshares/og.png" />
+    <title>Rideshares — find people going your way</title>
+    <link rel="icon" href="./icon-192.png" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,500;6..72,650&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="../../site-chrome.css" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="../../analytics.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#journeys">Skip to journeys</a>
+
+    <header class="header" role="banner">
+      <div class="header-inner">
+        <nav class="hub-nav" aria-label="Nostroots links">
+          <a class="header-brand" href="../../" aria-label="Nostroots home">
+            <img src="../../nostroots-logo67.png" alt="" width="46" height="46" />
+          </a>
+          <a class="header-app-link" href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots" target="_blank" rel="noopener noreferrer" aria-label="Android" data-umami-event="Click Android app" data-umami-event-placement="top-nav" data-umami-event-target="android-app" data-umami-event-url="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.6 9.48 19.44 6.3c.16-.31-.04-.68-.38-.68-.15 0-.29.08-.37.21l-1.87 3.24c-1.28-.58-2.72-.9-4.22-.9s-2.94.32-4.22.9L6.46 5.83c-.08-.13-.22-.21-.37-.21-.34 0-.54.37-.38.68l1.84 3.18C4.54 11.09 3 13.64 3 16.62h18c0-2.98-1.54-5.53-3.4-7.14ZM8.5 15.12c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Zm7 0c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1Z" fill="currentColor" /></svg></a>
+          <a class="header-app-link" href="https://apps.apple.com/app/nostroots/id6755037304" target="_blank" rel="noopener noreferrer" aria-label="iOS" data-umami-event="Click iOS app" data-umami-event-placement="top-nav" data-umami-event-target="ios-app" data-umami-event-url="https://apps.apple.com/app/nostroots/id6755037304"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z" fill="currentColor" /></svg></a>
+          <a href="../../background/">Background</a>
+          <h1 class="header-title"><a href="./">Rideshares</a></h1>
+        </nav>
+        <section class="identity-status" aria-label="Connection status">
+          <button id="nostr-key-status" class="status-pill status-pill-button" data-state="missing" type="button" aria-haspopup="dialog" aria-controls="nip7-info-modal" aria-expanded="false" aria-label="No Nostr key detected. About Nostr keys" hidden><strong>no nostr key detected</strong><span class="status-pill-info" aria-hidden="true">i</span></button>
+          <a id="trustroots-identity-status" class="status-pill identity-link" data-state="missing" hidden>Trustroots identity: <strong>not linked</strong></a>
+        </section>
+      </div>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">For hitchhikers, by hitchhikers</p>
+          <h1 id="hero-title">Find people<br />going your way.</h1>
+          <p class="hero-intro">Share where you’re heading, discover lifts and fellow hitchhikers, then figure out the details together.</p>
+          <div class="trust-line">
+            <span class="tree-dot" aria-hidden="true">⌁</span>
+            <span>Part of the Trustroots community · Open and decentralized</span>
+          </div>
+          <div class="hero-actions">
+            <button class="button" type="button" data-action="open-post">Post your journey</button>
+            <button class="text-button" type="button" data-action="show-my-journeys">My journeys</button>
+          </div>
+        </div>
+
+        <form class="search-card" id="search-form">
+          <div class="search-tabs" role="group" aria-label="Journey type">
+            <button class="search-tab is-active" type="button" data-search-type="all">Everyone</button>
+            <button class="search-tab" type="button" data-search-type="cohitchhiker">Co-hitchhikers</button>
+            <button class="search-tab" type="button" data-search-type="offer">Lift offers</button>
+          </div>
+          <div class="route-fields">
+            <label class="field field-route">
+              <span>Starting around</span>
+              <span class="field-input-wrap"><i class="route-dot route-dot-start" aria-hidden="true"></i><input id="search-origin" name="origin" autocomplete="address-level2" placeholder="Berlin" /></span>
+            </label>
+            <span class="route-line" aria-hidden="true"></span>
+            <label class="field field-route">
+              <span>Heading toward</span>
+              <span class="field-input-wrap"><i class="route-dot route-dot-end" aria-hidden="true"></i><input id="search-destination" name="destination" autocomplete="address-level2" placeholder="Prague, or anywhere south" /></span>
+            </label>
+          </div>
+          <label class="field">
+            <span>When</span>
+            <span class="field-input-wrap"><i class="calendar-icon" aria-hidden="true"></i><input id="search-date" name="date" type="date" /></span>
+          </label>
+          <button class="button button-search" type="submit"><span>Find journeys</span><span aria-hidden="true">→</span></button>
+          <button class="near-me" type="button" id="near-me-button"><span aria-hidden="true">◎</span> Use my area</button>
+        </form>
+      </section>
+
+      <section class="journeys-section" id="journeys" aria-labelledby="journeys-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">The road ahead</p>
+            <h2 id="journeys-title">Upcoming journeys</h2>
+            <p id="results-summary">Fresh posts from the community.</p>
+          </div>
+          <div class="view-actions">
+            <button class="view-button is-active" type="button" data-view="list" aria-label="Show list" title="List view">☷</button>
+            <button class="view-button" type="button" data-view="map" aria-label="Show map" title="Map view">⌖</button>
+          </div>
+        </div>
+
+        <div id="feed-status" class="feed-status" role="status">
+          <span class="spinner" aria-hidden="true"></span>
+          <span>Listening for journeys…</span>
+        </div>
+        <div id="journey-list" class="journey-list" aria-live="polite"></div>
+        <div id="journey-map" class="journey-map" hidden aria-label="Map of journey starting areas"></div>
+
+        <div id="empty-state" class="empty-state" hidden>
+          <div class="empty-road" aria-hidden="true"><span></span></div>
+          <h3>No one has posted that way yet.</h3>
+          <p>Be the first to share your plans. Hitchhiking works when somebody starts the conversation.</p>
+          <button class="button" type="button" data-action="open-post">Post your journey</button>
+        </div>
+      </section>
+
+      <section class="how-it-works" aria-labelledby="how-title">
+        <div>
+          <p class="eyebrow">Simple on purpose</p>
+          <h2 id="how-title">A noticeboard,<br />not a booking platform.</h2>
+        </div>
+        <ol>
+          <li><span>01</span><div><h3>Share your direction</h3><p>Post a broad starting area, where you hope to go, and how flexible you are.</p></div></li>
+          <li><span>02</span><div><h3>Find a good overlap</h3><p>See hitchhikers and lift offers with compatible routes and dates.</p></div></li>
+          <li><span>03</span><div><h3>Talk directly</h3><p>Message each other privately and choose a safe meeting place together.</p></div></li>
+        </ol>
+      </section>
+    </main>
+
+    <footer>
+      <a class="brand brand-footer" href="#top"><span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span><span>rideshares</span></a>
+      <p>Community-built travel coordination on Nostr.</p>
+      <div><a href="https://www.trustroots.org/" target="_blank" rel="noreferrer">Trustroots</a><a href="https://github.com/Trustroots/nostroots/tree/main/vibe/web/examples/rideshares" target="_blank" rel="noreferrer">Open source</a><button type="button" data-action="open-about">About & safety</button></div>
+    </footer>
+
+    <dialog class="dialog post-dialog" id="post-dialog">
+      <form method="dialog" class="dialog-shell" id="post-form">
+        <button class="dialog-close" value="close" aria-label="Close">×</button>
+        <div class="dialog-heading">
+          <p class="eyebrow">Put it on the road</p>
+          <h2>Post a journey</h2>
+          <p>Share enough to find a match. Choose the exact meeting place privately.</p>
+        </div>
+
+        <div class="choice-cards" role="group" aria-label="What are you posting?">
+          <label class="choice-card is-selected"><input type="radio" name="journey-type" value="request" checked /><span class="choice-icon">◒</span><span><strong>I’m hitchhiking</strong><small>Looking for a driver, company, or both</small></span></label>
+          <label class="choice-card"><input type="radio" name="journey-type" value="offer" /><span class="choice-icon">▰</span><span><strong>I can offer a lift</strong><small>Room for someone going my way</small></span></label>
+        </div>
+
+        <fieldset class="seeking-options" data-request-only>
+          <legend>Who would you like to find?</legend>
+          <label><input type="checkbox" name="seeking-driver" checked /><span><strong>A driver</strong><small>Someone offering a lift</small></span></label>
+          <label><input type="checkbox" name="seeking-cohitchhiker" checked /><span><strong>A co-hitchhiker</strong><small>Someone to travel and hitch with</small></span></label>
+        </fieldset>
+
+        <div class="form-grid">
+          <label class="field"><span>Starting area</span><input name="origin" required autocomplete="address-level2" placeholder="City or broad area" /><small>We publish an approximate area, never an exact address.</small></label>
+          <label class="field"><span>Heading toward</span><input name="destination" required autocomplete="address-level2" placeholder="City, region, or direction" /></label>
+          <label class="field field-wide"><span>Going via <em>optional</em></span><input name="via" placeholder="Leipzig, Dresden…" /></label>
+          <label class="field"><span>Earliest day</span><input name="departure-start" type="date" required /></label>
+          <label class="field"><span>Latest day</span><input name="departure-end" type="date" required /></label>
+          <label class="field" data-request-only><span>People travelling</span><input name="group-size" type="number" min="1" max="8" value="1" /></label>
+          <label class="field" data-offer-only hidden><span>Seats available</span><input name="seats" type="number" min="1" max="8" value="1" /></label>
+          <label class="field field-wide"><span>A note for people going your way</span><textarea name="description" maxlength="600" required rows="4" placeholder="Where can you meet? How flexible are you? Luggage, pets, good stories?"></textarea><small><span id="description-count">0</span>/600</small></label>
+        </div>
+        <div class="privacy-note"><span aria-hidden="true">◉</span><p><strong>Your precise location stays private.</strong> The public post contains only broad areas. Arrange the actual pickup point in a private message.</p></div>
+        <p class="form-error" id="post-error" role="alert"></p>
+        <div class="dialog-actions"><button class="text-button" value="close">Cancel</button><button class="button" type="submit" value="default" id="publish-button">Publish journey</button></div>
+      </form>
+    </dialog>
+
+    <dialog class="dialog detail-dialog" id="detail-dialog">
+      <div class="dialog-shell" id="detail-content"></div>
+    </dialog>
+
+    <dialog class="dialog" id="about-dialog">
+      <div class="dialog-shell compact-dialog">
+        <button class="dialog-close" data-action="close-about" aria-label="Close">×</button>
+        <p class="eyebrow">About & safety</p>
+        <h2>People helping people travel.</h2>
+        <p>Rideshares is an open community noticeboard. It does not verify vehicles, arrange rides, take payment, or guarantee anyone’s identity or behavior.</p>
+        <h3>Keep the meeting point private</h3><p>Public journeys show only a broad area. Share exact locations after you have talked and feel comfortable.</p>
+        <h3>Use your judgment</h3><p>Check profiles, tell someone your plans, meet somewhere public, and change your mind whenever something feels wrong.</p>
+        <h3>Open by design</h3><p>Journey posts live on Nostr relays. You can cancel them, but another relay or client may have retained a copy.</p>
+      </div>
+    </dialog>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="../../site-chrome-identity.js"></script>
+    <script defer src="../../site-chrome.js" data-deploy-metadata="../../deploy-metadata.json"></script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

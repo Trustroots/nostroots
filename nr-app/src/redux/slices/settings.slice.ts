@@ -12,6 +12,7 @@ type SettingsState = {
   forceOnboarding: boolean;
   forceWelcome: boolean;
   colorScheme: ColorSchemePreference;
+  analyticsEnabled: boolean;
   keyWasImported: boolean;
   hasAcknowledgedExperimentalLayers: boolean;
   pendingTrustrootsUsername: string | null;
@@ -28,6 +29,7 @@ const initialState: SettingsState = {
   forceOnboarding: false,
   forceWelcome: false,
   colorScheme: "system",
+  analyticsEnabled: true,
   keyWasImported: false,
   hasAcknowledgedExperimentalLayers: false,
   pendingTrustrootsUsername: null,
@@ -63,6 +65,9 @@ export const settingsSlice = createSlice({
     },
     setColorScheme: (state, action: PayloadAction<ColorSchemePreference>) => {
       state.colorScheme = action.payload;
+    },
+    setAnalyticsEnabled: (state, action: PayloadAction<boolean>) => {
+      state.analyticsEnabled = action.payload;
     },
     setKeyWasImported: (state, action: PayloadAction<boolean>) => {
       state.keyWasImported = action.payload;
@@ -102,6 +107,7 @@ export const settingsSlice = createSlice({
     selectIsDataLoaded: (state) => state.isDataLoaded,
     selectIsBrowsingAsGuest: (state) => state.isBrowsingAsGuest,
     selectColorScheme: (state) => state.colorScheme,
+    selectAnalyticsEnabled: (state) => state.analyticsEnabled ?? true,
     selectKeyWasImported: (state) => state.keyWasImported,
     selectHasAcknowledgedExperimentalLayers: (state) =>
       state.hasAcknowledgedExperimentalLayers,

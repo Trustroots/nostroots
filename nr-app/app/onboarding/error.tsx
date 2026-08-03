@@ -6,15 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
 import { AlertTriangleIcon } from "lucide-react-native";
+import { trackEvent } from "@/services/analytics.service";
 
 export default function OnboardingErrorScreen() {
   const router = useRouter();
 
   const handleContinue = () => {
+    trackEvent("onboarding_error", { action: "retry" });
     router.replace("/onboarding/trustroots");
   };
 
   const handleClose = () => {
+    trackEvent("onboarding_error", { action: "close" });
     router.replace(ROUTES.HOME);
   };
 

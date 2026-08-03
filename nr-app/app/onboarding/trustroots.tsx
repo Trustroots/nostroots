@@ -19,6 +19,7 @@ import {
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
 import { validateTrustrootsUsername } from "@/utils/trustrootsUsername.utils";
+import { trackEvent } from "@/services/analytics.service";
 
 type TrustrootsScreenState =
   | "idle"
@@ -110,8 +111,16 @@ export default function OnboardingTrustrootsScreen() {
       try {
         setScreenState("profile-publishing");
         await finalizeTrustrootsProfilePublish(username, dispatch);
+        trackEvent("onboarding_profile_publish", {
+          method: "bridge",
+          outcome: "success",
+        });
         router.replace("/onboarding/backup-confirm?from=bridge");
       } catch (error) {
+        trackEvent("onboarding_profile_publish", {
+          method: "bridge",
+          outcome: "failure",
+        });
         console.error("Failed to publish Trustroots profile", error);
         setScreenState("profile-retry");
         setStatusMessage(
@@ -126,6 +135,10 @@ export default function OnboardingTrustrootsScreen() {
     const result = validateTrustrootsUsername(usernameInput);
 
     if (!result.success) {
+      trackEvent("onboarding_verification_code", {
+        action: "request",
+        outcome: "invalid_input",
+      });
       setFieldError(result.error);
       return;
     }
@@ -141,6 +154,10 @@ export default function OnboardingTrustrootsScreen() {
       setCode("");
       setStatusMessage("Check your Trustroots email for a six-digit code.");
       setScreenState("code-entry");
+      trackEvent("onboarding_verification_code", {
+        action: "request",
+        outcome: "success",
+      });
     } catch (error) {
       if (error instanceof NrBridgeError && error.code === "already-pending") {
         dispatch(settingsActions.setPendingTrustrootsUsername(result.username));
@@ -150,15 +167,27 @@ export default function OnboardingTrustrootsScreen() {
           "A verification code is already pending. Check your Trustroots email.",
         );
         setScreenState("code-entry");
+        trackEvent("onboarding_verification_code", {
+          action: "request",
+          outcome: "already_pending",
+        });
         return;
       }
 
       if (error instanceof NrBridgeError && error.code === "not-found") {
         setFieldError("Trustroots username not found.");
         setScreenState("idle");
+        trackEvent("onboarding_verification_code", {
+          action: "request",
+          outcome: "not_found",
+        });
         return;
       }
 
+      trackEvent("onboarding_verification_code", {
+        action: "request",
+        outcome: "failure",
+      });
       setStatusMessage(getRequestErrorMessage(error));
       setScreenState("idle");
     }
@@ -185,7 +214,15 @@ export default function OnboardingTrustrootsScreen() {
     try {
       const { npub } = await ensureOnboardingIdentity(dispatch);
       await authenticateWithCode({ username, npub, code });
+      trackEvent("onboarding_verification_code", {
+        action: "authenticate",
+        outcome: "success",
+      });
     } catch (error) {
+      trackEvent("onboarding_verification_code", {
+        action: "authenticate",
+        outcome: "failure",
+      });
       console.error("Failed to authenticate Trustroots code", error);
       resetToUsernameEntry(AUTHENTICATION_FAILURE_MESSAGE);
       return;
@@ -216,10 +253,12 @@ export default function OnboardingTrustrootsScreen() {
   ]);
 
   const handleSignup = async () => {
+    trackEvent("onboarding_signup_opened");
     await WebBrowser.openBrowserAsync("https://www.trustroots.org/signup");
   };
 
   const goLegacyKeyFlow = () => {
+    trackEvent("onboarding_method_selected", { method: "legacy_key" });
     router.push("/onboarding/key");
   };
 

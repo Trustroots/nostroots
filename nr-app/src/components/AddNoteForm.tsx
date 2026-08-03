@@ -22,6 +22,7 @@ import Toast from "react-native-root-toast";
 import { Button } from "./ui/button";
 import { Icon } from "./ui/icon";
 import { Text } from "./ui/text";
+import { trackEvent } from "@/services/analytics.service";
 
 interface OptimisticNote {
   id: string;
@@ -151,7 +152,15 @@ export default function AddNoteForm({
       if (effectiveIntent) {
         onSignalSent?.();
       }
+      trackEvent("note_published", {
+        intent: effectiveIntent ?? "none",
+        outcome: "success",
+      });
     } catch {
+      trackEvent("note_published", {
+        intent: effectiveIntent ?? "none",
+        outcome: "failure",
+      });
       // Mark as failed
       setOptimisticNotes((prev) =>
         prev.map((n) =>
@@ -199,7 +208,9 @@ export default function AddNoteForm({
           ),
         );
         setOptimisticNotes((prev) => prev.filter((n) => n.id !== note.id));
+        trackEvent("note_publish_retried", { outcome: "success" });
       } catch {
+        trackEvent("note_publish_retried", { outcome: "failure" });
         setOptimisticNotes((prev) =>
           prev.map((n) =>
             n.id === note.id ? { ...n, status: "failed" as const } : n,

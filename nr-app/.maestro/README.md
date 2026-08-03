@@ -65,10 +65,16 @@ cd .maestro/mock-stack && deno task start
 maestro test --continuous .maestro/flows/onboarding-import.yaml
 ```
 
-If more than one simulator is booted, `scripts/e2e.sh` does not pass a
-`--device` flag, so Maestro's choice of device is ambiguous. Run Maestro
-directly against a specific device instead — note the flag goes before
-`test`:
+If more than one simulator is booted, Maestro's choice of device is ambiguous,
+because `scripts/e2e.sh` does not pick one. Name the device instead — the
+script forwards its arguments to Maestro:
+
+```bash
+./scripts/e2e.sh --device <udid>
+```
+
+`xcrun simctl list devices booted` lists the candidates. Running Maestro
+directly, without the mock stack, the flag goes before `test`:
 
 ```bash
 maestro --device <udid> test .maestro/flows

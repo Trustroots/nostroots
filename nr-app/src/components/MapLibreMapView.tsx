@@ -190,7 +190,7 @@ export default function MapLibreMapView() {
   // Release the map ref on unmount so sagas don't animate a dead map
   useEffect(() => {
     return () => {
-      mapRefService.setMapRef(null, null);
+      mapRefService.setRefs(null, null);
     };
   }, []);
 
@@ -299,7 +299,7 @@ export default function MapLibreMapView() {
         touchPitch={false}
         onRegionDidChange={publishVisibleRegion}
         onDidFinishLoadingMap={() => {
-          mapRefService.setMapRef(mapRef.current, cameraRef.current);
+          mapRefService.setRefs(mapRef.current, cameraRef.current);
           setIsMapReady(true);
           log.debug("#iztRxR map ready");
           publishVisibleRegion();

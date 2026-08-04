@@ -1,12 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { mapRefService } from "@/utils/mapRef";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { matchFilter } from "nostr-tools";
 import { BoundingBox, LatLng, Region } from "@/utils/map.utils";
 import { persistReducer } from "redux-persist";
 import { setVisiblePlusCodes } from "../actions/map.actions";
-import type { AppDispatch, RootState } from "../store";
 import { eventsSelectors, EventWithMetadata } from "./events.slice";
 import { setSubscriptionHasSeenEOSE } from "./relays.slice";
 
@@ -126,26 +124,6 @@ export const mapSlice = createSlice({
     setSavedRegion: (state, action: PayloadAction<Region>) => {
       state.savedRegion = action.payload;
     },
-    // Action to trigger map animation - handled by saga
-    animateToRegion: (
-      state,
-      action: PayloadAction<{ region: Region; duration?: number }>,
-    ) => {
-      // This action is handled by the saga
-    },
-    // Action to trigger map animation to a coordinate
-    /*animateToCoordinate: (
-      state,
-      action: PayloadAction<{
-        latitude: number;
-        longitude: number;
-        latitudeDelta?: number;
-        longitudeDelta?: number;
-        duration?: number;
-      }>,
-    ) => {
-      // This action is handled by the saga
-    },*/
   },
   extraReducers: (builder) => {
     builder
@@ -214,30 +192,6 @@ const selectEventsForSelectedMapLayer = createSelector(
 );
 
 export const mapActions = mapSlice.actions;
-
-export const animateToRegion =
-  (region: Region, duration?: number) =>
-  (dispatch: AppDispatch, getState: () => RootState) => {
-    mapRefService.animateToRegion(region, duration);
-  };
-
-export const animateToCoordinate =
-  (
-    latitude: number,
-    longitude: number,
-    latitudeDelta?: number,
-    longitudeDelta?: number,
-    duration?: number,
-  ) =>
-  (dispatch: AppDispatch, getState: () => RootState) => {
-    mapRefService.animateToCoordinate(
-      latitude,
-      longitude,
-      latitudeDelta,
-      longitudeDelta,
-      duration,
-    );
-  };
 
 export const mapSelectors = {
   ...mapSliceSelectors,

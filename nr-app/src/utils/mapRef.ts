@@ -16,16 +16,6 @@ const log = rootLogger.extend("mapRef");
  * function* mySaga() {
  *   mapRefService.animateToCoordinate(37.78825, -122.4324);
  * }
- *
- * @example
- * // Using Redux actions (preferred):
- * import { mapActions } from '@/redux/slices/map.slice';
- *
- * dispatch(mapActions.animateToCoordinate({
- *   latitude: 37.78825,
- *   longitude: -122.4324,
- *   duration: 1000,
- * }));
  */
 class MapRefService {
   private cameraRef: CameraRef | null = null;
@@ -35,7 +25,7 @@ class MapRefService {
    * Register the map and camera refs - called from MapLibreMapView once the
    * map is ready, and with nulls on unmount.
    */
-  setMapRef(map: MapRef | null, camera: CameraRef | null = null) {
+  setRefs(map: MapRef | null, camera: CameraRef | null = null) {
     this.mapRef = map;
     this.cameraRef = camera;
     if (map) {
@@ -43,10 +33,6 @@ class MapRefService {
     } else {
       log.debug("#mapRefUnset Map ref unregistered");
     }
-  }
-
-  getMapRef(): MapRef | null {
-    return this.mapRef;
   }
 
   /**
@@ -78,66 +64,6 @@ class MapRefService {
     this.animateToRegion(
       { latitude, longitude, latitudeDelta, longitudeDelta },
       duration,
-    );
-  }
-
-  /**
-   * Move the camera directly, in MapLibre terms
-   */
-  animateCamera(
-    camera: { center: { latitude: number; longitude: number }; zoom?: number },
-    duration?: number,
-  ) {
-    if (!this.cameraRef) {
-      log.warn("#noMapRef Cannot animate camera - camera ref not set");
-      return;
-    }
-    log.debug("#animateCamera", camera);
-    this.cameraRef.flyTo({
-      center: [camera.center.longitude, camera.center.latitude],
-      zoom: camera.zoom,
-      duration,
-    });
-  }
-
-  /**
-   * Fit the camera to the bounding box of the supplied coordinates
-   */
-  fitToCoordinates(
-    coordinates: { latitude: number; longitude: number }[],
-    options?: { padding?: number; duration?: number },
-  ) {
-    if (!this.cameraRef) {
-      log.warn("#noMapRef Cannot fit to coordinates - camera ref not set");
-      return;
-    }
-    if (coordinates.length === 0) {
-      return;
-    }
-    log.debug("#fitToCoordinates", coordinates, options);
-
-    const latitudes = coordinates.map((c) => c.latitude);
-    const longitudes = coordinates.map((c) => c.longitude);
-
-    this.cameraRef.fitBounds(
-      [
-        Math.min(...longitudes),
-        Math.min(...latitudes),
-        Math.max(...longitudes),
-        Math.max(...latitudes),
-      ],
-      {
-        padding:
-          options?.padding === undefined
-            ? undefined
-            : {
-                top: options.padding,
-                right: options.padding,
-                bottom: options.padding,
-                left: options.padding,
-              },
-        duration: options?.duration,
-      },
     );
   }
 

@@ -13,9 +13,22 @@ name: Onboarding - generate a new key
     id: "onboarding-key-mnemonic-input"
     text: "(\\w+ ){11}\\w+"
 
+- copyTextFrom:
+    id: "onboarding-key-mnemonic-input"
+- evaluateScript: ${output.words = maestro.copiedText.trim().split(/\s+/)}
+
 - tapOn:
     id: "onboarding-key-mnemonic-confirm"
-- assertVisible: "Saved"
+
+# The words are hidden now; the challenge asks for three of them by position.
+- runFlow:
+    file: ../subflows/answer-backup-challenge.yaml
+    env:
+      PREFIX: "onboarding-key-backup"
+
+- tapOn:
+    id: "onboarding-key-backup-confirm"
+- assertVisible: "Backup confirmed"
 
 - tapOn:
     id: "onboarding-key-continue"

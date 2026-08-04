@@ -1,0 +1,100 @@
+appId: org.trustroots.nostroots
+name: Answer the backup challenge
+# Requires: output.words (the 12-word mnemonic) and PREFIX (testID prefix).
+---
+- runFlow:
+    when:
+      visible: "Word 1"
+    commands:
+      - tapOn:
+          id: "${PREFIX}-word-1"
+      - inputText: ${output.words[0]}
+      - hideKeyboard
+- runFlow:
+    when:
+      visible: "Word 2"
+    commands:
+      - tapOn:
+          id: "${PREFIX}-word-2"
+      - inputText: ${output.words[1]}
+      - hideKeyboard
+- runFlow:
+    when:
+      visible: "Word 3"
+    commands:
+      - tapOn:
+          id: "${PREFIX}-word-3"
+      - inputText: ${output.words[2]}
+      - hideKeyboard
+- runFlow:
+    when:
+      visible: "Word 4"
+    commands:
+      - tapOn:
+          id: "${PREFIX}-word-4"
+      - inputText: ${output.words[3]}
+      - hideKeyboard
+- runFlow:
+    when:
+      visible: "Word 5"
+    commands:
+      - tapOn:
+          id: "${PREFIX}-word-5"
+      - inputText: ${output.words[4]}
+      - hideKeyboard
+- runFlow:
+    when:
+      visible: "Word 6"
+    commands:
+      - tapOn:
+          id: "${PREFIX}-word-6"
+      - inputText: ${output.words[5]}
+      - hideKeyboard
+- runFlow:
+    when:
+      visible: "Word 7"
+    commands:
+      - tapOn:
+          id: "${PREFIX}-word-7"
+      - inputText: ${output.words[6]}
+      - hideKeyboard
+- runFlow:
+    when:
+      visible: "Word 8"
+    commands:
+      - tapOn:
+          id: "${PREFIX}-word-8"
+      - inputText: ${output.words[7]}
+      - hideKeyboard
+- runFlow:
+    when:
+      visible: "Word 9"
+    commands:
+      - tapOn:
+          id: "${PREFIX}-word-9"
+      - inputText: ${output.words[8]}
+      - hideKeyboard
+- runFlow:
+    when:
+      visible: "Word 10"
+    commands:
+      - tapOn:
+          id: "${PREFIX}-word-10"
+      - inputText: ${output.words[9]}
+      - hideKeyboard
+- runFlow:
+    when:
+      visible: "Word 11"
+    commands:
+      - tapOn:
+          id: "${PREFIX}-word-11"
+      - inputText: ${output.words[10]}
+      - hideKeyboard
+- runFlow:
+    when:
+      visible: "Word 12"
+    commands:
+      - tapOn:
+          id: "${PREFIX}-word-12"
+      - inputText: ${output.words[11]}
+      - hideKeyboard

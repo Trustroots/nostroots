@@ -119,7 +119,7 @@ export default function OnboardingTrustrootsScreen() {
           method: "bridge",
           outcome: "success",
         });
-        router.replace("/onboarding/backup-confirm?from=bridge");
+        router.replace("/onboarding/backup-confirm");
       } catch (error) {
         trackEvent("onboarding_profile_publish", {
           method: "bridge",

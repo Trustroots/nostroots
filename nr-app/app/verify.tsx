@@ -39,7 +39,7 @@ export default function VerifyRoute() {
             pendingTrustrootsProfileUsername,
             dispatch,
           );
-          router.replace("/onboarding/backup-confirm?from=bridge");
+          router.replace("/onboarding/backup-confirm");
         } catch (error) {
           console.error("Failed to retry Trustroots profile publish", error);
           router.replace("/onboarding/trustroots");
@@ -63,7 +63,7 @@ export default function VerifyRoute() {
           pendingTrustrootsUsername,
           dispatch,
         );
-        router.replace("/onboarding/backup-confirm?from=bridge");
+        router.replace("/onboarding/backup-confirm");
       } catch (error) {
         console.error("Failed to authenticate Trustroots deep link", error);
         router.replace("/onboarding/trustroots?error=auth");

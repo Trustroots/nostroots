@@ -14,7 +14,7 @@ env:
     id: "onboarding-key-import-input"
 - inputText: ${TEST_NSEC}
 # hideKeyboard does not work against this input; tap inert copy to dismiss.
-- tapOn: "Import Your Trustroots Key"
+- tapOn: "Set Up Your Key"
 
 - tapOn:
     id: "onboarding-key-import-save"

@@ -1,9 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import * as Clipboard from "expo-clipboard";
 import { ShieldCheckIcon } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
 import { TextInput, View } from "react-native";
-import Toast from "react-native-root-toast";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -86,6 +84,7 @@ export default function OnboardingBackupConfirmScreen() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
   const [storedSecret, setStoredSecret] = useState<string | null>(null);
+  const [secretAcknowledged, setSecretAcknowledged] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -199,18 +198,14 @@ export default function OnboardingBackupConfirmScreen() {
     );
   };
 
-  const handleCopySecret = async () => {
-    if (!storedSecret) return;
+  const isRevealStep = !!storedSecret && !secretAcknowledged;
 
-    try {
-      await Clipboard.setStringAsync(storedSecret);
-      Toast.show("Copied secret to Clipboard!", {
-        duration: Toast.durations.SHORT,
-        position: Toast.positions.BOTTOM,
-      });
-    } catch (error) {
-      console.error("Failed to copy secret", error);
-    }
+  const handleAcknowledgeSecret = () => {
+    trackEvent("onboarding_backup", {
+      action: "secret_acknowledged",
+      source: from === "bridge" ? "bridge" : "legacy_key",
+    });
+    setSecretAcknowledged(true);
   };
 
   const isConfirmDisabled =
@@ -231,75 +226,83 @@ export default function OnboardingBackupConfirmScreen() {
           if you lose it.
         </Text>
         <Text variant="p">
-          Re-enter your nsec or your 12/24-word mnemonic to confirm you’ve saved
-          it safely.
+          {isRevealStep
+            ? "Write it down or store it in a password manager. On the next step you type it back in from your backup."
+            : "Type your secret back in from your backup to confirm you’ve saved it safely."}
         </Text>
       </View>
 
-      {storedSecret && (
-        <View className="w-full gap-2 bg-card rounded-lg p-3">
-          <Text className="text-sm font-bold text-foreground text-left">
-            Save this secret before continuing
-          </Text>
-          <Text
-            className="text-sm bg-muted text-foreground rounded-md p-3 text-left"
-            selectable
-          >
-            {storedSecret}
-          </Text>
+      {isRevealStep ? (
+        <>
+          <View className="w-full gap-2 bg-card rounded-lg p-3">
+            <Text className="text-sm font-bold text-foreground text-left">
+              Save this secret before continuing
+            </Text>
+            <Text
+              testID="onboarding-backup-secret"
+              className="text-sm bg-muted text-foreground rounded-md p-3 text-left"
+            >
+              {storedSecret}
+            </Text>
+          </View>
           <Button
-            variant="outline"
-            size="sm"
-            title="Copy secret"
-            onPress={handleCopySecret}
+            testID="onboarding-backup-secret-saved"
+            variant="secondary"
+            size="lg"
+            title="I have saved my secret"
+            onPress={handleAcknowledgeSecret}
           />
-        </View>
+        </>
+      ) : (
+        <>
+          <View className="w-full gap-2">
+            <TextInput
+              value={input}
+              onChangeText={(value) => {
+                setInput(value);
+                setError(null);
+                setSuccess(false);
+              }}
+              placeholder="Type your 12/24-word mnemonic or nsec1... key"
+              placeholderTextColor="#6b7280"
+              autoCapitalize="none"
+              autoCorrect={false}
+              multiline
+              className="w-full bg-card text-foreground rounded-md p-3 text-sm min-h-[72px]"
+            />
+
+            {error && (
+              <Text className="text-xs text-red-500 mt-1">{error}</Text>
+            )}
+
+            {setupError && (
+              <Text className="text-xs text-red-500 mt-1 text-left">
+                {setupError}
+              </Text>
+            )}
+
+            {success && !error && (
+              <Text className="text-xs text-green-400 mt-1">
+                You’re all set — backup confirmed.
+              </Text>
+            )}
+          </View>
+
+          <Button
+            variant="secondary"
+            size="lg"
+            title={
+              success
+                ? "Backup confirmed"
+                : isVerifying
+                  ? "Confirming..."
+                  : "Confirm backup"
+            }
+            disabled={isConfirmDisabled}
+            onPress={handleConfirm}
+          />
+        </>
       )}
-
-      <View className="w-full gap-2">
-        <TextInput
-          value={input}
-          onChangeText={(value) => {
-            setInput(value);
-            setError(null);
-            setSuccess(false);
-          }}
-          placeholder="Paste your nsec1... key or type your 12/24-word mnemonic"
-          placeholderTextColor="#6b7280"
-          autoCapitalize="none"
-          autoCorrect={false}
-          multiline
-          className="w-full bg-card text-foreground rounded-md p-3 text-sm min-h-[72px]"
-        />
-
-        {error && <Text className="text-xs text-red-500 mt-1">{error}</Text>}
-
-        {setupError && (
-          <Text className="text-xs text-red-500 mt-1 text-left">
-            {setupError}
-          </Text>
-        )}
-
-        {success && !error && (
-          <Text className="text-xs text-green-400 mt-1">
-            You’re all set — backup confirmed.
-          </Text>
-        )}
-      </View>
-
-      <Button
-        variant="secondary"
-        size="lg"
-        title={
-          success
-            ? "Backup confirmed"
-            : isVerifying
-              ? "Confirming..."
-              : "Confirm backup"
-        }
-        disabled={isConfirmDisabled}
-        onPress={handleConfirm}
-      />
 
       <View className="flex flex-row gap-2 mt-4">
         <Button

@@ -3,7 +3,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { getBech32PrivateKey } from "nip06";
 import { useState } from "react";
-import { ScrollView, Switch, TextInput, View } from "react-native";
+import { ScrollView, Switch, TextInput, View, Alert } from "react-native";
 
 import { BrowserSettingsSection } from "@/browser/BrowserSettingsSection";
 import BuildData from "@/components/BuildData";
@@ -26,6 +26,7 @@ import {
   registerDevice,
   unregisterDevice,
 } from "@/redux/actions/notifications.actions";
+import { PLAY_SERVICES_UNAVAILABLE } from "@/services/notifications.service";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { sendNotificationSubscriptionEventAction } from "@/redux/sagas/notifications.saga";
 import {
@@ -238,6 +239,16 @@ export default function SettingsScreen() {
         action: "enable",
         outcome: "failure",
       });
+      if (
+        error instanceof Error &&
+        error.message === PLAY_SERVICES_UNAVAILABLE
+      ) {
+        Alert.alert(
+          "Notifications unavailable",
+          "Push notifications require Google Play Services, which are not available on this device.",
+        );
+        return;
+      }
       Toast.show(`#eN1vKp Error: ${error}`, {
         duration: Toast.durations.LONG,
       });

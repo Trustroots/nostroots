@@ -9,6 +9,8 @@ import { Platform } from "react-native";
 import Toast from "react-native-root-toast";
 import { match } from "ts-pattern";
 
+export const PLAY_SERVICES_UNAVAILABLE = "PLAY_SERVICES_UNAVAILABLE";
+
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -66,13 +68,9 @@ export async function registerForPushNotificationsAsync() {
     return pushTokenString;
   } catch (e: unknown) {
     const message = `${e}`;
-    // Google Play Services missing — device has no FCM support, push silently unavailable
+    // Google Play Services missing — device has no FCM support
     if (/google play/i.test(message)) {
-      if (__DEV__)
-        console.log(
-          "#4kWpNx Push notifications unavailable: Google Play Services not found",
-        );
-      return;
+      throw new Error(PLAY_SERVICES_UNAVAILABLE);
     }
     handleRegistrationError(message);
   }

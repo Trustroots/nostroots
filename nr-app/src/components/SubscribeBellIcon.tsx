@@ -12,11 +12,12 @@ import {
   getMatchingParentPlusCode,
 } from "@/utils/notifications.utils";
 import { Bell, BellOff } from "lucide-react-native";
-import { Pressable, View } from "react-native";
+import { Alert, Pressable, View } from "react-native";
 import Toast from "react-native-root-toast";
 import { createSelector } from "reselect";
 import { Icon } from "./ui/icon";
 import { Text } from "./ui/text";
+import { PLAY_SERVICES_UNAVAILABLE } from "@/services/notifications.service";
 
 const selectSubscriptionState = createSelector(
   [
@@ -78,6 +79,16 @@ export default function SubscribeBellIcon() {
         });
       }
     } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === PLAY_SERVICES_UNAVAILABLE
+      ) {
+        Alert.alert(
+          "Notifications unavailable",
+          "Push notifications require Google Play Services, which are not available on this device.",
+        );
+        return;
+      }
       Toast.show(
         `Error: ${error instanceof Error ? error.message : String(error)}`,
         { duration: Toast.durations.LONG, position: Toast.positions.TOP },

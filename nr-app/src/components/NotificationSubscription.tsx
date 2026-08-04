@@ -4,7 +4,9 @@ import {
 } from "@/redux/actions/notifications.actions";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapSelectors } from "@/redux/slices/map.slice";
+import { PLAY_SERVICES_UNAVAILABLE } from "@/services/notifications.service";
 import Toast from "react-native-root-toast";
+import { Alert } from "react-native";
 import { Button } from "./ui/button";
 import { Text } from "./ui/text";
 import { createSelector } from "reselect";
@@ -51,6 +53,16 @@ export default function NotificationSubscription() {
                   duration: Toast.durations.LONG,
                 });
               } catch (error) {
+                if (
+                  error instanceof Error &&
+                  error.message === PLAY_SERVICES_UNAVAILABLE
+                ) {
+                  Alert.alert(
+                    "Notifications unavailable",
+                    "Push notifications require Google Play Services, which are not available on this device.",
+                  );
+                  return;
+                }
                 Toast.show(`#Y0WER5 Error: ${error}`, {
                   duration: Toast.durations.LONG,
                 });

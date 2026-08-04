@@ -1,8 +1,9 @@
 import { subscribeToPlusCode } from "@/redux/actions/notifications.actions";
 import { useAppDispatch } from "@/redux/hooks";
+import { PLAY_SERVICES_UNAVAILABLE } from "@/services/notifications.service";
 import { PlusCode } from "@trustroots/nr-common";
 import { useState } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Alert, View } from "react-native";
 import Toast from "react-native-root-toast";
 import { Button } from "./ui/button";
 import { Text } from "./ui/text";
@@ -52,6 +53,16 @@ export default function SubscriptionPrompt({
       });
       onSubscribe?.();
     } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === PLAY_SERVICES_UNAVAILABLE
+      ) {
+        Alert.alert(
+          "Notifications unavailable",
+          "Push notifications require Google Play Services, which are not available on this device.",
+        );
+        return;
+      }
       Toast.show(
         `#hK7nPq Error: ${error instanceof Error ? error.message : String(error)}`,
         {

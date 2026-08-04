@@ -2,24 +2,23 @@
 
 ## Purpose
 
-Define the Food Circle web experience for finding, requesting, and sharing food
+Define the Food Circle web experience for finding and sharing food
 through location-aware records that remain compatible with Nostroots map notes.
 
 ## Requirements
 
 ### Requirement: Hub and standalone experience
 
-The Nostroots hub MUST provide Food Circle as a "More experimental" card that
-opens `/food/` as a standalone static web application.
+The Nostroots hub MUST provide a card that opens Food Circle at `/food/` as a
+standalone static web application.
 
 #### Scenario: Opening Food Circle
 
-- **GIVEN** a user is on the Nostroots web hub and has enabled "Show more
-  experimental apps"
+- **GIVEN** a user is on the Nostroots web hub
 - **WHEN** they activate the Food Circle card
 - **THEN** the browser MUST open `/food/`
-- **AND** the app MUST offer immediate paths for finding food and sharing or
-  reporting food.
+- **AND** the app MUST show available food immediately and provide one action
+  for sharing or reporting food.
 
 ### Requirement: Food places and temporary situations
 
@@ -37,11 +36,11 @@ requests, and MUST omit expired records from its active map and list.
 
 #### Scenario: Adding a temporary situation
 
-- **GIVEN** a user is sharing food or asking for food
-- **WHEN** they submit a title, expiration, and valid location
+- **GIVEN** a user is sharing food
+- **WHEN** they submit details, an expiration, and a valid location
 - **THEN** Food Circle MUST create a locally visible record
-- **AND** it MUST keep the user-facing offer or request distinct from permanent
-  food places.
+- **AND** it MUST derive the record title from the beginning of the details
+- **AND** it MUST keep the temporary offer distinct from permanent food places.
 
 ### Requirement: Plus Code-first locations
 
@@ -55,6 +54,16 @@ location and MAY also include an exact pin.
 - **THEN** Food Circle MUST derive the selected Plus Code from that position
 - **AND** it MUST persist and render only the Plus Code area, not the source
   coordinates.
+
+#### Scenario: Choosing a location by address or area
+
+- **GIVEN** a user does not want to share their device location
+- **WHEN** they search for a street, block, neighborhood, or city and choose the
+  returned location
+- **THEN** Food Circle MUST use that position to derive the public Plus Code
+- **AND** it MUST NOT store the address search text in the food record
+- **AND** it MUST keep the current map center available as a fallback when
+  device location or address search is unavailable.
 
 #### Scenario: Publishing an exact pin
 
@@ -122,10 +131,11 @@ service is unavailable.
 - **AND** the UI MUST explain failed location or network actions without losing
   the submitted local entry.
 
-### Requirement: Shared foodsharing circle chat
+### Requirement: Circle and listing conversations
 
 Food Circle MUST provide one shared Nostr conversation for the Trustroots
-`foodsharing` circle rather than separate conversations for each food record.
+`foodsharing` circle and a separate public conversation for each published food
+record.
 
 #### Scenario: Reading the circle chat
 
@@ -144,3 +154,21 @@ Food Circle MUST provide one shared Nostr conversation for the Trustroots
 - **AND** it MUST label the event with `foodsharing` in the
   `trustroots-circle` namespace so Nostroots Web can show it in the same circle
   conversation.
+
+#### Scenario: Reading a listing conversation
+
+- **GIVEN** a published Food Circle record has a Nostr event id
+- **WHEN** a relay returns kind `1111` comments whose NIP-22 root `E` tag points
+  to that event id
+- **THEN** Food Circle MUST show those comments only in that listing's detail
+  conversation
+- **AND** reading MUST remain available without a signer.
+
+#### Scenario: Commenting on a listing
+
+- **GIVEN** a published Food Circle record and a compatible browser signer
+- **WHEN** the user sends a non-empty message from the listing detail
+- **THEN** Food Circle MUST request a signature for a NIP-22 kind `1111` comment
+- **AND** the comment MUST identify the kind `30397` record as both its root and
+  parent scope
+- **AND** it MUST publish the signed comment to configured Nostroots relays.

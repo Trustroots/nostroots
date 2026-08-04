@@ -136,6 +136,7 @@ export function foodEntryFromEvent(event) {
   const precisionTag = Number(tagValue(event, 'l', FOOD_PRECISION_NAMESPACE));
   const geohash = tagValue(event, 'g');
   const sourceEventId = event.kind === 30398 ? tagValue(event, 'e') : event.id || '';
+  const sourcePubkey = event.kind === 30398 ? tagValue(event, 'p') : event.pubkey || '';
   const originalCreatedAt = event.kind === 30398 ? Number(tagValue(event, 'original_created_at')) : 0;
   const decodedPin = geohash ? decodeGeohash(geohash) : null;
   // A 12-character geohash represents a tiny cell rather than an infinitely
@@ -150,6 +151,7 @@ export function foodEntryFromEvent(event) {
   return {
     id: `nostr-${sourceEventId || event.id || `${event.created_at}-${plusCode}-${title}`}`,
     eventId: sourceEventId || event.id || '',
+    pubkey: sourcePubkey,
     repostEventId: event.kind === 30398 ? event.id || '' : '',
     eventIdentifier: tagValue(event, 'd'),
     kind: event.kind,

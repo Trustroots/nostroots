@@ -1,6 +1,5 @@
 import type { CameraRef, MapRef } from "@maplibre/maplibre-react-native";
-import { MapViewport, Region } from "@/utils/map.utils";
-import { latitudeDeltaToZoom } from "./maplibre.utils";
+import { MapViewport } from "@/utils/map.utils";
 import { rootLogger } from "./logger.utils";
 
 const log = rootLogger.extend("mapRef");
@@ -14,7 +13,10 @@ const log = rootLogger.extend("mapRef");
  * import { mapRefService } from '@/utils/mapRef';
  *
  * function* mySaga() {
- *   mapRefService.animateToCoordinate(37.78825, -122.4324);
+ *   mapRefService.animateCamera({
+ *     center: { latitude: 37.78825, longitude: -122.4324 },
+ *     zoom: 10,
+ *   });
  * }
  */
 class MapRefService {
@@ -33,38 +35,6 @@ class MapRefService {
     } else {
       log.debug("#mapRefUnset Map ref unregistered");
     }
-  }
-
-  /**
-   * Animate the map to a specific region
-   */
-  animateToRegion(region: Region, duration?: number) {
-    if (!this.cameraRef) {
-      log.warn("#noMapRef Cannot animate to region - camera ref not set");
-      return;
-    }
-    log.debug("#animateToRegion", region);
-    this.cameraRef.flyTo({
-      center: [region.longitude, region.latitude],
-      zoom: latitudeDeltaToZoom(region.latitudeDelta),
-      duration,
-    });
-  }
-
-  /**
-   * Animate to a specific coordinate with default zoom
-   */
-  animateToCoordinate(
-    latitude: number,
-    longitude: number,
-    latitudeDelta: number = 0.0922,
-    longitudeDelta: number = 0.0421,
-    duration?: number,
-  ) {
-    this.animateToRegion(
-      { latitude, longitude, latitudeDelta, longitudeDelta },
-      duration,
-    );
   }
 
   /**

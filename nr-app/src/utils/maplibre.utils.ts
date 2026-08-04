@@ -53,19 +53,6 @@ export function zoomToPlusCodeLength(zoom: number): PlusCodeShortLength {
 }
 
 /**
- * The plus code precision the grid is drawn at for a given region. Tap
- * handling and grid rendering must both go through this, or a tap can resolve
- * to a cell of a different size than the one drawn under the finger.
- */
-export function gridPlusCodeLengthForRegion({
-  latitudeDelta,
-}: {
-  latitudeDelta: number;
-}): PlusCodeShortLength {
-  return zoomToPlusCodeLength(latitudeDeltaToZoom(latitudeDelta));
-}
-
-/**
  * The grid cell containing a pressed point.
  *
  * MapLibre's press hitbox is 44x44 pixels, so the `features` reported for a
@@ -81,7 +68,6 @@ export function gridPlusCodeForLngLat(
   return coordinatesToPlusCode({ latitude, longitude, length });
 }
 
-/**
 /**
  * Turn the visible plus code cells into polygon features for the grid layers.
  *

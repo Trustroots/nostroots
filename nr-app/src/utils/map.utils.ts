@@ -27,11 +27,6 @@ export interface LatLng {
   longitude: number;
 }
 
-export interface Region extends LatLng {
-  latitudeDelta: number;
-  longitudeDelta: number;
-}
-
 export interface BoundingBox {
   northEast: LatLng;
   southWest: LatLng;
@@ -161,36 +156,11 @@ export function plusCodeToRectangle(
   }
 }
 
-/**
- * Get a set of plus codes that contains the entire space of the visible map.
- *
- * This is useful to fetch events. By fetching events for these plus codes the
- * entire map will be covered and some area outside of the visible map.
- */
-export function allPlusCodesForRegion({
-  latitude,
-  latitudeDelta,
-  longitude,
-  longitudeDelta,
-  codeLength = NOSTR_EVENT_INDEX_MAXIMUM_PLUS_CODE_LENGTH,
-}: {
-  latitude: number;
-  latitudeDelta: number;
-  longitude: number;
-  longitudeDelta: number;
-  codeLength?: PlusCodeShortLength;
-}) {
-  // - Code for bottom left
-  // - Code for top right
-  const bottomLeftCoordinates = {
-    latitude: latitude - latitudeDelta / 2,
-    longitude: longitude - longitudeDelta / 2,
-  };
-  const topRightCoordinates = {
-    latitude: latitude + latitudeDelta / 2,
-    longitude: longitude + longitudeDelta / 2,
-  };
-
+function allPlusCodesForCornerCoordinates(
+  bottomLeftCoordinates: LatLng,
+  topRightCoordinates: LatLng,
+  codeLength: PlusCodeShortLength,
+) {
   const bottomLeftCode = OpenLocationCode.encode(
     bottomLeftCoordinates.latitude,
     bottomLeftCoordinates.longitude,
@@ -258,10 +228,17 @@ export function allPlusCodesForBoundingBox(
   boundingBox: BoundingBox,
   codeLength: PlusCodeShortLength = NOSTR_EVENT_INDEX_MAXIMUM_PLUS_CODE_LENGTH,
 ) {
-  return allPlusCodesForRegion({
-    ...boundariesToRegion(boundingBox),
+  return allPlusCodesForCornerCoordinates(
+    {
+      latitude: boundingBox.southWest.latitude,
+      longitude: boundingBox.southWest.longitude,
+    },
+    {
+      latitude: boundingBox.northEast.latitude,
+      longitude: boundingBox.northEast.longitude,
+    },
     codeLength,
-  });
+  );
 }
 
 export function isPlusCodeBetweenTwoPlusCodes(
@@ -358,36 +335,6 @@ export function getEventLinkUrl(event: NostrEvent, layerConfig?: MapLayer) {
   const linkBaseUrl = layerConfig.rootUrl;
   const url = urlJoin(linkBaseUrl, linkPath);
   return url;
-}
-
-export function regionToBoundingBox(region: Region) {
-  const padding = region.latitudeDelta * 0.5; // Add 50% padding to ensure we cover the entire visible area
-  const boundingBox = {
-    northEast: {
-      latitude: region.latitude + region.latitudeDelta / 2 + padding,
-      longitude: region.longitude + region.longitudeDelta / 2 + padding,
-    },
-    southWest: {
-      latitude: region.latitude - region.latitudeDelta / 2 - padding,
-      longitude: region.longitude - region.longitudeDelta / 2 - padding,
-    },
-  };
-  return boundingBox;
-}
-
-export function boundariesToRegion(boundaries: BoundingBox): Region {
-  const { northEast, southWest } = boundaries;
-  const latitudeDelta = northEast.latitude - southWest.latitude;
-  const longitudeDelta = northEast.longitude - southWest.longitude;
-
-  const middlePoint = {
-    latitude: southWest.latitude + latitudeDelta / 2,
-    longitude: southWest.longitude + longitudeDelta / 2,
-    latitudeDelta,
-    longitudeDelta,
-  };
-
-  return middlePoint;
 }
 
 export function arePlusCodesTheSameLength(

@@ -2,7 +2,6 @@ import { plusCodeToRectangle } from "@/utils/map.utils";
 import {
   debounce,
   gridPlusCodeForLngLat,
-  gridPlusCodeLengthForRegion,
   plusCodeGridLinesToGeoJSON,
   plusCodeGridToGeoJSON,
   zoomToPlusCodeLength,
@@ -238,15 +237,6 @@ describe("debounce", () => {
     jest.advanceTimersByTime(500);
 
     expect(fn).toHaveBeenCalledWith("second");
-  });
-});
-
-describe("gridPlusCodeLengthForRegion", () => {
-  it("matches the precision the grid is drawn at", () => {
-    expect(gridPlusCodeLengthForRegion({ latitudeDelta: 180 })).toBe(2);
-    expect(gridPlusCodeLengthForRegion({ latitudeDelta: 5 })).toBe(4);
-    expect(gridPlusCodeLengthForRegion({ latitudeDelta: 0.5 })).toBe(6);
-    expect(gridPlusCodeLengthForRegion({ latitudeDelta: 0.02 })).toBe(8);
   });
 });
 

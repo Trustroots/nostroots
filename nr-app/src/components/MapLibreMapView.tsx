@@ -171,7 +171,6 @@ export default function MapLibreMapView() {
     mapSelectors.selectCurrentMapLocation,
   );
   const savedViewport = useAppSelector(mapSelectors.selectSavedViewport);
-  const savedRegion = useAppSelector(mapSelectors.selectSavedRegion);
 
   const colors = useThemeColors();
   const isDark = useColorScheme() === "dark";
@@ -249,18 +248,11 @@ export default function MapLibreMapView() {
             number,
             number,
           ])
-        : savedRegion
-          ? ([savedRegion.longitude, savedRegion.latitude] as [number, number])
-          : ([10.0, 48.0] as [number, number]),
-    [savedViewport, savedRegion],
+        : ([10.0, 48.0] as [number, number]),
+    [savedViewport],
   );
 
-  const defaultZoom = useMemo(
-    () =>
-      savedViewport?.zoom ??
-      (savedRegion ? latitudeDeltaToZoom(savedRegion.latitudeDelta) : 5),
-    [savedViewport, savedRegion],
-  );
+  const defaultZoom = useMemo(() => savedViewport?.zoom ?? 5, [savedViewport]);
 
   /**
    * Publish the visible area to Redux. Everything downstream — the grid

@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { matchFilter } from "nostr-tools";
-import { BoundingBox, LatLng, MapViewport, Region } from "@/utils/map.utils";
+import { BoundingBox, LatLng, MapViewport } from "@/utils/map.utils";
 import { persistReducer } from "redux-persist";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { eventsSelectors, EventWithMetadata } from "./events.slice";
@@ -24,7 +24,6 @@ interface MapState {
   centerMapOnHalfModal: boolean;
   currentNotificationEvent?: EventWithMetadata;
   selectedLayer: MAP_LAYER_KEY;
-  savedRegion?: Region;
   savedViewport?: MapViewport;
 }
 
@@ -41,7 +40,6 @@ const initialState: MapState = {
   currentNotificationEvent: undefined,
   selectedPlusCode: "",
   selectedLayer: "trustroots",
-  savedRegion: undefined,
   savedViewport: undefined,
 };
 
@@ -123,9 +121,6 @@ export const mapSlice = createSlice({
     ) => {
       state.boundingBox = action.payload;
     },
-    setSavedRegion: (state, action: PayloadAction<Region>) => {
-      state.savedRegion = action.payload;
-    },
     setSavedViewport: (state, action: PayloadAction<MapViewport>) => {
       state.savedViewport = action.payload;
     },
@@ -174,7 +169,6 @@ export const mapSlice = createSlice({
     selectCenterMapOnHalfModal: (state: MapState) => state.centerMapOnHalfModal,
     selectCurrentNotificationEvent: (state: MapState) =>
       state.currentNotificationEvent,
-    selectSavedRegion: (state: MapState) => state.savedRegion,
     selectSavedViewport: (state: MapState) => state.savedViewport,
   },
 });
@@ -210,7 +204,7 @@ export const mapSelectors = {
 const mapPersistConfig = {
   key: "map",
   storage: AsyncStorage,
-  whitelist: ["savedRegion", "savedViewport", "selectedLayer"],
+  whitelist: ["savedViewport", "selectedLayer"],
 };
 
 // Slice-like wrapper for combineSlices compatibility

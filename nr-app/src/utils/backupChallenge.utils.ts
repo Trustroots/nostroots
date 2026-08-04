@@ -26,15 +26,21 @@ export function createBackupChallenge(
   }
 
   const wordCount = splitWords(secret).length;
-  const positions = new Set<number>();
+  // Draw without replacement so a degenerate `random` cannot loop forever.
+  const remaining = Array.from({ length: wordCount }, (_, index) => index + 1);
+  const positions: number[] = [];
 
-  while (positions.size < MNEMONIC_CHALLENGE_SIZE) {
-    positions.add(Math.floor(random() * wordCount) + 1);
+  while (positions.length < MNEMONIC_CHALLENGE_SIZE) {
+    const index = Math.min(
+      remaining.length - 1,
+      Math.max(0, Math.floor(random() * remaining.length)),
+    );
+    positions.push(remaining.splice(index, 1)[0]);
   }
 
   return {
     type: "mnemonic",
-    positions: [...positions].sort((a, b) => a - b),
+    positions: positions.sort((a, b) => a - b),
   };
 }
 

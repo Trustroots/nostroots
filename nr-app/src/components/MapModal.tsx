@@ -91,95 +91,92 @@ export default function MapModal() {
     hasPrivateKeyInSecureStorage && selectedLayer === "trustroots";
 
   return (
-    <>
-      <BottomSheetModalProvider>
-        <BottomSheetModal
-          ref={bottomSheetRef}
-          snapPoints={snapPoints}
-          enablePanDownToClose
-          onDismiss={handleDismiss}
-          backgroundStyle={{ backgroundColor: isDark ? "#0a0a0a" : "#ffffff" }}
-          handleIndicatorStyle={{
-            backgroundColor: isDark ? "#525252" : "#d1d5db",
-          }}
-        >
-          {/* Header: plus code + bell + close */}
-          <View className="px-5 pb-2 pt-1 flex-row items-center justify-between">
-            <View className="flex-1 flex-row items-center gap-2">
-              <Text className="text-lg font-bold text-foreground">
-                {selectedPlusCode}
-              </Text>
-              {selectedLayer === "trustroots" &&
-                hasPrivateKeyInSecureStorage && <SubscribeBellIcon />}
-            </View>
-            <Pressable
-              onPress={handleClose}
-              className="w-8 h-8 rounded-full bg-muted/50 items-center justify-center"
-              accessibilityLabel="Close"
-              accessibilityRole="button"
-            >
-              <Icon as={X} size={16} className="text-foreground" />
-            </Pressable>
+    <BottomSheetModalProvider>
+      <BottomSheetModal
+        ref={bottomSheetRef}
+        snapPoints={snapPoints}
+        enablePanDownToClose
+        onDismiss={handleDismiss}
+        backgroundStyle={{ backgroundColor: isDark ? "#0a0a0a" : "#ffffff" }}
+        handleIndicatorStyle={{
+          backgroundColor: isDark ? "#525252" : "#d1d5db",
+        }}
+      >
+        {/* Header: plus code + bell + close */}
+        <View className="px-5 pb-2 pt-1 flex-row items-center justify-between">
+          <View className="flex-1 flex-row items-center gap-2">
+            <Text className="text-lg font-bold text-foreground">
+              {selectedPlusCode}
+            </Text>
+            {selectedLayer === "trustroots" && hasPrivateKeyInSecureStorage && (
+              <SubscribeBellIcon />
+            )}
           </View>
+          <Pressable
+            onPress={handleClose}
+            className="w-8 h-8 rounded-full bg-muted/50 items-center justify-center"
+            accessibilityLabel="Close"
+            accessibilityRole="button"
+          >
+            <Icon as={X} size={16} className="text-foreground" />
+          </Pressable>
+        </View>
 
-          {/* People strip */}
-          <PeopleStrip
+        {/* People strip */}
+        <PeopleStrip
+          plusCode={selectedPlusCode}
+          signalMode={signalMode}
+          onToggleSignalMode={() => setSignalMode(!signalMode)}
+          canPost={canPost}
+        />
+
+        {/* Summary — fixed above scroll area */}
+        {summaryText && (
+          <View className="px-5 py-1.5 border-b border-border/10">
+            <Text className="text-[11px] text-muted-foreground">
+              {summaryText}
+            </Text>
+          </View>
+        )}
+
+        {/* Chat */}
+        <BottomSheetScrollView
+          contentContainerStyle={{ paddingVertical: 4, flexGrow: 1 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <NotesList
             plusCode={selectedPlusCode}
-            signalMode={signalMode}
-            onToggleSignalMode={() => setSignalMode(!signalMode)}
-            canPost={canPost}
+            selectedEventId={selectedEvent?.event.id}
           />
+        </BottomSheetScrollView>
 
-          {/* Summary — fixed above scroll area */}
-          {summaryText && (
-            <View className="px-5 py-1.5 border-b border-border/10">
-              <Text className="text-[11px] text-muted-foreground">
-                {summaryText}
+        {/* Compose bar — pinned to bottom */}
+        <View className="border-t border-border/15 bg-muted/10">
+          {!hasPrivateKeyInSecureStorage ? (
+            <View className="px-5 py-3 gap-2">
+              <Text className="text-sm text-muted-foreground">
+                Set up your Trustroots account to post here.
+              </Text>
+              <Button
+                variant="secondary"
+                onPress={handleSetUpAccount}
+                title="Set up account"
+              />
+            </View>
+          ) : selectedLayer === "trustroots" ? (
+            <AddNoteForm
+              signalMode={signalMode}
+              onSignalSent={() => setSignalMode(false)}
+            />
+          ) : (
+            <View className="px-5 py-3">
+              <Text className="text-sm text-muted-foreground">
+                Choose the trustroots layer to add content.
               </Text>
             </View>
           )}
-
-          {/* Chat */}
-          <BottomSheetScrollView
-            contentContainerStyle={{ paddingVertical: 4, flexGrow: 1 }}
-            keyboardShouldPersistTaps="handled"
-          >
-            <NotesList
-              plusCode={selectedPlusCode}
-              selectedEventId={selectedEvent?.event.id}
-            />
-          </BottomSheetScrollView>
-
-          {/* Compose bar — pinned to bottom */}
-          <View className="border-t border-border/15 bg-muted/10">
-            {!hasPrivateKeyInSecureStorage ? (
-              <View className="px-5 py-3 gap-2">
-                <Text className="text-sm text-muted-foreground">
-                  Set up your Trustroots account to post here.
-                </Text>
-                <Button
-                  variant="secondary"
-                  onPress={handleSetUpAccount}
-                  title="Set up account"
-                />
-              </View>
-            ) : selectedLayer === "trustroots" ? (
-              <View>
-                <AddNoteForm
-                  signalMode={signalMode}
-                  onSignalSent={() => setSignalMode(false)}
-                />
-              </View>
-            ) : (
-              <View className="px-5 py-3">
-                <Text className="text-sm text-muted-foreground">
-                  Choose the trustroots layer to add content.
-                </Text>
-              </View>
-            )}
-          </View>
-        </BottomSheetModal>
-      </BottomSheetModalProvider>
-    </>
+        </View>
+      </BottomSheetModal>
+    </BottomSheetModalProvider>
   );
 }

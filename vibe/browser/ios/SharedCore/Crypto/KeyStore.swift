@@ -176,7 +176,7 @@ final class InMemoryKeyStore: KeyStore {
     }
 
     func importGeneratedSecret(_ secretHex: String) throws {
-        guard NIP19.isValidHex(secretHex, expectedBytes: 32) else {
+        guard NIP19.isValidSecretHex(secretHex) else {
             throw KeyStoreError.invalidInput
         }
         self.secretHex = secretHex
@@ -245,7 +245,7 @@ final class KeychainKeyStore: KeyStore {
     }
 
     func importGeneratedSecret(_ secretHex: String) throws {
-        guard NIP19.isValidHex(secretHex, expectedBytes: 32) else {
+        guard NIP19.isValidSecretHex(secretHex) else {
             throw KeyStoreError.invalidInput
         }
         try saveSecret(secretHex)

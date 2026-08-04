@@ -15,6 +15,7 @@ import DOMPurify from 'https://cdn.jsdelivr.net/npm/dompurify@3.4.12/+esm?nrv=20
 
 // Import BIP39 for mnemonic support
 import { mnemonicToSeedSync, validateMnemonic } from 'https://cdn.jsdelivr.net/npm/bip39@3.1.0/+esm?nrv=20260508a';
+import { HDKey } from 'https://cdn.jsdelivr.net/npm/@scure/bip32@2.0.1/+esm?nrv=20260804a';
 
 const NR_WEB_ANALYTICS_ALLOWED_KEYS = new Set([
     'area_prefix',
@@ -1235,10 +1236,7 @@ export function clearStoredKey() {
  * Accepts:
  *  - nsec1… (NIP-19 secret key) — decoded via nip19.decode.
  *  - 64-char hex — returned lowercased.
- *  - BIP-39 mnemonic (12/24 words) — first 32 bytes of mnemonicToSeedSync.
- *    Note: the mnemonic→privkey rule (first 32 bytes of the BIP-39 seed) is
- *    common practice but is NOT a standardized NIP. Keep the same rule as
- *    the map UI used historically so both flows derive the same key.
+ *  - BIP-39 mnemonic (12/24 words) — NIP-06 path m/44'/1237'/0'/0/0.
  *
  * Returns { ok: true, hex } or { ok: false, kind: 'empty'|'npub'|'invalid' }.
  *
@@ -1264,9 +1262,12 @@ export function parseKeyImportToHex(raw) {
 
     if (input.includes(' ')) {
         try {
-            if (!validateMnemonic(input)) return { ok: false, kind: 'invalid' };
-            const seed = mnemonicToSeedSync(input);
-            return { ok: true, hex: bytesToHex(seed.slice(0, 32)) };
+            const mnemonic = input.toLowerCase().split(/\s+/).join(' ');
+            if (!validateMnemonic(mnemonic)) return { ok: false, kind: 'invalid' };
+            const seed = mnemonicToSeedSync(mnemonic);
+            const account = HDKey.fromMasterSeed(Uint8Array.from(seed)).derive("m/44'/1237'/0'/0/0");
+            if (!account.privateKey) return { ok: false, kind: 'invalid' };
+            return { ok: true, hex: bytesToHex(account.privateKey) };
         } catch (_) {
             return { ok: false, kind: 'invalid' };
         }

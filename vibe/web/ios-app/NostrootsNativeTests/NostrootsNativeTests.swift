@@ -339,6 +339,16 @@ final class NostrootsNativeTests: XCTestCase {
         XCTAssertEqual(try NIP19.importSecret(nsec), hex)
     }
 
+    func testSecretScalarsRejectZeroAndCurveOrder() throws {
+        let zero = String(repeating: "0", count: 64)
+        let curveOrder = "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
+
+        XCTAssertFalse(NIP19.isValidSecretHex(zero))
+        XCTAssertFalse(NIP19.isValidSecretHex(curveOrder))
+        XCTAssertThrowsError(try NIP19.encodeNsec(secretHex: zero))
+        XCTAssertTrue(NIP19.isValidSecretHex(try NIP19.generateSecretHex()))
+    }
+
     func testNpubEncodeRoundTrip() throws {
         let pubkey = String(repeating: "02", count: 32)
         let npub = try NIP19.encodeNpub(pubkeyHex: pubkey)
@@ -356,7 +366,7 @@ final class NostrootsNativeTests: XCTestCase {
         let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
         let parsed = try KeyImportParser.parse(mnemonic)
         XCTAssertEqual(parsed.source, .mnemonic)
-        XCTAssertEqual(parsed.secretHex, "5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc1")
+        XCTAssertEqual(parsed.secretHex, "5f29af3b9676180290e77a4efad265c4c2ff28a5302461f73597fda26bb25731")
     }
 
     func testKeyImportParserRejectsBadUserInputsWithSpecificErrors() throws {
@@ -431,7 +441,7 @@ final class NostrootsNativeTests: XCTestCase {
             nip44: NIP44Box(cryptoProvider: RecordingCryptoProvider())
         )
         let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
-        let expectedSecret = "5eb00bbddcf069084889a8ab9155568165f5c453ccb85e70811aaed6f6da5fc1"
+        let expectedSecret = "5f29af3b9676180290e77a4efad265c4c2ff28a5302461f73597fda26bb25731"
 
         let result = try service.importKey(mnemonic)
 

@@ -229,6 +229,20 @@ Nostroots Web MUST use hash routing for current static-host compatibility.
 Nostroots Web MUST support local keys, NIP-07 browser signing, relay settings,
 NIP-42 authenticated relay reads/writes, and leak guards for secret key text.
 
+#### Scenario: Native-app private-key scalar
+
+- **GIVEN** the native iOS companion generates or imports a 32-byte private key
+- **WHEN** it accepts the key for use or NIP-19 encoding
+- **THEN** the value MUST be a valid secp256k1 scalar greater than zero and
+  lower than the curve order.
+
+#### Scenario: Recovery phrase derivation
+
+- **GIVEN** a user imports a valid BIP-39 recovery phrase in Nostroots Web or
+  its native iOS companion
+- **WHEN** the client derives the private key
+- **THEN** it MUST use the NIP-06 path `m/44'/1237'/0'/0/0`.
+
 #### Scenario: Default relays
 
 - **GIVEN** a user has no custom relay settings

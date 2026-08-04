@@ -66,8 +66,11 @@ describe('nr-web local key utils', () => {
     it('parseKeyImportToHex accepts a 12-word BIP-39 mnemonic', () => {
         const mnemonic = 'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about';
         const parsed = parseKeyImportToHex(mnemonic);
-        expect(parsed.ok).toBe(true);
-        expect(/^[0-9a-f]{64}$/.test(parsed.hex)).toBe(true);
+        expect(parsed).toEqual({
+            ok: true,
+            hex: '5f29af3b9676180290e77a4efad265c4c2ff28a5302461f73597fda26bb25731',
+        });
+        expect(parseKeyImportToHex(`  ${mnemonic.toUpperCase()}  `)).toEqual(parsed);
     });
 
     it('parseKeyImportToHex rejects empty input with kind=empty', () => {

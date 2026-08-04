@@ -3,6 +3,7 @@ import { nip19 } from "nostr-tools";
 import { bytesToHex } from "@noble/hashes/utils";
 import { useAppDispatch } from "@/redux/hooks";
 import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
+import { validateWords } from "nip06";
 
 type KeyImportResult =
   | {
@@ -20,17 +21,24 @@ type KeyImportResult =
  * @returns KeyImportResult with the parsed key data
  * @throws Error if the input is invalid
  */
-function parseKeyInput(input: string): KeyImportResult {
+export function parseKeyInput(input: string): KeyImportResult {
   const trimmedInput = input.trim();
+  const lowerInput = trimmedInput.toLowerCase();
 
   if (!trimmedInput) {
     throw new Error("Please enter a key");
   }
 
   // Handle nsec format
-  if (trimmedInput.startsWith("nsec")) {
+  if (lowerInput.startsWith("npub1")) {
+    throw new Error(
+      "That is a public npub address. Import your private nsec or recovery phrase instead.",
+    );
+  }
+
+  if (lowerInput.startsWith("nsec")) {
     try {
-      const decoded = nip19.decode(trimmedInput);
+      const decoded = nip19.decode(lowerInput);
       if (decoded.type === "nsec") {
         const privateKeyHex = bytesToHex(decoded.data);
         return {
@@ -47,10 +55,16 @@ function parseKeyInput(input: string): KeyImportResult {
     }
   }
 
-  // Handle mnemonic format
+  const mnemonic = lowerInput.split(/\s+/).join(" ");
+  if (!validateWords({ mnemonic }).isMnemonicValid) {
+    throw new Error(
+      "That recovery phrase is not valid. Check the words and their order.",
+    );
+  }
+
   return {
     type: "mnemonic",
-    mnemonic: trimmedInput,
+    mnemonic,
   };
 }
 

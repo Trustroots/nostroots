@@ -2,21 +2,7 @@ import { cliffy, nostrTools } from "./deps.ts";
 import { consume } from "./src/consume.ts";
 import { log } from "./src/log.ts";
 import { subscribeAndRepost } from "./src/subscribe.ts";
-
-function getOrCreatePrivateKey(maybePrivateKeyNsec?: string) {
-  if (typeof maybePrivateKeyNsec === "string") {
-    const decoded = nostrTools.nip19.decode(maybePrivateKeyNsec);
-    if (decoded.type !== "nsec") {
-      throw new Error("#5jLJ2W Invalid nsec");
-    }
-    return decoded.data;
-  }
-
-  const key = nostrTools.generateSecretKey();
-  const nsec = nostrTools.nip19.nsecEncode(key);
-  log.info(`#2yrJza Using random nsec ${nsec}`);
-  return key;
-}
+import { resolvePrivateKey } from "./src/private-key.ts";
 
 await new cliffy.Command()
   .globalEnv("IS_DEV", "Set to true to run in development mode")
@@ -38,7 +24,15 @@ await new cliffy.Command()
   )
   .action(async (options) => {
     const { isDev } = options;
-    const privateKey = getOrCreatePrivateKey(options.privateKeyNsec);
+    const resolvedPrivateKey = resolvePrivateKey(
+      options.privateKeyNsec,
+      isDev === true || String(isDev).toLowerCase() === "true",
+    );
+    const privateKey = resolvedPrivateKey.key;
+    if (resolvedPrivateKey.generatedForDevelopment) {
+      const publicKey = nostrTools.getPublicKey(privateKey);
+      log.info(`#2yrJza Using ephemeral development pubkey ${publicKey}`);
+    }
     const maxAgeMinutes = options.maxAgeMinutes;
 
     log.debug(

@@ -7,6 +7,7 @@ import {
   seedSecureStoreMock,
 } from "@/test/secureStoreMock";
 import { accountFromSeedWords } from "nip06";
+import * as SecureStore from "expo-secure-store";
 import {
   derivePublicKeyHexFromMnemonic,
   getHasPrivateKeyHexInSecureStorage,
@@ -80,6 +81,49 @@ describe("keystore.nostr", () => {
 
     await expect(getPrivateKeyHexFromSecureStorage()).rejects.toThrow(
       "#1RCMGy-invalid-key-retrieved",
+    );
+  });
+
+  it("uses the signing key as canonical if a stale mnemonic remains", async () => {
+    const account = accountFromSeedWords({ mnemonic });
+    seedSecureStoreMock({
+      [SECURE_STORE_PRIVATE_KEY_HEX_KEY]: account.privateKey.hex,
+      [SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC]:
+        "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+    });
+
+    await expect(getPublicKeyHexFromSecureStorage()).resolves.toEqual({
+      hasMnemonicInSecureStorage: false,
+      publicKeyHex: account.publicKey.hex,
+    });
+    await expect(getHasPrivateKeyMnemonicInSecureStorage()).resolves.toBe(
+      false,
+    );
+  });
+
+  it("rolls back both values if replacing a mnemonic-backed key fails", async () => {
+    const oldAccount = accountFromSeedWords({ mnemonic });
+    seedSecureStoreMock({
+      [SECURE_STORE_PRIVATE_KEY_HEX_KEY]: oldAccount.privateKey.hex,
+      [SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC]: mnemonic,
+    });
+    const replacement =
+      "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+    const setItemAsync = SecureStore.setItemAsync as jest.MockedFunction<
+      typeof SecureStore.setItemAsync
+    >;
+    setItemAsync
+      .mockResolvedValueOnce()
+      .mockRejectedValueOnce(new Error("full"));
+
+    await expect(
+      setPrivateKeyInSecureStorage({ mnemonic: replacement }),
+    ).rejects.toThrow("full");
+    await expect(getPrivateKeyHexFromSecureStorage()).resolves.toBe(
+      oldAccount.privateKey.hex,
+    );
+    await expect(getPrivateKeyMnemonicFromSecureStorage()).resolves.toBe(
+      mnemonic,
     );
   });
 

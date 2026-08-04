@@ -11,13 +11,13 @@ jest.mock("@/redux/hooks", () => ({
 
 const mockUseAppSelector = useAppSelector as jest.Mock;
 
-function fakeState(areTestFeaturesEnabled: boolean) {
+function fakeState(areTestFeaturesEnabled: boolean, selectedPlusCode = "") {
   return {
     settings: {
       areTestFeaturesEnabled,
     },
     map: {
-      selectedPlusCode: "",
+      selectedPlusCode,
     },
   };
 }
@@ -63,5 +63,17 @@ describe("MapLayout", () => {
     );
 
     expect(queryByLabelText("Open NIP-07 Browser")).toBeTruthy();
+  });
+
+  it("shows the create event button whenever a plus code is selected, regardless of Developer Mode", () => {
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(false, "")),
+    );
+    expect(renderMapLayout().queryByLabelText("Create event")).toBeNull();
+
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(false, "9C2X4W+2X")),
+    );
+    expect(renderMapLayout().queryByLabelText("Create event")).toBeTruthy();
   });
 });

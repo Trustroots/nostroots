@@ -1,4 +1,5 @@
 import {
+  CONTENT_MAXIMUM_LENGTH,
   getCurrentTimestamp,
   getPlusCodeAndPlusCodePrefixTags,
   NOSTR_EXPIRATION_TAG_NAME,
@@ -23,6 +24,12 @@ export function publishGatheringPromiseAction({
   /** Unix seconds UTC, optional */
   endTimestamp?: number;
 }) {
+  if (description.length > CONTENT_MAXIMUM_LENGTH) {
+    throw new Error(
+      `Description must be at most ${CONTENT_MAXIMUM_LENGTH} characters`,
+    );
+  }
+
   const plusCodeTags = getPlusCodeAndPlusCodePrefixTags(plusCode);
 
   // Expiry auto-set: end date if provided, otherwise start + 24h

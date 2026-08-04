@@ -51,25 +51,17 @@ export function useNotesListData(plusCode: string) {
   const allNotes = useAppSelector(selector);
 
   const { signalCount, noteCount, gatheringCount } = useMemo(() => {
-    let signals = 0;
-    let notes = 0;
-    const gatheringEvents = allNotes
-      .filter(({ eventWithMetadata }) =>
-        isGatheringEvent(eventWithMetadata.event),
-      )
-      .map(({ eventWithMetadata }) => eventWithMetadata.event);
-    const upcoming = countUpcomingGatherings(gatheringEvents);
+    const events = allNotes.map(
+      ({ eventWithMetadata }) => eventWithMetadata.event,
+    );
+    const gatherings = events.filter(isGatheringEvent);
+    const rest = events.filter((event) => !isGatheringEvent(event));
 
-    for (const { eventWithMetadata } of allNotes) {
-      if (isGatheringEvent(eventWithMetadata.event)) {
-        // counted separately
-      } else if (hasSignalTag(eventWithMetadata.event)) {
-        signals++;
-      } else {
-        notes++;
-      }
-    }
-    return { signalCount: signals, noteCount: notes, gatheringCount: upcoming };
+    return {
+      signalCount: rest.filter(hasSignalTag).length,
+      noteCount: rest.filter((event) => !hasSignalTag(event)).length,
+      gatheringCount: countUpcomingGatherings(gatherings),
+    };
   }, [allNotes]);
 
   return { allNotes, signalCount, noteCount, gatheringCount };
@@ -78,10 +70,10 @@ export function useNotesListData(plusCode: string) {
 export function getNotesSummaryText(
   signalCount: number,
   noteCount: number,
-  gatheringCount?: number,
+  gatheringCount: number,
 ): string | null {
   const parts: string[] = [];
-  if (gatheringCount && gatheringCount > 0)
+  if (gatheringCount > 0)
     parts.push(
       `${gatheringCount} upcoming event${gatheringCount !== 1 ? "s" : ""}`,
     );

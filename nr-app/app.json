@@ -12,7 +12,6 @@
       "bundleIdentifier": "org.trustroots.nostroots",
       "appleTeamId": "WR2T34P467",
       "config": {
-        "googleMapsApiKey": "AIzaSyDw0KhR3qlPsireu68RvGXmh4nccIqnEQM",
         "usesNonExemptEncryption": false
       },
       "infoPlist": {

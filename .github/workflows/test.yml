@@ -2,32 +2,24 @@ name: Test
 
 on:
   workflow_call:
+  pull_request:
+    branches: [main]
+    paths:
+      - "nr-app/**"
+      - ".github/workflows/test.yml"
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Restore pnpm installation
-        id: pnpm-cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/setup-pnpm
-          key: pnpm-bin-${{ runner.os }}-${{ runner.arch }}
-
-      - name: Add cached pnpm to PATH
-        if: steps.pnpm-cache.outputs.cache-hit == 'true'
-        run: |
-          PNPM_HOME=~/.cache/setup-pnpm/node_modules/.bin
-          echo "$PNPM_HOME" >> "$GITHUB_PATH"
-          echo "PNPM_HOME=$PNPM_HOME" >> "$GITHUB_ENV"
-
-      - name: Setup pnpm (cache miss)
-        if: steps.pnpm-cache.outputs.cache-hit != 'true'
+      - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          dest: ~/.cache/setup-pnpm
           run_install: false
 
       - name: Setup Node.js
@@ -44,5 +36,125 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Run tests
-        run: pnpm test
+      - name: Lint nr-app
+        run: pnpm --filter nr-app lint
+
+      - name: Test nr-app with coverage
+        id: nr-app-tests
+        continue-on-error: true
+        run: pnpm test:app:ci
+
+      - name: Test nr-common
+        run: pnpm test:common
+
+      - name: Upload nr-app coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nr-app-coverage-${{ github.run_id }}
+          path: nr-app/coverage
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Update nr-app pull request test overview
+        if: always() && github.event_name == 'pull_request' && github.workflow == 'Test' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v8
+        env:
+          NR_APP_TEST_OUTCOME: ${{ steps.nr-app-tests.outcome }}
+        with:
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- nr-app-test-overview -->';
+            const e2eStart = '<!-- nr-app-e2e-start -->';
+            const e2eEnd = '<!-- nr-app-e2e-end -->';
+            const { owner, repo } = context.repo;
+            const issue_number = context.issue.number;
+
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner,
+              repo,
+              pull_number: issue_number,
+              per_page: 100,
+            });
+            if (!files.some(file => file.filename.startsWith('nr-app/'))) {
+              core.info('PR does not touch nr-app; skipping test overview.');
+              return;
+            }
+
+            const readJson = path =>
+              fs.existsSync(path) ? JSON.parse(fs.readFileSync(path, 'utf8')) : null;
+            const coverage = readJson('nr-app/coverage/coverage-summary.json')?.total;
+            const tests = readJson('nr-app/coverage/test-results.json');
+            const passed = process.env.NR_APP_TEST_OUTCOME === 'success';
+            const percent = metric =>
+              typeof coverage?.[metric]?.pct === 'number'
+                ? `${coverage[metric].pct.toFixed(2)}%`
+                : 'n/a';
+            const coverageIndicator = metric => {
+              const value = coverage?.[metric]?.pct;
+              if (typeof value !== 'number') return '🔴';
+              return value === 100 ? '🟢' : '🟡';
+            };
+            const result = [
+              `Tests       ${passed ? '🟢' : '🔴'} ${tests ? `${tests.numPassedTests}/${tests.numTotalTests}` : 'n/a'}`,
+              `Statements  ${coverageIndicator('statements')} ${percent('statements')}`,
+              `Branches    ${coverageIndicator('branches')} ${percent('branches')}`,
+              `Functions   ${coverageIndicator('functions')} ${percent('functions')}`,
+              `Lines       ${coverageIndicator('lines')} ${percent('lines')}`,
+            ].join('\n');
+            const recorded = new Date().toISOString().slice(0, 16).replace('T', ' ');
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const e2eSection = [
+              e2eStart,
+              e2eEnd,
+            ].join('\n');
+            let body = [
+              marker,
+              '## nr-app test overview',
+              '',
+              `Status: **${passed ? 'Passing' : 'Needs attention'}**`,
+              '',
+              '<table>',
+              '<thead><tr><th>Suite</th><th>Status</th><th>Recorded</th><th>Result</th><th>Report</th></tr></thead>',
+              '<tbody>',
+              `<tr><td>Jest + RNTL</td><td>${passed ? '✓' : '✗ FAILED'}</td><td>${recorded} UTC</td><td><pre>${result}</pre></td><td><a href="${runUrl}"><code>nr-app-coverage-${context.runId}</code></a></td></tr>`,
+              '</tbody>',
+              '</table>',
+              '',
+              e2eSection,
+              '',
+              `Coverage thresholds: statements 61%, branches 51%, functions 55%, lines 62%. [Workflow run](${runUrl}).`,
+            ].join('\n');
+
+            core.summary.addRaw(body).write();
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100,
+            });
+            const existing = comments.find(comment =>
+              comment.user.type === 'Bot' && comment.body?.includes(marker)
+            );
+            const e2ePattern = new RegExp(`${e2eStart}[\\s\\S]*?${e2eEnd}`);
+            const existingE2E = existing?.body?.match(e2ePattern)?.[0];
+            if (existingE2E) {
+              body = body.replace(e2ePattern, existingE2E);
+              if (existingE2E.includes('✗ FAILED')) {
+                body = body.replace(
+                  /Status: \*\*[^*]+\*\*/,
+                  'Status: **Needs attention**',
+                );
+              }
+            }
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }
+
+      - name: Require nr-app tests
+        if: steps.nr-app-tests.outcome != 'success'
+        run: exit 1

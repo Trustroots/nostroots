@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { AlertTriangleIcon, MailCheckIcon } from "lucide-react-native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import {
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
 import { validateTrustrootsUsername } from "@/utils/trustrootsUsername.utils";
+import { trackEvent } from "@/services/analytics.service";
 
 type TrustrootsScreenState =
   | "idle"
@@ -29,6 +30,29 @@ type TrustrootsScreenState =
   | "profile-publishing";
 
 const AUTHENTICATION_FAILURE_MESSAGE = "failed to authenticate you. try again";
+
+function getInitialStatusMessage({
+  errorParam,
+  pendingProfileUsername,
+  pendingUsername,
+}: {
+  errorParam?: string;
+  pendingProfileUsername: string | null;
+  pendingUsername: string | null;
+}) {
+  if (errorParam === "auth") return AUTHENTICATION_FAILURE_MESSAGE;
+  if (errorParam === "missing-token") {
+    return "Verification link is missing a token. Try again.";
+  }
+  if (errorParam === "start-in-app") {
+    return "Start verification in the app before opening the email link.";
+  }
+  if (pendingProfileUsername) {
+    return "Your Trustroots account was authenticated. Retry the profile publish to finish setup.";
+  }
+  if (pendingUsername) return "Enter the six-digit code from your email.";
+  return null;
+}
 
 function getRequestErrorMessage(error: unknown): string {
   if (error instanceof NrBridgeError) {
@@ -55,44 +79,25 @@ export default function OnboardingTrustrootsScreen() {
     settingsSelectors.selectPendingTrustrootsProfileUsername,
   );
 
-  const [screenState, setScreenState] = useState<TrustrootsScreenState>("idle");
-  const [usernameInput, setUsernameInput] = useState("");
+  const [screenState, setScreenState] = useState<TrustrootsScreenState>(
+    pendingTrustrootsProfileUsername
+      ? "profile-retry"
+      : pendingTrustrootsUsername
+        ? "code-entry"
+        : "idle",
+  );
+  const [usernameInput, setUsernameInput] = useState(
+    pendingTrustrootsProfileUsername ?? pendingTrustrootsUsername ?? "",
+  );
   const [code, setCode] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (errorParam === "auth") {
-      setStatusMessage(AUTHENTICATION_FAILURE_MESSAGE);
-    } else if (errorParam === "missing-token") {
-      setStatusMessage("Verification link is missing a token. Try again.");
-    } else if (errorParam === "start-in-app") {
-      setStatusMessage(
-        "Start verification in the app before opening the email link.",
-      );
-    }
-  }, [errorParam]);
-
-  useEffect(() => {
-    if (pendingTrustrootsProfileUsername) {
-      setUsernameInput(pendingTrustrootsProfileUsername);
-      setScreenState("profile-retry");
-      setStatusMessage(
-        "Your Trustroots account was authenticated. Retry the profile publish to finish setup.",
-      );
-      return;
-    }
-
-    if (pendingTrustrootsUsername && screenState === "idle") {
-      setUsernameInput(pendingTrustrootsUsername);
-      setScreenState("code-entry");
-      setStatusMessage("Enter the six-digit code from your email.");
-    }
-  }, [
-    pendingTrustrootsProfileUsername,
-    pendingTrustrootsUsername,
-    screenState,
-  ]);
+  const [statusMessage, setStatusMessage] = useState<string | null>(() =>
+    getInitialStatusMessage({
+      errorParam,
+      pendingProfileUsername: pendingTrustrootsProfileUsername,
+      pendingUsername: pendingTrustrootsUsername,
+    }),
+  );
 
   const resetToUsernameEntry = useCallback(
     (message?: string) => {
@@ -110,8 +115,16 @@ export default function OnboardingTrustrootsScreen() {
       try {
         setScreenState("profile-publishing");
         await finalizeTrustrootsProfilePublish(username, dispatch);
+        trackEvent("onboarding_profile_publish", {
+          method: "bridge",
+          outcome: "success",
+        });
         router.replace("/onboarding/backup-confirm?from=bridge");
       } catch (error) {
+        trackEvent("onboarding_profile_publish", {
+          method: "bridge",
+          outcome: "failure",
+        });
         console.error("Failed to publish Trustroots profile", error);
         setScreenState("profile-retry");
         setStatusMessage(
@@ -126,6 +139,10 @@ export default function OnboardingTrustrootsScreen() {
     const result = validateTrustrootsUsername(usernameInput);
 
     if (!result.success) {
+      trackEvent("onboarding_verification_code", {
+        action: "request",
+        outcome: "invalid_input",
+      });
       setFieldError(result.error);
       return;
     }
@@ -141,6 +158,10 @@ export default function OnboardingTrustrootsScreen() {
       setCode("");
       setStatusMessage("Check your Trustroots email for a six-digit code.");
       setScreenState("code-entry");
+      trackEvent("onboarding_verification_code", {
+        action: "request",
+        outcome: "success",
+      });
     } catch (error) {
       if (error instanceof NrBridgeError && error.code === "already-pending") {
         dispatch(settingsActions.setPendingTrustrootsUsername(result.username));
@@ -150,15 +171,27 @@ export default function OnboardingTrustrootsScreen() {
           "A verification code is already pending. Check your Trustroots email.",
         );
         setScreenState("code-entry");
+        trackEvent("onboarding_verification_code", {
+          action: "request",
+          outcome: "already_pending",
+        });
         return;
       }
 
       if (error instanceof NrBridgeError && error.code === "not-found") {
         setFieldError("Trustroots username not found.");
         setScreenState("idle");
+        trackEvent("onboarding_verification_code", {
+          action: "request",
+          outcome: "not_found",
+        });
         return;
       }
 
+      trackEvent("onboarding_verification_code", {
+        action: "request",
+        outcome: "failure",
+      });
       setStatusMessage(getRequestErrorMessage(error));
       setScreenState("idle");
     }
@@ -185,7 +218,15 @@ export default function OnboardingTrustrootsScreen() {
     try {
       const { npub } = await ensureOnboardingIdentity(dispatch);
       await authenticateWithCode({ username, npub, code });
+      trackEvent("onboarding_verification_code", {
+        action: "authenticate",
+        outcome: "success",
+      });
     } catch (error) {
+      trackEvent("onboarding_verification_code", {
+        action: "authenticate",
+        outcome: "failure",
+      });
       console.error("Failed to authenticate Trustroots code", error);
       resetToUsernameEntry(AUTHENTICATION_FAILURE_MESSAGE);
       return;
@@ -216,10 +257,12 @@ export default function OnboardingTrustrootsScreen() {
   ]);
 
   const handleSignup = async () => {
+    trackEvent("onboarding_signup_opened");
     await WebBrowser.openBrowserAsync("https://www.trustroots.org/signup");
   };
 
   const goLegacyKeyFlow = () => {
+    trackEvent("onboarding_method_selected", { method: "legacy_key" });
     router.push("/onboarding/key");
   };
 

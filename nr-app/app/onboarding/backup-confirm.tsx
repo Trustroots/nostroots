@@ -17,6 +17,7 @@ import {
 import { useAppSelector } from "@/redux/hooks";
 import { settingsSelectors } from "@/redux/slices/settings.slice";
 import { getBech32PrivateKey } from "nip06";
+import { trackEvent } from "@/services/analytics.service";
 
 async function verifyBackupInput(rawInput: string): Promise<boolean> {
   const input = rawInput.trim();
@@ -153,11 +154,19 @@ export default function OnboardingBackupConfirmScreen() {
     try {
       const ok = await verifyBackupInput(trimmed);
       if (!ok) {
+        trackEvent("onboarding_backup_confirmed", {
+          outcome: "mismatch",
+          source: from === "bridge" ? "bridge" : "legacy_key",
+        });
         setSuccess(false);
         setError(
           "That does not match your saved secret. Double-check and try again.",
         );
       } else {
+        trackEvent("onboarding_backup_confirmed", {
+          outcome: "success",
+          source: from === "bridge" ? "bridge" : "legacy_key",
+        });
         setSuccess(true);
         setError(null);
         setInput("");
@@ -169,12 +178,19 @@ export default function OnboardingBackupConfirmScreen() {
 
   const handleFinish = () => {
     if (!success) return;
+    trackEvent("onboarding_completed", {
+      method: from === "bridge" ? "bridge" : "generated_key",
+    });
     setInput("");
     setError(null);
     router.replace(ROUTES.HOME);
   };
 
   const handleBack = () => {
+    trackEvent("onboarding_backup", {
+      action: "back",
+      source: from === "bridge" ? "bridge" : "legacy_key",
+    });
     setInput("");
     setError(null);
     setSuccess(false);

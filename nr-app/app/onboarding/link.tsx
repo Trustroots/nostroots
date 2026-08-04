@@ -25,6 +25,7 @@ import {
   SquareArrowOutUpRight,
 } from "lucide-react-native";
 import Toast from "react-native-root-toast";
+import { trackEvent } from "@/services/analytics.service";
 
 interface StepCardProps {
   stepNumber: number;
@@ -66,6 +67,7 @@ export default function OnboardingLinkScreen() {
     (publicKeyHex ? nip19.npubEncode(publicKeyHex) : undefined);
 
   const openTrustrootsNetworks = () => {
+    trackEvent("onboarding_trustroots_networks_opened");
     Linking.openURL("https://www.trustroots.org/profile/edit/networks");
   };
 
@@ -85,6 +87,10 @@ export default function OnboardingLinkScreen() {
   const verifyAndLink = useCallback(
     async (usernameOverride?: string) => {
       if (!npub) {
+        trackEvent("onboarding_link", {
+          outcome: "missing_key",
+          method: "nip05",
+        });
         setLinkError(
           "We could not read your Nostr key. Please go back and retry.",
         );
@@ -96,6 +102,10 @@ export default function OnboardingLinkScreen() {
       );
 
       if (!validation.success) {
+        trackEvent("onboarding_link", {
+          outcome: "invalid_input",
+          method: "nip05",
+        });
         setLinkError(validation.error);
         return;
       }
@@ -113,6 +123,10 @@ export default function OnboardingLinkScreen() {
         console.log("[link] NIP-05 profile result:", JSON.stringify(profile));
 
         if (!profile?.pubkey) {
+          trackEvent("onboarding_link", {
+            outcome: "not_found",
+            method: "nip05",
+          });
           console.warn(
             "[link] NIP-05 lookup returned no pubkey for",
             identifier,
@@ -129,6 +143,10 @@ export default function OnboardingLinkScreen() {
         console.log("[link] NIP-05 npub:", nip05Npub, "local npub:", npub);
 
         if (nip05Npub !== npub) {
+          trackEvent("onboarding_link", {
+            outcome: "mismatch",
+            method: "nip05",
+          });
           console.warn("[link] NIP-05 pubkey mismatch", { nip05Npub, npub });
           setLinkStatus("error");
           setLinkError(
@@ -148,7 +166,15 @@ export default function OnboardingLinkScreen() {
 
         dispatch(settingsActions.setUsername(normalizedUsername));
         setLinkStatus("linked");
+        trackEvent("onboarding_link", {
+          outcome: "success",
+          method: "nip05",
+        });
       } catch (error) {
+        trackEvent("onboarding_link", {
+          outcome: "failure",
+          method: "nip05",
+        });
         console.error("[link] verifyAndLink error:", error);
         setLinkStatus("error");
         setLinkError(
@@ -193,8 +219,10 @@ export default function OnboardingLinkScreen() {
 
   const goNext = () => {
     if (keyWasImported) {
+      trackEvent("onboarding_completed", { method: "imported_key" });
       router.replace(ROUTES.HOME);
     } else {
+      trackEvent("onboarding_backup_started", { source: "legacy_key" });
       router.push("/onboarding/backup-confirm");
     }
   };

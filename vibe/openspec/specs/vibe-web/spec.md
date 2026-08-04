@@ -109,7 +109,7 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
   with Android and iOS store links, top-nav Android and iOS store links, hub lead
   copy that mentions getting the mobile app, and the NIP-7 info modal bullet
   recommending mobile app install
-- **AND** additional experimental experiences (Nostrail, Radiostr, Hitchwiki,
+- **AND** additional experimental experiences (Food Circle, Nostrail, Rideshares, Radiostr, Hitchwiki,
   Hitchwiki Maps, and third-party links such as Treasures and Miti) MUST remain hidden
   until the user enables "Show more experimental apps"
 - **AND** the Trustroots Wiki, Nomadwiki, and Trashwiki cards MUST be visible
@@ -270,6 +270,33 @@ paths MAY remain as compatibility redirects to a canonical application.
 - **WHEN** examples are listed or launched
 - **THEN** each example MUST remain optional demo/fork material rather than a
   required current app surface.
+
+#### Scenario: Rideshares hitchhiking example
+
+- **GIVEN** a user opens `/examples/rideshares/`
+- **WHEN** they browse or search journeys
+- **THEN** the page MUST show active kind `30402` hitchhiking requests and lift
+  offers without requiring a signer
+- **AND** it MUST read compatible legacy `rideshare` and `travel-partner` events
+  while treating the latest event for an author and `d` identifier as current
+- **AND** route discovery MUST support broad origin, destination, and departure
+  date matching in list and approximate-area map views
+- **AND** a hitchhiking post MUST let its author look for a driver, a
+  co-hitchhiker, or both, while legacy `travel-partner` posts MUST remain
+  discoverable as co-hitchhiker searches
+- **AND** the page MUST use the shared Nostroots header and shared NIP-07/NIP-05
+  identity-status behavior used by other Vibe Web applications
+- **AND** publishing and cancellation MUST require a NIP-07 browser signer and
+  MUST NOT ask the user to paste an `nsec`
+- **AND** newly published journeys MUST contain only broad public area geohashes,
+  MUST NOT contain precise origin or destination coordinates, and MUST expire
+  after the departure window
+- **AND** verified `*@trustroots.org` NIP-05 identities MUST be distinguished
+  from unverified Nostr identities
+- **AND** traveller rows with a verified Trustroots identity MUST show the full
+  `username@trustroots.org` NIP-05 and link it to
+  `https://www.trustroots.org/profile/<username>`
+- **AND** private contact MUST hand off to a Nostroots Web direct-message route.
 
 #### Scenario: Radiostr social radio example
 

@@ -16,14 +16,14 @@ import { addEvent } from "../slices/events.slice";
 const log = rootLogger.extend("metrics.saga");
 const METRICS_SUBSCRIPTION_ID = "nostroots-metrics";
 
-function isMetricsEvent(action: AnyAction): boolean {
+export function isMetricsEvent(action: AnyAction): boolean {
   return (
     addEvent.match(action) &&
     action.payload.event.kind === NOSTROOTS_METRICS_KIND
   );
 }
 
-function* handleMetricsEventEffect(
+export function* handleMetricsEventEffect(
   action: ReturnType<typeof addEvent>,
 ): Generator<any, void, any> {
   const { event } = action.payload;
@@ -82,7 +82,7 @@ function* metricsEventSaga(): Generator<any, void, any> {
   yield takeEvery(isMetricsEvent, handleMetricsEventEffect);
 }
 
-function* subscribeToMetrics() {
+export function* subscribeToMetrics() {
   yield take(rehydrated);
 
   yield put(

@@ -2,6 +2,16 @@
 
 Pages in this folder are **optional demos** served as static files alongside the main app.
 
+## Rideshares
+
+[`rideshares/`](rideshares/) is a hitchhiker-first journey board for the
+Trustroots community. It browses legacy and current kind `30402` rideshare
+events, publishes through NIP-07 without collecting private keys, uses broad
+public areas instead of exact meeting points, verifies Trustroots NIP-05
+identities, lets hitchhikers seek a driver, a co-hitchhiker, or both, and hands
+private conversations to Nostroots Web. It uses the shared Nostroots header and
+identity-status behavior used by the other Vibe apps.
+
 ## Building your own
 
 Nostroots Web is a two-file bundle: [`web/index.html`](../web/index.html) (markup, all CSS, classic helpers, modals) plus [`web/index.js`](../web/index.js) (single ES module with every Nostroots-authored helper). The previous shared `common.js` / `common.css` / `modals-keys-settings.html` files no longer exist as separate sources.

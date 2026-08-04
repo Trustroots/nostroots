@@ -22,6 +22,7 @@ import Toast from "react-native-root-toast";
 import { Button } from "./ui/button";
 import { Icon } from "./ui/icon";
 import { Text } from "./ui/text";
+import { trackEvent } from "@/services/analytics.service";
 
 interface OptimisticNote {
   id: string;
@@ -124,15 +125,15 @@ export default function AddNoteForm({
     setOptimisticNotes((prev) => [...prev, optimisticNote]);
     onSent?.();
 
-    try {
-      const timeout = setTimeout(() => {
-        setOptimisticNotes((prev) =>
-          prev.map((n) =>
-            n.id === optimisticId ? { ...n, status: "failed" as const } : n,
-          ),
-        );
-      }, 10000);
+    const timeout = setTimeout(() => {
+      setOptimisticNotes((prev) =>
+        prev.map((n) =>
+          n.id === optimisticId ? { ...n, status: "failed" as const } : n,
+        ),
+      );
+    }, 10000);
 
+    try {
       await dispatch(
         publishNotePromiseAction(
           trimmedContent,
@@ -151,7 +152,16 @@ export default function AddNoteForm({
       if (effectiveIntent) {
         onSignalSent?.();
       }
+      trackEvent("note_published", {
+        intent: effectiveIntent ?? "none",
+        outcome: "success",
+      });
     } catch {
+      trackEvent("note_published", {
+        intent: effectiveIntent ?? "none",
+        outcome: "failure",
+      });
+      clearTimeout(timeout);
       // Mark as failed
       setOptimisticNotes((prev) =>
         prev.map((n) =>
@@ -199,7 +209,9 @@ export default function AddNoteForm({
           ),
         );
         setOptimisticNotes((prev) => prev.filter((n) => n.id !== note.id));
+        trackEvent("note_publish_retried", { outcome: "success" });
       } catch {
+        trackEvent("note_publish_retried", { outcome: "failure" });
         setOptimisticNotes((prev) =>
           prev.map((n) =>
             n.id === note.id ? { ...n, status: "failed" as const } : n,
@@ -225,7 +237,11 @@ export default function AddNoteForm({
                 sending...
               </Text>
             ) : (
-              <Pressable onPress={() => handleRetry(note)}>
+              <Pressable
+                accessibilityLabel="Retry publishing note"
+                accessibilityRole="button"
+                onPress={() => handleRetry(note)}
+              >
                 <Text className="text-[11px] text-destructive font-semibold">
                   tap to retry
                 </Text>

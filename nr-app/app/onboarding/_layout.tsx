@@ -15,7 +15,7 @@ const routeStepMap: Record<string, string> = {
   identity: "identity",
   trustroots: "trustroots",
   key: "trustroots",
-  link: "trustroots",
+  link: "backup-confirm",
   "backup-confirm": "backup-confirm",
 };
 

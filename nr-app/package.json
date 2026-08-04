@@ -12,6 +12,7 @@
     "test": "jest --watchman=false",
     "test:ci": "jest --ci --coverage --runInBand --watchman=false --json --outputFile=coverage/test-results.json",
     "test:coverage": "jest --coverage --watchman=false",
+    "test:key-coverage": "jest --config jest.key-coverage.config.js --coverage --runInBand --watchman=false",
     "test:watch": "jest --watch --watchman=false",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

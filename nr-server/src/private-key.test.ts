@@ -45,3 +45,23 @@ Deno.test("private key configuration preserves a configured nsec", () => {
     "expected configured secret bytes",
   );
 });
+
+Deno.test("private key configuration rejects public npub values", () => {
+  const publicKey = nostrTools.getPublicKey(nostrTools.generateSecretKey());
+  const npub = nostrTools.nip19.npubEncode(publicKey);
+
+  let thrown: unknown;
+  try {
+    resolvePrivateKey(npub, false);
+  } catch (error) {
+    thrown = error;
+  }
+  assert(thrown instanceof Error, "expected npub configuration to throw");
+  assert(thrown.message.includes("Invalid nsec"), "expected nsec error");
+});
+
+Deno.test("blank development configuration creates an ephemeral key", () => {
+  const resolved = resolvePrivateKey("   ", true);
+  assert(resolved.generatedForDevelopment, "expected development marker");
+  assert(resolved.key.length === 32, "expected 32-byte secret key");
+});

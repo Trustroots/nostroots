@@ -1,6 +1,6 @@
 # Nostr key generation and recovery audit
 
-Audited against `origin/main` through `6a7b486b` on 2026-08-04. The review covered
+Audited against `origin/main` through `bca7def4` on 2026-08-04. The review covered
 production, development, test, and ephemeral Nostr secret generation; mnemonic
 derivation; import validation; persistence; and accidental secret disclosure.
 
@@ -52,6 +52,11 @@ The mobile app was the exception under Chrome remote debugging: its installed
 `react-native-get-random-values` shim deliberately fell back to `Math.random()`.
 The app now replaces that method with Expo Crypto's native implementation and
 therefore fails closed if secure randomness is unavailable.
+
+Focused coverage is enforced at 100% statements, branches, functions, and
+lines for the mobile CSPRNG bootstrap, key-input parser, and secure keystore.
+The validation server's private-key resolver also reports 100% branch,
+function, and line coverage.
 
 ## High-priority compatibility finding and resolution
 

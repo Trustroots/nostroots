@@ -68,16 +68,11 @@ export async function getHasPrivateKeyHexInSecureStorage(): Promise<boolean> {
 }
 
 export async function getHasPrivateKeyInSecureStorage(): Promise<boolean> {
-  try {
-    const hasMnemonic = await getHasPrivateKeyMnemonicInSecureStorage();
-    if (hasMnemonic) {
-      return true;
-    }
-    const hasHex = await getHasPrivateKeyHexInSecureStorage();
-    return hasHex;
-  } catch {
-    return false;
+  const hasMnemonic = await getHasPrivateKeyMnemonicInSecureStorage();
+  if (hasMnemonic) {
+    return true;
   }
+  return getHasPrivateKeyHexInSecureStorage();
 }
 
 export async function getPublicKeyHexFromSecureStorage(): Promise<

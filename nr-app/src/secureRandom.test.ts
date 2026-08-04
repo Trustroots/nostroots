@@ -27,6 +27,34 @@ describe("secure random bootstrap", () => {
     expect(capturedCrypto.getRandomValues).toBe(secureGetRandomValues);
   });
 
+  it("creates the crypto object when the runtime does not provide one", () => {
+    globalThis.crypto = undefined as unknown as Crypto;
+    const secureGetRandomValues = jest.fn(
+      (array) => array,
+    ) as unknown as Crypto["getRandomValues"];
+
+    installSecureRandom(secureGetRandomValues);
+
+    expect(globalThis.crypto.getRandomValues).toBe(secureGetRandomValues);
+  });
+
+  it("installs Expo's native generator during bootstrap", () => {
+    const nativeGetRandomValues = jest.fn();
+    const install = jest.fn();
+
+    jest.isolateModules(() => {
+      jest.doMock("expo-crypto", () => ({
+        getRandomValues: nativeGetRandomValues,
+      }));
+      jest.doMock("./secureRandom", () => ({ installSecureRandom: install }));
+      require("./secureRandom.bootstrap");
+    });
+
+    expect(install).toHaveBeenCalledWith(nativeGetRandomValues);
+    jest.dontMock("expo-crypto");
+    jest.dontMock("./secureRandom");
+  });
+
   it("requests 128 bits and propagates generator failures without fallback", () => {
     const byteLengths: number[] = [];
     const secureGetRandomValues = jest.fn((array: ArrayBufferView) => {

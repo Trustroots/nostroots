@@ -39,15 +39,12 @@ export function parseKeyInput(input: string): KeyImportResult {
   if (lowerInput.startsWith("nsec")) {
     try {
       const decoded = nip19.decode(lowerInput);
-      if (decoded.type === "nsec") {
-        const privateKeyHex = bytesToHex(decoded.data);
-        return {
-          type: "nsec",
-          privateKeyHex,
-        };
-      } else {
-        throw new Error("Invalid nsec format");
-      }
+      // The checked nsec human-readable prefix determines the decoded type.
+      const privateKeyHex = bytesToHex(decoded.data as Uint8Array);
+      return {
+        type: "nsec",
+        privateKeyHex,
+      };
     } catch (error) {
       throw new Error(
         "That key format does not look right. Check and try again.",

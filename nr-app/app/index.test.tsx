@@ -3,7 +3,7 @@ import { waitFor, screen } from "@testing-library/react-native";
 
 import IndexRoute from "./index";
 import { ROUTES } from "@/constants/routes";
-import { renderWithProviders } from "@/test/test-utils";
+import { flushPromises, renderWithProviders } from "@/test/test-utils";
 
 const mockRedirect = Redirect as jest.Mock;
 
@@ -41,6 +41,25 @@ describe("IndexRoute", () => {
         undefined,
       );
     });
+  });
+
+  it("leaves hasBeenOpenedBefore alone so welcome is not redirected away", async () => {
+    const { store } = renderWithProviders(<IndexRoute />, {
+      preloadedState: {
+        settings: {
+          isDataLoaded: true,
+          hasBeenOpenedBefore: false,
+        },
+      },
+    });
+
+    await flushPromises();
+
+    expect(store.getState().settings.hasBeenOpenedBefore).toBe(false);
+    expect(mockRedirect).not.toHaveBeenCalledWith(
+      { href: ROUTES.ONBOARDING },
+      undefined,
+    );
   });
 
   it("sends returning users without identity to onboarding", async () => {

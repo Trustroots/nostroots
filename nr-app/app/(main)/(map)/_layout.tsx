@@ -47,11 +47,13 @@ export default function MapLayout() {
         className="absolute right-2.5 flex-row gap-2 z-10"
         style={{ top: insets.top + 10 }}
       >
-        {areTestFeaturesEnabled && selectedPlusCode && (
+        {selectedPlusCode && (
           <Pressable
             onPress={() => setShowEventComposer(true)}
             className="w-11 h-11 rounded-full items-center justify-center"
             style={{ backgroundColor: overlayBgColor }}
+            accessibilityLabel="Create event"
+            accessibilityRole="button"
           >
             <Ionicons
               name="calendar-outline"

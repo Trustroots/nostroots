@@ -64,7 +64,7 @@ describe("secure random bootstrap", () => {
     }) as unknown as Crypto["getRandomValues"];
     installSecureRandom(secureGetRandomValues);
 
-    let generateSeedWords!: typeof import("nip06")["generateSeedWords"];
+    let generateSeedWords!: (typeof import("nip06"))["generateSeedWords"];
     jest.isolateModules(() => {
       ({ generateSeedWords } = require("nip06") as typeof import("nip06"));
       expect(generateSeedWords().mnemonic.split(" ")).toHaveLength(12);

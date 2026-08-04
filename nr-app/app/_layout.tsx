@@ -127,9 +127,6 @@ function RootLayout() {
 
   useEffect(() => {
     configureNavigationDispatch(store.dispatch);
-    if (process.env.EXPO_PUBLIC_NO_GOOGLE_SERVICES === "true") {
-      return;
-    }
     const subscription = setupNotificationHandling();
     return () => {
       subscription.remove();

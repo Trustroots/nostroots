@@ -30,10 +30,6 @@ async function ensureNotificationPermission() {
 }
 
 export async function registerForPushNotificationsAsync() {
-  if (process.env.EXPO_PUBLIC_NO_GOOGLE_SERVICES === "true") {
-    return;
-  }
-
   match(Platform.OS).with("android", () => {
     Notifications.setNotificationChannelAsync("default", {
       name: "default",
@@ -69,7 +65,16 @@ export async function registerForPushNotificationsAsync() {
     ).data;
     return pushTokenString;
   } catch (e: unknown) {
-    handleRegistrationError(`${e}`);
+    const message = `${e}`;
+    // Google Play Services missing — device has no FCM support, push silently unavailable
+    if (/google play/i.test(message)) {
+      if (__DEV__)
+        console.log(
+          "#4kWpNx Push notifications unavailable: Google Play Services not found",
+        );
+      return;
+    }
+    handleRegistrationError(message);
   }
 }
 

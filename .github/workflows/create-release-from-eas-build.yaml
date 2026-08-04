@@ -10,7 +10,6 @@ on:
         type: choice
         options:
           - android-preview
-          - android-no-google
   workflow_run:
     workflows: ['Create build in EAS Cloud']
     types: [completed]
@@ -70,8 +69,8 @@ jobs:
           
           # Build profile filter
           FILTER_PROFILE="preview"
-          if [ "${{ steps.profile.outputs.profile }}" == "android-no-google" ]; then
-            FILTER_PROFILE="no-google"
+          if [ "${{ steps.profile.outputs.profile }}" == "android-preview" ]; then
+            FILTER_PROFILE="preview"
           fi
           
           # Get the latest successful build for android
@@ -116,7 +115,7 @@ jobs:
           cd nr-app
           mkdir -p ./builds
 
-          APK_FILENAME="app-${{ steps.profile.outputs.profile }}.apk"
+          APK_FILENAME="app-preview.apk"
           curl -fsSL --retry 3 -o "./builds/$APK_FILENAME" "${{ steps.artifact.outputs.build_url }}"
 
           # Expired artifact links can return HTML/error payloads with .apk extension.
@@ -141,8 +140,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ steps.download.outputs.apk_path }}
-          tag_name: ${{ steps.profile.outputs.profile }}-${{ steps.version.outputs.version }}-${{ github.run_number }}
-          release_name: Nostroots ${{ steps.profile.outputs.profile }} v${{ steps.version.outputs.version }} Build #${{ github.run_number }}
+          tag_name: preview-${{ steps.version.outputs.version }}-${{ github.run_number }}
+          release_name: Nostroots Preview v${{ steps.version.outputs.version }} Build #${{ github.run_number }}
           body: |
             🚀 **Nostroots Preview Release**
             

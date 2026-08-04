@@ -8,17 +8,22 @@ import {
   containsNsec,
   createFoodEventTemplate,
   foodEntryFromEvent,
-} from './food-event.js';
+} from './food-event.js?v=food-circle-20260804-1';
 import {
+  buildFoodEntryCommentTemplate,
   buildFoodChatEventTemplate,
   formatChatTime,
+  isFoodEntryComment,
   isFoodChatEvent,
-} from './food-chat.js';
+} from './food-chat.js?v=food-circle-20260804-1';
 
 const STORAGE_KEY = 'nostroots_food_circle_entries_v1';
 const CHAT_CACHE_KEY = 'nostroots_food_circle_chat_v1';
 const CHAT_LIMIT = 200;
 const FOOD_RELAYS = ['wss://relay.trustroots.org', 'wss://relay.nomadwiki.org'];
+const LOCATION_SEARCH_URL = 'https://nominatim.openstreetmap.org/search';
+const locationSearchCache = new Map();
+let lastLocationSearchAt = 0;
 const TYPE_META = {
   popup: { icon: '🥡', label: 'Food pop-up' },
   fridge: { icon: '🧊', label: 'Community fridge' },
@@ -71,6 +76,10 @@ const state = {
   chatPubkey: '',
   chatUnread: 0,
   chatSubscribedAt: Math.floor(Date.now() / 1000),
+  entryComments: new Map(),
+  entryCommentSeenIds: new Set(),
+  entryCommentSockets: [],
+  activeCommentEventId: '',
 };
 
 const elements = {
@@ -84,14 +93,14 @@ const elements = {
   form: document.getElementById('entry-form'),
   type: document.getElementById('entry-type'),
   cost: document.getElementById('entry-cost'),
-  title: document.getElementById('entry-title'),
   details: document.getElementById('entry-details'),
   expiry: document.getElementById('entry-expiry'),
   diet: document.getElementById('entry-diet'),
   precision: document.getElementById('entry-precision'),
   pin: document.getElementById('show-pin'),
-  plusCode: document.getElementById('plus-code-preview'),
-  precisionPreview: document.getElementById('precision-preview'),
+  locationSearch: document.getElementById('location-search'),
+  locationSearchButton: document.getElementById('search-location'),
+  locationSearchStatus: document.getElementById('location-search-status'),
   pinNote: document.getElementById('pin-note'),
   error: document.getElementById('form-error'),
   toast: document.getElementById('toast'),
@@ -238,17 +247,14 @@ function initializeMap() {
   });
 }
 
-function openCompose(intent = 'offer') {
+function openCompose() {
   elements.form.reset();
   elements.error.textContent = '';
-  elements.form.elements.intent.value = intent;
-  elements.type.disabled = intent === 'request';
-  if (intent === 'request') elements.type.value = 'popup';
-  document.getElementById('compose-title').textContent = intent === 'request' ? 'Ask for food' : 'Share food';
-  elements.title.placeholder = intent === 'request' ? 'Looking for a warm meal tonight' : 'Fresh sandwiches after an event';
-  const center = state.map ? state.map.getCenter() : { lat: 52.515, lng: 13.414 };
-  setDraftLocation(center.lat, center.lng);
+  elements.locationSearchStatus.textContent = '';
+  state.draftLocation = null;
+  updateLocationPreview();
   elements.compose.showModal();
+  requestAnimationFrame(() => elements.details.focus());
 }
 
 function closeCompose() { elements.compose.close(); }
@@ -261,13 +267,9 @@ function setDraftLocation(latitude, longitude, message = '') {
 
 function updateLocationPreview() {
   const precision = Number(elements.precision.value);
-  const location = state.draftLocation;
-  const code = location ? encodePlusCode(location.latitude, location.longitude, precision) : '';
-  elements.plusCode.textContent = code || 'Choose a location';
-  elements.precisionPreview.textContent = plusCodePrecisionLabel(precision);
   elements.pinNote.textContent = elements.pin.checked
-    ? 'The exact pin and its matching Plus Code will both be public.'
-    : `Only the ${plusCodePrecisionLabel(precision).toLowerCase()} will be stored and shown.`;
+    ? 'People will see the exact point on the map. Use this only for a pickup spot you are comfortable making public.'
+    : `People will see only an approximate ${plusCodePrecisionLabel(precision).toLowerCase()} area.`;
 }
 
 function locate(onSuccess) {
@@ -283,20 +285,77 @@ function locate(onSuccess) {
   );
 }
 
+async function searchLocation() {
+  const query = elements.locationSearch.value.trim();
+  if (!query) {
+    elements.locationSearchStatus.textContent = 'Enter a street, neighborhood, or city.';
+    elements.locationSearch.focus();
+    return;
+  }
+
+  elements.locationSearchButton.disabled = true;
+  elements.locationSearchButton.textContent = 'Searching…';
+  elements.locationSearchStatus.textContent = 'Looking for that place…';
+  try {
+    const cacheKey = query.toLocaleLowerCase();
+    let match = locationSearchCache.get(cacheKey);
+    if (match === undefined) {
+      const waitMs = Math.max(0, 1000 - (Date.now() - lastLocationSearchAt));
+      if (waitMs) await new Promise((resolve) => setTimeout(resolve, waitMs));
+      lastLocationSearchAt = Date.now();
+      const searchUrl = new URL(LOCATION_SEARCH_URL);
+      searchUrl.searchParams.set('q', query);
+      searchUrl.searchParams.set('format', 'jsonv2');
+      searchUrl.searchParams.set('limit', '1');
+      searchUrl.searchParams.set('addressdetails', '0');
+      searchUrl.searchParams.set('accept-language', navigator.language || 'en');
+      const response = await fetch(searchUrl, { headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error('Location search failed');
+      const results = await response.json();
+      match = Array.isArray(results) ? results[0] || null : null;
+      locationSearchCache.set(cacheKey, match);
+    }
+
+    const latitude = Number(match?.lat);
+    const longitude = Number(match?.lon);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+      elements.locationSearchStatus.textContent = 'No matching place found. Try adding a city or country.';
+      return;
+    }
+    const label = String(match.display_name || query);
+    elements.locationSearchStatus.textContent = `Using ${label}`;
+    setDraftLocation(latitude, longitude);
+    state.map?.setView([latitude, longitude], 15);
+  } catch (_) {
+    elements.locationSearchStatus.textContent = 'Address search is unavailable. Try your location or the map center.';
+  } finally {
+    elements.locationSearchButton.disabled = false;
+    elements.locationSearchButton.textContent = 'Use address';
+  }
+}
+
+function splitEntryDetails(value) {
+  const content = String(value || '').trim();
+  const firstLine = content.split(/\r?\n/, 1)[0].trim();
+  const title = (firstLine || content).slice(0, 72).trim();
+  return { title, details: content.slice(title.length).trim() };
+}
+
 function submitEntry(event) {
   event.preventDefault();
   elements.error.textContent = '';
-  const intent = elements.form.elements.intent.value;
+  const intent = 'offer';
   const location = state.draftLocation;
   const precision = Number(elements.precision.value);
   const plusCode = location ? encodePlusCode(location.latitude, location.longitude, precision) : '';
+  const content = splitEntryDetails(elements.details.value);
 
-  if (!elements.title.value.trim()) {
-    elements.error.textContent = 'Add a short title so people know what this is.';
-    elements.title.focus();
+  if (!content.title) {
+    elements.error.textContent = 'Add details so people know what is available.';
+    elements.details.focus();
     return;
   }
-  if (containsNsec(`${elements.title.value} ${elements.details.value}`)) {
+  if (containsNsec(elements.details.value)) {
     elements.error.textContent = 'Remove the nsec private key from this post. Private keys must never be shared.';
     return;
   }
@@ -313,10 +372,10 @@ function submitEntry(event) {
   const entry = {
     id: `local-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     intent,
-    type: intent === 'request' ? 'request' : elements.type.value,
-    title: elements.title.value.trim(),
-    details: elements.details.value.trim(),
-    cost: intent === 'request' ? 'free' : elements.cost.value,
+    type: elements.type.value,
+    title: content.title,
+    details: content.details,
+    cost: elements.cost.value,
     diet: elements.diet.value,
     plusCode,
     precision,
@@ -334,7 +393,7 @@ function submitEntry(event) {
   render();
   const position = entryPosition(entry);
   if (state.map && position) state.map.setView([position.lat, position.lng], entry.pin ? 16 : precision === 6 ? 9 : 13);
-  showToast(intent === 'request' ? 'Your request is on the map.' : 'Food shared with the circle.');
+  showToast('Food shared with the circle.');
   track('nr_food_entry_added', { type: entry.type, precision, exact_pin: Boolean(entry.pin) });
   void publishEntryWhenPossible(entry);
 }
@@ -346,6 +405,7 @@ async function publishEntryWhenPossible(entry) {
     const signedEvent = await signer.signEvent(entry.eventTemplate || createFoodEventTemplate(entry));
     if (!signedEvent?.id || !signedEvent?.sig) throw new Error('Signer returned an incomplete event');
     entry.eventId = signedEvent.id;
+    entry.pubkey = signedEvent.pubkey || '';
     entry.published = true;
     writeEntries();
     const results = await Promise.allSettled(FOOD_RELAYS.map((relayUrl) => publishEventToRelay(relayUrl, signedEvent)));
@@ -475,6 +535,140 @@ function chatAuthorName(pubkey) {
   return profile?.label || (pubkey ? `${pubkey.slice(0, 8)}…` : 'Unknown');
 }
 
+function closeEntryCommentSubscription() {
+  for (const socket of state.entryCommentSockets) {
+    try { socket.close(); } catch (_) {}
+  }
+  state.entryCommentSockets = [];
+  state.activeCommentEventId = '';
+}
+
+function subscribeToEntryComments(entry) {
+  closeEntryCommentSubscription();
+  renderEntryComments(entry);
+  if (!entry.eventId || typeof WebSocket === 'undefined') return;
+  state.activeCommentEventId = entry.eventId;
+  FOOD_RELAYS.forEach((relayUrl, relayIndex) => {
+    try {
+      const socket = new WebSocket(relayUrl);
+      const subscriptionId = `food-entry-chat-${relayIndex}-${Math.random().toString(36).slice(2, 8)}`;
+      state.entryCommentSockets.push(socket);
+      socket.addEventListener('open', () => socket.send(JSON.stringify(['REQ', subscriptionId, {
+        kinds: [1111], '#E': [entry.eventId], limit: 100,
+      }])));
+      socket.addEventListener('message', ({ data }) => {
+        try {
+          const message = JSON.parse(data);
+          if (message[0] === 'EVENT' && message[1] === subscriptionId) ingestEntryComment(message[2], entry.eventId);
+        } catch (_) {}
+      });
+    } catch (_) {}
+  });
+}
+
+function ingestEntryComment(event, rootEventId) {
+  if (!isFoodEntryComment(event, rootEventId) || !event.id || state.entryCommentSeenIds.has(event.id)) return;
+  state.entryCommentSeenIds.add(event.id);
+  const comments = state.entryComments.get(rootEventId) || [];
+  comments.push(event);
+  comments.sort((a, b) => Number(a.created_at || 0) - Number(b.created_at || 0));
+  state.entryComments.set(rootEventId, comments.slice(-100));
+  void fetchChatProfile(event.pubkey);
+  const entry = state.entries.find((candidate) => candidate.eventId === rootEventId);
+  if (entry && state.activeCommentEventId === rootEventId) renderEntryComments(entry);
+}
+
+function renderEntryComments(entry) {
+  const container = elements.detailContent.querySelector('[data-entry-chat-messages]');
+  const form = elements.detailContent.querySelector('[data-entry-chat-form]');
+  const input = elements.detailContent.querySelector('[data-entry-chat-input]');
+  const status = elements.detailContent.querySelector('[data-entry-chat-status]');
+  if (!container || !form || !input || !status) return;
+  container.replaceChildren();
+  if (!entry.eventId) {
+    const empty = document.createElement('p');
+    empty.className = 'chat-empty';
+    empty.textContent = entry.sample
+      ? 'This example listing is not published, so it has no conversation.'
+      : 'This listing must reach a Nostr relay before its conversation can start.';
+    container.append(empty);
+    input.disabled = true;
+    form.querySelector('button').disabled = true;
+    status.textContent = 'Published listings have their own public conversation.';
+    return;
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const comments = (state.entryComments.get(entry.eventId) || []).filter((comment) => {
+    const expiration = Number((comment.tags || []).find((tag) => tag[0] === 'expiration')?.[1] || 0);
+    return !expiration || expiration > nowSeconds;
+  });
+  if (!comments.length) {
+    const empty = document.createElement('p');
+    empty.className = 'chat-empty';
+    empty.textContent = 'No messages yet. Ask about this listing.';
+    container.append(empty);
+  } else {
+    for (const comment of comments) {
+      const row = document.createElement('article');
+      row.className = `chat-message${comment.pubkey && comment.pubkey === state.chatPubkey ? ' own' : ''}`;
+      const meta = document.createElement('div');
+      meta.className = 'chat-message-meta';
+      const author = document.createElement('strong');
+      author.textContent = chatAuthorName(comment.pubkey);
+      const time = document.createElement('span');
+      time.textContent = formatChatTime(comment.created_at);
+      const body = document.createElement('div');
+      body.className = 'chat-message-body';
+      body.textContent = String(comment.content || '');
+      meta.append(author, time);
+      row.append(meta, body);
+      container.append(row);
+    }
+    container.scrollTop = container.scrollHeight;
+  }
+  const available = Boolean(window.nostr && typeof window.nostr.signEvent === 'function');
+  input.disabled = !available;
+  form.querySelector('button').disabled = !available;
+  status.textContent = available
+    ? 'Messages are public and expire after 30 days.'
+    : 'Connect a Nostr signer to join. You can still read.';
+}
+
+async function sendEntryComment(entry) {
+  const form = elements.detailContent.querySelector('[data-entry-chat-form]');
+  const input = elements.detailContent.querySelector('[data-entry-chat-input]');
+  const status = elements.detailContent.querySelector('[data-entry-chat-status]');
+  const content = input?.value.trim() || '';
+  if (!form || !input || !status || !content) return;
+  const signer = window.nostr;
+  if (!signer || typeof signer.signEvent !== 'function') {
+    status.textContent = 'Connect a Nostr signer before sending.';
+    return;
+  }
+  const sendButton = form.querySelector('button');
+  sendButton.disabled = true;
+  status.textContent = 'Waiting for your signer…';
+  try {
+    const template = buildFoodEntryCommentTemplate(content, entry, FOOD_RELAYS[0]);
+    const signed = await signer.signEvent(template);
+    if (!signed?.id || !signed?.sig) throw new Error('The signer returned an incomplete message.');
+    const results = await Promise.allSettled(FOOD_RELAYS.map((relayUrl) => publishEventToRelay(relayUrl, signed)));
+    const accepted = results.filter((result) => result.status === 'fulfilled').length;
+    if (!accepted) throw new Error('No relay accepted the message.');
+    state.chatPubkey = signed.pubkey || state.chatPubkey;
+    ingestEntryComment(signed, entry.eventId);
+    input.value = '';
+    status.textContent = `Sent through ${accepted} ${accepted === 1 ? 'relay' : 'relays'}.`;
+    track('nr_food_entry_comment_sent', { relay_count: accepted });
+  } catch (error) {
+    status.textContent = error?.message || 'Message was not sent.';
+  } finally {
+    sendButton.disabled = !(window.nostr && typeof window.nostr.signEvent === 'function');
+    input.focus();
+  }
+}
+
 function ingestChatEvent(event) {
   if (!isFoodChatEvent(event) || !event.id || state.chatSeenIds.has(event.id)) return;
   state.chatSeenIds.add(event.id);
@@ -569,6 +763,8 @@ async function fetchChatProfile(pubkey) {
   state.chatProfiles.set(pubkey, { label: label || `${pubkey.slice(0, 8)}…` });
   state.chatProfileFetches.delete(pubkey);
   renderChat();
+  const activeEntry = state.entries.find((entry) => entry.eventId === state.activeCommentEventId);
+  if (activeEntry) renderEntryComments(activeEntry);
 }
 
 function queryRelayOnce(relayUrl, filter, subscriptionId) {
@@ -649,8 +845,6 @@ function openDetail(id) {
       <ul class="detail-facts">
         <li><span>Type</span><strong>${meta.label}</strong></li>
         <li><span>Cost</span><strong>${costText(entry.cost)}</strong></li>
-        <li><span>Location</span><strong>${entry.plusCode}</strong></li>
-        <li><span>Visible as</span><strong>${precisionText(entry)}</strong></li>
         <li><span>Status</span><strong>${timeText(entry)}</strong></li>
       </ul>
       <div class="detail-actions">
@@ -658,6 +852,16 @@ function openDetail(id) {
         <button class="secondary-button" type="button" data-map>Show on map</button>
         ${entry.sample ? '' : '<button class="secondary-button" type="button" data-remove>Remove</button>'}
       </div>
+      <section class="entry-chat" aria-label="Listing conversation">
+        <h3>Conversation</h3>
+        <div class="chat-messages" data-entry-chat-messages aria-live="polite"></div>
+        <form class="chat-form" data-entry-chat-form>
+          <label class="sr-only" for="entry-chat-input">Message about this listing</label>
+          <textarea id="entry-chat-input" data-entry-chat-input rows="1" maxlength="1000" placeholder="Ask about this listing"></textarea>
+          <button type="submit" aria-label="Send message">Send</button>
+        </form>
+        <p class="chat-status" data-entry-chat-status></p>
+      </section>
     </div>`;
   elements.detailContent.querySelector('h2').textContent = entry.title;
   elements.detailContent.querySelector('.detail-description').textContent = entry.details || 'No extra details were added.';
@@ -665,7 +869,20 @@ function openDetail(id) {
   elements.detailContent.querySelector('[data-confirm]').addEventListener('click', () => confirmEntry(entry));
   elements.detailContent.querySelector('[data-map]').addEventListener('click', () => focusEntry(entry));
   elements.detailContent.querySelector('[data-remove]')?.addEventListener('click', () => removeEntry(entry));
+  const commentForm = elements.detailContent.querySelector('[data-entry-chat-form]');
+  const commentInput = elements.detailContent.querySelector('[data-entry-chat-input]');
+  commentForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+    void sendEntryComment(entry);
+  });
+  commentInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      commentForm.requestSubmit();
+    }
+  });
   elements.detail.showModal();
+  subscribeToEntryComments(entry);
 }
 
 function confirmEntry(entry) {
@@ -728,17 +945,8 @@ document.querySelectorAll('[data-filter]').forEach((button) => button.addEventLi
   render();
 }));
 elements.freeOnly.addEventListener('change', () => { state.freeOnly = elements.freeOnly.checked; render(); });
-document.getElementById('find-food').addEventListener('click', () => {
-  state.filter = 'all'; state.freeOnly = true; elements.freeOnly.checked = true; syncFilterButtons(); render();
-  document.querySelector('.results').scrollIntoView({ behavior: 'smooth' });
-});
-document.getElementById('share-food').addEventListener('click', () => openCompose('offer'));
+document.getElementById('share-food').addEventListener('click', openCompose);
 document.querySelectorAll('[data-close-compose]').forEach((button) => button.addEventListener('click', closeCompose));
-document.querySelectorAll('input[name="intent"]').forEach((input) => input.addEventListener('change', () => {
-  const isRequest = elements.form.elements.intent.value === 'request';
-  elements.type.disabled = isRequest;
-  document.getElementById('compose-title').textContent = isRequest ? 'Ask for food' : 'Share food';
-}));
 elements.precision.addEventListener('change', updateLocationPreview);
 elements.pin.addEventListener('change', updateLocationPreview);
 elements.form.addEventListener('submit', submitEntry);
@@ -746,6 +954,12 @@ document.getElementById('use-current-location').addEventListener('click', () => 
   setDraftLocation(lat, lng, 'Using your current location');
   state.map?.setView([lat, lng], 15);
 }));
+elements.locationSearchButton.addEventListener('click', () => void searchLocation());
+elements.locationSearch.addEventListener('keydown', (event) => {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  void searchLocation();
+});
 document.getElementById('use-map-center').addEventListener('click', () => {
   const center = state.map?.getCenter() || { lat: 52.515, lng: 13.414 };
   setDraftLocation(center.lat, center.lng, 'Using the center of the map');
@@ -757,6 +971,7 @@ document.getElementById('locate-me').addEventListener('click', () => locate((lat
 document.getElementById('open-list').addEventListener('click', () => elements.sidebar.classList.toggle('list-hidden'));
 elements.compose.addEventListener('click', (event) => { if (event.target === elements.compose) closeCompose(); });
 elements.detail.addEventListener('click', (event) => { if (event.target === elements.detail) elements.detail.close(); });
+elements.detail.addEventListener('close', closeEntryCommentSubscription);
 
 initializeMap();
 render();

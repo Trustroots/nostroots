@@ -7,7 +7,13 @@ import {
   foodEntryFromEvent,
 } from '../../food/food-event.js';
 import { decodePlusCodeArea, encodePlusCode, isPinInsidePlusCode } from '../../food/plus-code.js';
-import { buildFoodChatEventTemplate, formatChatTime, isFoodChatEvent } from '../../food/food-chat.js';
+import {
+  buildFoodChatEventTemplate,
+  buildFoodEntryCommentTemplate,
+  formatChatTime,
+  isFoodChatEvent,
+  isFoodEntryComment,
+} from '../../food/food-chat.js';
 
 describe('Food Circle location and event helpers', () => {
   it('encodes different public Plus Code granularities and validates the source pin', () => {
@@ -93,5 +99,22 @@ describe('Food Circle location and event helpers', () => {
       title: 'Soup', type: 'popup', intent: 'offer', cost: 'free', plusCode: '9F4MGCG4+', precision: 8,
     }))).toBe(false);
     expect(formatChatTime(1_899_999_880, 1_900_000_000_000)).toBe('2m');
+  });
+
+  it('creates NIP-22 comments scoped to a published food listing', () => {
+    const eventId = 'd'.repeat(64);
+    const pubkey = 'e'.repeat(64);
+    const comment = buildFoodEntryCommentTemplate(
+      'Is there any left?',
+      { eventId, pubkey },
+      'wss://relay.trustroots.org',
+      1_900_000_000_000,
+    );
+    expect(comment.kind).toBe(1111);
+    expect(comment.tags).toContainEqual(['E', eventId, 'wss://relay.trustroots.org', pubkey]);
+    expect(comment.tags).toContainEqual(['K', '30397']);
+    expect(comment.tags).toContainEqual(['e', eventId, 'wss://relay.trustroots.org', pubkey]);
+    expect(isFoodEntryComment(comment, eventId)).toBe(true);
+    expect(isFoodEntryComment(comment, 'f'.repeat(64))).toBe(false);
   });
 });

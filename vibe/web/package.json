@@ -26,6 +26,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
+    "@scure/bip32": "2.0.1",
     "@vitest/ui": "^3.2.6",
     "bip39": "^3.1.0",
     "dompurify": "^3.4.12",

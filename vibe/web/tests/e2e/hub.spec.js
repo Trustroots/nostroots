@@ -172,6 +172,8 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('.location .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Open Radiostr/ })).toHaveAttribute('href', 'examples/radiostr/');
+    await expect(page.getByRole('link', { name: /Open Food Circle/ })).toHaveAttribute('href', 'food/');
+    await expect(page.locator('.food-circle .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open Rideshares/ })).toHaveAttribute('href', 'examples/rideshares/');
     await expect(page.locator('.rideshares .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open Trustroots Wiki/ })).toHaveAttribute('href', 'https://wiki.trustroots.org/');

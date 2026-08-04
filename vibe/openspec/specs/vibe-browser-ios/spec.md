@@ -72,6 +72,19 @@ Nostroots web experience.
 The iOS browser app MUST store its own imported or generated key in this app's
 private Keychain storage for v1.
 
+#### Scenario: Valid private-key scalar
+
+- **GIVEN** the app generates or imports a 32-byte private key
+- **WHEN** it accepts the key for storage or NIP-19 encoding
+- **THEN** the value MUST be a valid secp256k1 scalar greater than zero and
+  lower than the curve order.
+
+#### Scenario: Recovery phrase derivation
+
+- **GIVEN** the user imports a valid BIP-39 recovery phrase
+- **WHEN** the app derives the private key
+- **THEN** it MUST use the NIP-06 path `m/44'/1237'/0'/0/0`.
+
 #### Scenario: Separate keychain item
 
 - **GIVEN** `nr-app` already has a key in its private keychain storage

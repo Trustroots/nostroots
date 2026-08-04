@@ -57,6 +57,9 @@
 		5EF74D70F854843A65A164E1 /* DeviceLocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F65FA3B4F4BF919648B8D8F9 /* DeviceLocationProvider.swift */; };
 		5F667DF547920F6027F056A5 /* KeyStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF723185591789DF97164856 /* KeyStore.swift */; };
 		5FB7C8904F0DB94E7BB693B1 /* NostrSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 5C87CFA8B2349178826BCF31 /* NostrSDK */; };
+		B10000000000000000000004 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = B10000000000000000000001 /* secp256k1 */; };
+		B10000000000000000000005 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = B10000000000000000000002 /* secp256k1 */; };
+		B10000000000000000000006 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = B10000000000000000000003 /* secp256k1 */; };
 		60EB7BF3A72FDF16F4C6F430 /* InMemoryRelayClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 121D5220EBA96374112BF5A4 /* InMemoryRelayClient.swift */; };
 		61BB933AA317E793ABE9E06B /* DeviceLocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F65FA3B4F4BF919648B8D8F9 /* DeviceLocationProvider.swift */; };
 		630116E12305DB79A9DB00A9 /* RelayPoolClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A90EB85D36A53B4B928C28F2 /* RelayPoolClient.swift */; };
@@ -244,6 +247,7 @@
 			files = (
 				988C9F5E942CB09C73DE08F7 /* Foundation.framework in Frameworks */,
 				A439766BB506701012B01D55 /* NostrSDK in Frameworks */,
+				B10000000000000000000004 /* secp256k1 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -253,6 +257,7 @@
 			files = (
 				B7D689256F37E8BD52FE56D4 /* Foundation.framework in Frameworks */,
 				B51F3B83CFD53FBDD9432627 /* NostrSDK in Frameworks */,
+				B10000000000000000000005 /* secp256k1 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -262,6 +267,7 @@
 			files = (
 				3C4C4F33480C0DCD99755DDE /* Foundation.framework in Frameworks */,
 				5FB7C8904F0DB94E7BB693B1 /* NostrSDK in Frameworks */,
+				B10000000000000000000006 /* secp256k1 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -408,6 +414,7 @@
 			name = Nostrail;
 			packageProductDependencies = (
 				BECD0D1745935C506B8C23CB /* NostrSDK */,
+				B10000000000000000000001 /* secp256k1 */,
 			);
 			productName = Nostrail;
 			productReference = A8335403E547F7D8908BB51A /* Nostrail.app */;
@@ -430,6 +437,7 @@
 			name = NostrootsNativeTests;
 			packageProductDependencies = (
 				142BC32A1E90A0D3BA04BE0A /* NostrSDK */,
+				B10000000000000000000002 /* secp256k1 */,
 			);
 			productName = NostrootsNativeTests;
 			productReference = 8A07541BA38C2CD9876D2E9B /* NostrootsNativeTests.xctest */;
@@ -450,6 +458,7 @@
 			name = Swiftroots;
 			packageProductDependencies = (
 				5C87CFA8B2349178826BCF31 /* NostrSDK */,
+				B10000000000000000000003 /* secp256k1 */,
 			);
 			productName = Swiftroots;
 			productReference = CC46DE8F13AB575C29FD8238 /* Swiftroots.app */;
@@ -476,6 +485,7 @@
 			minimizedProjectReferenceProxies = 0;
 			packageReferences = (
 				D70F1B1949DB3923979B639C /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */,
+				B10000000000000000000000 /* XCRemoteSwiftPackageReference "secp256k1.swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7679FA905F9A8C68D0248441 /* Products */;
@@ -979,6 +989,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		B10000000000000000000000 /* XCRemoteSwiftPackageReference "secp256k1.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/GigaBitcoin/secp256k1.swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.12.2;
+			};
+		};
 		D70F1B1949DB3923979B639C /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/nostr-sdk/nostr-sdk-ios.git";
@@ -990,6 +1008,21 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		B10000000000000000000001 /* secp256k1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B10000000000000000000000 /* XCRemoteSwiftPackageReference "secp256k1.swift" */;
+			productName = secp256k1;
+		};
+		B10000000000000000000002 /* secp256k1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B10000000000000000000000 /* XCRemoteSwiftPackageReference "secp256k1.swift" */;
+			productName = secp256k1;
+		};
+		B10000000000000000000003 /* secp256k1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = B10000000000000000000000 /* XCRemoteSwiftPackageReference "secp256k1.swift" */;
+			productName = secp256k1;
+		};
 		142BC32A1E90A0D3BA04BE0A /* NostrSDK */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = D70F1B1949DB3923979B639C /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */;

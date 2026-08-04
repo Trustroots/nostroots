@@ -9,6 +9,7 @@ The root page is a small hub. It links to classic Trustroots network settings, N
 ## Experiences
 
 - [`/background/`](background/) — background, vision, and FAQ for Nostroots and the Trustroots/Nostr direction.
+- [`/test/`](test/) — mobile-friendly manual test for opening the installed app with `nostroots://` links.
 - [`https://www.trustroots.org/profile/edit/networks`](https://www.trustroots.org/profile/edit/networks) — classic Trustroots network editing.
 - [`/web/`](web/) — Nostroots Web, the canonical map/chat/profile app for Trustroots-style activity with light Nostr key support.
 - [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots Browser.
@@ -100,21 +101,20 @@ make test-e2e      # E2E tests only (all projects)
 make test-e2e-fast # E2E Chromium only
 ```
 
-**NIP-42 (`wss://nip42.trustroots.org`):** Automated tests mostly use public relays. For AUTH challenge/response behavior, use the manual client in [`test.html`](test.html). NIP-42 read/publish paths are not fully covered in CI.
+**NIP-42 (`wss://nip42.trustroots.org`):** Automated tests mostly use public relays. NIP-42 read/publish paths are not fully covered in CI.
 
 ### Manual image verification (imported Trustroots data)
 
 When validating importer output and route rendering together:
 
-1. Open [`test.html`](test.html) and run **Image tests** for expected Trustroots URLs.
-2. Open profile route:
+1. Open the profile route:
    - `#profile/nostroots%40trustroots.org`
    - confirm the avatar is loaded from `uploads-profile` (or expected fallback).
-3. Open circle route:
+2. Open the circle route:
    - `#hitchhikers`
    - confirm circle metadata image (from importer `30410` `content.picture`) is visible where circle image chrome is shown (chat/sidebar/thread header).
 
-If image tests pass in `test.html` but a route does not show the image, check importer event shape first (`30390`/`30410`) and then the client metadata wiring inside `web/index.js` — the chat, profile, and circle-metadata code is all folded into that single module.
+If a route does not show the expected image, check importer event shape first (`30390`/`30410`) and then the client metadata wiring inside `web/index.js` — the chat, profile, and circle-metadata code is all folded into that single module.
 
 ### Real Apple iOS Simulator (Xcode) automation
 

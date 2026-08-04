@@ -123,8 +123,7 @@ After import, verify route-level behavior in `nr-web`:
    - `30410` should include circle `picture` for circles with images
    - `30398` should include `trustroots-circle` + `t` tags for the same slugs
 3. Import JSONL into your local strfry / nip42 setup.
-4. Open `vibe/web/test.html` and run **Image tests** for known profile/circle URLs.
-5. Open `vibe/web/index.html` and verify:
+4. Open `vibe/web/index.html` and verify:
    - `#profile/nostroots%40trustroots.org` shows expected profile avatar
    - `#hitchhikers` surfaces the circle image in chat/circle UI when metadata is present
 - `30392` relationship suggestion:

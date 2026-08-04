@@ -88,11 +88,6 @@
           <h1>Find food. Share what’s left.</h1>
           <p>See free food, community fridges, friendly restaurants, and dumpster-diving spots around you.</p>
           <div class="primary-actions">
-            <button id="find-food" class="action-card find" type="button">
-              <span aria-hidden="true">◎</span>
-              <strong>Looking for free food</strong>
-              <small>Show what is available now</small>
-            </button>
             <button id="share-food" class="action-card share" type="button">
               <span aria-hidden="true">＋</span>
               <strong>Know or have free food</strong>
@@ -171,14 +166,6 @@
       </div>
 
       <div class="form-grid">
-        <fieldset class="segmented-field full">
-          <legend>What do you want to do?</legend>
-          <div class="segmented">
-            <label><input type="radio" name="intent" value="offer" checked><span>I know or have food</span></label>
-            <label><input type="radio" name="intent" value="request"><span>I’m looking for food</span></label>
-          </div>
-        </fieldset>
-
         <label>Type
           <select id="entry-type" name="type">
             <option value="popup">Food available now</option>
@@ -194,11 +181,8 @@
             <option value="discounted">Discounted</option>
           </select>
         </label>
-        <label class="full">Short title
-          <input id="entry-title" name="title" maxlength="72" placeholder="Fresh sandwiches after an event" required>
-        </label>
         <label class="full">Details
-          <textarea id="entry-details" name="details" rows="3" maxlength="400" placeholder="What is available, how much, and any pickup instructions?"></textarea>
+          <textarea id="entry-details" name="details" rows="4" maxlength="400" placeholder="Fresh sandwiches after an event. What is available, how much, and any pickup instructions?" required autofocus></textarea>
         </label>
         <label>Available for
           <select id="entry-expiry" name="expiry">
@@ -221,24 +205,31 @@
 
         <fieldset class="location-field full">
           <legend>Location</legend>
-          <p class="helper">Use your location or the current map center. To choose another area, close this form, move the map, and reopen it.</p>
-          <div class="location-actions">
-            <button id="use-current-location" class="secondary-button" type="button">⌖ Use my location</button>
-            <button id="use-map-center" class="secondary-button" type="button">＋ Use map center</button>
+          <div class="location-methods">
+            <button id="use-current-location" class="location-method" type="button">
+              <span aria-hidden="true">⌖</span>
+              <strong>Use my location</strong>
+            </button>
+            <div class="address-method">
+              <label for="location-search">Enter an address or area</label>
+              <div class="address-search-row">
+                <input id="location-search" type="search" autocomplete="street-address" placeholder="Street, block, neighborhood, or city">
+                <button id="search-location" class="secondary-button" type="button">Use address</button>
+              </div>
+              <small id="location-search-status" role="status" aria-live="polite"></small>
+            </div>
           </div>
-          <div class="location-preview">
-            <span><small>Public Plus Code</small><strong id="plus-code-preview">Choose a location</strong></span>
-            <span><small>Visible as</small><strong id="precision-preview">Neighborhood</strong></span>
-          </div>
-          <label>Location detail
+          <p class="location-search-note">Address search is provided by <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> and is not saved with the post.</p>
+          <button id="use-map-center" class="map-center-button" type="button">Use the current map center instead</button>
+          <label class="precision-field">Approximate area size
             <select id="entry-precision" name="precision">
               <option value="6">Broad area</option>
               <option value="8" selected>Neighborhood</option>
               <option value="10">Precise area</option>
             </select>
           </label>
-          <label class="pin-toggle"><input id="show-pin" type="checkbox"> Also publish the exact pin</label>
-          <p id="pin-note" class="helper">Only the neighborhood area will be stored and shown.</p>
+          <label class="pin-toggle"><input id="show-pin" type="checkbox"> Share the exact pickup spot</label>
+          <p id="pin-note" class="helper">People will see only an approximate neighborhood area.</p>
         </fieldset>
       </div>
 
@@ -257,7 +248,7 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script type="module" src="./app.js"></script>
+  <script type="module" src="./app.js?v=food-circle-20260804-1"></script>
   <script src="../site-chrome-identity.js"></script>
 </body>
 </html>

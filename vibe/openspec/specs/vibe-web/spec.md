@@ -58,6 +58,17 @@ step for the main pages.
 - **THEN** it MUST redirect to the matching `/web/` URL while preserving query
   parameters and hash routes.
 
+#### Scenario: Native app custom-scheme test page
+
+- **GIVEN** a user opens `/test/` on a phone with the Nostroots app installed
+- **WHEN** they activate the primary test action
+- **THEN** the page MUST navigate to `nostroots://` so the operating system can
+  open the installed app
+- **AND** it MUST offer a separate `nostroots://welcome` action for testing a
+  known Expo Router screen
+- **AND** it MUST explain that custom-scheme links do not install the app or
+  provide an automatic website fallback.
+
 ### Requirement: Single canonical browser map surface
 
 Vibe Web MUST provide `/web/` as the only maintained Nostroots browser
@@ -228,6 +239,20 @@ Nostroots Web MUST use hash routing for current static-host compatibility.
 
 Nostroots Web MUST support local keys, NIP-07 browser signing, relay settings,
 NIP-42 authenticated relay reads/writes, and leak guards for secret key text.
+
+#### Scenario: Native-app private-key scalar
+
+- **GIVEN** the native iOS companion generates or imports a 32-byte private key
+- **WHEN** it accepts the key for use or NIP-19 encoding
+- **THEN** the value MUST be a valid secp256k1 scalar greater than zero and
+  lower than the curve order.
+
+#### Scenario: Recovery phrase derivation
+
+- **GIVEN** a user imports a valid BIP-39 recovery phrase in Nostroots Web or
+  its native iOS companion
+- **WHEN** the client derives the private key
+- **THEN** it MUST use the NIP-06 path `m/44'/1237'/0'/0/0`.
 
 #### Scenario: Default relays
 

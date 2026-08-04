@@ -90,6 +90,25 @@ final class NostrootsBrowserTests: XCTestCase {
         XCTAssertEqual(keyStore.currentSecretHex(), secretHex)
     }
 
+    func testSecretScalarsRejectZeroAndCurveOrder() throws {
+        let zero = String(repeating: "0", count: 64)
+        let curveOrder = "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
+
+        XCTAssertFalse(NIP19.isValidSecretHex(zero))
+        XCTAssertFalse(NIP19.isValidSecretHex(curveOrder))
+        XCTAssertThrowsError(try NIP19.encodeNsec(secretHex: zero))
+        XCTAssertTrue(NIP19.isValidSecretHex(try NIP19.generateSecretHex()))
+    }
+
+    func testMnemonicImportUsesNIP06Derivation() throws {
+        let mnemonic = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about"
+
+        XCTAssertEqual(
+            try KeyImportParser.parse(mnemonic).secretHex,
+            "5f29af3b9676180290e77a4efad265c4c2ff28a5302461f73597fda26bb25731"
+        )
+    }
+
     func testNavigationPolicy() {
         let policy = BrowserNavigationPolicy()
 

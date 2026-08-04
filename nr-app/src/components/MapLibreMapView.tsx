@@ -147,11 +147,6 @@ const gridFillPaint: FillLayerSpecification["paint"] = {
   ],
 };
 
-const gridLinePaint: LineLayerSpecification["paint"] = {
-  "line-color": "rgba(0, 0, 0, 0.5)",
-  "line-width": 2,
-};
-
 // ── Component ──────────────────────────────────────────────────────────────
 
 export default function MapLibreMapView() {
@@ -174,6 +169,14 @@ export default function MapLibreMapView() {
 
   const colors = useThemeColors();
   const isDark = useColorScheme() === "dark";
+
+  const gridLinePaint = useMemo<LineLayerSpecification["paint"]>(
+    () => ({
+      "line-color": isDark ? "rgba(255, 255, 255, 0.55)" : "rgba(0, 0, 0, 0.5)",
+      "line-width": 1,
+    }),
+    [isDark],
+  );
 
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);

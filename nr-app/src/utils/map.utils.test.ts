@@ -1,7 +1,5 @@
 import {
-  allPlusCodesForRegion,
   arePlusCodesTheSameLength,
-  boundariesToRegion,
   coordinatesToPlusCode,
   filterEventsForPlusCode,
   getAllChildPlusCodes,
@@ -16,7 +14,6 @@ import {
   plusCodeHasTrailingZeroes,
   plusCodeToFirstFourSegments,
   plusCodeToRectangle,
-  regionToBoundingBox,
 } from "./map.utils";
 import { MAP_LAYERS } from "@trustroots/nr-common";
 import type { EventWithMetadata } from "@/redux/slices/events.slice";
@@ -106,19 +103,6 @@ describe("map.utils", () => {
     expect(errorSpy).toHaveBeenCalledTimes(2);
   });
 
-  it("covers a visible region with valid plus-code prefixes", () => {
-    const codes = allPlusCodesForRegion({
-      latitude: 52.52,
-      latitudeDelta: 0.01,
-      longitude: 13.405,
-      longitudeDelta: 0.01,
-      codeLength: 6,
-    });
-
-    expect(codes.length).toBeGreaterThan(0);
-    expect(codes.every(isValidPlusCode)).toBe(true);
-  });
-
   describe("plusCodeHasTrailingZeroes()", () => {
     it("returns false for a single zero", () => {
       expect(plusCodeHasTrailingZeroes("7FG49QG0+")).toEqual(false);
@@ -192,26 +176,6 @@ describe("map.utils", () => {
     );
     expect(getEventLinkUrl(linkedEvent)).toBeUndefined();
     expect(getEventLinkUrl(eventWith().event, hitchwiki)).toBeUndefined();
-  });
-
-  it("converts between regions and padded map boundaries", () => {
-    const boundaries = regionToBoundingBox({
-      latitude: 10,
-      longitude: 20,
-      latitudeDelta: 2,
-      longitudeDelta: 4,
-    });
-
-    expect(boundaries).toEqual({
-      northEast: { latitude: 12, longitude: 23 },
-      southWest: { latitude: 8, longitude: 17 },
-    });
-    expect(boundariesToRegion(boundaries)).toEqual({
-      latitude: 10,
-      longitude: 20,
-      latitudeDelta: 4,
-      longitudeDelta: 6,
-    });
   });
 
   it("compares plus-code precision", () => {

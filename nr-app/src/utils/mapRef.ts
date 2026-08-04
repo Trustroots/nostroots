@@ -57,21 +57,6 @@ class MapRefService {
   }
 
   /**
-   * Get current map boundaries
-   */
-  async getMapBoundaries() {
-    if (!this.mapRef) {
-      log.warn("#noMapRef Cannot get boundaries - map ref not set");
-      return null;
-    }
-    const [west, south, east, north] = await this.mapRef.getBounds();
-    return {
-      northEast: { latitude: north, longitude: east },
-      southWest: { latitude: south, longitude: west },
-    };
-  }
-
-  /**
    * Get current center/zoom/bounds in MapLibre-native terms.
    */
   async getMapViewport(): Promise<MapViewport | null> {

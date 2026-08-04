@@ -5,6 +5,7 @@ import { getLocalTimezoneAbbr } from "@/utils/event-gathering.utils";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Calendar, X } from "lucide-react-native";
 import { useCallback, useState } from "react";
+import { CONTENT_MAXIMUM_LENGTH } from "@trustroots/nr-common";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -194,6 +195,7 @@ export default function EventComposerModal({
               placeholderTextColor="#9ca3af"
               value={description}
               onChangeText={setDescription}
+              maxLength={CONTENT_MAXIMUM_LENGTH}
               multiline
               numberOfLines={3}
               style={{ minHeight: 80, textAlignVertical: "top" }}

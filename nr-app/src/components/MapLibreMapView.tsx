@@ -7,21 +7,19 @@ import { metricsSelectors } from "@/redux/slices/metrics.slice";
 import { RootState } from "@/redux/store";
 import { rootLogger } from "@/utils/logger.utils";
 import {
-  allPlusCodesForRegion,
-  boundariesToRegion,
+  allPlusCodesForBoundingBox,
   coordinatesToPlusCode,
   getAllPlusCodesBetweenTwoPlusCodes,
-  regionToBoundingBox,
 } from "@/utils/map.utils";
 import {
   GridGeoJSON,
   GridLineGeoJSON,
   gridPlusCodeForLngLat,
-  gridPlusCodeLengthForRegion,
   latitudeDeltaToZoom,
   PlusCodeGridCell,
   plusCodeGridLinesToGeoJSON,
   plusCodeGridToGeoJSON,
+  zoomToPlusCodeLength,
 } from "@/utils/maplibre.utils";
 import { mapRefService } from "@/utils/mapRef";
 import {
@@ -54,6 +52,8 @@ import type { PlusCodeShortLength } from "@/utils/map.utils";
 
 const LIGHT_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 const DARK_STYLE_URL = "https://tiles.openfreemap.org/styles/dark";
+const RECENTER_ZOOM = 10;
+const RECENTER_DURATION_MS = 1000;
 
 const log = rootLogger.extend("MapLibreMapView");
 
@@ -67,10 +67,18 @@ const selectRootState = (state: RootState) => state;
  */
 const selectGridPlusCodeLength = createSelector(
   [mapSelectors.selectBoundingBox],
-  (boundingBox): PlusCodeShortLength | undefined =>
-    typeof boundingBox === "undefined"
-      ? undefined
-      : gridPlusCodeLengthForRegion(boundariesToRegion(boundingBox)),
+  (boundingBox): PlusCodeShortLength | undefined => {
+    if (typeof boundingBox === "undefined") {
+      return undefined;
+    }
+
+    const latitudeDelta =
+      boundingBox.northEast.latitude - boundingBox.southWest.latitude;
+    // Keep grid precision one step conservative so it does not jump to a
+    // finer level too early while zooming in.
+    const effectiveZoom = latitudeDeltaToZoom(latitudeDelta) - 1;
+    return zoomToPlusCodeLength(effectiveZoom);
+  },
 );
 
 /**
@@ -78,13 +86,11 @@ const selectGridPlusCodeLength = createSelector(
  * current zoom calls for.
  */
 const selectVisibleGridPlusCodes = createSelector(
-  [mapSelectors.selectBoundingBox],
-  (boundingBox): string[] => {
-    if (typeof boundingBox === "undefined") {
+  [mapSelectors.selectBoundingBox, selectGridPlusCodeLength],
+  (boundingBox, length): string[] => {
+    if (typeof boundingBox === "undefined" || typeof length === "undefined") {
       return [];
     }
-
-    const length = gridPlusCodeLengthForRegion(boundariesToRegion(boundingBox));
 
     const southWest = coordinatesToPlusCode({
       ...boundingBox.southWest,
@@ -164,6 +170,7 @@ export default function MapLibreMapView() {
   const currentMapLocation = useAppSelector(
     mapSelectors.selectCurrentMapLocation,
   );
+  const savedViewport = useAppSelector(mapSelectors.selectSavedViewport);
   const savedRegion = useAppSelector(mapSelectors.selectSavedRegion);
 
   const colors = useThemeColors();
@@ -172,7 +179,6 @@ export default function MapLibreMapView() {
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const [isMapReady, setIsMapReady] = useState(false);
-  const [showUserLocation, setShowUserLocation] = useState(false);
 
   const heatGeoJSON = useMemo<GridGeoJSON>(
     () =>
@@ -196,26 +202,41 @@ export default function MapLibreMapView() {
 
   useEffect(() => {
     if (isMapReady && centerMapOnCurrentLocation && currentMapLocation) {
-      mapRefService.animateToCoordinate(
-        currentMapLocation.latitude,
-        currentMapLocation.longitude,
-        0.1844,
-        0.0842,
-        1000,
+      mapRefService.animateCamera(
+        {
+          center: {
+            latitude: currentMapLocation.latitude,
+            longitude: currentMapLocation.longitude,
+          },
+          zoom: RECENTER_ZOOM,
+        },
+        RECENTER_DURATION_MS,
       );
       dispatch(mapActions.centerMapOnCurrentLocationComplete());
     }
   }, [isMapReady, centerMapOnCurrentLocation, currentMapLocation, dispatch]);
 
   useEffect(() => {
+    if (!isMapReady) {
+      return;
+    }
+
+    // Camera ref can be assigned slightly after map-ready callback.
+    mapRefService.setRefs(mapRef.current, cameraRef.current);
+  }, [isMapReady]);
+
+  useEffect(() => {
     if (isMapReady && centerMapOnHalfModal && currentMapLocation) {
       // Shift the centre up so the half modal doesn't cover the target
-      mapRefService.animateToCoordinate(
-        currentMapLocation.latitude - 0.02,
-        currentMapLocation.longitude,
-        0.1844,
-        0.0842,
-        1000,
+      mapRefService.animateCamera(
+        {
+          center: {
+            latitude: currentMapLocation.latitude - 0.02,
+            longitude: currentMapLocation.longitude,
+          },
+          zoom: RECENTER_ZOOM,
+        },
+        RECENTER_DURATION_MS,
       );
       dispatch(mapActions.centerMapOnHalfModalComplete());
     }
@@ -223,29 +244,37 @@ export default function MapLibreMapView() {
 
   const defaultCenter = useMemo(
     () =>
-      savedRegion
-        ? ([savedRegion.longitude, savedRegion.latitude] as [number, number])
-        : ([10.0, 48.0] as [number, number]),
-    [savedRegion],
+      savedViewport
+        ? ([savedViewport.center.longitude, savedViewport.center.latitude] as [
+            number,
+            number,
+          ])
+        : savedRegion
+          ? ([savedRegion.longitude, savedRegion.latitude] as [number, number])
+          : ([10.0, 48.0] as [number, number]),
+    [savedViewport, savedRegion],
   );
 
   const defaultZoom = useMemo(
-    () => (savedRegion ? latitudeDeltaToZoom(savedRegion.latitudeDelta) : 5),
-    [savedRegion],
+    () =>
+      savedViewport?.zoom ??
+      (savedRegion ? latitudeDeltaToZoom(savedRegion.latitudeDelta) : 5),
+    [savedViewport, savedRegion],
   );
 
   /**
    * Publish the visible area to Redux. Everything downstream — the grid
    * precision, the metrics, the modal, and session restore — reads from here.
    */
-  const publishVisibleRegion = useCallback(async () => {
-    const boundaries = await mapRefService.getMapBoundaries();
-    if (!boundaries) return;
+  const publishVisibleViewport = useCallback(async () => {
+    const viewport = await mapRefService.getMapViewport();
+    if (!viewport) return;
 
-    const region = boundariesToRegion(boundaries);
-    dispatch(mapActions.setBoundingBox(regionToBoundingBox(region)));
-    dispatch(setVisiblePlusCodes(allPlusCodesForRegion(region)));
-    dispatch(mapActions.setSavedRegion(region));
+    dispatch(mapActions.setBoundingBox(viewport.boundingBox));
+    dispatch(
+      setVisiblePlusCodes(allPlusCodesForBoundingBox(viewport.boundingBox)),
+    );
+    dispatch(mapActions.setSavedViewport(viewport));
   }, [dispatch]);
 
   const handlePress = useCallback(
@@ -265,25 +294,16 @@ export default function MapLibreMapView() {
   const handleLocationPress = useCallback(async () => {
     const location = await getCurrentLocation();
     if (!location) {
-      setShowUserLocation(false);
       return;
     }
 
-    setShowUserLocation(true);
     dispatch(
       mapActions.setCurrentMapLocation({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       }),
     );
-    mapRefService.animateToCoordinate(
-      location.coords.latitude,
-      location.coords.longitude,
-      0.1844,
-      0.0842,
-      1000,
-    );
-    dispatch(mapActions.centerMapOnCurrentLocationComplete());
+    dispatch(mapActions.centerMapOnCurrentLocation());
   }, [dispatch]);
 
   return (
@@ -297,12 +317,12 @@ export default function MapLibreMapView() {
         compass={true}
         touchRotate={false}
         touchPitch={false}
-        onRegionDidChange={publishVisibleRegion}
+        onRegionDidChange={publishVisibleViewport}
         onDidFinishLoadingMap={() => {
           mapRefService.setRefs(mapRef.current, cameraRef.current);
           setIsMapReady(true);
           log.debug("#iztRxR map ready");
-          publishVisibleRegion();
+          publishVisibleViewport();
         }}
       >
         <Camera
@@ -322,7 +342,7 @@ export default function MapLibreMapView() {
           <Layer id="grid-outline" type="line" paint={gridLinePaint} />
         </GeoJSONSource>
 
-        {showUserLocation && <UserLocation />}
+        {currentMapLocation && <UserLocation />}
       </Map>
 
       <TouchableOpacity

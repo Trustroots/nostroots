@@ -1,5 +1,5 @@
 import type { CameraRef, MapRef } from "@maplibre/maplibre-react-native";
-import { Region } from "@/utils/map.utils";
+import { MapViewport, Region } from "@/utils/map.utils";
 import { latitudeDeltaToZoom } from "./maplibre.utils";
 import { rootLogger } from "./logger.utils";
 
@@ -68,6 +68,25 @@ class MapRefService {
   }
 
   /**
+   * Move the camera directly in MapLibre terms.
+   */
+  animateCamera(
+    camera: { center: { latitude: number; longitude: number }; zoom?: number },
+    duration?: number,
+  ) {
+    if (!this.cameraRef) {
+      log.warn("#noMapRef Cannot animate camera - camera ref not set");
+      return;
+    }
+    log.debug("#animateCamera", camera);
+    this.cameraRef.flyTo({
+      center: [camera.center.longitude, camera.center.latitude],
+      zoom: camera.zoom,
+      duration,
+    });
+  }
+
+  /**
    * Get current map boundaries
    */
   async getMapBoundaries() {
@@ -79,6 +98,35 @@ class MapRefService {
     return {
       northEast: { latitude: north, longitude: east },
       southWest: { latitude: south, longitude: west },
+    };
+  }
+
+  /**
+   * Get current center/zoom/bounds in MapLibre-native terms.
+   */
+  async getMapViewport(): Promise<MapViewport | null> {
+    if (!this.mapRef) {
+      log.warn("#noMapRef Cannot get viewport - map ref not set");
+      return null;
+    }
+
+    const [center, zoom, bounds] = await Promise.all([
+      this.mapRef.getCenter(),
+      this.mapRef.getZoom(),
+      this.mapRef.getBounds(),
+    ]);
+
+    const [west, south, east, north] = bounds;
+    return {
+      center: {
+        latitude: center[1],
+        longitude: center[0],
+      },
+      zoom,
+      boundingBox: {
+        northEast: { latitude: north, longitude: east },
+        southWest: { latitude: south, longitude: west },
+      },
     };
   }
 }

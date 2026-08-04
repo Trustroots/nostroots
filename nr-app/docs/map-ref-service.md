@@ -22,8 +22,11 @@ Use the service directly when imperative map control is needed:
 import { mapRefService } from "@/utils/mapRef";
 
 function* mySaga() {
-  // Animate to a coordinate
-  mapRefService.animateToCoordinate(37.78825, -122.4324);
+  // Animate in MapLibre camera terms
+  mapRefService.animateCamera({
+    center: { latitude: 37.78825, longitude: -122.4324 },
+    zoom: 10,
+  });
 
   // Animate to a region
   mapRefService.animateToRegion({
@@ -38,26 +41,40 @@ function* mySaga() {
   if (boundaries) {
     // Use boundaries to update state or fetch map data.
   }
+
+  // Get full viewport snapshot
+  const viewport = yield call([mapRefService, "getMapViewport"]);
+  if (viewport) {
+    // Use viewport.center, viewport.zoom, viewport.boundingBox.
+  }
 }
 ```
 
 ## Available Methods
 
+### `animateCamera(camera, duration?: number)`
+
+Animates the map camera to a target center with optional zoom.
+
 ### `animateToRegion(region: Region, duration?: number)`
 
-Animates the map to a specific region.
+Compatibility API that animates the map to a region-shaped payload.
 
 ### `animateToCoordinate(latitude, longitude, latitudeDelta?, longitudeDelta?, duration?)`
 
-Animates the map to a specific coordinate with optional zoom levels.
+Compatibility API that animates to a coordinate with delta-based zoom inputs.
 
 ### `getMapBoundaries()`
 
 Returns the current visible boundaries of the map.
 
+### `getMapViewport()`
+
+Returns `{ center, zoom, boundingBox }` from MapLibre refs.
+
 ## Implementation Details
 
-- Refs are registered in `MapLibreMapView.tsx` when `onDidFinishLoadingMap` fires
+- Refs are registered via `setRefs` in `MapLibreMapView.tsx` when `onDidFinishLoadingMap` fires
 - Refs are cleared on component unmount
 - Calls before refs are ready log warnings and no-op
-- Methods are non-blocking except `getMapBoundaries`, which is async
+- Methods are non-blocking except viewport/bounds reads, which are async

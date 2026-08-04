@@ -37,6 +37,12 @@ export interface BoundingBox {
   southWest: LatLng;
 }
 
+export interface MapViewport {
+  center: LatLng;
+  zoom: number;
+  boundingBox: BoundingBox;
+}
+
 const PLUS_CODE_CHARACTERS = "23456789CFGHJMPQRVWX" as const;
 
 export function isValidPlusCode(code: string): boolean {
@@ -246,6 +252,16 @@ export function allPlusCodesForRegion({
     return code;
   });
   return codes;
+}
+
+export function allPlusCodesForBoundingBox(
+  boundingBox: BoundingBox,
+  codeLength: PlusCodeShortLength = NOSTR_EVENT_INDEX_MAXIMUM_PLUS_CODE_LENGTH,
+) {
+  return allPlusCodesForRegion({
+    ...boundariesToRegion(boundingBox),
+    codeLength,
+  });
 }
 
 export function isPlusCodeBetweenTwoPlusCodes(

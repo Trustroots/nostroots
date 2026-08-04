@@ -2,7 +2,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { matchFilter } from "nostr-tools";
-import { BoundingBox, LatLng, Region } from "@/utils/map.utils";
+import { BoundingBox, LatLng, MapViewport, Region } from "@/utils/map.utils";
 import { persistReducer } from "redux-persist";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { eventsSelectors, EventWithMetadata } from "./events.slice";
@@ -25,6 +25,7 @@ interface MapState {
   currentNotificationEvent?: EventWithMetadata;
   selectedLayer: MAP_LAYER_KEY;
   savedRegion?: Region;
+  savedViewport?: MapViewport;
 }
 
 const initialState: MapState = {
@@ -41,6 +42,7 @@ const initialState: MapState = {
   selectedPlusCode: "",
   selectedLayer: "trustroots",
   savedRegion: undefined,
+  savedViewport: undefined,
 };
 
 export const mapSlice = createSlice({
@@ -70,7 +72,7 @@ export const mapSlice = createSlice({
     enableLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
       state.selectedLayer = action.payload;
     },
-    disableLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
+    disableLayer: (state) => {
       // Disable turning off layers for now
       // return state;
       state.selectedLayer = "trustroots";
@@ -124,6 +126,9 @@ export const mapSlice = createSlice({
     setSavedRegion: (state, action: PayloadAction<Region>) => {
       state.savedRegion = action.payload;
     },
+    setSavedViewport: (state, action: PayloadAction<MapViewport>) => {
+      state.savedViewport = action.payload;
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -170,6 +175,7 @@ export const mapSlice = createSlice({
     selectCurrentNotificationEvent: (state: MapState) =>
       state.currentNotificationEvent,
     selectSavedRegion: (state: MapState) => state.savedRegion,
+    selectSavedViewport: (state: MapState) => state.savedViewport,
   },
 });
 
@@ -204,7 +210,7 @@ export const mapSelectors = {
 const mapPersistConfig = {
   key: "map",
   storage: AsyncStorage,
-  whitelist: ["savedRegion", "selectedLayer"],
+  whitelist: ["savedRegion", "savedViewport", "selectedLayer"],
 };
 
 // Slice-like wrapper for combineSlices compatibility

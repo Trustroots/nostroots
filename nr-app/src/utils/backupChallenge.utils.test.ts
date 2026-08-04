@@ -40,13 +40,15 @@ describe("createBackupChallenge", () => {
   });
 
   it("uses the injected random source", () => {
-    const values = [0, 0, 0.5, 0.99];
-    const challenge = createBackupChallenge(
-      MNEMONIC,
-      () => values.shift() ?? 0,
-    );
+    expect(createBackupChallenge(MNEMONIC, () => 0)).toEqual({
+      type: "mnemonic",
+      positions: [1, 2, 3],
+    });
 
-    expect(challenge).toEqual({ type: "mnemonic", positions: [1, 7, 12] });
+    expect(createBackupChallenge(MNEMONIC, () => 0.999)).toEqual({
+      type: "mnemonic",
+      positions: [10, 11, 12],
+    });
   });
 
   it("falls back to a full-secret challenge for an nsec", () => {

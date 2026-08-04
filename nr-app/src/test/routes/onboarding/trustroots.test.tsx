@@ -30,7 +30,7 @@ describe("OnboardingTrustrootsScreen", () => {
   it("validates username before requesting a code", () => {
     renderWithProviders(<OnboardingTrustrootsScreen />);
 
-    fireEvent.press(screen.getByText("Verify Trustroots email"));
+    fireEvent.press(screen.getByText("Send verification email"));
 
     expect(screen.getByText("Enter your Trustroots username.")).toBeTruthy();
     expect(bridge.requestVerificationToken).not.toHaveBeenCalled();
@@ -40,7 +40,7 @@ describe("OnboardingTrustrootsScreen", () => {
     renderWithProviders(<OnboardingTrustrootsScreen />);
 
     fireEvent.changeText(screen.getByPlaceholderText("your-username"), "Alice");
-    fireEvent.press(screen.getByText("Verify Trustroots email"));
+    fireEvent.press(screen.getByText("Send verification email"));
 
     await waitFor(() => {
       expect(bridge.requestVerificationToken).toHaveBeenCalledWith("alice");
@@ -67,9 +67,7 @@ describe("OnboardingTrustrootsScreen", () => {
         npub: "npub1test",
         username: "alice",
       });
-      expect(router.replace).toHaveBeenCalledWith(
-        "/onboarding/backup-confirm?from=bridge",
-      );
+      expect(router.replace).toHaveBeenCalledWith("/onboarding/backup-confirm");
     });
   });
 });

@@ -60,9 +60,7 @@ describe("VerifyRoute", () => {
         token: "token-1",
         username: "alice",
       });
-      expect(router.replace).toHaveBeenCalledWith(
-        "/onboarding/backup-confirm?from=bridge",
-      );
+      expect(router.replace).toHaveBeenCalledWith("/onboarding/backup-confirm");
     });
   });
 });

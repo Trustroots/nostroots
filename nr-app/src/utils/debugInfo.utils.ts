@@ -66,7 +66,14 @@ export function formatDebugInfo(info: DebugInfo): string {
 export const SUPPORT_MESSAGE_MAX_LENGTH = 2000;
 
 /** Short enough not to nag, long enough to rule out "it's broken". */
-export const MIN_USER_MESSAGE_LENGTH = 20;
+export const MIN_USER_MESSAGE_LENGTH = 50;
+
+/**
+ * What we offer the user. Deliberately a round number rather than "whatever is
+ * left after the debug block", so the limit they see does not drift with OTA
+ * metadata. The bridge's cap is the backstop, not the headline.
+ */
+export const MAX_USER_MESSAGE_LENGTH = 500;
 
 const SUPPORT_MESSAGE_SEPARATOR = "\n\n---\n\n";
 
@@ -85,11 +92,13 @@ export function formatSupportMessage({
 }
 
 /**
- * How many characters the user may type before the composed payload would
- * exceed what the bridge accepts. The debug block varies in length with OTA
- * metadata, so this is computed rather than hardcoded.
+ * How many characters the user may type: the flat allowance, unless an unusually
+ * long debug block means the composed payload would exceed what the bridge
+ * accepts, in which case the bridge's limit wins.
  */
 export function getUserMessageBudget(debugInfo: string): number {
   const overhead = debugInfo.length + SUPPORT_MESSAGE_SEPARATOR.length;
-  return Math.max(0, SUPPORT_MESSAGE_MAX_LENGTH - overhead);
+  const roomLeft = SUPPORT_MESSAGE_MAX_LENGTH - overhead;
+
+  return Math.max(0, Math.min(MAX_USER_MESSAGE_LENGTH, roomLeft));
 }

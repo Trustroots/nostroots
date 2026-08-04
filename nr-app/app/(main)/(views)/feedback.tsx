@@ -1,21 +1,26 @@
 import * as Clipboard from "expo-clipboard";
 import { Stack, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
+import { ChevronDown, ChevronRight } from "lucide-react-native";
 import { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  ScrollView,
+  Pressable,
   TextInput,
   View,
 } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import { Section } from "@/components/ui/section";
 import { Text } from "@/components/ui/text";
 import { useDebugInfo } from "@/hooks/useDebugInfo";
+import { useThemeColors } from "@/hooks/useThemeColors";
 import { signEventTemplate } from "@/nostr/keystore.nostr";
 import { sendSupportMessage } from "@/services/nrBridge.service";
+import { cn } from "@/utils/cn.utils";
 import {
   formatSupportMessage,
   getUserMessageBudget,
@@ -23,17 +28,23 @@ import {
   TRUSTROOTS_SUPPORT_URL,
 } from "@/utils/debugInfo.utils";
 
+/** Far enough out that the warning is a heads-up, not a surprise. */
+const LIMIT_WARNING_THRESHOLD = 50;
+
 export default function FeedbackScreen() {
   const router = useRouter();
+  const colors = useThemeColors();
   const debugInfo = useDebugInfo();
   const [userMessage, setUserMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
   const [isDisclosureOpen, setIsDisclosureOpen] = useState(false);
 
   const budget = getUserMessageBudget(debugInfo);
-  const trimmedLength = userMessage.trim().length;
-  const isLongEnough = trimmedLength >= MIN_USER_MESSAGE_LENGTH;
-  const remaining = budget - userMessage.length;
+  const length = userMessage.length;
+  const remaining = budget - length;
+  const isLongEnough = userMessage.trim().length >= MIN_USER_MESSAGE_LENGTH;
+  const isOverLimit = remaining < 0;
 
   const handleSubmit = async () => {
     const message = formatSupportMessage({ userMessage, debugInfo });
@@ -68,66 +79,115 @@ export default function FeedbackScreen() {
   };
 
   return (
-    <ScrollView contentContainerClassName="px-safe-offset-4 pb-safe-offset-6 bg-background">
+    <KeyboardAwareScrollView
+      bottomOffset={24}
+      keyboardShouldPersistTaps="handled"
+      style={{ backgroundColor: colors.background }}
+      contentContainerStyle={{ flexGrow: 1 }}
+    >
       <Stack.Screen options={{ title: "Send feedback" }} />
 
-      <Section>
-        <Text variant="p">
-          Tell us what is going wrong, or what you would like to see. This goes
-          to the Trustroots team.
-        </Text>
-
-        <TextInput
-          multiline
-          autoFocus
-          value={userMessage}
-          onChangeText={setUserMessage}
-          maxLength={budget}
-          placeholder="What happened?"
-          placeholderTextColor="#9BA1A6"
-          className="border border-border rounded px-3 py-2 bg-background text-foreground min-h-32"
-          textAlignVertical="top"
-        />
-
-        {isLongEnough ? (
-          remaining <= 200 ? (
-            <Text variant="small" className="text-muted-foreground">
-              {remaining} characters left
-            </Text>
-          ) : null
-        ) : (
-          <Text variant="small" className="text-muted-foreground">
-            {MIN_USER_MESSAGE_LENGTH} character minimum
+      <View className="w-full max-w-2xl self-center px-safe-offset-4 pb-safe-offset-6">
+        <Section>
+          <Text variant="p">
+            Tell us what is going wrong, or what you would like to see. This
+            goes to the Trustroots team.
           </Text>
-        )}
 
-        <Button
-          variant="ghost"
-          onPress={() => setIsDisclosureOpen(!isDisclosureOpen)}
-          className="justify-start px-0"
-          accessibilityState={{ expanded: isDisclosureOpen }}
-        >
-          <Text>What we send with this</Text>
-        </Button>
+          <TextInput
+            multiline
+            autoFocus
+            value={userMessage}
+            onChangeText={setUserMessage}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder="What happened?"
+            placeholderTextColor={colors.mutedForeground}
+            accessibilityLabel="Your feedback"
+            accessibilityHint={`Between ${MIN_USER_MESSAGE_LENGTH} and ${budget} characters.`}
+            className={cn(
+              "border rounded-md px-3 py-3 bg-background text-foreground text-base min-h-32",
+              isOverLimit
+                ? "border-destructive"
+                : isFocused
+                  ? "border-primary"
+                  : "border-border",
+            )}
+            textAlignVertical="top"
+          />
 
-        {isDisclosureOpen ? (
-          <View className="bg-muted rounded-lg p-4">
-            <Text variant="small" className="font-mono">
-              {debugInfo}
-            </Text>
+          <View
+            accessibilityLiveRegion="polite"
+            className="h-5 flex-row items-center gap-4"
+          >
+            {isLongEnough ? null : (
+              <Text
+                variant="small"
+                className="text-muted-foreground font-normal"
+              >
+                {MIN_USER_MESSAGE_LENGTH} characters minimum
+              </Text>
+            )}
+
+            <View className="flex-1" />
+
+            {remaining <= LIMIT_WARNING_THRESHOLD ? (
+              <Text
+                variant="small"
+                accessibilityLabel={`${length} of ${budget} characters`}
+                className={isOverLimit ? "text-destructive" : "text-foreground"}
+              >
+                {length}/{budget}
+              </Text>
+            ) : null}
           </View>
-        ) : null}
 
-        <Button
-          size="lg"
-          onPress={handleSubmit}
-          disabled={!isLongEnough || isSending}
-          accessibilityLabel="Send feedback"
-        >
-          {isSending ? <ActivityIndicator size="small" /> : null}
-          <Text>{isSending ? "Sending…" : "Send feedback"}</Text>
-        </Button>
-      </Section>
-    </ScrollView>
+          <Button
+            size="lg"
+            className="mt-2"
+            onPress={handleSubmit}
+            disabled={!isLongEnough || isOverLimit || isSending}
+            accessibilityLabel="Send feedback"
+            accessibilityHint={
+              isLongEnough
+                ? isOverLimit
+                  ? `Shorten your message to ${budget} characters or fewer.`
+                  : undefined
+                : `Write at least ${MIN_USER_MESSAGE_LENGTH} characters first.`
+            }
+          >
+            {isSending ? <ActivityIndicator size="small" /> : null}
+            <Text>{isSending ? "Sending…" : "Send feedback"}</Text>
+          </Button>
+
+          <Pressable
+            onPress={() => setIsDisclosureOpen(!isDisclosureOpen)}
+            role="button"
+            accessibilityState={{ expanded: isDisclosureOpen }}
+            hitSlop={12}
+            className="flex-row items-center gap-1 self-start py-3 active:opacity-60"
+          >
+            <Icon
+              as={isDisclosureOpen ? ChevronDown : ChevronRight}
+              size={14}
+              className="text-muted-foreground"
+            />
+            <Text variant="muted">What we send with this</Text>
+          </Pressable>
+
+          {isDisclosureOpen ? (
+            <View className="border border-border rounded-md p-3">
+              <Text
+                selectable
+                variant="muted"
+                className="font-mono text-xs leading-5"
+              >
+                {debugInfo}
+              </Text>
+            </View>
+          ) : null}
+        </Section>
+      </View>
+    </KeyboardAwareScrollView>
   );
 }

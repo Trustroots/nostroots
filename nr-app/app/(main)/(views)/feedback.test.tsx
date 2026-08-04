@@ -2,7 +2,11 @@ import { fireEvent, render, waitFor } from "@testing-library/react-native";
 
 import FeedbackScreen from "./feedback";
 import { sendSupportMessage } from "@/services/nrBridge.service";
-import { formatSupportMessage } from "@/utils/debugInfo.utils";
+import {
+  formatSupportMessage,
+  getUserMessageBudget,
+  MIN_USER_MESSAGE_LENGTH,
+} from "@/utils/debugInfo.utils";
 
 jest.mock("@/services/nrBridge.service", () => ({
   sendSupportMessage: jest.fn(),
@@ -26,7 +30,8 @@ jest.mock("expo-web-browser", () => ({ openBrowserAsync: jest.fn() }));
 
 const mockSend = sendSupportMessage as jest.Mock;
 
-const LONG_ENOUGH = "The map stays blank after login";
+const LONG_ENOUGH =
+  "The map stays blank after login, even once I pan around a bit.";
 
 describe("FeedbackScreen", () => {
   beforeEach(() => jest.clearAllMocks());
@@ -72,6 +77,41 @@ describe("FeedbackScreen", () => {
 
     await waitFor(() => expect(mockSend).toHaveBeenCalled());
     expect(input.props.value).toBe(LONG_ENOUGH);
+  });
+
+  it("shows each limit only while it is the relevant one", () => {
+    const { getByText, queryByText, getByPlaceholderText } = render(
+      <FeedbackScreen />,
+    );
+    const input = getByPlaceholderText(/what happened/i);
+    const budget = getUserMessageBudget("Nostroots debug info\nnpub: npub1abc");
+
+    expect(
+      getByText(`${MIN_USER_MESSAGE_LENGTH} characters minimum`),
+    ).toBeTruthy();
+    expect(queryByText(/\//)).toBeNull();
+
+    fireEvent.changeText(input, LONG_ENOUGH);
+    expect(queryByText(/characters minimum/)).toBeNull();
+    expect(queryByText(/\//)).toBeNull();
+
+    fireEvent.changeText(input, "y".repeat(budget - 10));
+    expect(getByText(`${budget - 10}/${budget}`)).toBeTruthy();
+
+    fireEvent.changeText(input, "y".repeat(budget + 3));
+    expect(getByText(`${budget + 3}/${budget}`)).toBeTruthy();
+  });
+
+  it("blocks submission when the message is over the limit", () => {
+    const { getByRole, getByPlaceholderText } = render(<FeedbackScreen />);
+    const budget = getUserMessageBudget("Nostroots debug info\nnpub: npub1abc");
+
+    fireEvent.changeText(
+      getByPlaceholderText(/what happened/i),
+      "y".repeat(budget + 1),
+    );
+
+    expect(getByRole("button", { name: "Send feedback" })).toBeDisabled();
   });
 
   it("reveals the debug block only when the disclosure is expanded", () => {

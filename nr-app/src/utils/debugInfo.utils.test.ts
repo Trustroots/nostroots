@@ -3,6 +3,7 @@ import {
   formatDebugInfo,
   formatSupportMessage,
   getUserMessageBudget,
+  MAX_USER_MESSAGE_LENGTH,
   MIN_USER_MESSAGE_LENGTH,
   SUPPORT_MESSAGE_MAX_LENGTH,
 } from "./debugInfo.utils";
@@ -112,9 +113,15 @@ describe("getUserMessageBudget()", () => {
     expect(composed.length).toBeLessThanOrEqual(SUPPORT_MESSAGE_MAX_LENGTH);
   });
 
-  it("uses every character it can within the cap", () => {
-    const debugInfo = "x".repeat(500);
+  it("offers the flat allowance when the debug block leaves room for it", () => {
+    expect(getUserMessageBudget("x".repeat(500))).toBe(MAX_USER_MESSAGE_LENGTH);
+  });
+
+  it("falls back to the bridge's cap when the debug block is unusually long", () => {
+    const debugInfo = "x".repeat(1700);
     const budget = getUserMessageBudget(debugInfo);
+
+    expect(budget).toBeLessThan(MAX_USER_MESSAGE_LENGTH);
 
     const oversized = formatSupportMessage({
       userMessage: "y".repeat(budget + 1),
@@ -129,7 +136,7 @@ describe("getUserMessageBudget()", () => {
   });
 
   it("exposes the minimum message length", () => {
-    expect(MIN_USER_MESSAGE_LENGTH).toBe(20);
+    expect(MIN_USER_MESSAGE_LENGTH).toBe(50);
   });
 
   it("exposes the support message max length mirrored from nr-bridge", () => {

@@ -42,4 +42,4 @@ Trustroots-side exports/import tooling and profile/host mirrors can produce even
 
 ## Testing note
 
-Automated CI coverage is mostly public-relay oriented. For explicit NIP-42 challenge/response behavior, use `test.html` as noted in `README.md`.
+Automated CI coverage is mostly public-relay oriented; explicit NIP-42 challenge/response behavior requires manual relay testing.

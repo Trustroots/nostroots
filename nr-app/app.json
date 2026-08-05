@@ -2,7 +2,7 @@
   "expo": {
     "name": "Nostroots",
     "slug": "nr-app",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "orientation": "portrait",
     "icon": "./assets/images/nostroots-logo67-app-icon.png",
     "scheme": "nostroots",
@@ -11,8 +11,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "org.trustroots.nostroots",
       "appleTeamId": "WR2T34P467",
+      "associatedDomains": ["applinks:nos.trustroots.org"],
       "config": {
-        "googleMapsApiKey": "AIzaSyDw0KhR3qlPsireu68RvGXmh4nccIqnEQM",
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
@@ -30,11 +30,25 @@
         "android.permission.ACCESS_FINE_LOCATION"
       ],
       "package": "org.trustroots.nostroots",
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyCr1ZxZlVQNI_u7FYfPkjgvZv79UeaPFYQ"
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "nos.trustroots.org",
+              "path": "/open/onboarding"
+            },
+            {
+              "scheme": "https",
+              "host": "nos.trustroots.org",
+              "path": "/open/onboarding/"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
         }
-      },
+      ],
       "googleServicesFile": "./google-services.json"
     },
     "web": {
@@ -73,13 +87,7 @@
         }
       ],
       "expo-status-bar",
-      "@sentry/react-native",
-      [
-        "react-native-maps",
-        {
-          "androidGoogleMapsApiKey": "AIzaSyCr1ZxZlVQNI_u7FYfPkjgvZv79UeaPFYQ"
-        }
-      ]
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true,

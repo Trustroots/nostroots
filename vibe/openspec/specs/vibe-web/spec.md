@@ -58,6 +58,33 @@ step for the main pages.
 - **THEN** it MUST redirect to the matching `/web/` URL while preserving query
   parameters and hash routes.
 
+#### Scenario: Native app custom-scheme test page
+
+- **GIVEN** a user opens `/test/` on a phone with the Nostroots app installed
+- **WHEN** they activate the primary test action
+- **THEN** the page MUST navigate to `nostroots://` so the operating system can
+  open the installed app
+- **AND** it MUST offer a separate `nostroots://welcome` action for testing a
+  known Expo Router screen
+- **AND** it MUST explain that custom-scheme links do not install the app or
+  provide an automatic website fallback.
+
+#### Scenario: Verified HTTPS onboarding fallback
+
+- **GIVEN** a member opens `/open/onboarding?username=<username>` without a
+  verified Nostroots app handling the URL
+- **WHEN** the static fallback page renders
+- **THEN** it MUST explain that the link continues Trustroots onboarding in the
+  installed Nostroots app
+- **AND** on Android it MUST continue to the official Google Play listing
+- **AND** on iPhone or iPad it MUST continue to the official App Store listing
+- **AND** on desktop or an unknown device it MUST offer both store listings
+- **AND** the desktop fallback MUST also offer the Android APK releases and the
+  existing generic app-download QR code
+- **AND** it MUST preserve the username only as visible, non-secret context
+- **AND** the site MUST publish platform association files that restrict native
+  handling to the Nostroots app identity and `/open/onboarding` path.
+
 ### Requirement: Single canonical browser map surface
 
 Vibe Web MUST provide `/web/` as the only maintained Nostroots browser
@@ -109,7 +136,7 @@ Shells that set this marker include `nr-app` BrowserScreen and native iOS
   with Android and iOS store links, top-nav Android and iOS store links, hub lead
   copy that mentions getting the mobile app, and the NIP-7 info modal bullet
   recommending mobile app install
-- **AND** additional experimental experiences (Nostrail, Radiostr, Hitchwiki,
+- **AND** additional experimental experiences (Food Circle, Nostrail, Rideshares, Radiostr, Hitchwiki,
   Hitchwiki Maps, and third-party links such as Treasures and Miti) MUST remain hidden
   until the user enables "Show more experimental apps"
 - **AND** the Trustroots Wiki, Nomadwiki, and Trashwiki cards MUST be visible
@@ -229,6 +256,20 @@ Nostroots Web MUST use hash routing for current static-host compatibility.
 Nostroots Web MUST support local keys, NIP-07 browser signing, relay settings,
 NIP-42 authenticated relay reads/writes, and leak guards for secret key text.
 
+#### Scenario: Native-app private-key scalar
+
+- **GIVEN** the native iOS companion generates or imports a 32-byte private key
+- **WHEN** it accepts the key for use or NIP-19 encoding
+- **THEN** the value MUST be a valid secp256k1 scalar greater than zero and
+  lower than the curve order.
+
+#### Scenario: Recovery phrase derivation
+
+- **GIVEN** a user imports a valid BIP-39 recovery phrase in Nostroots Web or
+  its native iOS companion
+- **WHEN** the client derives the private key
+- **THEN** it MUST use the NIP-06 path `m/44'/1237'/0'/0/0`.
+
 #### Scenario: Default relays
 
 - **GIVEN** a user has no custom relay settings
@@ -270,6 +311,33 @@ paths MAY remain as compatibility redirects to a canonical application.
 - **WHEN** examples are listed or launched
 - **THEN** each example MUST remain optional demo/fork material rather than a
   required current app surface.
+
+#### Scenario: Rideshares hitchhiking example
+
+- **GIVEN** a user opens `/examples/rideshares/`
+- **WHEN** they browse or search journeys
+- **THEN** the page MUST show active kind `30402` hitchhiking requests and lift
+  offers without requiring a signer
+- **AND** it MUST read compatible legacy `rideshare` and `travel-partner` events
+  while treating the latest event for an author and `d` identifier as current
+- **AND** route discovery MUST support broad origin, destination, and departure
+  date matching in list and approximate-area map views
+- **AND** a hitchhiking post MUST let its author look for a driver, a
+  co-hitchhiker, or both, while legacy `travel-partner` posts MUST remain
+  discoverable as co-hitchhiker searches
+- **AND** the page MUST use the shared Nostroots header and shared NIP-07/NIP-05
+  identity-status behavior used by other Vibe Web applications
+- **AND** publishing and cancellation MUST require a NIP-07 browser signer and
+  MUST NOT ask the user to paste an `nsec`
+- **AND** newly published journeys MUST contain only broad public area geohashes,
+  MUST NOT contain precise origin or destination coordinates, and MUST expire
+  after the departure window
+- **AND** verified `*@trustroots.org` NIP-05 identities MUST be distinguished
+  from unverified Nostr identities
+- **AND** traveller rows with a verified Trustroots identity MUST show the full
+  `username@trustroots.org` NIP-05 and link it to
+  `https://www.trustroots.org/profile/<username>`
+- **AND** private contact MUST hand off to a Nostroots Web direct-message route.
 
 #### Scenario: Radiostr social radio example
 

@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "org.trustroots.nostroots",
+      "sha256_cert_fingerprints": [
+        "61:A4:B6:6E:1B:B0:75:4A:D2:2D:58:25:9E:FF:35:E7:F8:E9:EF:44:3E:C0:BD:83:3A:A4:A5:1A:5F:86:8F:8B"
+      ]
+    }
+  }
+]

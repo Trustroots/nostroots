@@ -9,6 +9,8 @@ The root page is a small hub. It links to classic Trustroots network settings, N
 ## Experiences
 
 - [`/background/`](background/) — background, vision, and FAQ for Nostroots and the Trustroots/Nostr direction.
+- [`/test/`](test/) — mobile-friendly manual test for opening the installed app with `nostroots://` links.
+- [`/open/onboarding`](open/onboarding/) — verified HTTPS onboarding link and app-store fallback page.
 - [`https://www.trustroots.org/profile/edit/networks`](https://www.trustroots.org/profile/edit/networks) — classic Trustroots network editing.
 - [`/web/`](web/) — Nostroots Web, the canonical map/chat/profile app for Trustroots-style activity with light Nostr key support.
 - [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots Browser.
@@ -87,6 +89,35 @@ See [`../docs/TRUSTROOTS_MAP_NOTES.md`](../docs/TRUSTROOTS_MAP_NOTES.md) for the
 
 ### Testing
 
+#### Verified onboarding links
+
+The public onboarding URL is `https://nos.trustroots.org/open/onboarding?username=guaka`.
+iPhone and iPad browser fallbacks continue to the App Store, Android fallbacks
+continue to Google Play, and desktop/unknown clients show both store choices,
+the Android APK releases, and the generic app-download QR code.
+iOS Universal Links are associated with Apple Team ID `WR2T34P467`; Android
+App Links are currently associated with the certificate used to sign the
+official GitHub preview APK. Before relying on links for Google Play installs,
+add the SHA-256 fingerprint from **Play Console → Setup → App integrity → App
+signing key certificate** to `.well-known/assetlinks.json` as a second entry in
+`sha256_cert_fingerprints`. Google Play App Signing uses a different certificate
+from the upload/direct-distribution key.
+
+Only public, low-sensitivity context such as a Trustroots username belongs in
+this URL. Authenticated handoff must use a short-lived, single-use authorization
+code, ideally bound to the app with PKCE; never include an nsec, session cookie,
+permanent API token, or email-verification code.
+
+Content links can extend the same verified-link family with allowlisted paths,
+for example `/open/event/<event-id>?username=guaka`. The path is the destination
+and the optional query parameter is onboarding context; do not accept an
+arbitrary destination URL. The app should remember a supported destination
+while onboarding and continue there afterwards. A fallback-page QR code must
+encode the complete content URL to preserve both values. Store installation
+does not by itself restore the original link on iOS, so the first version should
+ask members to return to the original Trustroots link after installing. Android
+can optionally add Play Install Referrer support as a later enhancement.
+
 The repo still iterates quickly on `nr-web`: tests exist to guard important behavior, not to drive every small UI change. Prefer meaningful coverage over a large suite; run the stack when you are changing critical paths or preparing to merge.
 
 Tests are designed to run in Docker by default for consistency and safety. See [tests/README.md](tests/README.md) for details.
@@ -100,21 +131,20 @@ make test-e2e      # E2E tests only (all projects)
 make test-e2e-fast # E2E Chromium only
 ```
 
-**NIP-42 (`wss://nip42.trustroots.org`):** Automated tests mostly use public relays. For AUTH challenge/response behavior, use the manual client in [`test.html`](test.html). NIP-42 read/publish paths are not fully covered in CI.
+**NIP-42 (`wss://nip42.trustroots.org`):** Automated tests mostly use public relays. NIP-42 read/publish paths are not fully covered in CI.
 
 ### Manual image verification (imported Trustroots data)
 
 When validating importer output and route rendering together:
 
-1. Open [`test.html`](test.html) and run **Image tests** for expected Trustroots URLs.
-2. Open profile route:
+1. Open the profile route:
    - `#profile/nostroots%40trustroots.org`
    - confirm the avatar is loaded from `uploads-profile` (or expected fallback).
-3. Open circle route:
+2. Open the circle route:
    - `#hitchhikers`
    - confirm circle metadata image (from importer `30410` `content.picture`) is visible where circle image chrome is shown (chat/sidebar/thread header).
 
-If image tests pass in `test.html` but a route does not show the image, check importer event shape first (`30390`/`30410`) and then the client metadata wiring inside `web/index.js` — the chat, profile, and circle-metadata code is all folded into that single module.
+If a route does not show the expected image, check importer event shape first (`30390`/`30410`) and then the client metadata wiring inside `web/index.js` — the chat, profile, and circle-metadata code is all folded into that single module.
 
 ### Real Apple iOS Simulator (Xcode) automation
 

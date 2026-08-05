@@ -17,7 +17,7 @@ import { relaySelectors } from "../slices/relays.slice";
 const PROFILE_CACHE_SECONDS = 5 * 60;
 const FETCH_TIMEOUT_MS = 5000;
 
-function* fetchProfileWorker(
+export function* fetchProfileWorker(
   action: ReturnType<typeof profilesActions.fetchProfile>,
 ) {
   const pubkey = action.payload;
@@ -67,7 +67,10 @@ function* fetchProfileWorker(
   }
 }
 
-async function fetchKind0FromRelays(pubkey: string, relayUrls: string[]) {
+export async function fetchKind0FromRelays(
+  pubkey: string,
+  relayUrls: string[],
+) {
   const pool = new SimplePool();
   try {
     const event = await pool.get(relayUrls, {

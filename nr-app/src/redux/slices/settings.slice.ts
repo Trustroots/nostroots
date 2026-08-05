@@ -17,7 +17,6 @@ type SettingsState = {
   hasAcknowledgedExperimentalLayers: boolean;
   pendingTrustrootsUsername: string | null;
   pendingTrustrootsProfileUsername: string | null;
-  useMapLibre: boolean;
 };
 
 const initialState: SettingsState = {
@@ -34,7 +33,6 @@ const initialState: SettingsState = {
   hasAcknowledgedExperimentalLayers: false,
   pendingTrustrootsUsername: null,
   pendingTrustrootsProfileUsername: null,
-  useMapLibre: false,
 };
 
 export const settingsSlice = createSlice({
@@ -96,9 +94,6 @@ export const settingsSlice = createSlice({
     clearPendingTrustrootsProfileUsername: (state) => {
       state.pendingTrustrootsProfileUsername = null;
     },
-    toggleUseMapLibre: (state) => {
-      state.useMapLibre = !state.useMapLibre;
-    },
   },
   selectors: {
     selectAreTestFeaturesEnabled: (state) => state.areTestFeaturesEnabled,
@@ -114,7 +109,6 @@ export const settingsSlice = createSlice({
     selectPendingTrustrootsUsername: (state) => state.pendingTrustrootsUsername,
     selectPendingTrustrootsProfileUsername: (state) =>
       state.pendingTrustrootsProfileUsername,
-    selectUseMapLibre: (state) => state.useMapLibre,
   },
 });
 

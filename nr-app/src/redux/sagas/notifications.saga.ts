@@ -83,7 +83,7 @@ export const [
   },
 });
 
-function* registerDeviceSagaEffect(
+export function* registerDeviceSagaEffect(
   action: ReturnType<typeof registerDevicePromiseAction.request>,
 ): Generator<Effect, void, string | undefined> {
   try {
@@ -116,7 +116,7 @@ function* registerDeviceSaga() {
   );
 }
 
-function* unregisterDeviceSagaEffect(
+export function* unregisterDeviceSagaEffect(
   action: ReturnType<typeof unregisterDevicePromiseAction.request>,
 ): Generator<Effect, void, string | undefined> {
   try {
@@ -147,7 +147,7 @@ function* unregisterDeviceSaga() {
   );
 }
 
-function* subscribeToPlusCodeSagaEffect(
+export function* subscribeToPlusCodeSagaEffect(
   action: ReturnType<typeof subscribeToPlusCodePromiseAction.request>,
 ): Generator<Effect, void, string | undefined> {
   try {
@@ -190,7 +190,7 @@ function* subscribeToPlusCodeSaga() {
   );
 }
 
-function* unsubscribeFromPlusCodeSagaEffect(
+export function* unsubscribeFromPlusCodeSagaEffect(
   action: ReturnType<typeof unsubscribeFromPlusCodePromiseAction.request>,
 ): Generator<Effect, void, void> {
   try {
@@ -270,7 +270,7 @@ function isAddEventAction(
   return action.type === addEvent.toString();
 }
 
-function isAddEventKind10395Action(action: AnyAction): boolean {
+export function isAddEventKind10395Action(action: AnyAction): boolean {
   if (!isAddEventAction(action)) {
     return false;
   }
@@ -284,7 +284,7 @@ function* handleIncomingSubscriptionEventSaga() {
   );
 }
 
-function* startupSagaEffect(): Generator<
+export function* startupSagaEffect(): Generator<
   Effect,
   void,
   ReturnType<typeof keystoreSelectors.selectPublicKeyHex>

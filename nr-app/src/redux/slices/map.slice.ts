@@ -1,12 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { mapRefService } from "@/utils/mapRef";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
 import { matchFilter } from "nostr-tools";
-import { BoundingBox, LatLng, Region } from "react-native-maps";
+import { BoundingBox, LatLng, MapViewport } from "@/utils/map.utils";
 import { persistReducer } from "redux-persist";
 import { setVisiblePlusCodes } from "../actions/map.actions";
-import type { AppDispatch, RootState } from "../store";
 import { eventsSelectors, EventWithMetadata } from "./events.slice";
 import { setSubscriptionHasSeenEOSE } from "./relays.slice";
 
@@ -26,7 +24,7 @@ interface MapState {
   centerMapOnHalfModal: boolean;
   currentNotificationEvent?: EventWithMetadata;
   selectedLayer: MAP_LAYER_KEY;
-  savedRegion?: Region;
+  savedViewport?: MapViewport;
 }
 
 const initialState: MapState = {
@@ -42,7 +40,7 @@ const initialState: MapState = {
   currentNotificationEvent: undefined,
   selectedPlusCode: "",
   selectedLayer: "trustroots",
-  savedRegion: undefined,
+  savedViewport: undefined,
 };
 
 export const mapSlice = createSlice({
@@ -72,7 +70,7 @@ export const mapSlice = createSlice({
     enableLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
       state.selectedLayer = action.payload;
     },
-    disableLayer: (state, action: PayloadAction<MAP_LAYER_KEY>) => {
+    disableLayer: (state) => {
       // Disable turning off layers for now
       // return state;
       state.selectedLayer = "trustroots";
@@ -123,29 +121,9 @@ export const mapSlice = createSlice({
     ) => {
       state.boundingBox = action.payload;
     },
-    setSavedRegion: (state, action: PayloadAction<Region>) => {
-      state.savedRegion = action.payload;
+    setSavedViewport: (state, action: PayloadAction<MapViewport>) => {
+      state.savedViewport = action.payload;
     },
-    // Action to trigger map animation - handled by saga
-    animateToRegion: (
-      state,
-      action: PayloadAction<{ region: Region; duration?: number }>,
-    ) => {
-      // This action is handled by the saga
-    },
-    // Action to trigger map animation to a coordinate
-    /*animateToCoordinate: (
-      state,
-      action: PayloadAction<{
-        latitude: number;
-        longitude: number;
-        latitudeDelta?: number;
-        longitudeDelta?: number;
-        duration?: number;
-      }>,
-    ) => {
-      // This action is handled by the saga
-    },*/
   },
   extraReducers: (builder) => {
     builder
@@ -191,7 +169,7 @@ export const mapSlice = createSlice({
     selectCenterMapOnHalfModal: (state: MapState) => state.centerMapOnHalfModal,
     selectCurrentNotificationEvent: (state: MapState) =>
       state.currentNotificationEvent,
-    selectSavedRegion: (state: MapState) => state.savedRegion,
+    selectSavedViewport: (state: MapState) => state.savedViewport,
   },
 });
 
@@ -215,30 +193,6 @@ const selectEventsForSelectedMapLayer = createSelector(
 
 export const mapActions = mapSlice.actions;
 
-export const animateToRegion =
-  (region: Region, duration?: number) =>
-  (dispatch: AppDispatch, getState: () => RootState) => {
-    mapRefService.animateToRegion(region, duration);
-  };
-
-export const animateToCoordinate =
-  (
-    latitude: number,
-    longitude: number,
-    latitudeDelta?: number,
-    longitudeDelta?: number,
-    duration?: number,
-  ) =>
-  (dispatch: AppDispatch, getState: () => RootState) => {
-    mapRefService.animateToCoordinate(
-      latitude,
-      longitude,
-      latitudeDelta,
-      longitudeDelta,
-      duration,
-    );
-  };
-
 export const mapSelectors = {
   ...mapSliceSelectors,
   selectEnabledLayerKeys,
@@ -250,7 +204,7 @@ export const mapSelectors = {
 const mapPersistConfig = {
   key: "map",
   storage: AsyncStorage,
-  whitelist: ["savedRegion", "selectedLayer"],
+  whitelist: ["savedViewport", "selectedLayer"],
 };
 
 // Slice-like wrapper for combineSlices compatibility

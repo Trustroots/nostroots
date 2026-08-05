@@ -35,6 +35,8 @@
 		7EB28405742485A40194B68F /* BrowserAppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0958617F13CF156E8834A38D /* BrowserAppModel.swift */; };
 		8A1034998A86D308184A6384 /* VibePushPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C108C0C5039EC8F83C2F711 /* VibePushPublisher.swift */; };
 		8AD450C25B777F78967367DB /* NostrSDK in Frameworks */ = {isa = PBXBuildFile; productRef = 88DCAD9131391961F56E302A /* NostrSDK */; };
+		A10000000000000000000003 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000001 /* secp256k1 */; };
+		A10000000000000000000004 /* secp256k1 in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000002 /* secp256k1 */; };
 		8BBD0D32C4AA6A356B5ABDDE /* BrowserNavigationPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C623DA66B6B454DB6007336 /* BrowserNavigationPolicy.swift */; };
 		9520637E43CF6AEC059E708E /* NIP44Box.swift in Sources */ = {isa = PBXBuildFile; fileRef = 197B81B6989D1F996C99B2E1 /* NIP44Box.swift */; };
 		988900A139EE4CD840685E3A /* NativeBrowserWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61C77DADC83CB8690781F222 /* NativeBrowserWebView.swift */; };
@@ -110,6 +112,7 @@
 			files = (
 				FFF357BA2EA9F825F0C843C2 /* Foundation.framework in Frameworks */,
 				E798177E5D8155E0E5DE4330 /* NostrSDK in Frameworks */,
+				A10000000000000000000004 /* secp256k1 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +122,7 @@
 			files = (
 				053C57B73A429E7AF3B8E031 /* Foundation.framework in Frameworks */,
 				8AD450C25B777F78967367DB /* NostrSDK in Frameworks */,
+				A10000000000000000000003 /* secp256k1 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -232,6 +236,7 @@
 			name = NostrootsBrowser;
 			packageProductDependencies = (
 				88DCAD9131391961F56E302A /* NostrSDK */,
+				A10000000000000000000001 /* secp256k1 */,
 			);
 			productName = NostrootsBrowser;
 			productReference = 3B9F6E26BC3388D2055592DE /* NostrootsBrowser.app */;
@@ -253,6 +258,7 @@
 			name = NostrootsBrowserTests;
 			packageProductDependencies = (
 				64B4F4CC62A6EA0F345F1A7B /* NostrSDK */,
+				A10000000000000000000002 /* secp256k1 */,
 			);
 			productName = NostrootsBrowserTests;
 			productReference = 9BB34A2E63AC44AC080F1235 /* NostrootsBrowserTests.xctest */;
@@ -279,6 +285,7 @@
 			minimizedProjectReferenceProxies = 0;
 			packageReferences = (
 				B9001DC529C6CF3AB35D7FBC /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */,
+				A10000000000000000000000 /* XCRemoteSwiftPackageReference "secp256k1.swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2AD82C56F046D78E78188C2F /* Products */;
@@ -638,6 +645,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		A10000000000000000000000 /* XCRemoteSwiftPackageReference "secp256k1.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/GigaBitcoin/secp256k1.swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.12.2;
+			};
+		};
 		B9001DC529C6CF3AB35D7FBC /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/nostr-sdk/nostr-sdk-ios.git";
@@ -649,6 +664,16 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		A10000000000000000000001 /* secp256k1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A10000000000000000000000 /* XCRemoteSwiftPackageReference "secp256k1.swift" */;
+			productName = secp256k1;
+		};
+		A10000000000000000000002 /* secp256k1 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A10000000000000000000000 /* XCRemoteSwiftPackageReference "secp256k1.swift" */;
+			productName = secp256k1;
+		};
 		64B4F4CC62A6EA0F345F1A7B /* NostrSDK */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = B9001DC529C6CF3AB35D7FBC /* XCRemoteSwiftPackageReference "nostr-sdk-ios" */;

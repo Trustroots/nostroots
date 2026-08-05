@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import secp256k1
 
 enum KeyImportError: Error, LocalizedError, Equatable {
     case empty
@@ -57,7 +58,7 @@ enum KeyImportParser {
         }
 
         if lower.count == 64 {
-            guard NIP19.isValidHex(lower, expectedBytes: 32) else {
+            guard NIP19.isValidSecretHex(lower) else {
                 throw KeyImportError.invalidHex
             }
             return KeyImportResult(secretHex: lower, source: .hex)
@@ -100,7 +101,7 @@ enum MnemonicKeyDeriver {
             iterations: 2_048,
             outputByteCount: 64
         )
-        return Hex.encode(Data(seed.prefix(32)))
+        return try deriveNIP06Secret(from: seed)
     }
 
     static func validate(_ phrase: String) -> Bool {
@@ -133,7 +134,7 @@ enum MnemonicKeyDeriver {
         let entropyBits = Array(bits.prefix(entropyBitCount))
         let checksumBits = Array(bits.dropFirst(entropyBitCount).prefix(checksumBitCount))
         let entropy = bytes(from: entropyBits)
-        let hash = Data(SHA256.hash(data: entropy))
+        let hash = Data(CryptoKit.SHA256.hash(data: entropy))
 
         for bitIndex in 0..<checksumBitCount {
             let byte = hash[bitIndex / 8]
@@ -149,6 +150,37 @@ enum MnemonicKeyDeriver {
             data[index / 8] |= UInt8(1 << (7 - (index % 8)))
         }
         return data
+    }
+
+    private static func deriveNIP06Secret(from seed: Data) throws -> String {
+        let master = hmacSHA512(key: Data("Bitcoin seed".utf8), data: seed)
+        var privateKey = try secp256k1.Signing.PrivateKey(dataRepresentation: Data(master.prefix(32)))
+        var chainCode = Data(master.suffix(32))
+        let path: [UInt32] = [44 | 0x8000_0000, 1237 | 0x8000_0000, 0x8000_0000, 0, 0]
+
+        for index in path {
+            var input = Data()
+            if index & 0x8000_0000 != 0 {
+                input.append(0)
+                input.append(privateKey.dataRepresentation)
+            } else {
+                input.append(privateKey.publicKey.dataRepresentation)
+            }
+            input.append(UInt8((index >> 24) & 0xff))
+            input.append(UInt8((index >> 16) & 0xff))
+            input.append(UInt8((index >> 8) & 0xff))
+            input.append(UInt8(index & 0xff))
+
+            let derived = hmacSHA512(key: chainCode, data: input)
+            let tweak = Data(derived.prefix(32))
+            guard NIP19.isValidSecretHex(Hex.encode(tweak)) else {
+                throw KeyImportError.invalidMnemonic
+            }
+            privateKey = try privateKey.add(Array(tweak))
+            chainCode = Data(derived.suffix(32))
+        }
+
+        return Hex.encode(privateKey.dataRepresentation)
     }
 
     private static func pbkdf2SHA512(password: Data, salt: Data, iterations: Int, outputByteCount: Int) -> Data {
@@ -179,7 +211,10 @@ enum MnemonicKeyDeriver {
     }
 
     private static func hmacSHA512(key: Data, data: Data) -> Data {
-        let code = HMAC<SHA512>.authenticationCode(for: data, using: SymmetricKey(data: key))
+        let code = CryptoKit.HMAC<CryptoKit.SHA512>.authenticationCode(
+            for: data,
+            using: CryptoKit.SymmetricKey(data: key)
+        )
         return Data(code)
     }
 }

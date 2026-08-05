@@ -21,14 +21,17 @@ enum NIP19Error: Error, LocalizedError {
 
 enum NIP19 {
     private static let charset = Array("qpzry9x8gf2tvdw0s3jn54khce6mua7l")
+    private static let secp256k1OrderHex = "fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141"
 
     static func importSecret(_ input: String) throws -> String {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if isValidHex(trimmed, expectedBytes: 32) {
+        if isValidSecretHex(trimmed) {
             return trimmed
         }
         if trimmed.hasPrefix("nsec1") {
-            return try decodeNsec(trimmed)
+            let secretHex = try decodeNsec(trimmed)
+            guard isValidSecretHex(secretHex) else { throw NIP19Error.invalidData }
+            return secretHex
         }
         throw NIP19Error.invalidFormat
     }
@@ -45,14 +48,18 @@ enum NIP19 {
     }
 
     static func generateSecretHex() throws -> String {
-        var bytes = [UInt8](repeating: 0, count: 32)
-        let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
-        guard status == errSecSuccess else { throw NIP19Error.invalidData }
-        return bytes.map { String(format: "%02x", $0) }.joined()
+        while true {
+            var bytes = [UInt8](repeating: 0, count: 32)
+            let status = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+            guard status == errSecSuccess else { throw NIP19Error.invalidData }
+            let secretHex = bytes.map { String(format: "%02x", $0) }.joined()
+            if isValidSecretHex(secretHex) { return secretHex }
+        }
     }
 
     static func encodeNsec(secretHex: String) throws -> String {
-        try encodeBech32Hex(secretHex, hrp: "nsec")
+        guard isValidSecretHex(secretHex) else { throw NIP19Error.invalidHex }
+        return try encodeBech32Hex(secretHex, hrp: "nsec")
     }
 
     static func encodeNpub(pubkeyHex: String) throws -> String {
@@ -75,6 +82,15 @@ enum NIP19 {
         let hex = value.lowercased()
         guard hex.count == expectedBytes * 2 else { return false }
         return hex.range(of: "^[0-9a-f]+$", options: .regularExpression) != nil
+    }
+
+    static func isValidSecretHex(_ value: String) -> Bool {
+        let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard isValidHex(normalized, expectedBytes: 32),
+              normalized != String(repeating: "0", count: 64) else {
+            return false
+        }
+        return normalized < secp256k1OrderHex
     }
 
     private static func decodeNsec(_ value: String) throws -> String {

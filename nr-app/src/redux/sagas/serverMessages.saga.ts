@@ -15,13 +15,15 @@ const log = rootLogger.extend("serverMessages");
 
 const SERVER_MESSAGE_SUBSCRIPTION_ID = "serverMessageSubscription";
 
-function isServerMessageEvent(action: AnyAction): boolean {
+export function isServerMessageEvent(action: AnyAction): boolean {
   return (
     addEvent.match(action) && action.payload.event.kind === SERVER_MESSAGE_KIND
   );
 }
 
-function* handleServerMessageEffect(action: ReturnType<typeof addEvent>) {
+export function* handleServerMessageEffect(
+  action: ReturnType<typeof addEvent>,
+) {
   const { event } = action.payload;
   const publicKeyHex: ReturnType<typeof keystoreSelectors.selectPublicKeyHex> =
     yield select(keystoreSelectors.selectPublicKeyHex);
@@ -43,7 +45,7 @@ function* handleServerMessageSaga() {
   yield takeEvery(isServerMessageEvent, handleServerMessageEffect);
 }
 
-function* subscribeToServerMessages() {
+export function* subscribeToServerMessages() {
   yield take(rehydrated);
 
   yield put(

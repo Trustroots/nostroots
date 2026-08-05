@@ -12,7 +12,6 @@ import {
 } from "@/redux/slices/keystore.slice";
 import {
   selectFeatureFlags,
-  settingsActions,
   settingsSelectors,
 } from "@/redux/slices/settings.slice";
 import { resolveStartupRoute } from "@/utils/startupRoute.utils";
@@ -92,13 +91,6 @@ export default function IndexRoute() {
       cancelled = true;
     };
   }, [isSettingsDataLoaded, username, npub, dispatch]);
-
-  // Mark app as opened on first redirect
-  useEffect(() => {
-    if (isSettingsDataLoaded && verificationDone && !hasBeenOpenedBefore) {
-      dispatch(settingsActions.setHasBeenOpenedBefore(true));
-    }
-  }, [isSettingsDataLoaded, verificationDone, hasBeenOpenedBefore, dispatch]);
 
   // Show loading while determining destination
   if (!isSettingsDataLoaded || !verificationDone) {

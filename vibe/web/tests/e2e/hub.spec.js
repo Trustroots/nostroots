@@ -126,6 +126,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Trustroots\.org/ })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
     await expect(page.locator('.trustroots .app-icon img')).toHaveAttribute('src', 'trustroots-tree-white.svg');
     await expect(page.getByRole('link', { name: /Open Nostroots Web/ })).toHaveAttribute('href', 'web/');
+    await expect(page.getByRole('link', { name: /Open Food Circle/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toHaveAttribute('href', 'examples/squatbridge/');
     await expect(page.locator('.squatbridge .app-icon')).toHaveText('｟(･)｠');
     await expect(page.locator('.squatbridge .card-action')).toHaveCSS('background-color', 'rgb(119, 119, 119)');
@@ -160,14 +161,21 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Hitchwiki$/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Hitchwiki Maps/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Radiostr/ })).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open Rideshares/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toBeHidden();
 
     await experimentalToggle.check();
 
+    await expect(page.getByRole('link', { name: /Open Food Circle/ })).toHaveAttribute('href', 'food/');
+    await expect(page.locator('.food-circle .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open Nostrail/ })).toHaveAttribute('href', 'nostrail/');
     await expect(page.locator('.location .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open Nostroots Map/ })).toHaveCount(0);
     await expect(page.getByRole('link', { name: /Open Radiostr/ })).toHaveAttribute('href', 'examples/radiostr/');
+    await expect(page.getByRole('link', { name: /Open Food Circle/ })).toHaveAttribute('href', 'food/');
+    await expect(page.locator('.food-circle .card-label')).toHaveText('More experimental');
+    await expect(page.getByRole('link', { name: /Open Rideshares/ })).toHaveAttribute('href', 'examples/rideshares/');
+    await expect(page.locator('.rideshares .card-label')).toHaveText('More experimental');
     await expect(page.getByRole('link', { name: /Open Trustroots Wiki/ })).toHaveAttribute('href', 'https://wiki.trustroots.org/');
     await expect(page.getByRole('link', { name: /Open Nomadwiki/ })).toHaveAttribute('href', 'https://nomadwiki.org/');
     await expect(page.getByRole('link', { name: /Open Trashwiki/ })).toHaveAttribute('href', 'https://trashwiki.org/');
@@ -196,8 +204,10 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.getByRole('link', { name: /Open Let's Miti/ })).toHaveAttribute('target', '_blank');
     await expect(page.locator('.miti .card-label')).toHaveText('More experimental / 3rd party');
     await expect(page.locator('.experimental-card h2')).toHaveText([
+      'Food Circle',
       'Nostrail',
       'Radiostr',
+      'Rideshares',
       'Hitchwiki',
       'Hitchwiki Maps',
       "Let's Miti",
@@ -333,6 +343,7 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('#web-experiences-section .section-lead')).toBeHidden();
     await expect(page.locator('#trustroots-card')).toBeHidden();
     await expect(page.locator('#nostroots-web-card')).toBeHidden();
+    await expect(page.getByRole('link', { name: /Open Food Circle/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toBeVisible();
 
     await context.close();

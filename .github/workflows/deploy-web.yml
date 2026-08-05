@@ -12,9 +12,10 @@ on:
   # Allow manual trigger
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# Allow Pages deployment and the reusable test workflow's PR reporting permission.
 permissions:
   contents: read
+  pull-requests: write
   pages: write
   id-token: write
 

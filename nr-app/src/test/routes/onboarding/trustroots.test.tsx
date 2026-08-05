@@ -27,6 +27,16 @@ const bridge = jest.requireMock("@/services/nrBridge.service") as {
 };
 
 describe("OnboardingTrustrootsScreen", () => {
+  it("pre-fills a valid username from an onboarding link", () => {
+    renderWithProviders(<OnboardingTrustrootsScreen />, {
+      searchParams: { username: "Guaka" },
+    });
+
+    expect(screen.getByPlaceholderText("your-username").props.value).toBe(
+      "guaka",
+    );
+  });
+
   it("validates username before requesting a code", () => {
     renderWithProviders(<OnboardingTrustrootsScreen />);
 

@@ -70,7 +70,10 @@ function getRequestErrorMessage(error: unknown): string {
 export default function OnboardingTrustrootsScreen() {
   const dispatch = useAppDispatch();
   const router = useRouter();
-  const { error: errorParam } = useLocalSearchParams<{ error?: string }>();
+  const { error: errorParam, username: usernameParam } = useLocalSearchParams<{
+    error?: string;
+    username?: string;
+  }>();
 
   const pendingTrustrootsUsername = useAppSelector(
     settingsSelectors.selectPendingTrustrootsUsername,
@@ -78,6 +81,12 @@ export default function OnboardingTrustrootsScreen() {
   const pendingTrustrootsProfileUsername = useAppSelector(
     settingsSelectors.selectPendingTrustrootsProfileUsername,
   );
+  const linkedUsernameResult = usernameParam
+    ? validateTrustrootsUsername(usernameParam)
+    : null;
+  const linkedUsername = linkedUsernameResult?.success
+    ? linkedUsernameResult.username
+    : null;
 
   const [screenState, setScreenState] = useState<TrustrootsScreenState>(
     pendingTrustrootsProfileUsername
@@ -87,7 +96,10 @@ export default function OnboardingTrustrootsScreen() {
         : "idle",
   );
   const [usernameInput, setUsernameInput] = useState(
-    pendingTrustrootsProfileUsername ?? pendingTrustrootsUsername ?? "",
+    pendingTrustrootsProfileUsername ??
+      pendingTrustrootsUsername ??
+      linkedUsername ??
+      "",
   );
   const [code, setCode] = useState("");
   const [fieldError, setFieldError] = useState<string | null>(null);

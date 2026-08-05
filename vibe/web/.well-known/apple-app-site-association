@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": [
+          "WR2T34P467.org.trustroots.nostroots"
+        ],
+        "components": [
+          {
+            "/": "/open/onboarding",
+            "comment": "Open Trustroots onboarding in Nostroots"
+          },
+          {
+            "/": "/open/onboarding/",
+            "comment": "Open the static fallback form of the onboarding URL in Nostroots"
+          }
+        ]
+      }
+    ]
+  }
+}

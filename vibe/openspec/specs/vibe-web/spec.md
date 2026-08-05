@@ -69,6 +69,22 @@ step for the main pages.
 - **AND** it MUST explain that custom-scheme links do not install the app or
   provide an automatic website fallback.
 
+#### Scenario: Verified HTTPS onboarding fallback
+
+- **GIVEN** a member opens `/open/onboarding?username=<username>` without a
+  verified Nostroots app handling the URL
+- **WHEN** the static fallback page renders
+- **THEN** it MUST explain that the link continues Trustroots onboarding in the
+  installed Nostroots app
+- **AND** on Android it MUST continue to the official Google Play listing
+- **AND** on iPhone or iPad it MUST continue to the official App Store listing
+- **AND** on desktop or an unknown device it MUST offer both store listings
+- **AND** the desktop fallback MUST also offer the Android APK releases and the
+  existing generic app-download QR code
+- **AND** it MUST preserve the username only as visible, non-secret context
+- **AND** the site MUST publish platform association files that restrict native
+  handling to the Nostroots app identity and `/open/onboarding` path.
+
 ### Requirement: Single canonical browser map surface
 
 Vibe Web MUST provide `/web/` as the only maintained Nostroots browser

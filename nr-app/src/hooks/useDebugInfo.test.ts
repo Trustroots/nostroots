@@ -1,4 +1,6 @@
 import { renderHook } from "@testing-library/react-native";
+import * as Updates from "expo-updates";
+import { Platform } from "react-native";
 
 import { useDebugInfo } from "./useDebugInfo";
 
@@ -25,6 +27,14 @@ jest.mock("@/redux/hooks", () => ({
 }));
 
 describe("useDebugInfo()", () => {
+  const originalPlatform = Platform.OS;
+
+  afterEach(() => {
+    Object.defineProperty(Platform, "OS", { value: originalPlatform });
+    (Updates as { channel?: string }).channel = "preview";
+    (Updates as { updateId?: string }).updateId = "uuid-1";
+  });
+
   it("returns a formatted debug block for the current build", () => {
     const { result } = renderHook(() => useDebugInfo());
 
@@ -38,5 +48,16 @@ describe("useDebugInfo()", () => {
 
     expect(result.current).toContain("npub: not set");
     expect(result.current).toContain("Trustroots username: not set");
+  });
+
+  it("collects Android build details when OTA metadata is absent", () => {
+    Object.defineProperty(Platform, "OS", { value: "android" });
+    (Updates as { channel?: string }).channel = undefined;
+    (Updates as { updateId?: string }).updateId = undefined;
+
+    const { result } = renderHook(() => useDebugInfo());
+
+    expect(result.current).toContain("Build: unknown");
+    expect(result.current).toContain("Update: embedded build");
   });
 });

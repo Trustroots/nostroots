@@ -1,11 +1,44 @@
 import { expect } from "jsr:@std/expect";
 import { finalizeEvent, generateSecretKey } from "nostr-tools/pure";
 import { getToken } from "nostr-tools/nip98";
+import { Hono } from "hono";
+import type { Collection } from "mongodb";
 import { createApp } from "../../src/server.ts";
 import { buildSupportEmail } from "../../src/email/templates.ts";
+import { createSupportHandler } from "../../src/routes/support.ts";
 import { SUPPORT_MESSAGE_MAX_LENGTH } from "../../schemas/supportRequest.ts";
 
 const secretKey = generateSecretKey();
+
+function createIsolatedSupportApp({
+  user,
+  sent,
+}: {
+  user: { email: string; username: string } | null;
+  sent: Array<{ to: string; subject: string; html: string }>;
+}) {
+  const app = new Hono();
+  const collection = {
+    findOne: () => Promise.resolve(user),
+  } as unknown as Collection;
+
+  app.post(
+    "/support",
+    createSupportHandler({
+      getUsersCollection: () => Promise.resolve(collection),
+      sendEmail: (email) => {
+        sent.push(email);
+        return Promise.resolve();
+      },
+      verifyNip98Header: () =>
+        Promise.resolve({
+          ok: true,
+          pubkey: "1".repeat(64),
+        }),
+    }),
+  );
+  return app;
+}
 
 function signedToken(body: Record<string, unknown>): Promise<string> {
   return getToken(
@@ -111,4 +144,47 @@ Deno.test("#sup8 support email escapes HTML in the message", () => {
 
   expect(html).not.toContain("<script>");
   expect(html).toContain("&lt;script&gt;");
+});
+
+Deno.test("#sup9 POST /support rejects malformed JSON", async () => {
+  const app = createApp();
+  const res = await app.request("/support", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{",
+  });
+
+  expect(res.status).toBe(400);
+});
+
+Deno.test("#sup10 POST /support sends an attributed email", async () => {
+  const sent: Array<{ to: string; subject: string; html: string }> = [];
+  const app = createIsolatedSupportApp({
+    user: { email: "alice@example.test", username: "wanderingpine" },
+    sent,
+  });
+  const res = await app.request("/support", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: "The map is blank" }),
+  });
+
+  expect(res.status).toBe(200);
+  expect(await res.json()).toEqual({ success: true });
+  expect(sent).toHaveLength(1);
+  expect(sent[0].subject).toContain("wanderingpine");
+  expect(sent[0].html).toContain("The map is blank");
+});
+
+Deno.test("#sup11 POST /support handles an unlinked signer", async () => {
+  const sent: Array<{ to: string; subject: string; html: string }> = [];
+  const app = createIsolatedSupportApp({ user: null, sent });
+  const res = await app.request("/support", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: "Please help" }),
+  });
+
+  expect(res.status).toBe(200);
+  expect(sent[0].html).toContain("not linked to a Trustroots account");
 });

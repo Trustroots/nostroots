@@ -1,14 +1,15 @@
-import { render } from "@testing-library/react-native";
+import { fireEvent, render } from "@testing-library/react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import MapLayout from "./_layout";
 import { useAppSelector } from "@/redux/hooks";
+import { getRouterMock } from "@/test/router";
 
 jest.mock("@/redux/hooks", () => ({
   useAppSelector: jest.fn(),
 }));
 
-const mockUseAppSelector = useAppSelector as jest.Mock;
+const mockUseAppSelector = useAppSelector as unknown as jest.Mock;
 
 function fakeState(
   areTestFeaturesEnabled: boolean,
@@ -90,5 +91,10 @@ describe("MapLayout", () => {
     );
 
     expect(queryByLabelText("Send feedback")).toBeTruthy();
+
+    fireEvent.press(queryByLabelText("Send feedback")!);
+    expect(getRouterMock().push).toHaveBeenCalledWith(
+      "/(main)/(views)/feedback",
+    );
   });
 });

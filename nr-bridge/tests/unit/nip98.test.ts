@@ -1,6 +1,6 @@
 import { expect } from "jsr:@std/expect";
 import { generateSecretKey, getPublicKey } from "nostr-tools/pure";
-import { getToken } from "nostr-tools/nip98";
+import { getToken, hashPayload } from "nostr-tools/nip98";
 import { finalizeEvent } from "nostr-tools/pure";
 import { verifyNip98Header } from "../../src/nostr/nip98.ts";
 
@@ -16,6 +16,33 @@ async function makeToken(
   body: Record<string, unknown>,
 ): Promise<string> {
   return await getToken(url, method, sign, true, body);
+}
+
+function makeCustomToken({
+  body,
+  kind = 27235,
+  urlTag = ["u", "https://bridge.example/support"],
+}: {
+  body: Record<string, unknown>;
+  kind?: number;
+  urlTag?: string[] | null;
+}): string {
+  const tags = [
+    ["method", "POST"],
+    ["payload", hashPayload(body)],
+  ];
+  if (urlTag) tags.push(urlTag);
+
+  const event = finalizeEvent(
+    {
+      kind,
+      created_at: Math.floor(Date.now() / 1000),
+      content: "",
+      tags,
+    },
+    secretKey,
+  );
+  return `Nostr ${btoa(JSON.stringify(event))}`;
 }
 
 Deno.test("#n98-1 accepts a valid token and returns the signer pubkey", async () => {
@@ -108,4 +135,62 @@ Deno.test("#n98-8 rejects an event with a tampered signature", async () => {
   const result = await verifyNip98Header(tampered, "/support", "POST", body);
 
   expect(result.ok).toBe(false);
+});
+
+Deno.test("#n98-9 rejects a malformed authorization token", async () => {
+  const result = await verifyNip98Header(
+    "Nostr definitely-not-base64",
+    "/support",
+    "POST",
+    { message: "hello" },
+  );
+
+  expect(result).toEqual({
+    ok: false,
+    reason: "Malformed Authorization header",
+  });
+});
+
+Deno.test("#n98-10 rejects a signed event with the wrong kind", async () => {
+  const body = { message: "hello" };
+  const result = await verifyNip98Header(
+    makeCustomToken({ body, kind: 1 }),
+    "/support",
+    "POST",
+    body,
+  );
+
+  expect(result).toEqual({ ok: false, reason: "Invalid event kind" });
+});
+
+Deno.test("#n98-11 rejects missing and incomplete URL tags", async () => {
+  const body = { message: "hello" };
+
+  for (const urlTag of [null, ["u"]]) {
+    const result = await verifyNip98Header(
+      makeCustomToken({ body, urlTag }),
+      "/support",
+      "POST",
+      body,
+    );
+    expect(result).toEqual({
+      ok: false,
+      reason: "URL tag does not match request",
+    });
+  }
+});
+
+Deno.test("#n98-12 rejects a URL tag that is not a URL", async () => {
+  const body = { message: "hello" };
+  const result = await verifyNip98Header(
+    makeCustomToken({ body, urlTag: ["u", "not a URL"] }),
+    "/support",
+    "POST",
+    body,
+  );
+
+  expect(result).toEqual({
+    ok: false,
+    reason: "URL tag does not match request",
+  });
 });

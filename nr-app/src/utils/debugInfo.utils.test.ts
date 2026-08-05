@@ -50,6 +50,22 @@ describe("formatDebugInfo()", () => {
     expect(output).toContain("Update published: 2026-07-12 18:30");
   });
 
+  it("marks missing build and OTA metadata as unknown", () => {
+    const output = formatDebugInfo({
+      platform: "ios",
+      platformVersion: "26.0",
+      isEmbeddedLaunch: false,
+      generatedAt: baseInfo.generatedAt,
+    });
+
+    expect(output).toContain("App version: unknown");
+    expect(output).toContain("Build: unknown");
+    expect(output).toContain("Commit: unknown");
+    expect(output).toContain("Update channel: unknown");
+    expect(output).toContain("Update ID: unknown");
+    expect(output).toContain("Update published: unknown");
+  });
+
   it("marks an unset identity explicitly rather than omitting it", () => {
     const output = formatDebugInfo(baseInfo);
 

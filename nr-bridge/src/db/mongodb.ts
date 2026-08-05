@@ -4,7 +4,7 @@
  * Lazily-initialised MongoDB client and query helpers for the Trustroots
  * `users` collection.
  */
-import { MongoClient, type Db, type Collection } from "mongodb";
+import { type Collection, type Db, MongoClient } from "mongodb";
 import { MONGODB_DB_NAME, MONGODB_URI } from "../config.ts";
 
 let client: MongoClient | null = null;
@@ -75,9 +75,9 @@ export async function findUserByUsername(
  *          this npub.
  */
 export async function findUserByNpub(
+  users: Pick<Collection, "findOne">,
   npub: string,
 ): Promise<{ email: string; username: string } | null> {
-  const users = await getUsersCollection();
   const user = await users.findOne(
     { nostrNpub: npub },
     { projection: { email: 1, username: 1 } },

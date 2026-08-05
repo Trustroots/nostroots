@@ -26,6 +26,18 @@ describe("SettingsScreen", () => {
     expect(screen.getAllByText("Import Key").length).toBeGreaterThan(0);
     expect(screen.getByText("Appearance")).toBeTruthy();
     expect(screen.getByText("Help")).toBeTruthy();
+    expect(screen.queryByText("Support")).toBeNull();
+  });
+
+  it("shows support once a public key exists", () => {
+    renderWithProviders(<SettingsScreen />, {
+      preloadedState: {
+        keystore: { publicKeyNpub: "npub1test" },
+      },
+    });
+
+    expect(screen.getByText("Support")).toBeTruthy();
+    expect(screen.getByText("Send feedback")).toBeTruthy();
   });
 
   it("updates color scheme preference", () => {

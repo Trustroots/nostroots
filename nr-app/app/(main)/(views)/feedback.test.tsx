@@ -1,4 +1,7 @@
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import * as Clipboard from "expo-clipboard";
+import * as WebBrowser from "expo-web-browser";
+import { Alert } from "react-native";
 
 import FeedbackScreen from "./feedback";
 import { sendSupportMessage } from "@/services/nrBridge.service";
@@ -29,12 +32,17 @@ jest.mock("expo-clipboard", () => ({ setStringAsync: jest.fn() }));
 jest.mock("expo-web-browser", () => ({ openBrowserAsync: jest.fn() }));
 
 const mockSend = sendSupportMessage as jest.Mock;
+const mockClipboard = Clipboard.setStringAsync as jest.Mock;
+const mockOpenBrowser = WebBrowser.openBrowserAsync as jest.Mock;
 
 const LONG_ENOUGH =
   "The map stays blank after login, even once I pan around a bit.";
 
 describe("FeedbackScreen", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.spyOn(Alert, "alert").mockImplementation(jest.fn());
+  });
 
   it("disables submit until the message is long enough", () => {
     const { getByRole, getByPlaceholderText } = render(<FeedbackScreen />);
@@ -64,6 +72,10 @@ describe("FeedbackScreen", () => {
         debugInfo: "Nostroots debug info\nnpub: npub1abc",
       }),
     );
+
+    const [, , buttons] = (Alert.alert as jest.Mock).mock.calls[0];
+    buttons[0].onPress();
+    expect(getByPlaceholderText(/what happened/i).props.value).toBe("");
   });
 
   it("keeps the user's text when sending fails", async () => {
@@ -77,6 +89,29 @@ describe("FeedbackScreen", () => {
 
     await waitFor(() => expect(mockSend).toHaveBeenCalled());
     expect(input.props.value).toBe(LONG_ENOUGH);
+    expect(mockClipboard).toHaveBeenCalledWith(
+      formatSupportMessage({
+        userMessage: LONG_ENOUGH,
+        debugInfo: "Nostroots debug info\nnpub: npub1abc",
+      }),
+    );
+
+    const [, , buttons] = (Alert.alert as jest.Mock).mock.calls[0];
+    buttons[1].onPress();
+    expect(mockOpenBrowser).toHaveBeenCalledWith(
+      "https://www.trustroots.org/support",
+    );
+  });
+
+  it("shows focus styling while the message field is active", () => {
+    const { getByPlaceholderText } = render(<FeedbackScreen />);
+    const input = getByPlaceholderText(/what happened/i);
+
+    fireEvent(input, "focus");
+    expect(input.props.className).toContain("border-primary");
+
+    fireEvent(input, "blur");
+    expect(input.props.className).toContain("border-border");
   });
 
   it("shows each limit only while it is the relevant one", () => {

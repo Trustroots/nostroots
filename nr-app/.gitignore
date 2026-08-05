@@ -3,7 +3,6 @@ node_modules/
 android/
 ios/
 dist/
-.e2e-logs/
 npm-debug.*
 *.jks
 *.p8
@@ -13,6 +12,10 @@ npm-debug.*
 *.orig.*
 web-build/
 coverage/
+.e2e-artifacts/
+.e2e-logs/
+.e2e-screenshots/
+builds/
 *.apk
 *.aab
 *.ipa

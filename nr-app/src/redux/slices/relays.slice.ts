@@ -39,33 +39,15 @@ export interface RelaysState {
 
 const initialState: RelaysState = {
   relays: {
-    ...Object.fromEntries(
-      (process.env.EXPO_PUBLIC_NOSTR_RELAYS ?? DEFAULT_RELAY_URL)
-        .split(",")
-        .map((relayUrl) => relayUrl.trim())
-        .filter(Boolean)
-        .map((relayUrl) => [
-          relayUrl,
-          {
-            url: relayUrl,
-            isActive: true,
-            isConnected: false,
-            notices: [],
-          },
-        ]),
-    ),
+    [DEFAULT_RELAY_URL]: {
+      url: DEFAULT_RELAY_URL,
+      isActive: true,
+      isConnected: false,
+      notices: [],
+    },
   },
   subscriptions: {},
 };
-
-if (Object.keys(initialState.relays).length === 0) {
-  initialState.relays[DEFAULT_RELAY_URL] = {
-    url: DEFAULT_RELAY_URL,
-    isActive: true,
-    isConnected: false,
-    notices: [],
-  };
-}
 
 export const relaysSlice = createSlice({
   name: "relays",

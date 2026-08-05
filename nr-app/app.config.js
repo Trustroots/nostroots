@@ -4,47 +4,28 @@ const e2eDevClientUrl =
     ? "http://10.0.2.2:8081?disableOnboarding=1"
     : "http://127.0.0.1:8081?disableOnboarding=1");
 
-const E2E_DEV_CLIENT_OPTIONS = {
-  defaultLaunchURL: e2eDevClientUrl,
-  launchMode: "most-recent",
-  showMenuAtLaunch: false,
-  skipOnboarding: true,
-  toolsButton: false,
-};
-
-function withE2EDevClientOptions(config) {
-  if (process.env.EXPO_PUBLIC_E2E !== "1") {
-    return config;
-  }
-
-  let foundDevClient = false;
-  const plugins = (config.plugins ?? []).map((plugin) => {
-    if (plugin === "expo-dev-client") {
-      foundDevClient = true;
-      return ["expo-dev-client", E2E_DEV_CLIENT_OPTIONS];
-    }
-
-    if (Array.isArray(plugin) && plugin[0] === "expo-dev-client") {
-      foundDevClient = true;
-      return [
-        "expo-dev-client",
-        {
-          ...(plugin[1] ?? {}),
-          ...E2E_DEV_CLIENT_OPTIONS,
-        },
-      ];
-    }
-
-    return plugin;
-  });
-
-  if (!foundDevClient) {
-    plugins.push(["expo-dev-client", E2E_DEV_CLIENT_OPTIONS]);
-  }
+function withE2EDevClient(config) {
+  if (process.env.EXPO_PUBLIC_E2E !== "1") return config;
 
   return {
     ...config,
-    plugins,
+    plugins: [
+      ...(config.plugins ?? []).filter((plugin) =>
+        Array.isArray(plugin)
+          ? plugin[0] !== "expo-dev-client"
+          : plugin !== "expo-dev-client",
+      ),
+      [
+        "expo-dev-client",
+        {
+          defaultLaunchURL: e2eDevClientUrl,
+          launchMode: "most-recent",
+          showMenuAtLaunch: false,
+          skipOnboarding: true,
+          toolsButton: false,
+        },
+      ],
+    ],
   };
 }
 
@@ -52,7 +33,7 @@ module.exports = ({ config }) => {
   const commitId = process.env.EAS_BUILD_GIT_COMMIT_HASH;
   const nrBridgeBaseUrl = process.env.EXPO_PUBLIC_NR_BRIDGE_BASE_URL;
 
-  return withE2EDevClientOptions({
+  return withE2EDevClient({
     ...config,
     scheme: "nostroots",
     extra: {

@@ -1,0 +1,14 @@
+services:
+  tiny-relay:
+    build:
+      cache_from:
+        - type=gha,scope=nr-app-e2e-app
+      cache_to:
+        - type=gha,mode=max,scope=nr-app-e2e-app
+
+  nr-bridge:
+    build:
+      cache_from:
+        - type=gha,scope=nr-app-e2e-app
+      cache_to:
+        - type=gha,mode=max,scope=nr-app-e2e-app

@@ -1,4 +1,8 @@
 import LoadingScreen from "@/components/LoadingModal";
+import {
+  NrBridgeError,
+  requestVerificationToken,
+} from "@/services/nrBridge.service";
 import { isE2EEnabled } from "@/utils/e2e.utils";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -43,6 +47,19 @@ export default function E2ESeedRoute() {
 
       const scenarioName = Array.isArray(scenario) ? scenario[0] : scenario;
       const persistedRoot = persistRootForScenario(scenarioName);
+
+      if (scenarioName === "pending-verify") {
+        try {
+          await requestVerificationToken("alice");
+        } catch (error) {
+          if (
+            !(error instanceof NrBridgeError) ||
+            error.code !== "already-pending"
+          ) {
+            throw error;
+          }
+        }
+      }
 
       await AsyncStorage.setItem("nostroots:e2e:scenario", scenarioName);
       if (persistedRoot) {

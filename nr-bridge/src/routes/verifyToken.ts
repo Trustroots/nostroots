@@ -11,9 +11,13 @@ import type { Context } from "hono";
 import { VerifyTokenRequestSchema } from "../../schemas/tokenRequest.ts";
 import { TOKEN_EXPIRY_MS } from "../../schemas/tokenRequest.ts";
 import type { TokenRequest } from "../../schemas/tokenRequest.ts";
-import { DEEP_LINK_BASE } from "../config.ts";
+import {
+  DEEP_LINK_BASE,
+  E2E_VERIFICATION_CODE,
+  E2E_VERIFICATION_TOKEN,
+} from "../config.ts";
 import { findUserByUsername } from "../db/mongodb.ts";
-import { getTokenRequest, createTokenRequest } from "../db/kv.ts";
+import { createTokenRequest, getTokenRequest } from "../db/kv.ts";
 import { generateSixDigitCode, generateToken } from "../utils.ts";
 import { sendEmail } from "../email/send.ts";
 import { buildVerificationEmail } from "../email/templates.ts";
@@ -50,8 +54,8 @@ export async function handleVerifyToken(c: Context): Promise<Response> {
   }
 
   const now = Date.now();
-  const code = generateSixDigitCode();
-  const token = generateToken();
+  const code = E2E_VERIFICATION_CODE ?? generateSixDigitCode();
+  const token = E2E_VERIFICATION_TOKEN ?? generateToken();
 
   const tokenRequest: TokenRequest = {
     id: crypto.randomUUID(),

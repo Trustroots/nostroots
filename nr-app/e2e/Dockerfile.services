@@ -1,0 +1,9 @@
+FROM denoland/deno:2.6.6
+
+USER root
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates curl && \
+    rm -rf /var/lib/apt/lists/*
+
+ENV DENO_DIR=/deno-dir
+WORKDIR /app

@@ -51,10 +51,8 @@ export async function getPrivateKeyMnemonicFromSecureStorage(): Promise<string> 
 export async function getHasPrivateKeyMnemonicInSecureStorage(): Promise<boolean> {
   try {
     const mnemonic = await getPrivateKeyMnemonicFromSecureStorage();
-    if (typeof mnemonic === "string" && mnemonic.length > 10) {
-      return true;
-    }
-    return false;
+    const privateKeyHex = await getPrivateKeyHexFromSecureStorage();
+    return accountFromSeedWords({ mnemonic }).privateKey.hex === privateKeyHex;
   } catch {
     return false;
   }
@@ -70,16 +68,11 @@ export async function getHasPrivateKeyHexInSecureStorage(): Promise<boolean> {
 }
 
 export async function getHasPrivateKeyInSecureStorage(): Promise<boolean> {
-  try {
-    const hasMnemonic = await getHasPrivateKeyMnemonicInSecureStorage();
-    if (hasMnemonic) {
-      return true;
-    }
-    const hasHex = await getHasPrivateKeyHexInSecureStorage();
-    return hasHex;
-  } catch {
-    return false;
+  const hasMnemonic = await getHasPrivateKeyMnemonicInSecureStorage();
+  if (hasMnemonic) {
+    return true;
   }
+  return getHasPrivateKeyHexInSecureStorage();
 }
 
 export async function getPublicKeyHexFromSecureStorage(): Promise<
@@ -90,26 +83,20 @@ export async function getPublicKeyHexFromSecureStorage(): Promise<
   | undefined
 > {
   try {
-    const hasMnemonic = await getHasPrivateKeyMnemonicInSecureStorage();
-    if (hasMnemonic) {
+    const privateKeyHex = await getPrivateKeyHexFromSecureStorage();
+    const publicKeyHex = getPublicKey(hexToBytes(privateKeyHex));
+    let hasMatchingMnemonic = false;
+
+    if (await getHasPrivateKeyMnemonicInSecureStorage()) {
       const mnemonic = await getPrivateKeyMnemonicFromSecureStorage();
       const account = accountFromSeedWords({ mnemonic });
-      return {
-        hasMnemonicInSecureStorage: true,
-        publicKeyHex: account.publicKey.hex,
-      };
-    } else {
-      const hasPrivateKeyHex = await getHasPrivateKeyHexInSecureStorage();
-      if (!hasPrivateKeyHex) {
-        return;
-      }
-      const privateKeyHexBytes = await getPrivateKeyBytesFromSecureStorage();
-      const publicKeyHex = getPublicKey(privateKeyHexBytes);
-      return {
-        hasMnemonicInSecureStorage: false,
-        publicKeyHex,
-      };
+      hasMatchingMnemonic = account.privateKey.hex === privateKeyHex;
     }
+
+    return {
+      hasMnemonicInSecureStorage: hasMatchingMnemonic,
+      publicKeyHex,
+    };
   } catch {
     // TODO: handle error
   }
@@ -123,36 +110,61 @@ export async function getPublicKeyHexStringFromSecureStorage(): Promise<string> 
 export async function setPrivateKeyInSecureStorage(
   input: { mnemonic: string } | { privateKeyHex: string },
 ) {
+  const previousPrivateKey = await SecureStore.getItemAsync(
+    SECURE_STORE_PRIVATE_KEY_HEX_KEY,
+  );
+  const previousMnemonic = await SecureStore.getItemAsync(
+    SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
+  );
+
+  let mnemonic: string | undefined;
+  let privateKeyHex: string;
   if ("mnemonic" in input) {
-    const { mnemonic } = input;
-    const account = accountFromSeedWords({ mnemonic: mnemonic });
-    await SecureStore.setItemAsync(
-      SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
-      mnemonic,
-      SecureStoreKeySettings,
-    );
+    mnemonic = input.mnemonic;
+    privateKeyHex = accountFromSeedWords({ mnemonic }).privateKey.hex;
+  } else {
+    privateKeyHex = input.privateKeyHex;
+  }
+  const publicKeyHex = getPublicKey(hexToBytes(privateKeyHex));
+
+  try {
     await SecureStore.setItemAsync(
       SECURE_STORE_PRIVATE_KEY_HEX_KEY,
-      account.privateKey.hex,
+      privateKeyHex,
       SecureStoreKeySettings,
     );
-    return account.publicKey.hex;
-  } else {
-    const { privateKeyHex } = input;
-    const privateKeyHexBytes = hexToBytes(privateKeyHex);
-    try {
-      const publicKeyHex = getPublicKey(privateKeyHexBytes);
-      await SecureStore.deleteItemAsync(SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC);
+
+    if (mnemonic) {
       await SecureStore.setItemAsync(
-        SECURE_STORE_PRIVATE_KEY_HEX_KEY,
-        privateKeyHex,
+        SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
+        mnemonic,
         SecureStoreKeySettings,
       );
-      return publicKeyHex;
-    } catch (error) {
-      console.error("#85VtuH got error", error);
-      throw error;
+    } else {
+      await SecureStore.deleteItemAsync(SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC);
     }
+
+    return publicKeyHex;
+  } catch (error) {
+    await Promise.allSettled([
+      restoreSecureStoreValue(
+        SECURE_STORE_PRIVATE_KEY_HEX_KEY,
+        previousPrivateKey,
+      ),
+      restoreSecureStoreValue(
+        SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
+        previousMnemonic,
+      ),
+    ]);
+    throw error;
+  }
+}
+
+async function restoreSecureStoreValue(key: string, value: string | null) {
+  if (value === null) {
+    await SecureStore.deleteItemAsync(key);
+  } else {
+    await SecureStore.setItemAsync(key, value, SecureStoreKeySettings);
   }
 }
 

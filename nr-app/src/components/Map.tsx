@@ -2,6 +2,7 @@ import React from "react";
 import { View } from "react-native";
 
 import { TEST_IDS } from "@/constants/testIds";
+
 import HalfMapEventModal from "./HalfMapEventModal";
 import MapAddNoteModal from "./MapAddNoteModal";
 import MapLayerSelector from "./MapLayerSelector";

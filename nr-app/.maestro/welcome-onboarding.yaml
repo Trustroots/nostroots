@@ -1,12 +1,29 @@
 appId: org.trustroots.nostroots
+name: "Onboarding: Trustroots choice"
 ---
 - openLink: "nostroots://e2e/reset"
-- launchApp:
-    clearState: true
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "screen-welcome"
+    timeout: 60000
 - tapOn:
-    id: "welcome-get-started-button"
-- assertVisible: "Your Key Is Your Identity"
+    id: "welcome-get-started"
+- assertVisible:
+    id: "screen-onboarding-identity"
 - tapOn:
     id: "identity-continue-button"
 - assertVisible:
     id: "screen-onboarding-trustroots"
+- takeScreenshot: ".e2e-screenshots/trustroots"

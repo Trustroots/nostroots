@@ -7,8 +7,8 @@ import Toast from "react-native-root-toast";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { ROUTES } from "@/constants/routes";
 import { TEST_IDS } from "@/constants/testIds";
+import { ROUTES } from "@/constants/routes";
 import {
   getHasPrivateKeyHexInSecureStorage,
   getHasPrivateKeyMnemonicInSecureStorage,
@@ -246,14 +246,12 @@ export default function OnboardingBackupConfirmScreen() {
             Save this secret before continuing
           </Text>
           <Text
-            testID={TEST_IDS.backupConfirm.secretText}
             className="text-sm bg-muted text-foreground rounded-md p-3 text-left"
             selectable
           >
             {storedSecret}
           </Text>
           <Button
-            testID={TEST_IDS.backupConfirm.copySecretButton}
             variant="outline"
             size="sm"
             title="Copy secret"
@@ -264,7 +262,6 @@ export default function OnboardingBackupConfirmScreen() {
 
       <View className="w-full gap-2">
         <TextInput
-          testID={TEST_IDS.backupConfirm.input}
           value={input}
           onChangeText={(value) => {
             setInput(value);
@@ -295,7 +292,6 @@ export default function OnboardingBackupConfirmScreen() {
       </View>
 
       <Button
-        testID={TEST_IDS.backupConfirm.confirmButton}
         variant="secondary"
         size="lg"
         title={
@@ -311,7 +307,6 @@ export default function OnboardingBackupConfirmScreen() {
 
       <View className="flex flex-row gap-2 mt-4">
         <Button
-          testID={TEST_IDS.backupConfirm.finishButton}
           variant="secondary"
           onPress={handleBack}
           size="lg"

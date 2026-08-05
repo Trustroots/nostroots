@@ -9,6 +9,7 @@ export const TEST_IDS = {
   },
   identity: {
     continueButton: "identity-continue-button",
+    screen: "screen-onboarding-identity",
     skipButton: "identity-skip-button",
   },
   key: {
@@ -47,7 +48,7 @@ export const TEST_IDS = {
     usernameInput: "trustroots-username-input",
   },
   welcome: {
-    getStartedButton: "welcome-get-started-button",
+    getStartedButton: "welcome-get-started",
     screen: "screen-welcome",
   },
 } as const;

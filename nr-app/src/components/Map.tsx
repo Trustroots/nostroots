@@ -1,6 +1,8 @@
 import React from "react";
 import { View } from "react-native";
 
+import { TEST_IDS } from "@/constants/testIds";
+
 import HalfMapEventModal from "./HalfMapEventModal";
 import MapAddNoteModal from "./MapAddNoteModal";
 import MapLayerSelector from "./MapLayerSelector";
@@ -9,7 +11,7 @@ import MapModal from "./MapModal";
 
 export default function Map() {
   return (
-    <View style={{ flex: 1 }}>
+    <View testID={TEST_IDS.map.screen} style={{ flex: 1 }}>
       <View className="flex-1">
         <MapLibreMapView />
         <MapLayerSelector />

@@ -13,7 +13,6 @@ import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 
 import { rehydrated } from "@/redux/actions/startup.actions";
-import { setupNotificationHandling } from "@/services/notifications.service";
 import { PortalHost } from "@rn-primitives/portal";
 import { SENTRY_DSN } from "@trustroots/nr-common";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -36,6 +35,7 @@ import "@/global.css";
 import { useUpdateOnForeground } from "@/hooks/useUpdateOnForeground";
 import { StatusBar } from "react-native";
 import { configureNavigationDispatch } from "@/utils/navigation.utils";
+import { isE2EEnabled } from "@/utils/e2e.utils";
 import { NAV_THEME, THEME } from "@/utils/theme.utils";
 import {
   setAnalyticsEnabled,
@@ -76,11 +76,12 @@ function AppContent() {
   );
 
   useEffect(() => {
+    if (isE2EEnabled()) return;
     setAnalyticsEnabled(analyticsEnabled);
   }, [analyticsEnabled]);
 
   useEffect(() => {
-    if (pathname) trackScreenView(pathname);
+    if (!isE2EEnabled() && pathname) trackScreenView(pathname);
   }, [pathname]);
 
   useEffect(() => {
@@ -127,9 +128,20 @@ function RootLayout() {
 
   useEffect(() => {
     configureNavigationDispatch(store.dispatch);
-    const subscription = setupNotificationHandling();
+    if (isE2EEnabled()) return;
+
+    let subscription: { remove: () => void } | undefined;
+    let cancelled = false;
+
+    void import("@/services/notifications.service").then(
+      ({ setupNotificationHandling }) => {
+        if (!cancelled) subscription = setupNotificationHandling();
+      },
+    );
+
     return () => {
-      subscription.remove();
+      cancelled = true;
+      subscription?.remove();
     };
   }, []);
 

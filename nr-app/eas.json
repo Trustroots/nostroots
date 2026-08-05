@@ -17,6 +17,22 @@
       "distribution": "internal",
       "channel": "simulator"
     },
+    "e2e-android": {
+      "extends": "development",
+      "env": {
+        "EXPO_PUBLIC_E2E": "1",
+        "EXPO_PUBLIC_NR_BRIDGE_BASE_URL": "http://10.0.2.2:8000",
+        "EXPO_PUBLIC_NOSTR_RELAYS": "ws://10.0.2.2:7777"
+      }
+    },
+    "e2e-ios-simulator": {
+      "extends": "simulator",
+      "env": {
+        "EXPO_PUBLIC_E2E": "1",
+        "EXPO_PUBLIC_NR_BRIDGE_BASE_URL": "http://127.0.0.1:8000",
+        "EXPO_PUBLIC_NOSTR_RELAYS": "ws://127.0.0.1:7777"
+      }
+    },
     "preview": {
       "distribution": "internal",
       "environment": "preview",

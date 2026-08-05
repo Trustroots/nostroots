@@ -1,0 +1,44 @@
+appId: org.trustroots.nostroots
+name: "Main app: map, discovery, and settings"
+---
+- openLink: "nostroots://e2e/reset"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible:
+      id: "screen-welcome"
+    timeout: 60000
+- tapOn:
+    id: "welcome-get-started"
+- extendedWaitUntil:
+    visible:
+      id: "identity-skip-button"
+    timeout: 30000
+- tapOn:
+    id: "identity-skip-button"
+- extendedWaitUntil:
+    visible:
+      id: "screen-map"
+    timeout: 60000
+- takeScreenshot: ".e2e-screenshots/map"
+- tapOn:
+    id: "nav-list"
+- assertVisible: "Discover"
+- takeScreenshot: ".e2e-screenshots/list"
+- tapOn:
+    id: "nav-settings"
+- assertVisible:
+    id: "screen-settings"
+- takeScreenshot: ".e2e-screenshots/settings"

@@ -1,0 +1,41 @@
+appId: org.trustroots.nostroots
+name: "Onboarding: verification code"
+---
+- openLink: "nostroots://e2e/reset"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "screen-welcome"
+    timeout: 60000
+- tapOn:
+    id: "welcome-get-started"
+- assertVisible:
+    id: "screen-onboarding-identity"
+- tapOn:
+    id: "identity-continue-button"
+- assertVisible:
+    id: "screen-onboarding-trustroots"
+- tapOn:
+    id: "trustroots-username-input"
+- inputText: "alice"
+- tapOn:
+    id: "screen-onboarding-trustroots"
+- tapOn:
+    id: "trustroots-request-code-button"
+    retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "trustroots-code-input"
+    timeout: 30000
+- takeScreenshot: ".e2e-screenshots/trustroots-code"

@@ -4,7 +4,7 @@
     "slug": "nr-app",
     "version": "0.7.0",
     "orientation": "portrait",
-    "icon": "./assets/images/nostroots-logo67-app-icon.png",
+    "icon": "../vibe/web/nostroots-logo67.png",
     "scheme": "nostroots",
     "userInterfaceStyle": "automatic",
     "ios": {
@@ -21,7 +21,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/nostroots-logo67-app-icon.png",
+        "foregroundImage": "../vibe/web/nostroots-logo67.png",
         "backgroundColor": "#004c43"
       },
       "permissions": [
@@ -60,7 +60,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/nostroots-logo67-app-icon.png",
+          "image": "../vibe/web/nostroots-logo67.png",
           "imageWidth": 180,
           "resizeMode": "contain",
           "backgroundColor": "#004c43"

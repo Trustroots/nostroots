@@ -1,0 +1,27 @@
+appId: org.trustroots.nostroots
+name: "Main app: settings"
+---
+- openLink: "nostroots://e2e/reset"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "welcome-get-started"
+- tapOn:
+    id: "identity-skip-button"
+- tapOn:
+    id: "nav-settings"
+- assertVisible:
+    id: "screen-settings"
+- assertVisible: "Appearance"

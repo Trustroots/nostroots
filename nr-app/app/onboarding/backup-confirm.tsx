@@ -7,6 +7,7 @@ import Toast from "react-native-root-toast";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { TEST_IDS } from "@/constants/testIds";
 import { ROUTES } from "@/constants/routes";
 import {
   getHasPrivateKeyHexInSecureStorage,
@@ -218,7 +219,10 @@ export default function OnboardingBackupConfirmScreen() {
 
   return (
     <>
-      <View className="flex items-center gap-6">
+      <View
+        testID={TEST_IDS.backupConfirm.screen}
+        className="flex items-center gap-6"
+      >
         <ShieldCheckIcon size={128} color="#fff" strokeWidth={0.5} />
         <Text variant="h1" className="my-0">
           Confirm Your Backup

@@ -5,6 +5,7 @@ import { View } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
+import { TEST_IDS } from "@/constants/testIds";
 import { IdCardLanyardIcon } from "lucide-react-native";
 import { settingsActions } from "@/redux/slices/settings.slice";
 import { useAppDispatch } from "@/redux/hooks";
@@ -31,7 +32,10 @@ export default function OnboardingIdentityScreen() {
 
   return (
     <>
-      <View className="flex items-center gap-6">
+      <View
+        testID={TEST_IDS.identity.screen}
+        className="flex items-center gap-6"
+      >
         <IdCardLanyardIcon size={128} color="#fff" strokeWidth={0.5} />
 
         <Text variant="h1" className="my-0">
@@ -57,13 +61,14 @@ export default function OnboardingIdentityScreen() {
           <Button variant="secondary" onPress={goBack} size="lg" title="Back" />
         )}
         <Button
-          testID="onboarding-identity-continue"
+          testID={TEST_IDS.identity.continueButton}
           variant="secondary"
           onPress={goNext}
           size="lg"
           title="Continue"
         />
         <Button
+          testID={TEST_IDS.identity.skipButton}
           variant="outline"
           onPress={goBrowse}
           size="lg"

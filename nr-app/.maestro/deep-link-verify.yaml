@@ -1,0 +1,55 @@
+appId: org.trustroots.nostroots
+name: "Verification: deep link"
+---
+- openLink: "nostroots://e2e/reset"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "screen-welcome"
+    timeout: 60000
+- openLink: "nostroots://e2e/seed?scenario=pending-verify"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "screen-onboarding-identity"
+    timeout: 30000
+- openLink: "nostroots://verify?token=00000000-0000-4000-8000-000000000001"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+      - tapOn:
+          text: "Open"
+          optional: true
+          retryTapIfNoChange: true
+- extendedWaitUntil:
+    visible:
+      id: "screen-backup-confirm"
+    timeout: 60000
+- takeScreenshot: ".e2e-screenshots/backup-confirm"

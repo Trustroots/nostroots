@@ -60,4 +60,14 @@ export const DENO_KV_PATH = required("DENO_KV_PATH");
  * Base URL for the iOS deep link (e.g. `nostroots://verify`).
  * When unset the deep-link button is omitted from verification emails.
  */
-export const DEEP_LINK_BASE: string | undefined = Deno.env.get("DEEP_LINK_BASE");
+export const DEEP_LINK_BASE: string | undefined = Deno.env.get(
+  "DEEP_LINK_BASE",
+);
+
+/** Deterministic credentials used only by the native E2E environment. */
+export const E2E_VERIFICATION_CODE: string | undefined = Deno.env.get(
+  "E2E_VERIFICATION_CODE",
+);
+export const E2E_VERIFICATION_TOKEN: string | undefined = Deno.env.get(
+  "E2E_VERIFICATION_TOKEN",
+);

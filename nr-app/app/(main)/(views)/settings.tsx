@@ -7,6 +7,7 @@ import { ScrollView, Switch, TextInput, View } from "react-native";
 
 import { BrowserSettingsSection } from "@/browser/BrowserSettingsSection";
 import BuildData from "@/components/BuildData";
+import { SendDebugInfoButton } from "@/components/SendDebugInfoButton";
 import { KeyInput } from "@/components/KeyInput";
 import { Button } from "@/components/ui/button";
 import { Section } from "@/components/ui/section";
@@ -387,6 +388,17 @@ export default function SettingsScreen() {
           />
         </View>
       </Section>
+
+      {npub ? (
+        <Section>
+          <Text className="font-bold">Support</Text>
+          <Text className="text-sm text-muted-foreground">
+            Having trouble, or want to share feedback? Send us a message and we
+            will attach your app&apos;s debug info.
+          </Text>
+          <SendDebugInfoButton />
+        </Section>
+      ) : null}
 
       {areTestFeaturesEnabled ? (
         <Section>

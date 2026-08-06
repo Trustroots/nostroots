@@ -49,6 +49,12 @@ export const SMTP_PASS = optional("SMTP_PASS", "");
 /** Sender address used for verification emails. */
 export const SMTP_FROM = optional("SMTP_FROM", "support@trustroots.org");
 
+/** Address that `POST /support` messages are delivered to. */
+export const SUPPORT_EMAIL = optional(
+  "SUPPORT_EMAIL",
+  "support@trustroots.org",
+);
+
 /**
  * Path passed to {@link Deno.openKv}. Required so we never accidentally start
  * the server without a persistent KV store. Set to `:memory:` in tests; set

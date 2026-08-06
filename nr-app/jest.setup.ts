@@ -28,6 +28,10 @@ jest.mock("expo-router", () =>
   require("./src/test/router").createExpoRouterMock(),
 );
 
+jest.mock("react-native-keyboard-controller", () =>
+  require("react-native-keyboard-controller/jest"),
+);
+
 jest.mock("@expo/vector-icons/Ionicons", () => ({
   __esModule: true,
   default: "Ionicons",

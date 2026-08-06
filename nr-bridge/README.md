@@ -37,6 +37,7 @@ MongoDB instance to read and update user records.
 | `SMTP_PASS`      | SMTP password                            | _(empty — omit if no auth)_             |
 | `SMTP_FROM`      | Sender email address                     | `support@trustroots.org`                |
 | `DEEP_LINK_BASE` | Base URL for iOS deep link               | _(unset — deep-link button omitted)_    |
+| `SUPPORT_EMAIL`  | Recipient for `POST /support` messages    | `support@trustroots.org`                |
 
 In the devcontainer, `MONGODB_URI` is pre-set to `mongodb://mongodb:27017/trustroots-dev`,
 SMTP points to the local Mailpit instance (`127.0.0.1:1025`), and `DENO_KV_PATH` is set
@@ -93,6 +94,41 @@ along with the user's Nostr public key.
 | `500`  | `{ "error": "Failed to update user" }`                   | MongoDB update did not modify a document           |
 
 Sets `nostrNpub` on the matching MongoDB user and deletes the KV entry.
+
+---
+
+### `POST /support`
+
+Email a support message to `SUPPORT_EMAIL`. Used by the app's "Send debug info
+to support" button, which pre-fills the message; later it can carry anything the
+user types.
+
+**Request**
+
+```json
+{ "message": "Nostroots debug info\nApp version: 0.0.4\n..." }
+```
+
+The request must be authenticated with a [NIP-98](https://github.com/nostr-protocol/nips/blob/master/98.md)
+HTTP Auth event in the `Authorization` header (`Nostr <base64 event>`), scoped to
+`POST` and this endpoint, with a `payload` tag hashing the request body. A valid
+signature is the only gate on this endpoint — there is no anonymous path into
+our SMTP relay, so no rate limiting is layered on top.
+
+**Responses**
+
+| Status | Body                                               | Meaning                                                  |
+| ------ | -------------------------------------------------- | -------------------------------------------------------- |
+| `200`  | `{ "success": true }`                              | Message emailed to support                               |
+| `400`  | `{ "error": "Invalid request", "details": {...} }` | Empty message, or longer than 2000 characters            |
+| `401`  | `{ "error": "<reason>" }`                          | Missing, malformed, stale, or mismatched NIP-98 signature |
+
+The npub in the email comes from the verified signature, and the Trustroots
+username is looked up by npub in MongoDB — neither is taken from the request
+body, so support can trust the sender identity.
+
+The `u` tag is matched by pathname rather than by full URL, since the bridge
+runs behind a proxy and does not see the scheme and host the client signed.
 
 ---
 

@@ -1,3 +1,5 @@
+import type { EventTemplate, VerifiedEvent } from "nostr-tools";
+import { getToken } from "nostr-tools/nip98";
 import { urlJoin } from "url-join-ts";
 
 export type NrBridgeErrorCode =
@@ -87,7 +89,11 @@ async function parseJson(response: Response): Promise<JsonBody> {
   }
 }
 
-async function postJson(path: string, body: Record<string, unknown>) {
+async function postJson(
+  path: string,
+  body: Record<string, unknown>,
+  extraHeaders?: Record<string, string>,
+) {
   const url = urlJoin(getBridgeBaseUrl(), path);
 
   let response: Response;
@@ -97,6 +103,7 @@ async function postJson(path: string, body: Record<string, unknown>) {
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+        ...extraHeaders,
       },
       body: JSON.stringify(body),
     });
@@ -135,4 +142,28 @@ export async function authenticateWithCode(input: AuthenticateWithCodeInput) {
 
 export async function authenticateWithToken(input: AuthenticateWithTokenInput) {
   await postJson("/authenticate", input);
+}
+
+export type SendSupportMessageInput = {
+  message: string;
+  /** Signs the NIP-98 auth event; normally `signEventTemplate`. */
+  sign: (template: EventTemplate) => Promise<VerifiedEvent>;
+};
+
+/**
+ * Send a support message to Trustroots support via nr-bridge.
+ *
+ * The request is authenticated with a NIP-98 event so support can attribute it
+ * to a specific npub. Signing fails when the user has no key yet, which the
+ * caller is expected to handle.
+ */
+export async function sendSupportMessage({
+  message,
+  sign,
+}: SendSupportMessageInput) {
+  const body = { message };
+  const url = urlJoin(getBridgeBaseUrl(), "/support");
+  const token = await getToken(url, "POST", sign, true, body);
+
+  await postJson("/support", body, { Authorization: token });
 }

@@ -8,6 +8,7 @@ import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useAppSelector } from "@/redux/hooks";
+import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { settingsSelectors } from "@/redux/slices/settings.slice";
 
 const PRIMARY_COLOR = "#12a585";
@@ -33,6 +34,7 @@ export default function MapLayout() {
   const areTestFeaturesEnabled = useAppSelector(
     settingsSelectors.selectAreTestFeaturesEnabled,
   );
+  const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
 
   return (
     <View className="flex-1">
@@ -69,6 +71,21 @@ export default function MapLayout() {
             </Pressable>
           </>
         )}
+        {npub ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Send feedback"
+            onPress={() => router.push(ROUTES.FEEDBACK)}
+            className="w-11 h-11 rounded-full items-center justify-center"
+            style={{ backgroundColor: overlayBgColor }}
+          >
+            <Ionicons
+              name="help-buoy-outline"
+              size={22}
+              color={overlayIconColor}
+            />
+          </Pressable>
+        ) : null}
         <Pressable
           onPress={() => router.push(ROUTES.SETTINGS)}
           className="w-11 h-11 rounded-full items-center justify-center"

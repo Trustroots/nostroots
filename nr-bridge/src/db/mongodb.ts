@@ -4,7 +4,7 @@
  * Lazily-initialised MongoDB client and query helpers for the Trustroots
  * `users` collection.
  */
-import { MongoClient, type Db, type Collection } from "mongodb";
+import { type Collection, type Db, MongoClient } from "mongodb";
 import { MONGODB_DB_NAME, MONGODB_URI } from "../config.ts";
 
 let client: MongoClient | null = null;
@@ -64,6 +64,28 @@ export async function findUserByUsername(
     email: user.email as string,
     username: user.username as string,
     nostrNpub: (user.nostrNpub as string) ?? undefined,
+  };
+}
+
+/**
+ * Look up a Trustroots user by the Nostr npub they verified with.
+ *
+ * @param npub - The Nostr public key (`npub1...`) to search for.
+ * @returns The user's `email` and `username`, or `null` if no user has claimed
+ *          this npub.
+ */
+export async function findUserByNpub(
+  users: Pick<Collection, "findOne">,
+  npub: string,
+): Promise<{ email: string; username: string } | null> {
+  const user = await users.findOne(
+    { nostrNpub: npub },
+    { projection: { email: 1, username: 1 } },
+  );
+  if (!user) return null;
+  return {
+    email: user.email as string,
+    username: user.username as string,
   };
 }
 

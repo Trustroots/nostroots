@@ -1,15 +1,15 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import EventComposerModal from "@/components/EventComposerModal";
 import { Slot, useRouter, usePathname } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
 import { useColorScheme } from "@/hooks/useColorScheme";
-import { useAppSelector } from "@/redux/hooks";
-import { mapSelectors } from "@/redux/slices/map.slice";
+import { useAppDispatch, useAppSelector } from "@/redux/hooks";
+import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { settingsSelectors } from "@/redux/slices/settings.slice";
 
 const PRIMARY_COLOR = "#12a585";
@@ -19,7 +19,7 @@ export default function MapLayout() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const colorScheme = useColorScheme();
-  const [showEventComposer, setShowEventComposer] = useState(false);
+  const dispatch = useAppDispatch();
 
   const isDark = colorScheme === "dark";
   const inactiveColor = isDark ? "#9BA1A6" : "#687076";
@@ -36,7 +36,9 @@ export default function MapLayout() {
   const areTestFeaturesEnabled = useAppSelector(
     settingsSelectors.selectAreTestFeaturesEnabled,
   );
-  const selectedPlusCode = useAppSelector(mapSelectors.selectSelectedPlusCode);
+  const isEventComposerOpen = useAppSelector(
+    mapSelectors.selectIsEventComposerOpen,
+  );
 
   return (
     <View className="flex-1">
@@ -47,21 +49,6 @@ export default function MapLayout() {
         className="absolute right-2.5 flex-row gap-2 z-10"
         style={{ top: insets.top + 10 }}
       >
-        {areTestFeaturesEnabled && selectedPlusCode && (
-          <Pressable
-            onPress={() => setShowEventComposer(true)}
-            className="w-11 h-11 rounded-full items-center justify-center"
-            style={{ backgroundColor: overlayBgColor }}
-            accessibilityLabel="Create event"
-            accessibilityRole="button"
-          >
-            <Ionicons
-              name="calendar-outline"
-              size={22}
-              color={overlayIconColor}
-            />
-          </Pressable>
-        )}
         {areTestFeaturesEnabled && (
           <>
             <Pressable
@@ -143,8 +130,8 @@ export default function MapLayout() {
       </View>
 
       <EventComposerModal
-        visible={showEventComposer}
-        onClose={() => setShowEventComposer(false)}
+        visible={isEventComposerOpen}
+        onClose={() => dispatch(mapActions.closeEventComposer())}
       />
     </View>
   );

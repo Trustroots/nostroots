@@ -18,6 +18,7 @@ interface MapState {
   isMapModalOpen: boolean;
   isHalfMapEventModalOpen: boolean;
   isAddNoteModalOpen: boolean;
+  isEventComposerOpen: boolean;
   selectedLatLng?: LatLng;
   currentMapLocation?: LatLng;
   centerMapOnCurrentLocation: boolean;
@@ -33,6 +34,7 @@ const initialState: MapState = {
   isMapModalOpen: false,
   isHalfMapEventModalOpen: false,
   isAddNoteModalOpen: false,
+  isEventComposerOpen: false,
   selectedLatLng: undefined,
   currentMapLocation: undefined,
   centerMapOnCurrentLocation: false,
@@ -87,6 +89,13 @@ export const mapSlice = createSlice({
     },
     closeAddNoteModal: (state) => {
       state.isAddNoteModalOpen = false;
+    },
+    openEventComposer: (state) => {
+      state.isMapModalOpen = false;
+      state.isEventComposerOpen = true;
+    },
+    closeEventComposer: (state) => {
+      state.isEventComposerOpen = false;
     },
     setSelectedPlusCode: (state, action: PayloadAction<string>) => {
       state.selectedPlusCode = action.payload;
@@ -158,6 +167,7 @@ export const mapSlice = createSlice({
     selectIsMapModalOpen: (state) => state.isMapModalOpen,
     selectIsHalfMapEventModalOpen: (state) => state.isHalfMapEventModalOpen,
     selectIsAddNoteModalOpen: (state) => state.isAddNoteModalOpen,
+    selectIsEventComposerOpen: (state) => state.isEventComposerOpen,
     selectBoundingBox: (state) => state.boundingBox,
     selectEnabledLayerKeys: createSelector(
       (state: MapState) => state,

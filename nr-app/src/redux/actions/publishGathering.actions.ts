@@ -1,5 +1,6 @@
 import {
   CONTENT_MAXIMUM_LENGTH,
+  CONTENT_MINIMUM_LENGTH,
   getCurrentTimestamp,
   getPlusCodeAndPlusCodePrefixTags,
   NOSTR_EXPIRATION_TAG_NAME,
@@ -24,6 +25,12 @@ export function publishGatheringPromiseAction({
   /** Unix seconds UTC, optional */
   endTimestamp?: number;
 }) {
+  if (description.length < CONTENT_MINIMUM_LENGTH) {
+    throw new Error(
+      `Description must be at least ${CONTENT_MINIMUM_LENGTH} characters`,
+    );
+  }
+
   if (description.length > CONTENT_MAXIMUM_LENGTH) {
     throw new Error(
       `Description must be at most ${CONTENT_MAXIMUM_LENGTH} characters`,

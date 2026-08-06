@@ -11,13 +11,18 @@ jest.mock("@/redux/hooks", () => ({
 
 const mockUseAppSelector = useAppSelector as jest.Mock;
 
-function fakeState(areTestFeaturesEnabled: boolean, selectedPlusCode = "") {
+function fakeState(
+  areTestFeaturesEnabled: boolean,
+  selectedPlusCode = "",
+  isEventComposerOpen = false,
+) {
   return {
     settings: {
       areTestFeaturesEnabled,
     },
     map: {
       selectedPlusCode,
+      isEventComposerOpen,
     },
   };
 }
@@ -65,24 +70,24 @@ describe("MapLayout", () => {
     expect(queryByLabelText("Open NIP-07 Browser")).toBeTruthy();
   });
 
-  it("hides the create event button when Developer Mode is off", () => {
-    mockUseAppSelector.mockImplementation((selector) =>
-      selector(fakeState(false, "9C2X4W+2X")),
-    );
-    expect(renderMapLayout().queryByLabelText("Create event")).toBeNull();
-  });
-
-  it("hides the create event button until a plus code is selected", () => {
-    mockUseAppSelector.mockImplementation((selector) =>
-      selector(fakeState(true, "")),
-    );
-    expect(renderMapLayout().queryByLabelText("Create event")).toBeNull();
-  });
-
-  it("shows the create event button in Developer Mode for a selected plus code", () => {
+  it("does not put a create event button in the map overlay", () => {
     mockUseAppSelector.mockImplementation((selector) =>
       selector(fakeState(true, "9C2X4W+2X")),
     );
-    expect(renderMapLayout().queryByLabelText("Create event")).toBeTruthy();
+    expect(renderMapLayout().queryByLabelText("Create event")).toBeNull();
+  });
+
+  it("renders the event composer when it is open in state", () => {
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(false, "9C2X4W+2X", true)),
+    );
+    expect(renderMapLayout().queryByLabelText("Back")).toBeTruthy();
+  });
+
+  it("keeps the event composer closed by default", () => {
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(false, "9C2X4W+2X")),
+    );
+    expect(renderMapLayout().queryByLabelText("Back")).toBeNull();
   });
 });

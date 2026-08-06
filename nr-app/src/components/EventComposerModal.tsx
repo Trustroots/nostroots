@@ -3,9 +3,12 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapSelectors } from "@/redux/slices/map.slice";
 import { getLocalTimezoneAbbr } from "@/utils/event-gathering.utils";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { Calendar, X } from "lucide-react-native";
+import { Calendar, ChevronLeft } from "lucide-react-native";
 import { useCallback, useState } from "react";
-import { CONTENT_MAXIMUM_LENGTH } from "@trustroots/nr-common";
+import {
+  CONTENT_MAXIMUM_LENGTH,
+  CONTENT_MINIMUM_LENGTH,
+} from "@trustroots/nr-common";
 import {
   KeyboardAvoidingView,
   Modal,
@@ -76,6 +79,18 @@ export default function EventComposerModal({
       return;
     }
 
+    const trimmedDescription = description.trim();
+    if (trimmedDescription.length < CONTENT_MINIMUM_LENGTH) {
+      Toast.show(
+        `Description must be at least ${CONTENT_MINIMUM_LENGTH} characters`,
+        {
+          duration: Toast.durations.LONG,
+          position: Toast.positions.TOP,
+        },
+      );
+      return;
+    }
+
     const startTimestamp = Math.floor(startDate.getTime() / 1000);
     const endTimestamp =
       hasEnd && endDate ? Math.floor(endDate.getTime() / 1000) : undefined;
@@ -94,7 +109,7 @@ export default function EventComposerModal({
       await dispatch(
         publishGatheringPromiseAction({
           title: trimmedTitle,
-          description: description.trim(),
+          description: trimmedDescription,
           plusCode: selectedPlusCode,
           startTimestamp,
           endTimestamp,
@@ -128,30 +143,31 @@ export default function EventComposerModal({
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="fullScreen"
+      presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1 bg-background"
-        style={{ paddingTop: top }}
+        style={{ paddingTop: Platform.OS === "ios" ? 0 : top }}
       >
         {/* Header */}
-        <View className="flex-row items-center justify-between px-5 py-4 border-b border-border/15">
-          <View className="flex-row items-center gap-2">
-            <Icon as={Calendar} size={20} className="text-primary" />
-            <Text className="text-lg font-bold text-foreground">
+        <View className="flex-row items-center gap-3 px-5 py-4 border-b border-border/15">
+          <Pressable
+            onPress={handleClose}
+            className="flex-row items-center gap-1 py-1 pr-1"
+            accessibilityLabel="Back"
+            accessibilityRole="button"
+          >
+            <Icon as={ChevronLeft} size={20} className="text-foreground" />
+            <Text className="text-[15px] text-foreground">Back</Text>
+          </Pressable>
+          <View className="flex-1 flex-row items-center justify-end gap-2">
+            <Icon as={Calendar} size={18} className="text-primary" />
+            <Text className="text-base font-bold text-foreground">
               Create Event
             </Text>
           </View>
-          <Pressable
-            onPress={handleClose}
-            className="w-8 h-8 rounded-full bg-muted/50 items-center justify-center"
-            accessibilityLabel="Close"
-            accessibilityRole="button"
-          >
-            <Icon as={X} size={16} className="text-foreground" />
-          </Pressable>
         </View>
 
         <ScrollView
@@ -187,7 +203,7 @@ export default function EventComposerModal({
           {/* Description */}
           <View>
             <Text className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-              Description
+              Description *
             </Text>
             <TextInput
               className="px-4 py-3 bg-muted/20 rounded-xl text-foreground text-[15px]"
@@ -278,7 +294,11 @@ export default function EventComposerModal({
             onPress={handleSubmit}
             className="rounded-xl mt-4"
             size="lg"
-            disabled={isSending || title.trim().length < 2}
+            disabled={
+              isSending ||
+              title.trim().length < 2 ||
+              description.trim().length < CONTENT_MINIMUM_LENGTH
+            }
           >
             <Text className="text-primary-foreground font-semibold text-base">
               {isSending ? "Creating..." : "Create Event"}

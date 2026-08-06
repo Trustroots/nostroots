@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 
+import { BackupChallenge } from "@/components/BackupChallenge";
 import { KeyInput } from "@/components/KeyInput";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,13 +30,14 @@ export default function OnboardingKeyScreen() {
   } = useKeyImport();
 
   const [currentTab, setCurrentTab] = useState<"existing" | "generate">(
-    "existing",
+    "generate",
   );
 
   const [existingKeyInput, setExistingKeyInput] = useState<string>("");
   const [keySaved, setKeySaved] = useState(false);
 
   const [mnemonic, setMnemonic] = useState("");
+  const [mnemonicSaved, setMnemonicSaved] = useState(false);
   const [mnemonicConfirmed, setMnemonicConfirmed] = useState(false);
   const [mnemonicError, setMnemonicError] = useState<string | null>(null);
 
@@ -52,8 +54,33 @@ export default function OnboardingKeyScreen() {
   }, []);
 
   const handleRegenerateMnemonic = () => {
+    setMnemonicSaved(false);
     setMnemonicConfirmed(false);
     setMnemonicError(null);
+  };
+
+  const handleMnemonicSaved = () => {
+    trackEvent("onboarding_backup", {
+      action: "secret_acknowledged",
+      source: "legacy_key",
+    });
+    setMnemonicError(null);
+    setMnemonicSaved(true);
+  };
+
+  const handleMnemonicConfirmed = () => {
+    trackEvent("onboarding_backup_confirmed", {
+      outcome: "success",
+      source: "legacy_key",
+    });
+    setMnemonicConfirmed(true);
+  };
+
+  const handleMnemonicChallengeFailed = () => {
+    trackEvent("onboarding_backup_confirmed", {
+      outcome: "mismatch",
+      source: "legacy_key",
+    });
   };
 
   const saveExistingKey = async () => {
@@ -76,7 +103,9 @@ export default function OnboardingKeyScreen() {
 
   const saveGeneratedMnemonic = useCallback(async () => {
     if (!mnemonic || !mnemonicConfirmed) {
-      setMnemonicError("Please save and confirm your words before continuing.");
+      setMnemonicError(
+        "Please save your words and confirm them before continuing.",
+      );
       return;
     }
 
@@ -125,13 +154,13 @@ export default function OnboardingKeyScreen() {
         <KeyIcon size={128} color="#fff" strokeWidth={0.5} />
 
         <Text variant="h1" className="my-0">
-          Import Your Trustroots Key
+          Set Up Your Key
         </Text>
       </View>
 
       <Text className="text-center leading-relaxed">
-        Use this path if you have already added your Nostr public key to
-        Trustroots. Import the matching nsec or mnemonic on this device.
+        Generate a new Nostr key, or import one you already have. The next step
+        shows you how to add it to your Trustroots profile.
       </Text>
 
       <View className="flex w-full flex-col gap-6">
@@ -183,28 +212,48 @@ export default function OnboardingKeyScreen() {
               {mnemonicError && (
                 <Text className="text-xs text-red-500">{mnemonicError}</Text>
               )}
-              <KeyInput
-                testID="onboarding-key-mnemonic-input"
-                value={mnemonic}
-                onChangeText={setMnemonic}
-                placeholder=""
-                disabled={false}
-                generateMode={true}
-                showRegenerateButton={true}
-                onRegenerate={handleRegenerateMnemonic}
-                showCopyButton={true}
-              />
-              <Button
-                testID="onboarding-key-mnemonic-confirm"
-                size="lg"
-                title={
-                  mnemonicConfirmed
-                    ? "Saved"
-                    : "I have saved these words safely"
-                }
-                disabled={mnemonicConfirmed}
-                onPress={() => setMnemonicConfirmed(true)}
-              />
+              {mnemonicSaved ? (
+                <>
+                  <BackupChallenge
+                    key={mnemonic}
+                    secret={mnemonic}
+                    confirmed={mnemonicConfirmed}
+                    onConfirmed={handleMnemonicConfirmed}
+                    onFailed={handleMnemonicChallengeFailed}
+                    testIDPrefix="onboarding-key-backup"
+                  />
+                  {!mnemonicConfirmed && (
+                    <Button
+                      testID="onboarding-key-mnemonic-show-again"
+                      size="sm"
+                      variant="outline"
+                      title="Show my words again"
+                      onPress={() => setMnemonicSaved(false)}
+                    />
+                  )}
+                </>
+              ) : (
+                <>
+                  <KeyInput
+                    testID="onboarding-key-mnemonic-input"
+                    value={mnemonic}
+                    onChangeText={setMnemonic}
+                    placeholder=""
+                    disabled={false}
+                    generateMode={true}
+                    showRegenerateButton={true}
+                    onRegenerate={handleRegenerateMnemonic}
+                    showCopyButton={true}
+                  />
+                  <Button
+                    testID="onboarding-key-mnemonic-confirm"
+                    size="lg"
+                    title="I have saved these words safely"
+                    disabled={!mnemonic}
+                    onPress={handleMnemonicSaved}
+                  />
+                </>
+              )}
             </TabsContent>
           </TextClassContext.Provider>
         </Tabs>

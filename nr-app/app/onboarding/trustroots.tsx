@@ -131,7 +131,7 @@ export default function OnboardingTrustrootsScreen() {
           method: "bridge",
           outcome: "success",
         });
-        router.replace("/onboarding/backup-confirm?from=bridge");
+        router.replace("/onboarding/backup-confirm");
       } catch (error) {
         trackEvent("onboarding_profile_publish", {
           method: "bridge",
@@ -300,13 +300,13 @@ export default function OnboardingTrustrootsScreen() {
       <View className="flex items-center gap-6">
         <MailCheckIcon size={128} color="#fff" strokeWidth={0.5} />
         <Text variant="h1" className="my-0">
-          Verify your Trustroots email
+          Connect your Trustroots account
         </Text>
       </View>
 
       <Text variant="p" className="mt-0">
-        Enter your Trustroots username. We’ll email the address on that account
-        with a six-digit code and an app link.
+        Enter your Trustroots username — not your email address. We’ll send a
+        six-digit code and an app link to the email address on that account.
       </Text>
 
       <View className="bg-card rounded-xl p-4 w-full gap-3">
@@ -390,7 +390,7 @@ export default function OnboardingTrustrootsScreen() {
                 title={
                   screenState === "requesting"
                     ? "Sending..."
-                    : "Verify Trustroots email"
+                    : "Send verification email"
                 }
                 disabled={isBusy}
                 onPress={handleRequestCode}
@@ -421,9 +421,13 @@ export default function OnboardingTrustrootsScreen() {
           textClassName="text-white"
           onPress={goLegacyKeyFlow}
           size="lg"
-          title="I’ve already set my key on Trustroots"
+          title="Set up my key manually"
           disabled={isBusy}
         />
+        <Text className="text-xs text-center">
+          Generate a new key or import one you already have, then add it to your
+          Trustroots profile yourself.
+        </Text>
       </View>
 
       <View className="flex flex-row gap-2">

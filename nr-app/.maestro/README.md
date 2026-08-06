@@ -67,7 +67,7 @@ key step.
 `app/onboarding/trustroots.tsx` is the primary onboarding branch. It requests a
 six-digit code through `nr-bridge` and delivers it by email, so it cannot be
 driven end to end without a mock bridge. The flows take the legacy key path
-instead (`I've already set my key on Trustroots`).
+instead (`Set up my key manually`).
 
 Both flows stop at the link screen. `link.tsx` gates its Finish button on a live
 NIP-05 lookup against trustroots.org that must match the local npub, so reaching

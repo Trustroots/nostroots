@@ -36,6 +36,16 @@ export async function getDb(): Promise<Db> {
 }
 
 /**
+ * Replace the internal {@link Db} handle — used in tests to inject stub
+ * collections without a running MongoDB.
+ *
+ * @param instance - The database handle to use going forward.
+ */
+export function setDb(instance: Db): void {
+  db = instance;
+}
+
+/**
  * Convenience accessor for the `users` collection.
  *
  * @returns A promise resolving to the `users` {@link Collection}.
@@ -117,6 +127,6 @@ export async function closeMongoClient(): Promise<void> {
   if (client) {
     await client.close();
     client = null;
-    db = null;
   }
+  db = null;
 }

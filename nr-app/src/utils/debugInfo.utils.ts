@@ -57,21 +57,14 @@ export function formatDebugInfo(info: DebugInfo): string {
   return lines.join("\n");
 }
 
-/**
- * Mirrors SUPPORT_MESSAGE_MAX_LENGTH in nr-bridge/schemas/supportRequest.ts.
- * nr-bridge is a Deno project that does not share nr-common with the app, so
- * the value is duplicated rather than imported. The bridge remains the
- * authority -- it rejects anything longer.
- */
-export const SUPPORT_MESSAGE_MAX_LENGTH = 2000;
-
 /** Short enough not to nag, long enough to rule out "it's broken". */
 export const MIN_USER_MESSAGE_LENGTH = 50;
 
 /**
  * What we offer the user. Deliberately a round number rather than "whatever is
  * left after the debug block", so the limit they see does not drift with OTA
- * metadata. The bridge's cap is the backstop, not the headline.
+ * metadata. The bridge's SUPPORT_MESSAGE_MAX_LENGTH is the backstop, not the
+ * headline, and leaves ample room for the debug block on top of this.
  */
 export const MAX_USER_MESSAGE_LENGTH = 500;
 
@@ -89,16 +82,4 @@ export function formatSupportMessage({
   debugInfo: string;
 }): string {
   return `${userMessage.trim()}${SUPPORT_MESSAGE_SEPARATOR}${debugInfo}`;
-}
-
-/**
- * How many characters the user may type: the flat allowance, unless an unusually
- * long debug block means the composed payload would exceed what the bridge
- * accepts, in which case the bridge's limit wins.
- */
-export function getUserMessageBudget(debugInfo: string): number {
-  const overhead = debugInfo.length + SUPPORT_MESSAGE_SEPARATOR.length;
-  const roomLeft = SUPPORT_MESSAGE_MAX_LENGTH - overhead;
-
-  return Math.max(0, Math.min(MAX_USER_MESSAGE_LENGTH, roomLeft));
 }

@@ -7,7 +7,7 @@ import FeedbackScreen from "./feedback";
 import { sendSupportMessage } from "@/services/nrBridge.service";
 import {
   formatSupportMessage,
-  getUserMessageBudget,
+  MAX_USER_MESSAGE_LENGTH,
   MIN_USER_MESSAGE_LENGTH,
 } from "@/utils/debugInfo.utils";
 
@@ -119,7 +119,6 @@ describe("FeedbackScreen", () => {
       <FeedbackScreen />,
     );
     const input = getByPlaceholderText(/what happened/i);
-    const budget = getUserMessageBudget("Nostroots debug info\nnpub: npub1abc");
 
     expect(
       getByText(`${MIN_USER_MESSAGE_LENGTH} characters minimum`),
@@ -130,20 +129,23 @@ describe("FeedbackScreen", () => {
     expect(queryByText(/characters minimum/)).toBeNull();
     expect(queryByText(/\//)).toBeNull();
 
-    fireEvent.changeText(input, "y".repeat(budget - 10));
-    expect(getByText(`${budget - 10}/${budget}`)).toBeTruthy();
+    fireEvent.changeText(input, "y".repeat(MAX_USER_MESSAGE_LENGTH - 10));
+    expect(
+      getByText(`${MAX_USER_MESSAGE_LENGTH - 10}/${MAX_USER_MESSAGE_LENGTH}`),
+    ).toBeTruthy();
 
-    fireEvent.changeText(input, "y".repeat(budget + 3));
-    expect(getByText(`${budget + 3}/${budget}`)).toBeTruthy();
+    fireEvent.changeText(input, "y".repeat(MAX_USER_MESSAGE_LENGTH + 3));
+    expect(
+      getByText(`${MAX_USER_MESSAGE_LENGTH + 3}/${MAX_USER_MESSAGE_LENGTH}`),
+    ).toBeTruthy();
   });
 
   it("blocks submission when the message is over the limit", () => {
     const { getByRole, getByPlaceholderText } = render(<FeedbackScreen />);
-    const budget = getUserMessageBudget("Nostroots debug info\nnpub: npub1abc");
 
     fireEvent.changeText(
       getByPlaceholderText(/what happened/i),
-      "y".repeat(budget + 1),
+      "y".repeat(MAX_USER_MESSAGE_LENGTH + 1),
     );
 
     expect(getByRole("button", { name: "Send feedback" })).toBeDisabled();

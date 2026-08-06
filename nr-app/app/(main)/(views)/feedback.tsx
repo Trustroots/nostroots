@@ -3,16 +3,15 @@ import { Stack, useRouter } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { ChevronDown, ChevronRight } from "lucide-react-native";
 import { useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  TextInput,
-  View,
-} from "react-native";
+import { ActivityIndicator, Alert, TextInput, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Icon } from "@/components/ui/icon";
 import { Section } from "@/components/ui/section";
 import { Text } from "@/components/ui/text";
@@ -23,7 +22,7 @@ import { sendSupportMessage } from "@/services/nrBridge.service";
 import { cn } from "@/utils/cn.utils";
 import {
   formatSupportMessage,
-  getUserMessageBudget,
+  MAX_USER_MESSAGE_LENGTH,
   MIN_USER_MESSAGE_LENGTH,
   TRUSTROOTS_SUPPORT_URL,
 } from "@/utils/debugInfo.utils";
@@ -40,9 +39,8 @@ export default function FeedbackScreen() {
   const [isFocused, setIsFocused] = useState(false);
   const [isDisclosureOpen, setIsDisclosureOpen] = useState(false);
 
-  const budget = getUserMessageBudget(debugInfo);
   const length = userMessage.length;
-  const remaining = budget - length;
+  const remaining = MAX_USER_MESSAGE_LENGTH - length;
   const isLongEnough = userMessage.trim().length >= MIN_USER_MESSAGE_LENGTH;
   const isOverLimit = remaining < 0;
 
@@ -104,7 +102,7 @@ export default function FeedbackScreen() {
             placeholder="What happened?"
             placeholderTextColor={colors.mutedForeground}
             accessibilityLabel="Your feedback"
-            accessibilityHint={`Between ${MIN_USER_MESSAGE_LENGTH} and ${budget} characters.`}
+            accessibilityHint={`Between ${MIN_USER_MESSAGE_LENGTH} and ${MAX_USER_MESSAGE_LENGTH} characters.`}
             className={cn(
               "border rounded-md px-3 py-3 bg-background text-foreground text-base min-h-32",
               isOverLimit
@@ -134,10 +132,10 @@ export default function FeedbackScreen() {
             {remaining <= LIMIT_WARNING_THRESHOLD ? (
               <Text
                 variant="small"
-                accessibilityLabel={`${length} of ${budget} characters`}
+                accessibilityLabel={`${length} of ${MAX_USER_MESSAGE_LENGTH} characters`}
                 className={isOverLimit ? "text-destructive" : "text-foreground"}
               >
-                {length}/{budget}
+                {length}/{MAX_USER_MESSAGE_LENGTH}
               </Text>
             ) : null}
           </View>
@@ -151,7 +149,7 @@ export default function FeedbackScreen() {
             accessibilityHint={
               isLongEnough
                 ? isOverLimit
-                  ? `Shorten your message to ${budget} characters or fewer.`
+                  ? `Shorten your message to ${MAX_USER_MESSAGE_LENGTH} characters or fewer.`
                   : undefined
                 : `Write at least ${MIN_USER_MESSAGE_LENGTH} characters first.`
             }
@@ -160,23 +158,24 @@ export default function FeedbackScreen() {
             <Text>{isSending ? "Sending…" : "Send feedback"}</Text>
           </Button>
 
-          <Pressable
-            onPress={() => setIsDisclosureOpen(!isDisclosureOpen)}
-            role="button"
-            accessibilityState={{ expanded: isDisclosureOpen }}
-            hitSlop={12}
-            className="flex-row items-center gap-1 self-start py-3 active:opacity-60"
+          <Collapsible
+            open={isDisclosureOpen}
+            onOpenChange={setIsDisclosureOpen}
           >
-            <Icon
-              as={isDisclosureOpen ? ChevronDown : ChevronRight}
-              size={14}
-              className="text-muted-foreground"
-            />
-            <Text variant="muted">What we send with this</Text>
-          </Pressable>
+            <CollapsibleTrigger
+              hitSlop={12}
+              accessibilityLabel="What we send with this"
+              className="flex-row items-center gap-1 self-start py-3 active:opacity-60"
+            >
+              <Icon
+                as={isDisclosureOpen ? ChevronDown : ChevronRight}
+                size={14}
+                className="text-muted-foreground"
+              />
+              <Text variant="muted">What we send with this</Text>
+            </CollapsibleTrigger>
 
-          {isDisclosureOpen ? (
-            <View className="border border-border rounded-md p-3">
+            <CollapsibleContent className="border border-border rounded-md p-3">
               <Text
                 selectable
                 variant="muted"
@@ -184,8 +183,8 @@ export default function FeedbackScreen() {
               >
                 {debugInfo}
               </Text>
-            </View>
-          ) : null}
+            </CollapsibleContent>
+          </Collapsible>
         </Section>
       </View>
     </KeyboardAwareScrollView>

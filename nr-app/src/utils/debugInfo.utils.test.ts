@@ -1,11 +1,11 @@
+import { SUPPORT_MESSAGE_MAX_LENGTH } from "@trustroots/nr-common";
+
 import {
   DebugInfo,
   formatDebugInfo,
   formatSupportMessage,
-  getUserMessageBudget,
   MAX_USER_MESSAGE_LENGTH,
   MIN_USER_MESSAGE_LENGTH,
-  SUPPORT_MESSAGE_MAX_LENGTH,
 } from "./debugInfo.utils";
 
 const baseInfo: DebugInfo = {
@@ -116,46 +116,27 @@ describe("formatSupportMessage()", () => {
   });
 });
 
-describe("getUserMessageBudget()", () => {
-  it("leaves room for the debug block and separator", () => {
-    const debugInfo = "x".repeat(500);
-    const budget = getUserMessageBudget(debugInfo);
-
-    const composed = formatSupportMessage({
-      userMessage: "y".repeat(budget),
-      debugInfo,
-    });
-
-    expect(composed.length).toBeLessThanOrEqual(SUPPORT_MESSAGE_MAX_LENGTH);
-  });
-
-  it("offers the flat allowance when the debug block leaves room for it", () => {
-    expect(getUserMessageBudget("x".repeat(500))).toBe(MAX_USER_MESSAGE_LENGTH);
-  });
-
-  it("falls back to the bridge's cap when the debug block is unusually long", () => {
-    const debugInfo = "x".repeat(1700);
-    const budget = getUserMessageBudget(debugInfo);
-
-    expect(budget).toBeLessThan(MAX_USER_MESSAGE_LENGTH);
-
-    const oversized = formatSupportMessage({
-      userMessage: "y".repeat(budget + 1),
-      debugInfo,
-    });
-
-    expect(oversized.length).toBeGreaterThan(SUPPORT_MESSAGE_MAX_LENGTH);
-  });
-
-  it("never returns a negative budget when debug info is huge", () => {
-    expect(getUserMessageBudget("x".repeat(5000))).toBe(0);
-  });
-
+describe("message length limits", () => {
   it("exposes the minimum message length", () => {
     expect(MIN_USER_MESSAGE_LENGTH).toBe(50);
   });
 
-  it("exposes the support message max length mirrored from nr-bridge", () => {
-    expect(SUPPORT_MESSAGE_MAX_LENGTH).toBe(2000);
+  it("keeps a full-length message plus the debug block under the bridge's cap", () => {
+    const debugInfo = formatDebugInfo({
+      ...baseInfo,
+      isEmbeddedLaunch: false,
+      updateChannel: "production",
+      updateId: "0198f0a1-2b3c-4d5e-6f70-8192a3b4c5d6",
+      updateCreatedAt: new Date(2026, 6, 12, 18, 40),
+      npub: `npub1${"q".repeat(58)}`,
+      trustrootsUsername: "wanderingpine",
+    });
+
+    const composed = formatSupportMessage({
+      userMessage: "y".repeat(MAX_USER_MESSAGE_LENGTH),
+      debugInfo,
+    });
+
+    expect(composed.length).toBeLessThanOrEqual(SUPPORT_MESSAGE_MAX_LENGTH);
   });
 });

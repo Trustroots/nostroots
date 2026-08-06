@@ -23,9 +23,22 @@ export interface EmailOptions {
   html: string;
 }
 
-let transport: SmtpTransport | null = null;
+/** The subset of {@link SmtpTransport} this module depends on. */
+type EmailTransport = Pick<SmtpTransport, "send" | "closeAllConnections">;
 
-function getTransport(): SmtpTransport {
+let transport: EmailTransport | null = null;
+
+/**
+ * Replace the internal SMTP transport — used in tests to capture outgoing mail
+ * instead of delivering it.
+ *
+ * @param instance - The transport to use going forward.
+ */
+export function setEmailTransport(instance: EmailTransport): void {
+  transport = instance;
+}
+
+function getTransport(): EmailTransport {
   if (transport) return transport;
 
   if ((SMTP_USER && !SMTP_PASS) || (!SMTP_USER && SMTP_PASS)) {

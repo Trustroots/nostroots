@@ -55,8 +55,13 @@ export default function MapModal() {
     [fullHeight, height],
   );
 
-  const { signalCount, noteCount } = useNotesListData(selectedPlusCode);
-  const summaryText = getNotesSummaryText(signalCount, noteCount);
+  const { signalCount, noteCount, gatheringCount } =
+    useNotesListData(selectedPlusCode);
+  const summaryText = getNotesSummaryText(
+    signalCount,
+    noteCount,
+    gatheringCount,
+  );
 
   useEffect(() => {
     if (showModal) {

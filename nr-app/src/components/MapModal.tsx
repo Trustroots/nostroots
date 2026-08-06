@@ -9,7 +9,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSelector } from "react-redux";
-import { X } from "lucide-react-native";
+import { Calendar, X } from "lucide-react-native";
 
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { EventWithMetadata } from "@/redux/slices/events.slice";
@@ -82,6 +82,11 @@ export default function MapModal() {
     bottomSheetRef.current?.dismiss();
   }, []);
 
+  const handleCreateEvent = useCallback(() => {
+    bottomSheetRef.current?.dismiss();
+    dispatch(mapActions.openEventComposer());
+  }, [dispatch]);
+
   const handleSetUpAccount = useCallback(() => {
     bottomSheetRef.current?.dismiss();
     router.push(ROUTES.ONBOARDING);
@@ -102,7 +107,7 @@ export default function MapModal() {
           backgroundColor: isDark ? "#525252" : "#d1d5db",
         }}
       >
-        {/* Header: plus code + bell + close */}
+        {/* Header: plus code + bell + create event + close */}
         <View className="px-5 pb-2 pt-1 flex-row items-center justify-between">
           <View className="flex-1 flex-row items-center gap-2">
             <Text className="text-lg font-bold text-foreground">
@@ -112,14 +117,26 @@ export default function MapModal() {
               <SubscribeBellIcon />
             )}
           </View>
-          <Pressable
-            onPress={handleClose}
-            className="w-8 h-8 rounded-full bg-muted/50 items-center justify-center"
-            accessibilityLabel="Close"
-            accessibilityRole="button"
-          >
-            <Icon as={X} size={16} className="text-foreground" />
-          </Pressable>
+          <View className="flex-row items-center gap-2">
+            {canPost && (
+              <Pressable
+                onPress={handleCreateEvent}
+                className="w-8 h-8 rounded-full bg-muted/50 items-center justify-center"
+                accessibilityLabel="Create event"
+                accessibilityRole="button"
+              >
+                <Icon as={Calendar} size={16} className="text-foreground" />
+              </Pressable>
+            )}
+            <Pressable
+              onPress={handleClose}
+              className="w-8 h-8 rounded-full bg-muted/50 items-center justify-center"
+              accessibilityLabel="Close"
+              accessibilityRole="button"
+            >
+              <Icon as={X} size={16} className="text-foreground" />
+            </Pressable>
+          </View>
         </View>
 
         {/* People strip */}

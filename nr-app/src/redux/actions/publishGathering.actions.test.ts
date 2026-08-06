@@ -1,5 +1,6 @@
 import {
   CONTENT_MAXIMUM_LENGTH,
+  CONTENT_MINIMUM_LENGTH,
   kind30397EventSchema,
 } from "@trustroots/nr-common";
 import { publishGatheringPromiseAction } from "./publishGathering.actions";
@@ -23,7 +24,7 @@ function finalizeTemplate(description: string) {
 }
 
 describe("publishGatheringPromiseAction", () => {
-  it.each(["", "a", "ab", "valid description"])(
+  it.each(["abc", "valid description"])(
     "creates a schema-valid gathering for description %j",
     (description) => {
       expect(
@@ -39,6 +40,15 @@ describe("publishGatheringPromiseAction", () => {
       ).success,
     ).toBe(true);
   });
+
+  it.each(["", "a", "ab"])(
+    "rejects a description below the minimum length %j",
+    (description) => {
+      expect(() => makeAction(description)).toThrow(
+        `Description must be at least ${CONTENT_MINIMUM_LENGTH} characters`,
+      );
+    },
+  );
 
   it("rejects a description above the maximum length", () => {
     expect(() => makeAction("a".repeat(CONTENT_MAXIMUM_LENGTH + 1))).toThrow(

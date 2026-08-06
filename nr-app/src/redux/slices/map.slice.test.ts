@@ -64,4 +64,43 @@ describe("map.slice", () => {
       );
     });
   });
+  describe("event composer", () => {
+    const initialState = mapSlice.getInitialState();
+
+    it("closes the plus code sheet when the composer opens", () => {
+      const withSheet = mapSlice.reducer(
+        initialState,
+        mapActions.setSelectedPlusCode("9C2X4W00+"),
+      );
+      const state = mapSlice.reducer(withSheet, mapActions.openEventComposer());
+
+      expect(state.isEventComposerOpen).toBe(true);
+      expect(state.isMapModalOpen).toBe(false);
+    });
+
+    it("returns to the plus code sheet when the composer closes", () => {
+      const withSheet = mapSlice.reducer(
+        initialState,
+        mapActions.setSelectedPlusCode("9C2X4W00+"),
+      );
+      const opened = mapSlice.reducer(
+        withSheet,
+        mapActions.openEventComposer(),
+      );
+      const state = mapSlice.reducer(opened, mapActions.closeEventComposer());
+
+      expect(state.isEventComposerOpen).toBe(false);
+      expect(state.isMapModalOpen).toBe(true);
+    });
+
+    it("does not open an empty sheet when no plus code is selected", () => {
+      const opened = mapSlice.reducer(
+        initialState,
+        mapActions.openEventComposer(),
+      );
+      const state = mapSlice.reducer(opened, mapActions.closeEventComposer());
+
+      expect(state.isMapModalOpen).toBe(false);
+    });
+  });
 });

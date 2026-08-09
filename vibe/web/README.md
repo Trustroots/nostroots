@@ -22,6 +22,7 @@ The root page is a small hub. It links to classic Trustroots network settings, N
 - [`https://trashwiki.org/`](https://trashwiki.org/) — external Trashwiki site, hidden on the hub until you enable experimental apps.
 - [`https://hitchwiki.org/`](https://hitchwiki.org/) — external Hitchwiki site, hidden on the hub until you enable experimental apps.
 - [`https://maps.hitchwiki.org/`](https://maps.hitchwiki.org/) — external Hitchwiki Maps app, hidden on the hub until you enable experimental apps.
+- [`https://hitchhiking.org/chat/#test`](https://hitchhiking.org/chat/#test) — external Hitchhiking Chat community, hidden on the hub until you enable experimental apps.
 - [`https://www.letsmiti.app/`](https://www.letsmiti.app/) — external Let's Miti app, hidden on the hub until you enable experimental apps.
 - [`https://treasures.to/`](https://treasures.to/) — external Treasures web app, hidden on the hub until you enable experimental apps.
 - [`/examples/`](examples/) — optional demos and fork patterns.

@@ -1,11 +1,15 @@
+import { CALENDAR_TIME_EVENT_KIND } from "@trustroots/nr-common";
 import { NostrEvent } from "nostr-tools";
 
 /**
- * Check if a Nostr event represents a gathering (community event)
- * by looking for the presence of a "start" tag.
+ * Check if a Nostr event is a gathering: a NIP-52 time-based calendar event
+ * with a start time.
  */
 export function isGatheringEvent(event: NostrEvent): boolean {
-  return event.tags.some((tag) => tag[0] === "start" && tag.length >= 2);
+  return (
+    event.kind === CALENDAR_TIME_EVENT_KIND &&
+    event.tags.some((tag) => tag[0] === "start" && tag.length >= 2)
+  );
 }
 
 /**

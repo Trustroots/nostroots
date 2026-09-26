@@ -1,4 +1,6 @@
+import { getGeohashTagsForPlusCode } from "@/utils/geohash.utils";
 import {
+  CALENDAR_TIME_EVENT_KIND,
   CONTENT_MAXIMUM_LENGTH,
   CONTENT_MINIMUM_LENGTH,
   getCurrentTimestamp,
@@ -44,18 +46,26 @@ export function publishGatheringPromiseAction({
 
   const tags: string[][] = [
     ["d", nanoid()],
-    ...plusCodeTags,
     ["title", title],
     ["start", Math.round(startTimestamp).toString()],
-    [NOSTR_EXPIRATION_TAG_NAME, Math.round(expirationTimestamp).toString()],
   ];
 
   if (endTimestamp !== undefined) {
     tags.push(["end", Math.round(endTimestamp).toString()]);
   }
 
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  if (timeZone) {
+    tags.push(["start_tzid", timeZone]);
+  }
+
+  tags.push(...getGeohashTagsForPlusCode(plusCode), ...plusCodeTags, [
+    NOSTR_EXPIRATION_TAG_NAME,
+    Math.round(expirationTimestamp).toString(),
+  ]);
+
   const eventTemplate = {
-    kind: 30397,
+    kind: CALENDAR_TIME_EVENT_KIND,
     content: description,
     tags,
     created_at: getCurrentTimestamp(),

@@ -12,12 +12,12 @@ import {
 const NOW = new Date("2026-06-02T12:00:00Z");
 const unix = (iso: string) => Math.floor(new Date(iso).getTime() / 1000);
 
-function makeEvent(tags: string[][]): NostrEvent {
+function makeEvent(tags: string[][], kind = 31923): NostrEvent {
   return {
     id: "id",
     pubkey: "pubkey",
     created_at: unix("2026-06-01T00:00:00Z"),
-    kind: 30397,
+    kind,
     tags,
     content: "",
     sig: "sig",
@@ -27,6 +27,12 @@ function makeEvent(tags: string[][]): NostrEvent {
 describe("isGatheringEvent", () => {
   it("recognises an event with a start tag", () => {
     expect(isGatheringEvent(makeEvent([["start", "1780000000"]]))).toBe(true);
+  });
+
+  it("rejects a map note with a start tag", () => {
+    expect(isGatheringEvent(makeEvent([["start", "1780000000"]], 30397))).toBe(
+      false,
+    );
   });
 
   it("rejects an event without a start tag", () => {

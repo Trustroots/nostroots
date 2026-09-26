@@ -1,4 +1,5 @@
 import {
+  CALENDAR_TIME_EVENT_KIND,
   MAP_NOTE_REPOST_KIND,
   NOSTROOTS_VALIDATION_PUBKEY,
 } from "@trustroots/nr-common";
@@ -9,18 +10,23 @@ import { createMapFilters, updateDataForMapSagaEffect } from "./map.saga";
 import { put } from "redux-saga/effects";
 
 describe("map.saga", () => {
-  it("builds the Trustroots filter plus enabled layer filters", () => {
+  it("builds the Trustroots and gatherings filters plus enabled layer filters", () => {
     const filters = createMapFilters(["8F", "9F"], ["hitchwiki", "unverified"]);
 
-    expect(filters).toHaveLength(3);
+    expect(filters).toHaveLength(4);
     expect(filters[0]).toEqual({
       kinds: [MAP_NOTE_REPOST_KIND],
       authors: [NOSTROOTS_VALIDATION_PUBKEY],
       "#L": ["open-location-code-prefix"],
       "#l": ["8F", "9F"],
     });
-    expect(filters[1]).toMatchObject({ kinds: [30399], limit: 500 });
-    expect(filters[2]).toMatchObject({ kinds: [30397], limit: 500 });
+    expect(filters[1]).toEqual({
+      kinds: [CALENDAR_TIME_EVENT_KIND],
+      "#L": ["open-location-code-prefix"],
+      "#l": ["8F", "9F"],
+    });
+    expect(filters[2]).toMatchObject({ kinds: [30399], limit: 500 });
+    expect(filters[3]).toMatchObject({ kinds: [30397], limit: 500 });
   });
 
   it("updates map loading state and starts the map subscription", () => {

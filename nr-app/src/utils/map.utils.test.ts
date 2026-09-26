@@ -7,6 +7,7 @@ import {
   getEventLinkUrl,
   getLayerForEvent,
   getMapLayer,
+  isEventInMapLayer,
   isPlusCodeBetweenTwoPlusCodes,
   isValidPlusCode,
   plusCodeToArrayPairs,
@@ -229,5 +230,22 @@ describe("map.utils", () => {
     ).toBe("hitchwiki");
     expect(getLayerForEvent(eventWith().event)).toBe("unverified");
     expect(getLayerForEvent(eventWith({ kind: 1 }).event)).toBe("trustroots");
+  });
+
+  it("shows gatherings from any author on the Trustroots layer only", () => {
+    const gathering = eventWith({
+      kind: 31923,
+      tags: [["start", "1780000000"]],
+    }).event;
+
+    expect(isEventInMapLayer(gathering, "trustroots")).toBe(true);
+    expect(isEventInMapLayer(gathering, "unverified")).toBe(false);
+    expect(isEventInMapLayer(gathering, "hitchwiki")).toBe(false);
+    expect(getLayerForEvent(gathering)).toBe("trustroots");
+  });
+
+  it("keeps the Trustroots layer to validated reposts otherwise", () => {
+    expect(isEventInMapLayer(eventWith().event, "trustroots")).toBe(false);
+    expect(isEventInMapLayer(eventWith().event, "unverified")).toBe(true);
   });
 });

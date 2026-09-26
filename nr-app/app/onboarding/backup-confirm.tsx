@@ -1,10 +1,9 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import * as Clipboard from "expo-clipboard";
+import { useRouter } from "expo-router";
 import { ShieldCheckIcon } from "lucide-react-native";
 import React, { useEffect, useState } from "react";
-import { TextInput, View } from "react-native";
-import Toast from "react-native-root-toast";
+import { View } from "react-native";
 
+import { BackupChallenge } from "@/components/BackupChallenge";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { ROUTES } from "@/constants/routes";
@@ -14,112 +13,46 @@ import {
   getPrivateKeyHexFromSecureStorage,
   getPrivateKeyMnemonicFromSecureStorage,
 } from "@/nostr/keystore.nostr";
-import { useAppSelector } from "@/redux/hooks";
-import { settingsSelectors } from "@/redux/slices/settings.slice";
 import { getBech32PrivateKey } from "nip06";
 import { trackEvent } from "@/services/analytics.service";
 
-async function verifyBackupInput(rawInput: string): Promise<boolean> {
-  const input = rawInput.trim();
-  if (!input) return false;
-
-  let expectedNsec: string | null = null;
-  let expectedMnemonic: string | null = null;
-
-  const hasHex = await getHasPrivateKeyHexInSecureStorage();
-  if (hasHex) {
-    const privateKey = await getPrivateKeyHexFromSecureStorage();
-    try {
-      const { bech32PrivateKey: nsec } = getBech32PrivateKey({ privateKey });
-      expectedNsec = nsec;
-    } catch {
-      expectedNsec = null;
-    }
-  }
-
-  try {
-    const hasMnemonic = await getHasPrivateKeyMnemonicInSecureStorage();
-    if (hasMnemonic) {
-      const storedMnemonic = await getPrivateKeyMnemonicFromSecureStorage();
-      const normalizedStored = storedMnemonic
-        .trim()
-        .split(/\s+/)
-        .join(" ")
-        .toLowerCase();
-      if (normalizedStored.length > 0) {
-        expectedMnemonic = normalizedStored;
-      }
-    }
-  } catch {
-    // ignore, handled via null checks
-  }
-
-  if (!expectedNsec && !expectedMnemonic) {
-    return false;
-  }
-
-  if (input.toLowerCase().startsWith("nsec1")) {
-    const candidateNsec = input.trim().toLowerCase();
-    if (expectedNsec && candidateNsec === expectedNsec.toLowerCase()) {
-      return true;
-    }
-    return false;
-  }
-
-  const candidateMnemonic = input.trim().split(/\s+/).join(" ").toLowerCase();
-
-  if (expectedMnemonic && candidateMnemonic === expectedMnemonic) {
-    return true;
-  }
-
-  return false;
-}
-
 export default function OnboardingBackupConfirmScreen() {
   const router = useRouter();
-  const { from } = useLocalSearchParams<{ from?: string }>();
-  const keyWasImported = useAppSelector(settingsSelectors.selectKeyWasImported);
 
-  const [input, setInput] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
+  const [secret, setSecret] = useState<string | null>(null);
+  const [secretAcknowledged, setSecretAcknowledged] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
-  const [storedSecret, setStoredSecret] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function checkSecrets() {
+    async function loadSecret() {
       try {
         const [hasHex, hasMnemonic] = await Promise.all([
           getHasPrivateKeyHexInSecureStorage(),
           getHasPrivateKeyMnemonicInSecureStorage(),
         ]);
 
-        if (!hasHex && !hasMnemonic) {
-          if (!cancelled) {
-            setSetupError(
-              "We could not find your key on this device. Please restart onboarding.",
-            );
-          }
-        } else if (!keyWasImported) {
-          let secret: string | null = null;
+        let loaded: string | null = null;
 
-          if (hasMnemonic) {
-            secret = await getPrivateKeyMnemonicFromSecureStorage();
-          } else if (hasHex) {
-            const privateKey = await getPrivateKeyHexFromSecureStorage();
-            const { bech32PrivateKey: nsec } = getBech32PrivateKey({
-              privateKey,
-            });
-            secret = nsec;
-          }
-
-          if (!cancelled) {
-            setStoredSecret(secret);
-          }
+        if (hasMnemonic) {
+          loaded = await getPrivateKeyMnemonicFromSecureStorage();
+        } else if (hasHex) {
+          const privateKey = await getPrivateKeyHexFromSecureStorage();
+          loaded = getBech32PrivateKey({ privateKey }).bech32PrivateKey;
         }
+
+        if (cancelled) return;
+
+        if (!loaded) {
+          setSetupError(
+            "We could not find your key on this device. Please restart onboarding.",
+          );
+          return;
+        }
+
+        setSecret(loaded);
       } catch {
         if (!cancelled) {
           setSetupError(
@@ -129,99 +62,55 @@ export default function OnboardingBackupConfirmScreen() {
       }
     }
 
-    checkSecrets();
+    loadSecret();
 
     return () => {
       cancelled = true;
-      setError(null);
-      setSuccess(false);
     };
-  }, [keyWasImported]);
+  }, []);
 
-  const handleConfirm = async () => {
-    if (setupError) return;
+  const handleAcknowledgeSecret = () => {
+    trackEvent("onboarding_backup", {
+      action: "secret_acknowledged",
+      source: "bridge",
+    });
+    setSecretAcknowledged(true);
+  };
 
-    const trimmed = input.trim();
-    if (!trimmed) {
-      setError("Enter your nsec or mnemonic to confirm your backup.");
-      setSuccess(false);
-      return;
-    }
+  const handleConfirmed = () => {
+    trackEvent("onboarding_backup_confirmed", {
+      outcome: "success",
+      source: "bridge",
+    });
+    setConfirmed(true);
+  };
 
-    setIsVerifying(true);
-    setError(null);
-
-    try {
-      const ok = await verifyBackupInput(trimmed);
-      if (!ok) {
-        trackEvent("onboarding_backup_confirmed", {
-          outcome: "mismatch",
-          source: from === "bridge" ? "bridge" : "legacy_key",
-        });
-        setSuccess(false);
-        setError(
-          "That does not match your saved secret. Double-check and try again.",
-        );
-      } else {
-        trackEvent("onboarding_backup_confirmed", {
-          outcome: "success",
-          source: from === "bridge" ? "bridge" : "legacy_key",
-        });
-        setSuccess(true);
-        setError(null);
-        setInput("");
-      }
-    } finally {
-      setIsVerifying(false);
-    }
+  const handleFailed = () => {
+    trackEvent("onboarding_backup_confirmed", {
+      outcome: "mismatch",
+      source: "bridge",
+    });
   };
 
   const handleFinish = () => {
-    if (!success) return;
-    trackEvent("onboarding_completed", {
-      method: from === "bridge" ? "bridge" : "generated_key",
-    });
-    setInput("");
-    setError(null);
+    if (!confirmed) return;
+    trackEvent("onboarding_completed", { method: "bridge" });
     router.replace(ROUTES.HOME);
   };
 
   const handleBack = () => {
-    trackEvent("onboarding_backup", {
-      action: "back",
-      source: from === "bridge" ? "bridge" : "legacy_key",
-    });
-    setInput("");
-    setError(null);
-    setSuccess(false);
-    router.dismissTo(
-      from === "bridge" ? "/onboarding/trustroots" : "/onboarding/key",
-    );
+    trackEvent("onboarding_backup", { action: "back", source: "bridge" });
+    router.dismissTo("/onboarding/trustroots");
   };
 
-  const handleCopySecret = async () => {
-    if (!storedSecret) return;
-
-    try {
-      await Clipboard.setStringAsync(storedSecret);
-      Toast.show("Copied secret to Clipboard!", {
-        duration: Toast.durations.SHORT,
-        position: Toast.positions.BOTTOM,
-      });
-    } catch (error) {
-      console.error("Failed to copy secret", error);
-    }
-  };
-
-  const isConfirmDisabled =
-    !!setupError || isVerifying || success || !input.trim().length;
+  const isRevealStep = !secretAcknowledged;
 
   return (
     <>
       <View className="flex items-center gap-6">
         <ShieldCheckIcon size={128} color="#fff" strokeWidth={0.5} />
         <Text variant="h1" className="my-0">
-          Confirm Your Backup
+          Save Your Key
         </Text>
       </View>
 
@@ -231,75 +120,50 @@ export default function OnboardingBackupConfirmScreen() {
           if you lose it.
         </Text>
         <Text variant="p">
-          Re-enter your nsec or your 12/24-word mnemonic to confirm you’ve saved
-          it safely.
+          {isRevealStep
+            ? "Write it down or store it in a password manager. Then we ask you for a few parts of it, to check it really is saved."
+            : "Now check your backup — we only ask for a few parts of it."}
         </Text>
       </View>
 
-      {storedSecret && (
-        <View className="w-full gap-2 bg-card rounded-lg p-3">
-          <Text className="text-sm font-bold text-foreground text-left">
-            Save this secret before continuing
-          </Text>
-          <Text
-            className="text-sm bg-muted text-foreground rounded-md p-3 text-left"
-            selectable
-          >
-            {storedSecret}
-          </Text>
-          <Button
-            variant="outline"
-            size="sm"
-            title="Copy secret"
-            onPress={handleCopySecret}
-          />
-        </View>
+      {setupError && (
+        <Text className="text-xs text-red-500 text-left">{setupError}</Text>
       )}
 
-      <View className="w-full gap-2">
-        <TextInput
-          value={input}
-          onChangeText={(value) => {
-            setInput(value);
-            setError(null);
-            setSuccess(false);
-          }}
-          placeholder="Paste your nsec1... key or type your 12/24-word mnemonic"
-          placeholderTextColor="#6b7280"
-          autoCapitalize="none"
-          autoCorrect={false}
-          multiline
-          className="w-full bg-card text-foreground rounded-md p-3 text-sm min-h-[72px]"
+      {secret && isRevealStep && (
+        <>
+          <View className="w-full gap-2 bg-card rounded-lg p-3">
+            <Text className="text-sm font-bold text-foreground text-left">
+              Your secret
+            </Text>
+            <Text
+              testID="onboarding-backup-secret"
+              className="text-sm bg-muted text-foreground rounded-md p-3 text-left"
+              selectable
+            >
+              {secret}
+            </Text>
+          </View>
+          <Button
+            testID="onboarding-backup-secret-saved"
+            variant="secondary"
+            size="lg"
+            title="I have saved my secret"
+            onPress={handleAcknowledgeSecret}
+          />
+        </>
+      )}
+
+      {secret && !isRevealStep && (
+        <BackupChallenge
+          key={secret}
+          secret={secret}
+          confirmed={confirmed}
+          onConfirmed={handleConfirmed}
+          onFailed={handleFailed}
+          testIDPrefix="onboarding-backup"
         />
-
-        {error && <Text className="text-xs text-red-500 mt-1">{error}</Text>}
-
-        {setupError && (
-          <Text className="text-xs text-red-500 mt-1 text-left">
-            {setupError}
-          </Text>
-        )}
-
-        {success && !error && (
-          <Text className="text-xs text-green-400 mt-1">
-            You’re all set — backup confirmed.
-          </Text>
-        )}
-      </View>
-
-      <Button
-        variant="secondary"
-        size="lg"
-        title={
-          success
-            ? "Backup confirmed"
-            : isVerifying
-              ? "Confirming..."
-              : "Confirm backup"
-        }
-        disabled={isConfirmDisabled}
-        onPress={handleConfirm}
-      />
+      )}
 
       <View className="flex flex-row gap-2 mt-4">
         <Button
@@ -310,11 +174,12 @@ export default function OnboardingBackupConfirmScreen() {
         />
 
         <Button
+          testID="onboarding-backup-finish"
           variant="secondary"
           size="lg"
           title="Finish"
           onPress={handleFinish}
-          disabled={!success}
+          disabled={!confirmed}
         />
       </View>
     </>

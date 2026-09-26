@@ -218,13 +218,10 @@ export default function OnboardingLinkScreen() {
   };
 
   const goNext = () => {
-    if (keyWasImported) {
-      trackEvent("onboarding_completed", { method: "imported_key" });
-      router.replace(ROUTES.HOME);
-    } else {
-      trackEvent("onboarding_backup_started", { source: "legacy_key" });
-      router.push("/onboarding/backup-confirm");
-    }
+    trackEvent("onboarding_completed", {
+      method: keyWasImported ? "imported_key" : "generated_key",
+    });
+    router.replace(ROUTES.HOME);
   };
 
   return (

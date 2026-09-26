@@ -8,6 +8,7 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import EventCard from "./EventCard";
 import { FilterChips, FilterChip } from "./FilterChips";
+import { isGatheringEvent } from "@/utils/event-gathering.utils";
 import { getPlusCodeFromEvent } from "@/utils/event.utils";
 import { navigateToEvent } from "@/utils/navigation.utils";
 import { useAppSelector } from "@/redux/hooks";
@@ -44,7 +45,11 @@ export function EventsTab() {
     const oneWeekFromNow = now + 604800;
 
     const eventNotes = allEvents
-      .filter((e) => e.event.kind === MAP_NOTE_REPOST_KIND && isEventNote(e))
+      .filter(
+        (e) =>
+          (e.event.kind === MAP_NOTE_REPOST_KIND && isEventNote(e)) ||
+          isGatheringEvent(e.event),
+      )
       .map((e) => ({
         ...e,
         _startTimestamp: getStartTimestamp(e) ?? e.event.created_at,

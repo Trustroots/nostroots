@@ -1,8 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
-import { matchFilter } from "nostr-tools";
-import { BoundingBox, LatLng, MapViewport } from "@/utils/map.utils";
+import {
+  BoundingBox,
+  isEventInMapLayer,
+  LatLng,
+  MapViewport,
+} from "@/utils/map.utils";
 import { persistReducer } from "redux-persist";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { eventsSelectors, EventWithMetadata } from "./events.slice";
@@ -193,13 +197,10 @@ const selectEnabledLayerKeys = createSelector(
 
 const selectEventsForSelectedMapLayer = createSelector(
   [eventsSelectors.selectAll, mapSliceSelectors.selectSelectedLayer],
-  (events: EventWithMetadata[], selectedLayer: MAP_LAYER_KEY) => {
-    const layer = MAP_LAYERS[selectedLayer];
-    const eventsForLayer = events.filter((eventWithMetadata) =>
-      matchFilter(layer.filter, eventWithMetadata.event),
-    );
-    return eventsForLayer;
-  },
+  (events: EventWithMetadata[], selectedLayer: MAP_LAYER_KEY) =>
+    events.filter((eventWithMetadata) =>
+      isEventInMapLayer(eventWithMetadata.event, selectedLayer),
+    ),
 );
 
 export const mapActions = mapSlice.actions;

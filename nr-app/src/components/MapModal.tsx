@@ -71,8 +71,15 @@ export default function MapModal() {
     }
   }, [showModal]);
 
+  const openComposerAfterDismissRef = useRef(false);
+
   const handleDismiss = useCallback(() => {
     setSignalMode(false);
+    if (openComposerAfterDismissRef.current) {
+      openComposerAfterDismissRef.current = false;
+      dispatch(mapActions.openEventComposer());
+      return;
+    }
     if (showModal) {
       dispatch(mapActions.closeMapModal());
     }
@@ -83,9 +90,9 @@ export default function MapModal() {
   }, []);
 
   const handleCreateEvent = useCallback(() => {
+    openComposerAfterDismissRef.current = true;
     bottomSheetRef.current?.dismiss();
-    dispatch(mapActions.openEventComposer());
-  }, [dispatch]);
+  }, []);
 
   const handleSetUpAccount = useCallback(() => {
     bottomSheetRef.current?.dismiss();

@@ -1,8 +1,12 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { MAP_LAYER_KEY, MAP_LAYERS } from "@trustroots/nr-common";
-import { matchFilter } from "nostr-tools";
-import { BoundingBox, LatLng, MapViewport } from "@/utils/map.utils";
+import {
+  BoundingBox,
+  isEventInMapLayer,
+  LatLng,
+  MapViewport,
+} from "@/utils/map.utils";
 import { persistReducer } from "redux-persist";
 import { setVisiblePlusCodes } from "../actions/map.actions";
 import { eventsSelectors, EventWithMetadata } from "./events.slice";
@@ -18,6 +22,7 @@ interface MapState {
   isMapModalOpen: boolean;
   isHalfMapEventModalOpen: boolean;
   isAddNoteModalOpen: boolean;
+  isEventComposerOpen: boolean;
   selectedLatLng?: LatLng;
   currentMapLocation?: LatLng;
   centerMapOnCurrentLocation: boolean;
@@ -33,6 +38,7 @@ const initialState: MapState = {
   isMapModalOpen: false,
   isHalfMapEventModalOpen: false,
   isAddNoteModalOpen: false,
+  isEventComposerOpen: false,
   selectedLatLng: undefined,
   currentMapLocation: undefined,
   centerMapOnCurrentLocation: false,
@@ -87,6 +93,14 @@ export const mapSlice = createSlice({
     },
     closeAddNoteModal: (state) => {
       state.isAddNoteModalOpen = false;
+    },
+    openEventComposer: (state) => {
+      state.isMapModalOpen = false;
+      state.isEventComposerOpen = true;
+    },
+    closeEventComposer: (state) => {
+      state.isEventComposerOpen = false;
+      state.isMapModalOpen = state.selectedPlusCode.length > 0;
     },
     setSelectedPlusCode: (state, action: PayloadAction<string>) => {
       state.selectedPlusCode = action.payload;
@@ -158,6 +172,7 @@ export const mapSlice = createSlice({
     selectIsMapModalOpen: (state) => state.isMapModalOpen,
     selectIsHalfMapEventModalOpen: (state) => state.isHalfMapEventModalOpen,
     selectIsAddNoteModalOpen: (state) => state.isAddNoteModalOpen,
+    selectIsEventComposerOpen: (state) => state.isEventComposerOpen,
     selectBoundingBox: (state) => state.boundingBox,
     selectEnabledLayerKeys: createSelector(
       (state: MapState) => state,
@@ -182,13 +197,10 @@ const selectEnabledLayerKeys = createSelector(
 
 const selectEventsForSelectedMapLayer = createSelector(
   [eventsSelectors.selectAll, mapSliceSelectors.selectSelectedLayer],
-  (events: EventWithMetadata[], selectedLayer: MAP_LAYER_KEY) => {
-    const layer = MAP_LAYERS[selectedLayer];
-    const eventsForLayer = events.filter((eventWithMetadata) =>
-      matchFilter(layer.filter, eventWithMetadata.event),
-    );
-    return eventsForLayer;
-  },
+  (events: EventWithMetadata[], selectedLayer: MAP_LAYER_KEY) =>
+    events.filter((eventWithMetadata) =>
+      isEventInMapLayer(eventWithMetadata.event, selectedLayer),
+    ),
 );
 
 export const mapActions = mapSlice.actions;

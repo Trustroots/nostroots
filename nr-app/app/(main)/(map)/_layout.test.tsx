@@ -6,14 +6,23 @@ import { useAppSelector } from "@/redux/hooks";
 
 jest.mock("@/redux/hooks", () => ({
   useAppSelector: jest.fn(),
+  useAppDispatch: jest.fn(() => jest.fn()),
 }));
 
 const mockUseAppSelector = useAppSelector as jest.Mock;
 
-function fakeState(areTestFeaturesEnabled: boolean) {
+function fakeState(
+  areTestFeaturesEnabled: boolean,
+  selectedPlusCode = "",
+  isEventComposerOpen = false,
+) {
   return {
     settings: {
       areTestFeaturesEnabled,
+    },
+    map: {
+      selectedPlusCode,
+      isEventComposerOpen,
     },
   };
 }
@@ -59,5 +68,26 @@ describe("MapLayout", () => {
     );
 
     expect(queryByLabelText("Open NIP-07 Browser")).toBeTruthy();
+  });
+
+  it("does not put a create event button in the map overlay", () => {
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(true, "9C2X4W+2X")),
+    );
+    expect(renderMapLayout().queryByLabelText("Create event")).toBeNull();
+  });
+
+  it("renders the event composer when it is open in state", () => {
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(false, "9C2X4W+2X", true)),
+    );
+    expect(renderMapLayout().queryByLabelText("Back")).toBeTruthy();
+  });
+
+  it("keeps the event composer closed by default", () => {
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(false, "9C2X4W+2X")),
+    );
+    expect(renderMapLayout().queryByLabelText("Back")).toBeNull();
   });
 });

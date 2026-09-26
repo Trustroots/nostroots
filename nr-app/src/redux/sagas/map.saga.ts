@@ -1,5 +1,6 @@
 import {
   filterForMapLayerConfigForPlusCodePrefixes,
+  gatheringsFilterForPlusCodePrefixes,
   trustrootsMapFilterForPlusCodePrefixes,
 } from "@/common/utils";
 import { createSelector } from "@reduxjs/toolkit";
@@ -45,7 +46,10 @@ export function createMapFilters(
     return filter;
   });
 
-  const filters = [baseFilter, ...layerFilters];
+  const gatheringsFilter =
+    gatheringsFilterForPlusCodePrefixes(visiblePlusCodes);
+
+  const filters = [baseFilter, gatheringsFilter, ...layerFilters];
 
   return filters;
 }

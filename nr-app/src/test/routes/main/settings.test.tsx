@@ -1,7 +1,9 @@
 import { fireEvent, screen, waitFor } from "@testing-library/react-native";
 
 import { settingsSlice } from "@/redux/slices/settings.slice";
+import { ROUTES } from "@/constants/routes";
 import { renderWithProviders } from "@/test/render";
+import { getRouterMock } from "@/test/router";
 import SettingsScreen from "../../../../app/(main)/(views)/settings";
 
 const mockImportKey = jest.fn(async () => ({
@@ -26,6 +28,14 @@ describe("SettingsScreen", () => {
     expect(screen.getAllByText("Import Key").length).toBeGreaterThan(0);
     expect(screen.getByText("Appearance")).toBeTruthy();
     expect(screen.getByText("Help")).toBeTruthy();
+  });
+
+  it("links to the support screen", () => {
+    renderWithProviders(<SettingsScreen />);
+
+    fireEvent.press(screen.getByText("Contact support"));
+
+    expect(getRouterMock().push).toHaveBeenCalledWith(ROUTES.SUPPORT);
   });
 
   it("updates color scheme preference", () => {

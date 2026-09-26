@@ -16,6 +16,7 @@ import {
   SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
 } from "@/constants";
 import { useKeyImport } from "@/hooks/useKeyImport";
+import { ROUTES } from "@/constants/routes";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import {
   getPrivateKeyHexFromSecureStorage,
@@ -49,7 +50,7 @@ import {
   getFirstLabelValueFromEvent,
   kind30397EventSchema,
 } from "@trustroots/nr-common";
-import { Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
 import Toast from "react-native-root-toast";
 import { match } from "ts-pattern";
 import { z } from "zod";
@@ -144,6 +145,7 @@ function AppearanceSection() {
 
 export default function SettingsScreen() {
   const dispatch = useAppDispatch();
+  const router = useRouter();
   const expoPushToken = useAppSelector(
     notificationSelectors.selectExpoPushToken,
   );
@@ -494,9 +496,15 @@ export default function SettingsScreen() {
 
         <Text variant="p">
           If you encounter issues with this app, or want to share feedback, you
-          can reach the team behind this at https://www.trustroots.org/support
-          or simply leave a note in the Antarctica area.
+          can reach the team behind this through Trustroots support, or simply
+          leave a note in the Antarctica area.
         </Text>
+
+        <Button
+          variant="outline"
+          title="Contact support"
+          onPress={() => router.push(ROUTES.SUPPORT)}
+        />
 
         <Text variant="h3">How does this enhance Trustroots?</Text>
 

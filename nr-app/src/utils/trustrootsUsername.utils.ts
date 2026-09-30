@@ -32,7 +32,7 @@ export function buildTrustrootsNip05Identifier(input: string): string {
  * An arbitrary email is rejected rather than looked up. nr-bridge could match
  * one against the Trustroots `users` collection, but usernames are already
  * public while emails are not, so an email-keyed lookup would turn
- * `request_token` into an oracle for whether a given person has a Trustroots
+ * `verify_token` into an oracle for whether a given person has a Trustroots
  * account at all.
  */
 function extractUsername(

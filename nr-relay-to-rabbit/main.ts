@@ -2,6 +2,7 @@ import * as amqp from "@nashaddams/amqp";
 import { AMQP_EXCHANGE_NAME, AMQP_EXCHANGE_TYPE } from "@trustroots/nr-common";
 import { parseJsonLine } from "./src/parseLines.ts";
 import { acceptEvent, rejectEvent } from "./src/strfryResponses.ts";
+import { validateDeletion } from "./src/validateDeletion.ts";
 import { whitelistKinds } from "./src/whitelistKinds.ts";
 import { log } from "./src/log.ts";
 
@@ -65,6 +66,16 @@ Deno.serve({ port: 80, hostname: "0.0.0.0" }, async (request) => {
       `#fJ9pLs Rejected event ${strfryLine.event.id} (kind ${strfryLine.event.kind})`,
     );
     return new Response(response, {
+      headers: { "content-type": "application/json" },
+    });
+  }
+
+  const deletionRejection = validateDeletion(strfryLine.event);
+  if (typeof deletionRejection !== "undefined") {
+    log.info(
+      `#Wd5sKq Rejected deletion ${strfryLine.event.id}: ${deletionRejection}`,
+    );
+    return new Response(rejectEvent(strfryLine, deletionRejection), {
       headers: { "content-type": "application/json" },
     });
   }

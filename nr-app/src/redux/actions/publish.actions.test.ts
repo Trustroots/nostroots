@@ -1,8 +1,5 @@
 import { getPlusCodeAndPlusCodePrefixTags } from "@trustroots/nr-common";
-import {
-  publishEventTemplatePromiseAction,
-  publishNotePromiseAction,
-} from "./publish.actions";
+import { publishNotePromiseAction } from "./publish.actions";
 
 const plusCode = "9F4MGC22+22";
 
@@ -15,7 +12,7 @@ describe("publishNotePromiseAction", () => {
     const action = publishNotePromiseAction("hello", plusCode);
     const after = Math.floor(Date.now() / 1000);
 
-    expect(action.type).toBe(publishEventTemplatePromiseAction.request.type);
+    expect(action.type).toBe("publish/eventTemplate/request");
     const template = templateOf(action);
     expect(template.kind).toBe(30397);
     expect(template.content).toBe("hello");

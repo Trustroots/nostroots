@@ -8,16 +8,14 @@ const templateOf = (action: ReturnType<typeof publishNotePromiseAction>) =>
 
 describe("publishNotePromiseAction", () => {
   it("builds a kind 30397 note request with a d tag and plus code tags", () => {
-    const before = Math.floor(Date.now() / 1000);
+    jest.spyOn(Date, "now").mockReturnValue(1700000000600);
     const action = publishNotePromiseAction("hello", plusCode);
-    const after = Math.floor(Date.now() / 1000);
 
     expect(action.type).toBe("publish/eventTemplate/request");
     const template = templateOf(action);
     expect(template.kind).toBe(30397);
     expect(template.content).toBe("hello");
-    expect(template.created_at).toBeGreaterThanOrEqual(before);
-    expect(template.created_at).toBeLessThanOrEqual(after);
+    expect(template.created_at).toBe(1700000001);
 
     const [dTag, ...rest] = template.tags;
     expect(dTag[0]).toBe("d");

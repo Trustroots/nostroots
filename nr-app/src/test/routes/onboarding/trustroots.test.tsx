@@ -103,4 +103,80 @@ describe("OnboardingTrustrootsScreen", () => {
       );
     });
   });
+
+  function renderCodeEntry() {
+    return renderWithProviders(<OnboardingTrustrootsScreen />, {
+      preloadedState: {
+        settings: {
+          ...settingsSlice.getInitialState(),
+          pendingTrustrootsUsername: "alice",
+        },
+      },
+    });
+  }
+
+  function submitCode() {
+    fireEvent.changeText(screen.getByPlaceholderText("123456"), "000000");
+    fireEvent.press(screen.getByText("Verify code"));
+  }
+
+  it("keeps the code field after a wrong code and says how many tries are left", async () => {
+    const { NrBridgeError } = jest.requireActual("@/services/nrBridge.service");
+    bridge.authenticateWithCode.mockRejectedValueOnce(
+      new NrBridgeError({
+        code: "wrong-code",
+        status: 401,
+        message: "Invalid code or token",
+        attemptsLeft: 3,
+      }),
+    );
+    renderCodeEntry();
+
+    submitCode();
+
+    expect(
+      await screen.findByText("That code is wrong. Try again (3 tries left)."),
+    ).toBeTruthy();
+    expect(screen.getByPlaceholderText("123456").props.value).toBe("");
+    expect(screen.getByText("Verify code")).toBeTruthy();
+  });
+
+  it("sends the user back to request a new email when the code has expired", async () => {
+    const { NrBridgeError } = jest.requireActual("@/services/nrBridge.service");
+    bridge.authenticateWithCode.mockRejectedValueOnce(
+      new NrBridgeError({
+        code: "invalid-or-expired",
+        status: 401,
+        message: "No pending verification or code expired",
+      }),
+    );
+    renderCodeEntry();
+
+    submitCode();
+
+    expect(
+      await screen.findByText(
+        "That code has expired or had too many wrong tries. Request a new email.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Verify Trustroots email")).toBeTruthy();
+    expect(screen.queryByPlaceholderText("123456")).toBeNull();
+  });
+
+  it("keeps the code field when the verification service can't be reached", async () => {
+    const { NrBridgeError } = jest.requireActual("@/services/nrBridge.service");
+    bridge.authenticateWithCode.mockRejectedValueOnce(
+      new NrBridgeError({ code: "network", message: "Could not reach" }),
+    );
+    renderCodeEntry();
+
+    submitCode();
+
+    expect(
+      await screen.findByText(
+        "Could not reach the verification service. Try again.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Verify code")).toBeTruthy();
+  });
 });

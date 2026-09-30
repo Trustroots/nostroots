@@ -120,6 +120,59 @@ describe("nrBridge.service", () => {
     });
   });
 
+  it("maps a wrong code to wrong-code with the attempts left", async () => {
+    const { authenticateWithCode } = await loadService();
+    (global.fetch as jest.Mock).mockResolvedValue(
+      mockJsonResponse({
+        ok: false,
+        status: 401,
+        body: {
+          error: "Invalid code or token",
+          reason: "wrong-code",
+          attemptsLeft: 3,
+        },
+      }),
+    );
+
+    await expect(
+      authenticateWithCode({ username: "a", npub: "npub1", code: "000000" }),
+    ).rejects.toMatchObject({ code: "wrong-code", attemptsLeft: 3 });
+  });
+
+  it("treats a wrong code with no attempts left as expired", async () => {
+    const { authenticateWithCode } = await loadService();
+    (global.fetch as jest.Mock).mockResolvedValue(
+      mockJsonResponse({
+        ok: false,
+        status: 401,
+        body: {
+          error: "Invalid code or token",
+          reason: "wrong-code",
+          attemptsLeft: 0,
+        },
+      }),
+    );
+
+    await expect(
+      authenticateWithCode({ username: "a", npub: "npub1", code: "000000" }),
+    ).rejects.toMatchObject({ code: "invalid-or-expired" });
+  });
+
+  it("recognises a wrong code from an older bridge by its message", async () => {
+    const { authenticateWithCode } = await loadService();
+    (global.fetch as jest.Mock).mockResolvedValue(
+      mockJsonResponse({
+        ok: false,
+        status: 401,
+        body: { error: "Invalid code or token" },
+      }),
+    );
+
+    await expect(
+      authenticateWithCode({ username: "a", npub: "npub1", code: "000000" }),
+    ).rejects.toMatchObject({ code: "wrong-code", attemptsLeft: undefined });
+  });
+
   it("maps failed fetches to network errors", async () => {
     const { requestVerificationToken } = await loadService();
 

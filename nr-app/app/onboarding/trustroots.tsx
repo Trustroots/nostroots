@@ -70,6 +70,15 @@ function getRequestErrorMessage(error: unknown): string {
   return "Could not send a verification code. Try again.";
 }
 
+const EXPIRED_CODE_MESSAGE =
+  "That code has expired or had too many wrong tries. Request a new email.";
+
+function getWrongCodeMessage(attemptsLeft: number | undefined): string {
+  if (attemptsLeft === undefined) return "That code is wrong. Try again.";
+  const tries = attemptsLeft === 1 ? "try" : "tries";
+  return `That code is wrong. Try again (${attemptsLeft} ${tries} left).`;
+}
+
 export default function OnboardingTrustrootsScreen() {
   const dispatch = useAppDispatch();
   const router = useRouter();
@@ -243,6 +252,32 @@ export default function OnboardingTrustrootsScreen() {
         outcome: "failure",
       });
       console.error("Failed to authenticate Trustroots code", error);
+      if (error instanceof NrBridgeError) {
+        if (error.code === "wrong-code") {
+          setCode("");
+          setScreenState("code-entry");
+          setStatusMessage(getWrongCodeMessage(error.attemptsLeft));
+          return;
+        }
+        if (error.code === "network" || error.code === "server") {
+          setScreenState("code-entry");
+          setStatusMessage(
+            "Could not reach the verification service. Try again.",
+          );
+          return;
+        }
+        if (error.code === "rate-limited") {
+          setScreenState("code-entry");
+          setStatusMessage(
+            "Too many verification attempts right now. Try again later.",
+          );
+          return;
+        }
+        if (error.code === "invalid-or-expired") {
+          resetToUsernameEntry(EXPIRED_CODE_MESSAGE);
+          return;
+        }
+      }
       resetToUsernameEntry(AUTHENTICATION_FAILURE_MESSAGE);
       return;
     }

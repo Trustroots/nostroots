@@ -6,6 +6,7 @@ export type NrBridgeErrorCode =
   | "not-found"
   | "already-pending"
   | "rate-limited"
+  | "wrong-code"
   | "invalid-or-expired"
   | "server"
   | "network";
@@ -16,23 +17,27 @@ export class NrBridgeError extends Error {
   status?: number;
   code: NrBridgeErrorCode;
   body: JsonBody;
+  attemptsLeft?: number;
 
   constructor({
     code,
     message,
     status,
     body = null,
+    attemptsLeft,
   }: {
     code: NrBridgeErrorCode;
     message: string;
     status?: number;
     body?: JsonBody;
+    attemptsLeft?: number;
   }) {
     super(message);
     this.name = "NrBridgeError";
     this.code = code;
     this.status = status;
     this.body = body;
+    this.attemptsLeft = attemptsLeft;
   }
 }
 
@@ -69,9 +74,23 @@ function getBridgeBaseUrl(): string {
   }
 }
 
-function errorCodeForStatus(status: number): NrBridgeErrorCode {
+const WRONG_CODE_MESSAGE = "Invalid code or token";
+
+function errorCodeForResponse(
+  status: number,
+  body: JsonBody,
+  attemptsLeft: number | undefined,
+): NrBridgeErrorCode {
   if (status === 400) return "invalid-request";
-  if (status === 401) return "invalid-or-expired";
+  if (status === 401) {
+    // Older bridges send no reason, only the message.
+    const isWrongCode =
+      body?.reason === "wrong-code" ||
+      (body?.reason === undefined && body?.error === WRONG_CODE_MESSAGE);
+    return isWrongCode && attemptsLeft !== 0
+      ? "wrong-code"
+      : "invalid-or-expired";
+  }
   if (status === 404) return "not-found";
   if (status === 409) return "already-pending";
   if (status === 429) return "rate-limited";
@@ -113,9 +132,14 @@ async function postJson(path: string, body: Record<string, unknown>) {
   const parsedBody = await parseJson(response);
 
   if (!response.ok) {
+    const attemptsLeft =
+      typeof parsedBody?.attemptsLeft === "number"
+        ? parsedBody.attemptsLeft
+        : undefined;
     throw new NrBridgeError({
-      code: errorCodeForStatus(response.status),
+      code: errorCodeForResponse(response.status, parsedBody, attemptsLeft),
       status: response.status,
+      attemptsLeft,
       message:
         typeof parsedBody?.error === "string"
           ? parsedBody.error

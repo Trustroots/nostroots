@@ -10,7 +10,10 @@
  * comparisons across all users.
  */
 import type { Context } from "hono";
-import { AuthenticateRequestSchema } from "../../schemas/tokenRequest.ts";
+import {
+  AuthenticateRequestSchema,
+  MAX_VERIFY_ATTEMPTS,
+} from "../../schemas/tokenRequest.ts";
 import {
   deleteTokenRequest,
   reserveVerifyAttempt,
@@ -24,8 +27,9 @@ import { setNpubForUsername } from "../db/mongodb.ts";
  *
  * @param c - Hono request context.
  * @returns `200` with `{ success: true }` when the npub is successfully set,
- *          `400` for invalid input, `401` if the code/token is wrong or
- *          expired, `429` if the global code-guess cap is used up, or `500`
+ *          `400` for invalid input, `401` if the code/token is wrong
+ *          (`reason: "wrong-code"` with `attemptsLeft`) or the request is
+ *          missing, expired or locked out (`reason: "expired"`), `429` if the global code-guess cap is used up, or `500`
  *          if the MongoDB update fails.
  */
 export async function handleAuthenticate(c: Context): Promise<Response> {
@@ -62,14 +66,27 @@ export async function handleAuthenticate(c: Context): Promise<Response> {
 
   const tokenRequest = await reserveVerifyAttempt(username);
   if (!tokenRequest) {
-    return c.json({ error: "No pending verification or code expired" }, 401);
+    return c.json(
+      { error: "No pending verification or code expired", reason: "expired" },
+      401,
+    );
   }
 
   const codeMatch = code && tokenRequest.code === code;
   const tokenMatch = token && tokenRequest.token === token;
 
   if (!codeMatch && !tokenMatch) {
-    return c.json({ error: "Invalid code or token" }, 401);
+    return c.json(
+      {
+        error: "Invalid code or token",
+        reason: "wrong-code",
+        attemptsLeft: Math.max(
+          MAX_VERIFY_ATTEMPTS - (tokenRequest.attempts ?? 0),
+          0,
+        ),
+      },
+      401,
+    );
   }
 
   const updated = await setNpubForUsername(username, npub);

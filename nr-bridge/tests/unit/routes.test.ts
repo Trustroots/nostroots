@@ -3,7 +3,10 @@ import { createApp } from "../../src/server.ts";
 import { setKv, closeKv } from "../../src/db/kv.ts";
 import { createTokenRequest } from "../../src/db/kv.ts";
 import type { TokenRequest } from "../../schemas/tokenRequest.ts";
-import { TOKEN_EXPIRY_MS } from "../../schemas/tokenRequest.ts";
+import {
+  MAX_VERIFY_ATTEMPTS,
+  TOKEN_EXPIRY_MS,
+} from "../../schemas/tokenRequest.ts";
 
 // These tests mock MongoDB and SMTP by overriding the modules used by routes.
 // For the route-level unit tests we inject a test KV and skip real MongoDB/SMTP
@@ -31,6 +34,14 @@ function makeTokenRequest(overrides?: Partial<TokenRequest>): TokenRequest {
     expiresAt: now + TOKEN_EXPIRY_MS,
     ...overrides,
   };
+}
+
+function postCode(app: ReturnType<typeof createApp>, code: string) {
+  return app.request("/authenticate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username: "testuser", npub: "npub1abc", code }),
+  });
 }
 
 Deno.test("#rt1 POST /authenticate returns 400 for missing body", async () => {
@@ -92,6 +103,50 @@ Deno.test("#rt4 POST /authenticate returns 401 for wrong code", async () => {
       }),
     });
     expect(res.status).toBe(401);
+  });
+});
+
+Deno.test("#rt3b a missing or expired request says so in a machine-readable reason", async () => {
+  await withTestKv(async () => {
+    const res = await postCode(createApp(), "123456");
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({
+      error: "No pending verification or code expired",
+      reason: "expired",
+    });
+  });
+});
+
+Deno.test("#rt4b a wrong code reports how many attempts are left", async () => {
+  await withTestKv(async () => {
+    await createTokenRequest(makeTokenRequest({ code: "654321" }));
+
+    const res = await postCode(createApp(), "000000");
+
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({
+      error: "Invalid code or token",
+      reason: "wrong-code",
+      attemptsLeft: MAX_VERIFY_ATTEMPTS - 1,
+    });
+  });
+});
+
+Deno.test("#rt4c once the attempts are used up, the request reads as expired", async () => {
+  await withTestKv(async () => {
+    await createTokenRequest(makeTokenRequest({ code: "654321" }));
+    const app = createApp();
+
+    let last: { reason?: string; attemptsLeft?: number } = {};
+    for (let i = 0; i < MAX_VERIFY_ATTEMPTS; i++) {
+      last = await (await postCode(app, "000000")).json();
+    }
+    expect(last).toMatchObject({ reason: "wrong-code", attemptsLeft: 0 });
+
+    const res = await postCode(app, "654321");
+    expect(res.status).toBe(401);
+    expect(await res.json()).toMatchObject({ reason: "expired" });
   });
 });
 

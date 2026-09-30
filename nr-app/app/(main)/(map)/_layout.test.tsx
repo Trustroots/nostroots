@@ -60,4 +60,13 @@ describe("MapLayout", () => {
 
     expect(queryByLabelText("Open NIP-07 Browser")).toBeTruthy();
   });
+
+  it("no longer offers the NIP-46 prototype, even in Developer Mode", () => {
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(true)),
+    );
+    const { queryByLabelText } = renderMapLayout();
+
+    expect(queryByLabelText("Open NIP-46 Connect")).toBeNull();
+  });
 });

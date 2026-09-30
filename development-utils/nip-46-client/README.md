@@ -1,5 +1,7 @@
 # NIP-46 Client Login Implementation
 
+> The nr-app side of this prototype (the developer-mode "NIP-46 Connect" screen, which signed with a hardcoded key) was removed in #287, so there is currently no app to complete the login with.
+
 This folder contains the implementation of basic NIP-46 login for a sample
 external site located in `development-utils/nip-46-client`.
 

@@ -99,7 +99,7 @@ User creates note → nr-app signs & publishes (kind 30397)
 **Nostr Integration:**
 - Uses nostr-tools for protocol implementation
 - Private keys stored in Expo SecureStore (device keychain)
-- Supports NIP-06 (mnemonic keys), NIP-19 (nsec/npub), NIP-46 (remote signing)
+- Supports NIP-06 (mnemonic keys) and NIP-19 (nsec/npub); NIP-46 remote signing is not implemented yet (see #287)
 - Real-time subscriptions to relays for map events
 
 **Key Directories:**

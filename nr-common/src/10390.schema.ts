@@ -31,7 +31,9 @@ export const kind10390EventTemplateSchema = baseEventTemplateSchema.extend({
       message: "Must have a valid trustroots username #KV4da8",
     }),
 });
-export type Kind10390EventTemplate = z.infer<typeof baseEventTemplateSchema>;
+export type Kind10390EventTemplate = z.infer<
+  typeof kind10390EventTemplateSchema
+>;
 
 export const kind10390EventSchema = kind10390EventTemplateSchema.merge(
   finalizedEventFields,

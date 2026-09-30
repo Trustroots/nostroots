@@ -28,7 +28,9 @@ export class SubscriptionStore {
 
   updateTokens(pubkey: string, tokens: readonly PushToken[]): void {
     if (tokens.length === 0) {
-      log.debug("No tokens found. Skipping.");
+      if (this.tokensByPubkey.delete(pubkey)) {
+        log.info(`Removed push tokens for pubkey ${pubkey}.`);
+      }
       return;
     }
 
@@ -69,8 +71,6 @@ export class SubscriptionStore {
   }
 
   get pubkeysWithTokensCount(): number {
-    return [...this.tokensByPubkey.values()].filter(
-      (tokens) => tokens.length > 0,
-    ).length;
+    return this.tokensByPubkey.size;
   }
 }

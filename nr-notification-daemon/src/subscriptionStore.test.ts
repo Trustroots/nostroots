@@ -26,14 +26,26 @@ Deno.test("SubscriptionStore replaces a pubkey's filters on update", () => {
   expect(store.totalFilterCount).toBe(1);
 });
 
-Deno.test("SubscriptionStore stores tokens and keeps them when an update has none", () => {
+Deno.test("SubscriptionStore replaces a pubkey's tokens on update", () => {
   const store = new SubscriptionStore();
   expect(store.getTokensForPubkey("alice")).toBeUndefined();
 
   store.updateTokens("alice", ["token-1"]);
   store.updateTokens("alice", ["token-2", "token-3"]);
-  store.updateTokens("alice", []);
 
   expect(store.getTokensForPubkey("alice")).toEqual(["token-2", "token-3"]);
+  expect(store.pubkeysWithTokensCount).toBe(1);
+});
+
+Deno.test("SubscriptionStore drops a pubkey's tokens when an update has none", () => {
+  const store = new SubscriptionStore();
+  store.updateTokens("alice", ["token-1"]);
+  store.updateTokens("bob", ["token-2"]);
+
+  store.updateTokens("alice", []);
+  store.updateTokens("carol", []);
+
+  expect(store.getTokensForPubkey("alice")).toBeUndefined();
+  expect(store.getTokensForPubkey("bob")).toEqual(["token-2"]);
   expect(store.pubkeysWithTokensCount).toBe(1);
 });

@@ -25,6 +25,19 @@ export async function matchAndNotify(
 
   log.info(`Event matched ${matchingPairs.length} filters`);
 
+  const recipients = matchingPairs.flatMap(({ pubkey }) => {
+    const tokens = store.getTokensForPubkey(pubkey);
+    if (!tokens) {
+      log.debug(`No push tokens for pubkey ${pubkey}`);
+      return [];
+    }
+    return [{ pubkey, tokens }];
+  });
+
+  if (recipients.length === 0) {
+    return;
+  }
+
   const authorPubkey = getAuthorFromEvent(event) ?? event.pubkey;
 
   const username = await resolveUsername(authorPubkey, relayUrl).catch(
@@ -46,13 +59,8 @@ export async function matchAndNotify(
   }
 
   await Promise.all(
-    matchingPairs.map(async ({ pubkey }) => {
+    recipients.map(async ({ pubkey, tokens }) => {
       log.debug(`Filter matched event kind ${event.kind} for pubkey ${pubkey}`);
-      const tokens = store.getTokensForPubkey(pubkey);
-      if (!tokens || tokens.length === 0) {
-        log.debug(`No push tokens for pubkey ${pubkey}`);
-        return;
-      }
       await sendPushNotifications(tokens, event, expoAccessToken, username);
     }),
   );

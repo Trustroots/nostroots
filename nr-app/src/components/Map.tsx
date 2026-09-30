@@ -1,7 +1,6 @@
 import React from "react";
 import { View } from "react-native";
 
-import HalfMapEventModal from "./HalfMapEventModal";
 import MapAddNoteModal from "./MapAddNoteModal";
 import MapLayerSelector from "./MapLayerSelector";
 import MapLibreMapView from "./MapLibreMapView";
@@ -16,7 +15,6 @@ export default function Map() {
       </View>
       <MapAddNoteModal />
       <MapModal />
-      <HalfMapEventModal />
     </View>
   );
 }

@@ -2,7 +2,7 @@ import {
   BottomSheetModal,
   BottomSheetModalProvider,
   BottomSheetScrollView,
-} from "@expo/ui/community/bottom-sheet";
+} from "@gorhom/bottom-sheet";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "nativewind";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

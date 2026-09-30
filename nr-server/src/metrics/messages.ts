@@ -18,7 +18,7 @@ const METRICS_EXPIRATION_SECONDS = 30 * 24 * 60 * 60;
 
 type MessageCounts = Record<string, number>;
 
-async function fetchMessageCounts(
+export async function fetchMessageCounts(
   relayPool: nostrify.NPool,
   authorPubkey: string,
 ): Promise<MessageCounts> {
@@ -34,41 +34,28 @@ async function fetchMessageCounts(
       until,
     };
 
-    const subscription = relayPool.req([filter]);
     const pageEvents: nostrify.NostrEvent[] = [];
+    const signal = AbortSignal.timeout(SUBSCRIPTION_TIMEOUT_MS);
 
     try {
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(
-          () =>
-            reject(
-              new Error(
-                `#Kx8vQw Metrics subscription timeout after ${SUBSCRIPTION_TIMEOUT_MS}ms`,
-              ),
-            ),
-          SUBSCRIPTION_TIMEOUT_MS,
-        );
-      });
-
-      await Promise.race([
-        (async () => {
-          for await (const msg of subscription) {
-            if (msg[0] !== "EVENT") {
-              continue;
-            }
-
-            pageEvents.push(msg[2]);
-          }
-        })(),
-        timeoutPromise,
-      ]);
+      // NPool.req stays open after EOSE, so stop reading there; leaving the
+      // loop closes the subscription.
+      for await (const msg of relayPool.req([filter], { signal })) {
+        if (msg[0] === "EOSE") {
+          break;
+        }
+        if (msg[0] === "CLOSED") {
+          throw new Error(
+            `#Kx8vQy Metrics subscription closed by relays: ${msg[2]}`,
+          );
+        }
+        pageEvents.push(msg[2]);
+      }
     } catch (error) {
-      if (error instanceof Error && error.message.includes("timeout")) {
-        log.warn(`#Kx8vQx Metrics fetch timed out, using partial results`);
-        // Continue with partial results
-      } else {
+      if (!signal.aborted) {
         throw error;
       }
+      log.warn(`#Kx8vQx Metrics fetch timed out, using partial results`);
     }
 
     if (pageEvents.length === 0) {

@@ -1,7 +1,8 @@
 {
   "tasks": {
     "run": "deno run --allow-net --allow-env main.ts",
-    "cache": "deno cache --lock deno.lock deps.ts"
+    "cache": "deno cache --lock deno.lock deps.ts",
+    "test": "deno test --allow-env src/"
   },
   "imports": {
     "nostr-tools": "npm:nostr-tools@2.10.4",

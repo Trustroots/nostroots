@@ -29,8 +29,8 @@ describe("resolveStartupRoute", () => {
     ).toBe(ROUTES.ONBOARDING);
   });
 
-  it("sends a fully onboarded user home", () => {
-    expect(resolveStartupRoute(onboardedUser)).toBe(ROUTES.HOME);
+  it("sends a fully onboarded user to the launch menu", () => {
+    expect(resolveStartupRoute(onboardedUser)).toBe(ROUTES.LAUNCHER);
   });
 
   it("sends a user with a failing NIP-05 check to the error screen", () => {
@@ -40,14 +40,14 @@ describe("resolveStartupRoute", () => {
   });
 
   describe("guest browsing", () => {
-    it("sends a returning guest straight home instead of back into onboarding", () => {
+    it("sends a returning guest to the launch menu instead of back into onboarding", () => {
       expect(
         resolveStartupRoute({
           ...freshUser,
           hasBeenOpenedBefore: true,
           isBrowsingAsGuest: true,
         }),
-      ).toBe(ROUTES.HOME);
+      ).toBe(ROUTES.LAUNCHER);
     });
 
     it("still shows the welcome screen to a guest who has never opened the app", () => {
@@ -67,10 +67,10 @@ describe("resolveStartupRoute", () => {
       ).toBe(ROUTES.ONBOARDING);
     });
 
-    it("sends a guest who has since completed onboarding home", () => {
+    it("sends a guest who has since completed onboarding to the launch menu", () => {
       expect(
         resolveStartupRoute({ ...onboardedUser, isBrowsingAsGuest: true }),
-      ).toBe(ROUTES.HOME);
+      ).toBe(ROUTES.LAUNCHER);
     });
 
     it("does not swallow a NIP-05 error for a guest who has since onboarded", () => {

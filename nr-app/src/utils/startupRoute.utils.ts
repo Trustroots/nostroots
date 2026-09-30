@@ -14,7 +14,7 @@ type StartupRoute =
   | typeof ROUTES.WELCOME
   | typeof ROUTES.ONBOARDING
   | typeof ROUTES.ONBOARDING_ERROR
-  | typeof ROUTES.HOME;
+  | typeof ROUTES.LAUNCHER;
 
 export function resolveStartupRoute({
   hasBeenOpenedBefore,
@@ -41,7 +41,7 @@ export function resolveStartupRoute({
 
   const hasIdentity = Boolean(username && npub);
   if (hasIdentity || isBrowsingAsGuest) {
-    return ROUTES.HOME;
+    return ROUTES.LAUNCHER;
   }
 
   return ROUTES.ONBOARDING;

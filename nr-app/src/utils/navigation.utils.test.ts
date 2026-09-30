@@ -9,7 +9,7 @@ import {
 
 jest.mock("./map.utils", () => ({
   getLayerForEvent: jest.fn(() => "trustroots"),
-  plusCodeToCoordinates: jest.fn(() => ({
+  plusCodeToCenter: jest.fn(() => ({
     latitude: 52.52,
     longitude: 13.405,
   })),

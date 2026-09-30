@@ -1,8 +1,14 @@
-import type { CameraRef, MapRef } from "@maplibre/maplibre-react-native";
+import type {
+  CameraRef,
+  MapRef,
+  ViewPadding,
+} from "@maplibre/maplibre-react-native";
 import { MapViewport } from "@/utils/map.utils";
 import { rootLogger } from "./logger.utils";
 
 const log = rootLogger.extend("mapRef");
+
+const NO_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
 
 /**
  * Map ref service - allows Redux sagas and other parts of the app
@@ -38,10 +44,15 @@ class MapRefService {
   }
 
   /**
-   * Move the camera directly in MapLibre terms.
+   * Move the camera directly in MapLibre terms. Padding persists on the
+   * native camera, so every move sets it explicitly.
    */
   animateCamera(
-    camera: { center: { latitude: number; longitude: number }; zoom?: number },
+    camera: {
+      center: { latitude: number; longitude: number };
+      zoom?: number;
+      padding?: ViewPadding;
+    },
     duration?: number,
   ) {
     if (!this.cameraRef) {
@@ -52,6 +63,7 @@ class MapRefService {
     this.cameraRef.flyTo({
       center: [camera.center.longitude, camera.center.latitude],
       zoom: camera.zoom,
+      padding: { ...NO_PADDING, ...camera.padding },
       duration,
     });
   }

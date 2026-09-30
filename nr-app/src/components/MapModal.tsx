@@ -16,6 +16,7 @@ import { EventWithMetadata } from "@/redux/slices/events.slice";
 import { keystoreSelectors } from "@/redux/slices/keystore.slice";
 import { mapActions, mapSelectors } from "@/redux/slices/map.slice";
 import { RootState } from "@/redux/store";
+import { MAP_MODAL_HALF_SNAP } from "@/constants/mapModal";
 import { ROUTES } from "@/constants/routes";
 import AddNoteForm from "./AddNoteForm";
 import { Button } from "./ui/button";
@@ -51,7 +52,7 @@ export default function MapModal() {
   const bottomSheetRef = useRef<BottomSheetModal>(null);
   const fullHeight = Math.max(height - top, 0);
   const snapPoints = useMemo(
-    () => [fullHeight || height],
+    () => [height * MAP_MODAL_HALF_SNAP, fullHeight || height],
     [fullHeight, height],
   );
 

@@ -1,3 +1,4 @@
+import { MAP_MODAL_HALF_SNAP } from "@/constants/mapModal";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { useThemeColors } from "@/hooks/useThemeColors";
 import { setVisiblePlusCodes } from "@/redux/actions/map.actions";
@@ -35,6 +36,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from "react-native";
 // @ts-ignore
 import { getCurrentLocation } from "@/utils/location";
@@ -178,6 +180,7 @@ export default function MapLibreMapView() {
     [isDark],
   );
 
+  const { height: windowHeight } = useWindowDimensions();
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -229,20 +232,27 @@ export default function MapLibreMapView() {
 
   useEffect(() => {
     if (isMapReady && centerMapOnHalfModal && currentMapLocation) {
-      // Shift the centre up so the half modal doesn't cover the target
+      // Centre the target in the half of the screen above the sheet
       mapRefService.animateCamera(
         {
           center: {
-            latitude: currentMapLocation.latitude - 0.02,
+            latitude: currentMapLocation.latitude,
             longitude: currentMapLocation.longitude,
           },
           zoom: RECENTER_ZOOM,
+          padding: { bottom: windowHeight * MAP_MODAL_HALF_SNAP },
         },
         RECENTER_DURATION_MS,
       );
       dispatch(mapActions.centerMapOnHalfModalComplete());
     }
-  }, [isMapReady, centerMapOnHalfModal, currentMapLocation, dispatch]);
+  }, [
+    isMapReady,
+    centerMapOnHalfModal,
+    currentMapLocation,
+    windowHeight,
+    dispatch,
+  ]);
 
   const defaultCenter = useMemo(
     () =>

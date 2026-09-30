@@ -10,6 +10,7 @@ import {
   isPlusCodeBetweenTwoPlusCodes,
   isValidPlusCode,
   plusCodeToArrayPairs,
+  plusCodeToCenter,
   plusCodeToCoordinates,
   plusCodeHasTrailingZeroes,
   plusCodeToFirstFourSegments,
@@ -101,6 +102,21 @@ describe("map.utils", () => {
     expect(() => plusCodeToCoordinates("invalid")).toThrow();
     expect(() => plusCodeToRectangle("invalid")).toThrow();
     expect(errorSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it("decodes plus codes into the centre of their cell", () => {
+    jest.spyOn(console, "error").mockImplementation();
+    const [southWest, , northEast] = plusCodeToRectangle("9F4MGCG4+");
+
+    const center = plusCodeToCenter("9F4MGCG4+");
+
+    expect(center.latitude).toBeCloseTo(
+      (southWest.latitude + northEast.latitude) / 2,
+    );
+    expect(center.longitude).toBeCloseTo(
+      (southWest.longitude + northEast.longitude) / 2,
+    );
+    expect(() => plusCodeToCenter("invalid")).toThrow();
   });
 
   describe("plusCodeHasTrailingZeroes()", () => {

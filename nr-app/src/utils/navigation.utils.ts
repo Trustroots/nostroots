@@ -4,7 +4,7 @@ import { mapActions } from "@/redux/slices/map.slice";
 import type { AppDispatch } from "@/redux/store";
 import { router } from "expo-router";
 import { NostrEvent } from "nostr-tools";
-import { getLayerForEvent, plusCodeToCoordinates } from "./map.utils";
+import { getLayerForEvent, plusCodeToCenter } from "./map.utils";
 
 let navigationDispatch: AppDispatch | undefined;
 
@@ -24,7 +24,7 @@ export function navigateToEvent(plusCode: string, event: NostrEvent) {
   navigationDispatch(mapActions.enableLayer(layer));
   navigationDispatch(addEvent({ event, fromRelay: "notification" }));
 
-  const location = plusCodeToCoordinates(plusCode);
+  const location = plusCodeToCenter(plusCode);
 
   if (location) {
     navigationDispatch(

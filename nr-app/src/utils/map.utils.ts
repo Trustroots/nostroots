@@ -125,6 +125,24 @@ export function plusCodeToCoordinates(plusCode: string): {
   }
 }
 
+export function plusCodeToCenter(plusCode: string): LatLng {
+  let decoded;
+  try {
+    decoded = OpenLocationCode.decode(plusCode);
+  } catch (error) {
+    if (error instanceof Error) {
+      if (__DEV__)
+        console.error("#Hn4xTq Error decoding Plus Code:", error.message);
+    }
+    throw error;
+  }
+
+  return {
+    latitude: decoded.latitudeCenter,
+    longitude: decoded.longitudeCenter,
+  };
+}
+
 export function plusCodeToRectangle(
   plusCode: string,
 ): [

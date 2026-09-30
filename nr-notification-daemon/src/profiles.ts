@@ -22,27 +22,58 @@ export class Nip5VerificationError extends Error {
   }
 }
 
-const usernameCache = new Map<string, string>();
+const PROFILE_TIMEOUT_MS = 5000;
+const MISS_TTL_MS = 5 * 60 * 1000;
 
-export async function resolveUsername(
+const usernameCache = new Map<string, string>();
+const missCache = new Map<string, number>();
+const inFlight = new Map<string, Promise<string | undefined>>();
+
+export function resolveUsername(
   pubkey: string,
   relayUrl: string,
 ): Promise<string | undefined> {
   const cached = usernameCache.get(pubkey);
   if (cached) {
-    return cached;
+    return Promise.resolve(cached);
   }
 
+  const missedAt = missCache.get(pubkey);
+  if (missedAt !== undefined) {
+    if (Date.now() - missedAt < MISS_TTL_MS) {
+      return Promise.resolve(undefined);
+    }
+    missCache.delete(pubkey);
+  }
+
+  const pending = inFlight.get(pubkey);
+  if (pending) {
+    return pending;
+  }
+
+  const lookup = lookupUsername(pubkey, relayUrl).finally(() => {
+    inFlight.delete(pubkey);
+  });
+  inFlight.set(pubkey, lookup);
+  return lookup;
+}
+
+async function lookupUsername(
+  pubkey: string,
+  relayUrl: string,
+): Promise<string | undefined> {
   const profileEvent = await fetchProfileEvent(pubkey, relayUrl);
-  if (!profileEvent) {
+  if (profileEvent === "timeout") {
     return undefined;
   }
 
-  const username = getFirstLabelValueFromTags(
-    profileEvent.tags,
-    TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
-  );
+  const username = profileEvent &&
+    getFirstLabelValueFromTags(
+      profileEvent.tags,
+      TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
+    );
   if (!username) {
+    rememberMiss(pubkey);
     return undefined;
   }
 
@@ -55,32 +86,42 @@ export async function resolveUsername(
   return username;
 }
 
+function rememberMiss(pubkey: string) {
+  const now = Date.now();
+  for (const [key, missedAt] of missCache) {
+    if (now - missedAt >= MISS_TTL_MS) {
+      missCache.delete(key);
+    }
+  }
+  missCache.set(pubkey, now);
+}
+
+// nostr-tools fires oneose itself once eoseTimeout passes, so a silent relay
+// looks like EOSE; the elapsed time tells the two apart.
 async function fetchProfileEvent(
   pubkey: string,
   relayUrl: string,
-): Promise<NostrEvent | undefined> {
+): Promise<NostrEvent | undefined | "timeout"> {
   const relay = await Relay.connect(relayUrl);
+  const startedAt = Date.now();
 
   try {
-    return await new Promise<NostrEvent | undefined>((resolve) => {
+    return await new Promise<NostrEvent | undefined | "timeout">((resolve) => {
+      let found: NostrEvent | undefined;
       const sub = relay.subscribe(
         [{ kinds: [TRUSTROOTS_PROFILE_KIND], authors: [pubkey] }],
         {
+          eoseTimeout: PROFILE_TIMEOUT_MS,
           onevent(event: NostrEvent) {
-            sub.close();
-            resolve(event);
+            found = event;
           },
           oneose() {
             sub.close();
-            resolve(undefined);
+            const timedOut = Date.now() - startedAt >= PROFILE_TIMEOUT_MS;
+            resolve(found ?? (timedOut ? "timeout" : undefined));
           },
         },
       );
-
-      setTimeout(() => {
-        sub.close();
-        resolve(undefined);
-      }, 5000);
     });
   } finally {
     relay.close();

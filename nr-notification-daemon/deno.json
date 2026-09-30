@@ -2,7 +2,7 @@
   "tasks": {
     "run": "deno run --allow-net --allow-env main.ts",
     "dev": "deno run --allow-net --allow-env --watch main.ts",
-    "test": "deno test --allow-env src/"
+    "test": "deno test --allow-env --allow-net src/"
   },
   "imports": {
     "@trustroots/nr-common": "../nr-common/mod.ts",

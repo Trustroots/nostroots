@@ -90,6 +90,8 @@ export default function MapModal() {
       <BottomSheetModal
         ref={bottomSheetRef}
         snapPoints={snapPoints}
+        // Otherwise the notes list's height becomes the lowest detent and the sheet opens there.
+        enableDynamicSizing={false}
         enablePanDownToClose
         onDismiss={handleDismiss}
         backgroundStyle={{ backgroundColor: isDark ? "#0a0a0a" : "#ffffff" }}

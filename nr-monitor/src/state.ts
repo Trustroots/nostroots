@@ -1,33 +1,26 @@
-import { StatusReport } from "./telegram.ts";
+import type { ServiceStatus } from "./health-check.ts";
+import type { StatusReport } from "./telegram.ts";
 
-type ServiceStatus = "ok" | "error";
-type State = Record<string, ServiceStatus>;
-
-let currentState: State | undefined;
+const currentState: Record<string, ServiceStatus> = {};
 
 export function updateState(report: StatusReport): boolean {
-  const isFirstRun = currentState === undefined;
-  if (isFirstRun) {
-    currentState = {};
-  }
+  const statuses: [string, ServiceStatus][] = [
+    ...report.services.map((service): [string, ServiceStatus] => [
+      service.name,
+      service.status,
+    ]),
+    ...report.pings.map((ping): [string, ServiceStatus] => [
+      `${ping.name}-ping`,
+      ping.status,
+    ]),
+  ];
 
   let changed = false;
-
-  for (const service of report.services) {
-    const prev = currentState[service.name];
-    if (prev !== service.status) {
+  for (const [key, status] of statuses) {
+    if (currentState[key] !== status) {
       changed = true;
     }
-    currentState[service.name] = service.status;
-  }
-
-  for (const ping of report.pings) {
-    const key = `${ping.name}-ping`;
-    const prev = currentState[key];
-    if (prev !== ping.status) {
-      changed = true;
-    }
-    currentState[key] = ping.status;
+    currentState[key] = status;
   }
 
   return changed;

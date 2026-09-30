@@ -1,0 +1,49 @@
+name: Test Deno services
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "nr-common/**"
+      - "nr-server/**"
+      - "nr-notification-daemon/**"
+      - "nr-relay-to-rabbit/**"
+      - "nr-monitor/**"
+      - ".github/workflows/test-deno-services.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Test nr-common
+        working-directory: nr-common
+        run: deno task test
+
+      - name: Test nr-server
+        if: ${{ !cancelled() }}
+        working-directory: nr-server
+        run: deno test --allow-env src/
+
+      - name: Test nr-notification-daemon
+        if: ${{ !cancelled() }}
+        working-directory: nr-notification-daemon
+        run: deno task test
+
+      - name: Test nr-relay-to-rabbit
+        if: ${{ !cancelled() }}
+        working-directory: nr-relay-to-rabbit
+        run: deno task test
+
+      - name: Test nr-monitor
+        if: ${{ !cancelled() }}
+        working-directory: nr-monitor
+        run: deno task test

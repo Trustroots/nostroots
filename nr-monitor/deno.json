@@ -2,7 +2,8 @@
   "tasks": {
     "run": "deno run --allow-net --allow-env main.ts",
     "dev": "deno run --allow-net --allow-env --watch main.ts",
-    "check": "deno run --allow-net --allow-env main.ts --check-once"
+    "check": "deno run --allow-net --allow-env main.ts --check-once",
+    "test": "deno test --allow-env src/"
   },
   "imports": {
     "@nashaddams/amqp": "jsr:@nashaddams/amqp@1.1.0",

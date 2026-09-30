@@ -13,6 +13,7 @@
     "test:app:ci": "pnpm --filter nr-app test:ci",
     "test:app:coverage": "pnpm --filter nr-app test:coverage",
     "typecheck:app": "pnpm --filter nr-app typecheck",
-    "test:common": "cd nr-common && deno task test"
+    "test:common": "cd nr-common && deno task test",
+    "test:services": "cd nr-server && deno test --allow-env src/ && cd ../nr-notification-daemon && deno task test && cd ../nr-relay-to-rabbit && deno task test && cd ../nr-monitor && deno task test"
   }
 }

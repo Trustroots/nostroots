@@ -120,10 +120,13 @@ Deno.test("#rl4b POST /authenticate counts every guess it compares in a parallel
       Array.from({ length: 20 }, () => authenticate("000000")),
     );
 
-    // Contended attempts are rejected without a comparison, so the burst may
-    // use up fewer than the limit, but every comparison must be counted.
+    // Contended attempts are rejected without a comparison (401, or 429 when
+    // the global counter is contended), so the burst may use up fewer than the
+    // limit, but every comparison must be counted.
     const compared = results.filter((result) => result.error === INVALID);
-    expect(results.every((result) => result.status === 401)).toBe(true);
+    expect(results.every((result) => [401, 429].includes(result.status))).toBe(
+      true,
+    );
     expect(compared.length).toBeLessThanOrEqual(MAX_VERIFY_ATTEMPTS);
     expect(
       (await getTokenRequest("testuser"))?.attempts ?? MAX_VERIFY_ATTEMPTS,
@@ -213,6 +216,21 @@ Deno.test("#rl5d POST /authenticate returns 429 for codes once the global guess 
 
     expect(res.status).toBe(429);
     expect(Number(res.headers.get("Retry-After"))).toBeGreaterThan(0);
+  });
+});
+
+Deno.test("#rl5f a 429 from the global guess cap doesn't use up the request's attempts", async () => {
+  await withTestKv(async () => {
+    await createTokenRequest(makeTokenRequest({ code: "654321" }));
+    for (let i = 0; i < MAX_VERIFY_ATTEMPTS_GLOBAL_PER_WINDOW; i++) {
+      await tryReserveGlobalVerifyAttemptSlot();
+    }
+
+    for (let i = 0; i <= MAX_VERIFY_ATTEMPTS; i++) {
+      expect((await authenticate("654321")).status).toBe(429);
+    }
+
+    expect((await getTokenRequest("testuser"))?.attempts ?? 0).toBe(0);
   });
 });
 

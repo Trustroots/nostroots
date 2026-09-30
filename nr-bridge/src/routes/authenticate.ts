@@ -42,13 +42,10 @@ export async function handleAuthenticate(c: Context): Promise<Response> {
   const { npub, code, token } = parsed.data;
   const username = parsed.data.username.toLowerCase();
 
-  const tokenRequest = await reserveVerifyAttempt(username);
-  if (!tokenRequest) {
-    return c.json({ error: "No pending verification or code expired" }, 401);
-  }
-
   // Only six-digit codes are guessable, so deep-link tokens skip the global
-  // cap and keep working while it's exhausted.
+  // cap and keep working while it's exhausted. The cap is checked before the
+  // per-request attempt is consumed, so a 429 never costs a legitimate user
+  // one of their attempts.
   if (code) {
     const globalAttempt = await tryReserveGlobalVerifyAttemptSlot();
     if (!globalAttempt.allowed) {
@@ -61,6 +58,11 @@ export async function handleAuthenticate(c: Context): Promise<Response> {
         globalAttempt,
       );
     }
+  }
+
+  const tokenRequest = await reserveVerifyAttempt(username);
+  if (!tokenRequest) {
+    return c.json({ error: "No pending verification or code expired" }, 401);
   }
 
   const codeMatch = code && tokenRequest.code === code;

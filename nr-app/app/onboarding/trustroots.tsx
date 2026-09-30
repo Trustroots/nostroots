@@ -56,15 +56,12 @@ function getInitialStatusMessage({
 
 function getRequestErrorMessage(error: unknown): string {
   if (error instanceof NrBridgeError) {
-    if (error.code === "config") {
-      return "Verification service is not configured.";
-    }
     if (error.code === "network") {
-      return "Could not reach the verification service. Try again.";
+      return "Could not reach the verification service. Try again, or set up your key manually below.";
     }
   }
 
-  return "Could not send a verification code. Try again.";
+  return "Could not send a verification code. Try again, or set up your key manually below.";
 }
 
 export default function OnboardingTrustrootsScreen() {
@@ -190,6 +187,15 @@ export default function OnboardingTrustrootsScreen() {
         return;
       }
 
+      if (error instanceof NrBridgeError && error.code === "config") {
+        trackEvent("onboarding_verification_code", {
+          action: "request",
+          outcome: "not_configured",
+        });
+        router.replace("/onboarding/key?notice=bridge-unavailable");
+        return;
+      }
+
       if (error instanceof NrBridgeError && error.code === "not-found") {
         setFieldError("Trustroots username not found.");
         setScreenState("idle");
@@ -207,7 +213,7 @@ export default function OnboardingTrustrootsScreen() {
       setStatusMessage(getRequestErrorMessage(error));
       setScreenState("idle");
     }
-  }, [dispatch, usernameInput]);
+  }, [dispatch, router, usernameInput]);
 
   const handleCodeChange = (value: string) => {
     const sanitizedCode = value.replace(/\D/g, "").slice(0, 6);

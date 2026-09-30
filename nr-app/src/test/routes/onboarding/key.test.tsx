@@ -101,4 +101,16 @@ describe("OnboardingKeyScreen", () => {
 
     expect(router.dismissTo).toHaveBeenCalledWith("/onboarding/identity");
   });
+
+  it("explains why it opened when email verification is unavailable", () => {
+    renderWithProviders(<OnboardingKeyScreen />, {
+      searchParams: { notice: "bridge-unavailable" },
+    });
+
+    expect(
+      screen.getByText(
+        "Email verification isn't available right now, so let's link your key manually.",
+      ),
+    ).toBeTruthy();
+  });
 });

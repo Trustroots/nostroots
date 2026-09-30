@@ -134,7 +134,7 @@ export default function OnboardingLinkScreen() {
           setLinkStatus("error");
           setLinkError(
             `Trustroots did not return a Nostr key for "${normalizedUsername}". ` +
-              "Make sure you have saved your npub in Trustroots → Edit profile → Networks, then try again.",
+              "Make sure you have saved it in the npub field under Nostroots in Trustroots → Edit profile → Networks, then try again.",
           );
           return;
         }
@@ -151,7 +151,7 @@ export default function OnboardingLinkScreen() {
           setLinkStatus("error");
           setLinkError(
             "The npub returned by Trustroots does not match your local key. " +
-              "Check that you copied the correct npub into Trustroots → Edit profile → Networks.",
+              "Check that you pasted the right npub into the npub field under Nostroots in Trustroots → Edit profile → Networks.",
           );
           return;
         }
@@ -253,8 +253,8 @@ export default function OnboardingLinkScreen() {
 
         <StepCard stepNumber={2} title="Add to Trustroots Profile">
           <Text className="text-sm text-muted-foreground mb-2 text-left">
-            Log in to Trustroots, then scroll to the bottom of your Networks
-            page and paste your public key there.
+            Log in to Trustroots, open Edit profile → Networks, and paste your
+            public key into the npub field under Nostroots.
           </Text>
           <Button onPress={openTrustrootsNetworks} className="w-full">
             <Text>Open Trustroots Networks</Text>

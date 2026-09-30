@@ -80,4 +80,43 @@ describe("OnboardingTrustrootsScreen", () => {
       expect(router.replace).toHaveBeenCalledWith("/onboarding/backup-confirm");
     });
   });
+
+  it("switches to the manual key flow when email verification isn't configured", async () => {
+    const { NrBridgeError } = jest.requireActual("@/services/nrBridge.service");
+    bridge.requestVerificationToken.mockRejectedValueOnce(
+      new NrBridgeError({
+        code: "config",
+        message: "nr-bridge base URL is not configured.",
+      }),
+    );
+    const { router } = renderWithProviders(<OnboardingTrustrootsScreen />);
+
+    fireEvent.changeText(screen.getByPlaceholderText("your-username"), "Alice");
+    fireEvent.press(screen.getByText("Verify Trustroots email"));
+
+    await waitFor(() => {
+      expect(router.replace).toHaveBeenCalledWith(
+        "/onboarding/key?notice=bridge-unavailable",
+      );
+    });
+  });
+
+  it("points to the manual setup when the verification service can't be reached", async () => {
+    const { NrBridgeError } = jest.requireActual("@/services/nrBridge.service");
+    bridge.requestVerificationToken.mockRejectedValueOnce(
+      new NrBridgeError({ code: "network", message: "Could not reach" }),
+    );
+    const { router } = renderWithProviders(<OnboardingTrustrootsScreen />);
+
+    fireEvent.changeText(screen.getByPlaceholderText("your-username"), "Alice");
+    fireEvent.press(screen.getByText("Verify Trustroots email"));
+
+    expect(
+      await screen.findByText(
+        "Could not reach the verification service. Try again, or set up your key manually below.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Set up my key manually")).toBeTruthy();
+    expect(router.replace).not.toHaveBeenCalled();
+  });
 });

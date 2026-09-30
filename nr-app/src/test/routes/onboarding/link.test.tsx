@@ -70,4 +70,14 @@ describe("OnboardingLinkScreen", () => {
     ).toBeTruthy();
     expect(screen.getByText("Verify")).toBeDisabled();
   });
+
+  it("names the Trustroots field to paste the key into", () => {
+    renderWithProviders(<OnboardingLinkScreen />);
+
+    expect(
+      screen.getByText(
+        /paste your public key into the npub field under Nostroots/,
+      ),
+    ).toBeTruthy();
+  });
 });

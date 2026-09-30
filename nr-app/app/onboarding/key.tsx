@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import { View } from "react-native";
 
@@ -21,6 +21,7 @@ import { trackEvent } from "@/services/analytics.service";
 
 export default function OnboardingKeyScreen() {
   const router = useRouter();
+  const { notice } = useLocalSearchParams<{ notice?: string }>();
   const dispatch = useAppDispatch();
   const {
     importKey,
@@ -157,6 +158,13 @@ export default function OnboardingKeyScreen() {
           Set Up Your Key
         </Text>
       </View>
+
+      {notice === "bridge-unavailable" && (
+        <Text className="text-center text-sm text-muted-foreground">
+          Email verification isn&apos;t available right now, so let&apos;s link
+          your key manually.
+        </Text>
+      )}
 
       <Text className="text-center leading-relaxed">
         Generate a new Nostr key, or import one you already have. The next step

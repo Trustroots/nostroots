@@ -1,7 +1,8 @@
 import { expect } from "jsr:@std/expect@1.0.13";
 import type { NostrEvent } from "nostr-tools";
-import { matchAndNotify } from "./matching.ts";
-import { SubscriptionStore } from "./subscriptionStore.ts";
+import { matchAndNotify, type NotifyDeps } from "./matching.ts";
+import { SeenEvents } from "./seenEvents.ts";
+import { type PushToken, SubscriptionStore } from "./subscriptionStore.ts";
 
 const event: NostrEvent = {
   id: "event-id",
@@ -32,4 +33,71 @@ Deno.test("matchAndNotify skips the lookup and push once a subscriber unregister
     globalThis.fetch = originalFetch;
   }
   expect(fetches).toBe(0);
+});
+
+function fakeDeps() {
+  const pushes: PushToken[][] = [];
+  const deps: NotifyDeps = {
+    seenEvents: new SeenEvents(),
+    resolveUsername: () => Promise.resolve("author-name"),
+    sendPushNotifications: (tokens) => {
+      pushes.push([...tokens]);
+      return Promise.resolve();
+    },
+  };
+  return { deps, pushes };
+}
+
+Deno.test("matchAndNotify pushes once to a subscriber whose filters overlap", async () => {
+  const store = new SubscriptionStore();
+  store.updateFilters("alice", [{ kinds: [30397] }, { authors: ["author"] }]);
+  store.updateTokens("alice", ["token-1"]);
+  const { deps, pushes } = fakeDeps();
+
+  await matchAndNotify(event, store, "secret", "ws://relay", deps);
+
+  expect(pushes).toEqual([["token-1"]]);
+});
+
+Deno.test("matchAndNotify pushes once to a device registered under two pubkeys", async () => {
+  const store = new SubscriptionStore();
+  store.updateFilters("alice", [{ kinds: [30397] }]);
+  store.updateFilters("alice-old", [{ kinds: [30397] }]);
+  store.updateTokens("alice", ["token-1", "token-2"]);
+  store.updateTokens("alice-old", ["token-1"]);
+  const { deps, pushes } = fakeDeps();
+
+  await matchAndNotify(event, store, "secret", "ws://relay", deps);
+
+  expect(pushes.flat().sort()).toEqual(["token-1", "token-2"]);
+});
+
+Deno.test("matchAndNotify doesn't push the same event twice", async () => {
+  const store = new SubscriptionStore();
+  store.updateFilters("alice", [{ kinds: [30397] }]);
+  store.updateTokens("alice", ["token-1"]);
+  const { deps, pushes } = fakeDeps();
+
+  await matchAndNotify(event, store, "secret", "ws://relay", deps);
+  await matchAndNotify(event, store, "secret", "ws://relay", deps);
+
+  expect(pushes).toEqual([["token-1"]]);
+});
+
+Deno.test("matchAndNotify retries an event whose username lookup failed", async () => {
+  const store = new SubscriptionStore();
+  store.updateFilters("alice", [{ kinds: [30397] }]);
+  store.updateTokens("alice", ["token-1"]);
+  const { deps, pushes } = fakeDeps();
+  const failingDeps: NotifyDeps = {
+    ...deps,
+    resolveUsername: () => Promise.reject(new Error("relay down")),
+  };
+
+  await expect(
+    matchAndNotify(event, store, "secret", "ws://relay", failingDeps),
+  ).rejects.toThrow("relay down");
+  await matchAndNotify(event, store, "secret", "ws://relay", deps);
+
+  expect(pushes).toEqual([["token-1"]]);
 });

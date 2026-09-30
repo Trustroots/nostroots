@@ -11,49 +11,25 @@ const {
 import { log } from "../log.ts";
 import { Profile } from "../types.ts";
 
-async function getKindZeroEvent(relayPool: nostrify.NPool, pubKey: string) {
-  {
-    const filter = [
-      {
-        authors: [pubKey],
-        kinds: [0],
-      },
-    ];
-
-    const controller = new AbortController();
-    const signal = controller.signal;
-    globalThis.setTimeout(
-      () => controller.abort(),
-      WAIT_FOR_KIND_ZERO_TIMEOUT_SECONDS * 1000,
-    );
-
-    const kindZeroEvents = await relayPool.query(filter, { signal });
-    if (kindZeroEvents.length > 0) return kindZeroEvents[0];
-    return;
-  }
-}
-
-async function getTrustrootsProfileEvent(
+async function queryFirstEvent(
   relayPool: nostrify.NPool,
   pubKey: string,
+  kind: number,
 ) {
-  const filter = [
-    {
-      authors: [pubKey],
-      kinds: [TRUSTROOTS_PROFILE_KIND],
-    },
-  ];
-
   const controller = new AbortController();
-  const signal = controller.signal;
-  globalThis.setTimeout(
+  const timeout = globalThis.setTimeout(
     () => controller.abort(),
     WAIT_FOR_KIND_ZERO_TIMEOUT_SECONDS * 1000,
   );
 
-  const profileEvents = await relayPool.query(filter, { signal });
-  if (profileEvents.length > 0) return profileEvents[0];
-  return;
+  try {
+    const events = await relayPool.query([{ authors: [pubKey], kinds: [kind] }], {
+      signal: controller.signal,
+    });
+    return events[0];
+  } finally {
+    globalThis.clearTimeout(timeout);
+  }
 }
 
 function getProfileFromEvent(event: nostrTools.Event): Profile | undefined {
@@ -81,8 +57,8 @@ async function getTrustrootsUsernameFromProfile(
   pubkey: string,
 ) {
   const [trustrootsProfileEvent, kindZeroEvent] = await Promise.all([
-    getTrustrootsProfileEvent(relayPool, pubkey),
-    getKindZeroEvent(relayPool, pubkey),
+    queryFirstEvent(relayPool, pubkey, TRUSTROOTS_PROFILE_KIND),
+    queryFirstEvent(relayPool, pubkey, 0),
   ]);
 
   if (typeof trustrootsProfileEvent !== "undefined") {

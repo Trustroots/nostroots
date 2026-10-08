@@ -1,13 +1,52 @@
 ## Events
 
-An example post that should appear on the map (note this kind will change to 30397).
+This page describes the events as they are implemented today, taken from the schemas in `nr-common` (`constants.ts` and `src/*.schema.ts`). The relay accepts exactly the kinds in `ACCEPTED_KINDS`; anything else is rejected. A redesign of the kinds is being discussed in [#240](https://github.com/Trustroots/nostroots/issues/240) and is not reflected here.
+
+| Kind | Constant | Purpose | Validation |
+| --- | --- | --- | --- |
+| 0 | `NOSTR_USER_METADATA_KIND` | Standard Nostr profile metadata ([NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md)) | Base event shape only |
+| 5 | `EVENT_DELETION_KIND` | Standard Nostr event deletion ([NIP-09](https://github.com/nostr-protocol/nips/blob/master/09.md)) | Base event shape only |
+| 10390 | `TRUSTROOTS_PROFILE_KIND` | Links a pubkey to a Trustroots username | Username label required |
+| 10395 | `NOTIFICATION_SUBSCRIPTION_KIND` | Encrypted push notification subscription | `content` is a string, no tag checks |
+| 20398 | `SERVER_MESSAGE_KIND` | Ephemeral message from a server to a user | Optional `p`, `e` and `serverMessageType` tags are validated |
+| 20400 | `PING_ACK_KIND` | Ephemeral ping / ack between a client and a service | `content` is `ping` or `ack`, `p` (and for ack `e`) tags required |
+| 30397 | `MAP_NOTE_KIND` | User-submitted map note | Plus code label required, `content` 3 to 4000 characters |
+| 30398 | `MAP_NOTE_REPOST_KIND` | Server-validated repost of a 30397 | Same as 30397 |
+| 30399 | `THIRD_PARTY_EVENT_KIND` | Notes from third-party collaborators | Base event shape only, the tags below are convention |
+| 30400 | `NOSTROOTS_METRICS_KIND` | Per-plus-code metrics snapshot | Exactly one `d` and one `t` tag, `content` is a JSON object |
+
+All events share the base shape: `kind`, `created_at`, `tags` (array of string arrays), `content`, `id`, `pubkey` and `sig`, with no additional fields.
+
+### 0 and 5
+
+Standard Nostr events. The relay only checks the base shape.
+
+### 10390: Trustroots profile
+
+Tags: `["L", "org.trustroots:username"]` and `["l", "<username>", "org.trustroots:username"]`. Every label tag needs at least one value and the username must be valid (minimum 3 characters). `content` is empty.
+
+### 10395: Notification subscription
+
+`content` is a NIP-04 encrypted string, encrypted for the notification server. Tags: `["p", "<notification server pubkey>"]`. Decrypted, the content is an object with `tokens` (a list of `{ expoPushToken }`) and `filters` (a list of `{ filter }` using Nostr filters).
+
+### 20398: Server message
+
+Kind 20xxx events are ephemeral. `content` is a non-empty string. Optional tags: `p` (64-char hex pubkey of the recipient), `e` (64-char event id the message refers to) and `serverMessageType` (`error` or `info`).
+
+### 20400: Ping and ack
+
+A ping has `content` `ping` and at least one `p` tag (hex pubkey) targeting a service. An ack has `content` `ack`, at least one `e` tag (event id of the ping) and at least one `p` tag.
+
+### 30397: Map note
+
+An example post that should appear on the map. The schema requires a valid plus code in an `open-location-code` label. It does not currently enforce a `d` tag, and the version check is disabled (TODO in the schema).
 
 ```json
 {
   "content": "Hitchhikers: you might be able to get out of Nuremberg on the A9 towards Berlin here. Never used it myself, but there might be some climbing involved.",
   "created_at": 1727447770,
   "id": "d7973070d50b58e53705b98953b7b81d33058f6a516cc292805d9d8920d97588",
-  "kind": 397,
+  "kind": 30397,
   "pubkey": "fe5e4c6132c64427f40c525b9a436f91637cfff3f656ce06c526262406c5a606",
   "sig": "254f18848e32e8a7c0cd30ce858e4ca334093c22feefb5b7fc154d7696f1e5ffd1e28dcad4a7b235e2c6491ed9d27c1d98f05fbf5a1acc35a2d20080aaa08880",
   "tags": [
@@ -17,7 +56,11 @@ An example post that should appear on the map (note this kind will change to 303
 }
 ```
 
-An example of a moderation event:
+(The id and sig above belong to the historical kind 397 version of this event and do not verify for kind 30397; treat the example as illustrative.)
+
+### 30398: Map note repost
+
+The server republishes validated 30397 events as 30398. Same content and plus code requirements as 30397. Example:
 
 ```json
 {
@@ -42,9 +85,10 @@ An example of a moderation event:
 ```
 
 - The `d` tag is `${originalAuthorPubkey}:${originalEventId}`
-  - This will change when the `397` becomes a `30397` because it will needs its own `d` tag and that will need to be incorporated in the `d` tag of the derived `30398` event
 
-Third party derived content notes can take this format:
+### 30399: Third-party notes
+
+The relay accepts the kind and checks only the base shape, so the tags are a convention. Third-party derived content notes can take this format:
 
 ```jsonc
 {

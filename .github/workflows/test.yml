@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - "nr-app/**"
+      - "nr-common/**"
+      - "nr-server/**"
       - ".github/workflows/test.yml"
 
 jobs:
@@ -46,6 +48,9 @@ jobs:
 
       - name: Test nr-common
         run: pnpm test:common
+
+      - name: Test nr-server
+        run: cd nr-server && deno task test
 
       - name: Upload nr-app coverage
         uses: actions/upload-artifact@v4

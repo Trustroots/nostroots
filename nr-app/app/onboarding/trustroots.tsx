@@ -62,6 +62,9 @@ function getRequestErrorMessage(error: unknown): string {
     if (error.code === "network") {
       return "Could not reach the verification service. Try again.";
     }
+    if (error.code === "rate-limited") {
+      return "Too many verification codes requested. Try again in an hour.";
+    }
   }
 
   return "Could not send a verification code. Try again.";

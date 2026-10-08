@@ -58,6 +58,27 @@ describe("OnboardingTrustrootsScreen", () => {
     });
   });
 
+  it("tells the user to wait when nr-bridge rate-limits the request", async () => {
+    const { NrBridgeError } = jest.requireActual("@/services/nrBridge.service");
+    bridge.requestVerificationToken.mockRejectedValueOnce(
+      new NrBridgeError({
+        code: "rate-limited",
+        status: 429,
+        message: "Too many verification requests, try again later",
+      }),
+    );
+    renderWithProviders(<OnboardingTrustrootsScreen />);
+
+    fireEvent.changeText(screen.getByPlaceholderText("your-username"), "Alice");
+    fireEvent.press(screen.getByText("Verify Trustroots email"));
+
+    expect(
+      await screen.findByText(
+        "Too many verification codes requested. Try again in an hour.",
+      ),
+    ).toBeTruthy();
+  });
+
   it("authenticates a six-digit code and routes to backup", async () => {
     const { router } = renderWithProviders(<OnboardingTrustrootsScreen />, {
       preloadedState: {

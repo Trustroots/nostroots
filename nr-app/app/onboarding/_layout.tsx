@@ -1,9 +1,21 @@
 import { Slot, usePathname } from "expo-router";
-import { StatusBar, View } from "react-native";
+import { StatusBar, StyleSheet, View } from "react-native";
 
 import { TextClassContext } from "@/components/ui/text";
 import { cn } from "@/utils/cn.utils";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
+
+const styles = StyleSheet.create({
+  content: {
+    flexGrow: 1,
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 32,
+    paddingHorizontal: 24,
+    paddingVertical: 48,
+  },
+});
 
 const steps = [
   { id: "identity", label: "Identity" },
@@ -79,7 +91,7 @@ export default function OnboardingLayout() {
         <OnboardingHeader />
         <KeyboardAwareScrollView
           bottomOffset={100}
-          contentContainerClassName="flex grow flex-col items-center justify-center gap-8 px-6 py-12"
+          contentContainerStyle={styles.content}
         >
           <Slot />
         </KeyboardAwareScrollView>

@@ -116,15 +116,15 @@ export default function MapModal() {
       >
         {/* Header: plus code + bell + create event + close */}
         <View className="px-5 pb-2 pt-1 flex-row items-center justify-between">
-          <View className="flex-1 flex-row items-center gap-2">
-            <Text className="text-lg font-bold text-foreground">
+          <View className="min-w-0 flex-1 flex-row items-center gap-2">
+            <Text className="shrink-0 text-lg font-bold text-foreground">
               {selectedPlusCode}
             </Text>
             {selectedLayer === "trustroots" && hasPrivateKeyInSecureStorage && (
               <SubscribeBellIcon />
             )}
           </View>
-          <View className="flex-row items-center gap-2">
+          <View className="shrink-0 flex-row items-center gap-2">
             {canPost && (
               <Pressable
                 onPress={handleCreateEvent}

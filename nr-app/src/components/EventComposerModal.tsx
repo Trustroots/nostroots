@@ -2,7 +2,9 @@ import { publishGatheringPromiseAction } from "@/redux/actions/publishGathering.
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { mapSelectors } from "@/redux/slices/map.slice";
 import { getLocalTimezoneAbbr } from "@/utils/event-gathering.utils";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import DateTimePicker, {
+  DateTimePickerAndroid,
+} from "@react-native-community/datetimepicker";
 import { Calendar, ChevronLeft } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
@@ -27,6 +29,65 @@ import { Text } from "./ui/text";
 interface EventComposerModalProps {
   visible: boolean;
   onClose: () => void;
+}
+
+function PickerField({
+  value,
+  mode,
+  label,
+  minimumDate,
+  onChange,
+}: {
+  value: Date;
+  mode: "date" | "time";
+  label: string;
+  minimumDate?: Date;
+  onChange: (date: Date) => void;
+}) {
+  if (Platform.OS !== "android") {
+    return (
+      <DateTimePicker
+        value={value}
+        mode={mode}
+        display="compact"
+        minimumDate={minimumDate}
+        onChange={(_e, date) => date && onChange(date)}
+      />
+    );
+  }
+
+  const text =
+    mode === "date"
+      ? value.toLocaleDateString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      : value.toLocaleTimeString(undefined, {
+          hour: "numeric",
+          minute: "2-digit",
+        });
+
+  return (
+    <Pressable
+      onPress={() =>
+        DateTimePickerAndroid.open({
+          value,
+          mode,
+          minimumDate,
+          onChange: (event, date) => {
+            if (event.type === "set" && date) onChange(date);
+          },
+        })
+      }
+      className="px-4 py-3 bg-muted/20 rounded-xl"
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Text className="text-[15px] text-foreground">{text}</Text>
+    </Pressable>
+  );
 }
 
 export default function EventComposerModal({
@@ -56,10 +117,14 @@ export default function EventComposerModal({
     setIsSending(false);
   }, []);
 
-  const handleClose = useCallback(() => {
+  const dismiss = useCallback(() => {
     resetForm();
     onClose();
   }, [resetForm, onClose]);
+
+  const handleClose = useCallback(() => {
+    if (!isSending) dismiss();
+  }, [isSending, dismiss]);
 
   const handleSubmit = useCallback(async () => {
     if (!selectedPlusCode || selectedPlusCode.length === 0) {
@@ -120,7 +185,7 @@ export default function EventComposerModal({
         duration: Toast.durations.SHORT,
         position: Toast.positions.TOP,
       });
-      handleClose();
+      dismiss();
     } catch {
       Toast.show("Failed to create event. Try again.", {
         duration: Toast.durations.LONG,
@@ -136,7 +201,7 @@ export default function EventComposerModal({
     endDate,
     hasEnd,
     dispatch,
-    handleClose,
+    dismiss,
   ]);
 
   return (
@@ -155,6 +220,7 @@ export default function EventComposerModal({
         <View className="flex-row items-center gap-3 px-5 py-4 border-b border-border/15">
           <Pressable
             onPress={handleClose}
+            disabled={isSending}
             className="flex-row items-center gap-1 py-1 pr-1"
             accessibilityLabel="Back"
             accessibilityRole="button"
@@ -224,18 +290,18 @@ export default function EventComposerModal({
               Start *{tzAbbr ? ` (${tzAbbr})` : ""}
             </Text>
             <View className="flex-row items-center gap-3">
-              <DateTimePicker
+              <PickerField
                 value={startDate}
                 mode="date"
-                display="compact"
+                label="Pick start date"
                 minimumDate={new Date()}
-                onChange={(_e, date) => date && setStartDate(date)}
+                onChange={setStartDate}
               />
-              <DateTimePicker
+              <PickerField
                 value={startDate}
                 mode="time"
-                display="compact"
-                onChange={(_e, date) => date && setStartDate(date)}
+                label="Pick start time"
+                onChange={setStartDate}
               />
             </View>
           </View>
@@ -272,18 +338,18 @@ export default function EventComposerModal({
 
             {hasEnd && endDate && (
               <View className="flex-row items-center gap-3">
-                <DateTimePicker
+                <PickerField
                   value={endDate}
                   mode="date"
-                  display="compact"
+                  label="Pick end date"
                   minimumDate={startDate}
-                  onChange={(_e, date) => date && setEndDate(date)}
+                  onChange={setEndDate}
                 />
-                <DateTimePicker
+                <PickerField
                   value={endDate}
                   mode="time"
-                  display="compact"
-                  onChange={(_e, date) => date && setEndDate(date)}
+                  label="Pick end time"
+                  onChange={setEndDate}
                 />
               </View>
             )}

@@ -15,10 +15,9 @@ import {
 } from "@/utils/event-gathering.utils";
 import { getRelativeTime } from "@/utils/time.utils";
 import { getAuthorFromEvent } from "@trustroots/nr-common";
-import { Calendar, BadgeCheck } from "lucide-react-native";
+import { Calendar } from "lucide-react-native";
 import { useEffect, useMemo } from "react";
 import { Image, View } from "react-native";
-import { ExternalLink } from "./ExternalLink";
 import { Icon } from "./ui/icon";
 import { Text } from "./ui/text";
 
@@ -80,16 +79,7 @@ export default function EventChatCard({
           </View>
         )}
         <View className="flex-row items-center gap-1 flex-1">
-          {typeof username !== "undefined" ? (
-            <View className="flex-row items-center gap-0.5">
-              <ExternalLink href={`https://trustroots.org/profile/${username}`}>
-                <Text className="text-xs font-semibold text-primary">
-                  {displayName}
-                </Text>
-              </ExternalLink>
-              <Icon as={BadgeCheck} size={11} className="text-primary" />
-            </View>
-          ) : displayName ? (
+          {displayName ? (
             <Text className="text-xs font-semibold text-foreground">
               {displayName}
             </Text>

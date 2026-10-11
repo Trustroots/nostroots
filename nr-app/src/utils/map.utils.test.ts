@@ -235,13 +235,27 @@ describe("map.utils", () => {
   it("shows gatherings from any author on the Trustroots layer only", () => {
     const gathering = eventWith({
       kind: 31923,
-      tags: [["start", "1780000000"]],
+      tags: [
+        ["d", "potluck"],
+        ["title", "Potluck"],
+        ["start", "1780000000"],
+      ],
     }).event;
 
     expect(isEventInMapLayer(gathering, "trustroots")).toBe(true);
     expect(isEventInMapLayer(gathering, "unverified")).toBe(false);
     expect(isEventInMapLayer(gathering, "hitchwiki")).toBe(false);
     expect(getLayerForEvent(gathering)).toBe("trustroots");
+  });
+
+  it("keeps malformed calendar events off every map layer", () => {
+    const malformed = eventWith({
+      kind: 31923,
+      tags: [["start", "soon"]],
+    }).event;
+
+    expect(isEventInMapLayer(malformed, "trustroots")).toBe(false);
+    expect(isEventInMapLayer(malformed, "unverified")).toBe(false);
   });
 
   it("keeps the Trustroots layer to validated reposts otherwise", () => {

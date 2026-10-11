@@ -1,3 +1,4 @@
+import { isValidUnixSeconds } from "@/utils/event-gathering.utils";
 import { getGeohashTagsForPlusCode } from "@/utils/geohash.utils";
 import {
   CALENDAR_TIME_EVENT_KIND,
@@ -11,6 +12,17 @@ import { nanoid } from "@reduxjs/toolkit";
 import { publishEventTemplatePromiseAction } from "./publish.actions";
 
 const ONE_DAY_SECONDS = 24 * 60 * 60;
+
+function getDayIndexTags(start: number, end?: number): string[][] {
+  const firstDay = Math.floor(start / ONE_DAY_SECONDS);
+  const lastDay =
+    end === undefined ? firstDay : Math.floor((end - 1) / ONE_DAY_SECONDS);
+  const tags: string[][] = [];
+  for (let day = firstDay; day <= lastDay; day++) {
+    tags.push(["D", String(day)]);
+  }
+  return tags;
+}
 
 export function publishGatheringPromiseAction({
   title,
@@ -39,6 +51,17 @@ export function publishGatheringPromiseAction({
     );
   }
 
+  if (!isValidUnixSeconds(startTimestamp)) {
+    throw new Error("Start time is invalid");
+  }
+
+  if (
+    endTimestamp !== undefined &&
+    (!isValidUnixSeconds(endTimestamp) || endTimestamp <= startTimestamp)
+  ) {
+    throw new Error("End time must be after start time");
+  }
+
   const plusCodeTags = getPlusCodeAndPlusCodePrefixTags(plusCode);
 
   // Expiry auto-set: end date if provided, otherwise start + 24h
@@ -58,6 +81,8 @@ export function publishGatheringPromiseAction({
   if (timeZone) {
     tags.push(["start_tzid", timeZone]);
   }
+
+  tags.push(...getDayIndexTags(startTimestamp, endTimestamp));
 
   tags.push(...getGeohashTagsForPlusCode(plusCode), ...plusCodeTags, [
     NOSTR_EXPIRATION_TAG_NAME,

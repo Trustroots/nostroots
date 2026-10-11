@@ -8,7 +8,11 @@ import {
 import { EmptyState } from "@/components/EmptyState";
 import EventCard from "./EventCard";
 import { FilterChips, FilterChip } from "./FilterChips";
-import { isGatheringEvent } from "@/utils/event-gathering.utils";
+import {
+  getGatheringStart,
+  hasGatheringEnded,
+  isGatheringEvent,
+} from "@/utils/event-gathering.utils";
 import { getPlusCodeFromEvent } from "@/utils/event.utils";
 import { navigateToEvent } from "@/utils/navigation.utils";
 import { useAppSelector } from "@/redux/hooks";
@@ -26,6 +30,7 @@ const EVENT_CHIPS: FilterChip[] = [
 ];
 
 function getStartTimestamp(event: EventWithMetadata): number | undefined {
+  if (isGatheringEvent(event.event)) return getGatheringStart(event.event);
   const startTag = getFirstTagValueFromEvent(event.event, "start");
   return startTag ? parseInt(startTag) : undefined;
 }
@@ -53,21 +58,23 @@ export function EventsTab() {
       .map((e) => ({
         ...e,
         _startTimestamp: getStartTimestamp(e) ?? e.event.created_at,
+        _hasEnded: isGatheringEvent(e.event)
+          ? hasGatheringEnded(e.event, now)
+          : (getStartTimestamp(e) ?? e.event.created_at) < now,
       }));
 
     let filtered: typeof eventNotes;
     switch (filter) {
       case "upcoming":
-        filtered = eventNotes.filter((e) => e._startTimestamp >= now);
+        filtered = eventNotes.filter((e) => !e._hasEnded);
         break;
       case "this-week":
         filtered = eventNotes.filter(
-          (e) =>
-            e._startTimestamp >= now && e._startTimestamp <= oneWeekFromNow,
+          (e) => !e._hasEnded && e._startTimestamp <= oneWeekFromNow,
         );
         break;
       case "past":
-        filtered = eventNotes.filter((e) => e._startTimestamp < now);
+        filtered = eventNotes.filter((e) => e._hasEnded);
         break;
     }
 

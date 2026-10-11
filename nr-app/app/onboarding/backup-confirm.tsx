@@ -77,6 +77,11 @@ export default function OnboardingBackupConfirmScreen() {
     setSecretAcknowledged(true);
   };
 
+  const handleShowAgain = () => {
+    trackEvent("onboarding_backup", { action: "show_again", source: "bridge" });
+    setSecretAcknowledged(false);
+  };
+
   const handleConfirmed = () => {
     trackEvent("onboarding_backup_confirmed", {
       outcome: "success",
@@ -155,14 +160,24 @@ export default function OnboardingBackupConfirmScreen() {
       )}
 
       {secret && !isRevealStep && (
-        <BackupChallenge
-          key={secret}
-          secret={secret}
-          confirmed={confirmed}
-          onConfirmed={handleConfirmed}
-          onFailed={handleFailed}
-          testIDPrefix="onboarding-backup"
-        />
+        <>
+          <BackupChallenge
+            secret={secret}
+            confirmed={confirmed}
+            onConfirmed={handleConfirmed}
+            onFailed={handleFailed}
+            testIDPrefix="onboarding-backup"
+          />
+          {!confirmed && (
+            <Button
+              testID="onboarding-backup-show-again"
+              size="sm"
+              variant="outline"
+              title="Show my secret again"
+              onPress={handleShowAgain}
+            />
+          )}
+        </>
       )}
 
       <View className="flex flex-row gap-2 mt-4">

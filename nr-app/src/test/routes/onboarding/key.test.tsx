@@ -94,6 +94,31 @@ describe("OnboardingKeyScreen", () => {
     });
   });
 
+  it("shows the same words again and discards a half-answered check", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0);
+    renderWithProviders(<OnboardingKeyScreen />);
+
+    const generated = screen.getByTestId("onboarding-key-mnemonic-input").props
+      .value;
+    fireEvent.press(screen.getByText("I have saved these words safely"));
+    fireEvent.changeText(
+      screen.getByTestId("onboarding-key-backup-word-1"),
+      "wrong",
+    );
+
+    fireEvent.press(screen.getByText("Show my words again"));
+
+    expect(
+      screen.getByTestId("onboarding-key-mnemonic-input").props.value,
+    ).toBe(generated);
+
+    fireEvent.press(screen.getByText("I have saved these words safely"));
+
+    expect(screen.getByTestId("onboarding-key-backup-word-1").props.value).toBe(
+      "",
+    );
+  });
+
   it("goes back to identity when there is no router history", () => {
     const { router } = renderWithProviders(<OnboardingKeyScreen />);
 

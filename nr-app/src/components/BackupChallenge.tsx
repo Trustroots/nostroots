@@ -92,6 +92,7 @@ export function BackupChallenge({
               </Text>
               <TextInput
                 testID={`${testIDPrefix}-word-${position}`}
+                accessibilityLabel={`Word ${position}`}
                 value={answers[index] ?? ""}
                 onChangeText={(value) => setAnswer(index, value)}
                 editable={!confirmed}
@@ -106,6 +107,7 @@ export function BackupChallenge({
       ) : (
         <TextInput
           testID={`${testIDPrefix}-secret`}
+          accessibilityLabel="Your full secret"
           value={answers[0] ?? ""}
           onChangeText={(value) => setAnswer(0, value)}
           editable={!confirmed}

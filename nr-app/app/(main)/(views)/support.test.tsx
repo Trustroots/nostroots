@@ -46,4 +46,53 @@ describe("SupportScreen", () => {
       TRUSTROOTS_SUPPORT_URL,
     );
   });
+
+  it("does not claim success when the clipboard write reports failure", async () => {
+    (Clipboard.setStringAsync as jest.Mock).mockResolvedValueOnce(false);
+    render(<SupportScreen />);
+
+    fireEvent.press(screen.getByText("Copy debug info"));
+
+    await waitFor(() => expect(Toast.show).toHaveBeenCalled());
+    expect(Toast.show).toHaveBeenCalledWith(
+      expect.stringContaining("Couldn't copy"),
+      expect.anything(),
+    );
+    expect(Toast.show).not.toHaveBeenCalledWith(
+      "Debug info copied",
+      expect.anything(),
+    );
+  });
+
+  it("reports a rejected clipboard write instead of throwing", async () => {
+    (Clipboard.setStringAsync as jest.Mock).mockRejectedValueOnce(
+      new Error("denied"),
+    );
+    render(<SupportScreen />);
+
+    fireEvent.press(screen.getByText("Copy debug info"));
+
+    await waitFor(() =>
+      expect(Toast.show).toHaveBeenCalledWith(
+        expect.stringContaining("Couldn't copy"),
+        expect.anything(),
+      ),
+    );
+  });
+
+  it("shows the support URL when the browser cannot be opened", async () => {
+    (WebBrowser.openBrowserAsync as jest.Mock).mockRejectedValueOnce(
+      new Error("no browser"),
+    );
+    render(<SupportScreen />);
+
+    fireEvent.press(screen.getByText("Open Trustroots support"));
+
+    await waitFor(() =>
+      expect(Toast.show).toHaveBeenCalledWith(
+        expect.stringContaining(TRUSTROOTS_SUPPORT_URL),
+        expect.anything(),
+      ),
+    );
+  });
 });

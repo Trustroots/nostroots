@@ -7,14 +7,14 @@ const baseInfo: DebugInfo = {
   platform: "android",
   platformVersion: 34,
   isEmbeddedLaunch: true,
-  generatedAt: new Date(2026, 6, 13, 9, 5),
+  generatedAt: new Date("2026-07-13T09:05:00Z"),
 };
 
 describe("formatDebugInfo()", () => {
   it("includes version, build, platform and generation date", () => {
     const output = formatDebugInfo(baseInfo);
 
-    expect(output).toContain("Generated: 2026-07-13 09:05");
+    expect(output).toContain("Generated: 2026-07-13 09:05 UTC");
     expect(output).toContain("App version: 0.0.4");
     expect(output).toContain("Build: 27");
     expect(output).toContain("Commit: abc1234");
@@ -34,12 +34,12 @@ describe("formatDebugInfo()", () => {
       isEmbeddedLaunch: false,
       updateChannel: "preview",
       updateId: "uuid-1",
-      updateCreatedAt: new Date(2026, 6, 12, 18, 30),
+      updateCreatedAt: new Date("2026-07-12T18:30:00Z"),
     });
 
     expect(output).toContain("Update channel: preview");
     expect(output).toContain("Update ID: uuid-1");
-    expect(output).toContain("Update published: 2026-07-12 18:30");
+    expect(output).toContain("Update published: 2026-07-12 18:30 UTC");
   });
 
   it("marks missing build and OTA metadata as unknown", () => {

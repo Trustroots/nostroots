@@ -18,8 +18,28 @@ export default function SupportScreen() {
   const debugInfo = useDebugInfo();
 
   const copyDebugInfo = async () => {
-    await Clipboard.setStringAsync(debugInfo);
-    Toast.show("Debug info copied", { duration: Toast.durations.SHORT });
+    let copied = false;
+    try {
+      copied = await Clipboard.setStringAsync(debugInfo);
+    } catch {
+      copied = false;
+    }
+    Toast.show(
+      copied
+        ? "Debug info copied"
+        : "Couldn't copy. Select the text above and copy it manually.",
+      { duration: copied ? Toast.durations.SHORT : Toast.durations.LONG },
+    );
+  };
+
+  const openSupportPage = async () => {
+    try {
+      await WebBrowser.openBrowserAsync(TRUSTROOTS_SUPPORT_URL);
+    } catch {
+      Toast.show(`Couldn't open the browser. Visit ${TRUSTROOTS_SUPPORT_URL}`, {
+        duration: Toast.durations.LONG,
+      });
+    }
   };
 
   return (
@@ -52,10 +72,7 @@ export default function SupportScreen() {
             <Text>Copy debug info</Text>
           </Button>
 
-          <Button
-            size="lg"
-            onPress={() => WebBrowser.openBrowserAsync(TRUSTROOTS_SUPPORT_URL)}
-          >
+          <Button size="lg" onPress={openSupportPage}>
             <Icon
               as={ExternalLink}
               size={16}

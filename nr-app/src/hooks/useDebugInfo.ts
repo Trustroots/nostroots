@@ -22,7 +22,7 @@ export function useDebugInfo(): string {
     commitId: Constants.expoConfig?.extra?.commitId,
     platform: Platform.OS,
     platformVersion: Platform.Version,
-    updateChannel: Updates.channel ?? undefined,
+    updateChannel: Updates.channel || undefined,
     updateId: Updates.updateId ?? undefined,
     updateCreatedAt: Updates.createdAt,
     isEmbeddedLaunch: Updates.isEmbeddedLaunch,

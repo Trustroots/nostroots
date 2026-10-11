@@ -4,6 +4,10 @@ import {
   EventWithMetadata,
 } from "@/redux/slices/events.slice";
 import { selectProfileByPubkey } from "@/redux/slices/profiles.slice";
+import {
+  getGatheringStart,
+  isGatheringEvent,
+} from "@/utils/event-gathering.utils";
 import { getPlusCodeFromEvent } from "@/utils/event.utils";
 import {
   getAuthorFromEvent,
@@ -64,7 +68,11 @@ export default function EventCard({
 
   // Get the start tag for the event date
   const startTag = getFirstTagValueFromEvent(eventWithMetadata.event, "start");
-  const startTimestamp = startTag ? parseInt(startTag) : undefined;
+  const startTimestamp = isGatheringEvent(eventWithMetadata.event)
+    ? getGatheringStart(eventWithMetadata.event)
+    : startTag
+      ? parseInt(startTag)
+      : undefined;
 
   // Use event title from the "title" tag, or fall back to content
   const title = getFirstTagValueFromEvent(eventWithMetadata.event, "title");
@@ -123,12 +131,15 @@ export default function EventCard({
               </Text>
             </View>
           )}
-          {typeof username !== "undefined" ? (
+          {typeof username !== "undefined" &&
+          !isGatheringEvent(eventWithMetadata.event) ? (
             <View className="flex-row items-center gap-0.5">
               <Text className="text-xs font-medium text-primary">
                 {displayName}
               </Text>
-              <Icon as={BadgeCheck} size={11} className="text-primary" />
+              <View testID="verified-badge">
+                <Icon as={BadgeCheck} size={11} className="text-primary" />
+              </View>
             </View>
           ) : displayName ? (
             <Text className="text-xs font-medium text-foreground">

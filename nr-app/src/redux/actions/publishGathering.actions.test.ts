@@ -66,6 +66,63 @@ describe("publishGatheringPromiseAction", () => {
     expect(tags).toContainEqual(["expiration", end.toString()]);
   });
 
+  describe("day index tags", () => {
+    const DAY = 24 * 60 * 60;
+    const dayTags = (action: ReturnType<typeof makeAction>) =>
+      tagsOf(action).filter(([name]) => name === "D");
+
+    function actionBetween(start: number, end?: number) {
+      return publishGatheringPromiseAction({
+        title: "Community potluck",
+        description: "Bring a dish",
+        plusCode: PLUS_CODE,
+        startTimestamp: start,
+        endTimestamp: end,
+      });
+    }
+
+    it("adds the UTC day of the start for a single-day event", () => {
+      const day = Math.floor(START / DAY);
+      expect(dayTags(makeAction("Bring a dish"))).toEqual([["D", String(day)]]);
+    });
+
+    it("covers every UTC day a cross-midnight event touches", () => {
+      const midnight = Math.ceil(START / DAY) * DAY;
+      const action = actionBetween(midnight - 3600, midnight + 3600);
+      const day = midnight / DAY;
+      expect(dayTags(action)).toEqual([
+        ["D", String(day - 1)],
+        ["D", String(day)],
+      ]);
+    });
+
+    it("does not claim the next day when the event ends exactly at midnight", () => {
+      const midnight = Math.ceil(START / DAY) * DAY;
+      const action = actionBetween(midnight - 3600, midnight);
+      expect(dayTags(action)).toEqual([["D", String(midnight / DAY - 1)]]);
+    });
+  });
+
+  it("rejects an end that is not after the start", () => {
+    expect(() => makeAction("Bring a dish", START)).toThrow(
+      "End time must be after start time",
+    );
+  });
+
+  it.each([Number.NaN, Infinity, -1, 1e15])(
+    "rejects an invalid start timestamp %s",
+    (startTimestamp) => {
+      expect(() =>
+        publishGatheringPromiseAction({
+          title: "Community potluck",
+          description: "Bring a dish",
+          plusCode: PLUS_CODE,
+          startTimestamp,
+        }),
+      ).toThrow("Start time is invalid");
+    },
+  );
+
   it("accepts a description at the maximum length", () => {
     expect(() => makeAction("a".repeat(CONTENT_MAXIMUM_LENGTH))).not.toThrow();
   });

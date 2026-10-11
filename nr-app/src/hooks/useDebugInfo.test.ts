@@ -118,4 +118,14 @@ describe("useDebugInfo()", () => {
     expect(result.current).toBe(first);
     jest.useRealTimers();
   });
+
+  it("reports an empty update channel as unknown", () => {
+    (Updates as { channel?: string }).channel = "";
+    (Updates as { isEmbeddedLaunch: boolean }).isEmbeddedLaunch = false;
+
+    const { result } = renderHook(() => useDebugInfo());
+
+    expect(result.current).toContain("Update channel: unknown");
+    (Updates as { isEmbeddedLaunch: boolean }).isEmbeddedLaunch = true;
+  });
 });

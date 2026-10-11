@@ -1,5 +1,7 @@
+import * as Application from "expo-application";
 import Constants from "expo-constants";
 import * as Updates from "expo-updates";
+import { useState } from "react";
 import { Platform } from "react-native";
 
 import { useAppSelector } from "@/redux/hooks";
@@ -11,12 +13,12 @@ export function useDebugInfo(): string {
   const npub = useAppSelector(keystoreSelectors.selectPublicKeyNpub);
   const trustrootsUsername = useAppSelector(settingsSelectors.selectUsername);
 
+  const [generatedAt] = useState(() => new Date());
+
   return formatDebugInfo({
-    appVersion: Constants.expoConfig?.version,
-    buildNumber:
-      Platform.OS === "ios"
-        ? Constants.expoConfig?.ios?.buildNumber
-        : Constants.expoConfig?.android?.versionCode,
+    appVersion:
+      Application.nativeApplicationVersion ?? Constants.expoConfig?.version,
+    buildNumber: Application.nativeBuildVersion ?? undefined,
     commitId: Constants.expoConfig?.extra?.commitId,
     platform: Platform.OS,
     platformVersion: Platform.Version,
@@ -26,6 +28,6 @@ export function useDebugInfo(): string {
     isEmbeddedLaunch: Updates.isEmbeddedLaunch,
     npub: npub ?? undefined,
     trustrootsUsername: trustrootsUsername ?? undefined,
-    generatedAt: new Date(),
+    generatedAt,
   });
 }

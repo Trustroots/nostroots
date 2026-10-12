@@ -92,7 +92,7 @@ describe("OnboardingTrustrootsScreen", () => {
     const { router } = renderWithProviders(<OnboardingTrustrootsScreen />);
 
     fireEvent.changeText(screen.getByPlaceholderText("your-username"), "Alice");
-    fireEvent.press(screen.getByText("Verify Trustroots email"));
+    fireEvent.press(screen.getByText("Send verification email"));
 
     await waitFor(() => {
       expect(router.replace).toHaveBeenCalledWith(
@@ -109,7 +109,7 @@ describe("OnboardingTrustrootsScreen", () => {
     const { router } = renderWithProviders(<OnboardingTrustrootsScreen />);
 
     fireEvent.changeText(screen.getByPlaceholderText("your-username"), "Alice");
-    fireEvent.press(screen.getByText("Verify Trustroots email"));
+    fireEvent.press(screen.getByText("Send verification email"));
 
     expect(
       await screen.findByText(

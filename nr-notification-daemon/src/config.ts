@@ -19,4 +19,5 @@ export const config = {
   strfryUrl: getEnvString("STRFRY_URL"),
   amqpUrl: getEnvString("AMQP_URL"),
   rabbitmqQueue: getEnvString("RABBITMQ_QUEUE"),
+  healthPort: parseInt(getEnvString("HEALTH_PORT", "80")),
 };

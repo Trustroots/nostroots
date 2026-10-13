@@ -11,25 +11,21 @@ import { Section } from "@/components/ui/section";
 import { Text } from "@/components/ui/text";
 import { useDebugInfo } from "@/hooks/useDebugInfo";
 import { useThemeColors } from "@/hooks/useThemeColors";
-import { TRUSTROOTS_SUPPORT_URL } from "@/utils/debugInfo.utils";
+import { TRUSTROOTS_SUPPORT_URL } from "@/constants";
 
 export default function SupportScreen() {
   const colors = useThemeColors();
   const debugInfo = useDebugInfo();
 
   const copyDebugInfo = async () => {
-    let copied = false;
-    try {
-      copied = await Clipboard.setStringAsync(debugInfo);
-    } catch {
-      copied = false;
+    const copied = await Clipboard.setStringAsync(debugInfo).catch(() => false);
+    if (copied) {
+      Toast.show("Debug info copied", { duration: Toast.durations.SHORT });
+      return;
     }
-    Toast.show(
-      copied
-        ? "Debug info copied"
-        : "Couldn't copy. Select the text above and copy it manually.",
-      { duration: copied ? Toast.durations.SHORT : Toast.durations.LONG },
-    );
+    Toast.show("Couldn't copy. Select the text above and copy it manually.", {
+      duration: Toast.durations.LONG,
+    });
   };
 
   const openSupportPage = async () => {

@@ -9,7 +9,7 @@ import * as WebBrowser from "expo-web-browser";
 import Toast from "react-native-root-toast";
 
 import SupportScreen from "./support";
-import { TRUSTROOTS_SUPPORT_URL } from "@/utils/debugInfo.utils";
+import { TRUSTROOTS_SUPPORT_URL } from "@/constants";
 
 const DEBUG_INFO = "Nostroots debug info\nApp version: 0.0.4";
 

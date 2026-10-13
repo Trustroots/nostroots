@@ -14,8 +14,8 @@
 
 Root `index.js` re-exports the Nostroots Web module for compatibility with unit tests.
 
-Third-party assets (`nostr-tools`, `bip39`, `dompurify`, MapLibre, Leaflet,
-Google Fonts) stay on their CDNs in production.
+Third-party assets (`nostr-tools`, `bip39`, `dompurify`, MapLibre, Leaflet)
+stay on their CDNs in production. Fonts are served locally from `fonts/`.
 
 ## CDN imports under jsdom (Vitest)
 

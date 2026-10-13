@@ -1,8 +1,9 @@
+import { getCurrentTimestamp } from "@trustroots/nr-common";
 import { useAppSelector } from "@/redux/hooks";
 import { mapSelectors } from "@/redux/slices/map.slice";
 import { EventWithMetadata } from "@/redux/slices/events.slice";
 import {
-  countUpcomingGatherings,
+  hasGatheringEnded,
   isGatheringEvent,
 } from "@/utils/event-gathering.utils";
 import { filterEventsForPlusCode } from "@/utils/map.utils";
@@ -51,17 +52,21 @@ export function useNotesListData(plusCode: string) {
   const allNotes = useAppSelector(selector);
 
   const { signalCount, noteCount, gatheringCount } = useMemo(() => {
-    const events = allNotes.map(
-      ({ eventWithMetadata }) => eventWithMetadata.event,
-    );
-    const gatherings = events.filter(isGatheringEvent);
-    const rest = events.filter((event) => !isGatheringEvent(event));
-
-    return {
-      signalCount: rest.filter(hasSignalTag).length,
-      noteCount: rest.filter((event) => !hasSignalTag(event)).length,
-      gatheringCount: countUpcomingGatherings(gatherings),
-    };
+    const now = getCurrentTimestamp();
+    let signalCount = 0;
+    let noteCount = 0;
+    let gatheringCount = 0;
+    for (const { eventWithMetadata } of allNotes) {
+      const { event } = eventWithMetadata;
+      if (isGatheringEvent(event)) {
+        if (!hasGatheringEnded(event, now)) gatheringCount++;
+      } else if (hasSignalTag(event)) {
+        signalCount++;
+      } else {
+        noteCount++;
+      }
+    }
+    return { signalCount, noteCount, gatheringCount };
   }, [allNotes]);
 
   return { allNotes, signalCount, noteCount, gatheringCount };

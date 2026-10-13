@@ -11,10 +11,12 @@ import {
   formatGatheringDateTime,
   getGatheringEnd,
   getGatheringStart,
-  getGatheringTitle,
 } from "@/utils/event-gathering.utils";
 import { getRelativeTime } from "@/utils/time.utils";
-import { getAuthorFromEvent } from "@trustroots/nr-common";
+import {
+  getAuthorFromEvent,
+  getFirstTagValueFromEvent,
+} from "@trustroots/nr-common";
 import { Calendar } from "lucide-react-native";
 import { useEffect, useMemo } from "react";
 import { Image, View } from "react-native";
@@ -48,7 +50,7 @@ export default function EventChatCard({
   const displayName = profile?.name || username;
   const avatarLetter = (displayName || "?")[0].toUpperCase();
 
-  const title = getGatheringTitle(eventWithMetadata.event);
+  const title = getFirstTagValueFromEvent(eventWithMetadata.event, "title");
   const start = getGatheringStart(eventWithMetadata.event);
   const end = getGatheringEnd(eventWithMetadata.event);
   const description = eventWithMetadata.event.content;

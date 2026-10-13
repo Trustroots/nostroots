@@ -4,10 +4,7 @@ import {
   EventWithMetadata,
 } from "@/redux/slices/events.slice";
 import { selectProfileByPubkey } from "@/redux/slices/profiles.slice";
-import {
-  getGatheringStart,
-  isGatheringEvent,
-} from "@/utils/event-gathering.utils";
+import { getEventStart, isGatheringEvent } from "@/utils/event-gathering.utils";
 import { getPlusCodeFromEvent } from "@/utils/event.utils";
 import {
   getAuthorFromEvent,
@@ -66,67 +63,51 @@ export default function EventCard({
 
   const plusCode = getPlusCodeFromEvent(eventWithMetadata.event);
 
-  // Get the start tag for the event date
-  const startTag = getFirstTagValueFromEvent(eventWithMetadata.event, "start");
-  const startTimestamp = isGatheringEvent(eventWithMetadata.event)
-    ? getGatheringStart(eventWithMetadata.event)
-    : startTag
-      ? parseInt(startTag)
-      : undefined;
+  const startTimestamp = getEventStart(eventWithMetadata.event);
 
   // Use event title from the "title" tag, or fall back to content
   const title = getFirstTagValueFromEvent(eventWithMetadata.event, "title");
   const content = eventWithMetadata.event.content;
 
   return (
-    <View className="mx-3 my-0.5 rounded-xl bg-card border border-blue-200 dark:border-blue-800 overflow-hidden">
-      {/* Blue accent bar */}
-      <View className="h-1 bg-blue-500" />
+    <View className="mx-3 rounded-xl border border-border bg-card p-4">
+      {startTimestamp && (
+        <View className="flex-row items-center gap-1.5">
+          <Icon as={CalendarDays} size={14} className="text-primary" />
+          <Text className="text-sm font-medium text-primary">
+            {formatEventDate(startTimestamp)}
+          </Text>
+        </View>
+      )}
 
-      <View className="p-4">
-        {/* Title */}
-        <Text className="text-base font-bold text-foreground">
-          {title || content}
+      <Text
+        className={`text-base font-semibold text-foreground ${startTimestamp ? "mt-1.5" : ""}`}
+      >
+        {title || content}
+      </Text>
+
+      {title && content && (
+        <Text className="mt-1 text-sm text-muted-foreground" numberOfLines={2}>
+          {content}
         </Text>
+      )}
 
-        {/* Start date */}
-        {startTimestamp && (
-          <View className="flex-row items-center gap-1.5 mt-2">
-            <Icon as={CalendarDays} size={14} className="text-blue-500" />
-            <Text className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-              {formatEventDate(startTimestamp)}
-            </Text>
-          </View>
-        )}
-
-        {/* Location */}
+      <View className="mt-3 flex-row flex-wrap items-center gap-x-4 gap-y-1.5">
         {plusCode && (
-          <View className="flex-row items-center gap-1.5 mt-1.5">
-            <Icon as={MapPin} size={14} className="text-muted-foreground" />
+          <View className="flex-row items-center gap-1">
+            <Icon as={MapPin} size={13} className="text-muted-foreground" />
             <Text className="text-xs text-muted-foreground">{plusCode}</Text>
           </View>
         )}
-
-        {/* Description (only if there is both title and content) */}
-        {title && content && (
-          <Text
-            className="text-sm text-muted-foreground mt-2"
-            numberOfLines={2}
-          >
-            {content}
-          </Text>
-        )}
-
-        {/* Author */}
-        <View className="flex-row items-center gap-2 mt-3 pt-3 border-t border-border/50">
+        <View className="flex-row items-center gap-1.5">
           {profile?.picture ? (
             <Image
               source={{ uri: profile.picture }}
-              className="h-6 w-6 rounded-full"
+              className="h-5 w-5 rounded-full"
             />
           ) : (
-            <View className="h-6 w-6 items-center justify-center rounded-full bg-blue-500/20">
-              <Text className="text-[10px] font-bold text-blue-500">
+            <View className="h-5 w-5 items-center justify-center rounded-full bg-primary/15">
+              <Text className="text-[10px] font-bold text-primary">
                 {avatarLetter}
               </Text>
             </View>

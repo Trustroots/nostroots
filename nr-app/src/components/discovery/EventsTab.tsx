@@ -1,16 +1,13 @@
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, View } from "react-native";
-import {
-  getFirstTagValueFromEvent,
-  MAP_NOTE_REPOST_KIND,
-} from "@trustroots/nr-common";
+import { MAP_NOTE_REPOST_KIND } from "@trustroots/nr-common";
 
 import { EmptyState } from "@/components/EmptyState";
 import EventCard from "./EventCard";
 import { FilterChips, FilterChip } from "./FilterChips";
 import {
-  getGatheringStart,
-  hasGatheringEnded,
+  getEventStart,
+  hasEventEnded,
   isGatheringEvent,
 } from "@/utils/event-gathering.utils";
 import { getPlusCodeFromEvent } from "@/utils/event.utils";
@@ -28,12 +25,6 @@ const EVENT_CHIPS: FilterChip[] = [
   { key: "this-week", label: "This week" },
   { key: "past", label: "Past" },
 ];
-
-function getStartTimestamp(event: EventWithMetadata): number | undefined {
-  if (isGatheringEvent(event.event)) return getGatheringStart(event.event);
-  const startTag = getFirstTagValueFromEvent(event.event, "start");
-  return startTag ? parseInt(startTag) : undefined;
-}
 
 function isEventNote(event: EventWithMetadata): boolean {
   return event.event.tags.some((tag) => tag[0] === "start");
@@ -57,10 +48,8 @@ export function EventsTab() {
       )
       .map((e) => ({
         ...e,
-        _startTimestamp: getStartTimestamp(e) ?? e.event.created_at,
-        _hasEnded: isGatheringEvent(e.event)
-          ? hasGatheringEnded(e.event, now)
-          : (getStartTimestamp(e) ?? e.event.created_at) < now,
+        _startTimestamp: getEventStart(e.event) ?? e.event.created_at,
+        _hasEnded: hasEventEnded(e.event, now),
       }));
 
     let filtered: typeof eventNotes;

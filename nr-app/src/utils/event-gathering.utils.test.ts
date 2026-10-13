@@ -1,16 +1,13 @@
 import { NostrEvent } from "nostr-tools";
 import {
-  countUpcomingGatherings,
   formatGatheringDateTime,
   getGatheringEnd,
   getGatheringStart,
-  getGatheringTitle,
   getLocalTimezoneAbbr,
   isGatheringEvent,
   hasGatheringEnded,
 } from "./event-gathering.utils";
 
-const NOW = new Date("2026-06-02T12:00:00Z");
 const unix = (iso: string) => Math.floor(new Date(iso).getTime() / 1000);
 
 function makeEvent(tags: string[][], kind = 31923): NostrEvent {
@@ -179,18 +176,6 @@ describe("isGatheringEvent", () => {
   });
 });
 
-describe("getGatheringTitle", () => {
-  it("returns the title tag value", () => {
-    expect(getGatheringTitle(makeEvent([["title", "Potluck"]]))).toBe(
-      "Potluck",
-    );
-  });
-
-  it("returns undefined when there is no title tag", () => {
-    expect(getGatheringTitle(makeEvent([["start", "1"]]))).toBeUndefined();
-  });
-});
-
 describe("getGatheringStart", () => {
   it("parses the start tag as a number", () => {
     expect(getGatheringStart(makeEvent([["start", "1780000000"]]))).toBe(
@@ -266,64 +251,6 @@ describe("getLocalTimezoneAbbr", () => {
   it("includes minutes for half-hour offsets", () => {
     spy.mockReturnValue(-330);
     expect(getLocalTimezoneAbbr()).toBe("UTC+5:30");
-  });
-});
-
-describe("countUpcomingGatherings", () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-    jest.setSystemTime(NOW);
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  it("returns 0 for an empty list", () => {
-    expect(countUpcomingGatherings([])).toBe(0);
-  });
-
-  it("counts gatherings starting in the future", () => {
-    const events = [
-      gathering([["start", String(unix("2026-06-03T12:00:00Z"))]]),
-      gathering([["start", String(unix("2026-06-10T12:00:00Z"))]]),
-    ];
-    expect(countUpcomingGatherings(events)).toBe(2);
-  });
-
-  it("ignores gatherings that already started and have no end", () => {
-    const events = [
-      gathering([["start", String(unix("2026-06-01T12:00:00Z"))]]),
-    ];
-    expect(countUpcomingGatherings(events)).toBe(0);
-  });
-
-  it("counts an in-progress gathering whose end is still in the future", () => {
-    const events = [
-      gathering([
-        ["start", String(unix("2026-06-02T10:00:00Z"))],
-        ["end", String(unix("2026-06-02T18:00:00Z"))],
-      ]),
-    ];
-    expect(countUpcomingGatherings(events)).toBe(1);
-  });
-
-  it("ignores a gathering that has already ended", () => {
-    const events = [
-      makeEvent([
-        ["start", String(unix("2026-06-01T10:00:00Z"))],
-        ["end", String(unix("2026-06-01T18:00:00Z"))],
-      ]),
-    ];
-    expect(countUpcomingGatherings(events)).toBe(0);
-  });
-
-  it("ignores non-gathering events", () => {
-    const events = [
-      makeEvent([["title", "Just a note"]]),
-      gathering([["start", String(unix("2026-06-10T12:00:00Z"))]]),
-    ];
-    expect(countUpcomingGatherings(events)).toBe(1);
   });
 });
 

@@ -1,4 +1,7 @@
-import { CALENDAR_TIME_EVENT_KIND } from "@trustroots/nr-common";
+import {
+  CALENDAR_TIME_EVENT_KIND,
+  getFirstTagValueFromEvent,
+} from "@trustroots/nr-common";
 import { NostrEvent } from "nostr-tools";
 
 const MAX_UNIX_SECONDS = 8_640_000_000_000;
@@ -18,10 +21,6 @@ export function isValidUnixSeconds(value: number): boolean {
   return Number.isSafeInteger(value) && value >= 0 && value <= MAX_UNIX_SECONDS;
 }
 
-function tagValue(event: NostrEvent, name: string): string | undefined {
-  return event.tags.find((tag) => tag[0] === name)?.[1];
-}
-
 /**
  * Check if a Nostr event is a gathering: a NIP-52 time-based calendar event
  * carrying the mandatory identifier, title and a valid start (and, if present,
@@ -29,10 +28,10 @@ function tagValue(event: NostrEvent, name: string): string | undefined {
  */
 export function isGatheringEvent(event: NostrEvent): boolean {
   if (event.kind !== CALENDAR_TIME_EVENT_KIND) return false;
-  if (!tagValue(event, "d")) return false;
-  if (!tagValue(event, "title")?.trim()) return false;
+  if (!getFirstTagValueFromEvent(event, "d")) return false;
+  if (!getFirstTagValueFromEvent(event, "title")?.trim()) return false;
 
-  const start = parseUnixSeconds(tagValue(event, "start"));
+  const start = parseUnixSeconds(getFirstTagValueFromEvent(event, "start"));
   if (start === undefined) return false;
 
   const endTag = event.tags.find((tag) => tag[0] === "end");
@@ -42,24 +41,17 @@ export function isGatheringEvent(event: NostrEvent): boolean {
 }
 
 /**
- * Get the title from a gathering event's "title" tag.
- */
-export function getGatheringTitle(event: NostrEvent): string | undefined {
-  return tagValue(event, "title");
-}
-
-/**
  * Get the start timestamp (unix seconds) from a gathering event.
  */
 export function getGatheringStart(event: NostrEvent): number | undefined {
-  return parseUnixSeconds(tagValue(event, "start"));
+  return parseUnixSeconds(getFirstTagValueFromEvent(event, "start"));
 }
 
 /**
  * Get the end timestamp (unix seconds) from a gathering event.
  */
 export function getGatheringEnd(event: NostrEvent): number | undefined {
-  return parseUnixSeconds(tagValue(event, "end"));
+  return parseUnixSeconds(getFirstTagValueFromEvent(event, "end"));
 }
 
 /**
@@ -99,10 +91,16 @@ export function getLocalTimezoneAbbr(): string {
 }
 
 /**
- * Count upcoming (not yet ended) gathering events from a list.
+ * Start time (unix seconds) of a gathering or of a map note carrying a "start" tag.
  */
-export function countUpcomingGatherings(events: NostrEvent[]): number {
-  const now = Math.floor(Date.now() / 1000);
-  return events.filter((e) => isGatheringEvent(e) && !hasGatheringEnded(e, now))
-    .length;
+export function getEventStart(event: NostrEvent): number | undefined {
+  return parseUnixSeconds(getFirstTagValueFromEvent(event, "start"));
+}
+
+/**
+ * Whether a gathering or "start"-tagged map note is over. Plain notes end at their start.
+ */
+export function hasEventEnded(event: NostrEvent, now: number): boolean {
+  if (isGatheringEvent(event)) return hasGatheringEnded(event, now);
+  return (getEventStart(event) ?? event.created_at) < now;
 }

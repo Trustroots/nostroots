@@ -31,6 +31,10 @@ interface EventComposerModalProps {
   onClose: () => void;
 }
 
+function defaultStartDate() {
+  return new Date(Date.now() + 60 * 60 * 1000);
+}
+
 function PickerField({
   value,
   mode,
@@ -101,9 +105,7 @@ export default function EventComposerModal({
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState<Date>(
-    () => new Date(Date.now() + 60 * 60 * 1000),
-  );
+  const [startDate, setStartDate] = useState<Date>(() => defaultStartDate());
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [hasEnd, setHasEnd] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -111,7 +113,7 @@ export default function EventComposerModal({
   const resetForm = useCallback(() => {
     setTitle("");
     setDescription("");
-    setStartDate(new Date(Date.now() + 60 * 60 * 1000));
+    setStartDate(defaultStartDate());
     setEndDate(null);
     setHasEnd(false);
     setIsSending(false);

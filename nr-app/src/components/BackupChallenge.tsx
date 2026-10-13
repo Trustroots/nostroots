@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useState } from "react";
 import { TextInput, View } from "react-native";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { useThemeColors } from "@/hooks/useThemeColors";
+import { trackEvent } from "@/services/analytics.service";
 import {
   BackupChallenge as Challenge,
   checkBackupChallenge,
@@ -13,7 +15,9 @@ interface BackupChallengeProps {
   secret: string;
   confirmed: boolean;
   onConfirmed: () => void;
-  onFailed?: () => void;
+  onShowAgain: () => void;
+  showAgainTitle: string;
+  analyticsSource: string;
   testIDPrefix: string;
 }
 
@@ -27,24 +31,26 @@ export function BackupChallenge({
   secret,
   confirmed,
   onConfirmed,
-  onFailed,
+  onShowAgain,
+  showAgainTitle,
+  analyticsSource,
   testIDPrefix,
 }: BackupChallengeProps) {
+  const colors = useThemeColors();
   // Mount-time challenge; callers remount with key={secret} to reroll it.
   const [challenge] = useState<Challenge>(() => createBackupChallenge(secret));
-  const [answers, setAnswers] = useState<string[]>([]);
+  const isMnemonic = challenge.type === "mnemonic";
+  const [answers, setAnswers] = useState<string[]>(() =>
+    Array(challenge.type === "mnemonic" ? challenge.positions.length : 1).fill(
+      "",
+    ),
+  );
   const [error, setError] = useState<string | null>(null);
 
-  const fieldCount =
-    challenge.type === "mnemonic" ? challenge.positions.length : 1;
-
-  const prompt = useMemo(
-    () =>
-      challenge.type === "mnemonic"
-        ? `Enter word ${formatPositions(challenge.positions)} from the backup you just saved.`
-        : "Enter your secret from the backup you just saved.",
-    [challenge],
-  );
+  const prompt =
+    challenge.type === "mnemonic"
+      ? `Enter word ${formatPositions(challenge.positions)} from the backup you just saved.`
+      : "Enter your secret from the backup you just saved.";
 
   const setAnswer = (index: number, value: string) => {
     setAnswers((current) => {
@@ -55,28 +61,36 @@ export function BackupChallenge({
     setError(null);
   };
 
-  const hasEveryAnswer = Array.from({ length: fieldCount }).every((_, index) =>
-    (answers[index] ?? "").trim(),
-  );
+  const hasEveryAnswer = answers.every((answer) => answer.trim());
 
   const handleConfirm = () => {
-    const filled = Array.from(
-      { length: fieldCount },
-      (_, index) => answers[index] ?? "",
-    );
-
-    if (checkBackupChallenge(challenge, secret, filled)) {
+    if (checkBackupChallenge(challenge, secret, answers)) {
       setError(null);
+      trackEvent("onboarding_backup_confirmed", {
+        outcome: "success",
+        source: analyticsSource,
+      });
       onConfirmed();
       return;
     }
 
     setError(
-      challenge.type === "mnemonic"
+      isMnemonic
         ? "That does not match your backup. Check the numbered words and try again."
         : "That does not match your backup. Check it and try again.",
     );
-    onFailed?.();
+    trackEvent("onboarding_backup_confirmed", {
+      outcome: "mismatch",
+      source: analyticsSource,
+    });
+  };
+
+  const handleShowAgain = () => {
+    trackEvent("onboarding_backup", {
+      action: "show_again",
+      source: analyticsSource,
+    });
+    onShowAgain();
   };
 
   return (
@@ -93,12 +107,12 @@ export function BackupChallenge({
               <TextInput
                 testID={`${testIDPrefix}-word-${position}`}
                 accessibilityLabel={`Word ${position}`}
-                value={answers[index] ?? ""}
+                value={answers[index]}
                 onChangeText={(value) => setAnswer(index, value)}
                 editable={!confirmed}
                 autoCapitalize="none"
                 autoCorrect={false}
-                placeholderTextColor="#6b7280"
+                placeholderTextColor={colors.mutedForeground}
                 className="w-full bg-muted text-foreground rounded-md p-3 text-sm text-left"
               />
             </View>
@@ -108,14 +122,14 @@ export function BackupChallenge({
         <TextInput
           testID={`${testIDPrefix}-secret`}
           accessibilityLabel="Your full secret"
-          value={answers[0] ?? ""}
+          value={answers[0]}
           onChangeText={(value) => setAnswer(0, value)}
           editable={!confirmed}
           autoCapitalize="none"
           autoCorrect={false}
           multiline
           placeholder="nsec1..."
-          placeholderTextColor="#6b7280"
+          placeholderTextColor={colors.mutedForeground}
           className="w-full bg-muted text-foreground rounded-md p-3 text-sm min-h-[72px]"
         />
       )}
@@ -136,6 +150,16 @@ export function BackupChallenge({
         disabled={confirmed || !hasEveryAnswer}
         onPress={handleConfirm}
       />
+
+      {!confirmed && (
+        <Button
+          testID={`${testIDPrefix}-show-again`}
+          size="sm"
+          variant="outline"
+          title={showAgainTitle}
+          onPress={handleShowAgain}
+        />
+      )}
     </View>
   );
 }

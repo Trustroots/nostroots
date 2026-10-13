@@ -68,21 +68,6 @@ export default function OnboardingKeyScreen() {
     setMnemonicSaved(true);
   };
 
-  const handleMnemonicConfirmed = () => {
-    trackEvent("onboarding_backup_confirmed", {
-      outcome: "success",
-      source: "legacy_key",
-    });
-    setMnemonicConfirmed(true);
-  };
-
-  const handleMnemonicChallengeFailed = () => {
-    trackEvent("onboarding_backup_confirmed", {
-      outcome: "mismatch",
-      source: "legacy_key",
-    });
-  };
-
   const saveExistingKey = async () => {
     clearError();
     const result = await importKey(existingKeyInput);
@@ -213,25 +198,16 @@ export default function OnboardingKeyScreen() {
                 <Text className="text-xs text-red-500">{mnemonicError}</Text>
               )}
               {mnemonicSaved ? (
-                <>
-                  <BackupChallenge
-                    key={mnemonic}
-                    secret={mnemonic}
-                    confirmed={mnemonicConfirmed}
-                    onConfirmed={handleMnemonicConfirmed}
-                    onFailed={handleMnemonicChallengeFailed}
-                    testIDPrefix="onboarding-key-backup"
-                  />
-                  {!mnemonicConfirmed && (
-                    <Button
-                      testID="onboarding-key-mnemonic-show-again"
-                      size="sm"
-                      variant="outline"
-                      title="Show my words again"
-                      onPress={() => setMnemonicSaved(false)}
-                    />
-                  )}
-                </>
+                <BackupChallenge
+                  key={mnemonic}
+                  secret={mnemonic}
+                  confirmed={mnemonicConfirmed}
+                  onConfirmed={() => setMnemonicConfirmed(true)}
+                  onShowAgain={() => setMnemonicSaved(false)}
+                  showAgainTitle="Show my words again"
+                  analyticsSource="legacy_key"
+                  testIDPrefix="onboarding-key-backup"
+                />
               ) : (
                 <>
                   <KeyInput

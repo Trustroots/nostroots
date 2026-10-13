@@ -16,11 +16,13 @@ import {
 import { getBech32PrivateKey } from "nip06";
 import { trackEvent } from "@/services/analytics.service";
 
+const BACKUP_SOURCE = "bridge";
+
 export default function OnboardingBackupConfirmScreen() {
   const router = useRouter();
 
   const [secret, setSecret] = useState<string | null>(null);
-  const [secretAcknowledged, setSecretAcknowledged] = useState(false);
+  const [showSecret, setShowSecret] = useState(true);
   const [confirmed, setConfirmed] = useState(false);
   const [setupError, setSetupError] = useState<string | null>(null);
 
@@ -72,29 +74,9 @@ export default function OnboardingBackupConfirmScreen() {
   const handleAcknowledgeSecret = () => {
     trackEvent("onboarding_backup", {
       action: "secret_acknowledged",
-      source: "bridge",
+      source: BACKUP_SOURCE,
     });
-    setSecretAcknowledged(true);
-  };
-
-  const handleShowAgain = () => {
-    trackEvent("onboarding_backup", { action: "show_again", source: "bridge" });
-    setSecretAcknowledged(false);
-  };
-
-  const handleConfirmed = () => {
-    trackEvent("onboarding_backup_confirmed", {
-      outcome: "success",
-      source: "bridge",
-    });
-    setConfirmed(true);
-  };
-
-  const handleFailed = () => {
-    trackEvent("onboarding_backup_confirmed", {
-      outcome: "mismatch",
-      source: "bridge",
-    });
+    setShowSecret(false);
   };
 
   const handleFinish = () => {
@@ -104,11 +86,9 @@ export default function OnboardingBackupConfirmScreen() {
   };
 
   const handleBack = () => {
-    trackEvent("onboarding_backup", { action: "back", source: "bridge" });
+    trackEvent("onboarding_backup", { action: "back", source: BACKUP_SOURCE });
     router.dismissTo("/onboarding/trustroots");
   };
-
-  const isRevealStep = !secretAcknowledged;
 
   return (
     <>
@@ -125,7 +105,7 @@ export default function OnboardingBackupConfirmScreen() {
           if you lose it.
         </Text>
         <Text variant="p">
-          {isRevealStep
+          {showSecret
             ? "Write it down or store it in a password manager. Then we ask you for a few parts of it, to check it really is saved."
             : "Now check your backup — we only ask for a few parts of it."}
         </Text>
@@ -135,7 +115,7 @@ export default function OnboardingBackupConfirmScreen() {
         <Text className="text-xs text-red-500 text-left">{setupError}</Text>
       )}
 
-      {secret && isRevealStep && (
+      {secret && showSecret && (
         <>
           <View className="w-full gap-2 bg-card rounded-lg p-3">
             <Text className="text-sm font-bold text-foreground text-left">
@@ -159,25 +139,16 @@ export default function OnboardingBackupConfirmScreen() {
         </>
       )}
 
-      {secret && !isRevealStep && (
-        <>
-          <BackupChallenge
-            secret={secret}
-            confirmed={confirmed}
-            onConfirmed={handleConfirmed}
-            onFailed={handleFailed}
-            testIDPrefix="onboarding-backup"
-          />
-          {!confirmed && (
-            <Button
-              testID="onboarding-backup-show-again"
-              size="sm"
-              variant="outline"
-              title="Show my secret again"
-              onPress={handleShowAgain}
-            />
-          )}
-        </>
+      {secret && !showSecret && (
+        <BackupChallenge
+          secret={secret}
+          confirmed={confirmed}
+          onConfirmed={() => setConfirmed(true)}
+          onShowAgain={() => setShowSecret(true)}
+          showAgainTitle="Show my secret again"
+          analyticsSource={BACKUP_SOURCE}
+          testIDPrefix="onboarding-backup"
+        />
       )}
 
       <View className="flex flex-row gap-2 mt-4">

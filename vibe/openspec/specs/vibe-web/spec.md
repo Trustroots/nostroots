@@ -13,6 +13,15 @@ experiments, examples, and testing expectations.
 Vibe Web MUST remain a static web workspace that can be served without a build
 step for the main pages.
 
+#### Scenario: Self-hosted fonts
+
+- **GIVEN** a user opens the hub, app, background page, or an experimental page
+- **WHEN** the page loads its web fonts
+- **THEN** font stylesheets and files MUST be served from the site's own origin
+- **AND** pages MUST NOT request or preconnect to Google Fonts services
+- **AND** the existing Nunito, DM Sans, and Newsreader families MUST remain
+  available with their required weights and bundled license notices.
+
 #### Scenario: Root hub
 
 - **GIVEN** a user opens the Vibe Web root page in a normal browser

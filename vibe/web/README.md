@@ -68,7 +68,7 @@ Nostroots Web is shipped as **two source files**:
 
 The root [`index.js`](index.js) re-exports Nostroots Web helpers for test/backward compatibility.
 
-Third-party assets (`maplibre-gl`, `leaflet`, `nostr-tools`, `bip39`, `dompurify`, Google Fonts) stay on their respective CDNs. There is no build step: serve the folder from any static host.
+Third-party assets (`maplibre-gl`, `leaflet`, `nostr-tools`, `bip39`, `dompurify`) stay on their respective CDNs. Fonts are self-hosted in [`fonts/`](fonts/) under the SIL Open Font License; pages do not contact Google Fonts. There is no build step: serve the folder from any static host.
 
 When iterating locally, run `./dev.sh` and open the printed URL. Refresh after editing — there is no bundler cache.
 

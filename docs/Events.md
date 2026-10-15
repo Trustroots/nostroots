@@ -4,67 +4,64 @@ This page documents every Nostr event kind that Nostroots publishes, reads or ac
 
 Before proposing a new kind or NIP, read [CONTRIBUTING.md](../CONTRIBUTING.md) and [PHILOSOPHY.md](../PHILOSOPHY.md). The design rationale below (why Nostroots uses its own kinds) is part of what a proposal has to take into account.
 
-For the proposal to move towards more established Nostr formats, see [#305](https://github.com/Trustroots/nostroots/issues/305). This page describes what is implemented today, not that proposal. The separate `vibe/` web client has its own additions in [`vibe/docs/Events.md`](../vibe/docs/Events.md).
-
 ## Overview
 
-| Kind | Name | Type | Published by | Read by | Audience |
-| --- | --- | --- | --- | --- | --- |
-| `0` | User metadata (NIP-01) | replaceable | users | `nr-server` (fallback username lookup) | public, standard |
-| `5` | Event deletion (NIP-09) | regular | users | nobody in this repository | public, standard, accepted by the relay only |
-| `10390` | Trustroots profile | replaceable | users (`nr-app`) | `nr-server`, `nr-app` | public, Nostroots-specific |
-| `10395` | Notification subscription | replaceable | users (`nr-app`) | `nr-notification-daemon` | semi-internal, content is encrypted |
-| `20398` | Server message | ephemeral | `nr-server` | `nr-app` | internal operations |
-| `20400` | Ping / ack | ephemeral | `nr-monitor`, services | `nr-server`, `nr-notification-daemon`, `nr-monitor` | internal operations |
-| `30397` | Map note (unvalidated) | addressable | users (`nr-app`) | `nr-server`, `nr-app` | public, Nostroots-specific |
-| `30398` | Map note (validated copy) | addressable | `nr-server` | `nr-app` | public, Nostroots-specific |
-| `30399` | Third-party map data | addressable | third-party importers | `nr-app` | public, Nostroots-specific |
-| `30400` | Metrics snapshot | addressable | `nr-server`, `nr-notification-daemon` | `nr-app` | internal operations |
+| Kind | Name | Type | Published by | Audience |
+| --- | --- | --- | --- | --- |
+| `0` | User metadata (NIP-01) | replaceable | users | public, standard |
+| `5` | Event deletion (NIP-09) | regular | users | public, standard, accepted by the relay only |
+| `10390` | Trustroots profile | replaceable | users | public, Nostroots-specific |
+| `10395` | Notification subscription | replaceable | users | semi-internal, content is encrypted |
+| `20398` | Server message | ephemeral | validation server | internal operations |
+| `20400` | Ping / ack | ephemeral | monitoring and services | internal operations |
+| `30397` | Map note (unvalidated) | addressable | users | public, Nostroots-specific |
+| `30398` | Map note (validated copy) | addressable | validation server | public, Nostroots-specific |
+| `30399` | Third-party map data | addressable | third-party importers | public, Nostroots-specific |
+| `30400` | Metrics snapshot | addressable | servers | internal operations |
 
 The relay accepts only the kinds in `ACCEPTED_KINDS` ([`nr-common/constants.ts`](../nr-common/constants.ts)); [`nr-relay-to-rabbit/src/whitelistKinds.ts`](../nr-relay-to-rabbit/src/whitelistKinds.ts) enforces the list. Any other kind is rejected.
 
 ## Canonical events and validation
 
 - **`30397` is the canonical, user-authored event.** It is signed by the user's own key and is what the author edits or deletes.
-- **`30398` is a server-authored copy.** `nr-server` ([`nr-server/src/validation/repost.ts`](../nr-server/src/validation/repost.ts)) receives each `30397`, validates it, and if it passes, signs and publishes a `30398` with its own key (`NOSTROOTS_VALIDATION_PUBKEY`). The copy carries the original author in its `p` tag and the original event id in its `e` tag.
+- **`30398` is a server-authored copy.** The validation server ([`nr-server/src/validation/repost.ts`](../nr-server/src/validation/repost.ts)) receives each `30397`, validates it, and if it passes, signs and publishes a `30398` with its own key (`NOSTROOTS_VALIDATION_PUBKEY`). The copy carries the original author in its `p` tag and the original event id in its `e` tag.
 - **What validation means** ([`nr-server/src/validation/validate.ts`](../nr-server/src/validation/validate.ts)): the author has a Trustroots username (from their kind `10390` event, falling back to a `trustrootsUsername` field in their kind `0` content), that username resolves through NIP-05 to a pubkey, and that pubkey equals the author of the `30397`. Nothing else is checked: validation says the author controls a Trustroots account, not that the note is accurate.
-- **If validation fails**, no `30398` is published and `nr-server` publishes a kind `20398` message of type `error` tagged with the rejected event, explaining why.
-- **Why validation is a copy and not a NIP-32 label.** Nostroots does not mark validated notes with NIP-32 label events (kind `1985`). Kind `1985` is not replaceable, so a label cannot be cleanly updated or revoked in place. Labels would also complicate queries: a label is a separate event that points at the note, so a client could not select validated notes in one filter. `nr-app` currently runs a single relay filter per layer, with `kinds`, `since`, `limit` and the plus code prefix tags (see [`nr-app/src/common/utils.ts`](../nr-app/src/common/utils.ts)), and with a separate `30398` that filter alone selects validated notes. With labels the client would need to query the labels and the notes separately and join them by event id.
-- **Revocation is not automated.** Nothing in this repository revalidates or deletes an existing `30398` after a ban, a username change or a NIP-05 key change, and deleting a `30397` does not delete its `30398`. This is an open question in [#305](https://github.com/Trustroots/nostroots/issues/305).
-- **Replies, reactions and deletions** have no Nostroots-specific handling today. `nr-app` does not publish them. `getAuthorFromEvent` ([`nr-common/src/getAuthorFromEvent.ts`](../nr-common/src/getAuthorFromEvent.ts)) maps a `30398` back to its original author through the `p` tag; every other kind is attributed to its signing pubkey. Clients that show both kinds must deduplicate a `30397` and its `30398` themselves, using the `e` tag.
+- **If validation fails**, no `30398` is published and the server publishes a kind `20398` message of type `error` tagged with the rejected event, explaining why.
+- **Why validation is a copy and not a NIP-32 label.** Nostroots does not mark validated notes with NIP-32 label events (kind `1985`). Kind `1985` is not replaceable, so a label cannot be cleanly updated or revoked in place. Labels would also complicate queries: a label is a separate event that points at the note, so a client could not select validated notes in one filter. Today a layer is fetched with a single relay filter (`kinds`, `since`, `limit` and the plus code prefix tags), and with a separate `30398` kind that filter alone selects validated notes. With labels a client would need to query the labels and the notes separately and join them by event id.
+- **The validation server is not full-featured yet.** This is the underlying reason why revocation does not exist and validations can become stale: nothing revalidates an existing `30398` after a ban, a username change or a NIP-05 key change, and deleting a `30397` does not delete its `30398`. For now there is no way to remove a banned user's events, even ones that were already validated. Deletions in general are part of the same unfinished work.
+- **Replies, reactions and deletions** have no Nostroots-specific handling yet. `getAuthorFromEvent` ([`nr-common/src/getAuthorFromEvent.ts`](../nr-common/src/getAuthorFromEvent.ts)) maps a `30398` back to its original author through the `p` tag; every other kind is attributed to its signing pubkey. Clients that show both kinds must deduplicate a `30397` and its `30398` themselves, using the `e` tag.
 
 ## Location and label tags
 
 Locations are expressed as Open Location Code (Plus Code) labels using NIP-32 style `L` / `l` tags, not as `g` geohash tags.
 
 - `["L", "open-location-code"]` and `["l", "<full plus code>", "open-location-code"]`: the location of the note. `30397` and `30398` events without a valid plus code are rejected by the schema (`tagsIncludingPlusCodeSchema`).
-- `["L", "open-location-code-prefix"]` and `["l", "<prefix>", "<prefix>", ..., "open-location-code-prefix"]`: all prefixes of the plus code down to a minimum length of 2 characters, as an index for relay filters. A Nostroots index is under construction; its plan is that every event carries all of these prefix tags so events can be queried by plus code prefix. Today only `30397` (added by `nr-app`) and `30398` carry them; other kinds do not. Clients add these on `30397`; `nr-server` derives them again on `30398` (`getAllPlusCodePrefixes`, `DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH`).
+- `["L", "open-location-code-prefix"]` and one `["l", "<prefix>", "open-location-code-prefix"]` tag for each prefix of the plus code at lengths 2, 4, 6 and 8, zero-padded to 8 characters before the `+` (for `8FXHH82F+36`: `8F000000+`, `8FXH0000+`, `8FXHH800+`, `8FXHH82F+`). Use a separate tag per prefix, because Nostr relays index only the first value of a tag ([NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md#tags)). They are an index for relay filters. A Nostroots index is under construction; its plan is that every event carries all of these prefix tags so events can be queried by plus code prefix. Today only `30397` and `30398` carry them; other kinds do not. Clients add them on `30397`; the validation server derives them again on `30398` (`getAllPlusCodePrefixes`, `DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH`).
 - `["L", "trustroots-circle"]` and `["l", "<slug>", "trustroots-circle"]`: optional circle (tribe) the event relates to; the value is a lowercase slug with ASCII hyphens removed.
-- `["expiration", "<unix seconds>"]`: optional NIP-40 expiry. `nr-app` sets it when the user picks an expiry for a note.
-- `["t", "signal"]` and `["t", "<intent>"]`: `nr-app` adds these to notes published as signals (see [`nr-app/src/redux/actions/publish.actions.ts`](../nr-app/src/redux/actions/publish.actions.ts)).
+- `["expiration", "<unix seconds>"]`: optional NIP-40 expiry, set when the user picks an expiry for a note.
+- `["t", "signal"]` and `["t", "<intent>"]`: added to notes published as signals (see [`nr-app/src/redux/actions/publish.actions.ts`](../nr-app/src/redux/actions/publish.actions.ts)).
 
 ## Why Plus Codes, not geohash
 
-**Nostroots' stated reasoning.** Plus Codes were picked over geohashes because they are better suited to the job. Both a Plus Code and a geohash identify an area, not a point. Plus Codes are easier to test and validate.
+We would like to avoid discussions on this topic, as it is not a priority during our current development phase.
 
-**Background research** (added when writing this page, not part of the original reasoning; sources linked):
+Plus Codes were picked over geohashes because they are better suited to the job. Both a Plus Code and a geohash identify an area, not a point, and a shared prefix means a shared containing cell, which is what the prefix tags above rely on. Plus Codes are easier to test and validate.
 
-- Both systems have area prefixes. In the [Open Location Code specification](https://github.com/google/open-location-code/blob/main/Documentation/Specification/specification.md) a 4-digit code is a 1 by 1 degree cell and each further digit pair subdivides it (cell sizes 20, 1, 1/20, 1/400 and 1/8000 degrees for 2, 4, 6, 8 and 10 digits). In [geohash](https://en.wikipedia.org/wiki/Geohash) a longer shared prefix means a smaller containing cell. This is what makes the prefix tags above work as relay filters with either system.
-- Both share the same limits for prefix queries. Two nearby points can fall into different cells and so have different prefixes, for example either side of the equator, the prime meridian or the 180th meridian for geohash, and any cell boundary for both. Both are also defined in degrees, so cells get narrower in metres away from the equator. A client that shows a map area has to query the cells covering it, which is what `nr-app` does with its prefix filters.
-- Plus Code cells are regular. Every digit pair divides latitude and longitude by the same factor (20), so cells at even lengths are square in degrees. Geohash cells alternate between square and a 2:1 longitude-to-latitude shape from one length to the next, because each character carries 5 bits and the bits alternate between longitude and latitude.
-- Plus Codes have a precise validity definition. The specification fixes the alphabet (`23456789CFGHJMPQRVWX`, chosen to reduce writing errors and avoid accidentally spelling words), the `+` separator after the 8th digit, zero padding only before the separator, valid lengths (even below 10 digits, 2 to 15 overall) and case-insensitive input. It also notes that not every character combination decodes to legal coordinates. That is why `isPlusCode` in [`nr-common/src/utils.ts`](../nr-common/src/utils.ts) can reject malformed values with a pattern and rules for padding and trailing characters, without decoding. Any string of geohash alphabet characters decodes to some cell, so a geohash has no equivalent format check beyond its alphabet.
-- Plus Codes ship with shared test vectors. The [Open Location Code repository](https://github.com/google/open-location-code/tree/main/test_data) has CSV test data for validity (`validityTests.csv`), encoding, decoding and short codes (`shortCodeTests.csv`) that its reference implementations run, including the `open-location-code-typescript` package that `nr-app` depends on. Geohash did not have an official specification until the Consumer Technology Association published CTA-5009 (per the Wikipedia article above); we have not evaluated its test material.
-- Plus Codes define short codes: leading digits can be dropped and recovered from a nearby reference location. Nostroots does not use them in events; events carry the full code.
+Background, with sources:
+
+- The [Open Location Code specification](https://github.com/google/open-location-code/blob/main/Documentation/Specification/specification.md) fixes the alphabet, the format (the `+` separator after the 8th digit, zero padding only before it, valid lengths) and case-insensitive input, so malformed codes can be rejected without decoding (see `isPlusCode` in [`nr-common/src/utils.ts`](../nr-common/src/utils.ts)). Any string of [geohash](https://en.wikipedia.org/wiki/Geohash) alphabet characters decodes to some cell.
+- The [Open Location Code repository](https://github.com/google/open-location-code/tree/main/test_data) ships CSV test vectors for validity, encoding, decoding and short codes that its reference implementations run.
+- Neither system avoids the usual limits of prefix queries: nearby points can fall into cells with different prefixes, and cells get narrower in metres away from the equator.
 
 ## Kinds
 
 ### `0` User metadata and `5` Event deletion
 
-Standard NIP-01 and NIP-09 kinds. Kind `0` is not the canonical place for the Trustroots username, because other apps overwrite it regularly and users may not want one shared profile across apps; see [`10390`](#10390-trustroots-profile). They are in `ACCEPTED_KINDS` so users can publish them to the relay. The only Nostroots code that reads one is `nr-server`, which queries kind `0` for a `trustrootsUsername` field when a user has no kind `10390` event. Deletion requests are accepted by the relay but not acted on by any Nostroots service.
+Standard NIP-01 and NIP-09 kinds, accepted by the relay so users can publish them. Nostroots only uses kind `0` as a fallback source of a `trustrootsUsername` field when a user has no kind `10390` event. Deletion requests are accepted but not acted on.
 
 ### `10390` Trustroots profile
 
-Links a Nostr pubkey to a Trustroots username. Replaceable, so a user has one. Nostroots uses its own event for this instead of kind `0` because kind `0` is replaceable too and other Nostr apps and clients overwrite it regularly (last write wins), which would drop the username link, and because users may not want the same profile across every app they use. Schema: [`nr-common/src/10390.schema.ts`](../nr-common/src/10390.schema.ts). Published by `nr-app` during onboarding ([`nr-app/app/onboarding/link.tsx`](../nr-app/app/onboarding/link.tsx)) and read by `nr-server` for validation.
+Links a Nostr pubkey to a Trustroots username. Replaceable (NIP-01): a newer event from the same pubkey replaces the older one, so a user has one. Nostroots uses its own event for this instead of kind `0`, because kind `0` is not the canonical place for the username: other apps overwrite it regularly (last write wins) and users may not want one shared profile across apps. Schema: [`nr-common/src/10390.schema.ts`](../nr-common/src/10390.schema.ts). Published by users during onboarding.
 
 - `content`: empty string.
 - Tags: exactly the username label, with a username of at least 3 characters.
@@ -83,7 +80,7 @@ Links a Nostr pubkey to a Trustroots username. Replaceable, so a user has one. N
 
 ### `10395` Notification subscription
 
-A user's request for push notifications. Replaceable. Schema: [`nr-common/src/10395.schema.ts`](../nr-common/src/10395.schema.ts). Published by `nr-app` ([`nr-app/src/redux/sagas/notifications.saga.ts`](../nr-app/src/redux/sagas/notifications.saga.ts)) and consumed by `nr-notification-daemon`.
+A user's request for push notifications. Replaceable. Schema: [`nr-common/src/10395.schema.ts`](../nr-common/src/10395.schema.ts).
 
 - `content`: a NIP-04 encrypted string, encrypted to `NOTIFICATION_SERVER_PUBKEY`. Decrypted, it is JSON of the form `{ "tokens": [{ "expoPushToken": "..." }], "filters": [{ "filter": <nostr filter> }] }`.
 - Tags: a single `p` tag with `NOTIFICATION_SERVER_PUBKEY`.
@@ -99,24 +96,26 @@ A user's request for push notifications. Replaceable. Schema: [`nr-common/src/10
 
 ### `20398` Server message
 
-An ephemeral message from `nr-server` to a user, currently only used to explain why a `30397` was not reposted. Schema: [`nr-common/src/20398.schema.ts`](../nr-common/src/20398.schema.ts). Published by `nr-server`; `nr-app` subscribes to it ([`nr-app/src/redux/sagas/serverMessages.saga.ts`](../nr-app/src/redux/sagas/serverMessages.saga.ts)).
+An ephemeral message from the validation server to a user, currently only used to explain why a `30397` was not reposted. Schema: [`nr-common/src/20398.schema.ts`](../nr-common/src/20398.schema.ts).
 
 - `content`: human-readable reason, at least one character.
-- Tags: `p` (the rejected event's author), `e` (the rejected event's id), `["serverMessageType", "error" | "info"]`. All three are optional in the schema; `nr-server` always sends `error`.
+- Tags: `p` (the rejected event's author), `e` (the rejected event's id), `["serverMessageType", "error" | "info"]`. All three are optional in the schema; the server currently always sends `error`.
 
 ### `20400` Ping and ack
 
 Liveness check between services. Schema: [`nr-common/src/20400.schema.ts`](../nr-common/src/20400.schema.ts).
 
-- A **ping** has `content: "ping"` and one or more `p` tags naming the service to check. `nr-monitor` publishes it.
-- An **ack** has `content: "ack"`, an `e` tag with the ping's id and a `p` tag with the pinger's pubkey. `nr-server` and `nr-notification-daemon` answer pings addressed to their own pubkey.
+- A **ping** has `content: "ping"` and one or more `p` tags naming the service to check. The monitor publishes it.
+- An **ack** has `content: "ack"`, an `e` tag with the ping's id and a `p` tag with the pinger's pubkey. Services answer pings addressed to their own pubkey.
 
 ### `30397` Map note
 
-A user's note at a location. Addressable, so the `d` tag is the identifier. Nostroots uses its own kind here instead of kind `1` so that notes can be edited or replaced (kind `1` events are not replaceable), and so that other Nostr clients do not easily parse them and pull Nostroots notes into feeds on other apps. This is a separate event domain rather than obfuscation: the events are public and documented on this page. Schema: [`nr-common/src/30397.schema.ts`](../nr-common/src/30397.schema.ts). Published by `nr-app` ([`nr-app/src/redux/actions/publish.actions.ts`](../nr-app/src/redux/actions/publish.actions.ts)) and read by `nr-server` (to validate) and by `nr-app` (the "Unverified" map layer).
+A user's note at a location. Addressable. Schema: [`nr-common/src/30397.schema.ts`](../nr-common/src/30397.schema.ts).
+
+Nostroots uses its own kind here, rather than kind `1`, for prototyping purposes: replaceable events are a core part of the app later on, and notes by themselves are considered ephemeral anyway. Kind `1` events are not replaceable, so notes could not be edited. The separate kind also keeps Nostroots notes in their own domain within the Nostr ecosystem while keeping them public.
 
 - `content`: plain text, 3 to 4000 characters.
-- Tags: `d` (`nr-app` uses a nanoid), the plus code and prefix labels described above, and optionally `expiration`, circle labels and `t` tags.
+- Tags: `d`, the plus code and prefix labels described above, and optionally `expiration`, circle labels and `t` tags.
 
 ```json
 {
@@ -128,14 +127,19 @@ A user's note at a location. Addressable, so the `d` tag is the identifier. Nost
     ["L", "open-location-code"],
     ["l", "8FXHH82F+36", "open-location-code"],
     ["L", "open-location-code-prefix"],
-    ["l", "8FXHH800+", "8F000000+", "open-location-code-prefix"]
+    ["l", "8F000000+", "open-location-code-prefix"],
+    ["l", "8FXH0000+", "open-location-code-prefix"],
+    ["l", "8FXHH800+", "open-location-code-prefix"],
+    ["l", "8FXHH82F+", "open-location-code-prefix"]
   ]
 }
 ```
 
 ### `30398` Validated map note
 
-The server-signed copy of a `30397` that passed validation. It is a validation event used for spam filtering: clients that want only notes from Trustroots users read `30398` instead of `30397`. Known gap: there is currently no way to remove a banned user's events, including ones that were already validated (see the revocation note above). Addressable. Schema: [`nr-common/src/30398.schema.ts`](../nr-common/src/30398.schema.ts). Generated by `generateRepostedEvent` in [`nr-server/src/validation/repost.ts`](../nr-server/src/validation/repost.ts). Read by `nr-app` for the Trustroots map layer, the feed, signals and events tabs, and push notification filters.
+The server-signed copy of a `30397` that passed validation. Addressable. Schema: [`nr-common/src/30398.schema.ts`](../nr-common/src/30398.schema.ts). Generated by `generateRepostedEvent` in [`nr-server/src/validation/repost.ts`](../nr-server/src/validation/repost.ts).
+
+We validate for a few quick reasons: it filters spam, because only notes from authors with a verifiable Trustroots account get a copy; clients can ask for validated notes with a single filter on kind and author; and the user's original stays untouched. See [Canonical events and validation](#canonical-events-and-validation) for what is checked.
 
 - `content`: copied from the original.
 - Tags: `e` (original event id), `p` (original author pubkey), `d` (`<original pubkey>:<original kind>:<original d tag value>`), `original_created_at` (the original's `created_at`), then the original's tags except `d`, then freshly derived plus code prefix labels.
@@ -154,16 +158,19 @@ The server-signed copy of a `30397` that passed validation. It is a validation e
     ["L", "open-location-code"],
     ["l", "8FXHH82F+36", "open-location-code"],
     ["L", "open-location-code-prefix"],
-    ["l", "8FXHH800+", "8F000000+", "open-location-code-prefix"]
+    ["l", "8F000000+", "open-location-code-prefix"],
+    ["l", "8FXH0000+", "open-location-code-prefix"],
+    ["l", "8FXHH800+", "open-location-code-prefix"],
+    ["l", "8FXHH82F+", "open-location-code-prefix"]
   ]
 }
 ```
 
-Clients that want only validated notes filter on `kinds: [30398]` and `authors: [NOSTROOTS_VALIDATION_PUBKEY]`, as the Trustroots layer in `MAP_LAYERS` does ([`nr-common/constants.ts`](../nr-common/constants.ts)). Other authors can also publish `30398` events; `nr-app` shows some as separate layers (for example Trip Hopping).
+Clients that want only validated notes filter on `kinds: [30398]` and `authors: [NOSTROOTS_VALIDATION_PUBKEY]`, as the Trustroots layer in `MAP_LAYERS` does ([`nr-common/constants.ts`](../nr-common/constants.ts)). Other authors can also publish `30398` events, which clients can show as separate layers (for example Trip Hopping).
 
 ### `30399` Third-party map data
 
-Notes imported from other projects (Hitchwiki, Time Safari and others) and published by an importer under its own key. Addressable. The kind is a standardized event format for whitelisted parties to publish on Nostroots. Today the whitelist is the set of publisher pubkeys hard-coded as map layers in `MAP_LAYERS` ([`nr-common/constants.ts`](../nr-common/constants.ts)); `nr-app` reads each layer with a filter on `kinds: [30399]` and the publisher's pubkey, so events from other pubkeys are not shown. Nostroots has no Zod schema for it yet, so the tags below are the format by convention. Other kinds can be supported as needed, but that requires checking interoperability first, for example geohash `g` tags versus the Plus Code labels Nostroots uses for location.
+Notes imported from other projects (Hitchwiki, Time Safari and others) and published by an importer under its own key. Addressable. The kind is a standardized event format for whitelisted parties to publish on Nostroots. Today the whitelist is the set of publisher pubkeys hard-coded as map layers in `MAP_LAYERS` ([`nr-common/constants.ts`](../nr-common/constants.ts)); each layer is read with a filter on `kinds: [30399]` and the publisher's pubkey, so events from other pubkeys are not shown. Nostroots has no Zod schema for it yet, so the tags below are the format by convention. Other kinds can be supported as needed, but that requires checking interoperability first, for example geohash `g` tags versus the Plus Code labels Nostroots uses for location.
 
 - `content`: the note text.
 - `d`: required, chosen by the publisher to be unique per note.
@@ -180,7 +187,10 @@ Notes imported from other projects (Hitchwiki, Time Safari and others) and publi
     ["L", "open-location-code"],
     ["l", "8GM87XXC+47", "open-location-code"],
     ["L", "open-location-code-prefix"],
-    ["l", "8GM87X00+", "8GM80000+", "8G000000+", "open-location-code-prefix"],
+    ["l", "8G000000+", "open-location-code-prefix"],
+    ["l", "8GM80000+", "open-location-code-prefix"],
+    ["l", "8GM87X00+", "open-location-code-prefix"],
+    ["l", "8GM87XXC+", "open-location-code-prefix"],
     ["L", "trustroots-circle"],
     ["l", "hitchhikers", "trustroots-circle"],
     ["linkLabel", "posted by @jdoe"],
@@ -191,7 +201,7 @@ Notes imported from other projects (Hitchwiki, Time Safari and others) and publi
 
 ### `30400` Metrics snapshot
 
-Aggregate counts per plus code, used by the app to show activity. Addressable and short-lived. Schema: [`nr-common/src/30400.schema.ts`](../nr-common/src/30400.schema.ts). `nr-server` publishes the `messages` type ([`nr-server/src/metrics/messages.ts`](../nr-server/src/metrics/messages.ts)) and `nr-notification-daemon` publishes `push-subscriptions` ([`nr-notification-daemon/src/metrics.ts`](../nr-notification-daemon/src/metrics.ts)); `nr-app` reads them ([`nr-app/src/redux/sagas/metrics.saga.ts`](../nr-app/src/redux/sagas/metrics.saga.ts)).
+Aggregate counts per plus code, used to show activity. Addressable and short-lived. Schema: [`nr-common/src/30400.schema.ts`](../nr-common/src/30400.schema.ts). The validation server publishes the `messages` type ([`nr-server/src/metrics/messages.ts`](../nr-server/src/metrics/messages.ts)) and the notification service publishes `push-subscriptions` ([`nr-notification-daemon/src/metrics.ts`](../nr-notification-daemon/src/metrics.ts)).
 
 - `content`: a JSON object whose keys are plus codes and whose values are non-negative integers.
 - Tags: exactly one `d` (currently `world`), exactly one `["t", "messages" | "push-subscriptions"]`, and an `expiration` 30 days after `created_at`.

@@ -148,7 +148,7 @@ Clients that want only validated notes filter on `kinds: [30398]` and `authors: 
 
 ### `30399` Third-party map data
 
-Notes imported from other projects (Hitchwiki, Time Safari and others) and published by an importer under its own key. Addressable. Nostroots has no Zod schema for it; `nr-app` reads it as a map layer by author pubkey. Consumers should treat the tags below as the format.
+Notes imported from other projects (Hitchwiki, Time Safari and others) and published by an importer under its own key. Addressable. The kind is a standardized event format for whitelisted parties to publish on Nostroots. Today the whitelist is the set of publisher pubkeys hard-coded as map layers in `MAP_LAYERS` ([`nr-common/constants.ts`](../nr-common/constants.ts)); `nr-app` reads each layer with a filter on `kinds: [30399]` and the publisher's pubkey, so events from other pubkeys are not shown. Nostroots has no Zod schema for it yet, so the tags below are the format by convention. Other kinds can be supported as needed, but that requires checking interoperability first, for example geohash `g` tags versus the Plus Code labels Nostroots uses for location.
 
 - `content`: the note text.
 - `d`: required, chosen by the publisher to be unique per note.

@@ -41,6 +41,19 @@ Locations are expressed as Open Location Code (Plus Code) labels using NIP-32 st
 - `["expiration", "<unix seconds>"]`: optional NIP-40 expiry. `nr-app` sets it when the user picks an expiry for a note.
 - `["t", "signal"]` and `["t", "<intent>"]`: `nr-app` adds these to notes published as signals (see [`nr-app/src/redux/actions/publish.actions.ts`](../nr-app/src/redux/actions/publish.actions.ts)).
 
+## Why Plus Codes, not geohash
+
+**Nostroots' stated reasoning.** Plus Codes were picked over geohashes because they are better suited to the job. Both a Plus Code and a geohash identify an area, not a point. Plus Codes are easier to test and validate.
+
+**Background research** (added when writing this page, not part of the original reasoning; sources linked):
+
+- Both systems have area prefixes. In the [Open Location Code specification](https://github.com/google/open-location-code/blob/main/Documentation/Specification/specification.md) a 4-digit code is a 1 by 1 degree cell and each further digit pair subdivides it (cell sizes 20, 1, 1/20, 1/400 and 1/8000 degrees for 2, 4, 6, 8 and 10 digits). In [geohash](https://en.wikipedia.org/wiki/Geohash) a longer shared prefix means a smaller containing cell. This is what makes the prefix tags above work as relay filters with either system.
+- Both share the same limits for prefix queries. Two nearby points can fall into different cells and so have different prefixes, for example either side of the equator, the prime meridian or the 180th meridian for geohash, and any cell boundary for both. Both are also defined in degrees, so cells get narrower in metres away from the equator. A client that shows a map area has to query the cells covering it, which is what `nr-app` does with its prefix filters.
+- Plus Code cells are regular. Every digit pair divides latitude and longitude by the same factor (20), so cells at even lengths are square in degrees. Geohash cells alternate between square and a 2:1 longitude-to-latitude shape from one length to the next, because each character carries 5 bits and the bits alternate between longitude and latitude.
+- Plus Codes have a precise validity definition. The specification fixes the alphabet (`23456789CFGHJMPQRVWX`, chosen to reduce writing errors and avoid accidentally spelling words), the `+` separator after the 8th digit, zero padding only before the separator, valid lengths (even below 10 digits, 2 to 15 overall) and case-insensitive input. It also notes that not every character combination decodes to legal coordinates. That is why `isPlusCode` in [`nr-common/src/utils.ts`](../nr-common/src/utils.ts) can reject malformed values with a pattern and rules for padding and trailing characters, without decoding. Any string of geohash alphabet characters decodes to some cell, so a geohash has no equivalent format check beyond its alphabet.
+- Plus Codes ship with shared test vectors. The [Open Location Code repository](https://github.com/google/open-location-code/tree/main/test_data) has CSV test data for validity (`validityTests.csv`), encoding, decoding and short codes (`shortCodeTests.csv`) that its reference implementations run, including the `open-location-code-typescript` package that `nr-app` depends on. Geohash did not have an official specification until the Consumer Technology Association published CTA-5009 (per the Wikipedia article above); we have not evaluated its test material.
+- Plus Codes define short codes: leading digits can be dropped and recovered from a nearby reference location. Nostroots does not use them in events; events carry the full code.
+
 ## Kinds
 
 ### `0` User metadata and `5` Event deletion

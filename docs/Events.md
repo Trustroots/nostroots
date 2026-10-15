@@ -97,7 +97,7 @@ Liveness check between services. Schema: [`nr-common/src/20400.schema.ts`](../nr
 
 ### `30397` Map note
 
-A user's note at a location. Addressable, so the `d` tag is the identifier. Schema: [`nr-common/src/30397.schema.ts`](../nr-common/src/30397.schema.ts). Published by `nr-app` ([`nr-app/src/redux/actions/publish.actions.ts`](../nr-app/src/redux/actions/publish.actions.ts)) and read by `nr-server` (to validate) and by `nr-app` (the "Unverified" map layer).
+A user's note at a location. Addressable, so the `d` tag is the identifier. Nostroots uses its own kind here instead of kind `1` so that notes can be edited or replaced (kind `1` events are not replaceable), and so that other Nostr clients do not easily parse them and pull Nostroots notes into feeds on other apps. This is a separate event domain rather than obfuscation: the events are public and documented on this page. Schema: [`nr-common/src/30397.schema.ts`](../nr-common/src/30397.schema.ts). Published by `nr-app` ([`nr-app/src/redux/actions/publish.actions.ts`](../nr-app/src/redux/actions/publish.actions.ts)) and read by `nr-server` (to validate) and by `nr-app` (the "Unverified" map layer).
 
 - `content`: plain text, 3 to 4000 characters.
 - Tags: `d` (`nr-app` uses a nanoid), the plus code and prefix labels described above, and optionally `expiration`, circle labels and `t` tags.

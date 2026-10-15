@@ -44,11 +44,11 @@ Locations are expressed as Open Location Code (Plus Code) labels using NIP-32 st
 
 ### `0` User metadata and `5` Event deletion
 
-Standard NIP-01 and NIP-09 kinds. They are in `ACCEPTED_KINDS` so users can publish them to the relay. The only Nostroots code that reads one is `nr-server`, which queries kind `0` for a `trustrootsUsername` field when a user has no kind `10390` event. Deletion requests are accepted by the relay but not acted on by any Nostroots service.
+Standard NIP-01 and NIP-09 kinds. Kind `0` is not the canonical place for the Trustroots username, because other apps overwrite it regularly and users may not want one shared profile across apps; see [`10390`](#10390-trustroots-profile). They are in `ACCEPTED_KINDS` so users can publish them to the relay. The only Nostroots code that reads one is `nr-server`, which queries kind `0` for a `trustrootsUsername` field when a user has no kind `10390` event. Deletion requests are accepted by the relay but not acted on by any Nostroots service.
 
 ### `10390` Trustroots profile
 
-Links a Nostr pubkey to a Trustroots username. Replaceable, so a user has one. Schema: [`nr-common/src/10390.schema.ts`](../nr-common/src/10390.schema.ts). Published by `nr-app` during onboarding ([`nr-app/app/onboarding/link.tsx`](../nr-app/app/onboarding/link.tsx)) and read by `nr-server` for validation.
+Links a Nostr pubkey to a Trustroots username. Replaceable, so a user has one. Nostroots uses its own event for this instead of kind `0` because kind `0` is replaceable too and other Nostr apps and clients overwrite it regularly (last write wins), which would drop the username link, and because users may not want the same profile across every app they use. Schema: [`nr-common/src/10390.schema.ts`](../nr-common/src/10390.schema.ts). Published by `nr-app` during onboarding ([`nr-app/app/onboarding/link.tsx`](../nr-app/app/onboarding/link.tsx)) and read by `nr-server` for validation.
 
 - `content`: empty string.
 - Tags: exactly the username label, with a username of at least 3 characters.

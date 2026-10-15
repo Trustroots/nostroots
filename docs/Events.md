@@ -2,6 +2,8 @@
 
 This page documents every Nostr event kind that Nostroots publishes, reads or accepts on its relay, so that an external developer can interoperate with it from one place. Facts here are derived from the code; the source of truth is [`nr-common/constants.ts`](../nr-common/constants.ts) and the Zod schemas in [`nr-common/src/`](../nr-common/src/).
 
+Before proposing a new kind or NIP, read [CONTRIBUTING.md](../CONTRIBUTING.md) and [PHILOSOPHY.md](../PHILOSOPHY.md). The design rationale below (why Nostroots uses its own kinds) is part of what a proposal has to take into account.
+
 For the proposal to move towards more established Nostr formats, see [#305](https://github.com/Trustroots/nostroots/issues/305). This page describes what is implemented today, not that proposal. The separate `vibe/` web client has its own additions in [`vibe/docs/Events.md`](../vibe/docs/Events.md).
 
 ## Overview

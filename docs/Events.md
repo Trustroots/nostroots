@@ -43,25 +43,25 @@ Locations are expressed as Open Location Code (Plus Code) labels using NIP-32 st
 
 ## Why Plus Codes, not geohash
 
-We would like to avoid discussions on this topic, as it is not a priority during our current development phase.
+We are not looking to reopen this question for now, as it is not a priority in our current development phase. Thank you for understanding.
 
-Plus Codes were picked over geohashes because they are better suited to the job. Both a Plus Code and a geohash identify an area, not a point, and a shared prefix means a shared containing cell, which is what the prefix tags above rely on. Plus Codes are easier to test and validate.
+Plus Codes were chosen over geohashes because they are easier to test and validate. On the properties our prefix tags rely on the two are equal: both identify an area, not a point, and in both a shared prefix means a shared containing cell.
 
 Background, with sources:
 
 - The [Open Location Code specification](https://github.com/google/open-location-code/blob/main/Documentation/Specification/specification.md) fixes the alphabet, the format (the `+` separator after the 8th digit, zero padding only before it, valid lengths) and case-insensitive input, so malformed codes can be rejected without decoding (see `isPlusCode` in [`nr-common/src/utils.ts`](../nr-common/src/utils.ts)). Any string of [geohash](https://en.wikipedia.org/wiki/Geohash) alphabet characters decodes to some cell.
 - The [Open Location Code repository](https://github.com/google/open-location-code/tree/main/test_data) ships CSV test vectors for validity, encoding, decoding and short codes that its reference implementations run.
-- Neither system avoids the usual limits of prefix queries: nearby points can fall into cells with different prefixes, and cells get narrower in metres away from the equator.
+- Neither system avoids the limits of prefix queries: nearby points can fall into cells with different prefixes, and cells get narrower away from the equator. Nostr is by design poor at prefix queries, so both need additional indexing, such as the prefix tags above.
 
 ## Kinds
 
 ### `0` User metadata and `5` Event deletion
 
-Standard NIP-01 and NIP-09 kinds, accepted by the relay so users can publish them. Nostroots only uses kind `0` as a fallback source of a `trustrootsUsername` field when a user has no kind `10390` event. Deletion requests are accepted but not acted on.
+Standard NIP-01 and NIP-09 kinds, accepted by the relay so users can publish them. Nostroots only uses kind `0` as a fallback source of a `trustrootsUsername` field when a user has no kind `10390` event. Deletion requests are accepted but not acted on yet; deletions are part of our roadmap.
 
 ### `10390` Trustroots profile
 
-Links a Nostr pubkey to a Trustroots username. Replaceable (NIP-01): a newer event from the same pubkey replaces the older one, so a user has one. Nostroots uses its own event for this instead of kind `0`, because kind `0` is not the canonical place for the username: other apps overwrite it regularly (last write wins) and users may not want one shared profile across apps. Schema: [`nr-common/src/10390.schema.ts`](../nr-common/src/10390.schema.ts). Published by users during onboarding.
+Links a Nostr pubkey to a Trustroots username. Replaceable. Nostroots uses its own event for this instead of kind `0`, to keep a separate profile that other apps cannot overwrite. Schema: [`nr-common/src/10390.schema.ts`](../nr-common/src/10390.schema.ts). Published by users during onboarding.
 
 - `content`: empty string.
 - Tags: exactly the username label, with a username of at least 3 characters.
@@ -112,7 +112,7 @@ Liveness check between services. Schema: [`nr-common/src/20400.schema.ts`](../nr
 
 A user's note at a location. Addressable. Schema: [`nr-common/src/30397.schema.ts`](../nr-common/src/30397.schema.ts).
 
-Nostroots uses its own kind here, rather than kind `1`, for prototyping purposes: replaceable events are a core part of the app later on, and notes by themselves are considered ephemeral anyway. Kind `1` events are not replaceable, so notes could not be edited. The separate kind also keeps Nostroots notes in their own domain within the Nostr ecosystem while keeping them public.
+Nostroots uses its own kind here, rather than kind `1`, for prototyping purposes: replaceable events are a core part of the app later on, although notes could be considered ephemeral. The separate kind also keeps Nostroots notes in their own domain within the Nostr ecosystem while still keeping them public.
 
 - `content`: plain text, 3 to 4000 characters.
 - Tags: `d`, the plus code and prefix labels described above, and optionally `expiration`, circle labels and `t` tags.

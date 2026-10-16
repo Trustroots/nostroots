@@ -2,7 +2,7 @@
 
 Nostroots moves Trustroots onto Nostr. This page explains the thinking behind that, so that contributors can judge whether a change fits. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose one.
 
-## What we care about
+## What we value
 
 Trustroots was never meant to be only about hosting. It is about gifting and sharing, based on trust and on shared values. Nostroots should keep that spirit, and give members ownership of their own identity.
 

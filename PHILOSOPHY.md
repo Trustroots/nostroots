@@ -10,6 +10,10 @@ We are also deliberate about where our events and offers show up. We take care t
 
 Content on Nostroots is public by default, and anyone can read it. That does not make every destination appropriate. The content of Nostroots' own event kinds is not meant to be republished into general-purpose or commercial feeds, and a new integration is judged by who would see the content there and whether they would understand the spirit in which it was shared.
 
+## Trust and safety
+
+We want to protect the existing Trustroots community while gradually moving it onto decentralized platforms. This is a long process and hard to steer. We want to take ourselves out of the loop as much as possible, but never at the expense of our users' safety.
+
 ## An example
 
 A free hosting offer is a generous offer. It does not belong in classified listings, because listings would put it in front of people who are not aware that it is a generous offer.

@@ -16,7 +16,7 @@ Before proposing a new kind or NIP, read [CONTRIBUTING.md](../CONTRIBUTING.md) a
 | `20400` | Ping / ack | ephemeral | monitoring and services | internal operations |
 | `30397` | Map note (unvalidated) | addressable | users | public, Nostroots-specific |
 | `30398` | Map note (validated copy) | addressable | validation server | public, Nostroots-specific |
-| `30399` | Third-party map data | addressable | third-party importers | public, Nostroots-specific |
+| `30399` | Third-party map data | addressable | third parties | public, Nostroots-specific |
 | `30400` | Metrics snapshot | addressable | servers | internal operations |
 
 The relay accepts only the kinds in `ACCEPTED_KINDS` ([`nr-common/constants.ts`](../nr-common/constants.ts)); [`nr-relay-to-rabbit/src/whitelistKinds.ts`](../nr-relay-to-rabbit/src/whitelistKinds.ts) enforces the list. Any other kind is rejected.
@@ -27,7 +27,7 @@ The relay accepts only the kinds in `ACCEPTED_KINDS` ([`nr-common/constants.ts`]
 - **`30398` is a server-authored copy.** The validation server ([`nr-server/src/validation/repost.ts`](../nr-server/src/validation/repost.ts)) receives each `30397`, validates it, and if it passes, signs and publishes a `30398` with its own key (`NOSTROOTS_VALIDATION_PUBKEY`). The copy carries the original author in its `p` tag and the original event id in its `e` tag.
 - **What validation means** ([`nr-server/src/validation/validate.ts`](../nr-server/src/validation/validate.ts)): the author has a Trustroots username (from their kind `10390` event, falling back to a `trustrootsUsername` field in their kind `0` content), that username resolves through NIP-05 to a pubkey, and that pubkey equals the author of the `30397`. Nothing else is checked: validation says the author controls a Trustroots account, not that the note is accurate.
 - **If validation fails**, no `30398` is published and the server publishes a kind `20398` message of type `error` tagged with the rejected event, explaining why.
-- **Why validation is a copy and not a NIP-32 label.** Nostroots does not mark validated notes with NIP-32 label events (kind `1985`). Kind `1985` is not replaceable, so a label cannot be cleanly updated or revoked in place. Labels would also complicate queries: a label is a separate event that points at the note, so a client could not select validated notes in one filter. Today a layer is fetched with a single relay filter (`kinds`, `since`, `limit` and the plus code prefix tags), and with a separate `30398` kind that filter alone selects validated notes. With labels a client would need to query the labels and the notes separately and join them by event id.
+- **Why validation is a copy and not a NIP-32 label.** Nostroots does not mark validated notes with NIP-32 label events (kind `1985`). Kind `1985` is not replaceable, so a label cannot be cleanly updated or revoked in place. Labels would also complicate queries: a label is a separate event that points at the note, so a client could not select validated notes in one filter. Today a layer is fetched with a single relay filter (`kinds`, `since`, `limit` and the plus code prefix tags), and with a separate `30398` kind that filter alone selects validated notes. With labels a client would need to query the labels and the notes separately and join them by event id. Selecting validated notes would change from one query (O(1)) to a join whose cost grows with the number of labels (O(n)).
 - **The validation server is not full-featured yet.** This is the underlying reason why revocation does not exist and validations can become stale: nothing revalidates an existing `30398` after a ban, a username change or a NIP-05 key change, and deleting a `30397` does not delete its `30398`. For now there is no way to remove a banned user's events, even ones that were already validated. Deletions in general are part of the same unfinished work.
 - **Replies, reactions and deletions** have no Nostroots-specific handling yet. `getAuthorFromEvent` ([`nr-common/src/getAuthorFromEvent.ts`](../nr-common/src/getAuthorFromEvent.ts)) maps a `30398` back to its original author through the `p` tag; every other kind is attributed to its signing pubkey. Clients that show both kinds must deduplicate a `30397` and its `30398` themselves, using the `e` tag.
 
@@ -37,7 +37,7 @@ Locations are expressed as Open Location Code (Plus Code) labels using NIP-32 st
 
 - `["L", "open-location-code"]` and `["l", "<full plus code>", "open-location-code"]`: the location of the note. `30397` and `30398` events without a valid plus code are rejected by the schema (`tagsIncludingPlusCodeSchema`).
 - `["L", "open-location-code-prefix"]` and one `["l", "<prefix>", "open-location-code-prefix"]` tag for each prefix of the plus code at lengths 2, 4, 6 and 8, zero-padded to 8 characters before the `+` (for `8FXHH82F+36`: `8F000000+`, `8FXH0000+`, `8FXHH800+`, `8FXHH82F+`). Use a separate tag per prefix, because Nostr relays index only the first value of a tag ([NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md#tags)). They are an index for relay filters. A Nostroots index is under construction; its plan is that every event carries all of these prefix tags so events can be queried by plus code prefix. Today only `30397` and `30398` carry them; other kinds do not. Clients add them on `30397`; the validation server derives them again on `30398` (`getAllPlusCodePrefixes`, `DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH`).
-- `["L", "trustroots-circle"]` and `["l", "<slug>", "trustroots-circle"]`: optional circle (tribe) the event relates to; the value is a lowercase slug with ASCII hyphens removed.
+- `["L", "org.trustroots:circle"]` and `["l", "<slug>", "org.trustroots:circle"]`: optional circle (tribe) the event relates to; the value is a lowercase slug with ASCII hyphens removed.
 - `["expiration", "<unix seconds>"]`: optional NIP-40 expiry, set when the user picks an expiry for a note.
 - `["t", "signal"]` and `["t", "<intent>"]`: added to notes published as signals (see [`nr-app/src/redux/actions/publish.actions.ts`](../nr-app/src/redux/actions/publish.actions.ts)).
 
@@ -57,11 +57,11 @@ Background, with sources:
 
 ### `0` User metadata and `5` Event deletion
 
-Standard NIP-01 and NIP-09 kinds, accepted by the relay so users can publish them. Nostroots only uses kind `0` as a fallback source of a `trustrootsUsername` field when a user has no kind `10390` event. Deletion requests are accepted but not acted on yet; deletions are part of our roadmap.
+Standard NIP-01 and NIP-09 kinds, accepted by the relay so users can publish them. Nostroots only uses kind `0` as a fallback source of a `trustrootsUsername` field when a user has no kind `10390` event. Nostroots clients do not currently process kind `5` events, and the relay does not remove the referenced events; deletions are part of our roadmap.
 
 ### `10390` Trustroots profile
 
-Links a Nostr pubkey to a Trustroots username. Replaceable. Nostroots uses its own event for this instead of kind `0`, to keep a separate profile that other apps cannot overwrite. Schema: [`nr-common/src/10390.schema.ts`](../nr-common/src/10390.schema.ts). Published by users during onboarding.
+Links a Nostr pubkey to a Trustroots username. Replaceable. Nostroots uses its own event for this instead of kind `0`, to keep a separate profile that other apps cannot overwrite. This is not hypothetical: other Nostr apps have been seen overwriting the Trustroots fields in kind `0`. Schema: [`nr-common/src/10390.schema.ts`](../nr-common/src/10390.schema.ts). Published by users during onboarding.
 
 - `content`: empty string.
 - Tags: exactly the username label, with a username of at least 3 characters.
@@ -166,11 +166,11 @@ We validate for a few quick reasons: it filters spam, because only notes from au
 }
 ```
 
-Clients that want only validated notes filter on `kinds: [30398]` and `authors: [NOSTROOTS_VALIDATION_PUBKEY]`, as the Trustroots layer in `MAP_LAYERS` does ([`nr-common/constants.ts`](../nr-common/constants.ts)). Other authors can also publish `30398` events, which clients can show as separate layers (for example Trip Hopping).
+Clients that want only validated notes filter on `kinds: [30398]` and `authors: [NOSTROOTS_VALIDATION_PUBKEY]`, as the Trustroots layer in `MAP_LAYERS` does ([`nr-common/constants.ts`](../nr-common/constants.ts)).
 
 ### `30399` Third-party map data
 
-Notes imported from other projects (Hitchwiki, Time Safari and others) and published by an importer under its own key. Addressable. The kind is a standardized event format for whitelisted parties to publish on Nostroots. Today the whitelist is the set of publisher pubkeys hard-coded as map layers in `MAP_LAYERS` ([`nr-common/constants.ts`](../nr-common/constants.ts)); each layer is read with a filter on `kinds: [30399]` and the publisher's pubkey, so events from other pubkeys are not shown. Nostroots has no Zod schema for it yet, so the tags below are the format by convention. Other kinds can be supported as needed, but that requires checking interoperability first, for example geohash `g` tags versus the Plus Code labels Nostroots uses for location.
+These notes are not imported or published by Nostroots: others can publish these, each under their own key. Addressable. Today the whitelist is the set of publisher pubkeys hard-coded as map layers in `MAP_LAYERS` ([`nr-common/constants.ts`](../nr-common/constants.ts)); each layer is read with a filter on `kinds: [30399]` and the publisher's pubkey, so events from other pubkeys are not shown. Nostroots has no Zod schema for it yet, so the tags below are the format by convention. Other kinds can be supported as needed, but that requires checking interoperability first, for example geohash `g` tags versus the Plus Code labels Nostroots uses for location.
 
 - `content`: the note text.
 - `d`: required, chosen by the publisher to be unique per note.
@@ -191,8 +191,8 @@ Notes imported from other projects (Hitchwiki, Time Safari and others) and publi
     ["l", "8GM80000+", "open-location-code-prefix"],
     ["l", "8GM87X00+", "open-location-code-prefix"],
     ["l", "8GM87XXC+", "open-location-code-prefix"],
-    ["L", "trustroots-circle"],
-    ["l", "hitchhikers", "trustroots-circle"],
+    ["L", "org.trustroots:circle"],
+    ["l", "hitchhikers", "org.trustroots:circle"],
     ["linkLabel", "posted by @jdoe"],
     ["linkPath", "/point/123"]
   ]

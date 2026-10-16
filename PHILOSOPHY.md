@@ -1,23 +1,27 @@
 # Nostroots philosophy
 
-## Interoperability, with care
+Nostroots moves Trustroots onto Nostr. This page explains the thinking behind that, so that contributors can judge whether a change fits. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to propose one.
 
-Interoperability is a goal. We want Nostroots to work with the wider Nostr ecosystem, and sharing identity, data and tools with other projects is part of why we are building on Nostr.
+## What we care about
 
-We are also deliberate about where our events and offers show up. We take care that members' generosity isn't placed in front of audiences who do not share or understand the spirit behind it.
+Trustroots was never meant to be only about hosting. It is about gifting and sharing, based on trust and on shared values. Nostroots should keep that spirit, and give members ownership of their own identity.
 
-## A rule of thumb for reuse
-
-Content on Nostroots is public by default, and anyone can read it. That does not make every destination appropriate. The content of Nostroots' own event kinds is not meant to be republished into general-purpose or commercial feeds, and a new integration is judged by who would see the content there and whether they would understand the spirit in which it was shared.
-
-## Trust and safety
+## Protecting the community
 
 We want to protect the existing Trustroots community while gradually moving it onto decentralized platforms. This is a long process and hard to steer. We want to take ourselves out of the loop as much as possible, but never at the expense of our users' safety.
 
-## An example
+## Interoperability, with care
 
-A free hosting offer is a generous offer. It does not belong in classified listings, because listings would put it in front of people who are not aware that it is a generous offer.
+We want Nostroots to work with the wider Nostr ecosystem. Sharing identity, data and tools with other projects is part of why we build on Nostr.
 
-The event design reflects this too: see the rationale sections in [docs/Events.md](docs/Events.md), for example why map notes use kind `30397` instead of kind `1`.
+We are also deliberate about where members' content shows up. A free hosting offer is generous, and it does not belong in classified listings, where readers would not understand it as a gift.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for what this means when proposing changes.
+## A test for reuse
+
+Before content leaves Nostroots, or a new integration is added, ask: would the member who shared this be glad to see it there?
+
+If the audience would not understand the spirit in which it was shared, the answer is no.
+
+## In the code
+
+The event design reflects this, for example in why map notes use kind `30397` instead of kind `1`. See the rationale sections in [docs/Events.md](docs/Events.md).

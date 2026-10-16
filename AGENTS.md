@@ -218,10 +218,16 @@ Match @chmac's house style when drafting anything posted to GitHub in this proje
 
 **Comments:** blunt and brief. Direct pushback ("Deletes what? I don't think we should let the user easily delete their key."), flat reversals, "Done." Mild profanity is normal; corporate softeners ("Great question!") are not.
 
+### Contributing guidelines
+
+Before proposing or making changes, read [CONTRIBUTING.md](CONTRIBUTING.md) and [PHILOSOPHY.md](PHILOSOPHY.md). This applies especially to anything that adds or changes a Nostr event kind, adopts a NIP, or integrates with another system: check the proposal against the philosophy and the practical limits of the protocol, and document the reasoning in [docs/Events.md](docs/Events.md). If a request conflicts with these guidelines, say so instead of implementing it silently.
+
 ### Nostr Standards
 
 When implementing Nostr features, refer to the official NIPs (Nostr Implementation Possibilities) repository:
 - https://github.com/nostr-protocol/nips
+
+The event kinds Nostroots uses are documented in [docs/Events.md](docs/Events.md).
 
 ## Custom Nostr Event Kinds
 

@@ -50,7 +50,7 @@ There are several parts to this code.
 - `vibe/nip42relay` - The Vibe NIP-42 relay/import stack
 - `vibe/push-notification-daemon` - The isolated Vibe APNs notification daemon
 
-Please refer to the READMEs in the respective subfolders for working on them.
+Please refer to the READMEs in the respective subfolders for working on them. The Nostr events we use are documented in [docs/Events.md](docs/Events.md). Before proposing changes, read [CONTRIBUTING.md](CONTRIBUTING.md) and [PHILOSOPHY.md](PHILOSOPHY.md).
 
 ## Roadmap
 

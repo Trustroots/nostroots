@@ -4,7 +4,7 @@ import { getAuthorFromEvent } from "@trustroots/nr-common";
 import { log } from "./log.ts";
 import { Nip5VerificationError, resolveUsername } from "./profiles.ts";
 import { sendPushNotifications } from "./push.ts";
-import type { SubscriptionStore } from "./subscriptionStore.ts";
+import type { PushToken, SubscriptionStore } from "./subscriptionStore.ts";
 
 export async function matchAndNotify(
   event: NostrEvent,
@@ -45,20 +45,23 @@ export async function matchAndNotify(
     return;
   }
 
-  await Promise.all(
-    matchingPairs.map(async ({ pubkey }) => {
-      log.debug(`Filter matched event kind ${event.kind} for pubkey ${pubkey}`);
-      const tokens = store.getTokensForPubkey(pubkey);
-      if (!tokens || tokens.length === 0) {
-        log.debug(`No push tokens for pubkey ${pubkey}`);
-        return;
-      }
-      await sendPushNotifications(
-        tokens,
-        event,
-        expoAccessToken,
-        username,
+  const sentTokens = new Set<PushToken>();
+  const batches = [...new Set(matchingPairs.map(({ pubkey }) => pubkey))]
+    .map((pubkey) => {
+      const tokens = (store.getTokensForPubkey(pubkey) ?? []).filter(
+        (token) => !sentTokens.has(token),
       );
-    }),
+      tokens.forEach((token) => sentTokens.add(token));
+      if (tokens.length === 0) {
+        log.debug(`No new push tokens for pubkey ${pubkey}`);
+      }
+      return tokens;
+    })
+    .filter((tokens) => tokens.length > 0);
+
+  await Promise.all(
+    batches.map((tokens) =>
+      sendPushNotifications(tokens, event, expoAccessToken, username)
+    ),
   );
 }

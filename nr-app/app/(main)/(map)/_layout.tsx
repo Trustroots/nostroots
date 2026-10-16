@@ -70,6 +70,19 @@ export default function MapLayout() {
           </>
         )}
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Contact support"
+          onPress={() => router.push(ROUTES.SUPPORT)}
+          className="w-11 h-11 rounded-full items-center justify-center"
+          style={{ backgroundColor: overlayBgColor }}
+        >
+          <Ionicons
+            name="help-buoy-outline"
+            size={22}
+            color={overlayIconColor}
+          />
+        </Pressable>
+        <Pressable
           onPress={() => router.push(ROUTES.SETTINGS)}
           className="w-11 h-11 rounded-full items-center justify-center"
           style={{ backgroundColor: overlayBgColor }}

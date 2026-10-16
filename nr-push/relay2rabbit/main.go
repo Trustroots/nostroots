@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/url"
 	"os"
 	"strings"
 
@@ -35,21 +34,13 @@ type Event struct {
 	} `json:"event"`
 }
 
-func redactURL(raw string) string {
-	u, err := url.Parse(raw)
-	if err != nil {
-		return "(unparseable)"
-	}
-	return u.Redacted()
-}
-
 func main() {
 	exchangeName := "nostrEvents"
 
 	connStr := os.Getenv("RABBITMQ_URL")
 	// connStr, err := GetEnvFromProc1("RABBITMQ_URL")
 
-	log.Printf("Got RABBITMQ_URL %s", redactURL(connStr))
+	log.Printf("Got RABBITMQ_URL %s", connStr)
 	// if err != nil {
 	// 	// log.Fatalf("failed to read RABBITMQ_URL\n")
 	// 	log.Fatalf("failed to read RABBITMQ_URL from /proc/1/environ\n")

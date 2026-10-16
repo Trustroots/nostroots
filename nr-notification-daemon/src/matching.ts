@@ -6,19 +6,11 @@ import { Nip5VerificationError, resolveUsername } from "./profiles.ts";
 import { sendPushNotifications } from "./push.ts";
 import type { SubscriptionStore } from "./subscriptionStore.ts";
 
-export interface MatchDeps {
-  readonly resolveUsername: typeof resolveUsername;
-  readonly sendPushNotifications: typeof sendPushNotifications;
-}
-
-const defaultDeps: MatchDeps = { resolveUsername, sendPushNotifications };
-
 export async function matchAndNotify(
   event: NostrEvent,
   store: SubscriptionStore,
   expoAccessToken: string,
   relayUrl: string,
-  deps: MatchDeps = defaultDeps,
 ): Promise<void> {
   const pairs = store.getAllFilterPubkeyPairs();
 
@@ -35,7 +27,7 @@ export async function matchAndNotify(
 
   const authorPubkey = getAuthorFromEvent(event) ?? event.pubkey;
 
-  const username = await deps.resolveUsername(authorPubkey, relayUrl).catch(
+  const username = await resolveUsername(authorPubkey, relayUrl).catch(
     (error) => {
       if (error instanceof Nip5VerificationError) {
         log.error(
@@ -61,7 +53,7 @@ export async function matchAndNotify(
         log.debug(`No push tokens for pubkey ${pubkey}`);
         return;
       }
-      await deps.sendPushNotifications(
+      await sendPushNotifications(
         tokens,
         event,
         expoAccessToken,

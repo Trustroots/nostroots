@@ -5,50 +5,121 @@ import {
   generateSecretKey,
   getPublicKey,
 } from "nostr-tools/pure";
-import { matchAndNotify, type MatchDeps } from "./matching.ts";
-import { Nip5VerificationError } from "./profiles.ts";
+import {
+  TRUSTROOTS_PROFILE_KIND,
+  TRUSTROOTS_USERNAME_LABEL_NAMESPACE,
+} from "@trustroots/nr-common";
+import { matchAndNotify } from "./matching.ts";
 import { SubscriptionStore } from "./subscriptionStore.ts";
 
-const authorPubkey = getPublicKey(generateSecretKey());
-
-const event: NostrEvent = finalizeEvent(
-  {
-    kind: 30398,
-    created_at: 1,
-    tags: [
-      ["p", authorPubkey],
-      ["l", "9F4MGC00+", "open-location-code"],
-    ],
-    content: "hello",
-  },
-  generateSecretKey(),
-);
-
-interface PushCall {
+interface PushRequest {
   readonly tokens: readonly string[];
-  readonly username?: string;
+  readonly title: string;
 }
 
-function fakeDeps(
-  resolveUsername: MatchDeps["resolveUsername"] = () =>
-    Promise.resolve("alice"),
-): { deps: MatchDeps; pushes: PushCall[]; resolvedFor: string[] } {
-  const pushes: PushCall[] = [];
-  const resolvedFor: string[] = [];
-  return {
-    pushes,
-    resolvedFor,
-    deps: {
-      resolveUsername: (pubkey, relayUrl) => {
-        resolvedFor.push(pubkey);
-        return resolveUsername(pubkey, relayUrl);
+interface Harness {
+  readonly relayUrl: string;
+  readonly pushes: PushRequest[];
+  readonly profileRequests: string[];
+  readonly event: NostrEvent;
+  readonly authorPubkey: string;
+}
+
+/**
+ * Runs `matchAndNotify` against a real WebSocket relay on localhost, with
+ * `fetch` stubbed at the network edge for the NIP-05 lookup and the Expo push
+ * API. A fresh author key per test keeps the module-level username cache out
+ * of the way.
+ */
+async function withHarness(
+  options: { username?: string; nip05Pubkey?: string },
+  run: (harness: Harness) => Promise<void>,
+): Promise<void> {
+  const authorSecret = generateSecretKey();
+  const authorPubkey = getPublicKey(authorSecret);
+  const profileRequests: string[] = [];
+  const pushes: PushRequest[] = [];
+
+  const profile = options.username
+    ? finalizeEvent(
+      {
+        kind: TRUSTROOTS_PROFILE_KIND,
+        created_at: 1,
+        tags: [
+          ["L", TRUSTROOTS_USERNAME_LABEL_NAMESPACE],
+          ["l", options.username, TRUSTROOTS_USERNAME_LABEL_NAMESPACE],
+        ],
+        content: "",
       },
-      sendPushNotifications: (tokens, _event, _token, username) => {
-        pushes.push({ tokens, username });
-        return Promise.resolve();
-      },
+      authorSecret,
+    )
+    : undefined;
+
+  const relay = Deno.serve(
+    { hostname: "127.0.0.1", port: 0, onListen: () => {} },
+    (request) => {
+      const { socket, response } = Deno.upgradeWebSocket(request);
+      socket.onmessage = (message) => {
+        const [type, subId, filter] = JSON.parse(message.data);
+        if (type !== "REQ") return;
+        profileRequests.push(...(filter.authors ?? []));
+        if (profile) socket.send(JSON.stringify(["EVENT", subId, profile]));
+        socket.send(JSON.stringify(["EOSE", subId]));
+      };
+      return response;
     },
+  );
+
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (input, init) => {
+    const url = String(input instanceof Request ? input.url : input);
+    if (url.startsWith("https://trustroots.org/.well-known/nostr.json")) {
+      const name = new URL(url).searchParams.get("name") ?? "";
+      return Promise.resolve(
+        Response.json({
+          names: { [name]: options.nip05Pubkey ?? authorPubkey },
+        }),
+      );
+    }
+    if (url.startsWith("https://exp.host/")) {
+      const messages = JSON.parse(String(init?.body)) as {
+        to: string;
+        title: string;
+      }[];
+      pushes.push({
+        tokens: messages.map((message) => message.to),
+        title: messages[0].title,
+      });
+      return Promise.resolve(
+        Response.json({ data: messages.map(() => ({ status: "ok" })) }),
+      );
+    }
+    return realFetch(input, init);
   };
+
+  try {
+    await run({
+      relayUrl: `ws://127.0.0.1:${relay.addr.port}`,
+      pushes,
+      profileRequests,
+      authorPubkey,
+      event: finalizeEvent(
+        {
+          kind: 30398,
+          created_at: 1,
+          tags: [
+            ["p", authorPubkey],
+            ["l", "9F4MGC00+", "open-location-code"],
+          ],
+          content: "hello",
+        },
+        generateSecretKey(),
+      ),
+    });
+  } finally {
+    globalThis.fetch = realFetch;
+    await relay.shutdown();
+  }
 }
 
 function storeWith(
@@ -62,79 +133,84 @@ function storeWith(
   return store;
 }
 
-Deno.test("matchAndNotify pushes to every subscriber with a matching filter", async () => {
-  const store = storeWith({
-    sub1: {
-      filters: [{ kinds: [30398], "#l": ["9F4MGC00+"] }],
-      tokens: ["t1"],
-    },
-    sub2: { filters: [{ kinds: [30398] }], tokens: ["t2"] },
-    sub3: { filters: [{ kinds: [1] }], tokens: ["t3"] },
-  });
-  const { deps, pushes } = fakeDeps();
+function test(name: string, fn: () => Promise<void>) {
+  // The profile lookup leaves a 5s timeout behind, which the sanitizers flag.
+  Deno.test({ name, fn, sanitizeOps: false, sanitizeResources: false });
+}
 
-  await matchAndNotify(event, store, "expo", "wss://relay", deps);
+test("matchAndNotify pushes to every subscriber with a matching filter", () =>
+  withHarness({ username: "alice" }, async (h) => {
+    const store = storeWith({
+      sub1: {
+        filters: [{ kinds: [30398], "#l": ["9F4MGC00+"] }],
+        tokens: ["t1"],
+      },
+      sub2: { filters: [{ kinds: [30398] }], tokens: ["t2"] },
+      sub3: { filters: [{ kinds: [1] }], tokens: ["t3"] },
+    });
 
-  assertEquals(pushes, [
-    { tokens: ["t1"], username: "alice" },
-    { tokens: ["t2"], username: "alice" },
-  ]);
-});
+    await matchAndNotify(h.event, store, "expo", h.relayUrl);
 
-Deno.test("matchAndNotify resolves the username of the reposted author", async () => {
-  const store = storeWith({
-    sub1: { filters: [{ kinds: [30398] }], tokens: ["t1"] },
-  });
-  const { deps, resolvedFor } = fakeDeps();
+    assertEquals(h.pushes, [
+      { tokens: ["t1"], title: "alice posted on the map" },
+      { tokens: ["t2"], title: "alice posted on the map" },
+    ]);
+  }));
 
-  await matchAndNotify(event, store, "expo", "wss://relay", deps);
+test("matchAndNotify resolves the username of the reposted author", () =>
+  withHarness({ username: "alice" }, async (h) => {
+    const store = storeWith({
+      sub1: { filters: [{ kinds: [30398] }], tokens: ["t1"] },
+    });
 
-  assertEquals(resolvedFor, [authorPubkey]);
-});
+    await matchAndNotify(h.event, store, "expo", h.relayUrl);
 
-Deno.test("matchAndNotify does nothing when no filter matches", async () => {
-  const store = storeWith({
-    sub1: { filters: [{ kinds: [1] }], tokens: ["t1"] },
-  });
-  const { deps, pushes, resolvedFor } = fakeDeps();
+    assertEquals(h.profileRequests, [h.authorPubkey]);
+  }));
 
-  await matchAndNotify(event, store, "expo", "wss://relay", deps);
+test("matchAndNotify does nothing when no filter matches", () =>
+  withHarness({ username: "alice" }, async (h) => {
+    const store = storeWith({
+      sub1: { filters: [{ kinds: [1] }], tokens: ["t1"] },
+    });
 
-  assertEquals(pushes, []);
-  assertEquals(resolvedFor, []);
-});
+    await matchAndNotify(h.event, store, "expo", h.relayUrl);
 
-Deno.test("matchAndNotify skips subscribers without tokens", async () => {
-  const store = storeWith({
-    sub1: { filters: [{ kinds: [30398] }], tokens: [] },
-  });
-  const { deps, pushes } = fakeDeps();
+    assertEquals(h.pushes, []);
+    assertEquals(h.profileRequests, []);
+  }));
 
-  await matchAndNotify(event, store, "expo", "wss://relay", deps);
+test("matchAndNotify skips subscribers without tokens", () =>
+  withHarness({ username: "alice" }, async (h) => {
+    const store = storeWith({
+      sub1: { filters: [{ kinds: [30398] }], tokens: [] },
+    });
 
-  assertEquals(pushes, []);
-});
+    await matchAndNotify(h.event, store, "expo", h.relayUrl);
 
-Deno.test("matchAndNotify passes an unknown username through as undefined", async () => {
-  const store = storeWith({
-    sub1: { filters: [{ kinds: [30398] }], tokens: ["t1"] },
-  });
-  const { deps, pushes } = fakeDeps(() => Promise.resolve(undefined));
+    assertEquals(h.pushes, []);
+  }));
 
-  await matchAndNotify(event, store, "expo", "wss://relay", deps);
+test("matchAndNotify falls back to a generic title for an unknown username", () =>
+  withHarness({}, async (h) => {
+    const store = storeWith({
+      sub1: { filters: [{ kinds: [30398] }], tokens: ["t1"] },
+    });
 
-  assertEquals(pushes, [{ tokens: ["t1"], username: undefined }]);
-});
+    await matchAndNotify(h.event, store, "expo", h.relayUrl);
 
-Deno.test("matchAndNotify drops the notification when NIP-05 verification fails", async () => {
-  const store = storeWith({
-    sub1: { filters: [{ kinds: [30398] }], tokens: ["t1"] },
-  });
-  const { deps, pushes } = fakeDeps(() =>
-    Promise.reject(new Nip5VerificationError(authorPubkey, "alice", "someone"))
-  );
+    assertEquals(h.pushes, [
+      { tokens: ["t1"], title: "Somebody posted on the map" },
+    ]);
+  }));
 
-  await matchAndNotify(event, store, "expo", "wss://relay", deps);
+test("matchAndNotify drops the notification when NIP-05 verification fails", () =>
+  withHarness({ username: "alice", nip05Pubkey: "someone-else" }, async (h) => {
+    const store = storeWith({
+      sub1: { filters: [{ kinds: [30398] }], tokens: ["t1"] },
+    });
 
-  assertEquals(pushes, []);
-});
+    await matchAndNotify(h.event, store, "expo", h.relayUrl);
+
+    assertEquals(h.pushes, []);
+  }));

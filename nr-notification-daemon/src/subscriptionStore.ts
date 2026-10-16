@@ -28,7 +28,9 @@ export class SubscriptionStore {
 
   updateTokens(pubkey: string, tokens: readonly PushToken[]): void {
     if (tokens.length === 0) {
-      log.debug("No tokens found. Skipping.");
+      if (this.tokensByPubkey.delete(pubkey)) {
+        log.info(`Cleared push tokens for pubkey ${pubkey}.`);
+      }
       return;
     }
 

@@ -214,3 +214,33 @@ test("matchAndNotify drops the notification when NIP-05 verification fails", () 
 
     assertEquals(h.pushes, []);
   }));
+
+test("matchAndNotify pushes once per subscriber when several of their filters match", () =>
+  withHarness({ username: "alice" }, async (h) => {
+    const store = storeWith({
+      sub1: {
+        filters: [{ kinds: [30398] }, { "#l": ["9F4MGC00+"] }],
+        tokens: ["t1"],
+      },
+    });
+
+    await matchAndNotify(h.event, store, "expo", h.relayUrl);
+
+    assertEquals(h.pushes, [
+      { tokens: ["t1"], title: "alice posted on the map" },
+    ]);
+  }));
+
+test("matchAndNotify pushes once per token when subscribers share a device", () =>
+  withHarness({ username: "alice" }, async (h) => {
+    const store = storeWith({
+      sub1: { filters: [{ kinds: [30398] }], tokens: ["shared", "t1"] },
+      sub2: { filters: [{ kinds: [30398] }], tokens: ["shared"] },
+    });
+
+    await matchAndNotify(h.event, store, "expo", h.relayUrl);
+
+    assertEquals(h.pushes, [
+      { tokens: ["shared", "t1"], title: "alice posted on the map" },
+    ]);
+  }));

@@ -5,6 +5,7 @@ export type NrBridgeErrorCode =
   | "invalid-request"
   | "not-found"
   | "already-pending"
+  | "rate-limited"
   | "invalid-or-expired"
   | "server"
   | "network";
@@ -73,6 +74,7 @@ function errorCodeForStatus(status: number): NrBridgeErrorCode {
   if (status === 401) return "invalid-or-expired";
   if (status === 404) return "not-found";
   if (status === 409) return "already-pending";
+  if (status === 429) return "rate-limited";
   return "server";
 }
 

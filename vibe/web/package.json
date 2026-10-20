@@ -29,7 +29,7 @@
     "@scure/bip32": "2.0.1",
     "@vitest/ui": "^3.2.6",
     "bip39": "^3.1.0",
-    "dompurify": "^3.4.12",
+    "dompurify": "^3.4.16",
     "jsdom": "^23.0.0",
     "nostr-tools": "^2.23.0",
     "vitest": "^3.2.6"

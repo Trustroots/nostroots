@@ -33,3 +33,13 @@ Deno.test("SubscriptionStore returns undefined tokens for unknown pubkey", () =>
   const store = new SubscriptionStore();
   assertEquals(store.getTokensForPubkey("nobody"), undefined);
 });
+
+Deno.test("SubscriptionStore clears tokens when updated with an empty list", () => {
+  const store = new SubscriptionStore();
+  store.updateFilters("alice", [{ kinds: [1] }]);
+  store.updateTokens("alice", ["token-a"]);
+  store.updateTokens("alice", []);
+
+  assertEquals(store.getTokensForPubkey("alice"), undefined);
+  assertEquals(store.pubkeysWithTokensCount, 0);
+});

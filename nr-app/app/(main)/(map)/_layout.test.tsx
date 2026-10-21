@@ -1,14 +1,16 @@
-import { render } from "@testing-library/react-native";
+import { fireEvent, render } from "@testing-library/react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import MapLayout from "./_layout";
+import { ROUTES } from "@/constants/routes";
 import { useAppSelector } from "@/redux/hooks";
+import { getRouterMock } from "@/test/router";
 
 jest.mock("@/redux/hooks", () => ({
   useAppSelector: jest.fn(),
 }));
 
-const mockUseAppSelector = useAppSelector as jest.Mock;
+const mockUseAppSelector = useAppSelector as unknown as jest.Mock;
 
 function fakeState(areTestFeaturesEnabled: boolean) {
   return {
@@ -59,5 +61,16 @@ describe("MapLayout", () => {
     );
 
     expect(queryByLabelText("Open NIP-07 Browser")).toBeTruthy();
+  });
+
+  it("opens the support screen", () => {
+    mockUseAppSelector.mockImplementation((selector) =>
+      selector(fakeState(false)),
+    );
+    const { getByLabelText } = renderMapLayout();
+
+    fireEvent.press(getByLabelText("Contact support"));
+
+    expect(getRouterMock().push).toHaveBeenCalledWith(ROUTES.SUPPORT);
   });
 });

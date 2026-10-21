@@ -53,7 +53,12 @@ export async function matchAndNotify(
         log.debug(`No push tokens for pubkey ${pubkey}`);
         return;
       }
-      await sendPushNotifications(tokens, event, expoAccessToken, username);
+      await sendPushNotifications(
+        tokens,
+        event,
+        expoAccessToken,
+        username,
+      );
     }),
   );
 }

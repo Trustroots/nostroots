@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
 import { FlatList, Pressable, View } from "react-native";
-import {
-  getFirstTagValueFromEvent,
-  MAP_NOTE_REPOST_KIND,
-} from "@trustroots/nr-common";
+import { MAP_NOTE_REPOST_KIND } from "@trustroots/nr-common";
 
 import { EmptyState } from "@/components/EmptyState";
 import EventCard from "./EventCard";
 import { FilterChips, FilterChip } from "./FilterChips";
+import {
+  getEventStart,
+  hasEventEnded,
+  isGatheringEvent,
+} from "@/utils/event-gathering.utils";
 import { getPlusCodeFromEvent } from "@/utils/event.utils";
 import { navigateToEvent } from "@/utils/navigation.utils";
 import { useAppSelector } from "@/redux/hooks";
@@ -24,11 +26,6 @@ const EVENT_CHIPS: FilterChip[] = [
   { key: "past", label: "Past" },
 ];
 
-function getStartTimestamp(event: EventWithMetadata): number | undefined {
-  const startTag = getFirstTagValueFromEvent(event.event, "start");
-  return startTag ? parseInt(startTag) : undefined;
-}
-
 function isEventNote(event: EventWithMetadata): boolean {
   return event.event.tags.some((tag) => tag[0] === "start");
 }
@@ -44,25 +41,29 @@ export function EventsTab() {
     const oneWeekFromNow = now + 604800;
 
     const eventNotes = allEvents
-      .filter((e) => e.event.kind === MAP_NOTE_REPOST_KIND && isEventNote(e))
+      .filter(
+        (e) =>
+          (e.event.kind === MAP_NOTE_REPOST_KIND && isEventNote(e)) ||
+          isGatheringEvent(e.event),
+      )
       .map((e) => ({
         ...e,
-        _startTimestamp: getStartTimestamp(e) ?? e.event.created_at,
+        _startTimestamp: getEventStart(e.event) ?? e.event.created_at,
+        _hasEnded: hasEventEnded(e.event, now),
       }));
 
     let filtered: typeof eventNotes;
     switch (filter) {
       case "upcoming":
-        filtered = eventNotes.filter((e) => e._startTimestamp >= now);
+        filtered = eventNotes.filter((e) => !e._hasEnded);
         break;
       case "this-week":
         filtered = eventNotes.filter(
-          (e) =>
-            e._startTimestamp >= now && e._startTimestamp <= oneWeekFromNow,
+          (e) => !e._hasEnded && e._startTimestamp <= oneWeekFromNow,
         );
         break;
       case "past":
-        filtered = eventNotes.filter((e) => e._startTimestamp < now);
+        filtered = eventNotes.filter((e) => e._hasEnded);
         break;
     }
 

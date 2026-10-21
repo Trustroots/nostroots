@@ -1,5 +1,6 @@
 import { Filter } from "nostr-tools";
 import {
+  CALENDAR_TIME_EVENT_KIND,
   MapLayer,
   NOSTROOTS_VALIDATION_PUBKEY,
   MAP_NOTE_KIND,
@@ -49,6 +50,15 @@ export function trustrootsMapFilterForPlusCodePrefixes(
     plusCodePrefixes,
   );
   return filter;
+}
+
+export function gatheringsFilterForPlusCodePrefixes(
+  plusCodePrefixes: string[],
+): Filter {
+  return addOpenLocationCodePrefixToFilter(
+    { kinds: [CALENDAR_TIME_EVENT_KIND] },
+    plusCodePrefixes,
+  );
 }
 
 function getAuthorFilter(layerConfig: MapLayer) {

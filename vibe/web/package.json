@@ -27,11 +27,19 @@
   "devDependencies": {
     "@playwright/test": "^1.40.0",
     "@scure/bip32": "2.0.1",
-    "@vitest/ui": "^3.2.6",
+    "@vitest/ui": "^4.1.12",
     "bip39": "^3.1.0",
-    "dompurify": "^3.4.16",
+    "dompurify": "^3.4.17",
     "jsdom": "^23.0.0",
     "nostr-tools": "^2.23.0",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.12",
+    "vite": "^7.3.7"
+  },
+  "pnpm": {
+    "overrides": {
+      "fflate": "^0.8.3",
+      "nanoid": "^3.3.18",
+      "source-map-js": "^1.2.2"
+    }
   }
 }

@@ -4,12 +4,12 @@ FROM mcr.microsoft.com/playwright:v1.59.1-noble
 
 WORKDIR /app/vibe-web
 
-RUN npm install -g pnpm
+RUN npm install -g pnpm@10.33.2
 
 # Copy package manifest first for dependency caching.
-COPY package.json ./
+COPY package.json pnpm-lock.yaml ./
 
-RUN pnpm install --no-frozen-lockfile --ignore-scripts
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copy test files and source (overridden by volume mount in docker-compose for local dev).
 COPY . ./

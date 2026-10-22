@@ -1,0 +1,30 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -157,7 +157,7 @@
+ 	return input;
+ }
+ 
+-export default function decodeUriComponent(encodedURI) {
++module.exports = function decodeUriComponent(encodedURI) {
+ 	if (typeof encodedURI !== 'string') {
+ 		throw new TypeError(`Expected \`encodedURI\` to be of type \`string\`, got \`${typeof encodedURI}\``);
+ 	}
+@@ -169,4 +169,4 @@
+ 		// Fallback to a more advanced decoder
+ 		return customDecodeURIComponent(encodedURI);
+ 	}
+-}
++};
+diff --git a/package.json b/package.json
+--- a/package.json
++++ b/package.json
+@@ -10,7 +10,7 @@
+ 		"email": "sam.verschueren@gmail.com",
+ 		"url": "github.com/SamVerschueren"
+ 	},
+-	"type": "module",
++	"type": "commonjs",
+ 	"exports": {
+ 		"types": "./index.d.ts",
+ 		"default": "./index.js"

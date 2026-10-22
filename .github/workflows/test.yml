@@ -6,6 +6,12 @@ on:
     branches: [main]
     paths:
       - "nr-app/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "patches/**"
+      - "pnpm-patches/**"
+      - "development-utils/tests/security-dependencies.test.cjs"
       - ".github/workflows/test.yml"
 
 jobs:
@@ -35,6 +41,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install
+
+      - name: Test dependency compatibility
+        run: pnpm test:dependencies
 
       - name: Lint nr-app
         run: pnpm --filter nr-app lint

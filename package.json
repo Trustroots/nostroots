@@ -13,6 +13,7 @@
     "test:app:ci": "pnpm --filter nr-app test:ci",
     "test:app:coverage": "pnpm --filter nr-app test:coverage",
     "typecheck:app": "pnpm --filter nr-app typecheck",
+    "test:dependencies": "node --test development-utils/tests/security-dependencies.test.cjs",
     "test:common": "cd nr-common && deno task test"
   }
 }

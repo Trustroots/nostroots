@@ -24,6 +24,8 @@ overrides:
   'baseline-browser-mapping@<2.11.0': 2.11.0
   'browserslist@>=4.0.0 <4.28.7': 4.28.7
   'compression@<1.8.2': 1.8.2
+  'decode-uri-component@<0.5.0': 0.5.0
+  'image-size@<2.0.3': 2.0.4
   'nanoid@>=3.0.0 <3.3.18': 3.3.18
   'nanoid@>=5.0.0 <5.1.16': 5.1.16
   'postcss-selector-parser@<7.1.6': 7.1.6
@@ -49,3 +51,8 @@ overrides:
   'ws@>=7.0.0 <7.5.11': 7.5.11
   'ws@>=8.0.0 <8.21.0': 8.21.0
   'yaml@>=2.0.0 <2.8.3': 2.8.3
+
+# Preserve the callable CommonJS export expected by query-string 7 and Jest.
+# The patched 0.5.0 decoder algorithm is unchanged.
+patchedDependencies:
+  decode-uri-component@0.5.0: pnpm-patches/decode-uri-component@0.5.0.patch

@@ -11,7 +11,17 @@ overrides:
   '@xmldom/xmldom@<0.8.15': 0.8.15
   brace-expansion@<1.1.21: 1.1.21
   brace-expansion@>=2.0.0 <2.1.7: 2.1.7
-  brace-expansion@>=4.0.0 <5.0.12: 5.0.12
+  brace-expansion@>=5.0.0 <5.0.12: 5.0.12
+  baseline-browser-mapping@<2.11.0: 2.11.0
+  browserslist@>=4.0.0 <4.28.7: 4.28.7
+  compression@<1.8.2: 1.8.2
+  decode-uri-component@<0.5.0: 0.5.0
+  image-size@<2.0.3: 2.0.4
+  nanoid@>=3.0.0 <3.3.18: 3.3.18
+  nanoid@>=5.0.0 <5.1.16: 5.1.16
+  postcss-selector-parser@<7.1.6: 7.1.6
+  source-map-js@<1.2.2: 1.2.2
+  zod@>=4.0.0 <4.6.6: 4.6.6
   flatted@<3.4.2: 3.4.2
   form-data@>=4.0.0 <4.0.6: 4.0.6
   glob@>=10.2.0 <10.5.0: 10.5.0
@@ -25,16 +35,6 @@ overrides:
   postcss@<8.5.23: 8.5.23
   shell-quote@<1.11.0: 1.11.0
   tmp@<0.2.7: 0.2.7
-  baseline-browser-mapping@<2.11.0: 2.11.0
-  browserslist@<4.28.7: 4.28.7
-  compression@<1.8.2: 1.8.2
-  decode-uri-component@<0.5.0: 0.5.0
-  image-size@<2.0.3: 2.0.4
-  nanoid@<4.0.0: 3.3.18
-  nanoid@>=4.0.0 <5.1.16: 5.1.16
-  postcss-selector-parser@<7.1.6: 7.1.6
-  source-map-js@<1.2.2: 1.2.2
-  zod@>=4.0.0 <4.6.6: 4.6.6
   xcode>uuid: 11.1.1
   ws@>=7.0.0 <7.5.11: 7.5.11
   ws@>=8.0.0 <8.21.0: 8.21.0
@@ -3167,8 +3167,8 @@ packages:
   ee-first@1.1.1:
     resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
 
-  electron-to-chromium@1.5.463:
-    resolution: {integrity: sha512-nVWNU6ltFjopvOdD44J4zoBkgO0M+WZiFKKFV7EjebOH9z0KNphk6bCEjplXtJofL21ARIuuwWOCsFkBVklm6w==}
+  electron-to-chromium@1.5.464:
+    resolution: {integrity: sha512-nRa65aFge40viPAKxMKULIY8tcXKwKboJWNn4RoKwyWXJ6SP7BnrDGKUTzc64818jIciH0PK7LSF8QzZes19GA==}
 
   emittery@0.13.1:
     resolution: {integrity: sha512-DeWwawk6r5yR9jFgnDKYt4sLS0LmHJJi3ZOnb5/JdbYwj3nW+FxQnHIjhBKz8YLC7oRNPVM9NQ47I3CVx34eqQ==}
@@ -9582,7 +9582,7 @@ snapshots:
     dependencies:
       baseline-browser-mapping: 2.11.0
       caniuse-lite: 1.0.30001819
-      electron-to-chromium: 1.5.463
+      electron-to-chromium: 1.5.464
       node-releases: 2.0.60
       update-browserslist-db: 1.2.3(browserslist@4.28.7)
 
@@ -9981,7 +9981,7 @@ snapshots:
 
   ee-first@1.1.1: {}
 
-  electron-to-chromium@1.5.463: {}
+  electron-to-chromium@1.5.464: {}
 
   emittery@0.13.1: {}
 

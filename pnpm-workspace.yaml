@@ -43,6 +43,7 @@ overrides:
   'nanoid@>=4.0.0 <5.1.16': 5.1.16
   'postcss-selector-parser@<7.1.6': 7.1.6
   'source-map-js@<1.2.2': 1.2.2
+  'zod@>=4.0.0 <4.6.6': 4.6.6
 
   # xcode 3 declares uuid ^7 even though it only consumes the stable v4 API.
   # Keep this parent-scoped until Expo no longer resolves xcode 3.

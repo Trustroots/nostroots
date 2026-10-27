@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "nr-app/**"
+      - "nr-notification-daemon/**"
       - ".github/workflows/test.yml"
 
 jobs:
@@ -46,6 +47,9 @@ jobs:
 
       - name: Test nr-common
         run: pnpm test:common
+
+      - name: Test nr-notification-daemon
+        run: pnpm test:daemon
 
       - name: Upload nr-app coverage
         uses: actions/upload-artifact@v4

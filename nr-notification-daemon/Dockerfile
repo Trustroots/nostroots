@@ -10,6 +10,7 @@ WORKDIR /app
 COPY --from=build-nr-common /app/nr-common/ /app/nr-common/
 
 WORKDIR /app/nr-notification-daemon
+RUN chown deno:deno .
 
 USER deno
 

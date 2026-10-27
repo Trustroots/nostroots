@@ -9,6 +9,8 @@ export const SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC =
 
 export const NOSTROOTS_WEB_ORIGIN = "https://nos.trustroots.org" as const;
 export const NOSTROOTS_WEB_URL = `${NOSTROOTS_WEB_ORIGIN}/` as const;
+export const TRUSTROOTS_SUPPORT_URL =
+  "https://www.trustroots.org/support" as const;
 export const NOSTROOTS_BROWSER_USER_AGENT = "NostrootsBrowser/1.0" as const;
 
 export const STORAGE_NIP7_ALLOWED_ORIGINS_KEY =

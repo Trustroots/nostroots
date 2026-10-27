@@ -76,7 +76,7 @@ jest.mock("expo-web-browser", () => ({
 
 jest.mock("expo-clipboard", () => ({
   getStringAsync: jest.fn(async () => ""),
-  setStringAsync: jest.fn(async () => undefined),
+  setStringAsync: jest.fn(async () => true),
 }));
 
 jest.mock("react-native-root-toast", () => ({

@@ -37,6 +37,20 @@ step for the main pages.
 - **THEN** the root hub heading MUST be "Nostroots" and the background heading
   MUST be "Background".
 
+#### Scenario: Explain Nostroots to Trustroots members
+
+- **GIVEN** a Trustroots member opens the root hub or background page
+- **WHEN** they read the introduction
+- **THEN** it MUST explain Nostroots as a project extending Trustroots with
+  ways for travelers and locals to connect, using map notes as a concrete example
+- **AND** it MUST explain that Nostroots is a work in progress developed
+  alongside Trustroots and that trying it is optional
+- **AND** the hub MUST link to the background page's explanation of why it is
+  a separate app
+- **AND** the background page MUST explain the goal of carrying identity and
+  connections between apps through Nostr without implying that existing
+  Trustroots accounts, contacts, and messages have already moved.
+
 #### Scenario: Concise shared footer
 
 - **GIVEN** a user views the hub or background-page footer

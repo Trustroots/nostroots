@@ -30,7 +30,7 @@
     "EXPO_USE_METRO_WORKSPACE_ROOT": "1",
     "EXPO_NO_DOTENV": "1"
   },
-  "postCreateCommand": "npm install -g pnpm@12.16.1 && pnpm install --frozen-lockfile",
+  "postCreateCommand": "corepack enable && corepack prepare pnpm@12.16.1 --activate && pnpm install --frozen-lockfile",
   "customizations": {
     "vscode": {
       "extensions": [

@@ -18,6 +18,7 @@ import {
   setRouterPathname,
   setRouterSearchParams,
 } from "./router";
+import type { DeepPartial } from "./testStore";
 
 const testRootReducer = combineSlices(
   eventsSlice,
@@ -32,12 +33,6 @@ const testRootReducer = combineSlices(
 
 export type TestRootState = ReturnType<typeof testRootReducer>;
 export type TestStore = ReturnType<typeof createTestStore>;
-
-type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends Record<string, unknown>
-    ? DeepPartial<T[K]>
-    : T[K];
-};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -66,7 +61,7 @@ export function createTestStore(
 
   return configureStore({
     reducer: testRootReducer,
-    preloadedState: mergeState(initialState, preloadedState),
+    preloadedState: mergeState<TestRootState>(initialState, preloadedState),
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
         serializableCheck: false,

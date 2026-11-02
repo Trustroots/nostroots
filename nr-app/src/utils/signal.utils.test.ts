@@ -55,8 +55,8 @@ describe("getActiveSignals", () => {
       ],
     });
     const result = getActiveSignals([
-      { event: signal, relayUrl: "wss://relay" },
-      { event: plainNote, relayUrl: "wss://relay" },
+      { event: signal, metadata: { seenOnRelays: ["wss://relay"] } },
+      { event: plainNote, metadata: { seenOnRelays: ["wss://relay"] } },
     ]);
     expect(result).toHaveLength(1);
     expect(result[0].event.pubkey).toBe("pubkey-a");
@@ -80,8 +80,8 @@ describe("getActiveSignals", () => {
       ],
     });
     const result = getActiveSignals([
-      { event: older, relayUrl: "wss://relay" },
-      { event: newer, relayUrl: "wss://relay" },
+      { event: older, metadata: { seenOnRelays: ["wss://relay"] } },
+      { event: newer, metadata: { seenOnRelays: ["wss://relay"] } },
     ]);
     expect(result).toHaveLength(1);
     expect(result[0].event.created_at).toBe(2000);
@@ -96,7 +96,7 @@ describe("getActiveSignals", () => {
       ],
     });
     const result = getActiveSignals([
-      { event: expired, relayUrl: "wss://relay" },
+      { event: expired, metadata: { seenOnRelays: ["wss://relay"] } },
     ]);
     expect(result).toHaveLength(0);
   });
@@ -119,8 +119,8 @@ describe("getActiveSignals", () => {
       ],
     });
     const result = getActiveSignals([
-      { event: signalA, relayUrl: "wss://relay" },
-      { event: signalB, relayUrl: "wss://relay" },
+      { event: signalA, metadata: { seenOnRelays: ["wss://relay"] } },
+      { event: signalB, metadata: { seenOnRelays: ["wss://relay"] } },
     ]);
     expect(result[0].event.pubkey).toBe("pubkey-b");
     expect(result[1].event.pubkey).toBe("pubkey-a");

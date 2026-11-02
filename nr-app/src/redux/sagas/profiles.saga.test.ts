@@ -1,3 +1,4 @@
+import { steppable } from "@/test/saga";
 import { profilesActions } from "../slices/profiles.slice";
 import {
   fetchKind0FromRelays,
@@ -24,7 +25,9 @@ describe("profiles.saga", () => {
   });
 
   it("skips a profile that is still fresh", () => {
-    const generator = fetchProfileWorker(profilesActions.fetchProfile(pubkey));
+    const generator = steppable(
+      fetchProfileWorker(profilesActions.fetchProfile(pubkey)),
+    );
 
     expect(generator.next().value).toMatchObject({ type: "SELECT" });
     expect(generator.next({ fetchedAt: 999 }).value).toMatchObject({
@@ -35,7 +38,9 @@ describe("profiles.saga", () => {
   });
 
   it("stores a profile returned by an active relay", () => {
-    const generator = fetchProfileWorker(profilesActions.fetchProfile(pubkey));
+    const generator = steppable(
+      fetchProfileWorker(profilesActions.fetchProfile(pubkey)),
+    );
     generator.next();
     expect(generator.next(undefined).value).toMatchObject({ type: "SELECT" });
     expect(generator.next(["wss://relay.example"]).value).toMatchObject({
@@ -68,7 +73,9 @@ describe("profiles.saga", () => {
   });
 
   it("falls back to the profile name and handles relay timeouts", () => {
-    const success = fetchProfileWorker(profilesActions.fetchProfile(pubkey));
+    const success = steppable(
+      fetchProfileWorker(profilesActions.fetchProfile(pubkey)),
+    );
     success.next();
     success.next(undefined);
     success.next([]);
@@ -79,7 +86,9 @@ describe("profiles.saga", () => {
       payload: { action: { payload: { name: "alice" } } },
     });
 
-    const timeout = fetchProfileWorker(profilesActions.fetchProfile(pubkey));
+    const timeout = steppable(
+      fetchProfileWorker(profilesActions.fetchProfile(pubkey)),
+    );
     timeout.next();
     timeout.next(undefined);
     timeout.next([]);
@@ -90,7 +99,9 @@ describe("profiles.saga", () => {
 
   it("turns malformed profile content into a failed fetch", () => {
     jest.spyOn(console, "log").mockImplementation(() => undefined);
-    const generator = fetchProfileWorker(profilesActions.fetchProfile(pubkey));
+    const generator = steppable(
+      fetchProfileWorker(profilesActions.fetchProfile(pubkey)),
+    );
     generator.next();
     generator.next(undefined);
     generator.next([]);

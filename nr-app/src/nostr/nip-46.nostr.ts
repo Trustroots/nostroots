@@ -1,4 +1,4 @@
-import { hexToBytes } from "@noble/hashes/utils";
+import { hexToBytes } from "@noble/hashes/utils.js";
 import { accountFromSeedWords } from "nip06";
 import { Relay, finalizeEvent, nip04 } from "nostr-tools";
 

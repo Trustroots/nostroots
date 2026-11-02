@@ -59,6 +59,9 @@ importers:
       '@mobily/ts-belt':
         specifier: ^3.13.1
         version: 3.13.1
+      '@noble/hashes':
+        specifier: ^2.0.1
+        version: 2.0.1
       '@react-native-async-storage/async-storage':
         specifier: ^2.2.0
         version: 2.2.0(react-native@0.86.2(@babel/core@7.29.7)(@react-native/jest-preset@0.86.2(@babel/core@7.29.7)(react@19.2.3))(@react-native/metro-config@0.86.2(@babel/core@7.29.7))(@types/react@19.2.16)(react@19.2.3))
@@ -254,9 +257,6 @@ importers:
       url-join-ts:
         specifier: ^1.0.5
         version: 1.0.5
-      utils:
-        specifier: link:@noble/hashes/utils
-        version: link:@noble/hashes/utils
       zod:
         specifier: 4.6.6
         version: 4.6.6

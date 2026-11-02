@@ -145,7 +145,8 @@ export function useNip7BridgeMessages(
       const metadata = requestMetadata(rawMessage);
       if (!metadata) return;
 
-      if (!isKnownNip7Method(metadata.method)) {
+      const method = metadata.method;
+      if (!isKnownNip7Method(method)) {
         denyBridgeMessage(rawMessage);
         return;
       }
@@ -164,15 +165,15 @@ export function useNip7BridgeMessages(
         return;
       }
 
-      if (await isRememberedOrigin(origin, metadata.method)) {
+      if (await isRememberedOrigin(origin, method)) {
         await sendBridgeResponse(rawMessage);
         return;
       }
 
-      const key = pendingPermissionKey(origin, metadata.method);
+      const key = pendingPermissionKey(origin, method);
       const pending = pendingMessagesByPermission.current.get(key) ?? {
         origin,
-        method: metadata.method,
+        method,
         messages: [],
       };
       pending.messages.push(rawMessage);
@@ -183,7 +184,7 @@ export function useNip7BridgeMessages(
         return {
           origin,
           host: hostForOrigin(origin),
-          method: metadata.method,
+          method,
         };
       });
     },

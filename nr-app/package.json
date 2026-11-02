@@ -30,6 +30,7 @@
     "@gorhom/bottom-sheet": "^5.2.14",
     "@maplibre/maplibre-react-native": "^11.3.3",
     "@mobily/ts-belt": "^3.13.1",
+    "@noble/hashes": "^2.0.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-picker/picker": "2.11.4",
@@ -95,7 +96,6 @@
     "tailwindcss-animate": "^1.0.7",
     "ts-pattern": "^5.9.0",
     "url-join-ts": "^1.0.5",
-    "utils": "link:@noble/hashes/utils",
     "zod": "^4.4.3"
   },
   "devDependencies": {

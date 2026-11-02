@@ -39,6 +39,9 @@ jobs:
       - name: Lint nr-app
         run: pnpm --filter nr-app lint
 
+      - name: Typecheck nr-app
+        run: pnpm typecheck:app
+
       - name: Test nr-app with coverage
         id: nr-app-tests
         continue-on-error: true

@@ -1,6 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import type { NativeStackHeaderProps } from "@react-navigation/native-stack";
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, type NativeStackHeaderProps } from "expo-router";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 

@@ -19,7 +19,7 @@ export const MAP_NOTE_KIND = 30397 as const;
 export const MAP_NOTE_REPOST_KIND = 30398 as const;
 export const THIRD_PARTY_EVENT_KIND = 30399 as const;
 // Lightfoot postbox (https://lightfoot.org), a physical letter box at a place.
-export const LIGHTFOOT_POSTBOX_KIND = 30401 as const;
+export const LIGHTFOOT_POSTBOX_KIND = 30404 as const;
 
 // All event kinds accepted by the relay. Must be kept in sync with the kinds
 // defined above. Standard Nostr kinds (0, 5, 1111) are included as well.

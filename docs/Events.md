@@ -19,7 +19,7 @@ Before proposing a new kind or NIP, read [CONTRIBUTING.md](../CONTRIBUTING.md) a
 | `30398` | Map note (validated copy) | addressable | validation server | public, Nostroots-specific |
 | `30399` | Third-party map data | addressable | third parties | public, Nostroots-specific |
 | `30400` | Metrics snapshot | addressable | servers | internal operations |
-| `30401` | Lightfoot postbox | addressable | whitelisted Lightfoot publishers | public, Lightfoot-specific, accepted by the relay only |
+| `30404` | Lightfoot postbox | addressable | whitelisted Lightfoot publishers | public, Lightfoot-specific, accepted by the relay only |
 
 The relay accepts only the kinds in `ACCEPTED_KINDS` ([`nr-common/constants.ts`](../nr-common/constants.ts)); [`nr-relay-to-rabbit/src/whitelistKinds.ts`](../nr-relay-to-rabbit/src/whitelistKinds.ts) enforces the list. Any other kind is rejected.
 
@@ -61,11 +61,11 @@ Background, with sources:
 
 Standard NIP-01 and NIP-09 kinds, accepted by the relay so users can publish them. Nostroots only uses kind `0` as a fallback source of a `trustrootsUsername` field when a user has no kind `10390` event. Nostroots clients do not currently process kind `5` events, and the relay does not remove the referenced events; deletions are part of our roadmap.
 
-### `1111` Comment and `30401` Lightfoot postbox
+### `1111` Comment and `30404` Lightfoot postbox
 
 Accepted by the relay for [Lightfoot](https://lightfoot.org), a map of physical letter boxes in hostels and cafés where travellers leave and carry letters. Nostroots clients do not read or publish these kinds, and the validation server ignores them.
 
-- `30401` is a postbox: an addressable event with `d`, `name`, `g` geohash tags at several precisions (as in [NIP-CC](https://github.com/nostr-protocol/nips/blob/master/CC.md)), optional `location`, `hint` and `image`, an `alt` tag ([NIP-31](https://github.com/nostr-protocol/nips/blob/master/31.md)) and a NIP-40 `expiration` 180 days out. Republishing it with the same `d` renews it.
+- `30404` is a postbox: an addressable event with `d`, `name`, `g` geohash tags at several precisions (as in [NIP-CC](https://github.com/nostr-protocol/nips/blob/master/CC.md)), optional `location`, `hint` and `image`, an `alt` tag ([NIP-31](https://github.com/nostr-protocol/nips/blob/master/31.md)) and a NIP-40 `expiration` 180 days out. Republishing it with the same `d` renews it.
 - `1111` is a standard [NIP-22](https://github.com/nostr-protocol/nips/blob/master/22.md) comment. Lightfoot uses it, with the postbox as root (`A`/`K`/`P` and `a`/`k`/`p`), to say whether letters are waiting in the box: `["status", "letters-waiting" | "empty"]`. Accepting `1111` means the relay accepts any NIP-22 comment, not only Lightfoot ones.
 
 ### `10390` Trustroots profile

@@ -7,7 +7,7 @@ export const DERIVED_EVENT_PLUS_CODE_PREFIX_MINIMUM_LENGTH = 2 as const;
 // When adding a new kind, also add it to ACCEPTED_KINDS below.
 export const NOSTR_USER_METADATA_KIND = 0 as const;
 export const EVENT_DELETION_KIND = 5 as const;
-// NIP-22 comment. Lightfoot uses it for postbox status updates.
+// NIP-22 comment. Lightfoot uses it for guestbook notes on a box.
 export const COMMENT_KIND = 1111 as const;
 export const TRUSTROOTS_PROFILE_KIND = 10390 as const;
 export const NOTIFICATION_SUBSCRIPTION_KIND = 10395 as const;
@@ -18,8 +18,11 @@ export const PING_ACK_KIND = 20400 as const;
 export const MAP_NOTE_KIND = 30397 as const;
 export const MAP_NOTE_REPOST_KIND = 30398 as const;
 export const THIRD_PARTY_EVENT_KIND = 30399 as const;
-// Lightfoot postbox (https://lightfoot.org), a physical letter box at a place.
-export const LIGHTFOOT_POSTBOX_KIND = 30404 as const;
+// Lightfoot (https://lightfoot.org), physical letter boxes at places.
+// Box: addressable, published by whitelisted Lightfoot publishers.
+export const LIGHTFOOT_BOX_KIND = 37840 as const;
+// Box status report: addressable, one per author per box, anyone may publish.
+export const LIGHTFOOT_REPORT_KIND = 37841 as const;
 
 // All event kinds accepted by the relay. Must be kept in sync with the kinds
 // defined above. Standard Nostr kinds (0, 5, 1111) are included as well.
@@ -35,7 +38,8 @@ export const ACCEPTED_KINDS = [
   MAP_NOTE_KIND,
   MAP_NOTE_REPOST_KIND,
   THIRD_PARTY_EVENT_KIND,
-  LIGHTFOOT_POSTBOX_KIND,
+  LIGHTFOOT_BOX_KIND,
+  LIGHTFOOT_REPORT_KIND,
 ];
 
 export const NOSTROOTS_METRICS_TYPE_TAG_NAME = "t" as const;

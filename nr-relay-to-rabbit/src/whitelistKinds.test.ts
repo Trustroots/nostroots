@@ -24,8 +24,16 @@ Deno.test("#Lf7kQa accepts a map note (30397)", () => {
   expect(whitelistKinds(lineWithKind(30397))).toBe(true);
 });
 
-Deno.test("#Lf2pBx accepts a Lightfoot postbox (30404)", () => {
-  expect(whitelistKinds(lineWithKind(30404))).toBe(true);
+Deno.test("#Lf2pBx accepts a Lightfoot box (37840)", () => {
+  expect(whitelistKinds(lineWithKind(37840))).toBe(true);
+});
+
+Deno.test("#Lf6sRp accepts a Lightfoot status report (37841)", () => {
+  expect(whitelistKinds(lineWithKind(37841))).toBe(true);
+});
+
+Deno.test("#Lf3oLd rejects the old Lightfoot draft kind (30404)", () => {
+  expect(whitelistKinds(lineWithKind(30404))).toBe(false);
 });
 
 Deno.test("#Lf9cMn accepts a NIP-22 comment (1111)", () => {

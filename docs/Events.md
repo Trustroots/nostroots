@@ -10,6 +10,7 @@ Before proposing a new kind or NIP, read [CONTRIBUTING.md](../CONTRIBUTING.md) a
 | --- | --- | --- | --- | --- |
 | `0` | User metadata (NIP-01) | replaceable | users | public, standard |
 | `5` | Event deletion (NIP-09) | regular | users | public, standard, accepted by the relay only |
+| `1111` | Comment (NIP-22) | regular | users | public, standard, accepted by the relay only (used by Lightfoot guestbook notes) |
 | `10390` | Trustroots profile | replaceable | users | public, Nostroots-specific |
 | `10395` | Notification subscription | replaceable | users | semi-internal, content is encrypted |
 | `20398` | Server message | ephemeral | validation server | internal operations |
@@ -18,6 +19,8 @@ Before proposing a new kind or NIP, read [CONTRIBUTING.md](../CONTRIBUTING.md) a
 | `30398` | Map note (validated copy) | addressable | validation server | public, Nostroots-specific |
 | `30399` | Third-party map data | addressable | third parties | public, Nostroots-specific |
 | `30400` | Metrics snapshot | addressable | servers | internal operations |
+| `37840` | Lightfoot box | addressable | Lightfoot publishers | public, Lightfoot-specific, accepted by the relay only |
+| `37841` | Lightfoot box status report | addressable | anyone | public, Lightfoot-specific, accepted by the relay only |
 
 The relay accepts only the kinds in `ACCEPTED_KINDS` ([`nr-common/constants.ts`](../nr-common/constants.ts)); [`nr-relay-to-rabbit/src/whitelistKinds.ts`](../nr-relay-to-rabbit/src/whitelistKinds.ts) enforces the list. Any other kind is rejected.
 
@@ -58,6 +61,14 @@ Background, with sources:
 ### `0` User metadata and `5` Event deletion
 
 Standard NIP-01 and NIP-09 kinds, accepted by the relay so users can publish them. Nostroots only uses kind `0` as a fallback source of a `trustrootsUsername` field when a user has no kind `10390` event. Nostroots clients do not currently process kind `5` events, and the relay does not remove the referenced events; deletions are part of our roadmap.
+
+### `1111` Comment, `37840` Lightfoot box and `37841` Lightfoot report
+
+Accepted by the relay for [Lightfoot](https://lightfoot.org), a map of physical letter boxes in hostels and cafés where travellers leave and carry letters. Nostroots clients do not read or publish these kinds, and the validation server ignores them. The kind numbers follow Lightfoot's draft spec; `30401` and `30404` were checked and are used by other projects.
+
+- `37840` is a box: an addressable event with `d`, `name`, `g` geohash tags at several precisions (as in [NIP-CC](https://github.com/nostr-protocol/nips/blob/master/CC.md)), optional `location`, `hint` and `p` (keeper), an `alt` tag ([NIP-31](https://github.com/nostr-protocol/nips/blob/master/31.md)) and a NIP-40 `expiration` 180 days out. Republishing it with the same `d` renews it.
+- `37841` is a status report on a box: an addressable event whose `d` is the box coordinate (`37840:<box pubkey>:<box d>`), with the same coordinate in an `a` tag, a `count` tag (letters waiting, `"0"` means empty) and a 180-day `expiration`. Being addressable, the relay keeps only each author's newest report per box. Anyone may publish one; the relay does not restrict it to a whitelist.
+- `1111` is a standard [NIP-22](https://github.com/nostr-protocol/nips/blob/master/22.md) comment. Lightfoot uses it for guestbook notes on a box (`A`/`K`/`P` and `a`/`k`/`p` pointing at the box). Accepting `1111` means the relay accepts any NIP-22 comment, not only Lightfoot ones.
 
 ### `10390` Trustroots profile
 

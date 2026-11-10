@@ -2322,6 +2322,27 @@ h1, h2, .modal-header h2 {
     z-index: 1500;
 }
 
+.web-sketch-notice {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 0.4rem 1rem;
+    background: var(--background);
+    color: var(--foreground);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+#keys-modal .web-sketch-notice {
+    margin-bottom: 1rem;
+    padding-inline: 0;
+    text-align: start;
+}
+
+body.nr-surface-account:has(#keys-modal.active) > .web-sketch-notice {
+    display: none;
+}
+
 .app-header-inner {
     display: flex;
     flex-direction: row;
@@ -7750,6 +7771,7 @@ body.nr-surface-host .host-compose-selected-circle button {
 </head>
 <body>
     <header class="app-header" id="app-header"></header>
+    <p class="web-sketch-notice">Nostroots Web is deprecated and kept online as an unmaintained sketch.</p>
     
     <!-- Map View -->
     <div class="view active" id="map-view">
@@ -7987,6 +8009,8 @@ body.nr-surface-host .host-compose-selected-circle button {
             </div>
             <button class="modal-close" id="keys-modal-close-btn" onclick="closeKeysModal()" type="button">&times;</button>
         </div>
+
+        <p class="web-sketch-notice">Nostroots Web is deprecated and kept online as an unmaintained sketch. To sign in to Trustroots, go to <a class="nr-content-link" href="https://www.trustroots.org/">Trustroots.org</a>.</p>
 
         <!-- Welcome message (only shown when no key is set) -->
         <div id="keys-welcome-section" style="display: none; margin-bottom: 2rem;">

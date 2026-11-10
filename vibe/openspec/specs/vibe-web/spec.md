@@ -94,17 +94,24 @@ step for the main pages.
 - **AND** the site MUST publish platform association files that restrict native
   handling to the Nostroots app identity and `/open/onboarding` path.
 
-### Requirement: Single canonical browser map surface
+### Requirement: Retained Nostroots Web sketch
 
-Vibe Web MUST provide `/web/` as the only maintained Nostroots browser
-application for map-note behavior.
+Vibe Web MUST keep `/web/` available as a deprecated, unmaintained,
+interactive sketch.
 
-#### Scenario: Canonical browser map
+#### Scenario: Open the browser sketch
 
-- **GIVEN** a user wants to browse or publish Nostroots map notes in a browser
-- **WHEN** they choose Nostroots Web from the root hub
+- **GIVEN** the root hub marks the Nostroots Web sketch as deprecated and unmaintained
+- **WHEN** a user chooses it
 - **THEN** the hub MUST open `/web/`
-- **AND** Map MUST remain the primary/default view within that application.
+- **AND** Map MUST remain the primary/default view within the sketch.
+- **AND** the app shell MUST visibly state the sketch's status.
+
+#### Scenario: Open key setup
+
+- **WHEN** a user opens Keys or Welcome, including via a direct link
+- **THEN** the panel MUST state the sketch's status above the setup controls
+- **AND** it MUST link to Trustroots.org for Trustroots sign-in.
 
 #### Scenario: Retired map URL compatibility
 
@@ -118,7 +125,7 @@ application for map-note behavior.
 
 - **GIVEN** a user views the root hub with experimental applications revealed
 - **WHEN** the experience cards render
-- **THEN** Nostroots Web MUST be the only Nostroots browser map product shown
+- **THEN** the Nostroots Web sketch MUST be the only Nostroots browser map card shown
 - **AND** a separate Nostroots Map card MUST NOT be shown.
 
 ### Requirement: Hub visibility by client context

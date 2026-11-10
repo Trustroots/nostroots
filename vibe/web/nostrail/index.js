@@ -614,7 +614,7 @@ function lookupSignerIdentity(pubkey) {
   for (const url of DEFAULT_RELAYS.slice(0, 2)) {
     let ws;
     let settled = false;
-    const subscriptionId = `nostrail-identity-${Math.random().toString(36).slice(2)}`;
+    const subscriptionId = `nostrail-identity-${makeRandomId()}`;
     const finish = () => {
       if (settled) return;
       settled = true;
@@ -938,9 +938,8 @@ function requestCurrentArea({ recenter = false } = {}) {
   });
 }
 
-function makeSessionId() {
-  if (globalThis.crypto?.randomUUID) return crypto.randomUUID();
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
+function makeRandomId() {
+  const bytes = globalThis.crypto.getRandomValues(new Uint8Array(16));
   return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
@@ -1099,7 +1098,7 @@ async function startSharing() {
     const recipients = selectedRecipientPubkeys();
     if (!recipients.length) throw new Error("Add at least one person before sharing.");
     if (!state.currentArea) throw new Error("Use My Location before inviting people or sharing.");
-    const sessionId = makeSessionId();
+    const sessionId = makeRandomId();
     await publishInvite();
     state.session = {
       id: sessionId,
@@ -1180,7 +1179,7 @@ function subscribeToRelays() {
       state.relaySockets.push(ws);
       const subscriptionMessage = [
         "REQ",
-        `nostrail-${Math.random().toString(36).slice(2)}`,
+        `nostrail-${makeRandomId()}`,
         { kinds: [NOSTRAIL_LOCATION_EVENT_KIND], "#p": [state.signer.pubkey], limit: 200 },
       ];
       ws.addEventListener("open", () => {

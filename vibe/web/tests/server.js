@@ -1,9 +1,9 @@
 import { createServer } from 'http';
-import { readFileSync, existsSync, statSync } from 'fs';
-import { join, extname } from 'path';
+import { readFileSync, realpathSync, statSync } from 'fs';
+import { join, extname, relative, sep } from 'path';
 import { fileURLToPath } from 'url';
 
-const __dirname = fileURLToPath(new URL('.', import.meta.url));
+const webRoot = realpathSync(fileURLToPath(new URL('..', import.meta.url)));
 const port = 8080;
 
 const mimeTypes = {
@@ -23,25 +23,33 @@ const server = createServer((req, res) => {
   filePath = filePath.split('?')[0];
   if (filePath === '/' || filePath === '') filePath = '/index.html';
   if (filePath.endsWith('/')) filePath += 'index.html';
-  const fullPath = join(__dirname, '..', filePath);
+  const requestedPath = join(webRoot, filePath);
+  const requestedRelative = relative(webRoot, requestedPath);
 
-  if (existsSync(fullPath) && statSync(fullPath).isFile()) {
-    try {
-      const content = readFileSync(fullPath);
-      const ext = extname(fullPath);
-      const contentType = mimeTypes[ext] || 'application/octet-stream';
-      
-      res.writeHead(200, { 'Content-Type': contentType });
-      res.end(content);
-    } catch (error) {
-      console.error(`Error serving ${filePath}:`, error);
+  try {
+    if (requestedRelative !== '..' && !requestedRelative.startsWith('..' + sep)) {
+      const fullPath = realpathSync(requestedPath);
+      const realRelative = relative(webRoot, fullPath);
+      if (realRelative !== '..' && !realRelative.startsWith('..' + sep) && statSync(fullPath).isFile()) {
+        const content = readFileSync(fullPath);
+        const ext = extname(requestedPath);
+        const contentType = mimeTypes[ext] || 'application/octet-stream';
+
+        res.writeHead(200, { 'Content-Type': contentType });
+        res.end(content);
+        return;
+      }
+    }
+  } catch (error) {
+    if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') {
+      console.error('Error serving %s:', filePath, error);
       res.writeHead(500);
       res.end('Internal server error');
+      return;
     }
-  } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not found');
   }
+  res.writeHead(404, { 'Content-Type': 'text/plain' });
+  res.end('Not found');
 });
 
 server.listen(port, '127.0.0.1', () => {

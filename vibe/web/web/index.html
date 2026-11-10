@@ -2089,7 +2089,7 @@
         if (s.indexOf('+') < 0) return false;
         var t = s.replace(/\s/g, '').toUpperCase();
         // OLC refinement after "+" may be empty for coarse / grid-area codes (e.g. 9G000000+).
-        return /^[02-9CFGHJMPQRVWX]{7,}\+[02-9CFGHJMPQRVWX0-9]*$/i.test(t);
+        return /^[02-9CFGHJMPQRVWX]{7,}\+[0-9CFGHJMPQRVWX]*$/i.test(t);
     }
 
     function looksLikeHex64(s) {

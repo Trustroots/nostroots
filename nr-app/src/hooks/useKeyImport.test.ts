@@ -13,7 +13,7 @@ describe("useKeyImport", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (useAppDispatch as jest.Mock).mockReturnValue(dispatch);
+    (useAppDispatch as unknown as jest.Mock).mockReturnValue(dispatch);
     dispatch.mockResolvedValue(undefined);
     jest.spyOn(console, "error").mockImplementation(() => undefined);
   });

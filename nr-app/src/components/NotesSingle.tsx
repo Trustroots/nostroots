@@ -55,7 +55,8 @@ export default function NotesSingle({
   );
 
   useEffect(() => {
-    dispatch(profilesActions.fetchProfile(authorPublicKey));
+    if (authorPublicKey)
+      dispatch(profilesActions.fetchProfile(authorPublicKey));
   }, [dispatch, authorPublicKey]);
 
   const selectTrustrootsUsername = useMemo(

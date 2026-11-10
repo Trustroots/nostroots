@@ -72,8 +72,14 @@ describe("subscriptions.saga", () => {
     const generator = startSubscriptionSagaEffect(
       startSubscription({ filters }),
     );
-    const first = generator.next().value as ReturnType<typeof put>;
-    const subscriptionId = (first.payload.action.payload as any).subscriptionId;
+    const first = generator.next().value as unknown as {
+      payload: {
+        action: {
+          payload: { subscriptionId: string; relaysStatus: unknown };
+        };
+      };
+    };
+    const subscriptionId = first.payload.action.payload.subscriptionId;
 
     expect(subscriptionId).toEqual(expect.any(String));
     expect(first.payload.action.payload.relaysStatus).toEqual({

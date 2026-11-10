@@ -23,11 +23,15 @@ export const testRootReducer = combineSlices(
 
 export type TestRootState = ReturnType<typeof testRootReducer>;
 
-type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends Record<string, unknown>
-    ? DeepPartial<T[K]>
-    : T[K];
-};
+// Matches `object` rather than `Record<string, unknown>`, which interfaces
+// such as MapState do not satisfy.
+export type DeepPartial<T> = T extends
+  | readonly unknown[]
+  | ((...args: never[]) => unknown)
+  ? T
+  : T extends object
+    ? { [K in keyof T]?: DeepPartial<T[K]> }
+    : T;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -56,7 +60,7 @@ export function createTestStore(
 
   return configureStore({
     reducer: testRootReducer,
-    preloadedState: mergeState(initialState, preloadedState),
+    preloadedState: mergeState<TestRootState>(initialState, preloadedState),
     middleware: (getDefaultMiddleware) =>
       getDefaultMiddleware({
         thunk: true,

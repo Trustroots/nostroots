@@ -7,9 +7,6 @@ module.exports = {
   preset: "jest-expo",
   setupFilesAfterEnv: ["./jest.setup.ts"],
   transformIgnorePatterns,
-  moduleNameMapper: {
-    "^@noble/hashes/utils$": "<rootDir>/../node_modules/@noble/hashes/utils.js",
-  },
   collectCoverageFrom: [
     "app/**/*.{ts,tsx}",
     "src/**/*.{ts,tsx}",

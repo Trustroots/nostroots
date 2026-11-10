@@ -24,7 +24,7 @@ overrides:
   'baseline-browser-mapping@<2.11.0': 2.11.0
   'browserslist@>=4.0.0 <4.28.7': 4.28.7
   'compression@<1.8.2': 1.8.2
-  'decode-uri-component@<0.5.0': 0.5.0
+  'decode-uri-component@<0.5.1': 0.5.1
   'image-size@<2.0.3': 2.0.4
   'nanoid@>=3.0.0 <3.3.18': 3.3.18
   'nanoid@>=5.0.0 <5.1.16': 5.1.16
@@ -58,8 +58,8 @@ nodeLinker: hoisted
 
 patchedDependencies:
   # Preserve the callable CommonJS export expected by query-string 7 and Jest.
-  # The patched 0.5.0 decoder algorithm is unchanged.
-  decode-uri-component@0.5.0: pnpm-patches/decode-uri-component@0.5.0.patch
+  # The patched 0.5.1 decoder algorithm is unchanged.
+  decode-uri-component@0.5.1: pnpm-patches/decode-uri-component@0.5.1.patch
   react-native-css-interop@0.2.4: patches/react-native-css-interop@0.2.4.patch
 
 # Dependency build scripts are blocked by default in pnpm 12; keep them skipped explicitly.

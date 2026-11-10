@@ -312,6 +312,7 @@ paths MAY remain as compatibility redirects to a canonical application.
 - **WHEN** they use the foreground-only location-sharing prototype
 - **THEN** it MUST rely on browser-provided signing/encryption and must not
   claim native background behavior.
+- **AND** it MUST generate location-sharing session IDs using browser cryptography.
 
 #### Scenario: Retired Nostroots Map path
 

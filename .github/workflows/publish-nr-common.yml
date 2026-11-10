@@ -7,9 +7,14 @@ on:
     paths:
       - "nr-common/**"
 
+permissions: {}
+
 jobs:
   test:
     uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
+      pull-requests: write # Required by the reusable workflow's test job.
 
   publish:
     needs: test

@@ -1,4 +1,5 @@
 import Foundation
+import Security
 
 struct NIP07PermissionEntry: Identifiable, Equatable {
     enum Kind: Equatable {
@@ -93,15 +94,14 @@ final class NIP07PermissionStore: NIP07PermissionStoring {
     }
 
     func recordTrustedUse(origin: String) {
-        var origins = usedTrustedOrigins
-        origins.insert(origin)
-        defaults.set(Array(origins).sorted(), forKey: trustedUseKey)
+        guard var origins = loadTrustedOrigins(), origins.insert(origin).inserted else { return }
+        saveTrustedOrigins(origins)
     }
 
     func entries(policy: NIP07PermissionPolicy) -> [NIP07PermissionEntry] {
         permissionEntries(
             allowedOrigins: allowedOrigins,
-            usedTrustedOrigins: usedTrustedOrigins,
+            usedTrustedOrigins: loadTrustedOrigins() ?? [],
             policy: policy
         )
     }
@@ -109,14 +109,53 @@ final class NIP07PermissionStore: NIP07PermissionStoring {
     func clear() {
         defaults.removeObject(forKey: allowedKey)
         defaults.removeObject(forKey: trustedUseKey)
+        SecItemDelete(trustedUseQuery as CFDictionary)
     }
 
     private var allowedOrigins: Set<String> {
         Set(defaults.stringArray(forKey: allowedKey) ?? [])
     }
 
-    private var usedTrustedOrigins: Set<String> {
-        Set(defaults.stringArray(forKey: trustedUseKey) ?? [])
+    private var trustedUseQuery: [String: Any] {
+        [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: "org.trustroots.nostroots.browser.nip7",
+            kSecAttrAccount as String: trustedUseKey
+        ]
+    }
+
+    private func loadTrustedOrigins() -> Set<String>? {
+        var query = trustedUseQuery
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var result: AnyObject?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound {
+            guard let legacy = defaults.stringArray(forKey: trustedUseKey) else { return [] }
+            let origins = Set(legacy)
+            return saveTrustedOrigins(origins) ? origins : nil
+        }
+        guard status == errSecSuccess, let data = result as? Data,
+              let origins = try? JSONDecoder().decode(Set<String>.self, from: data) else { return nil }
+        defaults.removeObject(forKey: trustedUseKey)
+        return origins
+    }
+
+    @discardableResult
+    private func saveTrustedOrigins(_ origins: Set<String>) -> Bool {
+        guard let data = try? JSONEncoder().encode(origins) else { return false }
+        let query = trustedUseQuery
+        let attributes = [kSecValueData as String: data]
+        var status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        if status == errSecItemNotFound {
+            var item = query
+            item[kSecValueData as String] = data
+            item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+            status = SecItemAdd(item as CFDictionary, nil)
+        }
+        guard status == errSecSuccess else { return false }
+        defaults.removeObject(forKey: trustedUseKey)
+        return true
     }
 }
 

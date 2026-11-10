@@ -117,6 +117,12 @@ permissions, key status, and Vibe push notification state.
 - **THEN** the app SHOULD let the user inspect and revoke remembered NIP-07
   permissions.
 
+#### Scenario: Trusted site history
+
+- **GIVEN** a trusted origin uses NIP-07 access
+- **WHEN** the browser persists the origin for the settings list
+- **THEN** it MUST store the trusted-site history in its private Keychain.
+
 #### Scenario: Open a permitted origin
 
 - **GIVEN** the user taps an origin in the NIP-07 access list

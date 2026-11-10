@@ -125,7 +125,9 @@ test.describe('Nostroots Web hub', () => {
     await expect(page.locator('#trustroots-identity-status')).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Trustroots\.org/ })).toHaveAttribute('href', 'https://www.trustroots.org/profile/edit/networks');
     await expect(page.locator('.trustroots .app-icon img')).toHaveAttribute('src', 'trustroots-tree-white.svg');
-    await expect(page.getByRole('link', { name: /Open Nostroots Web/ })).toHaveAttribute('href', 'web/');
+    const webSketch = page.getByRole('link', { name: /Open Nostroots Web sketch/ });
+    await expect(webSketch).toHaveAttribute('href', 'web/');
+    await expect(webSketch.getByText('Deprecated · Unmaintained')).toBeVisible();
     await expect(page.getByRole('link', { name: /Open Food Circle/ })).toBeHidden();
     await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toHaveAttribute('href', 'examples/squatbridge/');
     await expect(page.locator('.squatbridge .app-icon')).toHaveText('｟(･)｠');
@@ -223,7 +225,7 @@ test.describe('Nostroots Web hub', () => {
     await page.goto('/');
 
     const retiredMapCard = page.getByRole('link', { name: /Open Nostroots Map/ });
-    await expect(page.getByRole('link', { name: /Open Nostroots Web/ })).toHaveAttribute('href', 'web/');
+    await expect(page.getByRole('link', { name: /Open Nostroots Web sketch/ })).toHaveAttribute('href', 'web/');
     await expect(page.getByRole('link', { name: /Open Squatbridge/ })).toHaveAttribute('href', 'examples/squatbridge/');
     await expect(retiredMapCard).toHaveCount(0);
 

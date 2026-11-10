@@ -18,6 +18,29 @@ test.describe('Onboarding Flow', () => {
     await expect(keysModal).toBeVisible();
   });
 
+  for (const width of [390, 1280]) {
+    test(`shows the sketch notice before key setup at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 844 });
+
+      await page.goto('/');
+      const sketch = page.getByRole('link', { name: /Open Nostroots Web sketch/ });
+      await expect(sketch.getByText('Deprecated · Unmaintained')).toBeVisible();
+
+      for (const route of ['/web/#keys', '/web/#welcome']) {
+        await test.step(route, async () => {
+          await page.goto(route);
+
+          const keysModal = page.locator('#keys-modal');
+          const notice = keysModal.getByText(/Nostroots Web is deprecated/);
+          await expect(notice).toBeInViewport();
+          await expect(notice.getByRole('link', { name: 'Trustroots.org' }))
+            .toHaveAttribute('href', 'https://www.trustroots.org/');
+          await expect(keysModal.getByRole('button', { name: 'Generate New Key' })).toBeEnabled();
+        });
+      }
+    });
+  }
+
   test('visiting a profile route without a key keeps the route and shows welcome Keys', async ({ page }) => {
     await page.goto('/web/#profile/alice');
     await page.waitForLoadState('networkidle');
@@ -45,6 +68,9 @@ test.describe('Onboarding Flow', () => {
       return !!localStorage.getItem('nostr_private_key');
     });
     expect(hasKey).toBe(true);
+
+    await page.goto('/web/');
+    await expect(page.locator('body > .web-sketch-notice')).toBeInViewport();
   });
 
   test('onboarding import button exists', async ({ page }) => {

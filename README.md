@@ -82,3 +82,5 @@ See https://github.com/Trustroots/nostroots/issues/102 for ideas around partner 
 
 
 https://nos.trustroots.org/ is the project's home page.
+
+[Nostroots Web](https://nos.trustroots.org/web/) is deprecated and kept online as an unmaintained, interactive sketch.

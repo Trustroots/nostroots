@@ -1,6 +1,7 @@
 // Run with: node --test development-utils/tests/security-dependencies.test.cjs
 const assert = require('node:assert/strict');
 const { execFileSync } = require('node:child_process');
+const path = require('node:path');
 const { test } = require('node:test');
 
 test('query-string keeps its CommonJS decoder and malformed URI handling', () => {
@@ -28,6 +29,14 @@ test('Metro reads PNG and SVG dimensions through image-size 2', () => {
   assert.deepEqual(getAssetSize('png', png, 'pixel.png'), { width: 1, height: 1 });
   const svg = Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="12" height="34"></svg>');
   assert.deepEqual(getAssetSize('svg', svg, 'icon.svg'), { width: 12, height: 34 });
+});
+
+test('Metro reads dimensions when building asset metadata from a path', async () => {
+  const { getAssetData } = require('metro/private/Assets');
+  const asset = 'assets/images/nostroots-300x300.png';
+  const data = await getAssetData(path.resolve(__dirname, '../../nr-app', asset), asset, [], null, '/assets');
+  assert.equal(data.width, 300);
+  assert.equal(data.height, 300);
 });
 
 test('image-size rejects an ICNS chunk with zero length without looping', () => {

@@ -2,7 +2,7 @@ import {
   SECURE_STORE_PRIVATE_KEY_HEX_KEY,
   SECURE_STORE_PRIVATE_KEY_HEX_MNEMONIC,
 } from "@/constants";
-import { hexToBytes } from "@noble/hashes/utils";
+import { hexToBytes } from "@noble/hashes/utils.js";
 import { isHexKey } from "@trustroots/nr-common";
 import * as SecureStore from "expo-secure-store";
 import { accountFromSeedWords } from "nip06";

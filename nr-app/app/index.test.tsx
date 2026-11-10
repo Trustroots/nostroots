@@ -1,4 +1,5 @@
 import { Redirect } from "expo-router";
+import { ActivityIndicator } from "react-native";
 import { waitFor, screen } from "@testing-library/react-native";
 
 import IndexRoute from "./index";
@@ -21,7 +22,7 @@ describe("IndexRoute", () => {
       },
     });
 
-    expect(screen.UNSAFE_getByType("ActivityIndicator")).toBeTruthy();
+    expect(screen.UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
     expect(mockRedirect).not.toHaveBeenCalled();
   });
 

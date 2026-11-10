@@ -1,4 +1,5 @@
 import { createMockVerifiedEvent } from "@/test/nostrMocks";
+import { steppable } from "@/test/saga";
 import { filterForPlusCode } from "@/utils/notifications.utils";
 import { NOTIFICATION_SERVER_PUBKEY } from "@trustroots/nr-common";
 import { nip04 } from "nostr-tools";
@@ -196,8 +197,10 @@ describe("notifications.saga", () => {
       kind: 10395,
       content: "encrypted",
     });
-    const generator = handleIncomingSubscriptionEventEffect(
-      addEvent({ event, fromRelay: "relay" }),
+    const generator = steppable(
+      handleIncomingSubscriptionEventEffect(
+        addEvent({ event, fromRelay: "relay" }),
+      ),
     );
     const privateKey = new Uint8Array(32).fill(1);
 
@@ -215,8 +218,10 @@ describe("notifications.saga", () => {
 
   it("ignores undecryptable subscription state", () => {
     const event = createMockVerifiedEvent({ kind: 10395 });
-    const generator = handleIncomingSubscriptionEventEffect(
-      addEvent({ event, fromRelay: "relay" }),
+    const generator = steppable(
+      handleIncomingSubscriptionEventEffect(
+        addEvent({ event, fromRelay: "relay" }),
+      ),
     );
     generator.next();
 

@@ -1,16 +1,17 @@
 describe("relays.nostr", () => {
   it("connects and reuses relay instances by URL", async () => {
     const connect = jest.fn(async () => undefined);
-    const relayConstructor = jest.fn(function Relay(
-      this: unknown,
-      url: string,
-    ) {
-      return { connect, url };
-    });
-    relayConstructor.connect = jest.fn(async (url: string) => ({
-      connect,
-      url,
-    }));
+    const relayConstructor = Object.assign(
+      jest.fn(function Relay(this: unknown, url: string) {
+        return { connect, url };
+      }),
+      {
+        connect: jest.fn(async (url: string) => ({
+          connect,
+          url,
+        })),
+      },
+    );
 
     jest.isolateModules(() => {
       jest.doMock("nostr-tools", () => ({

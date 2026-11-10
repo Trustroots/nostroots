@@ -30,6 +30,7 @@
     "@gorhom/bottom-sheet": "^5.2.14",
     "@maplibre/maplibre-react-native": "^11.3.3",
     "@mobily/ts-belt": "^3.13.1",
+    "@noble/hashes": "^2.0.1",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-picker/picker": "2.11.4",
@@ -95,7 +96,6 @@
     "tailwindcss-animate": "^1.0.7",
     "ts-pattern": "^5.9.0",
     "url-join-ts": "^1.0.5",
-    "utils": "link:@noble/hashes/utils",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -118,7 +118,6 @@
     "jest": "^29.7.0",
     "jest-expo": "~57.0.3",
     "lint-staged": "^17.0.7",
-    "patch-package": "^8.0.1",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.5.14",
     "tailwindcss": "^3.4.19",
@@ -135,7 +134,7 @@
     ]
   },
   "private": true,
-  "packageManager": "pnpm@10.33.2+sha512.a90faf6feeab71ad6c6e57f94e0fe1a12f5dcc22cd754db40ae9593eb6a3e0b6b12e3540218bb37ae083404b1f2ce6db2a4121e979829b4aff94b99f49da1cf8",
+  "packageManager": "pnpm@12.16.1+sha512.091d1dee7927575661b25dab3c2ae31cafc1c54d6b71ed6a6600cf0c1cb10434a447eae14015f1b23e2e6bedeed79df94a932e2164d2832280dce3fb32f656d1",
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {

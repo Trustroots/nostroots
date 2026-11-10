@@ -9,7 +9,7 @@ peerDependencyRules:
     - 'typescript'
 
 overrides:
-  # Keep existing direct workspace constraints centralized here for pnpm 10.
+  # Keep existing direct workspace constraints centralized here for pnpm 12.
   expo-crypto: 56.0.3
   redux: ^5.0.1
 
@@ -52,7 +52,17 @@ overrides:
   'ws@>=8.0.0 <8.21.0': 8.21.0
   'yaml@>=2.0.0 <2.8.3': 2.8.3
 
-# Preserve the callable CommonJS export expected by query-string 7 and Jest.
-# The patched 0.5.0 decoder algorithm is unchanged.
+# Expo/React Native tooling needs a flat node_modules. This used to be
+# `node-linker=hoisted` in .npmrc, which pnpm 12 no longer reads.
+nodeLinker: hoisted
+
 patchedDependencies:
+  # Preserve the callable CommonJS export expected by query-string 7 and Jest.
+  # The patched 0.5.0 decoder algorithm is unchanged.
   decode-uri-component@0.5.0: pnpm-patches/decode-uri-component@0.5.0.patch
+  react-native-css-interop@0.2.4: patches/react-native-css-interop@0.2.4.patch
+
+# Dependency build scripts are blocked by default in pnpm 12; keep them skipped explicitly.
+allowBuilds:
+  "@sentry/cli": false
+  unrs-resolver: false

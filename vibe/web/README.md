@@ -12,7 +12,7 @@ The root page is a small hub. It links to classic Trustroots network settings, N
 - [`/test/`](test/) — mobile-friendly manual test for opening the installed app with `nostroots://` links.
 - [`/open/onboarding`](open/onboarding/) — verified HTTPS onboarding link and app-store fallback page.
 - [`https://www.trustroots.org/profile/edit/networks`](https://www.trustroots.org/profile/edit/networks) — classic Trustroots network editing.
-- [`/web/`](web/) — Nostroots Web, the canonical map/chat/profile app for Trustroots-style activity with light Nostr key support.
+- [`/web/`](web/) — Nostroots Web is deprecated and kept online as an unmaintained, interactive sketch of the map, chat, and profiles.
 - [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots Browser.
 - [`/nostroots-map/`](nostroots-map/) — compatibility route that preserves query parameters and redirects old links to `/web/#map`.
 - [`/examples/squatbridge/`](examples/squatbridge/) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr; hidden on the hub until you enable experimental apps.

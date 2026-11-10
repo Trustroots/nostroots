@@ -39,6 +39,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - name: Check whether this PR introduces the workflow
+        id: rollout
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          # Default setup still owns uploads while this workflow is being reviewed.
+          if ! git cat-file -e HEAD^1:.github/workflows/codeql.yml; then
+            echo "skip-upload=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: github/codeql-action/init@v4
         with:
@@ -66,3 +78,4 @@ jobs:
       - uses: github/codeql-action/analyze@v4
         with:
           category: /language:${{ matrix.language }}
+          upload: ${{ steps.rollout.outputs.skip-upload == 'true' && 'never' || 'always' }}

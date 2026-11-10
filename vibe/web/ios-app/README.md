@@ -143,7 +143,7 @@ xcodebuild -project NostrootsNative.xcodeproj -scheme NostrootsNativeTests -sdk 
 - The shared location service now stores the most recent relay-check summary after automatic or manual relay connection attempts; Swiftroots shows it in Home/Settings and Nostrail shows it in the map status panel, and the summary clears when relay settings or the local key change.
 - Key import, generation, and clear now also reset relay auth/subscription runtime, stale per-relay reachability rows, and persisted relay failure counters, so a new local identity does not inherit old relay-check details or receive paths.
 - Key storage default is now Keychain-backed (`KeychainKeyStore`) with in-memory fallback available for tests, friendly Keychain failure copy, and explicit storage status for UI.
-- Key status copy now distinguishes real device storage from local simulator test storage with test coverage, so unsigned simulator runs do not sound like production Keychain storage.
+- Simulator builds also require working Keychain storage to import keys. Existing simulator keys migrate to Keychain when it becomes available.
 - Key import now normalizes accepted `nsec`, hex, or recovery phrase input to private-key hex before crossing the `KeyStore` boundary, so storage never receives raw mnemonic/nsec text from the app service.
 - Key storage supports explicit clear/reset with confirmation before deleting Keychain state and resetting app runtime state; active sharing blocks key clearing until the session is stopped.
 - Nostrail clear-key confirmation copy now lives in the shared key lifecycle helper with test coverage, matching the other destructive key-removal guard copy.

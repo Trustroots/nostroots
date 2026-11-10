@@ -70,7 +70,8 @@ Nostroots web experience.
 ### Requirement: Local key storage
 
 The iOS browser app MUST store its own imported or generated key in this app's
-private Keychain storage for v1.
+private Keychain storage for v1. The browser MUST use Keychain for private keys
+and recovery phrases on the simulator as well as on devices.
 
 #### Scenario: Valid private-key scalar
 

@@ -189,8 +189,7 @@ final class KeychainKeyStore: KeyStore {
     private let inMemory: InMemoryKeyStore
     private let service: String
     private let account: String
-    private var isUsingSimulatorFallback = false
-    private var simulatorFallbackKey: String {
+    private var legacySimulatorKey: String {
         "nr.simulator-keychain-fallback.\(service).\(account)"
     }
 
@@ -202,6 +201,7 @@ final class KeychainKeyStore: KeyStore {
         self.service = service
         self.account = account
         inMemory = InMemoryKeyStore(cryptoProvider: cryptoProvider)
+        migrateLegacySimulatorSecret()
         if let existing = loadSecret() {
             do {
                 try inMemory.importSecret(existing)
@@ -214,21 +214,17 @@ final class KeychainKeyStore: KeyStore {
     func importSecret(_ key: String) throws {
         let normalized = try KeyImportParser.parse(key).secretHex
         try saveSecret(normalized)
+        clearLegacySimulatorSecret()
         try inMemory.importSecret(normalized)
     }
 
     func clearSecret() throws {
         let query = keychainLookupQuery()
         let status = SecItemDelete(query as CFDictionary)
-        if shouldUseSimulatorFallback(after: status) {
-            clearSimulatorFallbackSecret()
-            try inMemory.clearSecret()
-            return
-        }
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw KeychainKeyStoreError(operation: .delete, status: status)
         }
-        clearSimulatorFallbackSecret()
+        clearLegacySimulatorSecret()
         try inMemory.clearSecret()
     }
 
@@ -241,7 +237,7 @@ final class KeychainKeyStore: KeyStore {
     }
 
     func storageStatus() -> KeyStorageStatus {
-        KeyStorageStatus(hasSecret: inMemory.currentSecretHex() != nil, usesSimulatorFallback: isUsingSimulatorFallback)
+        KeyStorageStatus(hasSecret: inMemory.currentSecretHex() != nil, usesSimulatorFallback: false)
     }
 
     func sign(unsigned: UnsignedNostrEvent) throws -> NostrEvent {
@@ -259,12 +255,8 @@ final class KeychainKeyStore: KeyStore {
         if status == errSecSuccess {
             let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
             guard updateStatus == errSecSuccess else {
-                if storeSimulatorFallbackSecret(secretHex, after: updateStatus) {
-                    return
-                }
                 throw KeychainKeyStoreError(operation: .update, status: updateStatus)
             }
-            isUsingSimulatorFallback = false
             return
         }
 
@@ -272,12 +264,8 @@ final class KeychainKeyStore: KeyStore {
         attributes.forEach { create[$0.key] = $0.value }
         let createStatus = SecItemAdd(create as CFDictionary, nil)
         guard createStatus == errSecSuccess else {
-            if storeSimulatorFallbackSecret(secretHex, after: createStatus) {
-                return
-            }
             throw KeychainKeyStoreError(operation: .store, status: createStatus)
         }
-        isUsingSimulatorFallback = false
     }
 
     private func loadSecret() -> String? {
@@ -288,8 +276,7 @@ final class KeychainKeyStore: KeyStore {
         ]) { _, new in new }
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data else { return loadSimulatorFallbackSecret() }
-        isUsingSimulatorFallback = false
+        guard status == errSecSuccess, let data = result as? Data else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
@@ -301,44 +288,28 @@ final class KeychainKeyStore: KeyStore {
         ]
     }
 
-    private func storeSimulatorFallbackSecret(_ secretHex: String, after status: OSStatus) -> Bool {
+    private func migrateLegacySimulatorSecret() {
         #if targetEnvironment(simulator)
-        guard shouldUseSimulatorFallback(after: status) else {
-            return false
+        guard let secret = UserDefaults.standard.string(forKey: legacySimulatorKey),
+              NIP19.isValidSecretHex(secret) else {
+            clearLegacySimulatorSecret()
+            return
         }
-        UserDefaults.standard.set(secretHex, forKey: simulatorFallbackKey)
-        isUsingSimulatorFallback = true
-        return true
-        #else
-        _ = secretHex
-        _ = status
-        return false
+        let storedSecret = loadSecret()
+        do {
+            if storedSecret == nil {
+                try saveSecret(secret)
+            }
+            clearLegacySimulatorSecret()
+        } catch {
+            // Retry migration on the next launch if Keychain is unavailable.
+        }
         #endif
     }
 
-    private func loadSimulatorFallbackSecret() -> String? {
+    private func clearLegacySimulatorSecret() {
         #if targetEnvironment(simulator)
-        let value = UserDefaults.standard.string(forKey: simulatorFallbackKey)
-        isUsingSimulatorFallback = value != nil
-        return value
-        #else
-        return nil
-        #endif
-    }
-
-    private func clearSimulatorFallbackSecret() {
-        #if targetEnvironment(simulator)
-        UserDefaults.standard.removeObject(forKey: simulatorFallbackKey)
-        #endif
-        isUsingSimulatorFallback = false
-    }
-
-    private func shouldUseSimulatorFallback(after status: OSStatus) -> Bool {
-        #if targetEnvironment(simulator)
-        return status != errSecSuccess
-        #else
-        _ = status
-        return false
+        UserDefaults.standard.removeObject(forKey: legacySimulatorKey)
         #endif
     }
 }

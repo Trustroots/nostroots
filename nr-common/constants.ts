@@ -16,6 +16,8 @@ export const PING_ACK_KIND = 20400 as const;
 export const MAP_NOTE_KIND = 30397 as const;
 export const MAP_NOTE_REPOST_KIND = 30398 as const;
 export const THIRD_PARTY_EVENT_KIND = 30399 as const;
+// NIP-52 time-based calendar event, used for gatherings.
+export const CALENDAR_TIME_EVENT_KIND = 31923 as const;
 
 // All event kinds accepted by the relay. Must be kept in sync with the kinds
 // defined above. Standard Nostr kinds (0, 5) are included as well.
@@ -30,6 +32,7 @@ export const ACCEPTED_KINDS = [
   MAP_NOTE_KIND,
   MAP_NOTE_REPOST_KIND,
   THIRD_PARTY_EVENT_KIND,
+  CALENDAR_TIME_EVENT_KIND,
 ];
 
 export const NOSTROOTS_METRICS_TYPE_TAG_NAME = "t" as const;

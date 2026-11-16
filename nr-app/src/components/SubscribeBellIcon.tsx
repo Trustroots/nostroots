@@ -98,7 +98,7 @@ export default function SubscribeBellIcon() {
       : "Subscribe to notifications";
 
   return (
-    <View className="flex-row items-center gap-2">
+    <View className="min-w-0 shrink flex-row items-center gap-2">
       <Pressable
         onPress={handlePress}
         disabled={isParentSubscribed}
@@ -130,7 +130,10 @@ export default function SubscribeBellIcon() {
         </Text>
       </Pressable>
       {subscriptionCount > 0 && (
-        <Text className="text-[10px] text-muted-foreground">
+        <Text
+          numberOfLines={1}
+          className="shrink text-[10px] text-muted-foreground"
+        >
           {subscriptionCount} subscribed
         </Text>
       )}

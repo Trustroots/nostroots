@@ -78,4 +78,33 @@ describe("events.slice", () => {
         .map(({ event }) => event.id),
     ).toEqual([unexpired.id]);
   });
+
+  it("replaces an edited gathering with the same author, kind and d tag", () => {
+    const gathering = (id: string, created_at: number, title: string) =>
+      event({
+        id,
+        kind: 31923,
+        created_at,
+        tags: [
+          ["d", "potluck"],
+          ["title", title],
+          ["start", "1780003600"],
+        ],
+      });
+
+    let state = eventsSlice.getInitialState();
+    for (const e of [
+      gathering("a".repeat(64), 100, "Potluck"),
+      gathering("b".repeat(64), 200, "Potluck at 7"),
+    ]) {
+      state = eventsSlice.reducer(
+        state,
+        addEvent({ event: e, fromRelay: "wss://relay.example" }),
+      );
+    }
+
+    const all = eventsSelectors.selectAll({ events: state } as never);
+    expect(all).toHaveLength(1);
+    expect(all[0].event.id).toBe("b".repeat(64));
+  });
 });

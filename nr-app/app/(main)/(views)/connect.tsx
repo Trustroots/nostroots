@@ -5,7 +5,6 @@ import { useThemeColors } from "@/hooks/useThemeColors";
 import { Stack } from "expo-router";
 import { useState } from "react";
 import { ScrollView, TextInput } from "react-native";
-import "react-native-get-random-values";
 
 export default function TabFourScreen() {
   const [connectURI, setConnectURI] = useState("");

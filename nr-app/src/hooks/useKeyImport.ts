@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { nip19 } from "nostr-tools";
+import { getPublicKey, nip19 } from "nostr-tools";
 import { bytesToHex } from "@noble/hashes/utils.js";
 import { useAppDispatch } from "@/redux/hooks";
 import { setPrivateKeyPromiseAction } from "@/redux/sagas/keystore.saga";
+import { validateWords } from "nip06";
 
 type KeyImportResult =
   | {
@@ -22,35 +23,49 @@ type KeyImportResult =
  */
 function parseKeyInput(input: string): KeyImportResult {
   const trimmedInput = input.trim();
+  const lowerInput = trimmedInput.toLowerCase();
 
   if (!trimmedInput) {
     throw new Error("Please enter a key");
   }
 
   // Handle nsec format
-  if (trimmedInput.startsWith("nsec")) {
+  if (lowerInput.startsWith("npub1")) {
+    throw new Error(
+      "That is a public npub address. Import your private nsec or recovery phrase instead.",
+    );
+  }
+
+  if (lowerInput.startsWith("nsec")) {
     try {
       const decoded = nip19.decode(trimmedInput);
-      if (decoded.type === "nsec") {
-        const privateKeyHex = bytesToHex(decoded.data);
-        return {
-          type: "nsec",
-          privateKeyHex,
-        };
-      } else {
+      if (decoded.type !== "nsec") {
         throw new Error("Invalid nsec format");
       }
-    } catch (error) {
+      // The checksum alone does not prove this is a valid secp256k1 scalar.
+      getPublicKey(decoded.data);
+      const privateKeyHex = bytesToHex(decoded.data);
+      return {
+        type: "nsec",
+        privateKeyHex,
+      };
+    } catch {
       throw new Error(
         "That key format does not look right. Check and try again.",
       );
     }
   }
 
-  // Handle mnemonic format
+  const mnemonic = lowerInput.split(/\s+/).join(" ");
+  if (!validateWords({ mnemonic }).isMnemonicValid) {
+    throw new Error(
+      "That recovery phrase is not valid. Check the words and their order.",
+    );
+  }
+
   return {
     type: "mnemonic",
-    mnemonic: trimmedInput,
+    mnemonic,
   };
 }
 

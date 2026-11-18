@@ -18,18 +18,21 @@ describe("useKeyImport", () => {
     jest.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
-  it("imports a mnemonic after trimming whitespace", async () => {
+  it("imports a validated mnemonic after normalizing case and whitespace", async () => {
     const { result } = renderHook(() => useKeyImport());
+    const mnemonic =
+      "ABANDON abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
 
     await act(async () => {
       await expect(
-        result.current.importKey("  one two three four  "),
+        result.current.importKey(`  ${mnemonic}  `),
       ).resolves.toEqual({ success: true, type: "mnemonic" });
     });
 
     expect(dispatch).toHaveBeenCalledWith(
       setPrivateKeyPromiseAction.request({
-        mnemonic: "one two three four",
+        mnemonic:
+          "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
       }),
     );
     expect(result.current.isImporting).toBe(false);
@@ -42,7 +45,9 @@ describe("useKeyImport", () => {
     const { result } = renderHook(() => useKeyImport());
 
     await act(async () => {
-      await expect(result.current.importKey(nsec)).resolves.toEqual({
+      await expect(
+        result.current.importKey(`  ${nsec.toUpperCase()}  `),
+      ).resolves.toEqual({
         success: true,
         type: "nsec",
       });
@@ -72,6 +77,48 @@ describe("useKeyImport", () => {
     expect(result.current.error).toBe(
       "That key format does not look right. Check and try again.",
     );
+
+    await act(async () => {
+      await result.current.importKey("one two three four");
+    });
+    expect(result.current.error).toBe(
+      "That recovery phrase is not valid. Check the words and their order.",
+    );
+
+    await act(async () => {
+      await result.current.importKey(
+        "npub10xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqpkge6d",
+      );
+    });
+    expect(result.current.error).toMatch(/public npub/i);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["zero scalar", nip19.nsecEncode(new Uint8Array(32))],
+    ["out-of-range scalar", nip19.nsecEncode(new Uint8Array(32).fill(255))],
+    [
+      "mixed-case nsec",
+      "N" + nip19.nsecEncode(new Uint8Array(32).fill(7)).slice(1),
+    ],
+    [
+      "bad checksum",
+      nip19.nsecEncode(new Uint8Array(32).fill(7)).slice(0, -1) + "q",
+    ],
+  ])("rejects an invalid %s before saving", async (_description, input) => {
+    const { result } = renderHook(() => useKeyImport());
+
+    await act(async () => {
+      await expect(result.current.importKey(input)).resolves.toEqual({
+        success: false,
+        type: null,
+      });
+    });
+
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(result.current.error).toBe(
+      "That key format does not look right. Check and try again.",
+    );
   });
 
   it("reports storage failures and allows clearing the error", async () => {
@@ -79,7 +126,11 @@ describe("useKeyImport", () => {
     const { result } = renderHook(() => useKeyImport());
 
     await act(async () => {
-      await expect(result.current.importKey("word list")).resolves.toEqual({
+      await expect(
+        result.current.importKey(
+          "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about",
+        ),
+      ).resolves.toEqual({
         success: false,
         type: null,
       });

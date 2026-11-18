@@ -17,8 +17,8 @@ describe("subscriptions.nostr", () => {
     const subscription = { close: jest.fn() };
     const relay = createMockRelay();
     relay.subscribe.mockImplementation((_filters, callbacks) => {
-      callbacks.onevent(event);
-      callbacks.oneose();
+      callbacks?.onevent?.(event);
+      callbacks?.oneose?.();
       return subscription;
     });
     (getRelay as jest.Mock).mockResolvedValue(relay);

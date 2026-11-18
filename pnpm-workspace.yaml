@@ -9,7 +9,7 @@ peerDependencyRules:
     - 'typescript'
 
 overrides:
-  # Keep existing direct workspace constraints centralized here for pnpm 10.
+  # Keep existing direct workspace constraints centralized here for pnpm 12.
   expo-crypto: 56.0.3
   redux: ^5.0.1
 
@@ -17,22 +17,32 @@ overrides:
   # stop affecting the graph once upstream Expo/Jest packages adopt these
   # versions, so each entry can then be removed without pinning future updates.
   '@tootallnate/once@<2.0.1': 2.0.1
-  '@xmldom/xmldom@<0.8.13': 0.8.13
-  'brace-expansion@<1.1.18': 1.1.18
-  'brace-expansion@>=2.0.0 <2.1.4': 2.1.4
-  'brace-expansion@>=5.0.0 <5.0.9': 5.0.9
+  '@xmldom/xmldom@<0.8.15': 0.8.15
+  'brace-expansion@<1.1.21': 1.1.21
+  'brace-expansion@>=2.0.0 <2.1.7': 2.1.7
+  'brace-expansion@>=5.0.0 <5.0.12': 5.0.12
+  'baseline-browser-mapping@<2.11.0': 2.11.0
+  'browserslist@>=4.0.0 <4.28.7': 4.28.7
+  'compression@<1.8.2': 1.8.2
+  'decode-uri-component@<0.5.1': 0.5.1
+  'image-size@<2.0.3': 2.0.4
+  'nanoid@>=3.0.0 <3.3.18': 3.3.18
+  'nanoid@>=5.0.0 <5.1.16': 5.1.16
+  'node-forge@<1.4.3': 1.4.3
+  'postcss-selector-parser@<7.1.6': 7.1.6
+  'source-map-js@<1.2.2': 1.2.2
+  'zod@<4.6.6': 4.6.6
   'flatted@<3.4.2': 3.4.2
   'form-data@>=4.0.0 <4.0.6': 4.0.6
-  'glob@>=10.2.0 <10.5.0': 10.5.0
+  'glob@>=9.0.0 <14.0.2': 14.0.4
   'immutable@>=4.0.0 <4.3.9': 4.3.9
-  'js-yaml@<4.0.0': 3.15.0
-  'js-yaml@>=4.0.0 <4.3.0': 4.3.0
+  'js-yaml@<4.0.0': 3.15.2
+  'js-yaml@>=4.0.0 <4.3.2': 4.3.2
   'lodash@>=4.0.0 <4.18.0': 4.18.0
   'minimatch@<3.1.4': 3.1.4
-  'minimatch@>=8.0.0 <8.0.6': 8.0.6
-  'minimatch@>=9.0.0 <9.0.7': 9.0.7
+  'minimatch@>=7.0.0 <11.0.1': 11.0.5
   'postcss@<8.5.23': 8.5.23
-  'shell-quote@<=1.8.4': 1.9.0
+  'shell-quote@<1.11.0': 1.11.0
   'tmp@<0.2.7': 0.2.7
 
   # xcode 3 declares uuid ^7 even though it only consumes the stable v4 API.
@@ -41,3 +51,20 @@ overrides:
   'ws@>=7.0.0 <7.5.11': 7.5.11
   'ws@>=8.0.0 <8.21.0': 8.21.0
   'yaml@>=2.0.0 <2.8.3': 2.8.3
+
+# Expo/React Native tooling needs a flat node_modules. This used to be
+# `node-linker=hoisted` in .npmrc, which pnpm 12 no longer reads.
+nodeLinker: hoisted
+
+patchedDependencies:
+  # Preserve the callable CommonJS export expected by query-string 7 and Jest.
+  # The patched 0.5.1 decoder algorithm is unchanged.
+  decode-uri-component@0.5.1: pnpm-patches/decode-uri-component@0.5.1.patch
+  deepmerge@4.3.1: pnpm-patches/deepmerge@4.3.1.patch
+  metro@0.84.4: pnpm-patches/metro@0.84.4.patch
+  react-native-css-interop@0.2.4: patches/react-native-css-interop@0.2.4.patch
+
+# Dependency build scripts are blocked by default in pnpm 12; keep them skipped explicitly.
+allowBuilds:
+  "@sentry/cli": false
+  unrs-resolver: false

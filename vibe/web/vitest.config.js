@@ -20,7 +20,7 @@ export default defineConfig({
         replacement: '@scure/bip32',
       },
       {
-        find: /^https:\/\/cdn\.jsdelivr\.net\/npm\/dompurify@3\.4\.12\/\+esm(?:\?.*)?$/,
+        find: /^https:\/\/cdn\.jsdelivr\.net\/npm\/dompurify@3\.4\.17\/\+esm(?:\?.*)?$/,
         replacement: 'dompurify',
       },
     ],

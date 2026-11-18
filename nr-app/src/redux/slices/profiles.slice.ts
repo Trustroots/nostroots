@@ -47,5 +47,5 @@ export const profilesReducer = profilesSlice.reducer;
 
 export const selectProfileByPubkey = (
   state: { profiles: ProfilesState },
-  pubkey: string,
-) => state.profiles.byPubkey[pubkey];
+  pubkey: string | undefined,
+) => (pubkey === undefined ? undefined : state.profiles.byPubkey[pubkey]);

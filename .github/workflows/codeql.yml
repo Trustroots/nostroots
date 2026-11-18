@@ -1,0 +1,81 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "24 4 * * 2"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+            runner: ubuntu-latest
+          - language: go
+            build-mode: autobuild
+            runner: ubuntu-latest
+          - language: javascript-typescript
+            build-mode: none
+            runner: ubuntu-latest
+          - language: ruby
+            build-mode: none
+            runner: ubuntu-latest
+          - language: swift
+            build-mode: manual
+            runner: macos-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+
+      - name: Check whether this PR introduces the workflow
+        id: rollout
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          # Default setup still owns uploads while this workflow is being reviewed.
+          if ! git cat-file -e HEAD^1:.github/workflows/codeql.yml; then
+            echo "skip-upload=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      - name: Build iOS apps
+        if: matrix.language == 'swift'
+        shell: bash
+        run: |
+          build_app() {
+            xcodebuild -project "$1" -scheme "$2" \
+              -destination 'generic/platform=iOS Simulator' \
+              -derivedDataPath "$RUNNER_TEMP/codeql-$2" \
+              CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+              COMPILATION_CACHE_ENABLE_CACHING=NO SWIFT_ENABLE_COMPILE_CACHE=NO \
+              SWIFT_USE_INTEGRATED_DRIVER=NO build
+          }
+
+          # Build shared schemes so Xcode builds their Swift package dependencies.
+          build_app vibe/web/ios-app/NostrootsNative.xcodeproj Nostrail
+          build_app vibe/web/ios-app/NostrootsNative.xcodeproj Swiftroots
+          build_app vibe/browser/ios/NostrootsBrowser.xcodeproj NostrootsBrowser
+
+      - uses: github/codeql-action/analyze@v4
+        with:
+          category: /language:${{ matrix.language }}
+          upload: ${{ steps.rollout.outputs.skip-upload == 'true' && 'never' || 'always' }}

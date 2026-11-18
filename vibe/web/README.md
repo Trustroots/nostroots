@@ -10,8 +10,9 @@ The root page is a small hub. It links to classic Trustroots network settings, N
 
 - [`/background/`](background/) — background, vision, and FAQ for Nostroots and the Trustroots/Nostr direction.
 - [`/test/`](test/) — mobile-friendly manual test for opening the installed app with `nostroots://` links.
+- [`/open/onboarding`](open/onboarding/) — verified HTTPS onboarding link and app-store fallback page.
 - [`https://www.trustroots.org/profile/edit/networks`](https://www.trustroots.org/profile/edit/networks) — classic Trustroots network editing.
-- [`/web/`](web/) — Nostroots Web, the canonical map/chat/profile app for Trustroots-style activity with light Nostr key support.
+- [`/web/`](web/) — Nostroots Web is deprecated and kept online as an unmaintained, interactive sketch of the map, chat, and profiles.
 - [`/nostrail/`](nostrail/) — experimental foreground-only encrypted approximate-location sharing for Nostroots Browser.
 - [`/nostroots-map/`](nostroots-map/) — compatibility route that preserves query parameters and redirects old links to `/web/#map`.
 - [`/examples/squatbridge/`](examples/squatbridge/) — experimental bridge from [radar.squat.net](https://radar.squat.net) events to Nostr; hidden on the hub until you enable experimental apps.
@@ -21,6 +22,7 @@ The root page is a small hub. It links to classic Trustroots network settings, N
 - [`https://trashwiki.org/`](https://trashwiki.org/) — external Trashwiki site, hidden on the hub until you enable experimental apps.
 - [`https://hitchwiki.org/`](https://hitchwiki.org/) — external Hitchwiki site, hidden on the hub until you enable experimental apps.
 - [`https://maps.hitchwiki.org/`](https://maps.hitchwiki.org/) — external Hitchwiki Maps app, hidden on the hub until you enable experimental apps.
+- [`https://hitchhiking.org/chat/#test`](https://hitchhiking.org/chat/#test) — external Hitchhiking Chat community, hidden on the hub until you enable experimental apps.
 - [`https://www.letsmiti.app/`](https://www.letsmiti.app/) — external Let's Miti app, hidden on the hub until you enable experimental apps.
 - [`https://treasures.to/`](https://treasures.to/) — external Treasures web app, hidden on the hub until you enable experimental apps.
 - [`/examples/`](examples/) — optional demos and fork patterns.
@@ -66,7 +68,7 @@ Nostroots Web is shipped as **two source files**:
 
 The root [`index.js`](index.js) re-exports Nostroots Web helpers for test/backward compatibility.
 
-Third-party assets (`maplibre-gl`, `leaflet`, `nostr-tools`, `bip39`, `dompurify`, Google Fonts) stay on their respective CDNs. There is no build step: serve the folder from any static host.
+Third-party assets (`maplibre-gl`, `leaflet`, `nostr-tools`, `bip39`, `dompurify`) stay on their respective CDNs. Fonts are self-hosted in [`fonts/`](fonts/) under the SIL Open Font License; pages do not contact Google Fonts. There is no build step: serve the folder from any static host.
 
 When iterating locally, run `./dev.sh` and open the printed URL. Refresh after editing — there is no bundler cache.
 
@@ -87,6 +89,35 @@ See [`../docs/RELAY_SCOPE_UI.md`](../docs/RELAY_SCOPE_UI.md) for how `relayScope
 See [`../docs/TRUSTROOTS_MAP_NOTES.md`](../docs/TRUSTROOTS_MAP_NOTES.md) for the dual map-note trust model in this repo: `30397 -> nr-server -> 30398` and the nr-web auth-relay path (`wss://nip42.trustroots.org` + NIP-42) where `30397` is treated as Trustroots-scoped in product behavior.
 
 ### Testing
+
+#### Verified onboarding links
+
+The public onboarding URL is `https://nos.trustroots.org/open/onboarding?username=guaka`.
+iPhone and iPad browser fallbacks continue to the App Store, Android fallbacks
+continue to Google Play, and desktop/unknown clients show both store choices,
+the Android APK releases, and the generic app-download QR code.
+iOS Universal Links are associated with Apple Team ID `WR2T34P467`; Android
+App Links are currently associated with the certificate used to sign the
+official GitHub preview APK. Before relying on links for Google Play installs,
+add the SHA-256 fingerprint from **Play Console → Setup → App integrity → App
+signing key certificate** to `.well-known/assetlinks.json` as a second entry in
+`sha256_cert_fingerprints`. Google Play App Signing uses a different certificate
+from the upload/direct-distribution key.
+
+Only public, low-sensitivity context such as a Trustroots username belongs in
+this URL. Authenticated handoff must use a short-lived, single-use authorization
+code, ideally bound to the app with PKCE; never include an nsec, session cookie,
+permanent API token, or email-verification code.
+
+Content links can extend the same verified-link family with allowlisted paths,
+for example `/open/event/<event-id>?username=guaka`. The path is the destination
+and the optional query parameter is onboarding context; do not accept an
+arbitrary destination URL. The app should remember a supported destination
+while onboarding and continue there afterwards. A fallback-page QR code must
+encode the complete content URL to preserve both values. Store installation
+does not by itself restore the original link on iOS, so the first version should
+ask members to return to the original Trustroots link after installing. Android
+can optionally add Play Install Referrer support as a later enhancement.
 
 The repo still iterates quickly on `nr-web`: tests exist to guard important behavior, not to drive every small UI change. Prefer meaningful coverage over a large suite; run the stack when you are changing critical paths or preparing to merge.
 

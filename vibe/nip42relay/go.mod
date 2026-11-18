@@ -20,7 +20,7 @@ require (
 	github.com/gobwas/ws v1.2.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/klauspost/compress v1.16.7 // indirect
+	github.com/klauspost/compress v1.18.7 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/puzpuzpuz/xsync/v3 v3.0.2 // indirect

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#08261f" />
+    <meta
+      name="description"
+      content="Continue Trustroots onboarding in the Nostroots app."
+    />
+    <link rel="canonical" href="https://nos.trustroots.org/open/onboarding" />
+    <title>Continue in Nostroots</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+        --ink: #08261f;
+        --muted: #52635e;
+        --panel: #fffdf4;
+        --accent: #007f6e;
+        --border: rgba(0, 75, 63, 0.16);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background:
+          linear-gradient(180deg, rgba(152, 173, 70, 0.2), transparent 360px),
+          #f5f1e3;
+        color: var(--ink);
+      }
+
+      main {
+        width: min(34rem, calc(100% - 32px));
+        margin: 32px auto;
+        padding: clamp(28px, 7vw, 48px);
+        border: 1px solid var(--border);
+        border-radius: 22px;
+        background: var(--panel);
+        box-shadow: 0 18px 48px rgba(0, 75, 63, 0.12);
+        text-align: center;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        color: var(--ink);
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .brand img {
+        border-radius: 12px;
+      }
+
+      h1 {
+        margin: 28px 0 10px;
+        font-size: clamp(2rem, 8vw, 3rem);
+        line-height: 1.08;
+      }
+
+      .lead {
+        margin: 0;
+        color: var(--muted);
+        font-size: 1.08rem;
+      }
+
+      .username {
+        margin: 20px 0 0;
+        font-weight: 750;
+      }
+
+      .stores {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      .store-link {
+        display: grid;
+        min-height: 50px;
+        place-items: center;
+        padding: 0 18px;
+        border-radius: 999px;
+        background: var(--accent);
+        color: white;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .apk-link {
+        display: inline-block;
+        margin-top: 14px;
+        color: var(--accent);
+        font-weight: 750;
+      }
+
+      .qr {
+        display: block;
+        width: 144px;
+        height: 144px;
+        margin: 26px auto 0;
+        padding: 8px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: white;
+      }
+
+      .qr img {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
+      .scan {
+        margin: 8px 0 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      .help {
+        margin: 24px 0 0;
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      .home {
+        display: inline-block;
+        margin-top: 22px;
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      @media (max-width: 480px) {
+        .stores {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="brand" href="../../">
+        <img src="../../nostroots-logo67.png" alt="" width="48" height="48" />
+        Nostroots
+      </a>
+      <h1>Continue in Nostroots</h1>
+      <p class="lead">
+        This link opens Trustroots onboarding in the Nostroots app when it is
+        installed.
+      </p>
+      <p class="username" id="username" hidden></p>
+
+      <div class="stores" aria-label="Install Nostroots">
+        <a
+          class="store-link"
+          href="https://play.google.com/store/apps/details?id=org.trustroots.nostroots"
+          >Get it on Google Play</a
+        >
+        <a
+          class="store-link"
+          href="https://apps.apple.com/app/nostroots/id6755037304"
+          >Get it on the App Store</a
+        >
+      </div>
+      <a
+        class="apk-link"
+        href="https://github.com/Trustroots/nostroots/releases/"
+        >Download the Android APK</a
+      >
+
+      <a class="qr" href="../../app/" aria-label="Open app download page">
+        <img
+          src="../../app-qr.svg"
+          alt="Nostroots app download QR code"
+          width="128"
+          height="128"
+        />
+      </a>
+      <p class="scan">Scan with a phone to open its app download page.</p>
+
+      <p class="help">
+        After installing, return to the original link to continue. Only your
+        public Trustroots username is carried in the link.
+      </p>
+      <a class="home" href="../../">Explore Nostroots on the web</a>
+    </main>
+
+    <script>
+      const IOS_URL = "https://apps.apple.com/app/nostroots/id6755037304";
+      const ANDROID_URL =
+        "https://play.google.com/store/apps/details?id=org.trustroots.nostroots";
+      const username = new URLSearchParams(window.location.search).get(
+        "username",
+      );
+      if (username) {
+        const usernameElement = document.getElementById("username");
+        usernameElement.textContent = `Trustroots username: ${username}`;
+        usernameElement.hidden = false;
+      }
+
+      const userAgent = navigator.userAgent || "";
+      const isIOS =
+        /iPad|iPhone|iPod/.test(userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const isAndroid = /Android/i.test(userAgent);
+
+      if (isIOS) {
+        window.location.replace(IOS_URL);
+      } else if (isAndroid) {
+        window.location.replace(ANDROID_URL);
+      }
+    </script>
+  </body>
+</html>

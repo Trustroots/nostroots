@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { ActivityIndicator } from "react-native";
 
 import Nip7BrowserRoute from "./browser";
 import { NOSTROOTS_WEB_URL } from "@/constants";
@@ -16,7 +17,7 @@ jest.mock("@/browser/BrowserScreen", () => ({
   BrowserScreen: jest.fn(() => null),
 }));
 
-const mockUseAppSelector = useAppSelector as jest.Mock;
+const mockUseAppSelector = useAppSelector as unknown as jest.Mock;
 const mockUseRouter = useRouter as jest.Mock;
 const mockUseLocalSearchParams = useLocalSearchParams as jest.Mock;
 const mockBrowserScreen = BrowserScreen as jest.Mock;
@@ -63,7 +64,7 @@ describe("Nip7BrowserRoute", () => {
     );
     render(<Nip7BrowserRoute />);
 
-    expect(screen.UNSAFE_getByType("ActivityIndicator")).toBeTruthy();
+    expect(screen.UNSAFE_getByType(ActivityIndicator)).toBeTruthy();
   });
 
   it("passes a validated url param to BrowserScreen", () => {

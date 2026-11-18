@@ -3,6 +3,8 @@ import type { Event, EventTemplate, Filter, VerifiedEvent } from "nostr-tools";
 export function createMockVerifiedEvent(
   overrides: Partial<VerifiedEvent> = {},
 ): VerifiedEvent {
+  // A real VerifiedEvent carries a brand symbol that only signature
+  // verification sets; a mock has to assert it.
   return {
     content: "",
     created_at: 1,
@@ -12,7 +14,7 @@ export function createMockVerifiedEvent(
     sig: "2".repeat(128),
     tags: [],
     ...overrides,
-  };
+  } as VerifiedEvent;
 }
 
 export function createMockRelay() {

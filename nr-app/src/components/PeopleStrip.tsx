@@ -55,7 +55,7 @@ function PersonBubble({
   const intentEmoji = getIntentEmoji(signal.event.tags);
 
   useEffect(() => {
-    dispatch(profilesActions.fetchProfile(pubkey));
+    if (pubkey) dispatch(profilesActions.fetchProfile(pubkey));
   }, [dispatch, pubkey]);
 
   return (

@@ -25,9 +25,15 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   test:
     uses: ./.github/workflows/test.yml
+    permissions:
+      contents: read
+      pull-requests: write # Required by the reusable workflow's test job.
 
   fingerprint-check:
     if: github.event_name == 'push'

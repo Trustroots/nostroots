@@ -52,7 +52,6 @@ import {
 import { Stack } from "expo-router";
 import Toast from "react-native-root-toast";
 import { match } from "ts-pattern";
-import { z } from "zod";
 
 const ToggleSwitch = ({
   value,
@@ -85,8 +84,9 @@ const APPEARANCE_OPTIONS: { value: ColorSchemePreference; label: string }[] = [
 
 // for testing on the simulator, where it can't receive notifications
 // create a test notification event with the common types
-type TestNotificationEvent = z.infer<typeof kind30397EventSchema>;
-type TestNotificationData = z.infer<typeof EventJSONNotificationDataSchema>;
+// nr-common ships its own zod major, so the app's z.infer cannot read these schemas.
+type TestNotificationEvent = typeof kind30397EventSchema._output;
+type TestNotificationData = typeof EventJSONNotificationDataSchema._output;
 
 function createTestNotificationData(): TestNotificationData {
   const event: TestNotificationEvent = {

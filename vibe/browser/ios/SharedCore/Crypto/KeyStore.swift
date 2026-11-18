@@ -213,8 +213,7 @@ final class KeychainKeyStore: KeyStore {
     private let service: String
     private let account: String
     private let mnemonicAccount: String
-    private var isUsingSimulatorFallback = false
-    private var simulatorFallbackKey: String {
+    private var legacySimulatorKey: String {
         "nr.simulator-keychain-fallback.\(service).\(account)"
     }
 
@@ -228,6 +227,7 @@ final class KeychainKeyStore: KeyStore {
         self.account = account
         self.mnemonicAccount = mnemonicAccount
         inMemory = InMemoryKeyStore(cryptoProvider: cryptoProvider)
+        migrateLegacySimulatorSecret()
         if let existing = loadSecret() {
             do {
                 try inMemory.importGeneratedSecret(existing)
@@ -241,6 +241,7 @@ final class KeychainKeyStore: KeyStore {
         let result = try KeyImportParser.parse(key)
         try saveSecret(result.secretHex)
         try saveMnemonic(result.source == .mnemonic ? normalizedMnemonic(key) : nil)
+        clearLegacySimulatorSecret()
         try inMemory.importGeneratedSecret(result.secretHex)
     }
 
@@ -250,22 +251,17 @@ final class KeychainKeyStore: KeyStore {
         }
         try saveSecret(secretHex)
         try saveMnemonic(nil)
+        clearLegacySimulatorSecret()
         try inMemory.importGeneratedSecret(secretHex)
     }
 
     func clearSecret() throws {
         let query = keychainLookupQuery()
         let status = SecItemDelete(query as CFDictionary)
-        if shouldUseSimulatorFallback(after: status) {
-            clearSimulatorFallbackSecret()
-            try? saveMnemonic(nil)
-            try inMemory.clearSecret()
-            return
-        }
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw KeychainKeyStoreError(operation: .delete, status: status)
         }
-        clearSimulatorFallbackSecret()
+        clearLegacySimulatorSecret()
         try? saveMnemonic(nil)
         try inMemory.clearSecret()
     }
@@ -283,7 +279,7 @@ final class KeychainKeyStore: KeyStore {
     }
 
     func storageStatus() -> KeyStorageStatus {
-        KeyStorageStatus(hasSecret: inMemory.currentSecretHex() != nil, usesSimulatorFallback: isUsingSimulatorFallback)
+        KeyStorageStatus(hasSecret: inMemory.currentSecretHex() != nil, usesSimulatorFallback: false)
     }
 
     func sign(unsigned: UnsignedNostrEvent) throws -> NostrEvent {
@@ -301,12 +297,8 @@ final class KeychainKeyStore: KeyStore {
         if status == errSecSuccess {
             let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
             guard updateStatus == errSecSuccess else {
-                if storeSimulatorFallbackSecret(secretHex, after: updateStatus) {
-                    return
-                }
                 throw KeychainKeyStoreError(operation: .update, status: updateStatus)
             }
-            isUsingSimulatorFallback = false
             return
         }
 
@@ -314,12 +306,8 @@ final class KeychainKeyStore: KeyStore {
         attributes.forEach { create[$0.key] = $0.value }
         let createStatus = SecItemAdd(create as CFDictionary, nil)
         guard createStatus == errSecSuccess else {
-            if storeSimulatorFallbackSecret(secretHex, after: createStatus) {
-                return
-            }
             throw KeychainKeyStoreError(operation: .store, status: createStatus)
         }
-        isUsingSimulatorFallback = false
     }
 
     private func loadSecret() -> String? {
@@ -330,8 +318,7 @@ final class KeychainKeyStore: KeyStore {
         ]) { _, new in new }
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data else { return loadSimulatorFallbackSecret() }
-        isUsingSimulatorFallback = false
+        guard status == errSecSuccess, let data = result as? Data else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
@@ -354,13 +341,9 @@ final class KeychainKeyStore: KeyStore {
     private func saveMnemonic(_ mnemonic: String?) throws {
         let query = mnemonicLookupQuery()
         let deleteStatus = SecItemDelete(query as CFDictionary)
-        guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound || shouldUseSimulatorFallback(after: deleteStatus) else {
+        guard deleteStatus == errSecSuccess || deleteStatus == errSecItemNotFound else {
             throw KeychainKeyStoreError(operation: .delete, status: deleteStatus)
         }
-
-        #if targetEnvironment(simulator)
-        UserDefaults.standard.removeObject(forKey: "\(simulatorFallbackKey).mnemonic")
-        #endif
 
         guard let mnemonic else { return }
         var create = query
@@ -368,12 +351,6 @@ final class KeychainKeyStore: KeyStore {
         create[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         let createStatus = SecItemAdd(create as CFDictionary, nil)
         guard createStatus == errSecSuccess else {
-            #if targetEnvironment(simulator)
-            if shouldUseSimulatorFallback(after: createStatus) {
-                UserDefaults.standard.set(mnemonic, forKey: "\(simulatorFallbackKey).mnemonic")
-                return
-            }
-            #endif
             throw KeychainKeyStoreError(operation: .store, status: createStatus)
         }
     }
@@ -386,13 +363,7 @@ final class KeychainKeyStore: KeyStore {
         ]) { _, new in new }
         var result: AnyObject?
         let status = SecItemCopyMatching(query as CFDictionary, &result)
-        guard status == errSecSuccess, let data = result as? Data else {
-            #if targetEnvironment(simulator)
-            return UserDefaults.standard.string(forKey: "\(simulatorFallbackKey).mnemonic")
-            #else
-            return nil
-            #endif
-        }
+        guard status == errSecSuccess, let data = result as? Data else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
@@ -404,45 +375,34 @@ final class KeychainKeyStore: KeyStore {
             .joined(separator: " ")
     }
 
-    private func storeSimulatorFallbackSecret(_ secretHex: String, after status: OSStatus) -> Bool {
+    private func migrateLegacySimulatorSecret() {
         #if targetEnvironment(simulator)
-        guard shouldUseSimulatorFallback(after: status) else {
-            return false
+        guard let secret = UserDefaults.standard.string(forKey: legacySimulatorKey),
+              NIP19.isValidSecretHex(secret) else {
+            clearLegacySimulatorSecret()
+            return
         }
-        UserDefaults.standard.set(secretHex, forKey: simulatorFallbackKey)
-        isUsingSimulatorFallback = true
-        return true
-        #else
-        _ = secretHex
-        _ = status
-        return false
+        let storedSecret = loadSecret()
+        do {
+            if storedSecret == nil {
+                try saveSecret(secret)
+            }
+            if (storedSecret == nil || storedSecret == secret), loadMnemonic() == nil,
+               let phrase = UserDefaults.standard.string(forKey: "\(legacySimulatorKey).mnemonic"),
+               (try? KeyImportParser.parse(phrase).secretHex) == secret {
+                try saveMnemonic(phrase)
+            }
+            clearLegacySimulatorSecret()
+        } catch {
+            // Retry migration on the next launch if Keychain is unavailable.
+        }
         #endif
     }
 
-    private func loadSimulatorFallbackSecret() -> String? {
+    private func clearLegacySimulatorSecret() {
         #if targetEnvironment(simulator)
-        let value = UserDefaults.standard.string(forKey: simulatorFallbackKey)
-        isUsingSimulatorFallback = value != nil
-        return value
-        #else
-        return nil
-        #endif
-    }
-
-    private func clearSimulatorFallbackSecret() {
-        #if targetEnvironment(simulator)
-        UserDefaults.standard.removeObject(forKey: simulatorFallbackKey)
-        UserDefaults.standard.removeObject(forKey: "\(simulatorFallbackKey).mnemonic")
-        #endif
-        isUsingSimulatorFallback = false
-    }
-
-    private func shouldUseSimulatorFallback(after status: OSStatus) -> Bool {
-        #if targetEnvironment(simulator)
-        return status != errSecSuccess
-        #else
-        _ = status
-        return false
+        UserDefaults.standard.removeObject(forKey: legacySimulatorKey)
+        UserDefaults.standard.removeObject(forKey: "\(legacySimulatorKey).mnemonic")
         #endif
     }
 }

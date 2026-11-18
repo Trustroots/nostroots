@@ -100,6 +100,7 @@ describe("nrBridge.service", () => {
   it.each([
     [404, "not-found"],
     [409, "already-pending"],
+    [429, "rate-limited"],
     [401, "invalid-or-expired"],
   ])("maps status %s to %s", async (status, code) => {
     const { requestVerificationToken } = await loadService();

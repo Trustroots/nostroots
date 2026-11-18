@@ -48,12 +48,15 @@ export function getUsersCollection(): Promise<Collection> {
  * Look up a Trustroots user by their username.
  *
  * @param username - Case-insensitive Trustroots username.
- * @returns The user's `email`, `username`, and optional `nostrNpub`, or `null`
- *          if no matching user exists.
+ * @returns The user's stringified Mongo `_id` (as `id`, stable across
+ *          username changes), `email`, `username`, and optional `nostrNpub`,
+ *          or `null` if no matching user exists.
  */
 export async function findUserByUsername(
   username: string,
-): Promise<{ email: string; username: string; nostrNpub?: string } | null> {
+): Promise<
+  { id: string; email: string; username: string; nostrNpub?: string } | null
+> {
   const users = await getUsersCollection();
   const user = await users.findOne(
     { username: username.toLowerCase() },
@@ -61,6 +64,7 @@ export async function findUserByUsername(
   );
   if (!user) return null;
   return {
+    id: user._id.toString(),
     email: user.email as string,
     username: user.username as string,
     nostrNpub: (user.nostrNpub as string) ?? undefined,

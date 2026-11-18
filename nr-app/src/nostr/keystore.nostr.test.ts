@@ -6,7 +6,7 @@ import {
   resetSecureStoreMock,
   seedSecureStoreMock,
 } from "@/test/secureStoreMock";
-import { hexToBytes } from "@noble/hashes/utils";
+import { hexToBytes } from "@noble/hashes/utils.js";
 import { accountFromSeedWords } from "nip06";
 import * as SecureStore from "expo-secure-store";
 import {

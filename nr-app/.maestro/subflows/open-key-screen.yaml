@@ -7,15 +7,17 @@ name: Open the key step from a clean install
 - launchApp:
     clearState: true
 
-# NOTE: a fresh install lands on identity, not welcome. app/index.tsx renders
-# Redirect->WELCOME, then its own effect sets hasBeenOpenedBefore, and the
-# re-render swaps in Redirect->ONBOARDING before the first redirect navigates.
-# This encodes today's behaviour, not the intended behaviour. If the welcome
-# screen is fixed, add the welcome-get-started tap back here.
+- extendedWaitUntil:
+    visible:
+      id: "welcome-get-started"
+    timeout: 30000
+- tapOn:
+    id: "welcome-get-started"
+
 - extendedWaitUntil:
     visible:
       id: "onboarding-identity-continue"
-    timeout: 30000
+    timeout: 15000
 - tapOn:
     id: "onboarding-identity-continue"
 

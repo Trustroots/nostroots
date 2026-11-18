@@ -64,6 +64,7 @@ Initiate email verification for a Trustroots username.
 | `400`  | `{ "error": "Invalid request", "details": {...} }` | Request body failed Zod validation              |
 | `404`  | `{ "error": "User not found" }`                    | No user with that username in MongoDB           |
 | `409`  | `{ "error": "Verification already pending" }`      | An unexpired token already exists for this user |
+| `429`  | `{ "error": "Too many verification requests, try again later" }` | More than 3 requests for this user, or 300 across all users, this hour (`Retry-After` header set) |
 
 Creates a token request in Deno KV (TTL: 15 min) and emails the user a six-digit
 code and a deep link (`${DEEP_LINK_BASE}?token=<uuid>`).
@@ -90,9 +91,12 @@ along with the user's Nostr public key.
 | `400`  | `{ "error": "Invalid request", "details": {...} }`       | Validation failed (missing fields, bad npub, etc.) |
 | `401`  | `{ "error": "No pending verification or code expired" }` | No token request in KV or it has expired           |
 | `401`  | `{ "error": "Invalid code or token" }`                   | Code/token does not match                          |
+| `429`  | `{ "error": "Too many verification attempts, try again later" }` | 300 code submissions across all users this hour (`Retry-After` header set); deep-link tokens are exempt |
 | `500`  | `{ "error": "Failed to update user" }`                   | MongoDB update did not modify a document           |
 
-Sets `nostrNpub` on the matching MongoDB user and deletes the KV entry.
+Sets `nostrNpub` on the matching MongoDB user and deletes the KV entry. Each
+token request accepts 5 code or token submissions; after that it is deleted and
+the user has to request a new code.
 
 ---
 
@@ -210,6 +214,12 @@ Stored under `["tokenRequests", <username>]` with a 15-minute TTL.
 | `token`     | string?          | UUID v4 for deep-link verification         |
 | `createdAt` | number           | Unix ms timestamp of creation              |
 | `expiresAt` | number           | Unix ms timestamp of expiry                |
+| `attempts`  | number?          | Code/token submissions so far              |
+
+Rate limits use fixed one-hour windows, with the window number in the key:
+`["verifyTokenRate", "user", <mongo _id>, <window>]`,
+`["verifyTokenRate", "global", <window>]` and
+`["verifyAttemptRate", "global", <window>]`.
 
 ### MongoDB User (relevant fields)
 
@@ -255,5 +265,18 @@ Zod's flattened error output:
   (`expireIn`) and application level (`expiresAt` timestamp check).
 - **npub validation** -- The `npub` field must start with `"npub"` to prevent
   accidental submission of secret keys (`nsec`).
+- **Brute-force lockout** -- Each token request accepts 5 code or token
+  submissions, counted atomically before the comparison so parallel requests
+  can't slip past, and is then deleted. With at most 3 `/verify_token` calls per
+  user per hour, that caps guessing at 15 attempts per user per hour against a
+  10⁶ code space. The trade-off is that anyone who knows a username can burn a
+  pending code and that user's hourly requests.
+- **Global caps** -- The per-user limits don't bound guessing spread across
+  many usernames, so code submissions are also capped at 300 per hour across
+  all users (at most ~3×10⁻⁴ expected account takeovers per hour), and
+  verification emails at 300 per hour. An attacker can use up these caps and
+  block email-code verification for everyone for the rest of the hour;
+  deep-link tokens keep working. There's no per-IP limit because a client IP
+  can't be trusted without knowing the proxy setup.
 - **No credentials in responses** -- Neither the code nor the token is ever
   returned in an HTTP response; they are only delivered via email.

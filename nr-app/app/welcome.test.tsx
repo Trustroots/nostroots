@@ -1,28 +1,29 @@
-import { fireEvent, render } from "@testing-library/react-native";
-import { useRouter } from "expo-router";
+import { render, screen, userEvent } from "@testing-library/react-native";
 
+import { settingsActions } from "@/redux/slices/settings.slice";
+import { getRouterMock } from "@/test/router";
 import WelcomeScreen from "./welcome";
 
-const mockUseRouter = useRouter as jest.Mock;
+const mockDispatch = jest.fn();
+
+jest.mock("@/redux/hooks", () => ({
+  useAppDispatch: () => mockDispatch,
+}));
 
 describe("WelcomeScreen", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    mockDispatch.mockClear();
   });
 
-  it("moves users into onboarding from the welcome screen", () => {
-    const replace = jest.fn();
-    mockUseRouter.mockReturnValue({
-      push: jest.fn(),
-      replace,
-      back: jest.fn(),
-    });
+  it("records that welcome was dismissed before navigating to onboarding", async () => {
+    render(<WelcomeScreen />);
 
-    const { getByText } = render(<WelcomeScreen />);
+    expect(screen.getByText("Welcome to Nostroots")).toBeTruthy();
+    await userEvent.press(screen.getByTestId("welcome-get-started"));
 
-    expect(getByText("Welcome to Nostroots")).toBeTruthy();
-    fireEvent.press(getByText("Get Started"));
-
-    expect(replace).toHaveBeenCalledWith("/onboarding");
+    expect(mockDispatch).toHaveBeenCalledWith(
+      settingsActions.setHasBeenOpenedBefore(true),
+    );
+    expect(getRouterMock().replace).toHaveBeenCalledWith("/onboarding");
   });
 });

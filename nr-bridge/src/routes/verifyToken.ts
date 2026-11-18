@@ -5,15 +5,24 @@
  *
  * Accepts a `{ username }` body, looks the user up in MongoDB, generates a
  * six-digit code and a UUID token, stores them in Deno KV with a 15-minute
- * TTL, and emails both the code and a deep link to the user.
+ * TTL, and emails both the code and a deep link to the user. Requests are
+ * throttled per user and across all users.
  */
 import type { Context } from "hono";
-import { VerifyTokenRequestSchema } from "../../schemas/tokenRequest.ts";
-import { TOKEN_EXPIRY_MS } from "../../schemas/tokenRequest.ts";
-import type { TokenRequest } from "../../schemas/tokenRequest.ts";
+import {
+  TOKEN_EXPIRY_MS,
+  type TokenRequest,
+  VerifyTokenRequestSchema,
+} from "../../schemas/tokenRequest.ts";
 import { DEEP_LINK_BASE } from "../config.ts";
 import { findUserByUsername } from "../db/mongodb.ts";
-import { getTokenRequest, createTokenRequest } from "../db/kv.ts";
+import {
+  createTokenRequest,
+  getTokenRequest,
+  tryReserveGlobalVerifyTokenSlot,
+  tryReserveVerifyTokenSlot,
+} from "../db/kv.ts";
+import { rateLimited } from "./rateLimited.ts";
 import { generateSixDigitCode, generateToken } from "../utils.ts";
 import { sendEmail } from "../email/send.ts";
 import { buildVerificationEmail } from "../email/templates.ts";
@@ -23,8 +32,9 @@ import { buildVerificationEmail } from "../email/templates.ts";
  *
  * @param c - Hono request context.
  * @returns `200` with `{ success: true }` on success, `400` for invalid input,
- *          `404` if the username is not in MongoDB, or `409` if a verification
- *          is already pending.
+ *          `404` if the username is not in MongoDB, `409` if a verification
+ *          is already pending, or `429` if the user or global throttle is
+ *          used up.
  */
 export async function handleVerifyToken(c: Context): Promise<Response> {
   const body = await c.req.json().catch(() => null);
@@ -44,9 +54,29 @@ export async function handleVerifyToken(c: Context): Promise<Response> {
     return c.json({ error: "User not found" }, 404);
   }
 
-  const existing = await getTokenRequest(username);
+  const existing = await getTokenRequest(user.username);
   if (existing) {
     return c.json({ error: "Verification already pending" }, 409);
+  }
+
+  for (
+    const [scope, reserve] of [
+      ["user", () => tryReserveVerifyTokenSlot(user.id)],
+      ["global", tryReserveGlobalVerifyTokenSlot],
+    ] as const
+  ) {
+    const reservation = await reserve();
+    if (!reservation.allowed) {
+      console.warn(`verify_token ${scope} rate limit hit`, {
+        userId: user.id,
+        count: reservation.count,
+      });
+      return rateLimited(
+        c,
+        "Too many verification requests, try again later",
+        reservation,
+      );
+    }
   }
 
   const now = Date.now();

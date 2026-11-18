@@ -1,4 +1,5 @@
 import { readFileSync } from 'fs';
+import { webcrypto } from 'node:crypto';
 import { JSDOM, VirtualConsole } from 'jsdom';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
@@ -42,7 +43,6 @@ console.error = (...args) => {
 };
 
 const isKnownJSDOMResourceNoise = (message) => (
-  message.includes('Could not load link: "https://fonts.googleapis.com/') ||
   message.includes('Could not load link: "https://unpkg.com/') ||
   message.includes('Could not load script: "http://localhost/analytics.js"') ||
   message.includes('Could not load script: "https://unpkg.com/') ||
@@ -91,17 +91,9 @@ global.Element = dom.window.Element;
 // Ensure maplibregl is available on window (in case scripts need it)
 dom.window.maplibregl = global.maplibregl;
 
-// Mock crypto.getRandomValues if needed (jsdom should provide it, but ensure it exists)
+// Use Node's Web Crypto when the test environment does not provide it.
 if (!global.crypto) {
-  global.crypto = {
-    getRandomValues: (arr) => {
-      // Simple mock - in real tests you might want deterministic values
-      for (let i = 0; i < arr.length; i++) {
-        arr[i] = Math.floor(Math.random() * 256);
-      }
-      return arr;
-    },
-  };
+  global.crypto = webcrypto;
 }
 
 // Mock navigator.clipboard

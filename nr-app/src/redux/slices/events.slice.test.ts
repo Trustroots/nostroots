@@ -8,7 +8,7 @@ import {
 } from "./events.slice";
 
 function event(
-  overrides: Partial<Parameters<typeof addEvent>[0]["payload"]["event"]> = {},
+  overrides: Partial<Parameters<typeof addEvent>[0]["event"]> = {},
 ) {
   return {
     content: "",

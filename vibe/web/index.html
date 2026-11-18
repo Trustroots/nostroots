@@ -21,8 +21,6 @@
   <link rel="apple-touch-icon" href="nostroots-logo.png">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" sizes="48x48" href="favicon.png">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <script>
     if (
       navigator.userAgent.indexOf("NostrootsBrowser/") !== -1 ||
@@ -35,7 +33,7 @@
       document.documentElement.classList.add("is-in-nostroots-ios");
     }
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="fonts/fonts.css">
   <link rel="stylesheet" href="site-chrome.css">
   <link rel="stylesheet" href="site-typography.css">
   <script defer src="analytics.js"></script>
@@ -326,6 +324,12 @@
       background: #f1cf50;
     }
 
+    .hitchhiking-chat .app-icon,
+    .hitchhiking-chat .card-action {
+      background: #eece56;
+      color: #5a2700;
+    }
+
     .trustroots-wiki .card-action {
       background: #00836f;
     }
@@ -339,7 +343,8 @@
     }
 
     .card.hitchwiki .card-action,
-    .card.hitchwiki-maps .card-action {
+    .card.hitchwiki-maps .card-action,
+    .card.hitchhiking-chat .card-action {
       color: #5a2700;
     }
 
@@ -783,10 +788,11 @@
               <path d="M24 31v9m0-4.5c-5.5 0-8.5 2.3-11 5M24 35.5c5.5 0 8.5 2.3 11 5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
             </svg>
           </span>
-          <h2>Nostroots Web</h2>
-          <p>Read traveler notes by area. Connect a key when you want to post with your Trustroots identity.</p>
+          <span class="card-label">Deprecated · Unmaintained</span>
+          <h2>Nostroots Web sketch</h2>
+          <p>Explore the map, chat, and profiles in this early sketch.</p>
         </div>
-        <span class="card-action">Open Nostroots Web</span>
+        <span class="card-action">Open Nostroots Web sketch</span>
       </a>
 
       <a class="card food-circle experimental-card" href="food/">
@@ -844,6 +850,16 @@
           <p>Find a driver or co-hitchhiker, share a lift offer, and privately connect with people going your way.</p>
         </div>
         <span class="card-action">Open Rideshares</span>
+      </a>
+
+      <a class="card hitchhiking-chat experimental-card" href="https://hitchhiking.org/chat/#test">
+        <div class="card-main">
+          <span class="card-label">More experimental</span>
+          <span class="app-icon app-icon-text" aria-hidden="true">💬</span>
+          <h2>Hitchhiking Chat</h2>
+          <p>Chat with hitchhikers and connect with the wider hitchhiking community.</p>
+        </div>
+        <span class="card-action">Open Hitchhiking Chat</span>
       </a>
 
       <a class="card wiki-site trustroots-wiki" href="https://wiki.trustroots.org/">

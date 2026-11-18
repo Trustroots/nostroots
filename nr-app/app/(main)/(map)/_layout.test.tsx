@@ -8,7 +8,7 @@ jest.mock("@/redux/hooks", () => ({
   useAppSelector: jest.fn(),
 }));
 
-const mockUseAppSelector = useAppSelector as jest.Mock;
+const mockUseAppSelector = useAppSelector as unknown as jest.Mock;
 
 function fakeState(areTestFeaturesEnabled: boolean) {
   return {

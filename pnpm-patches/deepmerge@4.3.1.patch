@@ -1,0 +1,57 @@
+diff --git a/index.js b/index.js
+--- a/index.js
++++ b/index.js
+@@ -55,11 +55,13 @@
+ 	var destination = {}
+ 	if (options.isMergeableObject(target)) {
+ 		getKeys(target).forEach(function(key) {
+-			destination[key] = cloneUnlessOtherwiseSpecified(target[key], options)
++			if (key !== '__proto__') {
++				destination[key] = cloneUnlessOtherwiseSpecified(target[key], options)
++			}
+ 		})
+ 	}
+ 	getKeys(source).forEach(function(key) {
+-		if (propertyIsUnsafe(target, key)) {
++		if (key === '__proto__' || propertyIsUnsafe(target, key)) {
+ 			return
+ 		}
+ 
+diff --git a/dist/cjs.js b/dist/cjs.js
+--- a/dist/cjs.js
++++ b/dist/cjs.js
+@@ -80,11 +80,13 @@
+ 	var destination = {};
+ 	if (options.isMergeableObject(target)) {
+ 		getKeys(target).forEach(function(key) {
+-			destination[key] = cloneUnlessOtherwiseSpecified(target[key], options);
++			if (key !== '__proto__') {
++				destination[key] = cloneUnlessOtherwiseSpecified(target[key], options)
++			};
+ 		});
+ 	}
+ 	getKeys(source).forEach(function(key) {
+-		if (propertyIsUnsafe(target, key)) {
++		if (key === '__proto__' || propertyIsUnsafe(target, key)) {
+ 			return
+ 		}
+ 
+diff --git a/dist/umd.js b/dist/umd.js
+--- a/dist/umd.js
++++ b/dist/umd.js
+@@ -84,11 +84,13 @@
+ 		var destination = {};
+ 		if (options.isMergeableObject(target)) {
+ 			getKeys(target).forEach(function(key) {
+-				destination[key] = cloneUnlessOtherwiseSpecified(target[key], options);
++				if (key !== '__proto__') {
++				destination[key] = cloneUnlessOtherwiseSpecified(target[key], options)
++			};
+ 			});
+ 		}
+ 		getKeys(source).forEach(function(key) {
+-			if (propertyIsUnsafe(target, key)) {
++			if (key === '__proto__' || propertyIsUnsafe(target, key)) {
+ 				return
+ 			}
+ 

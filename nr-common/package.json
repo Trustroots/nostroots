@@ -6,6 +6,6 @@
   "types": "./mod.ts",
   "dependencies": {
     "nostr-tools": "2.10.4",
-    "zod": "^3.25.76"
+    "zod": "^4.6.6"
   }
 }

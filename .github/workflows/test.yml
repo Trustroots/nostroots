@@ -6,6 +6,12 @@ on:
     branches: [main]
     paths:
       - "nr-app/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "patches/**"
+      - "pnpm-patches/**"
+      - "development-utils/tests/security-dependencies.test.cjs"
       - ".github/workflows/test.yml"
 
 jobs:
@@ -18,7 +24,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with:
           run_install: false
 
@@ -36,8 +42,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Test dependency compatibility
+        run: pnpm test:dependencies
+
       - name: Lint nr-app
         run: pnpm --filter nr-app lint
+
+      - name: Typecheck nr-app
+        run: pnpm typecheck:app
 
       - name: Test nr-app with coverage
         id: nr-app-tests

@@ -1,2 +1,11 @@
 packages:
   - "."
+
+# Standalone project (not part of the root workspace). pnpm 12 no longer reads
+# the "pnpm" field in package.json, so its settings live here.
+overrides:
+  vite: 8.1.6
+
+# Dependency build scripts are blocked by default in pnpm 12; keep them skipped explicitly.
+allowBuilds:
+  esbuild: false

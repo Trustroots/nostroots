@@ -2,10 +2,11 @@ import {
   BottomSheetModal,
   BottomSheetModalProvider,
   BottomSheetScrollView,
-  BottomSheetView,
+  BottomSheetView as ExpoBottomSheetView,
+  type BottomSheetViewProps,
 } from "@expo/ui/community/bottom-sheet";
 import { useColorScheme } from "nativewind";
-import { useEffect, useMemo, useRef } from "react";
+import { type ComponentType, useEffect, useMemo, useRef } from "react";
 import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
@@ -16,6 +17,12 @@ import { RootState } from "../redux/store";
 import { getKindName } from "../utils/event.utils";
 import { Section } from "./ui/section";
 import { Text } from "./ui/text";
+
+// NativeWind turns `className` into `style` for any component, but @expo/ui
+// only types `style` on its pass-through BottomSheetView.
+const BottomSheetView = ExpoBottomSheetView as ComponentType<
+  BottomSheetViewProps & { className?: string }
+>;
 
 /** @todo I think this should be merged to be more DRY with MapModal? */
 export default function HalfMapEventModal() {

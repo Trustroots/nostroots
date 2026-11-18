@@ -6,10 +6,17 @@
  * Accepts `{ username, npub, code?, token? }`, validates the six-digit code or
  * UUID token against the pending Deno KV entry, writes the npub into the
  * Trustroots MongoDB `users` collection, and removes the KV entry on success.
+ * Every submission counts towards a per-request lockout and a cap on
+ * comparisons across all users.
  */
 import type { Context } from "hono";
 import { AuthenticateRequestSchema } from "../../schemas/tokenRequest.ts";
-import { getTokenRequest, deleteTokenRequest } from "../db/kv.ts";
+import {
+  deleteTokenRequest,
+  reserveVerifyAttempt,
+  tryReserveGlobalVerifyAttemptSlot,
+} from "../db/kv.ts";
+import { rateLimited } from "./rateLimited.ts";
 import { setNpubForUsername } from "../db/mongodb.ts";
 
 /**
@@ -18,7 +25,8 @@ import { setNpubForUsername } from "../db/mongodb.ts";
  * @param c - Hono request context.
  * @returns `200` with `{ success: true }` when the npub is successfully set,
  *          `400` for invalid input, `401` if the code/token is wrong or
- *          expired, or `500` if the MongoDB update fails.
+ *          expired, `429` if the global code-guess cap is used up, or `500`
+ *          if the MongoDB update fails.
  */
 export async function handleAuthenticate(c: Context): Promise<Response> {
   const body = await c.req.json().catch(() => null);
@@ -31,9 +39,28 @@ export async function handleAuthenticate(c: Context): Promise<Response> {
     );
   }
 
-  const { username, npub, code, token } = parsed.data;
+  const { npub, code, token } = parsed.data;
+  const username = parsed.data.username.toLowerCase();
 
-  const tokenRequest = await getTokenRequest(username);
+  // Only six-digit codes are guessable, so deep-link tokens skip the global
+  // cap and keep working while it's exhausted. The cap is checked before the
+  // per-request attempt is consumed, so a 429 never costs a legitimate user
+  // one of their attempts.
+  if (code) {
+    const globalAttempt = await tryReserveGlobalVerifyAttemptSlot();
+    if (!globalAttempt.allowed) {
+      console.warn("authenticate global rate limit hit", {
+        count: globalAttempt.count,
+      });
+      return rateLimited(
+        c,
+        "Too many verification attempts, try again later",
+        globalAttempt,
+      );
+    }
+  }
+
+  const tokenRequest = await reserveVerifyAttempt(username);
   if (!tokenRequest) {
     return c.json({ error: "No pending verification or code expired" }, 401);
   }

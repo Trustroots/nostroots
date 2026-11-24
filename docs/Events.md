@@ -57,7 +57,7 @@ Background, with sources:
 
 ### `0` User metadata and `5` Event deletion
 
-Standard NIP-01 and NIP-09 kinds, accepted by the relay so users can publish them. Nostroots only uses kind `0` as a fallback source of a `trustrootsUsername` field when a user has no kind `10390` event. Nostroots clients do not currently process kind `5` events, and the relay does not remove the referenced events; deletions are part of our roadmap.
+Standard NIP-01 and NIP-09 kinds, accepted by the relay so users can publish them. Nostroots uses kind `0` as a fallback source of a `trustrootsUsername` field when a user has no kind `10390` event. The NIP-42 relay also supports the Trustroots service profile, which declares `_@trustroots.org` in kind `0` metadata. The relay verifies this [NIP-05 domain identity](https://github.com/nostr-protocol/nips/blob/master/05.md#showing-just-the-domain-as-an-identifier) against the Trustroots domain's HTTPS endpoint. Nostroots clients do not currently process kind `5` events, and the relay does not remove the referenced events. Deletions are part of our roadmap.
 
 ### `10390` Trustroots profile
 

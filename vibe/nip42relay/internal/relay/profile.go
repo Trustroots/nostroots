@@ -33,8 +33,11 @@ func TrustrootsUsernameFromEvent(event nostr.Event) (string, bool) {
 		if username, ok := normalizeUsername(profile.TrustrootsUsername); ok {
 			return username, true
 		}
-		if strings.HasSuffix(strings.ToLower(profile.NIP05), "@trustroots.org") {
-			return normalizeUsername(strings.TrimSuffix(strings.ToLower(profile.NIP05), "@trustroots.org"))
+		if name, ok := strings.CutSuffix(strings.ToLower(profile.NIP05), "@trustroots.org"); ok {
+			if name == "_" {
+				return name, true
+			}
+			return normalizeUsername(name)
 		}
 	}
 

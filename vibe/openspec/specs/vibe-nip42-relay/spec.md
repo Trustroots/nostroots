@@ -43,6 +43,12 @@ identity through supported profile events and Trustroots NIP-05 resolution.
   `0` profile data and verify that username through the configured Trustroots
   NIP-05 endpoint.
 
+#### Scenario: Trustroots domain identity
+
+- **GIVEN** a kind `0` profile declares `_@trustroots.org`
+- **WHEN** its pubkey authenticates to the relay
+- **THEN** the relay MUST verify the same pubkey through the NIP-05 lookup for `_`.
+
 #### Scenario: Auth cache
 
 - **GIVEN** a pubkey has passed authorization

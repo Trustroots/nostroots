@@ -62,6 +62,8 @@ Optional:
   that declares a Trustroots username. The relay checks the configured upstream
   plus `wss://relay.trustroots.org` and `wss://relay.nomadwiki.org`. The
   username must resolve through Trustroots NIP-05 to the same pubkey.
+- A kind `0` profile may declare `_@trustroots.org` for the domain identity.
+  The relay verifies that pubkey through the NIP-05 lookup for `_`.
 - Authenticated users may only publish events signed by their authenticated
   pubkey.
 

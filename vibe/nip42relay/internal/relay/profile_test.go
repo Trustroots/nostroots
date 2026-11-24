@@ -38,3 +38,13 @@ func TestTrustrootsUsernameFromKindZeroNIP05(t *testing.T) {
 		t.Fatalf("expected alice, got %q ok=%v", username, ok)
 	}
 }
+
+func TestTrustrootsDomainIdentityFromKindZeroNIP05(t *testing.T) {
+	username, ok := TrustrootsUsernameFromEvent(nostr.Event{
+		Kind:    0,
+		Content: `{"nip05":"_@trustroots.org"}`,
+	})
+	if !ok || username != "_" {
+		t.Fatalf("expected _, got %q ok=%v", username, ok)
+	}
+}

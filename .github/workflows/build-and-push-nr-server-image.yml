@@ -16,6 +16,19 @@ env:
 permissions: {}
 
 jobs:
+  signing-key-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Test signing-key configuration
+        working-directory: nr-server
+        run: deno test --frozen src/private-key.test.ts
+
   test:
     uses: ./.github/workflows/test.yml
     permissions:
@@ -23,7 +36,7 @@ jobs:
       pull-requests: write # Required by the reusable workflow's test job.
 
   build:
-    needs: test
+    needs: [test, signing-key-test]
     runs-on: ubuntu-latest
     permissions:
       contents: read

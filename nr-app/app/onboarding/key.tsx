@@ -77,16 +77,17 @@ export default function OnboardingKeyScreen() {
   const saveGeneratedMnemonic = useCallback(async () => {
     if (!mnemonic || !mnemonicConfirmed) {
       setMnemonicError("Please save and confirm your words before continuing.");
-      return;
+      return false;
     }
 
     try {
-      dispatch(setPrivateKeyPromiseAction.request({ mnemonic }));
+      await dispatch(setPrivateKeyPromiseAction.request({ mnemonic }));
       dispatch(settingsActions.setKeyWasImported(false));
       trackEvent("onboarding_key_saved", {
         method: "generated",
         outcome: "success",
       });
+      return true;
     } catch (error) {
       trackEvent("onboarding_key_saved", {
         method: "generated",
@@ -94,6 +95,7 @@ export default function OnboardingKeyScreen() {
       });
       console.error("Failed to save mnemonic", error);
       setMnemonicError("We could not set up this key. Please try again.");
+      return false;
     }
   }, [dispatch, mnemonic, mnemonicConfirmed]);
 
@@ -107,7 +109,8 @@ export default function OnboardingKeyScreen() {
 
   const goNext = useCallback(async () => {
     if (currentTab === "generate") {
-      await saveGeneratedMnemonic();
+      const saved = await saveGeneratedMnemonic();
+      if (!saved) return;
     }
 
     trackEvent("onboarding_key_completed", { method: currentTab });

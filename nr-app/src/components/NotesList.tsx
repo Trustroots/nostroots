@@ -1,11 +1,17 @@
+import { getCurrentTimestamp } from "@trustroots/nr-common";
 import { useAppSelector } from "@/redux/hooks";
 import { mapSelectors } from "@/redux/slices/map.slice";
 import { EventWithMetadata } from "@/redux/slices/events.slice";
+import {
+  hasGatheringEnded,
+  isGatheringEvent,
+} from "@/utils/event-gathering.utils";
 import { filterEventsForPlusCode } from "@/utils/map.utils";
 import { hasSignalTag, isEventExpired } from "@/utils/signal.utils";
 import { createSelector } from "@reduxjs/toolkit";
 import { useMemo } from "react";
 import { View } from "react-native";
+import EventChatCard from "./EventChatCard";
 import NotesSingle from "./NotesSingle";
 import { Text } from "./ui/text";
 
@@ -45,27 +51,37 @@ export function useNotesListData(plusCode: string) {
   );
   const allNotes = useAppSelector(selector);
 
-  const { signalCount, noteCount } = useMemo(() => {
-    let signals = 0;
-    let notes = 0;
+  const { signalCount, noteCount, gatheringCount } = useMemo(() => {
+    const now = getCurrentTimestamp();
+    let signalCount = 0;
+    let noteCount = 0;
+    let gatheringCount = 0;
     for (const { eventWithMetadata } of allNotes) {
-      if (hasSignalTag(eventWithMetadata.event)) {
-        signals++;
+      const { event } = eventWithMetadata;
+      if (isGatheringEvent(event)) {
+        if (!hasGatheringEnded(event, now)) gatheringCount++;
+      } else if (hasSignalTag(event)) {
+        signalCount++;
       } else {
-        notes++;
+        noteCount++;
       }
     }
-    return { signalCount: signals, noteCount: notes };
+    return { signalCount, noteCount, gatheringCount };
   }, [allNotes]);
 
-  return { allNotes, signalCount, noteCount };
+  return { allNotes, signalCount, noteCount, gatheringCount };
 }
 
 export function getNotesSummaryText(
   signalCount: number,
   noteCount: number,
+  gatheringCount: number,
 ): string | null {
   const parts: string[] = [];
+  if (gatheringCount > 0)
+    parts.push(
+      `${gatheringCount} upcoming event${gatheringCount !== 1 ? "s" : ""}`,
+    );
   if (signalCount > 0)
     parts.push(`${signalCount} signal${signalCount !== 1 ? "s" : ""}`);
   if (noteCount > 0)
@@ -94,14 +110,22 @@ export default function NotesList({
       )}
 
       {/* Messages — oldest first (chat order) */}
-      {allNotes.map(({ eventWithMetadata, isPlusCodeExact }) => (
-        <NotesSingle
-          key={eventWithMetadata.event.id}
-          eventWithMetadata={eventWithMetadata}
-          isSelected={eventWithMetadata.event.id === selectedEventId}
-          isPlusCodeExact={isPlusCodeExact}
-        />
-      ))}
+      {allNotes.map(({ eventWithMetadata, isPlusCodeExact }) =>
+        isGatheringEvent(eventWithMetadata.event) ? (
+          <EventChatCard
+            key={eventWithMetadata.event.id}
+            eventWithMetadata={eventWithMetadata}
+            isSelected={eventWithMetadata.event.id === selectedEventId}
+          />
+        ) : (
+          <NotesSingle
+            key={eventWithMetadata.event.id}
+            eventWithMetadata={eventWithMetadata}
+            isSelected={eventWithMetadata.event.id === selectedEventId}
+            isPlusCodeExact={isPlusCodeExact}
+          />
+        ),
+      )}
     </>
   );
 }

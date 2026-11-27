@@ -9,6 +9,7 @@ import {
 import { matchFilter, NostrEvent } from "nostr-tools";
 import OpenLocationCode from "open-location-code-typescript";
 import { urlJoin } from "url-join-ts";
+import { isGatheringEvent } from "./event-gathering.utils";
 import {
   isEventForPlusCodeExactly,
   isEventWithinThisPlusCode,
@@ -412,6 +413,16 @@ export function filterEventsForPlusCode(
       isEventWithinThisPlusCode(eventWithMetadata.event, plusCode),
   );
   return { eventsForPlusCodeExactly, eventsWithinPlusCode };
+}
+
+export function isEventInMapLayer(
+  event: NostrEvent,
+  layerKey: MAP_LAYER_KEY,
+): boolean {
+  if (layerKey === "trustroots" && isGatheringEvent(event)) {
+    return true;
+  }
+  return matchFilter(MAP_LAYERS[layerKey].filter, event);
 }
 
 export function getLayerForEvent(event: NostrEvent): MAP_LAYER_KEY {

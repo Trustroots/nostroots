@@ -14,6 +14,11 @@ jest.mock("nostr-tools", () => ({
   },
 }));
 
+const mockTrackEvent = jest.fn();
+jest.mock("@/services/analytics.service", () => ({
+  trackEvent: (...args: unknown[]) => mockTrackEvent(...args),
+}));
+
 const mockQueryProfile = jest.requireMock("nostr-tools").nip05
   .queryProfile as jest.Mock;
 
@@ -69,5 +74,42 @@ describe("OnboardingLinkScreen", () => {
       screen.getByText("Nostr key not found on this device."),
     ).toBeTruthy();
     expect(screen.getByText("Verify")).toBeDisabled();
+  });
+
+  describe.each([
+    { keyWasImported: false, method: "generated_key" },
+    { keyWasImported: true, method: "imported_key" },
+  ])("Finish after linking ($method)", ({ keyWasImported, method }) => {
+    it("goes straight home and tracks completion", async () => {
+      mockQueryProfile.mockResolvedValue({
+        pubkey: publicKeyHex,
+        relays: [],
+      });
+      const { router } = renderWithProviders(<OnboardingLinkScreen />, {
+        preloadedState: {
+          keystore: {
+            ...keystoreSlice.getInitialState(),
+            hasPrivateKeyHexInSecureStorage: true,
+            publicKeyHex,
+          },
+          settings: { ...settingsSlice.getInitialState(), keyWasImported },
+        },
+      });
+
+      fireEvent.changeText(
+        screen.getByPlaceholderText("Enter your Trustroots username"),
+        "alice",
+      );
+      fireEvent.press(screen.getByText("Verify"));
+      await screen.findByText("Linked");
+
+      fireEvent.press(screen.getByText("Finish"));
+
+      expect(router.replace).toHaveBeenCalledWith(ROUTES.HOME);
+      expect(router.push).not.toHaveBeenCalled();
+      expect(mockTrackEvent).toHaveBeenCalledWith("onboarding_completed", {
+        method,
+      });
+    });
   });
 });
